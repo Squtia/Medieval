@@ -1,0 +1,44 @@
+import { MapNode, NodeLevel, TerrainType, NodeFeature } from '../models/types';
+
+export const INITIAL_MAP_NODES: MapNode[] = [
+  // --- 灰燼之地 (原火山區，由瓦萊里烏斯家族統治) ---
+  { id: 'n_val_1', name: '鍛主之城', description: '瓦萊里烏斯的權力核心，由黑曜石砌成的堡壘。', x: 50, y: 80, population: 5000, prosperity: 600, nodeLevel: NodeLevel.CAPITAL, ownerFactionId: 'f_valerius', isPlayerBase: false, terrain: TerrainType.VOLCANO, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_val_2', name: '燼風前哨', description: '扼守灰燼之地邊界的第一道防線。', x: 45, y: 73, population: 100, prosperity: 150, nodeLevel: NodeLevel.CAMP, ownerFactionId: 'f_valerius', isPlayerBase: false, terrain: TerrainType.VOLCANO, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_val_3', name: '硫磺深淵', description: '不斷噴發有毒氣體的危險深坑。', x: 55, y: 75, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.VOLCANO, feature: NodeFeature.MONSTER_NEST },
+  { id: 'n_val_4', name: '燃鐵礦場', description: '奴隸與礦工日夜開採的巨型礦坑。', x: 42, y: 85, population: 800, prosperity: 250, nodeLevel: NodeLevel.VILLAGE, ownerFactionId: 'f_valerius', isPlayerBase: false, terrain: TerrainType.VOLCANO, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_val_5', name: '灼喉隘口', description: '充滿強盜與逃兵的險要隘口。', x: 48, y: 90, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.VOLCANO, feature: NodeFeature.SUBJUGATION },
+  { id: 'n_val_6', name: '黑曜石堡', description: '駐紮著重甲步兵的軍事要塞。', x: 58, y: 85, population: 2000, prosperity: 400, nodeLevel: NodeLevel.TOWN, ownerFactionId: 'f_valerius', isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE },
+
+  // --- 霜落邊疆 (原雪山區，由莫凡恩家族統治) ---
+  { id: 'n_mor_1', name: '蒼白王座', description: '莫凡恩家族的族長宅邸，位於永凍山巔。', x: 65, y: 15, population: 4000, prosperity: 550, nodeLevel: NodeLevel.CAPITAL, ownerFactionId: 'f_morvayn', isPlayerBase: false, terrain: TerrainType.SNOW_MOUNTAIN, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_mor_2', name: '無光修道院', description: '舉行古老血脈儀式的隱秘之地。', x: 55, y: 12, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: 'f_morvayn', isPlayerBase: false, terrain: TerrainType.SNOW_MOUNTAIN, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_mor_3', name: '碎冰灣', description: '漁民在破冰後捕撈深海盲魚的村落。', x: 72, y: 25, population: 600, prosperity: 220, nodeLevel: NodeLevel.VILLAGE, ownerFactionId: 'f_morvayn', isPlayerBase: false, terrain: TerrainType.SNOW_MOUNTAIN, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_mor_4', name: '凜冬要塞', description: '防禦北方不明威脅的巨大堡壘。', x: 85, y: 20, population: 2500, prosperity: 450, nodeLevel: NodeLevel.TOWN, ownerFactionId: 'f_morvayn', isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_mor_5', name: '飢餓冰窟', description: '傳聞中曾發生駭人慘劇的地下冰穴。', x: 60, y: 28, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.SNOW_MOUNTAIN, feature: NodeFeature.MONSTER_NEST },
+
+  // --- 泣血林地 (原森林區，由萊桑德家族統治) ---
+  { id: 'n_lys_1', name: '王冠樹海', description: '萊桑德家族的中心，隱藏在帶刺藤蔓後的宮殿。', x: 25, y: 45, population: 3000, prosperity: 500, nodeLevel: NodeLevel.CAPITAL, ownerFactionId: 'f_lysander', isPlayerBase: false, terrain: TerrainType.FOREST, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_lys_2', name: '荊棘谷', description: '滿佈毒蛇與有毒植物的險惡小鎮。', x: 20, y: 35, population: 1500, prosperity: 350, nodeLevel: NodeLevel.TOWN, ownerFactionId: 'f_lysander', isPlayerBase: false, terrain: TerrainType.FOREST, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_lys_3', name: '暗鴉村', description: '由刺客與情報販子組成的偽裝村落。', x: 35, y: 60, population: 500, prosperity: 200, nodeLevel: NodeLevel.VILLAGE, ownerFactionId: 'f_lysander', isPlayerBase: false, terrain: TerrainType.FOREST, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_lys_4', name: '幻毒沼澤', description: '會散發致幻氣體的天然屏障。', x: 12, y: 40, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.FOREST, feature: NodeFeature.MONSTER_NEST },
+
+  // --- 焦枯荒原 (原沙漠區，由卡西恩聯盟統治) ---
+  { id: 'n_cas_1', name: '黃金渡口', description: '卡西恩商會的總部，奢華無比的貿易樞紐。', x: 80, y: 75, population: 2800, prosperity: 480, nodeLevel: NodeLevel.CAPITAL, ownerFactionId: 'f_cassian', isPlayerBase: false, terrain: TerrainType.DESERT, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_cas_2', name: '赤砂城', description: '因開採特殊赤礦而崛起的傭兵城市。', x: 75, y: 85, population: 1200, prosperity: 300, nodeLevel: NodeLevel.TOWN, ownerFactionId: 'f_cassian', isPlayerBase: false, terrain: TerrainType.DESERT, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_cas_3', name: '沉寂沙城', description: '被流沙吞噬的古老遺跡。', x: 90, y: 80, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.DESERT, feature: NodeFeature.MONSTER_NEST },
+  { id: 'n_cas_4', name: '枯骨綠洲', description: '只有黑市商人才知道的隱秘水源。', x: 70, y: 65, population: 150, prosperity: 150, nodeLevel: NodeLevel.CAMP, ownerFactionId: 'f_cassian', isPlayerBase: false, terrain: TerrainType.DESERT, feature: NodeFeature.OCCUPIABLE },
+
+  // --- 王權與特權階級 (中央/特殊區) ---
+  { id: 'n_royal_1', name: '舊王都 永恆之城', description: '曾經輝煌無比，如今卻顯得頹敗的皇權象徵。', x: 50, y: 40, population: 8000, prosperity: 900, nodeLevel: NodeLevel.CAPITAL, ownerFactionId: 'f_royal', isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_adv_1', name: '學士塔', description: '培提爾樞密院的知識與情報中心。', x: 52, y: 38, population: 400, prosperity: 300, nodeLevel: NodeLevel.TOWN, ownerFactionId: 'f_advisor', isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE },
+
+  // --- 小家族與中立區 ---
+  { id: 'n_oak_1', name: '橡木谷', description: '與世無爭的小村莊，保存著古老的農耕技術。', x: 30, y: 25, population: 200, prosperity: 160, nodeLevel: NodeLevel.VILLAGE, ownerFactionId: 'f_oakhaven', isPlayerBase: false, terrain: TerrainType.FOREST, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_blk_1', name: '黑木崗哨', description: '黑木守衛駐紮的破舊碉堡。', x: 60, y: 55, population: 100, prosperity: 80, nodeLevel: NodeLevel.CAMP, ownerFactionId: 'f_blackwood', isPlayerBase: false, terrain: TerrainType.FOREST, feature: NodeFeature.OCCUPIABLE },
+  
+  // --- 荒野與無主之地 ---
+  { id: 'n_wild_1', name: '嘆息平原', description: '過去的古戰場，無數冤魂徘徊於此。', x: 40, y: 50, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.SUBJUGATION },
+  { id: 'n_wild_2', name: '十字路口旅店', description: '形形色色的人們在此歇腳與交換情報。', x: 35, y: 45, population: 100, prosperity: 100, nodeLevel: NodeLevel.CAMP, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE },
+  { id: 'n_wild_3', name: '染血的丘陵', description: '盜匪盤踞的三不管地帶。', x: 45, y: 30, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.SUBJUGATION },
+  { id: 'n_wild_4', name: '無名塚', description: '埋葬著無法辨識身份的戰死者。', x: 65, y: 35, population: 0, prosperity: 0, nodeLevel: NodeLevel.WILDERNESS, ownerFactionId: null, isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE }
+];

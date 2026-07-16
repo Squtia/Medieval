@@ -1,0 +1,64 @@
+import { Adventurer } from '../models/Adventurer';
+import { Territory } from '../models/Territory';
+import { DispatchSystem } from '../systems/DispatchSystem';
+import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
+import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature } from '../models/types';
+import { DataStore } from '../systems/DataStore';
+import { NameGenerator } from '../systems/NameGenerator';
+import { INITIAL_FACTIONS } from '../data/FactionData';
+import { INITIAL_MAP_NODES } from '../data/MapData';
+import { SettlementSystem } from '../systems/SettlementSystem';
+import { HeroSystem } from '../systems/HeroSystem';
+import { CombatSystem } from '../systems/CombatSystem';
+import { ThreatSystem } from '../systems/ThreatSystem';
+
+export const factions: Faction[] = INITIAL_FACTIONS;
+export const mapNodes: MapNode[] = INITIAL_MAP_NODES;
+
+export const GameState = {
+  currentViewNode: null as MapNode | null,
+  myTerritory: new Territory('流浪傭兵團', null),
+  system: null as unknown as DispatchSystem,
+  mapSystem: null as unknown as MapDynamicsSystem,
+  adventurers: [] as Adventurer[],
+  playTime: 0,
+  sessionStartTime: Date.now(),
+  currentSaveSlot: null as number | null
+};
+
+export function initGameState() {
+  GameState.myTerritory = new Territory('流浪傭兵團', null);
+  GameState.myTerritory.gold = 500;
+  GameState.adventurers = [];
+  GameState.system = new DispatchSystem(GameState.myTerritory);
+  GameState.mapSystem = new MapDynamicsSystem(JSON.parse(JSON.stringify(mapNodes)), JSON.parse(JSON.stringify(factions)));
+  GameState.playTime = 0;
+  GameState.sessionStartTime = Date.now();
+  GameState.currentSaveSlot = null;
+  
+  // 初始化 EventBus 關聯的新系統
+  new SettlementSystem();
+  new HeroSystem();
+  new CombatSystem();
+  new ThreatSystem();
+
+  GameState.adventurers.push(
+    new Adventurer('p1', NameGenerator.generateFullName(), DataStore.JobDB.WARRIOR, DataStore.TraitDB.LOYAL),
+    new Adventurer('p2', NameGenerator.generateFullName(), DataStore.JobDB.MAGE, DataStore.TraitDB.SCHOLAR)
+  );
+
+  const startWpn = DataStore.getEquipmentTemplate('wpn_iron_sword');
+  if (startWpn) {
+    const eq = {
+      uuid: 'eq_start_01', id: startWpn.id, name: startWpn.name, slot: startWpn.slot, icon: startWpn.icon,
+      enhancementLevel: 0, requirements: {...startWpn.baseRequirements}, effects: {...startWpn.baseEffects}, combatEffects: {...startWpn.baseCombatEffects}
+    };
+    try {
+      GameState.adventurers[0].equip(eq);
+    } catch (e: any) {
+      console.error(e.message);
+    }
+  }
+
+  console.log('[系統] ⚔️ 遊戲啟動：您的冒險在 ' + GameState.myTerritory.name + ' 開始了。');
+}
