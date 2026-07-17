@@ -64,25 +64,28 @@ export function renderMap() {
     const label = document.createElement('div');
     label.className = 'node-label';
     
-    // 依據是否偵查顯示不同精簡資訊
-    let labelText = `${getTerrainEmoji(node.terrain)} ${node.name}`;
+    // 節點標籤只顯示名稱與圖示
+    label.textContent = `${getTerrainEmoji(node.terrain)} ${node.name}`;
+    el.appendChild(label);
+
+    // 建立懸浮提示 (Tooltip) 資訊
+    let tooltipText = `【${node.name}】`;
     if (node.isPlayerBase) {
-      labelText += '\n[我的據點]';
+      tooltipText += '\n我的據點';
     } else if (node.ownerFactionId) {
       const f = GameState.mapSystem.getFactions().find(fac => fac.id === node.ownerFactionId);
-      labelText += `\n[${f ? f.factionName : '未知'}]`;
+      tooltipText += `\n歸屬：${f ? f.factionName : '未知'}`;
     } else {
-      labelText += '\n[無主之地]';
+      tooltipText += '\n無主之地';
     }
     
     if (!node.isScouted && !node.isPlayerBase) {
-      labelText += '\n(未偵查)';
+      tooltipText += '\n狀態：未偵查';
     } else if (node.scoutData) {
-      labelText += `\n危險度: ${node.scoutData.dangerLevel}`;
+      tooltipText += `\n危險度：${node.scoutData.dangerLevel}`;
     }
     
-    label.textContent = labelText;
-    el.appendChild(label);
+    el.dataset.tooltip = tooltipText;
 
     el.addEventListener('click', (e) => {
       e.stopPropagation(); // 防止點擊空白處的事件觸發
