@@ -525,6 +525,56 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
 
   const routeNodes = plannedRouteNodeIds.map(id => mapSystem.getNodeById(id)).filter(n => n !== undefined) as MapNode[];
 
+  // 宣告動態預計數值計算函數
+  const updateExpected = () => {
+    let totalCost = 0;
+    let totalWeight = 0;
+
+    routeNodes.forEach(node => {
+      const buySelect = document.getElementById(`buy-select-${node.id}`) as HTMLSelectElement;
+      const buyAmount = document.getElementById(`buy-amount-${node.id}`) as HTMLInputElement;
+      if (buySelect && buyAmount) {
+        const goodId = buySelect.value;
+        const amount = parseInt(buyAmount.value) || 0;
+        if (goodId && amount > 0) {
+          const marketGood = node.marketData?.goods.find(g => g.goodId === goodId);
+          if (marketGood) {
+            totalCost += marketGood.buyPrice * amount;
+          }
+          totalWeight += amount;
+        }
+      }
+    });
+
+    const costText = document.getElementById('trade-planner-expected-cost')!;
+    const weightText = document.getElementById('trade-planner-expected-weight')!;
+    
+    // 獲取當前指派護衛的最大載重
+    let totalCapacity = 0;
+    GameState.adventurers.forEach(adv => {
+      if (selectedAdventurersForCaravan.has(adv.id)) {
+        totalCapacity += adv.getTradeStats().maxCargoWeight;
+      }
+    });
+
+    costText.textContent = `預計買入總金額: ${totalCost} 金幣`;
+    const inputGold = parseInt(goldInput.value) || 0;
+    if (totalCost > inputGold) {
+      costText.style.color = '#ef4444';
+      costText.textContent += ` (超額本金！)`;
+    } else {
+      costText.style.color = '#3b82f6';
+    }
+
+    weightText.textContent = `預計買入總重量: ${totalWeight}`;
+    if (totalWeight > totalCapacity) {
+      weightText.style.color = '#ef4444';
+      weightText.textContent += ` (超重！)`;
+    } else {
+      weightText.style.color = '#10b981';
+    }
+  };
+
   routeNodes.forEach((node, index) => {
     const nodeEl = document.createElement('div');
     nodeEl.style.marginBottom = '15px';
@@ -563,6 +613,17 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     container.appendChild(nodeEl);
   });
 
+  // 綁定指令設定與本金變更事件
+  routeNodes.forEach(node => {
+    const buySelect = document.getElementById(`buy-select-${node.id}`) as HTMLSelectElement;
+    const buyAmount = document.getElementById(`buy-amount-${node.id}`) as HTMLInputElement;
+    if (buySelect && buyAmount) {
+      buySelect.addEventListener('change', updateExpected);
+      buyAmount.addEventListener('input', updateExpected);
+    }
+  });
+  goldInput.addEventListener('input', updateExpected);
+
   const renderAdvList = () => {
     const advListContainer = document.getElementById('trade-planner-adv-list')!;
     advListContainer.innerHTML = '';
@@ -576,6 +637,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
       }
     });
     capacityText.textContent = `商隊最大載重量: ${totalCapacity}`;
+    updateExpected(); // 護衛變動時重新計算
 
     idleAdvs.forEach(adv => {
       const card = document.createElement('div');
@@ -601,6 +663,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
   };
 
   renderAdvList();
+  updateExpected(); // 初始化預計金額與重量
 
   const handleStart = () => {
     const activeCaravansCount = GameState.system.getActiveMissions().filter(m => m.task.type === TaskType.TRADE).length;

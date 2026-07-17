@@ -543,6 +543,7 @@
       background: rgba(40, 40, 40, 0.9);
       border-color: #ebdcb6;
       transform: translateY(-2px);
+      z-index: 9999;
     }
     .adventurer-card.guardian {
       border-color: #eab308;
@@ -636,13 +637,23 @@
         <!-- 動態生成各節點設定 -->
       </div>
       
-      <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(0,0,0,0.5); padding: 10px;">
-        <div style="flex: 1;">
-          <label>💰 投入商隊本金：</label>
-          <input type="number" id="trade-planner-gold" value="500" style="width: 100px; padding: 5px;" min="0">
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px;">
+        <div style="display: flex; gap: 20px; align-items: center;">
+          <div style="flex: 1;">
+            <label>💰 投入商隊本金：</label>
+            <input type="number" id="trade-planner-gold" value="500" style="width: 100px; padding: 5px;" min="0">
+          </div>
+          <div style="flex: 1;">
+            <p id="trade-planner-capacity" style="color: #eab308; font-weight: bold; margin: 0;">商隊最大載重量: 0</p>
+          </div>
         </div>
-        <div style="flex: 1;">
-          <p id="trade-planner-capacity" style="color: #eab308; font-weight: bold;">商隊最大載重量: 0</p>
+        <div style="display: flex; gap: 20px; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+          <div style="flex: 1;">
+            <p id="trade-planner-expected-cost" style="color: #3b82f6; font-weight: bold; margin: 0;">預計買入總金額: 0 金幣</p>
+          </div>
+          <div style="flex: 1;">
+            <p id="trade-planner-expected-weight" style="color: #10b981; font-weight: bold; margin: 0;">預計買入總重量: 0</p>
+          </div>
         </div>
       </div>
 
