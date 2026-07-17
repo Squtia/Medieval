@@ -8,6 +8,7 @@ import { SettlementSystem } from '../systems/SettlementSystem';
 import { HeroSystem } from '../systems/HeroSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { ThreatSystem } from '../systems/ThreatSystem';
+import { MarketSystem } from '../systems/MarketSystem';
 
 export interface SaveSlotMetadata {
   slot: number;
@@ -141,6 +142,9 @@ export class SaveManager {
       }
       
       GameState.currentSaveSlot = slot;
+
+      // 成功載入後，確保市場資料有被初始化 (相容舊存檔)
+      MarketSystem.updateMarkets(GameState.mapSystem.getNodes(), GameState.totalDays);
 
       // 成功載入不需使用 console.log 印出以免污染遊戲日誌
       return true;

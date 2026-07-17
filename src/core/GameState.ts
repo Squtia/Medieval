@@ -12,6 +12,7 @@ import { HeroSystem } from '../systems/HeroSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { ThreatSystem } from '../systems/ThreatSystem';
 import { MapGenerator } from '../systems/MapGenerator';
+import { MarketSystem } from '../systems/MarketSystem';
 import { EventBus } from './EventBus';
 
 export const factions: Faction[] = INITIAL_FACTIONS;
@@ -80,6 +81,9 @@ export function initGameState() {
       console.error(e.message);
     }
   }
+
+  // 初始化所有節點的市場資料
+  MarketSystem.updateMarkets(GameState.mapSystem.getNodes(), GameState.totalDays);
 
   console.log('[系統] ⚔️ 遊戲啟動：您的冒險在 ' + GameState.myTerritory.name + ' 開始了。');
 }
