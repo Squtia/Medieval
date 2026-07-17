@@ -146,6 +146,7 @@ class UIManagerClass {
         card.innerHTML = `
           <div class="adv-avatar">${avatarIcon}</div>
           <div class="adv-name">${adv.name}</div>
+          <div class="adv-level">Lv.${adv.level}</div>
         `;
         
         card.addEventListener('click', () => openAdvDetail(adv));

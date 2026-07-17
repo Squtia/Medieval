@@ -278,9 +278,10 @@
     
     /* 帝國儀表板特殊元件 */
     .adv-cards-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 5px 0;
     }
     
     .scene-menu {
@@ -522,17 +523,19 @@
 
     .adventurer-card {
       position: relative;
-      width: 70px;
-      height: 70px;
+      width: 64px;
+      height: 80px;
       background: rgba(20, 20, 20, 0.8);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      padding-top: 8px;
       transition: all 0.2s ease;
       overflow: visible;
+      cursor: pointer;
     }
     .adventurer-card:hover {
       background: rgba(40, 40, 40, 0.9);
@@ -549,12 +552,17 @@
     }
     .adventurer-card .adv-name {
       font-size: 11px;
-      margin-top: 4px;
+      margin-top: 6px;
       color: #ebdcb6;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 90%;
+    }
+    .adventurer-card .adv-level {
+      font-size: 9px;
+      color: #9ca3af;
+      margin-top: 2px;
     }
     
     /* Adventurer Tooltip */
