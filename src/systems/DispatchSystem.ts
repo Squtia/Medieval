@@ -357,4 +357,8 @@ export class DispatchSystem {
   public getActiveMissionsCount(): number {
     return this.activeMissions.length;
   }
+
+  public getActiveMissions(): ActiveMission[] {
+    return this.activeMissions;
+  }
 }

@@ -105,6 +105,15 @@
       font-family: 'Cinzel', serif;
       font-weight: bold;
     }
+    /* 商路流光動畫 */
+    @keyframes tradeRouteFlowAnim {
+      to {
+        stroke-dashoffset: -20;
+      }
+    }
+    .trade-route-flow {
+      animation: tradeRouteFlowAnim 1.2s linear infinite;
+    }
     /* 地圖全域 Tooltip - 由 JS 控制，不用 ::after 避免被其他節點蓋住 */
     #map-tooltip {
       position: fixed;

@@ -1,8 +1,9 @@
 import { GameState } from '../core/GameState';
-import { TerrainType, NodeFeature, MapNode, NodeLevel } from '../models/types';
+import { TerrainType, NodeFeature, MapNode, NodeLevel, getMaxCaravansLimit } from '../models/types';
 import { enterScene } from './SceneController';
 import { UIManager } from './UIManager';
 import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
+import { TaskType } from '../models/DispatchTask';
 
 export function getTerrainEmoji(terrain: TerrainType): string {
   switch(terrain) {
@@ -161,6 +162,105 @@ export function renderMap() {
     closeRadialMenu();
     closeNodeDetailPanel();
   });
+
+  renderTradeRoutes();
+}
+
+function getHashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return Math.abs(hash);
+}
+
+export function renderTradeRoutes() {
+  const container = document.getElementById('map-nodes-container');
+  if (!container) return;
+
+  // 獲取或創建 SVG 容器
+  let svg = document.getElementById('trade-routes-svg') as unknown as SVGElement;
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('id', 'trade-routes-svg');
+    svg.setAttribute('style', 'position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;');
+    container.appendChild(svg);
+  }
+  svg.innerHTML = ''; // 清空舊的線條
+
+  const playerNode = GameState.mapSystem.getNodes().find(n => n.isPlayerBase);
+  if (!playerNode) return;
+
+  const activeMissions = GameState.system.getActiveMissions().filter(m => m.task.type === TaskType.TRADE);
+
+  activeMissions.forEach(mission => {
+    const routeIds = mission.task.tradeRouteNodeIds || [];
+    if (routeIds.length === 0) return;
+
+    // 組裝完整的節點路徑：據點 -> 中途站1 -> 中途站2 -> ... -> 據點
+    const nodesPath: MapNode[] = [];
+    nodesPath.push(playerNode);
+    routeIds.forEach(id => {
+      const n = GameState.mapSystem.getNodeById(id);
+      if (n) nodesPath.push(n);
+    });
+    nodesPath.push(playerNode); // 返回據點
+
+    // 繪製路徑
+    for (let i = 0; i < nodesPath.length - 1; i++) {
+      const startNode = nodesPath[i];
+      const endNode = nodesPath[i+1];
+
+      const x1 = startNode.x;
+      const y1 = startNode.y;
+      const x2 = endNode.x;
+      const y2 = endNode.y;
+
+      const midX = (x1 + x2) / 2;
+      const midY = (y1 + y2) / 2;
+
+      // 使用 Hash 使連線彎曲隨機且完全固定
+      const hash = getHashString(startNode.id + endNode.id);
+      const offsetMultiplier = 3 + (hash % 5); // 隨機偏離 3% ~ 7%
+      const isPositive = (hash % 2 === 0) ? 1 : -1;
+
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      let controlX = midX;
+      let controlY = midY;
+
+      if (len > 0) {
+        const nx = -dy / len;
+        const ny = dx / len;
+        controlX = midX + nx * offsetMultiplier * isPositive;
+        controlY = midY + ny * offsetMultiplier * isPositive;
+      }
+
+      const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const dAttribute = `M ${x1}% ${y1}% Q ${controlX}% ${controlY}% ${x2}% ${y2}%`;
+      pathEl.setAttribute('d', dAttribute);
+      pathEl.setAttribute('fill', 'none');
+      pathEl.setAttribute('stroke-linecap', 'round');
+
+      // 判斷是否為當前正在前往的線段
+      const isCurrentSegment = (mission.task.currentRouteIndex !== undefined && i === mission.task.currentRouteIndex);
+
+      if (isCurrentSegment) {
+        pathEl.setAttribute('stroke', '#eab308'); // 亮黃色
+        pathEl.setAttribute('stroke-width', '4');
+        pathEl.setAttribute('stroke-dasharray', '6, 6');
+        pathEl.setAttribute('class', 'trade-route-flow');
+        pathEl.setAttribute('filter', 'drop-shadow(0px 0px 6px #eab308)');
+      } else {
+        pathEl.setAttribute('stroke', 'rgba(148, 163, 184, 0.4)'); // 半透明灰色
+        pathEl.setAttribute('stroke-width', '2');
+        pathEl.setAttribute('stroke-dasharray', '8, 8');
+      }
+
+      svg.appendChild(pathEl);
+    }
+  });
 }
 
 export let isStartupMode = false;
@@ -177,6 +277,13 @@ export let isRoutePlanningMode = false;
 export let plannedRouteNodeIds: string[] = [];
 
 export function startRoutePlanning(startNode?: MapNode) {
+  const activeCaravansCount = GameState.system.getActiveMissions().filter(m => m.task.type === TaskType.TRADE).length;
+  const maxAllowed = getMaxCaravansLimit(GameState.myTerritory.title);
+  if (activeCaravansCount >= maxAllowed) {
+    alert(`行商序列已達上限！當前爵位【${GameState.myTerritory.title}】最多同時派遣 ${maxAllowed} 個商隊。`);
+    return;
+  }
+
   isRoutePlanningMode = true;
   // 若有傳入起始節點（從市場規劃路線），預填第一站；否則（從書房建立商隊）讓玩家自由選擇
   plannedRouteNodeIds = startNode ? [startNode.id] : [];

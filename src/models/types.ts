@@ -22,6 +22,23 @@ export enum NobleTitle {
 }
 
 /**
+ * 根據爵位獲取最大商隊派遣數量上限
+ * TODO: 往後若需修改行商序列數量與爵位相關的限制，請修改此處的對應關係
+ */
+export function getMaxCaravansLimit(title: NobleTitle): number {
+  switch (title) {
+    case NobleTitle.COMMONER: return 1;
+    case NobleTitle.KNIGHT: return 1;
+    case NobleTitle.BARON: return 2;
+    case NobleTitle.VISCOUNT: return 2;
+    case NobleTitle.COUNT: return 3;
+    case NobleTitle.MARQUIS: return 4;
+    case NobleTitle.DUKE: return 5;
+    default: return 1;
+  }
+}
+
+/**
  * 勞動力分配職業
  */
 export enum WorkerJob {

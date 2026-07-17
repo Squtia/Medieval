@@ -201,6 +201,9 @@ class UIManagerClass {
       // 世界資訊
       this.infoFactions.textContent = GameState.mapSystem?.getFactions().length.toString() || '0';
       this.infoNodes.textContent = GameState.mapSystem?.getNodes().length.toString() || '0';
+
+      // 重新繪製活躍商隊商路連線
+      import('./MapController').then(m => m.renderTradeRoutes());
     } else if (document.getElementById('scene-view')?.classList.contains('active')) {
       if (sharedRightPanel) sharedRightPanel.style.display = 'flex';
       if (sceneDashboard) sceneDashboard.style.display = 'flex';

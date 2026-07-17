@@ -1,5 +1,5 @@
 import { Adventurer } from '../models/Adventurer';
-import { EquipmentSlot, MapNode, NodeLevel, AdventurerState } from '../models/types';
+import { EquipmentSlot, MapNode, NodeLevel, AdventurerState, getMaxCaravansLimit } from '../models/types';
 import { GameState } from '../core/GameState';
 import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { UIManager } from './UIManager';
@@ -603,6 +603,13 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
   renderAdvList();
 
   const handleStart = () => {
+    const activeCaravansCount = GameState.system.getActiveMissions().filter(m => m.task.type === TaskType.TRADE).length;
+    const maxAllowed = getMaxCaravansLimit(GameState.myTerritory.title);
+    if (activeCaravansCount >= maxAllowed) {
+      alert(`行商序列已達上限！當前爵位【${GameState.myTerritory.title}】最多同時派遣 ${maxAllowed} 個商隊。`);
+      return;
+    }
+
     if (selectedAdventurersForCaravan.size === 0) {
       alert('請至少指派一名冒險者來帶領商隊！');
       return;
