@@ -36,7 +36,7 @@ export const GameState = {
 
 export function initGameState() {
   GameState.myTerritory = new Territory('流浪傭兵團', null);
-  GameState.myTerritory.gold = 500;
+  GameState.myTerritory.gold = 100000;
   GameState.adventurers = [];
   GameState.system = new DispatchSystem(GameState.myTerritory);
   
