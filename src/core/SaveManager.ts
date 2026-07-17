@@ -57,6 +57,7 @@ export class SaveManager {
       playTime: currentPlayTime,
       territory: GameState.myTerritory,
       adventurers: GameState.adventurers,
+      activeMissions: GameState.system ? GameState.system.getActiveMissions() : [],
       factions: GameState.mapSystem.getFactions(),
       mapNodes: GameState.mapSystem.getNodes(),
       currentDay: GameState.currentDay,
@@ -102,6 +103,9 @@ export class SaveManager {
       // 先清除舊的 EventBus 訂閱，避免讀檔後系統被訂閱多次
       EventBus.getInstance().clearAll();
       GameState.system = new DispatchSystem(GameState.myTerritory);
+      if (data.activeMissions) {
+        GameState.system.loadActiveMissions(data.activeMissions);
+      }
       GameState.mapSystem = new MapDynamicsSystem(data.mapNodes, data.factions);
       new SettlementSystem();
       new HeroSystem();

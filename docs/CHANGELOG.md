@@ -1,3 +1,12 @@
+## [2026-07-18] 修復存讀檔後商隊活躍任務丟失與冒險者卡死 ON_MISSION 狀態的 Bug
+
+- **活躍任務存讀檔反序列化修復**：
+  - *根本原因*：原本的 `SaveManager` 在儲存時並未將 `GameState.system` (即 `DispatchSystem`) 內部的 `activeMissions` 寫入 localStorage，導致讀檔後該列表被初始化為空。但冒險者的 `ON_MISSION` 狀態卻被存了下來，導致讀檔後沒有任務可執行，冒險者永遠「卡死」在派遣狀態無法召回。
+  - *修復方式*：
+    1. 在 `SaveManager.saveGame` 中將活躍任務列表 `activeMissions` 儲存進存檔中。
+    2. 在 `DispatchSystem.ts` 內新增 `loadActiveMissions()` 還原方法，其根據儲存的冒險者 ID，將任務中的冒險者 Reference 重新映射對應回全域已經加載的冒險者實體上，保證資料參考一致。
+    3. 在 `SaveManager.loadGame` 還原系統時呼叫該方法，實現活躍任務與跑商路線在重載存檔後的無縫還原。
+
 ## [2026-07-18] 冒險者卡片 Tooltip 遮擋修復與商隊預估數值顯示
 
 - **冒險者 Tooltip 層級修復**：修正懸停在冒險者卡片上時，Tooltip 資訊會被右側相鄰卡片遮蓋的問題。藉由在 `.adventurer-card:hover` CSS 中新增 `z-index: 9999;`，使懸停卡片及其子元素在 hover 瞬間自動提升至最上層。

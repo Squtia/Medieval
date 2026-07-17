@@ -361,4 +361,34 @@ export class DispatchSystem {
   public getActiveMissions(): ActiveMission[] {
     return this.activeMissions;
   }
+
+  public loadActiveMissions(rawMissions: any[]): void {
+    this.activeMissions = rawMissions.map((raw: any) => {
+      // 1. 根據 ID 還原冒險者實體（對應到已加載的 GameState.adventurers）
+      const advs = (raw.adventurers || []).map((advRaw: any) => {
+        return GameState.adventurers.find(a => a.id === advRaw.id);
+      }).filter((a): a is Adventurer => a !== undefined);
+
+      // 2. 還原 DispatchTask
+      const tData = raw.task;
+      const task = new DispatchTask(
+        tData.name,
+        tData.type,
+        tData.requiredDays,
+        tData.baseDifficulty,
+        tData.expectedGold,
+        tData.expectedPrestige,
+        tData.minPowerRequired,
+        tData.enemyFeature
+      );
+      Object.assign(task, tData);
+
+      // 3. 還原 ActiveMission 物件
+      return {
+        adventurers: advs,
+        task: task,
+        remainingDays: raw.remainingDays
+      };
+    });
+  }
 }
