@@ -568,6 +568,10 @@ export function closeNodeDetailPanel() {
   if (panel) {
     panel.style.display = 'none';
   }
+  const mapInfoPanel = document.getElementById('map-info-panel');
+  if (mapInfoPanel) {
+    mapInfoPanel.style.display = 'flex'; // 預設為 flex，還原顯示
+  }
 }
 
 export function openNodeDetailPanel(node: MapNode) {
