@@ -16,7 +16,6 @@ export function startGameLoop(updateUICallback: () => void) {
   (window as any).autoSaveLoop = setInterval(() => {
     if (GameState.currentSaveSlot !== null) {
       SaveManager.saveGame(GameState.currentSaveSlot);
-      console.log(`[系統] 🔄 背景自動儲存完畢 (欄位 ${GameState.currentSaveSlot})`);
     }
   }, 60000);
 }

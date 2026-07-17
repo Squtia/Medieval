@@ -79,7 +79,10 @@ export function renderMap() {
       tooltipText += '\n無主之地';
     }
     
-    if (!node.isScouted && !node.isPlayerBase) {
+    const playerNode = GameState.mapSystem.getNodes().find(n => n.isPlayerBase);
+    const isSameFaction = playerNode?.ownerFactionId && playerNode.ownerFactionId === node.ownerFactionId;
+    
+    if (!node.isScouted && !node.isPlayerBase && !isSameFaction) {
       tooltipText += '\n狀態：未偵查';
     } else if (node.scoutData) {
       tooltipText += `\n危險度：${node.scoutData.dangerLevel}`;

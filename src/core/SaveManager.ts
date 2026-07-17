@@ -61,7 +61,7 @@ export class SaveManager {
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
-    console.log(`[系統] 遊戲已儲存至欄位 ${slot}`);
+    // 儲存時不再使用 console.log 印出以免污染遊戲日誌
   }
 
   public static deleteGame(slot: number): void {
@@ -127,7 +127,18 @@ export class SaveManager {
       
       GameState.currentSaveSlot = slot;
 
-      console.log(`[系統] 已成功從欄位 ${slot} 載入遊戲`);
+      // 5. 清除日誌並還原介面
+      const logContainer = document.getElementById('game-log');
+      if (logContainer) logContainer.innerHTML = '';
+      const mapLogContainer = document.getElementById('map-log-container');
+      if (mapLogContainer) mapLogContainer.innerHTML = '';
+      
+      updateResourcesUI();
+      updatePopulationUI();
+      updateDateUI();
+      renderMap();
+      
+      // 成功載入不需使用 console.log 印出以免污染遊戲日誌
       return true;
     } catch (e) {
       console.error('Failed to load save file:', e);
