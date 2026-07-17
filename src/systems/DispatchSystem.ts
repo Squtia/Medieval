@@ -166,7 +166,10 @@ export class DispatchSystem {
                      task.caravanGold! += goldGained;
                      task.caravanCargo![sellGoodId] = 0;
                      totalCargoWeight -= amountToSell;
-                     console.log(`💰 [商隊交易] 在 ${currentNode.name} 賣出了 ${amountToSell} 單位 ${sellGoodId}，獲得 ${goldGained} 金幣。`);
+                     
+                     const goodRef = TRADE_GOODS.find(g => g.id === sellGoodId);
+                     const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : sellGoodId;
+                     console.log(`💰 [商隊交易] 在 ${currentNode.name} 賣出了 ${amountToSell} 單位 ${goodName}，獲得 ${goldGained} 金幣。`);
                  }
              }
          }
@@ -179,15 +182,18 @@ export class DispatchSystem {
                  const capacityLeft = totalCapacity - totalCargoWeight;
                  const buyAmount = Math.min(buyItem.maxAmount, marketItem.stock, affordableAmount, capacityLeft);
                  
+                 const goodRef = TRADE_GOODS.find(g => g.id === buyItem.goodId);
+                 const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : buyItem.goodId;
+
                  if (buyAmount > 0) {
                      task.caravanGold! -= buyPrice * buyAmount;
                      task.caravanCargo![buyItem.goodId] = (task.caravanCargo![buyItem.goodId] || 0) + buyAmount;
                      totalCargoWeight += buyAmount;
                      marketItem.stock -= buyAmount;
-                     console.log(`🛒 [商隊交易] 在 ${currentNode.name} 買入了 ${buyAmount} 單位 ${buyItem.goodId}，花費 ${buyPrice * buyAmount} 金幣。`);
+                     console.log(`🛒 [商隊交易] 在 ${currentNode.name} 買入了 ${buyAmount} 單位 ${goodName}，花費 ${buyPrice * buyAmount} 金幣。`);
                  } else {
-                     if (affordableAmount <= 0) console.log(`❌ [商隊交易] 在 ${currentNode.name} 資金不足，無法購買 ${buyItem.goodId}。`);
-                     else if (capacityLeft <= 0) console.log(`📦 [商隊交易] 在 ${currentNode.name} 馬車已滿，無法裝載 ${buyItem.goodId}。`);
+                     if (affordableAmount <= 0) console.log(`❌ [商隊交易] 在 ${currentNode.name} 資金不足，無法購買 ${goodName}。`);
+                     else if (capacityLeft <= 0) console.log(`📦 [商隊交易] 在 ${currentNode.name} 馬車已滿，無法裝載 ${goodName}。`);
                  }
              }
          }
