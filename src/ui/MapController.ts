@@ -94,7 +94,39 @@ export function renderMap() {
       tooltipText += `\n危險度：${node.scoutData.dangerLevel}`;
     }
     
-    el.dataset.tooltip = tooltipText;
+    // 改為 JS 全域浮層 Tooltip，避免被其他節點的 DOM 覆蓋
+    el.dataset.tooltipContent = tooltipText;
+
+    el.addEventListener('mouseenter', (e) => {
+      const tooltip = document.getElementById('map-tooltip');
+      if (!tooltip) return;
+      tooltip.textContent = (e.currentTarget as HTMLElement).dataset.tooltipContent || '';
+      tooltip.style.opacity = '1';
+    });
+
+    el.addEventListener('mousemove', (e: MouseEvent) => {
+      const tooltip = document.getElementById('map-tooltip');
+      if (!tooltip) return;
+      const padding = 12;
+      let x = e.clientX + padding;
+      let y = e.clientY - tooltip.offsetHeight - padding;
+      // 防止超出右邊
+      if (x + tooltip.offsetWidth > window.innerWidth) {
+        x = e.clientX - tooltip.offsetWidth - padding;
+      }
+      // 防止超出上邊
+      if (y < 0) {
+        y = e.clientY + padding;
+      }
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+    });
+
+    el.addEventListener('mouseleave', () => {
+      const tooltip = document.getElementById('map-tooltip');
+      if (!tooltip) return;
+      tooltip.style.opacity = '0';
+    });
 
     el.addEventListener('click', (e) => {
       e.stopPropagation(); // 防止點擊空白處的事件觸發
