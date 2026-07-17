@@ -4,6 +4,7 @@ import { enterScene } from './SceneController';
 import { UIManager } from './UIManager';
 import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
 import { TaskType } from '../models/DispatchTask';
+import { DispatchSystem, ActiveMission } from '../systems/DispatchSystem';
 
 export function getTerrainEmoji(terrain: TerrainType): string {
   switch(terrain) {
@@ -275,6 +276,9 @@ export function setStartupMode(mode: boolean) {
     banner.style.display = mode ? 'block' : 'none';
   }
 }
+
+// 掛載至全域以打破與 UIManager 的循環依賴，保障編譯與部署流暢
+(window as any).renderTradeRoutes = renderTradeRoutes;
 
 export let isRoutePlanningMode = false;
 export let plannedRouteNodeIds: string[] = [];

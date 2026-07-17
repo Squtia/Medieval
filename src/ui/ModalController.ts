@@ -7,6 +7,7 @@ import { DispatchTask, EnemyFeature, TaskType, TradeInstruction } from '../model
 import { GAME_EVENTS } from '../data/EventData';
 import { startRoutePlanning } from './MapController';
 import { TRADE_GOODS } from '../systems/MarketSystem';
+import { DispatchSystem, ActiveMission } from '../systems/DispatchSystem';
 
 export function openWarehouse(isForgeMode: boolean) {
   const modalWarehouse = document.getElementById('modal-warehouse')!;

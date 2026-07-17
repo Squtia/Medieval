@@ -203,7 +203,9 @@ class UIManagerClass {
       this.infoNodes.textContent = GameState.mapSystem?.getNodes().length.toString() || '0';
 
       // 重新繪製活躍商隊商路連線
-      import('./MapController').then(m => m.renderTradeRoutes());
+      if (typeof (window as any).renderTradeRoutes === 'function') {
+        (window as any).renderTradeRoutes();
+      }
     } else if (document.getElementById('scene-view')?.classList.contains('active')) {
       if (sharedRightPanel) sharedRightPanel.style.display = 'flex';
       if (sceneDashboard) sceneDashboard.style.display = 'flex';

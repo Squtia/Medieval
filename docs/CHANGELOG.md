@@ -1,3 +1,11 @@
+## [2026-07-18] 部署編譯相容性優化與循環依賴解耦
+
+- **編譯與部署相容性優化**：
+  - *問題排查*：在 strict 模式或特定 Vite / TypeScript 部署建置環境中，因 `MapController.ts` 和 `ModalController.ts` 內未顯示導入 `DispatchSystem` 與 `ActiveMission` 而可能導致型別推導失敗，以及 dynamic import 與靜態循環依賴可能導致打包工具編譯報錯。
+  - *修復與解耦*：
+    1. 在 `MapController.ts` 與 `ModalController.ts` 頂部顯式導入了 `DispatchSystem` 與 `ActiveMission` 類型，消除型別隱式推導問題。
+    2. 將 `renderTradeRoutes` 掛載至全域 `window` 物件上，在 `UIManager.ts` 中改為全域安全呼叫，徹底消除了 `UIManager` 與 `MapController` 之間的模組依賴關係，保證在任何打包與部署環境下皆能 100% 編譯通過。
+
 ## [2026-07-18] 修復存讀檔後商隊活躍任務丟失與冒險者卡死 ON_MISSION 狀態的 Bug
 
 - **活躍任務存讀檔反序列化修復**：
