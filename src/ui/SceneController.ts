@@ -61,11 +61,11 @@ export function enterScene(node: MapNode) {
     
     const streetParallaxBg = document.getElementById('street-parallax-bg')!;
     if (node.nodeLevel >= NodeLevel.TOWN) {
-      streetParallaxBg.style.backgroundImage = "url('/bg_street_prosperous_1784087131344.png')";
+      streetParallaxBg.style.backgroundImage = `url('${import.meta.env.BASE_URL}bg_street_prosperous_1784087131344.png')`;
     } else if (node.nodeLevel >= NodeLevel.CAMP) {
-      streetParallaxBg.style.backgroundImage = "url('/bg_street_village_1784087142427.png')";
+      streetParallaxBg.style.backgroundImage = `url('${import.meta.env.BASE_URL}bg_street_village_1784087142427.png')`;
     } else {
-      streetParallaxBg.style.backgroundImage = "url('/bg_street_ruins_1784087152568.png')";
+      streetParallaxBg.style.backgroundImage = `url('${import.meta.env.BASE_URL}bg_street_ruins_1784087152568.png')`;
     }
     
     const isMyHome = node.isPlayerBase;

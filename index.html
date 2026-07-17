@@ -20,13 +20,13 @@
     #app-background {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: #1a1511 url('/bg-parchment.png') center/cover no-repeat;
+      background: #1a1511 url('./bg-parchment.png') center/cover no-repeat;
       z-index: -1;
     }
 
     /* 共用玻璃擬物化面板 -> 羊皮紙風格面板 */
     .glass-panel {
-      background: url('/bg-parchment.png') center/cover;
+      background: url('./bg-parchment.png') center/cover;
       box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.9), 0 8px 32px rgba(0, 0, 0, 0.8);
       border: 1px solid rgba(139, 69, 19, 0.5);
       border-radius: 4px;
@@ -157,10 +157,10 @@
     .facility-view.active { display: flex; }
     
     /* 獨立建築視圖背景 */
-    #view-base { background: url('/assets/study_desk.png') center/cover; }
-    #view-hall { background: url('/bg-parchment.png') center/cover; }
-    #view-camp { background: url('/bg-parchment.png') center/cover; }
-    #view-forge { background: url('/bg-parchment.png') center/cover; }
+    #view-base { background: url('./assets/study_desk.png') center/cover; }
+    #view-hall { background: url('./bg-parchment.png') center/cover; }
+    #view-camp { background: url('./bg-parchment.png') center/cover; }
+    #view-forge { background: url('./bg-parchment.png') center/cover; }
 
     /* === 國家場景視圖 (Street & Dashboard) === */
     #scene-view {
@@ -286,7 +286,7 @@
 
     /* 動作按鈕 */
     .action-btn {
-      background: url('/bg-parchment.png') center/cover;
+      background: url('./bg-parchment.png') center/cover;
       box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 4px 6px rgba(0, 0, 0, 0.5);
       border: 1px solid rgba(139, 69, 19, 0.8);
       color: #ebdcb6;
@@ -625,7 +625,7 @@
         <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 1;">
           <!-- Radial Menu 覆蓋在地圖上，不能被 renderMap 清除 -->
           <div id="radial-menu" class="radial-menu"></div>
-          <div id="map-nodes-container" style="position: relative; width: 100%; height: auto; aspect-ratio: 16 / 9; max-width: calc((100vh - 60px) * 16 / 9); max-height: 100%; background: url('/bg-map.png') center/100% 100% no-repeat; filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);"></div>
+          <div id="map-nodes-container" style="position: relative; width: 100%; height: auto; aspect-ratio: 16 / 9; max-width: calc((100vh - 60px) * 16 / 9); max-height: 100%; background: url('./bg-map.png') center/100% 100% no-repeat; filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);"></div>
         </div>
 
       </div>
@@ -652,19 +652,19 @@
       <!-- 左側：橫向動態街景 (100%) -->
       <div class="street-scroller-container" style="width: 100%;">
         <!-- 背景圖片會由 JS 根據繁榮度動態更換 -->
-        <div id="street-parallax-bg" class="street-parallax-bg" style="background-image: url('/bg_street_prosperous_1784087131344.png');"></div>
+        <div id="street-parallax-bg" class="street-parallax-bg" style="background-image: url('./bg_street_prosperous_1784087131344.png');"></div>
         <div class="street-scroll-area" id="street-scroll-area">
           <div style="width: 2000px; height: 100%; position: relative;" id="street-buildings-wrapper"> <!-- 滾動寬度 -->
-            <div id="btn-enter-hall" class="street-building" style="background-image: url('/bld_hall_1784087169726.png'); width: 350px; height: 350px;">
+            <div id="btn-enter-hall" class="street-building" style="background-image: url('./bld_hall_1784087169726.png'); width: 350px; height: 350px;">
               <div class="building-label">👑 謁見廳</div>
             </div>
-            <div id="btn-enter-base" class="street-building" style="background-image: url('/bld_base_1784087181104.png'); width: 300px; height: 300px;">
+            <div id="btn-enter-base" class="street-building" style="background-image: url('./bld_base_1784087181104.png'); width: 300px; height: 300px;">
                <div class="building-label">🏠 領主自宅</div>
             </div>
-            <div id="btn-enter-camp" class="street-building" style="background-image: url('/bld_camp_1784087193131.png');">
+            <div id="btn-enter-camp" class="street-building" style="background-image: url('./bld_camp_1784087193131.png');">
                <div class="building-label">⚔️ 訓練所</div>
             </div>
-            <div id="btn-enter-forge" class="street-building" style="background-image: url('/bld_camp_1784087193131.png'); filter: hue-rotate(180deg) brightness(0.8);"> 
+            <div id="btn-enter-forge" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(180deg) brightness(0.8);"> 
                <!-- 鐵匠鋪暫時代用營地圖並套濾鏡 -->
                <div class="building-label">⚒️ 鍛造屋</div>
             </div>
