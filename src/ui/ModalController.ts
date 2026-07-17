@@ -610,7 +610,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     GameState.system.dispatchAdventurers(team, task);
     
     console.log(`[系統] 🐪 商隊已出發！帶著 ${inputGold} 金幣的本金。`);
-    modal.classList.remove('active');
+    modal.style.display = 'none';
     UIManager.updateUI();
   };
   
@@ -619,9 +619,9 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
   btnStart.parentNode!.replaceChild(newBtnStart, btnStart);
   newBtnStart.addEventListener('click', handleStart);
 
-  btnClose.onclick = () => modal.classList.remove('active');
+  btnClose.onclick = () => modal.style.display = 'none';
 
-  modal.classList.add('active');
+  modal.style.display = 'flex';
 }
 
 function updateDispatchPowerPreview() {

@@ -210,7 +210,18 @@ export function startRoutePlanning(startNode?: MapNode) {
 }
 
 function updateRoutePlanningHUD() {
-  document.getElementById('route-planning-status')!.textContent = `已選擇 ${plannedRouteNodeIds.length}/3 個節點`;
+  const mapSystem = GameState.mapSystem;
+  if (plannedRouteNodeIds.length === 0) {
+    document.getElementById('route-planning-status')!.textContent = '請點擊地圖上的城市加入路線（最多 3 個）';
+  } else {
+    const names = plannedRouteNodeIds
+      .map((id, i) => {
+        const node = mapSystem?.getNodeById(id);
+        return `${i + 1}. ${node?.name ?? id}`;
+      })
+      .join(' ➔ ');
+    document.getElementById('route-planning-status')!.textContent = `已選擇 ${plannedRouteNodeIds.length}/3：${names}`;
+  }
 }
 
 export function openNodeSelectModal(node: MapNode) {
