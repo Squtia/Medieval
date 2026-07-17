@@ -3,8 +3,9 @@ import { EquipmentSlot, MapNode, NodeLevel, AdventurerState } from '../models/ty
 import { GameState } from '../core/GameState';
 import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { UIManager } from './UIManager';
-import { DispatchTask, EnemyFeature, TaskType } from '../models/DispatchTask';
+import { DispatchTask, EnemyFeature, TaskType, TradeInstruction } from '../models/DispatchTask';
 import { GAME_EVENTS } from '../data/EventData';
+import { startRoutePlanning } from './MapController';
 
 export function openWarehouse(isForgeMode: boolean) {
   const modalWarehouse = document.getElementById('modal-warehouse')!;
@@ -471,6 +472,158 @@ function renderDispatchAdvList() {
   updateDispatchPowerPreview();
 }
 
+let selectedAdventurersForCaravan: Set<string> = new Set();
+
+export function openTradePlanner(plannedRouteNodeIds: string[]) {
+  const modal = document.getElementById('modal-trade-planner')!;
+  const container = document.getElementById('trade-planner-nodes')!;
+  const btnStart = document.getElementById('btn-start-caravan') as HTMLButtonElement;
+  const btnClose = document.getElementById('btn-close-trade-planner') as HTMLButtonElement;
+  const goldInput = document.getElementById('trade-planner-gold') as HTMLInputElement;
+  const capacityText = document.getElementById('trade-planner-capacity')!;
+  
+  const mapSystem = GameState.mapSystem;
+  container.innerHTML = '';
+  selectedAdventurersForCaravan.clear();
+  goldInput.value = '500';
+
+  if (!mapSystem) return;
+
+  const routeNodes = plannedRouteNodeIds.map(id => mapSystem.getNodeById(id)).filter(n => n !== undefined) as MapNode[];
+
+  routeNodes.forEach((node, index) => {
+    const nodeEl = document.createElement('div');
+    nodeEl.style.marginBottom = '15px';
+    nodeEl.style.borderBottom = '1px solid rgba(255,255,255,0.2)';
+    nodeEl.style.paddingBottom = '10px';
+    
+    let optionsHtml = '';
+    if (node.marketData && node.marketData.goods) {
+      optionsHtml = node.marketData.goods.map(g => `<option value="${g.goodId}">${g.goodId} (買${g.buyPrice}/賣${g.sellPrice})</option>`).join('');
+    }
+
+    nodeEl.innerHTML = `
+      <h4 style="margin: 0 0 5px 0; color: #60a5fa;">第 ${index + 1} 站: ${node.name}</h4>
+      <div style="display: flex; gap: 10px;">
+        <div style="flex: 1;">
+          <label style="font-size: 0.9em;">🛒 買入設定：</label><br/>
+          <select id="buy-select-${node.id}" style="width:100%; margin-bottom:5px;">
+            <option value="">不買入</option>
+            ${optionsHtml}
+          </select>
+          <input type="number" id="buy-amount-${node.id}" placeholder="數量" style="width: 100%;" min="0">
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 0.9em;">💰 賣出設定：</label><br/>
+          <select id="sell-select-${node.id}" style="width:100%; margin-bottom:5px;">
+            <option value="">不賣出</option>
+            ${optionsHtml}
+          </select>
+        </div>
+      </div>
+    `;
+    container.appendChild(nodeEl);
+  });
+
+  const renderAdvList = () => {
+    const advListContainer = document.getElementById('trade-planner-adv-list')!;
+    advListContainer.innerHTML = '';
+    const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
+    
+    let totalCapacity = 0;
+    
+    idleAdvs.forEach(adv => {
+      if (selectedAdventurersForCaravan.has(adv.id)) {
+        totalCapacity += adv.getTradeStats().maxCargoWeight;
+      }
+    });
+    capacityText.textContent = `商隊最大載重量: ${totalCapacity}`;
+
+    idleAdvs.forEach(adv => {
+      const card = document.createElement('div');
+      card.className = 'adv-checkbox-card' + (selectedAdventurersForCaravan.has(adv.id) ? ' selected' : '');
+      const isChecked = selectedAdventurersForCaravan.has(adv.id) ? 'checked' : '';
+      const ts = adv.getTradeStats();
+      card.innerHTML = `
+        <input type="checkbox" ${isChecked} style="pointer-events:none;">
+        <div style="flex:1;">
+          <strong style="color:#e2e8f0; font-size:1.1em;">${adv.name}</strong> <span style="color:#94a3b8; font-size:0.9em;">(載重: ${ts.maxCargoWeight}, 議價: +${(ts.negotiationBonus * 100).toFixed(1)}%)</span>
+        </div>
+      `;
+      card.addEventListener('click', () => {
+        if (selectedAdventurersForCaravan.has(adv.id)) {
+          selectedAdventurersForCaravan.delete(adv.id);
+        } else {
+          selectedAdventurersForCaravan.add(adv.id);
+        }
+        renderAdvList();
+      });
+      advListContainer.appendChild(card);
+    });
+  };
+
+  renderAdvList();
+
+  const handleStart = () => {
+    if (selectedAdventurersForCaravan.size === 0) {
+      alert('請至少指派一名冒險者來帶領商隊！');
+      return;
+    }
+    
+    const inputGold = parseInt(goldInput.value) || 0;
+    if (inputGold > GameState.myTerritory.gold) {
+      alert('領地金幣不足以支付投入本金！');
+      return;
+    }
+
+    const instructions: TradeInstruction[] = [];
+    routeNodes.forEach(node => {
+      const buySelect = document.getElementById(`buy-select-${node.id}`) as HTMLSelectElement;
+      const buyAmount = document.getElementById(`buy-amount-${node.id}`) as HTMLInputElement;
+      const sellSelect = document.getElementById(`sell-select-${node.id}`) as HTMLSelectElement;
+      
+      const buyItem = buySelect.value;
+      const amount = parseInt(buyAmount.value) || 0;
+      const sellItem = sellSelect.value;
+      
+      const buyList = buyItem && amount > 0 ? [{ goodId: buyItem, maxAmount: amount }] : [];
+      const sellList = sellItem ? [sellItem] : [];
+      
+      instructions.push({
+        nodeId: node.id,
+        buy: buyList,
+        sell: sellList
+      });
+    });
+
+    // 建立任務
+    const taskName = `商隊路線 (${routeNodes.map(n => n.name).join(' ➔ ')})`;
+    const task = new DispatchTask(taskName, TaskType.TRADE, 1, 0, 0, 0, 0, EnemyFeature.BALANCED);
+    task.tradeRouteNodeIds = plannedRouteNodeIds;
+    task.tradeInstructions = instructions;
+    task.caravanCargo = {};
+    task.caravanGold = inputGold;
+    
+    GameState.myTerritory.gold -= inputGold; // 扣除本金
+    
+    const team = GameState.adventurers.filter(a => selectedAdventurersForCaravan.has(a.id));
+    GameState.system.dispatchAdventurers(team, task);
+    
+    console.log(`[系統] 🐪 商隊已出發！帶著 ${inputGold} 金幣的本金。`);
+    modal.classList.remove('active');
+    UIManager.updateUI();
+  };
+  
+  // 避免重複綁定
+  const newBtnStart = btnStart.cloneNode(true) as HTMLButtonElement;
+  btnStart.parentNode!.replaceChild(newBtnStart, btnStart);
+  newBtnStart.addEventListener('click', handleStart);
+
+  btnClose.onclick = () => modal.classList.remove('active');
+
+  modal.classList.add('active');
+}
+
 function updateDispatchPowerPreview() {
   let totalPower = 0;
   GameState.adventurers.forEach(adv => {
@@ -734,24 +887,9 @@ export function openTradeModal(node: MapNode) {
     tradeModal.style.display = 'none';
   };
 
-  document.getElementById('btn-dispatch-caravan')!.onclick = () => {
-    // 發起商隊任務
-    const task = new DispatchTask(`商隊前往${node.name}`, TaskType.TRADE, 1, 0, 0, 0, 0, EnemyFeature.BALANCED);
-    task.tradeTargetNodeId = node.id;
-    if (node.marketData && node.marketData.goods.length > 0) {
-      const targetGood = node.marketData.goods[0];
-      const buyAmount = Math.min(targetGood.stock, Math.floor(territory.gold / targetGood.buyPrice));
-      if (buyAmount > 0) {
-        task.tradeBuyList = [{ goodId: targetGood.goodId, amount: buyAmount, maxPrice: targetGood.buyPrice }];
-        territory.gold -= buyAmount * targetGood.buyPrice; // 預扣金幣
-      }
-      task.tradeSellList = [];
-    }
-    
-    GameState.system.dispatchAdventurers(GameState.adventurers, task);
-    
-    console.log(`[系統] 🐪 商隊已出發前往 ${node.name}，預計 1 回合後返回。`);
+  document.getElementById('btn-plan-route')!.onclick = () => {
     tradeModal.style.display = 'none';
     closeNodeDetailPanel();
+    startRoutePlanning(node);
   };
 }

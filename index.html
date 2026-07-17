@@ -607,6 +607,47 @@
   <div id="map-tooltip"></div>
   <div id="app-background"></div>
 
+  <!-- 跑商路線規劃 HUD -->
+  <div id="route-planning-hud" style="display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 2px solid #eab308; border-radius: 10px; padding: 15px; z-index: 2000; text-align: center; color: white;">
+    <h3>🗺️ 路線規劃中</h3>
+    <p id="route-planning-status">已選擇 0/3 個節點</p>
+    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+      <button id="btn-finish-route" class="action-btn" style="background: #10b981;">完成規劃</button>
+      <button id="btn-cancel-route" class="action-btn" style="background: #ef4444;">取消</button>
+    </div>
+  </div>
+
+  <!-- 商隊預設指令面板 -->
+  <div id="modal-trade-planner" class="modal-overlay" style="display: none; z-index: 2100;">
+    <div class="modal-content" style="max-width: 800px; text-align: left;">
+      <h2 id="trade-planner-title">📜 商隊指令面板</h2>
+      <p>請為各個中途站設定預設買賣指令，並分配商隊本金與護衛。</p>
+      
+      <div id="trade-planner-nodes" style="max-height: 350px; overflow-y: auto; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 10px;">
+        <!-- 動態生成各節點設定 -->
+      </div>
+      
+      <div style="display: flex; gap: 20px; align-items: center; margin-bottom: 20px; background: rgba(0,0,0,0.5); padding: 10px;">
+        <div style="flex: 1;">
+          <label>💰 投入商隊本金：</label>
+          <input type="number" id="trade-planner-gold" value="500" style="width: 100px; padding: 5px;" min="0">
+        </div>
+        <div style="flex: 1;">
+          <p id="trade-planner-capacity" style="color: #eab308; font-weight: bold;">商隊最大載重量: 0</p>
+        </div>
+      </div>
+
+      <div id="trade-planner-adv-list" class="adventurer-list" style="max-height: 150px; margin-bottom: 20px;">
+         <!-- 冒險者清單 -->
+      </div>
+      
+      <div style="display: flex; gap: 15px;">
+        <button id="btn-start-caravan" class="action-btn" style="background: #10b981; flex: 1;">出發！</button>
+        <button id="btn-close-trade-planner" class="action-btn" style="background: #b91c1c; flex: 1;">取消</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 市場交易 Modal -->
   <div id="modal-trade" class="modal-overlay" style="display: none;">
     <div class="modal-content" style="max-width: 700px;">
@@ -625,10 +666,10 @@
       </div>
       
       <div style="margin-top: 20px;">
-        <h4>派遣商隊</h4>
-        <p>商隊將會在下 1 個回合自動結算買賣並帶回收益。</p>
-        <button id="btn-dispatch-caravan" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857);">出發</button>
-        <button id="btn-close-trade" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b);">取消</button>
+        <h4>跑商系統已升級</h4>
+        <p>現在您可以自訂最多 3 個中途站的跑商路線，並預先設定買賣指令。</p>
+        <button id="btn-plan-route" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857);">規劃跑商路線</button>
+        <button id="btn-close-trade" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b);">關閉</button>
       </div>
     </div>
   </div>

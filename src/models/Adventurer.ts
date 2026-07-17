@@ -229,4 +229,17 @@ export class Adventurer {
     const eff = this.getEffectiveAttributes();
     return eff.str + eff.agi + eff.con + eff.int + eff.spr + eff.luk;
   }
+
+  /**
+   * 取得跑商特長數據 (Trade Stats)
+   * 根據智慧與魅力計算載重量與議價能力
+   */
+  public getTradeStats(): { maxCargoWeight: number; negotiationBonus: number } {
+    const attr = this.getEffectiveAttributes();
+    // 魅力加智慧的總和乘上 5 作為基礎載重
+    const maxCargoWeight = (attr.charm + attr.int) * 5;
+    // 智慧加魅力每 10 點提供 1% 議價加成，上限 20%
+    const negotiationBonus = Math.min(0.2, (attr.charm + attr.int) / 1000); 
+    return { maxCargoWeight, negotiationBonus };
+  }
 }

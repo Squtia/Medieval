@@ -68,8 +68,16 @@ export class DispatchSystem {
       mission.remainingDays -= days;
 
       if (mission.remainingDays <= 0) {
-        this.completeMission(mission);
-        this.activeMissions.splice(i, 1);
+        if (mission.task.type === TaskType.TRADE && mission.task.tradeRouteNodeIds && mission.task.tradeRouteNodeIds.length > 0) {
+          const isFinished = this.reachWaypoint(mission);
+          if (isFinished) {
+            this.completeMission(mission);
+            this.activeMissions.splice(i, 1);
+          }
+        } else {
+          this.completeMission(mission);
+          this.activeMissions.splice(i, 1);
+        }
       }
     }
   }
@@ -103,6 +111,108 @@ export class DispatchSystem {
     console.log(`📜 [月底結算] 獲得淨稅收 ${netIncome} 金幣。當前好感度：${this.territory.royalFavor} | 當前聲望：${this.territory.prestige}`);
   }
 
+  private reachWaypoint(mission: ActiveMission): boolean {
+    const { adventurers, task } = mission;
+    
+    const mapSystem = GameState.mapSystem;
+    if (!mapSystem) return true;
+
+    if (task.currentRouteIndex === undefined) task.currentRouteIndex = 0;
+    const currentNodeId = task.tradeRouteNodeIds![task.currentRouteIndex!];
+    const currentNode = mapSystem.getNodeById(currentNodeId);
+
+    if (!currentNode) return true;
+
+    let advNames = adventurers.map(a => a.name).join(', ');
+    console.log(`📍 [商隊抵達] 冒險者小隊 (${advNames}) 抵達中途站：${currentNode.name}`);
+
+    let weatherPenalty = 0;
+    if (currentNode.currentWeather === 'SNOW' || currentNode.currentWeather === 'SANDSTORM') {
+      let totalInt = 0, totalLuk = 0;
+      adventurers.forEach(a => {
+         const eff = a.getEffectiveAttributes();
+         totalInt += eff.int;
+         totalLuk += eff.luk;
+      });
+      if (totalInt + totalLuk < 50) {
+         weatherPenalty = 2;
+         console.log(`⚠️ [遭遇惡劣天氣] 由於在 ${currentNode.name} 遭遇惡劣天氣，商隊受到阻礙，將延遲 2 天抵達下一站！`);
+      } else {
+         console.log(`🌤️ [化險為夷] 儘管天氣惡劣，商隊依靠高智慧與幸運順利度過了危機！`);
+      }
+    }
+
+    if (task.tradeInstructions && task.caravanCargo && task.caravanGold !== undefined) {
+      const instruction = task.tradeInstructions.find(i => i.nodeId === currentNodeId);
+      if (instruction && currentNode.marketData) {
+         let totalCargoWeight = Object.values(task.caravanCargo).reduce((a,b)=>a+b, 0);
+         
+         let totalCapacity = 0;
+         let totalNegotiation = 0;
+         adventurers.forEach(a => {
+            const ts = a.getTradeStats();
+            totalCapacity += ts.maxCargoWeight;
+            totalNegotiation += ts.negotiationBonus;
+         });
+         
+         for (const sellGoodId of instruction.sell) {
+             const amountToSell = task.caravanCargo![sellGoodId] || 0;
+             if (amountToSell > 0) {
+                 const marketItem = currentNode.marketData.goods.find(g => g.goodId === sellGoodId);
+                 if (marketItem) {
+                     const sellPrice = Math.max(1, Math.floor(marketItem.sellPrice * (1 + totalNegotiation)));
+                     const goldGained = sellPrice * amountToSell;
+                     task.caravanGold! += goldGained;
+                     task.caravanCargo![sellGoodId] = 0;
+                     totalCargoWeight -= amountToSell;
+                     console.log(`💰 [商隊交易] 在 ${currentNode.name} 賣出了 ${amountToSell} 單位 ${sellGoodId}，獲得 ${goldGained} 金幣。`);
+                 }
+             }
+         }
+         
+         for (const buyItem of instruction.buy) {
+             const marketItem = currentNode.marketData.goods.find(g => g.goodId === buyItem.goodId);
+             if (marketItem && marketItem.stock > 0) {
+                 const buyPrice = Math.max(1, Math.floor(marketItem.buyPrice * (1 - totalNegotiation)));
+                 const affordableAmount = Math.floor(task.caravanGold / buyPrice);
+                 const capacityLeft = totalCapacity - totalCargoWeight;
+                 const buyAmount = Math.min(buyItem.maxAmount, marketItem.stock, affordableAmount, capacityLeft);
+                 
+                 if (buyAmount > 0) {
+                     task.caravanGold! -= buyPrice * buyAmount;
+                     task.caravanCargo![buyItem.goodId] = (task.caravanCargo![buyItem.goodId] || 0) + buyAmount;
+                     totalCargoWeight += buyAmount;
+                     marketItem.stock -= buyAmount;
+                     console.log(`🛒 [商隊交易] 在 ${currentNode.name} 買入了 ${buyAmount} 單位 ${buyItem.goodId}，花費 ${buyPrice * buyAmount} 金幣。`);
+                 } else {
+                     if (affordableAmount <= 0) console.log(`❌ [商隊交易] 在 ${currentNode.name} 資金不足，無法購買 ${buyItem.goodId}。`);
+                     else if (capacityLeft <= 0) console.log(`📦 [商隊交易] 在 ${currentNode.name} 馬車已滿，無法裝載 ${buyItem.goodId}。`);
+                 }
+             }
+         }
+      }
+    }
+
+    task.currentRouteIndex!++;
+    if (task.currentRouteIndex! >= task.tradeRouteNodeIds!.length) {
+      console.log(`🏁 [商隊返程] 商隊已完成所有停靠站，正在返回領地！`);
+      mission.remainingDays = 3 + weatherPenalty;
+      task.tradeRouteNodeIds = []; // 標記為返程
+      return false; 
+    } else {
+      const nextNodeId = task.tradeRouteNodeIds![task.currentRouteIndex!];
+      const nextNode = mapSystem.getNodeById(nextNodeId);
+      if (nextNode) {
+         const dist = Math.sqrt(Math.pow(currentNode.x - nextNode.x, 2) + Math.pow(currentNode.y - nextNode.y, 2));
+         mission.remainingDays = Math.max(1, Math.floor(dist / 100)) + weatherPenalty;
+         console.log(`🐎 [商隊出發] 商隊前往下一站 ${nextNode.name}，預計需要 ${mission.remainingDays} 天。`);
+      } else {
+         mission.remainingDays = 1;
+      }
+      return false;
+    }
+  }
+
   /**
    * 結算任務邏輯
    */
@@ -110,7 +220,28 @@ export class DispatchSystem {
     const { adventurers, task } = mission;
     const advNames = adventurers.map(a => a.name).join(', ');
 
-    // 處理貿易任務
+    // 處理新版多節點貿易任務完成
+    if (task.type === TaskType.TRADE && task.caravanGold !== undefined) {
+      this.territory.addGold(task.caravanGold);
+      let logCargo = '';
+      if (task.caravanCargo) {
+        for (const [goodId, amount] of Object.entries(task.caravanCargo)) {
+          if (amount > 0) {
+             this.territory.tradeInventory[goodId] = (this.territory.tradeInventory[goodId] || 0) + amount;
+             logCargo += `${goodId}x${amount} `;
+          }
+        }
+      }
+      console.log(`✅ [商隊歸來] 冒險者小隊 (${advNames}) 完成了跑商任務！帶回了 ${task.caravanGold} 金幣。剩餘貨物: ${logCargo || '無'}`);
+      
+      for (const adv of adventurers) {
+        adv.currentState = AdventurerState.IDLE;
+        adv.dispatchEndTime = null;
+      }
+      return;
+    }
+
+    // 處理舊版單點貿易任務 (保留相容)
     if (task.type === TaskType.TRADE) {
       if (task.tradeBuyList && task.tradeBuyList.length > 0) {
         for (const buyItem of task.tradeBuyList) {

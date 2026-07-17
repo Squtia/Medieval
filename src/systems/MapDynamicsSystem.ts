@@ -428,6 +428,10 @@ export class MapDynamicsSystem {
     return this.mapNodes;
   }
 
+  public getNodeById(nodeId: string): MapNode | undefined {
+    return this.mapNodes.find(n => n.id === nodeId);
+  }
+
   public getFactions(): Faction[] {
     return this.factions;
   }

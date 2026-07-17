@@ -2,7 +2,7 @@ import { GameState } from '../core/GameState';
 import { TerrainType, NodeFeature, MapNode, NodeLevel } from '../models/types';
 import { enterScene } from './SceneController';
 import { UIManager } from './UIManager';
-import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel } from './ModalController';
+import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
 
 export function getTerrainEmoji(terrain: TerrainType): string {
   switch(terrain) {
@@ -138,6 +138,15 @@ export function renderMap() {
         } else {
           console.log('[系統] 這裡太危險了，不適合建立初始據點！');
         }
+      } else if (isRoutePlanningMode) {
+        if (!plannedRouteNodeIds.includes(node.id) && plannedRouteNodeIds.length < 3) {
+          plannedRouteNodeIds.push(node.id);
+          updateRoutePlanningHUD();
+        } else if (plannedRouteNodeIds.includes(node.id)) {
+          console.log('[系統] 已經選擇過這個節點了！');
+        } else {
+          console.log('[系統] 最多只能選擇 3 個中途站！');
+        }
       } else {
         if (node.isPlayerBase) {
           enterScene(node);
@@ -164,6 +173,39 @@ export function setStartupMode(mode: boolean) {
   if (banner) {
     banner.style.display = mode ? 'block' : 'none';
   }
+}
+
+export let isRoutePlanningMode = false;
+export let plannedRouteNodeIds: string[] = [];
+
+export function startRoutePlanning(startNode: MapNode) {
+  isRoutePlanningMode = true;
+  plannedRouteNodeIds = [startNode.id];
+  const hud = document.getElementById('route-planning-hud')!;
+  hud.style.display = 'block';
+  updateRoutePlanningHUD();
+
+  const btnFinish = document.getElementById('btn-finish-route')!;
+  const btnCancel = document.getElementById('btn-cancel-route')!;
+  
+  const finishClone = btnFinish.cloneNode(true) as HTMLButtonElement;
+  btnFinish.parentNode!.replaceChild(finishClone, btnFinish);
+  finishClone.addEventListener('click', () => {
+    isRoutePlanningMode = false;
+    hud.style.display = 'none';
+    openTradePlanner([...plannedRouteNodeIds]);
+  });
+
+  const cancelClone = btnCancel.cloneNode(true) as HTMLButtonElement;
+  btnCancel.parentNode!.replaceChild(cancelClone, btnCancel);
+  cancelClone.addEventListener('click', () => {
+    isRoutePlanningMode = false;
+    hud.style.display = 'none';
+  });
+}
+
+function updateRoutePlanningHUD() {
+  document.getElementById('route-planning-status')!.textContent = `已選擇 ${plannedRouteNodeIds.length}/3 個節點`;
 }
 
 export function openNodeSelectModal(node: MapNode) {

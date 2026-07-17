@@ -10,6 +10,12 @@ export enum TaskType {
   TRADE = 'TRADE'
 }
 
+export interface TradeInstruction {
+  nodeId: string;
+  buy: { goodId: string; maxAmount: number }[];
+  sell: string[]; // goodIds to sell
+}
+
 /**
  * 派遣任務 (DispatchTask) 模型
  * 由領地生成的任務，讓冒險者前去執行以獲取資源
@@ -24,10 +30,17 @@ export class DispatchTask {
   public minPowerRequired: number;    // 承接任務的基礎難度要求
   public enemyFeature: EnemyFeature;  // 敵方特性
   
-  // 商隊特有資料
+  // 商隊特有資料 (舊版單點跑商留存相容)
   public tradeTargetNodeId?: string;
   public tradeBuyList?: { goodId: string; amount: number; maxPrice: number }[];
   public tradeSellList?: { goodId: string; amount: number; minPrice: number }[];
+
+  // 新版多節點跑商專用資料
+  public tradeRouteNodeIds?: string[];
+  public tradeInstructions?: TradeInstruction[];
+  public currentRouteIndex?: number;
+  public caravanCargo?: Record<string, number>;
+  public caravanGold?: number;
 
   constructor(
     name: string,
