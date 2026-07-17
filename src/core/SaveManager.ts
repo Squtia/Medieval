@@ -127,16 +127,11 @@ export class SaveManager {
       
       GameState.currentSaveSlot = slot;
 
-      // 5. 清除日誌並還原介面
+      // 5. 清除日誌
       const logContainer = document.getElementById('game-log');
       if (logContainer) logContainer.innerHTML = '';
       const mapLogContainer = document.getElementById('map-log-container');
       if (mapLogContainer) mapLogContainer.innerHTML = '';
-      
-      updateResourcesUI();
-      updatePopulationUI();
-      updateDateUI();
-      renderMap();
       
       // 成功載入不需使用 console.log 印出以免污染遊戲日誌
       return true;
