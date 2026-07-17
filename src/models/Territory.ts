@@ -25,6 +25,7 @@ export class Territory {
   public unlockedBuildings: string[]; // 已解鎖的建築列表 (如：酒館、訓練所等)
   public warehouse: Equipment[]; // 領地的裝備倉庫
   public retiredStaff: Adventurer[]; // 退休的冒險者名單
+  public tradeInventory: Record<string, number>; // 交易品庫存 (物品ID -> 數量)
 
   // 內政與外交屬性
   public taxRate: number;         // 稅率 (預設 1.0)
@@ -62,6 +63,7 @@ export class Territory {
     this.unlockedBuildings = [];   // 尚未擁有任何建築
     this.warehouse = [];           // 初始化空倉庫
     this.retiredStaff = [];        // 初始化退休名單
+    this.tradeInventory = {};      // 初始化交易品庫存
     
     // 初始化內政預設值
     this.taxRate = 1.0;

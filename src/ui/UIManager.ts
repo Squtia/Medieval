@@ -23,6 +23,7 @@ class UIManagerClass {
   uiWorkerWoodcutter = document.getElementById('ui-worker-WOODCUTTER');
   uiWorkerMiner = document.getElementById('ui-worker-MINER');
   uiNetProduction = document.getElementById('ui-net-production');
+  uiDate = document.getElementById('ui-date');
 
   // 儀表板與環境控制
   uiDashboardTitle = document.getElementById('ui-dashboard-title')!;
@@ -64,6 +65,15 @@ class UIManagerClass {
     if (this.uiFood) this.uiFood.textContent = territory.food.toString();
     if (this.uiWood) this.uiWood.textContent = territory.wood.toString();
     if (this.uiStone) this.uiStone.textContent = territory.stone.toString();
+
+    // 更新日期與雙倍經驗池 (Rested EXP)
+    if (this.uiDate) {
+      let dateText = `第 ${GameState.currentYear} 年 ${GameState.currentMonth} 月 ${GameState.currentDay} 日`;
+      if (GameState.restedExpPool > 0) {
+        dateText += ` (💤${GameState.restedExpPool})`;
+      }
+      this.uiDate.textContent = dateText;
+    }
 
     // 更新勞動力面板
     if (this.uiUnassignedWorkers) this.uiUnassignedWorkers.textContent = (territory.workers['UNASSIGNED'] || 0).toString();

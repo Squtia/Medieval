@@ -3,7 +3,7 @@ import { EquipmentSlot, MapNode, NodeLevel, AdventurerState } from '../models/ty
 import { GameState } from '../core/GameState';
 import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { UIManager } from './UIManager';
-import { DispatchTask, EnemyFeature } from '../models/DispatchTask';
+import { DispatchTask, EnemyFeature, TaskType } from '../models/DispatchTask';
 import { GAME_EVENTS } from '../data/EventData';
 
 export function openWarehouse(isForgeMode: boolean) {
@@ -364,12 +364,14 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
   if (actionType === 'explore') {
     title.innerHTML = '🗺️ 探索隊伍編制';
     desc.textContent = `目標：${node.name} (進行區域探索與採集)`;
-    pendingDispatchTask = new DispatchTask(`探索${node.name}`, 10, baseDiff / 2, 50, 5, Math.floor(minPower * 0.5));
+    // 探索任務需要較短天數 (預設 2 天)
+    pendingDispatchTask = new DispatchTask(`探索${node.name}`, TaskType.EXPLORE, 2, baseDiff / 2, 50, 5, Math.floor(minPower * 0.5));
   } else {
     title.innerHTML = '⚔️ 討伐隊伍編制';
     const features = Object.values(EnemyFeature);
     const randomFeature = features[Math.floor(Math.random() * features.length)];
-    pendingDispatchTask = new DispatchTask(`討伐${node.name}`, 20, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
+    // 討伐任務需要較長天數 (預設 4 天)
+    pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
     
     let fStr = '';
     if (randomFeature === EnemyFeature.HIGH_DEF) fStr = ' (高防禦敵人)';
@@ -559,3 +561,193 @@ export function openTodoModal() {
   modal.classList.add('active');
 }
 
+// === 情報迷霧與節點詳細面板 ===
+
+export function closeNodeDetailPanel() {
+  const panel = document.getElementById('node-detail-panel');
+  if (panel) {
+    panel.style.display = 'none';
+  }
+}
+
+export function openNodeDetailPanel(node: MapNode) {
+  const panel = document.getElementById('node-detail-panel')!;
+  const mapInfoPanel = document.getElementById('map-info-panel')!;
+  
+  // 隱藏預設的世界地圖資訊
+  mapInfoPanel.style.display = 'none';
+  
+  document.getElementById('nd-name')!.textContent = node.name;
+  
+  let typeStr = '';
+  if (node.nodeLevel === NodeLevel.WILDERNESS) typeStr = '荒野';
+  else if (node.nodeLevel === NodeLevel.CAMP) typeStr = '營地';
+  else if (node.nodeLevel === NodeLevel.VILLAGE) typeStr = '村莊';
+  else if (node.nodeLevel === NodeLevel.TOWN) typeStr = '城鎮';
+  else if (node.nodeLevel === NodeLevel.CAPITAL) typeStr = '首都';
+  
+  document.getElementById('nd-type')!.textContent = `📍 規模：${typeStr}`;
+  
+  const weatherEl = document.getElementById('nd-weather')!;
+  let weatherStr = '';
+  let weatherColor = '#e2e8f0';
+  switch(node.currentWeather) {
+    case 'CLEAR': weatherStr = '☀️ 晴朗'; weatherColor = '#eab308'; break;
+    case 'RAIN': weatherStr = '🌧️ 雨天'; weatherColor = '#60a5fa'; break;
+    case 'SNOW': weatherStr = '❄️ 下雪'; weatherColor = '#bae6fd'; break;
+    case 'SANDSTORM': weatherStr = '🌪️ 沙暴'; weatherColor = '#d97706'; break;
+    case 'FOG': weatherStr = '🌫️ 濃霧'; weatherColor = '#94a3b8'; break;
+    default: weatherStr = '☀️ 晴朗'; weatherColor = '#eab308'; break;
+  }
+  weatherEl.textContent = `${weatherStr} (剩餘 ${node.weatherDuration} 天)`;
+  weatherEl.style.color = weatherColor;
+
+  document.getElementById('nd-desc')!.textContent = node.description;
+
+  const scoutInfoBox = document.getElementById('nd-scout-info')!;
+  const unscoutedBox = document.getElementById('nd-unscouted-info')!;
+  
+  const btnScout = document.getElementById('btn-scout-node')!;
+  const btnAction = document.getElementById('btn-nd-action')!;
+  
+  // 清除舊的事件監聽器
+  const newBtnScout = btnScout.cloneNode(true) as HTMLButtonElement;
+  btnScout.parentNode!.replaceChild(newBtnScout, btnScout);
+  
+  const newBtnAction = btnAction.cloneNode(true) as HTMLButtonElement;
+  btnAction.parentNode!.replaceChild(newBtnAction, btnAction);
+
+  if (node.isScouted) {
+    scoutInfoBox.style.display = 'block';
+    unscoutedBox.style.display = 'none';
+    
+    if (node.scoutData) {
+      document.getElementById('nd-danger')!.textContent = node.scoutData.dangerLevel;
+      document.getElementById('nd-treasure')!.textContent = node.scoutData.treasureTier;
+      
+      const garrisonBox = document.getElementById('nd-garrison-box')!;
+      if (node.scoutData.garrisonPower !== undefined) {
+        garrisonBox.style.display = 'block';
+        document.getElementById('nd-garrison')!.textContent = node.scoutData.garrisonPower.toString();
+      } else {
+        garrisonBox.style.display = 'none';
+      }
+    }
+    
+    document.getElementById('nd-expiry')!.textContent = node.scoutExpiryDate ? `第 ${node.scoutExpiryDate} 天` : '-';
+  } else {
+    scoutInfoBox.style.display = 'none';
+    unscoutedBox.style.display = 'block';
+    
+    newBtnScout.addEventListener('click', () => {
+      if (GameState.mapSystem.scoutNode(node.id, GameState.myTerritory, GameState.totalDays)) {
+        UIManager.updateUI(); // 更新金幣顯示
+        openNodeDetailPanel(node); // 重新渲染面板
+      }
+    });
+  }
+
+  // 市場按鈕
+  const marketBtn = document.getElementById('nd-btn-market') as HTMLButtonElement;
+  if (node.nodeLevel >= NodeLevel.VILLAGE && node.isScouted && node.marketData) {
+    marketBtn.style.display = 'block';
+    marketBtn.onclick = () => {
+      openTradeModal(node);
+    };
+  } else {
+    marketBtn.style.display = 'none';
+  }
+
+  // 設定底部操作按鈕 (例如討伐/探索)
+  if (node.ownerFactionId === null) {
+    if (node.nodeLevel === NodeLevel.WILDERNESS) {
+      newBtnAction.textContent = '🗺️ 探索此地';
+      newBtnAction.onclick = () => {
+        openDispatchSetup(node, 'explore');
+        closeNodeDetailPanel();
+      };
+    } else {
+      newBtnAction.textContent = '🛡️ 討伐該區';
+      newBtnAction.onclick = () => {
+        openDispatchSetup(node, 'subjugation');
+        closeNodeDetailPanel();
+      };
+    }
+  } else {
+    newBtnAction.textContent = '🔒 無法操作';
+    newBtnAction.onclick = () => alert('目前無法對該派系領地進行操作！');
+  }
+
+  // 關閉按鈕
+  document.getElementById('btn-close-node-detail')!.onclick = () => {
+    closeNodeDetailPanel();
+    mapInfoPanel.style.display = 'flex';
+  };
+
+  panel.style.display = 'flex';
+}
+
+
+/**
+ * 開啟市場交易與商隊派遣視窗
+ */
+export function openTradeModal(node: MapNode) {
+  const tradeModal = document.getElementById('modal-trade')!;
+  const title = document.getElementById('trade-title')!;
+  const invContainer = document.getElementById('trade-inventory')!;
+  const marketContainer = document.getElementById('trade-market')!;
+
+  title.textContent = `⚖️ 市場與商隊 - ${node.name}`;
+  
+  // 本地領地物資
+  invContainer.innerHTML = '';
+  const territory = GameState.myTerritory;
+  const inventoryHtml = Object.entries(territory.tradeInventory).map(([goodId, amount]) => {
+    return `<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>${goodId}</span>
+              <span>數量: ${amount}</span>
+            </div>`;
+  }).join('');
+  invContainer.innerHTML = inventoryHtml || '<p>背包空空如也</p>';
+
+  // 當地市場
+  marketContainer.innerHTML = '';
+  if (node.marketData && node.marketData.goods.length > 0) {
+    const marketHtml = node.marketData.goods.map(item => {
+      return `<div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 5px; background: rgba(255,255,255,0.05);">
+                <span>${item.goodId}</span>
+                <span>買入: ${item.buyPrice} / 賣出: ${item.sellPrice} / 庫存: ${item.stock}</span>
+              </div>`;
+    }).join('');
+    marketContainer.innerHTML = marketHtml;
+  } else {
+    marketContainer.innerHTML = '<p>市場今日無貨</p>';
+  }
+
+  tradeModal.style.display = 'flex';
+
+  document.getElementById('btn-close-trade')!.onclick = () => {
+    tradeModal.style.display = 'none';
+  };
+
+  document.getElementById('btn-dispatch-caravan')!.onclick = () => {
+    // 發起商隊任務
+    const task = new DispatchTask(`商隊前往${node.name}`, TaskType.TRADE, 1, 0, 0, 0, 0, EnemyFeature.BALANCED);
+    task.tradeTargetNodeId = node.id;
+    if (node.marketData && node.marketData.goods.length > 0) {
+      const targetGood = node.marketData.goods[0];
+      const buyAmount = Math.min(targetGood.stock, Math.floor(territory.gold / targetGood.buyPrice));
+      if (buyAmount > 0) {
+        task.tradeBuyList = [{ goodId: targetGood.goodId, amount: buyAmount, maxPrice: targetGood.buyPrice }];
+        territory.gold -= buyAmount * targetGood.buyPrice; // 預扣金幣
+      }
+      task.tradeSellList = [];
+    }
+    
+    GameState.system.dispatchAdventurers(GameState.adventurers, task);
+    
+    console.log(`[系統] 🐪 商隊已出發前往 ${node.name}，預計 1 回合後返回。`);
+    tradeModal.style.display = 'none';
+    closeNodeDetailPanel();
+  };
+}

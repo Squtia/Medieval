@@ -1,6 +1,7 @@
 import { GameState } from './GameState';
 import { Territory } from '../models/Territory';
 import { Adventurer } from '../models/Adventurer';
+import { EventBus } from './EventBus';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
 
@@ -52,7 +53,11 @@ export class SaveManager {
       territory: GameState.myTerritory,
       adventurers: GameState.adventurers,
       factions: GameState.mapSystem.getFactions(),
-      mapNodes: GameState.mapSystem.getNodes()
+      mapNodes: GameState.mapSystem.getNodes(),
+      currentDay: GameState.currentDay,
+      currentMonth: GameState.currentMonth,
+      currentYear: GameState.currentYear,
+      restedExpPool: GameState.restedExpPool
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
@@ -87,9 +92,31 @@ export class SaveManager {
       GameState.system = new DispatchSystem(GameState.myTerritory);
       GameState.mapSystem = new MapDynamicsSystem(data.mapNodes, data.factions);
 
-      // 4. 更新時間紀錄
+      // 4. 更新時間紀錄與日曆
       GameState.playTime = data.playTime || 0;
-      GameState.sessionStartTime = Date.now();
+      
+      const now = Date.now();
+      if (data.timestamp) {
+        const offlineMs = now - data.timestamp;
+        const offlineHours = offlineMs / (1000 * 60 * 60);
+        // 每離線一小時給予 1000 點雙倍經驗，最多累積 24 小時
+        const gainedRested = Math.min(24, Math.floor(offlineHours)) * 1000;
+        GameState.restedExpPool = (data.restedExpPool || 0) + gainedRested;
+        
+        if (gainedRested > 0) {
+          console.log(`[系統] 💤 領主歸來！離線期間累積了 ${gainedRested} 點雙倍經驗 (Rested EXP)。`);
+
+        } else {
+          GameState.restedExpPool = data.restedExpPool || 0;
+        }
+      } else {
+        GameState.restedExpPool = data.restedExpPool || 0;
+      }
+
+      GameState.sessionStartTime = now;
+      GameState.currentDay = data.currentDay || 1;
+      GameState.currentMonth = data.currentMonth || 1;
+      GameState.currentYear = data.currentYear || 1;
 
       // 還原 currentViewNode
       if (t.currentCountryId) {

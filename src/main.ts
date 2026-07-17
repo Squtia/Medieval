@@ -1,12 +1,12 @@
 import { GameState, initGameState } from './core/GameState';
-import { startGameLoop } from './core/GameLoop';
+import { startGameLoop, advanceDay } from './core/GameLoop';
 import { initLogger } from './utils/Logger';
 import { UIManager } from './ui/UIManager';
-import { renderMap, setStartupMode } from './ui/MapController';
+import { renderMap, setStartupMode, initMapInteraction } from './ui/MapController';
 import { SaveManager } from './core/SaveManager';
 import { enterScene, returnToMap } from './ui/SceneController';
 import { openWarehouse, openTodoModal } from './ui/ModalController';
-import { DispatchTask, EnemyFeature } from './models/DispatchTask';
+import { DispatchTask, EnemyFeature, TaskType } from './models/DispatchTask';
 import { Adventurer } from './models/Adventurer';
 import { NodeLevel } from './models/types';
 import { DataStore } from './systems/DataStore';
@@ -24,6 +24,7 @@ initGameState();
 // ==========================================
 // 3. 事件綁定
 // ==========================================
+initMapInteraction();
 
 // 返回地圖按鈕
 document.getElementById('btn-back-map')!.addEventListener('click', returnToMap);
@@ -103,7 +104,7 @@ document.getElementById('btn-wild-quest')!.addEventListener('click', () => {
   if (!node) return;
   const features = Object.values(EnemyFeature);
   const randomFeature = features[Math.floor(Math.random() * features.length)];
-  const task = new DispatchTask(`掃蕩${node.name}`, 0, 20, 200, 20, 100, randomFeature);
+  const task = new DispatchTask(`掃蕩${node.name}`, TaskType.COMBAT, 0, 20, 200, 20, 100, randomFeature);
   GameState.system.dispatchAdventurers(GameState.adventurers, task);
   
   let featureMsg = '';
@@ -228,11 +229,11 @@ const mainMenu = document.getElementById('main-menu-view')!;
 const mapView = document.getElementById('map-view')!;
 const topBar = document.getElementById('top-bar')!;
 
-function renderSaveSlots(isNewGame: boolean = false) {
+function renderSaveSlots() {
   const container = document.getElementById('save-slots-container')!;
   const modalTitle = document.getElementById('modal-save-title')!;
   container.innerHTML = '';
-  modalTitle.textContent = isNewGame ? '選擇新旅程儲存欄位' : '載入遊戲';
+  modalTitle.textContent = '選擇旅程';
   
   const slots = SaveManager.getSaveSlots();
 
@@ -270,36 +271,33 @@ function renderSaveSlots(isNewGame: boolean = false) {
     }
 
     btn.addEventListener('click', () => {
-      if (isNewGame && !s.isEmpty) {
-        const confirmOverwrite = confirm(`確定要覆蓋欄位 ${s.slot} 的進度嗎？\n此動作無法復原！`);
-        if (!confirmOverwrite) return;
-      }
-      
-      document.getElementById('modal-load-game')!.classList.remove('active');
-      
-      if (isNewGame) {
-        // 開新局
-        mainMenu.classList.remove('active');
-        mapView.classList.add('active');
-        setStartupMode(true);
-        initGameState(); // 重新初始化資料
-        GameState.currentSaveSlot = s.slot; // 設定存檔欄位
-        renderMap();
-      } else {
-        // 載入遊戲
-        if (!s.isEmpty && SaveManager.loadGame(s.slot)) {
+      if (s.isEmpty) {
+        if (confirm(`確定要在欄位 ${s.slot} 開始新旅程嗎？`)) {
+          document.getElementById('modal-load-game')!.classList.remove('active');
           mainMenu.classList.remove('active');
-          topBar.style.display = 'flex';
-          
-          if (GameState.currentViewNode) {
-            enterScene(GameState.currentViewNode);
-          } else {
-            mapView.classList.add('active');
-            renderMap();
+          mapView.classList.add('active');
+          setStartupMode(true);
+          initGameState(); // 重新初始化資料
+          GameState.currentSaveSlot = s.slot; // 設定存檔欄位
+          renderMap();
+        }
+      } else {
+        if (confirm(`確定要進入欄位 ${s.slot} 的旅程嗎？`)) {
+          document.getElementById('modal-load-game')!.classList.remove('active');
+          if (SaveManager.loadGame(s.slot)) {
+            mainMenu.classList.remove('active');
+            topBar.style.display = 'flex';
+            
+            if (GameState.currentViewNode) {
+              enterScene(GameState.currentViewNode);
+            } else {
+              mapView.classList.add('active');
+              renderMap();
+            }
+            
+            UIManager.updateUI();
+            startGameLoop(() => UIManager.updateUI());
           }
-          
-          UIManager.updateUI();
-          startGameLoop(() => UIManager.updateUI());
         }
       }
     });
@@ -321,7 +319,7 @@ function renderSaveSlots(isNewGame: boolean = false) {
         e.stopPropagation();
         if (confirm(`確定要刪除欄位 ${s.slot} 的存檔嗎？此動作無法復原！`)) {
           SaveManager.deleteGame(s.slot);
-          renderSaveSlots(isNewGame);
+          renderSaveSlots();
         }
       });
       btnWrapper.appendChild(deleteBtn);
@@ -331,13 +329,8 @@ function renderSaveSlots(isNewGame: boolean = false) {
   });
 }
 
-document.getElementById('btn-new-journey')!.addEventListener('click', () => {
-  renderSaveSlots(true);
-  document.getElementById('modal-load-game')!.classList.add('active');
-});
-
-document.getElementById('btn-load-game')!.addEventListener('click', () => {
-  renderSaveSlots(false);
+document.getElementById('btn-enter-journey')!.addEventListener('click', () => {
+  renderSaveSlots();
   document.getElementById('modal-load-game')!.classList.add('active');
 });
 
@@ -364,6 +357,7 @@ document.getElementById('btn-exit-game')!.addEventListener('click', () => {
   // 隱藏地圖與其他視圖
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('top-bar')!.style.display = 'none';
+  document.getElementById('shared-right-panel')!.style.display = 'none';
   
   // 顯示主選單
   mainMenu.classList.add('active');
@@ -378,6 +372,11 @@ document.getElementById('btn-return-base')!.addEventListener('click', () => {
   } else {
     alert('您尚未建立據點！');
   }
+});
+
+// 手動結束本日
+document.getElementById('btn-end-day')!.addEventListener('click', () => {
+  advanceDay();
 });
 
 // 當玩家在新旅程中選擇了據點後觸發

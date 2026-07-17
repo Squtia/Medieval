@@ -1,4 +1,4 @@
-import { Faction, MapNode, NodeLevel, NodeFeature } from '../models/types';
+import { Faction, MapNode, NodeLevel, NodeFeature, WeatherType, TerrainType } from '../models/types';
 import { Territory } from '../models/Territory';
 
 export class MapDynamicsSystem {
@@ -29,32 +29,22 @@ export class MapDynamicsSystem {
    * 預期由 Game Loop 呼叫，例如每秒/每分鐘呼叫一次
    * @param deltaTime 經過的毫秒數 (保留參數供未來時間步長計算使用)
    */
-  public simulateMapDynamics(deltaTime: number): void {
-    // 1. 繁榮度自然變化與升降級檢定
+  public simulateMapDynamics(months: number): void {
+    // 1. 繁榮度自然下降 (因怪物威脅) 與升降級檢定
     for (const node of this.mapNodes) {
-      // 只有 5% 的機率在每次 tick 發生自然成長，大幅降低節奏
-      const shouldTick = Math.random() < 0.05;
-      
-      if (shouldTick) {
-        if (node.ownerFactionId !== null || node.isPlayerBase) {
-          // 有派系或玩家佔領的節點，繁榮度自然成長
-          node.prosperity += 1;
-        }
+      // 檢查相鄰高危險節點 (距離 15 內的荒野或巢穴)
+      const hasAdjacentDanger = this.mapNodes.some(other => 
+        other.id !== node.id && 
+        (other.nodeLevel === NodeLevel.WILDERNESS || other.feature === NodeFeature.MONSTER_NEST) && 
+        this.getDistance(node, other) < 15
+      );
 
-        // 檢查相鄰高危險節點 (距離 15 內的荒野或巢穴)
-        const hasAdjacentDanger = this.mapNodes.some(other => 
-          other.id !== node.id && 
-          (other.nodeLevel === NodeLevel.WILDERNESS || other.feature === NodeFeature.MONSTER_NEST) && 
-          this.getDistance(node, other) < 15
-        );
-
-        if (hasAdjacentDanger && (node.ownerFactionId !== null || node.isPlayerBase)) {
-          node.prosperity -= 1; // 受怪物威脅下降
-        }
-
-        // 確保繁榮度不小於 0
-        node.prosperity = Math.max(0, node.prosperity);
+      if (hasAdjacentDanger && (node.ownerFactionId !== null || node.isPlayerBase)) {
+        node.prosperity -= 10; // 每個月受怪物威脅大幅下降
       }
+
+      // 確保繁榮度不小於 0
+      node.prosperity = Math.max(0, node.prosperity);
 
       // 節點升級檢定
       if (node.nodeLevel < NodeLevel.CAPITAL) {
@@ -91,6 +81,36 @@ export class MapDynamicsSystem {
       if (faction.resources >= this.FACTION_EXPANSION_THRESHOLD) {
         this.attemptFactionExpansion(faction);
       }
+    }
+  }
+
+  /**
+   * 玩家手動投資城鎮繁榮度
+   */
+  public investProsperity(nodeId: string, territory: Territory): boolean {
+    const node = this.mapNodes.find(n => n.id === nodeId);
+    if (!node) return false;
+
+    // 每次投資固定花費 500 金，增加 50 繁榮度
+    const cost = 500;
+    const gain = 50;
+
+    if (territory.gold >= cost) {
+      territory.gold -= cost;
+      node.prosperity += gain;
+      console.log(`[系統] 💰 您花費了 ${cost} 金幣投資「${node.name}」，繁榮度上升了 ${gain}！`);
+      
+      // 立即檢查是否能升級
+      if (node.nodeLevel < NodeLevel.CAPITAL) {
+        const nextLevelThreshold = this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1];
+        if (node.prosperity >= nextLevelThreshold) {
+          this.upgradeNode(node);
+        }
+      }
+      return true;
+    } else {
+      console.log(`[系統] ⚠️ 金幣不足，無法投資！(需要 ${cost} 金幣)`);
+      return false;
     }
   }
 
@@ -237,6 +257,148 @@ export class MapDynamicsSystem {
     } else {
       console.log(`[系統] ⚠️ 金幣不足，無法建立據點！(需要 ${cost} 金幣)`);
       return false;
+    }
+  }
+
+  /**
+   * 派遣斥候偵查節點 (解鎖情報)
+   * TODO: 未來可改為消耗 Adventurer 派遣任務 (DispatchTask)
+   */
+  public scoutNode(nodeId: string, territory: Territory, currentDay: number): boolean {
+    const node = this.mapNodes.find(n => n.id === nodeId);
+    if (!node) return false;
+
+    if (node.isScouted) {
+      console.log(`[系統] ⚠️ 該節點「${node.name}」已經偵查過了！`);
+      return false;
+    }
+
+    const cost = 100; // 偵查花費
+    if (territory.gold >= cost) {
+      territory.gold -= cost;
+      node.isScouted = true;
+      node.scoutExpiryDate = currentDay + 30; // 情報有效期限 30 天
+
+      // 產生模擬情報資料 (scoutData)
+      let danger = '安全';
+      let treasure = '無';
+      let garrison = 0;
+
+      if (node.feature === NodeFeature.MONSTER_NEST) {
+        danger = '極度危險';
+        treasure = '史詩寶藏';
+      } else if (node.feature === NodeFeature.SUBJUGATION) {
+        danger = '中等危險';
+        treasure = '稀有素材';
+      } else if (node.ownerFactionId && !node.isPlayerBase) {
+        danger = '未知軍勢';
+        treasure = '豐富物資';
+        garrison = node.prosperity * 2 + 500;
+      }
+
+      node.scoutData = {
+        dangerLevel: danger,
+        treasureTier: treasure,
+        garrisonPower: garrison > 0 ? garrison : undefined
+      };
+
+      console.log(`[系統] 👁️ 花費 ${cost} 金幣，成功偵查「${node.name}」，獲得最新情報！(有效期限 30 天)`);
+      return true;
+    } else {
+      console.log(`[系統] ⚠️ 金幣不足，無法派遣斥候！(需要 ${cost} 金幣)`);
+      return false;
+    }
+  }
+
+  /**
+   * 每日檢查情報是否過期
+   */
+  public checkScoutExpiry(currentDay: number): void {
+    for (const node of this.mapNodes) {
+      if (node.isScouted && node.scoutExpiryDate !== null) {
+        if (currentDay >= node.scoutExpiryDate) {
+          node.isScouted = false;
+          node.scoutExpiryDate = null;
+          node.scoutData = undefined;
+          console.log(`[系統] 🌫️ 關於「${node.name}」的情報已經過期，節點重新陷入迷霧。`);
+        }
+      }
+    }
+  }
+
+  /**
+   * 每日更新全地圖天氣
+   */
+  public updateWeather(): void {
+    for (const node of this.mapNodes) {
+      if (node.weatherDuration > 0) {
+        node.weatherDuration -= 1;
+        continue; // 天氣還沒結束，維持原狀
+      }
+
+      // 天氣結束，重新骰一次天氣
+      // 依據地形賦予權重
+      const r = Math.random();
+      
+      if (node.terrain === TerrainType.SNOW_MOUNTAIN) {
+        if (r < 0.6) {
+          node.currentWeather = WeatherType.SNOW;
+          node.weatherDuration = Math.floor(Math.random() * 3) + 2; // 2~4天
+        } else if (r < 0.8) {
+          node.currentWeather = WeatherType.FOG;
+          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+        } else {
+          node.currentWeather = WeatherType.CLEAR;
+          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+        }
+      } else if (node.terrain === TerrainType.DESERT) {
+        if (r < 0.3) {
+          node.currentWeather = WeatherType.SANDSTORM;
+          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+        } else if (r < 0.35) { // 異常天氣
+          node.currentWeather = WeatherType.RAIN;
+          node.weatherDuration = 1;
+        } else {
+          node.currentWeather = WeatherType.CLEAR;
+          node.weatherDuration = Math.floor(Math.random() * 5) + 3;
+        }
+      } else if (node.terrain === TerrainType.FOREST) {
+        if (r < 0.4) {
+          node.currentWeather = WeatherType.RAIN;
+          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+        } else if (r < 0.6) {
+          node.currentWeather = WeatherType.FOG;
+          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+        } else {
+          node.currentWeather = WeatherType.CLEAR;
+          node.weatherDuration = Math.floor(Math.random() * 4) + 2;
+        }
+      } else if (node.terrain === TerrainType.VOLCANO) {
+        if (r < 0.2) {
+          node.currentWeather = WeatherType.FOG;
+          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+        } else if (r < 0.25) { // 異常天氣
+          node.currentWeather = WeatherType.SNOW;
+          node.weatherDuration = 1;
+        } else {
+          node.currentWeather = WeatherType.CLEAR;
+          node.weatherDuration = Math.floor(Math.random() * 6) + 2;
+        }
+      } else { // PLAINS 及其他
+        if (r < 0.3) {
+          node.currentWeather = WeatherType.RAIN;
+          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+        } else if (r < 0.4) {
+          node.currentWeather = WeatherType.FOG;
+          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+        } else if (r < 0.45) { // 異常天氣
+          node.currentWeather = WeatherType.SNOW;
+          node.weatherDuration = 1;
+        } else {
+          node.currentWeather = WeatherType.CLEAR;
+          node.weatherDuration = Math.floor(Math.random() * 5) + 2;
+        }
+      }
     }
   }
 

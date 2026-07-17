@@ -23,7 +23,12 @@ export const GameState = {
   adventurers: [] as Adventurer[],
   playTime: 0,
   sessionStartTime: Date.now(),
-  currentSaveSlot: null as number | null
+  currentSaveSlot: null as number | null,
+  currentDay: 1,
+  currentMonth: 1,
+  currentYear: 1,
+  totalDays: 1,
+  restedExpPool: 0
 };
 
 export function initGameState() {
@@ -35,6 +40,11 @@ export function initGameState() {
   GameState.playTime = 0;
   GameState.sessionStartTime = Date.now();
   GameState.currentSaveSlot = null;
+  GameState.currentDay = 1;
+  GameState.currentMonth = 1;
+  GameState.currentYear = 1;
+  GameState.totalDays = 1;
+  GameState.restedExpPool = 0;
   
   // 初始化 EventBus 關聯的新系統
   new SettlementSystem();

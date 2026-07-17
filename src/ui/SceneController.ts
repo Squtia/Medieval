@@ -118,4 +118,5 @@ export function returnToMap() {
   document.getElementById('map-view')!.classList.add('active');
   document.getElementById('ui-location')!.textContent = '世界地圖';
   renderMap();
+  UIManager.updateUI();
 }

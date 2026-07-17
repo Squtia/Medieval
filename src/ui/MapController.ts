@@ -2,7 +2,7 @@ import { GameState } from '../core/GameState';
 import { TerrainType, NodeFeature, MapNode } from '../models/types';
 import { enterScene } from './SceneController';
 import { UIManager } from './UIManager';
-import { openRadialMenu, closeRadialMenu } from './ModalController';
+import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel } from './ModalController';
 
 export function getTerrainEmoji(terrain: TerrainType): string {
   switch(terrain) {
@@ -63,11 +63,31 @@ export function renderMap() {
 
     const label = document.createElement('div');
     label.className = 'node-label';
-    label.textContent = node.name + (node.isPlayerBase ? ' (據點)' : '');
+    
+    // 依據是否偵查顯示不同精簡資訊
+    let labelText = `${getTerrainEmoji(node.terrain)} ${node.name}`;
+    if (node.isPlayerBase) {
+      labelText += '\n[我的據點]';
+    } else if (node.ownerFactionId) {
+      const f = GameState.mapSystem.getFactions().find(fac => fac.id === node.ownerFactionId);
+      labelText += `\n[${f ? f.factionName : '未知'}]`;
+    } else {
+      labelText += '\n[無主之地]';
+    }
+    
+    if (!node.isScouted && !node.isPlayerBase) {
+      labelText += '\n(未偵查)';
+    } else if (node.scoutData) {
+      labelText += `\n危險度: ${node.scoutData.dangerLevel}`;
+    }
+    
+    label.textContent = labelText;
     el.appendChild(label);
 
     el.addEventListener('click', (e) => {
       e.stopPropagation(); // 防止點擊空白處的事件觸發
+      if (hasMapDragged) return; // 防止拖曳時誤觸發點擊
+
       if (isStartupMode) {
         if (node.feature === NodeFeature.OCCUPIABLE) {
           openNodeSelectModal(node);
@@ -78,16 +98,17 @@ export function renderMap() {
         if (node.isPlayerBase) {
           enterScene(node);
         } else {
-          openRadialMenu(node, el);
+          openNodeDetailPanel(node);
         }
       }
     });
     container.appendChild(el);
   });
 
-  // 點擊地圖空白處關閉選單
+  // 點擊地圖空白處關閉選單與右側詳細面板
   container.addEventListener('click', () => {
     closeRadialMenu();
+    closeNodeDetailPanel();
   });
 }
 
@@ -150,3 +171,85 @@ export function openNodeSelectModal(node: MapNode) {
 }
 
 // 移除原本的 initStartup
+
+export let hasMapDragged = false;
+
+export function initMapInteraction() {
+  const container = document.getElementById('map-nodes-container');
+  if (!container) return;
+  const wrapper = container.parentElement!;
+  
+  let scale = 1;
+  let translateX = 0;
+  let translateY = 0;
+  
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+
+  const updateTransform = () => {
+    // 取得容器實際顯示尺寸
+    const cw = container.offsetWidth;
+    const ch = container.offsetHeight;
+    
+    // 計算可移動最大距離 (當 scale = 1 時為 0)
+    const maxX = (scale - 1) * cw / 2;
+    const maxY = (scale - 1) * ch / 2;
+    
+    // 限制 translateX 與 translateY 在 [-maxX, maxX] 與 [-maxY, maxY] 之間
+    translateX = Math.max(-maxX, Math.min(maxX, translateX));
+    translateY = Math.max(-maxY, Math.min(maxY, translateY));
+
+    // 套用變形於地圖容器
+    container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    // 同步逆縮放變數，供 .map-node 的 CSS 使用
+    container.style.setProperty('--inv-scale', (1 / scale).toString());
+  };
+
+  // 滾輪縮放
+  wrapper.addEventListener('wheel', (e) => {
+    e.preventDefault(); // 避免畫面捲動
+    const zoomIntensity = 0.1;
+    if (e.deltaY < 0) {
+      scale = Math.min(scale + zoomIntensity, 3);
+    } else {
+      scale = Math.max(scale - zoomIntensity, 1);
+    }
+    updateTransform();
+  });
+
+  // 左鍵拖曳
+  wrapper.addEventListener('mousedown', (e) => {
+    // 只有左鍵才允許拖曳
+    if (e.button !== 0) return;
+    
+    isDragging = true;
+    hasMapDragged = false;
+    startX = e.pageX - translateX;
+    startY = e.pageY - translateY;
+    wrapper.style.cursor = 'grabbing';
+  });
+
+  wrapper.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const newX = e.pageX - startX;
+    const newY = e.pageY - startY;
+    
+    // 若移動超過 5px，則視為拖曳，避免與點擊事件衝突
+    if (Math.abs(newX - translateX) > 5 || Math.abs(newY - translateY) > 5) {
+      hasMapDragged = true;
+    }
+    
+    translateX = newX;
+    translateY = newY;
+    updateTransform();
+  });
+
+  const stopDrag = () => {
+    isDragging = false;
+    wrapper.style.cursor = 'default';
+  };
+
+  wrapper.addEventListener('mouseup', stopDrag);
+  wrapper.addEventListener('mouseleave', stopDrag);
+}

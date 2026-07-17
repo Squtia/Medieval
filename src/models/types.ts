@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 冒險者當前的狀態
  */
 export enum AdventurerState {
@@ -74,6 +74,17 @@ export enum TerrainType {
 }
 
 /**
+ * 天氣類型
+ */
+export enum WeatherType {
+  CLEAR = 'CLEAR',
+  RAIN = 'RAIN',
+  SNOW = 'SNOW',
+  SANDSTORM = 'SANDSTORM',
+  FOG = 'FOG'
+}
+
+/**
  * 地圖節點 (動態沙盒節點)
  */
 export interface MapNode {
@@ -91,6 +102,42 @@ export interface MapNode {
   isPlayerBase: boolean;      // 標記這是否為玩家當前的所在地
   terrain: TerrainType;       // 地形類型
   feature: NodeFeature;       // 節點特性
+  
+  // 情報迷霧系統 (Scouting System)
+  isScouted: boolean;
+  scoutExpiryDate: number | null;
+  scoutData?: NodeScoutData;
+  
+  // 天氣系統
+  currentWeather: WeatherType;
+  weatherDuration: number;
+  
+  // 市場資料
+  marketData?: NodeMarketData;
+}
+
+export interface NodeScoutData {
+  dangerLevel: string;
+  treasureTier: string;
+  garrisonPower?: number;
+}
+
+export interface TradeGood {
+  id: string;
+  name: string;
+  description: string;
+  basePrice: number;
+  type: 'FOOD' | 'MATERIAL' | 'LUXURY' | 'SPECIALTY';
+}
+
+export interface NodeMarketData {
+  lastUpdateDay: number;
+  goods: {
+    goodId: string;
+    buyPrice: number;
+    sellPrice: number;
+    stock: number;
+  }[];
 }
 
 export enum FactionType {
@@ -211,3 +258,4 @@ export interface EquipmentTemplate {
     combatStats?: (keyof CombatStats)[];
   };
 }
+
