@@ -30,28 +30,28 @@ export function renderMap() {
     let boxShadow = '0 0 5px rgba(0,0,0,0.5)';
     
     if (node.isPlayerBase) {
-      borderColor = '#ffd700';
-      bgColor = 'rgba(255, 215, 0, 0.3)';
-      boxShadow = '0 0 15px rgba(255, 215, 0, 0.8)';
+      borderColor = '#ffd700'; // Gold
+      bgColor = 'rgba(255, 215, 0, 0.7)';
+      boxShadow = '0 0 15px rgba(255, 215, 0, 1)';
       el.style.zIndex = '50';
     } else if (node.ownerFactionId) {
       const f = GameState.mapSystem.getFactions().find(fac => fac.id === node.ownerFactionId);
       if (f) {
         borderColor = f.color;
-        bgColor = 'rgba(0, 0, 0, 0.6)';
-        boxShadow = `0 0 8px ${f.color}88`;
+        bgColor = f.color; // 直接使用勢力顏色填滿，使其非常明顯
+        boxShadow = `0 0 12px ${f.color}, inset 0 0 8px rgba(0,0,0,0.4)`;
       }
     } else {
       if (node.feature === NodeFeature.MONSTER_NEST) {
         borderColor = '#dc2626';
-        bgColor = 'rgba(69, 10, 10, 0.6)';
-        boxShadow = '0 0 8px rgba(220, 38, 38, 0.5)';
+        bgColor = 'rgba(220, 38, 38, 0.7)';
+        boxShadow = '0 0 12px rgba(220, 38, 38, 0.8)';
       } else if (node.feature === NodeFeature.SUBJUGATION) {
         borderColor = '#6b7280';
-        bgColor = 'rgba(31, 41, 55, 0.6)';
+        bgColor = 'rgba(107, 114, 128, 0.7)';
       } else {
-        borderColor = '#444';
-        bgColor = 'transparent';
+        borderColor = '#888';
+        bgColor = 'rgba(0, 0, 0, 0.5)';
         el.style.borderStyle = 'dashed';
         boxShadow = 'none';
       }
