@@ -6,6 +6,7 @@ import { EquipmentGenerator } from './EquipmentGenerator';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
+import { TRADE_GOODS } from './MarketSystem';
 
 /**
  * 代表正在執行中的任務
@@ -228,7 +229,9 @@ export class DispatchSystem {
         for (const [goodId, amount] of Object.entries(task.caravanCargo)) {
           if (amount > 0) {
              this.territory.tradeInventory[goodId] = (this.territory.tradeInventory[goodId] || 0) + amount;
-             logCargo += `${goodId}x${amount} `;
+             const goodRef = TRADE_GOODS.find(g => g.id === goodId);
+             const goodName = goodRef ? `${goodRef.icon || '📦'}${goodRef.name}` : goodId;
+             logCargo += `${goodName}x${amount} `;
           }
         }
       }

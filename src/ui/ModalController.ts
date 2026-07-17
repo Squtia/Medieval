@@ -533,7 +533,11 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     
     let optionsHtml = '';
     if (node.marketData && node.marketData.goods) {
-      optionsHtml = node.marketData.goods.map(g => `<option value="${g.goodId}">${g.goodId} (買${g.buyPrice}/賣${g.sellPrice})</option>`).join('');
+      optionsHtml = node.marketData.goods.map(g => {
+        const goodRef = TRADE_GOODS.find(x => x.id === g.goodId);
+        const name = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : g.goodId;
+        return `<option value="${g.goodId}">${name} (買${g.buyPrice}/賣${g.sellPrice})</option>`;
+      }).join('');
     }
 
     nodeEl.innerHTML = `
