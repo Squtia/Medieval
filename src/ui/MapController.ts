@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { TerrainType, NodeFeature, MapNode } from '../models/types';
+import { TerrainType, NodeFeature, MapNode, NodeLevel } from '../models/types';
 import { enterScene } from './SceneController';
 import { UIManager } from './UIManager';
 import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel } from './ModalController';
