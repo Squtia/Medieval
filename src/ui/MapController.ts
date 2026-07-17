@@ -20,12 +20,10 @@ export function getNodeIcon(node: MapNode): string {
   if (node.feature === NodeFeature.MONSTER_NEST) return '👹';
   if (node.feature === NodeFeature.SUBJUGATION) return '🏚️';
   
-  if (node.ownerFactionId) {
-    if (node.nodeLevel === NodeLevel.CAPITAL) return '🏰';
-    if (node.nodeLevel === NodeLevel.TOWN) return '🏘️';
-    if (node.nodeLevel === NodeLevel.VILLAGE) return '🛖';
-    if (node.nodeLevel === NodeLevel.CAMP) return '⛺';
-  }
+  if (node.nodeLevel === NodeLevel.CAPITAL) return '🏰';
+  if (node.nodeLevel === NodeLevel.TOWN) return '🏘️';
+  if (node.nodeLevel === NodeLevel.VILLAGE) return '🏡';
+  if (node.nodeLevel === NodeLevel.CAMP) return '⛺';
   
   return getTerrainEmoji(node.terrain);
 }

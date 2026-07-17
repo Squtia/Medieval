@@ -683,8 +683,8 @@
     <div class="resource-group">
       <div class="resource-item" title="總人口"><span class="resource-icon">👥</span> <span id="ui-population">0</span></div>
       <div class="resource-item" title="糧食"><span class="resource-icon">🍞</span> <span id="ui-food">0</span></div>
-      <div class="resource-item" title="木材"><span class="resource-icon">🪵</span> <span id="ui-wood">0</span></div>
-      <div class="resource-item" title="石材"><span class="resource-icon">🪨</span> <span id="ui-stone">0</span></div>
+      <div class="resource-item" title="木材"><span class="resource-icon">🌲</span> <span id="ui-wood">0</span></div>
+      <div class="resource-item" title="石材"><span class="resource-icon">🧱</span> <span id="ui-stone">0</span></div>
       <div class="resource-item" title="金幣"><span class="resource-icon">💰</span> <span id="ui-gold">0</span></div>
       <div class="resource-item" title="聲望"><span class="resource-icon">✨</span> <span id="ui-prestige">0</span></div>
       <div class="resource-item" title="好感度"><span class="resource-icon">🤝</span> <span id="ui-favor">0</span></div>
@@ -1050,11 +1050,28 @@
 
   <!-- 倉庫與強化 Modal -->
   <div id="modal-warehouse" class="modal-overlay">
-    <div class="glass-panel modal-content" style="width: 800px;">
+    <div class="glass-panel modal-content" style="width: 800px; display: flex; flex-direction: column;">
       <button class="close-btn" id="btn-close-warehouse">×</button>
-      <h2 style="text-align: center;">📦 裝備倉庫與鍛造</h2>
-      <div id="warehouse-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
-        <!-- JS 渲染裝備卡片 -->
+      <h2 style="text-align: center; margin-bottom: 15px;">📦 領地倉庫與鍛造</h2>
+      
+      <!-- 頁籤按鈕 -->
+      <div class="warehouse-tabs" style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+        <button id="tab-warehouse-equip" class="action-btn" style="flex: 1; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);">🛡️ 裝備與鍛造</button>
+        <button id="tab-warehouse-goods" class="action-btn" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">📦 交易品物資</button>
+      </div>
+
+      <!-- 裝備分頁 -->
+      <div id="warehouse-equip-panel" style="display: block; max-height: 450px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+          <!-- JS 渲染裝備卡片 -->
+        </div>
+      </div>
+
+      <!-- 交易品分頁 -->
+      <div id="warehouse-goods-panel" style="display: none; max-height: 450px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-goods-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+          <!-- JS 渲染交易品卡片 -->
+        </div>
       </div>
     </div>
   </div>

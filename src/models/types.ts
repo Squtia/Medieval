@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 冒險者當前的狀態
  */
 export enum AdventurerState {
@@ -128,6 +128,7 @@ export interface TradeGood {
   description: string;
   basePrice: number;
   type: 'FOOD' | 'MATERIAL' | 'LUXURY' | 'SPECIALTY';
+  icon?: string;
 }
 
 export interface NodeMarketData {

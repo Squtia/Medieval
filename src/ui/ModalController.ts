@@ -6,11 +6,45 @@ import { UIManager } from './UIManager';
 import { DispatchTask, EnemyFeature, TaskType, TradeInstruction } from '../models/DispatchTask';
 import { GAME_EVENTS } from '../data/EventData';
 import { startRoutePlanning } from './MapController';
+import { TRADE_GOODS } from '../systems/MarketSystem';
 
 export function openWarehouse(isForgeMode: boolean) {
   const modalWarehouse = document.getElementById('modal-warehouse')!;
   const warehouseGrid = document.getElementById('warehouse-grid')!;
   
+  // 頁籤與面板
+  const tabEquip = document.getElementById('tab-warehouse-equip')!;
+  const tabGoods = document.getElementById('tab-warehouse-goods')!;
+  const equipPanel = document.getElementById('warehouse-equip-panel')!;
+  const goodsPanel = document.getElementById('warehouse-goods-panel')!;
+
+  tabEquip.onclick = () => {
+    equipPanel.style.display = 'block';
+    goodsPanel.style.display = 'none';
+    tabEquip.style.background = 'rgba(255,255,255,0.15)';
+    tabEquip.style.borderColor = 'rgba(255,255,255,0.2)';
+    tabGoods.style.background = 'rgba(255,255,255,0.05)';
+    tabGoods.style.borderColor = 'rgba(255,255,255,0.1)';
+  };
+
+  tabGoods.onclick = () => {
+    equipPanel.style.display = 'none';
+    goodsPanel.style.display = 'block';
+    tabEquip.style.background = 'rgba(255,255,255,0.05)';
+    tabEquip.style.borderColor = 'rgba(255,255,255,0.1)';
+    tabGoods.style.background = 'rgba(255,255,255,0.15)';
+    tabGoods.style.borderColor = 'rgba(255,255,255,0.2)';
+    renderWarehouseGoods();
+  };
+
+  // 預設切換回裝備 panel
+  equipPanel.style.display = 'block';
+  goodsPanel.style.display = 'none';
+  tabEquip.style.background = 'rgba(255,255,255,0.15)';
+  tabEquip.style.borderColor = 'rgba(255,255,255,0.2)';
+  tabGoods.style.background = 'rgba(255,255,255,0.05)';
+  tabGoods.style.borderColor = 'rgba(255,255,255,0.1)';
+
   warehouseGrid.innerHTML = '';
   const myTerritory = GameState.myTerritory;
   
@@ -860,8 +894,10 @@ export function openTradeModal(node: MapNode) {
   invContainer.innerHTML = '';
   const territory = GameState.myTerritory;
   const inventoryHtml = Object.entries(territory.tradeInventory).map(([goodId, amount]) => {
+    const goodRef = TRADE_GOODS.find(g => g.id === goodId);
+    const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : goodId;
     return `<div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <span>${goodId}</span>
+              <span>${goodName}</span>
               <span>數量: ${amount}</span>
             </div>`;
   }).join('');
@@ -871,8 +907,10 @@ export function openTradeModal(node: MapNode) {
   marketContainer.innerHTML = '';
   if (node.marketData && node.marketData.goods.length > 0) {
     const marketHtml = node.marketData.goods.map(item => {
+      const goodRef = TRADE_GOODS.find(g => g.id === item.goodId);
+      const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : item.goodId;
       return `<div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 5px; background: rgba(255,255,255,0.05);">
-                <span>${item.goodId}</span>
+                <span>${goodName}</span>
                 <span>買入: ${item.buyPrice} / 賣出: ${item.sellPrice} / 庫存: ${item.stock}</span>
               </div>`;
     }).join('');
@@ -892,4 +930,86 @@ export function openTradeModal(node: MapNode) {
     closeNodeDetailPanel();
     startRoutePlanning(node);
   };
+}
+
+/**
+ * 渲染交易品倉庫物資並提供出售功能
+ */
+export function renderWarehouseGoods() {
+  const goodsGrid = document.getElementById('warehouse-goods-grid')!;
+  if (!goodsGrid) return;
+  goodsGrid.innerHTML = '';
+  
+  const myTerritory = GameState.myTerritory;
+  const goodsEntries = Object.entries(myTerritory.tradeInventory).filter(([_, amount]) => amount > 0);
+
+  if (goodsEntries.length === 0) {
+    goodsGrid.innerHTML = '<p style="color:#94a3b8; grid-column: span 2; text-align: center; padding: 20px;">倉庫中目前沒有任何交易品物資。</p>';
+    return;
+  }
+
+  goodsEntries.forEach(([goodId, amount]) => {
+    const goodRef = TRADE_GOODS.find(g => g.id === goodId);
+    const name = goodRef?.name || goodId;
+    const icon = goodRef?.icon || '📦';
+    const desc = goodRef?.description || '跑商帶回來的交易品。';
+    const basePrice = goodRef?.basePrice || 10;
+
+    const card = document.createElement('div');
+    card.className = 'glass-panel';
+    card.style.padding = '15px';
+    card.style.display = 'flex';
+    card.style.gap = '15px';
+    card.style.alignItems = 'center';
+    card.style.background = 'rgba(0,0,0,0.4)';
+    card.style.border = '1px solid rgba(255,255,255,0.05)';
+
+    card.innerHTML = `
+      <div style="font-size:3em;">${icon}</div>
+      <div style="flex:1;">
+        <strong style="color:#eab308; font-size:1.1em;">${name}</strong>
+        <span style="color:#10b981; font-weight:bold; margin-left:10px;">數量: ${amount}</span><br/>
+        <span style="font-size:0.8em; color:#94a3b8; display:block; margin: 4px 0;">${desc}</span>
+        <span style="font-size:0.8em; color:#eab308;">基礎價值: ${basePrice} 金幣</span>
+      </div>
+      <div>
+        <button class="action-btn btn-sell-good" style="padding: 5px 10px; font-size: 0.85em; background: linear-gradient(135deg, #d97706, #b45309);" data-good-id="${goodId}">
+          💰 出售
+        </button>
+      </div>
+    `;
+
+    goodsGrid.appendChild(card);
+  });
+
+  // 綁定出售按鈕事件
+  const sellBtns = goodsGrid.querySelectorAll('.btn-sell-good');
+  sellBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const goodId = (e.currentTarget as HTMLElement).getAttribute('data-good-id')!;
+      const goodRef = TRADE_GOODS.find(g => g.id === goodId);
+      if (!goodRef) return;
+      
+      const currentAmount = myTerritory.tradeInventory[goodId] || 0;
+      if (currentAmount <= 0) return;
+
+      const sellAmount = prompt(`請輸入要出售的「${goodRef.name}」數量 (當前擁有: ${currentAmount}):`, currentAmount.toString());
+      if (sellAmount === null) return;
+      
+      const num = parseInt(sellAmount);
+      if (isNaN(num) || num <= 0 || num > currentAmount) {
+        alert('請輸入正確的出售數量！');
+        return;
+      }
+
+      // 扣除並給予金幣
+      myTerritory.tradeInventory[goodId] -= num;
+      const goldGained = goodRef.basePrice * num;
+      myTerritory.addGold(goldGained);
+      console.log(`[系統] 💰 您出售了 ${num} 個「${goodRef.name}」，獲得了 ${goldGained} 金幣！`);
+      
+      UIManager.updateUI();
+      renderWarehouseGoods(); // 重新渲染交易品清單
+    });
+  });
 }

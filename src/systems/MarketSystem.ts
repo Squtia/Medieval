@@ -1,14 +1,15 @@
 import { MapNode, NodeLevel, TradeGood, WeatherType, TerrainType } from '../models/types';
 
 export const TRADE_GOODS: TradeGood[] = [
-  { id: 'tg_wheat', name: '小麥', description: '基礎糧食，平原多產。', basePrice: 10, type: 'FOOD' },
-  { id: 'tg_meat', name: '獸肉', description: '高營養食物，森林與荒野多產。', basePrice: 20, type: 'FOOD' },
-  { id: 'tg_timber', name: '木材', description: '基礎建材，森林特產。', basePrice: 15, type: 'MATERIAL' },
-  { id: 'tg_iron', name: '鐵礦石', description: '金屬材料，火山與雪山常見。', basePrice: 30, type: 'MATERIAL' },
-  { id: 'tg_spice', name: '香料', description: '沙漠地帶的昂貴特產。', basePrice: 100, type: 'LUXURY' },
-  { id: 'tg_silk', name: '絲綢', description: '首都與大城市才有的奢侈品。', basePrice: 150, type: 'LUXURY' },
-  { id: 'tg_ice_crystal', name: '冰晶', description: '雪山獨有的魔法素材。', basePrice: 80, type: 'SPECIALTY' },
-  { id: 'tg_obsidian', name: '黑曜石', description: '火山深處出產的堅硬礦石。', basePrice: 90, type: 'SPECIALTY' }
+  { id: 'tg_wheat', name: '小麥', description: '基礎糧食，平原多產。', basePrice: 10, type: 'FOOD', icon: '🌾' },
+  { id: 'tg_meat', name: '獸肉', description: '高營養食物，森林與荒野多產。', basePrice: 20, type: 'FOOD', icon: '🥩' },
+  { id: 'tg_timber', name: '木材', description: '基礎建材，森林特產。', basePrice: 15, type: 'MATERIAL', icon: '🌲' },
+  { id: 'tg_stone', name: '石材', description: '進階建材，山地特產。', basePrice: 20, type: 'MATERIAL', icon: '🧱' },
+  { id: 'tg_iron', name: '鐵礦石', description: '金屬材料，火山與雪山常見。', basePrice: 30, type: 'MATERIAL', icon: '⛓️' },
+  { id: 'tg_spice', name: '香料', description: '沙漠地帶的昂貴特產。', basePrice: 100, type: 'LUXURY', icon: '🧂' },
+  { id: 'tg_silk', name: '絲綢', description: '首都與大城市才有的奢侈品。', basePrice: 150, type: 'LUXURY', icon: '🧵' },
+  { id: 'tg_ice_crystal', name: '冰晶', description: '雪山獨有的魔法素材。', basePrice: 80, type: 'SPECIALTY', icon: '❄️' },
+  { id: 'tg_obsidian', name: '黑曜石', description: '火山深處出產的堅硬礦石。', basePrice: 90, type: 'SPECIALTY', icon: '💎' }
 ];
 
 export class MarketSystem {
@@ -38,6 +39,7 @@ export class MarketSystem {
       if (node.terrain === TerrainType.VOLCANO && good.id === 'tg_obsidian') multiplier = 0.5;
       if (node.terrain === TerrainType.FOREST && good.id === 'tg_timber') multiplier = 0.5;
       if (node.terrain === TerrainType.PLAINS && good.id === 'tg_wheat') multiplier = 0.5;
+      if (node.terrain === TerrainType.SNOW_MOUNTAIN && good.id === 'tg_stone') multiplier = 0.5; // 山地石材便宜
 
       const baseValue = good.basePrice * multiplier;
       const fluctuation = 0.8 + Math.random() * 0.4; // 0.8 ~ 1.2
