@@ -33,4 +33,11 @@ export class EventBus {
       handlers.forEach(handler => handler(event.payload));
     }
   }
+
+  /**
+   * 清除所有事件訂閱 (用於重新開局或讀檔時，防止重複訂閱造成事件觸發多次)
+   */
+  public clearAll(): void {
+    this.listeners = {};
+  }
 }

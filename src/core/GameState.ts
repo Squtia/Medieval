@@ -12,6 +12,7 @@ import { HeroSystem } from '../systems/HeroSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { ThreatSystem } from '../systems/ThreatSystem';
 import { MapGenerator } from '../systems/MapGenerator';
+import { EventBus } from './EventBus';
 
 export const factions: Faction[] = INITIAL_FACTIONS;
 export const mapNodes: MapNode[] = INITIAL_MAP_NODES;
@@ -54,6 +55,9 @@ export function initGameState() {
   GameState.totalDays = 1;
   GameState.restedExpPool = 0;
   
+  // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
+  EventBus.getInstance().clearAll();
+
   // 初始化 EventBus 關聯的新系統
   new SettlementSystem();
   new HeroSystem();

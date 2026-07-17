@@ -4,6 +4,10 @@ import { Adventurer } from '../models/Adventurer';
 import { EventBus } from './EventBus';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
+import { SettlementSystem } from '../systems/SettlementSystem';
+import { HeroSystem } from '../systems/HeroSystem';
+import { CombatSystem } from '../systems/CombatSystem';
+import { ThreatSystem } from '../systems/ThreatSystem';
 
 export interface SaveSlotMetadata {
   slot: number;
@@ -94,8 +98,14 @@ export class SaveManager {
       });
 
       // 3. 還原 Systems
+      // 先清除舊的 EventBus 訂閱，避免讀檔後系統被訂閱多次
+      EventBus.getInstance().clearAll();
       GameState.system = new DispatchSystem(GameState.myTerritory);
       GameState.mapSystem = new MapDynamicsSystem(data.mapNodes, data.factions);
+      new SettlementSystem();
+      new HeroSystem();
+      new CombatSystem();
+      new ThreatSystem();
 
       // 4. 更新時間紀錄與日曆
       GameState.playTime = data.playTime || 0;

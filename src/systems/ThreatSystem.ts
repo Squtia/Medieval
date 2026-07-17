@@ -10,7 +10,7 @@ export class ThreatSystem {
     // 監聽天數流逝推動災難倒數
     eventBus.subscribe(GameEventType.DAY_PASSED, (payload) => {
       this.daysUntilNextThreat--;
-      console.log(`[ThreatSystem] 距離下一次災難還有 ${this.daysUntilNextThreat} 天...`);
+      // 倒數資訊僅供 debug，不顯示在遊戲日誌中
 
       if (this.daysUntilNextThreat <= 0) {
         // 觸發災難
