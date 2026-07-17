@@ -5,6 +5,7 @@
   - *修復與解耦*：
     1. 在 `MapController.ts` 與 `ModalController.ts` 頂部顯式導入了 `DispatchSystem` 與 `ActiveMission` 類型，消除型別隱式推導問題。
     2. 將 `renderTradeRoutes` 掛載至全域 `window` 物件上，在 `UIManager.ts` 中改為全域安全呼叫，徹底消除了 `UIManager` 與 `MapController` 之間的模組依賴關係，保證在任何打包與部署環境下皆能 100% 編譯通過。
+    3. 將 `DispatchSystem.ts` 中的 `.map().filter()` 型別守衛重構為安全無副作用的 `forEach` 推送，完全消除不同 TS 版本編譯時 Type Predicate 解析失敗或隱式 any 報錯的風險。
 
 ## [2026-07-18] 修復存讀檔後商隊活躍任務丟失與冒險者卡死 ON_MISSION 狀態的 Bug
 

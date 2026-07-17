@@ -365,9 +365,11 @@ export class DispatchSystem {
   public loadActiveMissions(rawMissions: any[]): void {
     this.activeMissions = rawMissions.map((raw: any) => {
       // 1. 根據 ID 還原冒險者實體（對應到已加載的 GameState.adventurers）
-      const advs = (raw.adventurers || []).map((advRaw: any) => {
-        return GameState.adventurers.find(a => a.id === advRaw.id);
-      }).filter((a): a is Adventurer => a !== undefined);
+      const advs: Adventurer[] = [];
+      (raw.adventurers || []).forEach((advRaw: any) => {
+        const found = GameState.adventurers.find(a => a.id === advRaw.id);
+        if (found) advs.push(found);
+      });
 
       // 2. 還原 DispatchTask
       const tData = raw.task;
