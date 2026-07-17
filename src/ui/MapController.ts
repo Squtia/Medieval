@@ -15,6 +15,21 @@ export function getTerrainEmoji(terrain: TerrainType): string {
   }
 }
 
+export function getNodeIcon(node: MapNode): string {
+  if (node.isPlayerBase) return '🏰';
+  if (node.feature === NodeFeature.MONSTER_NEST) return '👹';
+  if (node.feature === NodeFeature.SUBJUGATION) return '🏚️';
+  
+  if (node.ownerFactionId) {
+    if (node.nodeLevel === NodeLevel.CAPITAL) return '🏰';
+    if (node.nodeLevel === NodeLevel.TOWN) return '🏘️';
+    if (node.nodeLevel === NodeLevel.VILLAGE) return '🛖';
+    if (node.nodeLevel === NodeLevel.CAMP) return '⛺';
+  }
+  
+  return getTerrainEmoji(node.terrain);
+}
+
 export function renderMap() {
   const container = document.getElementById('map-nodes-container')!;
   container.innerHTML = '';
@@ -25,47 +40,38 @@ export function renderMap() {
     el.style.left = `${node.x}%`;
     el.style.top = `${node.y}%`;
     
-    let borderColor = '#555';
-    let bgColor = 'rgba(0, 0, 0, 0.4)';
-    let boxShadow = '0 0 5px rgba(0,0,0,0.5)';
+    let glowColor = 'rgba(0,0,0,0.8)';
+    let zIndex = '10';
     
     if (node.isPlayerBase) {
-      borderColor = '#ffd700'; // Gold
-      bgColor = 'rgba(255, 215, 0, 0.7)';
-      boxShadow = '0 0 15px rgba(255, 215, 0, 1)';
-      el.style.zIndex = '50';
+      glowColor = '#ffd700'; // Gold glow
+      zIndex = '50';
     } else if (node.ownerFactionId) {
       const f = GameState.mapSystem.getFactions().find(fac => fac.id === node.ownerFactionId);
-      if (f) {
-        borderColor = f.color;
-        bgColor = f.color; // 直接使用勢力顏色填滿，使其非常明顯
-        boxShadow = `0 0 12px ${f.color}, inset 0 0 8px rgba(0,0,0,0.4)`;
-      }
-    } else {
-      if (node.feature === NodeFeature.MONSTER_NEST) {
-        borderColor = '#dc2626';
-        bgColor = 'rgba(220, 38, 38, 0.7)';
-        boxShadow = '0 0 12px rgba(220, 38, 38, 0.8)';
-      } else if (node.feature === NodeFeature.SUBJUGATION) {
-        borderColor = '#6b7280';
-        bgColor = 'rgba(107, 114, 128, 0.7)';
-      } else {
-        borderColor = '#888';
-        bgColor = 'rgba(0, 0, 0, 0.5)';
-        el.style.borderStyle = 'dashed';
-        boxShadow = 'none';
-      }
+      if (f) glowColor = f.color;
+      zIndex = '30';
+    } else if (node.feature === NodeFeature.MONSTER_NEST) {
+      glowColor = '#dc2626'; // Red glow
+      zIndex = '20';
+    } else if (node.feature === NodeFeature.SUBJUGATION) {
+      glowColor = '#6b7280'; // Gray glow
     }
+    
+    el.style.zIndex = zIndex;
 
-    el.style.backgroundColor = bgColor;
-    el.style.borderColor = borderColor;
-    el.style.boxShadow = boxShadow;
+    const icon = document.createElement('div');
+    icon.className = 'node-icon';
+    icon.textContent = getNodeIcon(node);
+    // Apply glowing text shadow to the icon based on faction/type
+    icon.style.filter = `drop-shadow(0 0 8px ${glowColor})`;
 
     const label = document.createElement('div');
     label.className = 'node-label';
-    
-    // 節點標籤只顯示名稱與圖示
-    label.textContent = `${getTerrainEmoji(node.terrain)} ${node.name}`;
+    label.textContent = node.name;
+    // Apply subtle glow to the label text as well
+    label.style.textShadow = `1px 1px 2px #000, 0 0 5px ${glowColor}`;
+
+    el.appendChild(icon);
     el.appendChild(label);
 
     // 建立懸浮提示 (Tooltip) 資訊
