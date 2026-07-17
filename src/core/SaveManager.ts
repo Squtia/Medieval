@@ -66,7 +66,7 @@ export class SaveManager {
 
   public static deleteGame(slot: number): void {
     localStorage.removeItem(`${this.SAVE_KEY_PREFIX}${slot}`);
-    console.log(`[系統] 已刪除欄位 ${slot} 的遊戲存檔`);
+    // 不使用 console.log 以免污染遊戲日誌
   }
 
   public static loadGame(slot: number): boolean {
@@ -127,12 +127,6 @@ export class SaveManager {
       
       GameState.currentSaveSlot = slot;
 
-      // 5. 清除日誌
-      const logContainer = document.getElementById('game-log');
-      if (logContainer) logContainer.innerHTML = '';
-      const mapLogContainer = document.getElementById('map-log-container');
-      if (mapLogContainer) mapLogContainer.innerHTML = '';
-      
       // 成功載入不需使用 console.log 印出以免污染遊戲日誌
       return true;
     } catch (e) {

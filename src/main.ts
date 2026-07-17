@@ -1,6 +1,6 @@
 import { GameState, initGameState } from './core/GameState';
 import { startGameLoop, advanceDay } from './core/GameLoop';
-import { initLogger } from './utils/Logger';
+import { initLogger, clearGameLog } from './utils/Logger';
 import { UIManager } from './ui/UIManager';
 import { renderMap, setStartupMode, initMapInteraction } from './ui/MapController';
 import { SaveManager } from './core/SaveManager';
@@ -278,6 +278,7 @@ function renderSaveSlots() {
             mainMenu.classList.remove('active');
             mapView.classList.add('active');
             setStartupMode(true);
+            clearGameLog(); // 清除日誌，確保新旅程從空白開始
             initGameState(); // 重新初始化資料
             GameState.currentSaveSlot = s.slot; // 設定存檔欄位
             renderMap();
@@ -286,6 +287,7 @@ function renderSaveSlots() {
       } else {
         if (confirm(`確定要進入欄位 ${s.slot} 的旅程嗎？`)) {
           document.getElementById('modal-load-game')!.classList.remove('active');
+          clearGameLog(); // 清除日誌，確保讀取的存檔從空白開始
           if (SaveManager.loadGame(s.slot)) {
             UIManager.playTransition(() => {
               mainMenu.classList.remove('active');

@@ -1,4 +1,6 @@
 export function initLogger(logContainer: HTMLElement) {
+  const MAX_LOG_ENTRIES = 50; // 帝國日誌最多保留 50 筆
+  
   const originalConsoleLog = console.log;
   console.log = (...args: any[]) => {
     originalConsoleLog(...args);
@@ -42,6 +44,11 @@ export function initLogger(logContainer: HTMLElement) {
     
     logContainer.appendChild(div);
     
+    // 限制帝國日誌最多 MAX_LOG_ENTRIES 筆，超出則刪除最舊的
+    while (logContainer.children.length > MAX_LOG_ENTRIES) {
+      logContainer.removeChild(logContainer.firstChild!);
+    }
+    
     // 同時輸出到世界地圖右側的小通知欄
     const mapLogContainer = document.getElementById('map-log-container');
     if (mapLogContainer) {
@@ -61,4 +68,14 @@ export function initLogger(logContainer: HTMLElement) {
       logContainer.scrollTop = logContainer.scrollHeight;
     }, 10);
   };
+}
+
+/**
+ * 清除遊戲日誌（讀取存檔或開新遊戲時呼叫）
+ */
+export function clearGameLog() {
+  const logContainer = document.getElementById('game-log');
+  if (logContainer) logContainer.innerHTML = '';
+  const mapLogContainer = document.getElementById('map-log-container');
+  if (mapLogContainer) mapLogContainer.innerHTML = '';
 }
