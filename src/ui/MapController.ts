@@ -178,11 +178,13 @@ export function renderTradeRoutes() {
   const container = document.getElementById('map-nodes-container');
   if (!container) return;
 
-  // 獲取或創建 SVG 容器
+  // 獲取或創建 SVG 容器，設定 viewBox 比例為 100 x 100
   let svg = document.getElementById('trade-routes-svg') as unknown as SVGElement;
   if (!svg) {
     svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('id', 'trade-routes-svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('preserveAspectRatio', 'none');
     svg.setAttribute('style', 'position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;');
     container.appendChild(svg);
   }
@@ -238,7 +240,8 @@ export function renderTradeRoutes() {
       }
 
       const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      const dAttribute = `M ${x1}% ${y1}% Q ${controlX}% ${controlY}% ${x2}% ${y2}%`;
+      // 去掉百分比符號，採用 viewBox 相對座標
+      const dAttribute = `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`;
       pathEl.setAttribute('d', dAttribute);
       pathEl.setAttribute('fill', 'none');
       pathEl.setAttribute('stroke-linecap', 'round');
@@ -248,14 +251,14 @@ export function renderTradeRoutes() {
 
       if (isCurrentSegment) {
         pathEl.setAttribute('stroke', '#eab308'); // 亮黃色
-        pathEl.setAttribute('stroke-width', '4');
-        pathEl.setAttribute('stroke-dasharray', '6, 6');
+        pathEl.setAttribute('stroke-width', '0.6'); // viewBox 比例寬度
+        pathEl.setAttribute('stroke-dasharray', '1.2, 1.2'); // viewBox 比例虛線
         pathEl.setAttribute('class', 'trade-route-flow');
         pathEl.setAttribute('filter', 'drop-shadow(0px 0px 6px #eab308)');
       } else {
         pathEl.setAttribute('stroke', 'rgba(148, 163, 184, 0.4)'); // 半透明灰色
-        pathEl.setAttribute('stroke-width', '2');
-        pathEl.setAttribute('stroke-dasharray', '8, 8');
+        pathEl.setAttribute('stroke-width', '0.3');
+        pathEl.setAttribute('stroke-dasharray', '1.5, 1.5');
       }
 
       svg.appendChild(pathEl);
