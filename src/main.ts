@@ -139,8 +139,14 @@ document.getElementById('btn-found-settlement')!.addEventListener('click', () =>
 
 // 設施按鈕事件
 document.getElementById('btn-explore')!.addEventListener('click', () => {
-  console.log('🗺️ [探索] 夥伴在據點周邊探索，發現了 10 金幣與微量資源！');
-  GameState.myTerritory.addGold(10);
+  if (GameState.myTerritory.exploredToday >= GameState.myTerritory.maxExplorationsPerDay) {
+    alert(`本回合已探索過周邊（上限：${GameState.myTerritory.maxExplorationsPerDay}次），請推進回合後再試！`);
+    return;
+  }
+  
+  GameState.myTerritory.exploredToday++;
+  console.log('🗺️ [探索] 領主親自巡視周邊，發現了 20 金幣與微量資源！');
+  GameState.myTerritory.addGold(20);
   UIManager.updateUI();
 });
 

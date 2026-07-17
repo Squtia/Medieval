@@ -39,6 +39,10 @@ export class Territory {
   public pendingEvents: string[]; // 待處理的普通事件 ID
   public eventPressure: number;   // 事件壓力值 (累積到一定程度觸發事件)
 
+  // 探索屬性
+  public exploredToday: number;
+  public maxExplorationsPerDay: number;
+
   constructor(name: string, startingCountryId: string | null = null) {
     this.name = name;
     this.title = NobleTitle.COMMONER; // 玩家預設從平民起步
@@ -67,12 +71,12 @@ export class Territory {
     
     // 初始化內政預設值
     this.taxRate = 1.0;
-    this.adventurerBudget = 50;    // 預設每回合撥款 50
+    this.adventurerBudget = 0;
     this.diplomaticGift = 0;
-    
-    // 初始化事件屬性
     this.pendingEvents = [];
     this.eventPressure = 0;
+    this.exploredToday = 0;
+    this.maxExplorationsPerDay = 1; // 預設一回合只能探索一次
   }
 
   /**

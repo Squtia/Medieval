@@ -79,6 +79,11 @@ export class SaveManager {
       // 1. 還原 Territory
       const t = new Territory(data.territory.name, data.territory.currentCountryId);
       Object.assign(t, data.territory);
+      
+      // 相容舊存檔預設值
+      if (t.exploredToday === undefined) t.exploredToday = 0;
+      if (t.maxExplorationsPerDay === undefined) t.maxExplorationsPerDay = 1;
+      
       GameState.myTerritory = t;
 
       // 2. 還原 Adventurers

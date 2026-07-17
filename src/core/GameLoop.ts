@@ -3,6 +3,8 @@ import { SaveManager } from './SaveManager';
 
 import { EventSystem } from '../systems/EventSystem';
 import { MarketSystem } from '../systems/MarketSystem';
+import { EventBus } from './EventBus';
+import { GameEventType } from './GameEvents';
 
 export function startGameLoop(updateUICallback: () => void) {
   if ((window as any).autoSaveLoop) {
@@ -33,6 +35,9 @@ export function advanceDay() {
   // 檢查情報是否過期
   GameState.mapSystem.checkScoutExpiry(GameState.totalDays);
   
+  // 推進領地屬性重置
+  GameState.myTerritory.exploredToday = 0;
+  
   // 每日更新天氣
   GameState.mapSystem.updateWeather();
   
@@ -57,6 +62,12 @@ export function advanceDay() {
 
   // 2. 每天結算一次隨機事件壓力，滿了自動觸發
   EventSystem.triggerRandomEvent();
+  
+  // 3. 發送天數流逝事件，觸發各系統 (如 SettlementSystem 的資源產出)
+  EventBus.getInstance().publish({ 
+    type: GameEventType.DAY_PASSED, 
+    payload: { daysPassed: 1, currentTimestamp: Date.now() } 
+  });
 
   // 3. 月底大結算 (內政與世界地圖)
   if (monthEnded) {
