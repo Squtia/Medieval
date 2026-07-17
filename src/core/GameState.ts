@@ -11,6 +11,7 @@ import { SettlementSystem } from '../systems/SettlementSystem';
 import { HeroSystem } from '../systems/HeroSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { ThreatSystem } from '../systems/ThreatSystem';
+import { MapGenerator } from '../systems/MapGenerator';
 
 export const factions: Faction[] = INITIAL_FACTIONS;
 export const mapNodes: MapNode[] = INITIAL_MAP_NODES;
@@ -36,7 +37,14 @@ export function initGameState() {
   GameState.myTerritory.gold = 500;
   GameState.adventurers = [];
   GameState.system = new DispatchSystem(GameState.myTerritory);
-  GameState.mapSystem = new MapDynamicsSystem(JSON.parse(JSON.stringify(mapNodes)), JSON.parse(JSON.stringify(factions)));
+  
+  const mapNodesCopy = JSON.parse(JSON.stringify(mapNodes));
+  const factionsCopy = JSON.parse(JSON.stringify(factions));
+  
+  // 動態分配地圖節點的座標
+  MapGenerator.assignDynamicCoordinates(mapNodesCopy);
+  
+  GameState.mapSystem = new MapDynamicsSystem(mapNodesCopy, factionsCopy);
   GameState.playTime = 0;
   GameState.sessionStartTime = Date.now();
   GameState.currentSaveSlot = null;
