@@ -2,7 +2,7 @@ import { GameState, initGameState } from './core/GameState';
 import { startGameLoop, advanceDay } from './core/GameLoop';
 import { initLogger, clearGameLog } from './utils/Logger';
 import { UIManager } from './ui/UIManager';
-import { renderMap, setStartupMode, initMapInteraction } from './ui/MapController';
+import { renderMap, setStartupMode, initMapInteraction, startRoutePlanning } from './ui/MapController';
 import { SaveManager } from './core/SaveManager';
 import { enterScene, returnToMap } from './ui/SceneController';
 import { openWarehouse, openTodoModal } from './ui/ModalController';
@@ -206,6 +206,20 @@ document.getElementById('btn-recruit')!.addEventListener('click', () => {
 document.getElementById('btn-base-warehouse')!.addEventListener('click', () => openWarehouse(false));
 document.getElementById('btn-todo-list')!.addEventListener('click', () => openTodoModal());
 document.getElementById('btn-forge-warehouse')!.addEventListener('click', () => openWarehouse(true));
+
+// 建立商隊：這下讓玩家從書房就能啟動從市場跟蹤商圖的流程
+document.getElementById('btn-base-trade')!.addEventListener('click', () => {
+  // 1. 關閉所有設施視圖
+  document.getElementById('view-base')!.classList.remove('active');
+  document.getElementById('view-hall')!.classList.remove('active');
+  document.getElementById('view-camp')!.classList.remove('active');
+  document.getElementById('view-forge')!.classList.remove('active');
+  // 2. 返回地圖
+  returnToMap();
+  // 3. 進入路線規劃模式（不傳起始節點，玩家自由選擇最多 3 個中途站）
+  console.log('[系統] 🐪 請在地圖上依序點選最多 3 個城市作為商隊中途站，然後點擊「完成規劃」。');
+  startRoutePlanning();
+});
 
 // 模態框關閉事件
 document.getElementById('btn-close-recruit')!.addEventListener('click', () => modalRecruit.classList.remove('active'));

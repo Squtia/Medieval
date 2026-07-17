@@ -178,9 +178,10 @@ export function setStartupMode(mode: boolean) {
 export let isRoutePlanningMode = false;
 export let plannedRouteNodeIds: string[] = [];
 
-export function startRoutePlanning(startNode: MapNode) {
+export function startRoutePlanning(startNode?: MapNode) {
   isRoutePlanningMode = true;
-  plannedRouteNodeIds = [startNode.id];
+  // 若有傳入起始節點（從市場規劃路線），預填第一站；否則（從書房建立商隊）讓玩家自由選擇
+  plannedRouteNodeIds = startNode ? [startNode.id] : [];
   const hud = document.getElementById('route-planning-hud')!;
   hud.style.display = 'block';
   updateRoutePlanningHUD();
@@ -191,6 +192,10 @@ export function startRoutePlanning(startNode: MapNode) {
   const finishClone = btnFinish.cloneNode(true) as HTMLButtonElement;
   btnFinish.parentNode!.replaceChild(finishClone, btnFinish);
   finishClone.addEventListener('click', () => {
+    if (plannedRouteNodeIds.length === 0) {
+      alert('請至少在地圖上點選 1 個城市作為商隊中途站！');
+      return;
+    }
     isRoutePlanningMode = false;
     hud.style.display = 'none';
     openTradePlanner([...plannedRouteNodeIds]);
