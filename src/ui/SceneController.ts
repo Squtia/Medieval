@@ -43,80 +43,111 @@ export function renderCampTraining() {
 }
 
 export function enterScene(node: MapNode) {
-  GameState.currentViewNode = node;
-  
-  const mapView = document.getElementById('map-view')!;
-  const sceneView = document.getElementById('scene-view')!;
-  const wildernessView = document.getElementById('wilderness-view')!;
-  const uiLocation = document.getElementById('ui-location')!;
-  
-  mapView.classList.remove('active');
-  uiLocation.textContent = node.name;
-
-  if (node.nodeLevel > NodeLevel.WILDERNESS || node.isPlayerBase) {
-    sceneView.classList.add('active');
-    document.getElementById('scene-country-name')!.textContent = node.name;
-    const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
-    document.getElementById('scene-country-state')!.textContent = `規模：${levelNames[node.nodeLevel]} | ${node.description}`;
+  UIManager.playTransition(() => {
+    GameState.currentViewNode = node;
     
-    const streetParallaxBg = document.getElementById('street-parallax-bg')!;
-    if (node.nodeLevel >= NodeLevel.TOWN) {
-      streetParallaxBg.style.backgroundImage = `url('./bg_street_prosperous_1784087131344.png')`;
-    } else if (node.nodeLevel >= NodeLevel.CAMP) {
-      streetParallaxBg.style.backgroundImage = `url('./bg_street_village_1784087142427.png')`;
+    const mapView = document.getElementById('map-view')!;
+    const sceneView = document.getElementById('scene-view')!;
+    const wildernessView = document.getElementById('wilderness-view')!;
+    const uiLocation = document.getElementById('ui-location')!;
+    
+    mapView.classList.remove('active');
+    uiLocation.textContent = node.name;
+
+    if (node.nodeLevel > NodeLevel.WILDERNESS || node.isPlayerBase) {
+      sceneView.classList.add('active');
+      document.getElementById('scene-country-name')!.textContent = node.name;
+      const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
+      document.getElementById('scene-country-state')!.textContent = `規模：${levelNames[node.nodeLevel]} | ${node.description}`;
+      
+      const streetParallaxBg = document.getElementById('street-parallax-bg')!;
+      if (node.nodeLevel >= NodeLevel.TOWN) {
+        streetParallaxBg.style.backgroundImage = `url('./bg_street_prosperous_1784087131344.png')`;
+      } else if (node.nodeLevel >= NodeLevel.CAMP) {
+        streetParallaxBg.style.backgroundImage = `url('./bg_street_village_1784087142427.png')`;
+      } else {
+        streetParallaxBg.style.backgroundImage = `url('./bg_street_ruins_1784087152568.png')`;
+      }
+      
+      const isMyHome = node.isPlayerBase;
+      const btnEnterBase = document.getElementById('btn-enter-base')!;
+      const btnEnterCamp = document.getElementById('btn-enter-camp')!;
+      const btnEnterForge = document.getElementById('btn-enter-forge')!;
+      const btnMigrate = document.getElementById('btn-migrate')!;
+      const btnEnterHall = document.getElementById('btn-enter-hall')!;
+      
+      btnEnterBase.style.display = isMyHome ? 'block' : 'none';
+      btnEnterCamp.style.display = isMyHome ? 'block' : 'none';
+      btnEnterForge.style.display = isMyHome ? 'block' : 'none';
+      btnMigrate.style.display = isMyHome ? 'none' : 'block';
+      
+      btnEnterHall.style.display = (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null) ? 'block' : 'none';
+      
+      const visibleBuildings = [];
+      if (btnEnterHall.style.display !== 'none') visibleBuildings.push(btnEnterHall);
+      if (btnEnterBase.style.display !== 'none') visibleBuildings.push(btnEnterBase);
+      if (btnEnterCamp.style.display !== 'none') visibleBuildings.push(btnEnterCamp);
+      if (btnEnterForge.style.display !== 'none') visibleBuildings.push(btnEnterForge);
+
+      visibleBuildings.forEach((bld, idx) => {
+        bld.style.left = `${200 + idx * 400}px`;
+        bld.style.bottom = `${50 + (idx % 2) * 20}px`;
+      });
+      
+      document.getElementById('street-scroll-area')!.scrollLeft = 0;
     } else {
-      streetParallaxBg.style.backgroundImage = `url('./bg_street_ruins_1784087152568.png')`;
+      wildernessView.classList.add('active');
+      document.getElementById('wild-name')!.textContent = node.name;
+      document.getElementById('wild-desc')!.textContent = node.description;
+      
+      const btnFoundSettlement = document.getElementById('btn-found-settlement')!;
+      btnFoundSettlement.style.display = (node.ownerFactionId === null && !node.isPlayerBase) ? 'block' : 'none';
     }
     
-    const isMyHome = node.isPlayerBase;
-    const btnEnterBase = document.getElementById('btn-enter-base')!;
-    const btnEnterCamp = document.getElementById('btn-enter-camp')!;
-    const btnEnterForge = document.getElementById('btn-enter-forge')!;
-    const btnMigrate = document.getElementById('btn-migrate')!;
-    const btnEnterHall = document.getElementById('btn-enter-hall')!;
-    
-    btnEnterBase.style.display = isMyHome ? 'block' : 'none';
-    btnEnterCamp.style.display = isMyHome ? 'block' : 'none';
-    btnEnterForge.style.display = isMyHome ? 'block' : 'none';
-    btnMigrate.style.display = isMyHome ? 'none' : 'block';
-    
-    btnEnterHall.style.display = (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null) ? 'block' : 'none';
-    
-    const visibleBuildings = [];
-    if (btnEnterHall.style.display !== 'none') visibleBuildings.push(btnEnterHall);
-    if (btnEnterBase.style.display !== 'none') visibleBuildings.push(btnEnterBase);
-    if (btnEnterCamp.style.display !== 'none') visibleBuildings.push(btnEnterCamp);
-    if (btnEnterForge.style.display !== 'none') visibleBuildings.push(btnEnterForge);
-
-    visibleBuildings.forEach((bld, idx) => {
-      bld.style.left = `${200 + idx * 400}px`;
-      bld.style.bottom = `${50 + (idx % 2) * 20}px`;
-    });
-    
-    document.getElementById('street-scroll-area')!.scrollLeft = 0;
-  } else {
-    wildernessView.classList.add('active');
-    document.getElementById('wild-name')!.textContent = node.name;
-    document.getElementById('wild-desc')!.textContent = node.description;
-    
-    const btnFoundSettlement = document.getElementById('btn-found-settlement')!;
-    btnFoundSettlement.style.display = (node.ownerFactionId === null && !node.isPlayerBase) ? 'block' : 'none';
-  }
-  
-  UIManager.updateUI();
+    UIManager.updateUI();
+  });
 }
 
 export function returnToMap() {
-  GameState.currentViewNode = null;
-  // 強制關閉所有建築視圖，避免切換場景後殘留
-  document.getElementById('view-base')!.classList.remove('active');
-  document.getElementById('view-hall')!.classList.remove('active');
-  document.getElementById('view-camp')!.classList.remove('active');
-  document.getElementById('view-forge')!.classList.remove('active');
-  document.getElementById('scene-view')!.classList.remove('active');
-  document.getElementById('wilderness-view')!.classList.remove('active');
-  document.getElementById('map-view')!.classList.add('active');
-  document.getElementById('ui-location')!.textContent = '世界地圖';
-  renderMap();
-  UIManager.updateUI();
+  UIManager.playTransition(() => {
+    GameState.currentViewNode = null;
+    // 強制關閉所有建築視圖，避免切換場景後殘留
+    document.getElementById('view-base')!.classList.remove('active');
+    document.getElementById('view-hall')!.classList.remove('active');
+    document.getElementById('view-camp')!.classList.remove('active');
+    document.getElementById('view-forge')!.classList.remove('active');
+    document.getElementById('scene-view')!.classList.remove('active');
+    document.getElementById('wilderness-view')!.classList.remove('active');
+    document.getElementById('map-view')!.classList.add('active');
+    document.getElementById('ui-location')!.textContent = '世界地圖';
+    renderMap();
+    UIManager.updateUI();
+  });
+}
+
+export function switchFacilityView(facilityId: string) {
+  UIManager.playTransition(() => {
+    const sceneView = document.getElementById('scene-view')!;
+    const facilityView = document.getElementById('facility-view')!;
+    
+    sceneView.classList.remove('active');
+    facilityView.classList.add('active');
+    
+    // 根據設施切換背景
+    facilityView.id = `view-${facilityId}`;
+    
+    UIManager.updateUI();
+  });
+}
+
+export function backToScene() {
+  UIManager.playTransition(() => {
+    const sceneView = document.getElementById('scene-view')!;
+    const facilityView = document.getElementById('facility-view')!;
+    
+    sceneView.classList.add('active');
+    facilityView.classList.remove('active');
+    
+    UIManager.updateUI();
+  });
 }

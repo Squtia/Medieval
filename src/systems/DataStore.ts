@@ -43,7 +43,8 @@ export class DataStore {
     BRAVE: { name: '勇敢', xpModifier: 0.9, statMultipliers: { str: 0.15 } },
     AGILE: { name: '靈動', xpModifier: 1.0, statMultipliers: { agi: 0.15 } },
     LUCKY: { name: '幸運兒', xpModifier: 1.0, statMultipliers: { luk: 0.3 } },
-    LAZY: { name: '懶惰', xpModifier: 1.5, statMultipliers: { str: -0.1, agi: -0.1 } }
+    LAZY: { name: '懶惰', xpModifier: 1.5, statMultipliers: { str: -0.1, agi: -0.1 } },
+    GUARDIAN: { name: '誓約守衛', xpModifier: 0.8, statMultipliers: { con: 0.3, str: 0.2, command: 0.5 } }
   };
 
   /** 取得隨機性格 */
@@ -64,6 +65,14 @@ export class DataStore {
       baseRequirements: { str: 5 }, 
       baseEffects: { str: 3 }, 
       baseCombatEffects: { atk: 10 },
+      randomPool: { combatStats: ['hit', 'atk'] }
+    },
+    'wpn_heirloom_sword': {
+      id: 'wpn_heirloom_sword', name: '破敗的傳家寶劍', slot: EquipmentSlot.WEAPON, icon: '🗡️',
+      itemLevel: 1,
+      baseRequirements: { str: 1 }, 
+      baseEffects: { str: 5, con: 5 }, 
+      baseCombatEffects: { atk: 15, hit: 10 },
       randomPool: { combatStats: ['hit', 'atk'] }
     },
     'wpn_oak_staff': {

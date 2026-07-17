@@ -53,11 +53,10 @@ export function initGameState() {
   new ThreatSystem();
 
   GameState.adventurers.push(
-    new Adventurer('p1', NameGenerator.generateFullName(), DataStore.JobDB.WARRIOR, DataStore.TraitDB.LOYAL),
-    new Adventurer('p2', NameGenerator.generateFullName(), DataStore.JobDB.MAGE, DataStore.TraitDB.SCHOLAR)
+    new Adventurer('p1', NameGenerator.generateFullName(), DataStore.JobDB.WARRIOR, DataStore.TraitDB.GUARDIAN)
   );
 
-  const startWpn = DataStore.getEquipmentTemplate('wpn_iron_sword');
+  const startWpn = DataStore.getEquipmentTemplate('wpn_heirloom_sword');
   if (startWpn) {
     const eq = {
       uuid: 'eq_start_01', id: startWpn.id, name: startWpn.name, slot: startWpn.slot, icon: startWpn.icon,

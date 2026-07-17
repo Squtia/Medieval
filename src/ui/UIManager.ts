@@ -129,11 +129,25 @@ class UIManagerClass {
       GameState.adventurers.forEach(adv => {
         const card = document.createElement('div');
         card.className = 'adventurer-card';
-        card.style.cursor = 'pointer';
+        if (adv.trait.name === '誓約守衛') {
+          card.classList.add('guardian');
+        }
+        
         const stateText = adv.currentState === AdventurerState.IDLE ? '🟢 閒置' : `🔴 派遣中 (${Math.ceil(((adv.dispatchEndTime || 0) - Date.now())/1000)}s)`;
-  
-        card.innerHTML = `<strong>${adv.name}</strong> (Lv.${adv.level} ${adv.job.name})<br/>
-                          戰力：${adv.power} | 狀態：${stateText}`;
+        
+        // Tooltip內容
+        const tooltip = `【${adv.name}】\nLv.${adv.level} ${adv.job.name} | ${adv.trait.name}\n戰力：${adv.power}\n狀態：${stateText}`;
+        card.setAttribute('data-tooltip', tooltip);
+        
+        // 卡片內部顯示
+        // We use the job's icon if available, otherwise default to 🦸
+        const avatarIcon = '🦸'; // We can change this later if Job has icon
+        
+        card.innerHTML = `
+          <div class="adv-avatar">${avatarIcon}</div>
+          <div class="adv-name">${adv.name}</div>
+        `;
+        
         card.addEventListener('click', () => openAdvDetail(adv));
         this.advContainer.appendChild(card);
         if (adv.currentState !== AdventurerState.IDLE) allIdle = false;
@@ -197,6 +211,25 @@ class UIManagerClass {
       this.mapInfoPanel.style.display = 'none';
       this.mapStatusPanel.style.display = 'none';
     }
+  }
+
+  // 播放黑屏轉場動畫
+  playTransition(callback: () => void) {
+    const overlay = document.getElementById('transition-overlay');
+    if (!overlay) {
+      callback();
+      return;
+    }
+    overlay.classList.add('active');
+    setTimeout(() => {
+      callback();
+      // 在下一個 frame 移除，確保畫面已經渲染完成
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          overlay.classList.remove('active');
+        }, 100);
+      });
+    }, 500); // 對應 CSS transition 0.5s
   }
 }
 

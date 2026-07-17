@@ -273,30 +273,34 @@ function renderSaveSlots() {
     btn.addEventListener('click', () => {
       if (s.isEmpty) {
         if (confirm(`確定要在欄位 ${s.slot} 開始新旅程嗎？`)) {
-          document.getElementById('modal-load-game')!.classList.remove('active');
-          mainMenu.classList.remove('active');
-          mapView.classList.add('active');
-          setStartupMode(true);
-          initGameState(); // 重新初始化資料
-          GameState.currentSaveSlot = s.slot; // 設定存檔欄位
-          renderMap();
+          UIManager.playTransition(() => {
+            document.getElementById('modal-load-game')!.classList.remove('active');
+            mainMenu.classList.remove('active');
+            mapView.classList.add('active');
+            setStartupMode(true);
+            initGameState(); // 重新初始化資料
+            GameState.currentSaveSlot = s.slot; // 設定存檔欄位
+            renderMap();
+          });
         }
       } else {
         if (confirm(`確定要進入欄位 ${s.slot} 的旅程嗎？`)) {
           document.getElementById('modal-load-game')!.classList.remove('active');
           if (SaveManager.loadGame(s.slot)) {
-            mainMenu.classList.remove('active');
-            topBar.style.display = 'flex';
-            
-            if (GameState.currentViewNode) {
-              enterScene(GameState.currentViewNode);
-            } else {
-              mapView.classList.add('active');
-              renderMap();
-            }
-            
-            UIManager.updateUI();
-            startGameLoop(() => UIManager.updateUI());
+            UIManager.playTransition(() => {
+              mainMenu.classList.remove('active');
+              topBar.style.display = 'flex';
+              
+              if (GameState.currentViewNode) {
+                enterScene(GameState.currentViewNode);
+              } else {
+                mapView.classList.add('active');
+                renderMap();
+              }
+              
+              UIManager.updateUI();
+              startGameLoop(() => UIManager.updateUI());
+            });
           }
         }
       }
@@ -376,7 +380,9 @@ document.getElementById('btn-return-base')!.addEventListener('click', () => {
 
 // 手動結束本日
 document.getElementById('btn-end-day')!.addEventListener('click', () => {
-  advanceDay();
+  UIManager.playTransition(() => {
+    advanceDay();
+  });
 });
 
 // 當玩家在新旅程中選擇了據點後觸發
