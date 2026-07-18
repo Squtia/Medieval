@@ -1,11 +1,38 @@
 @echo off
-chcp 65001 >nul
 echo =========================================
-echo       中古世紀傭兵團 - 遊戲啟動器
+echo       Medieval Game Launcher
 echo =========================================
 echo.
-echo 正在為您啟動本地伺服器並開啟瀏覽器...
-echo 請不要關閉這個黑色視窗，否則遊戲會中斷連線。
+echo Checking Node.js environment...
+where npm >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [ERROR] npm command not found!
+    echo Please make sure Node.js is installed and added to your PATH.
+    echo Download link: https://nodejs.org/
+    echo.
+    pause
+    exit /b
+)
+
+echo Checking node_modules folder...
+if not exist node_modules (
+    echo [INFO] node_modules not found. Installing dependencies...
+    call npm install
+    if %errorlevel% neq 0 (
+        echo [ERROR] npm install failed!
+        pause
+        exit /b
+    )
+)
+
+echo.
+echo Starting local server and opening browser...
+echo Please do not close this window while playing.
 echo.
 start http://localhost:5173/
-npm run dev
+call npm run dev
+if %errorlevel% neq 0 (
+    echo.
+    echo [ERROR] Server stopped unexpectedly!
+    pause
+)

@@ -574,6 +574,31 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     } else {
       weightText.style.color = '#10b981';
     }
+
+    // 計算預期天數
+    let totalDays = 0;
+    const playerNode = mapSystem.getNodes().find(n => n.isPlayerBase);
+    if (playerNode && routeNodes.length > 0) {
+      // 1. 本鎮 -> 站1
+      const dist0 = Math.sqrt(Math.pow(playerNode.x - routeNodes[0].x, 2) + Math.pow(playerNode.y - routeNodes[0].y, 2));
+      totalDays += Math.max(1, Math.ceil(dist0 / 15));
+
+      // 2. 各站間
+      for (let i = 0; i < routeNodes.length - 1; i++) {
+        const dist = Math.sqrt(Math.pow(routeNodes[i].x - routeNodes[i+1].x, 2) + Math.pow(routeNodes[i].y - routeNodes[i+1].y, 2));
+        totalDays += Math.max(1, Math.ceil(dist / 15));
+      }
+
+      // 3. 最後一站 -> 本鎮
+      const lastNode = routeNodes[routeNodes.length - 1];
+      const distLast = Math.sqrt(Math.pow(lastNode.x - playerNode.x, 2) + Math.pow(lastNode.y - playerNode.y, 2));
+      totalDays += Math.max(1, Math.ceil(distLast / 15));
+    }
+
+    const daysText = document.getElementById('trade-planner-expected-days')!;
+    if (daysText) {
+      daysText.textContent = `預計旅途天數: ${totalDays} 天 (返程依距離計)`;
+    }
   };
 
   routeNodes.forEach((node, index) => {
@@ -705,9 +730,17 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
       });
     });
 
-    // 建立任務
+    // 建立任務，首段天數依據本鎮到第一站距離計算
+    let firstLegDays = 1;
+    const playerNode = mapSystem.getNodes().find(n => n.isPlayerBase);
+    if (playerNode && routeNodes.length > 0) {
+      const firstNode = routeNodes[0];
+      const dist = Math.sqrt(Math.pow(playerNode.x - firstNode.x, 2) + Math.pow(playerNode.y - firstNode.y, 2));
+      firstLegDays = Math.max(1, Math.ceil(dist / 15));
+    }
+
     const taskName = `商隊路線 (${routeNodes.map(n => n.name).join(' ➔ ')})`;
-    const task = new DispatchTask(taskName, TaskType.TRADE, 1, 0, 0, 0, 0, EnemyFeature.BALANCED);
+    const task = new DispatchTask(taskName, TaskType.TRADE, firstLegDays, 0, 0, 0, 0, EnemyFeature.BALANCED);
     task.tradeRouteNodeIds = plannedRouteNodeIds;
     task.tradeInstructions = instructions;
     task.caravanCargo = {};

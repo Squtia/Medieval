@@ -2,7 +2,7 @@ import { GameState, initGameState } from './core/GameState';
 import { startGameLoop, advanceDay } from './core/GameLoop';
 import { initLogger, clearGameLog } from './utils/Logger';
 import { UIManager } from './ui/UIManager';
-import { renderMap, setStartupMode, initMapInteraction, startRoutePlanning } from './ui/MapController';
+import { renderMap, setStartupMode, initMapInteraction, startRoutePlanning, initPhaserMap } from './ui/MapController';
 import { SaveManager } from './core/SaveManager';
 import { enterScene, returnToMap } from './ui/SceneController';
 import { openWarehouse, openTodoModal } from './ui/ModalController';
@@ -24,6 +24,7 @@ initGameState();
 // ==========================================
 // 3. 事件綁定
 // ==========================================
+initPhaserMap('map-nodes-container');
 initMapInteraction();
 
 // 返回地圖按鈕

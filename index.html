@@ -655,6 +655,11 @@
             <p id="trade-planner-expected-weight" style="color: #10b981; font-weight: bold; margin: 0;">預計買入總重量: 0</p>
           </div>
         </div>
+        <div style="display: flex; gap: 20px; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+          <div style="flex: 1;">
+            <p id="trade-planner-expected-days" style="color: #60a5fa; font-weight: bold; margin: 0;">預計旅途天數: 0 天 (返程依距離計)</p>
+          </div>
+        </div>
       </div>
 
       <div id="trade-planner-adv-list" class="adventurer-list" style="max-height: 150px; margin-bottom: 20px;">
@@ -755,7 +760,7 @@
         <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 1;">
           <!-- Radial Menu 覆蓋在地圖上，不能被 renderMap 清除 -->
           <div id="radial-menu" class="radial-menu"></div>
-          <div id="map-nodes-container" style="position: relative; width: 100%; height: auto; aspect-ratio: 16 / 9; max-width: calc((100vh - 60px) * 16 / 9); max-height: 100%; background: url('./bg-map.png') center/100% 100% no-repeat; filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);"></div>
+          <div id="map-nodes-container" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);"></div>
         </div>
 
       </div>
@@ -772,7 +777,6 @@
         <div style="margin-top: 15px; border-top: 1px dashed #64748b; padding-top: 15px;">
           <button id="nd-btn-scout" class="action-btn" style="width: 100%; margin-bottom: 10px;">👁️ 派遣斥候 (100金)</button>
           <button id="nd-btn-action" class="action-btn" style="width: 100%; margin-bottom: 10px;">⚔️ 討伐/探索</button>
-          <button id="nd-btn-market" class="action-btn" style="width: 100%; display: none;">⚖️ 進入市場</button>
         </div>
       </div>
     </div>
@@ -972,7 +976,8 @@
         </div>
       </div>
       
-      <div style="padding: 20px; border-top: 1px solid rgba(139, 69, 19, 0.5);">
+      <div style="padding: 20px; border-top: 1px solid rgba(139, 69, 19, 0.5); display: flex; flex-direction: column; gap: 10px;">
+         <button id="nd-btn-market" class="action-btn" style="width: 100%; padding: 15px; display: none; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981;">⚖️ 查看市場</button>
          <button id="btn-nd-action" class="action-btn" style="width: 100%; padding: 15px;">進行操作</button>
       </div>
     </div>

@@ -203,7 +203,15 @@ export class DispatchSystem {
     task.currentRouteIndex!++;
     if (task.currentRouteIndex! >= task.tradeRouteNodeIds!.length) {
       console.log(`🏁 [商隊返程] 商隊已完成所有停靠站，正在返回領地！`);
-      mission.remainingDays = 3 + weatherPenalty;
+      
+      const playerNode = mapSystem.getNodes().find(n => n.isPlayerBase);
+      let returnDays = 3;
+      if (playerNode) {
+        const dist = Math.sqrt(Math.pow(currentNode.x - playerNode.x, 2) + Math.pow(currentNode.y - playerNode.y, 2));
+        returnDays = Math.max(1, Math.ceil(dist / 15));
+      }
+      
+      mission.remainingDays = returnDays + weatherPenalty;
       task.tradeRouteNodeIds = []; // 標記為返程
       return false; 
     } else {
@@ -211,7 +219,7 @@ export class DispatchSystem {
       const nextNode = mapSystem.getNodeById(nextNodeId);
       if (nextNode) {
          const dist = Math.sqrt(Math.pow(currentNode.x - nextNode.x, 2) + Math.pow(currentNode.y - nextNode.y, 2));
-         mission.remainingDays = Math.max(1, Math.floor(dist / 100)) + weatherPenalty;
+         mission.remainingDays = Math.max(1, Math.ceil(dist / 15)) + weatherPenalty;
          console.log(`🐎 [商隊出發] 商隊前往下一站 ${nextNode.name}，預計需要 ${mission.remainingDays} 天。`);
       } else {
          mission.remainingDays = 1;

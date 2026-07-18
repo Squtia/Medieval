@@ -54,6 +54,11 @@ export function enterScene(node: MapNode) {
     mapView.classList.remove('active');
     uiLocation.textContent = node.name;
 
+    const nodeDetailPanel = document.getElementById('node-detail-panel');
+    if (nodeDetailPanel) {
+      nodeDetailPanel.style.display = 'none';
+    }
+
     if (node.nodeLevel > NodeLevel.WILDERNESS || node.isPlayerBase) {
       sceneView.classList.add('active');
       document.getElementById('scene-country-name')!.textContent = node.name;
@@ -118,8 +123,16 @@ export function returnToMap() {
     document.getElementById('view-forge')!.classList.remove('active');
     document.getElementById('scene-view')!.classList.remove('active');
     document.getElementById('wilderness-view')!.classList.remove('active');
+    
+    // 返回地圖後，重新顯示 map-view
     document.getElementById('map-view')!.classList.add('active');
     document.getElementById('ui-location')!.textContent = '世界地圖';
+    
+    const nodeDetailPanel = document.getElementById('node-detail-panel');
+    if (nodeDetailPanel) {
+      nodeDetailPanel.style.display = 'none';
+    }
+    
     renderMap();
     UIManager.updateUI();
   });

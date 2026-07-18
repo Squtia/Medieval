@@ -184,11 +184,18 @@ class UIManagerClass {
     // 更新地圖面板與共用右側欄位
     const sharedRightPanel = document.getElementById('shared-right-panel');
     const sceneDashboard = document.getElementById('scene-dashboard-content');
+    const nodeDetailPanel = document.getElementById('node-detail-panel');
     
     if (document.getElementById('map-view')?.classList.contains('active') && !isStartupMode) {
       if (sharedRightPanel) sharedRightPanel.style.display = 'flex';
       if (sceneDashboard) sceneDashboard.style.display = 'none';
-      this.mapInfoPanel.style.display = 'flex';
+      
+      const isNodeDetailOpen = nodeDetailPanel && nodeDetailPanel.style.display === 'flex';
+      if (isNodeDetailOpen) {
+        this.mapInfoPanel.style.display = 'none';
+      } else {
+        this.mapInfoPanel.style.display = 'flex';
+      }
       this.mapStatusPanel.style.display = 'block';
 
       // 狀態
@@ -211,11 +218,13 @@ class UIManagerClass {
       if (sceneDashboard) sceneDashboard.style.display = 'flex';
       this.mapInfoPanel.style.display = 'none';
       this.mapStatusPanel.style.display = 'none';
+      if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
     } else {
       if (sharedRightPanel) sharedRightPanel.style.display = 'none';
       if (sceneDashboard) sceneDashboard.style.display = 'none';
       this.mapInfoPanel.style.display = 'none';
       this.mapStatusPanel.style.display = 'none';
+      if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
     }
   }
 
