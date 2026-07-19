@@ -8,6 +8,14 @@ export enum AdventurerState {
 }
 
 /**
+ * 戰鬥陣位
+ */
+export enum FormationRow {
+  FRONT = 'FRONT',
+  BACK = 'BACK'
+}
+
+/**
  * 貴族的爵位系統
  * 隨著聲望與皇家好感度提升可以晉升
  */

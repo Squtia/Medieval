@@ -89,6 +89,12 @@ export class SaveManager {
       // 相容舊存檔預設值
       if (t.exploredToday === undefined) t.exploredToday = 0;
       if (t.maxExplorationsPerDay === undefined) t.maxExplorationsPerDay = 1;
+      if (t.tavernLevel === undefined) t.tavernLevel = 0;
+      if (t.weaponShopLevel === undefined) t.weaponShopLevel = 0;
+      if (t.armorShopLevel === undefined) t.armorShopLevel = 0;
+      if (t.forgeLevel === undefined) t.forgeLevel = 0;
+      if (t.exploreCount === undefined) t.exploreCount = 0;
+      if (t.hasRecruitedFromFirstExplorations === undefined) t.hasRecruitedFromFirstExplorations = false;
       
       GameState.myTerritory = t;
 

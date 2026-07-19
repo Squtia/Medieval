@@ -3,10 +3,11 @@ import { GameState, initGameState } from './core/GameState';
 import { startGameLoop, advanceDay } from './core/GameLoop';
 import { initLogger, clearGameLog } from './utils/Logger';
 import { UIManager } from './ui/UIManager';
+import { CombatUIManager } from './ui/CombatUIManager';
 import { renderMap, setStartupMode, initMapInteraction, startRoutePlanning, initPhaserMap } from './ui/MapController';
 import { SaveManager } from './core/SaveManager';
-import { enterScene, returnToMap } from './ui/SceneController';
-import { openWarehouse, openTodoModal } from './ui/ModalController';
+import { enterScene, returnToMap, renderBaseBuildings } from './ui/SceneController';
+import { openWarehouse, openTodoModal, openCombatHistory } from './ui/ModalController';
 import { DispatchTask, EnemyFeature, TaskType } from './models/DispatchTask';
 import { Adventurer } from './models/Adventurer';
 import { NodeLevel } from './models/types';
@@ -21,6 +22,18 @@ initLogger(logContainer);
 
 // 2. 初始化遊戲資料
 initGameState();
+rebindGlobalUIEvents();
+
+export function rebindGlobalUIEvents() {
+  EventBus.getInstance().subscribe(GameEventType.RESOURCE_CHANGED, () => {
+    UIManager.updateUI();
+  });
+  EventBus.getInstance().subscribe(GameEventType.POPULATION_STARVED, (payload) => {
+    UIManager.updateUI();
+    ToastManager.show(`⚠️ 飢荒警告！由於糧食不足，${payload.starvedAmount} 名人口流失了！`);
+  });
+  CombatUIManager.init();
+}
 
 // ==========================================
 // 3. 事件綁定
@@ -29,28 +42,14 @@ initPhaserMap('map-nodes-container');
 initMapInteraction();
 
 // 返回地圖按鈕
-document.getElementById('btn-back-map')!.addEventListener('click', returnToMap);
+const btnBackMap = document.getElementById('btn-back-map');
+if (btnBackMap) btnBackMap.addEventListener('click', returnToMap);
 document.getElementById('btn-wild-back')!.addEventListener('click', returnToMap);
 
-// 街道視圖拖曳滑動邏輯
-const streetScrollArea = document.getElementById('street-scroll-area')!;
-let isDragging = false;
-let startX: number;
-let scrollLeft: number;
-
-streetScrollArea.addEventListener('mousedown', (e) => {
-  isDragging = true;
-  startX = e.pageX - streetScrollArea.offsetLeft;
-  scrollLeft = streetScrollArea.scrollLeft;
-});
-streetScrollArea.addEventListener('mouseleave', () => isDragging = false);
-streetScrollArea.addEventListener('mouseup', () => isDragging = false);
-streetScrollArea.addEventListener('mousemove', (e) => {
-  if (!isDragging) return;
-  e.preventDefault();
-  const x = e.pageX - streetScrollArea.offsetLeft;
-  const walk = (x - startX) * 2;
-  streetScrollArea.scrollLeft = scrollLeft - walk;
+// 戰鬥歷史紀錄按鈕
+document.getElementById('btn-combat-history')!.addEventListener('click', openCombatHistory);
+document.getElementById('btn-close-combat-history')!.addEventListener('click', () => {
+  document.getElementById('modal-combat-history')!.style.display = 'none';
 });
 
 // 點擊建築物效果
@@ -60,7 +59,19 @@ const enterFacility = (viewId: string) => {
 };
 document.getElementById('btn-enter-base')!.addEventListener('click', () => enterFacility('view-base'));
 document.getElementById('btn-enter-hall')!.addEventListener('click', () => enterFacility('view-hall'));
-document.getElementById('btn-enter-camp')!.addEventListener('click', () => enterFacility('view-camp'));
+document.getElementById('btn-enter-tavern')!.addEventListener('click', () => enterFacility('view-camp'));
+document.getElementById('btn-enter-weapon-shop')!.addEventListener('click', () => {
+  enterFacility('view-weapon-shop');
+  if (typeof (window as any).renderWeaponShop === 'function') {
+    (window as any).renderWeaponShop();
+  }
+});
+document.getElementById('btn-enter-armor-shop')!.addEventListener('click', () => {
+  enterFacility('view-armor-shop');
+  if (typeof (window as any).renderArmorShop === 'function') {
+    (window as any).renderArmorShop();
+  }
+});
 document.getElementById('btn-enter-forge')!.addEventListener('click', () => enterFacility('view-forge'));
 
 // 退出建築按鈕
@@ -70,6 +81,8 @@ document.querySelectorAll('.btn-exit-facility').forEach(btn => {
     document.getElementById('view-hall')!.classList.remove('active');
     document.getElementById('view-camp')!.classList.remove('active');
     document.getElementById('view-forge')!.classList.remove('active');
+    document.getElementById('view-weapon-shop')!.classList.remove('active');
+    document.getElementById('view-armor-shop')!.classList.remove('active');
     UIManager.updateUI();
   });
 });
@@ -91,14 +104,7 @@ document.querySelectorAll('.btn-assign').forEach(btn => {
   });
 });
 
-// 監聽資源與人口事件
-EventBus.getInstance().subscribe(GameEventType.RESOURCE_CHANGED, () => {
-  UIManager.updateUI();
-});
-EventBus.getInstance().subscribe(GameEventType.POPULATION_STARVED, (payload) => {
-  UIManager.updateUI();
-  ToastManager.show(`⚠️ 飢荒警告！由於糧食不足，${payload.starvedAmount} 名人口流失了！`);
-});
+// 監聽資源與人口事件移至 rebindGlobalUIEvents
 
 // 野外討伐
 document.getElementById('btn-wild-quest')!.addEventListener('click', () => {
@@ -139,16 +145,59 @@ document.getElementById('btn-found-settlement')!.addEventListener('click', () =>
   }
 });
 
-// 設施按鈕事件
 document.getElementById('btn-explore')!.addEventListener('click', () => {
-  if (GameState.myTerritory.exploredToday >= GameState.myTerritory.maxExplorationsPerDay) {
-    ToastManager.show(`本回合已探索過周邊（上限：${GameState.myTerritory.maxExplorationsPerDay}次），請推進回合後再試！`);
+  const territory = GameState.myTerritory;
+  if (territory.exploredToday >= territory.maxExplorationsPerDay) {
+    ToastManager.show(`本回合已探索過周邊（上限：${territory.maxExplorationsPerDay}次），請推進回合後再試！`);
     return;
   }
   
-  GameState.myTerritory.exploredToday++;
-  console.log('🗺️ [探索] 領主親自巡視周邊，發現了 20 金幣與微量資源！');
-  GameState.myTerritory.addGold(20);
+  territory.exploredToday++;
+  territory.exploreCount = (territory.exploreCount || 0) + 1;
+  
+  let recruitedAdv: Adventurer | null = null;
+  let qLabel = '';
+  
+  // 1. 判斷首 3 次保底與機率
+  if (!territory.hasRecruitedFromFirstExplorations && territory.exploreCount <= 3) {
+    // 初始 3 次內探索，若是第 3 次且尚未招募過，則必定成功招募 (品質固定為 N)
+    // 或者是前 2 次以 20% 機率成功招募
+    const forceRecruit = territory.exploreCount === 3;
+    const luckyRecruit = Math.random() < 0.20;
+    
+    if (forceRecruit || luckyRecruit) {
+      recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomTrait(), 'N');
+      territory.hasRecruitedFromFirstExplorations = true;
+      qLabel = 'N 普通';
+    }
+  } else {
+    // 已經保底過或超過 3 次後，每次探索有 10% 機率招募！
+    if (Math.random() < 0.10) {
+      // 隨機抽取品質：N極大、R低、SR極低、SSR最低
+      let q: 'N' | 'R' | 'SR' | 'SSR' = 'N';
+      const randQ = Math.random() * 100;
+      if (randQ < 0.2) { q = 'SSR'; qLabel = 'SSR 傳奇'; }
+      else if (randQ < 3.0) { q = 'SR'; qLabel = 'SR 史詩'; }
+      else if (randQ < 10.0) { q = 'R'; qLabel = 'R 精英'; }
+      else { q = 'N'; qLabel = 'N 普通'; }
+      
+      recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomTrait(), q);
+    }
+  }
+  
+  // 2. 結算獎勵
+  let msg = '🗺️ [探索] 領主親自巡視周邊，獲得了 20 金幣與少量物資！';
+  territory.addGold(20);
+  territory.wood += 2;
+  territory.stone += 1;
+  
+  if (recruitedAdv) {
+    GameState.adventurers.push(recruitedAdv);
+    msg = `🗺️ [探索] 領主親自巡視周邊，獲得了 20 金幣，並幸運地遇到一位流浪冒險者【${recruitedAdv.name}】(${qLabel}) 願意效忠您！已加入隊伍。`;
+    ToastManager.show(`招募到了冒險者【${recruitedAdv.name}】！`);
+  }
+  
+  console.log(msg);
   UIManager.updateUI();
 });
 
@@ -174,43 +223,87 @@ const modalRecruit = document.getElementById('modal-recruit')!;
 const recruitCardsContainer = document.getElementById('recruit-cards-container')!;
 
 document.getElementById('btn-recruit')!.addEventListener('click', () => {
-  if (GameState.myTerritory.gold >= 500) {
+  const territory = GameState.myTerritory;
+  const tavernLvl = territory.tavernLevel || 0;
+  if (tavernLvl <= 0) {
+    ToastManager.show('⚠️ 請先至領主自宅（書房）建造冒險者酒館！');
+    return;
+  }
+  
+  if (territory.gold >= 500) {
     recruitCardsContainer.innerHTML = '';
+    
+    // 品質隨機抽取算法
+    const getQuality = (lvl: number): 'N' | 'R' | 'SR' | 'SSR' => {
+      const r = Math.random();
+      if (lvl === 1) {
+        return r < 0.1 ? 'R' : 'N';
+      } else if (lvl === 2) {
+        if (r < 0.1) return 'SR';
+        if (r < 0.4) return 'R';
+        return 'N';
+      } else { // 3級
+        if (r < 0.1) return 'SSR';
+        if (r < 0.3) return 'SR';
+        if (r < 0.7) return 'R';
+        return 'N';
+      }
+    };
+
+    const getQualityLabel = (q: string) => {
+      if (q === 'SSR') return { label: 'SSR 傳奇', color: '#eab308' };
+      if (q === 'SR') return { label: 'SR 史詩', color: '#a855f7' };
+      if (q === 'R') return { label: 'R 精英', color: '#3b82f6' };
+      return { label: 'N 普通', color: '#94a3b8' };
+    };
+
     for (let i = 0; i < 3; i++) {
-      const adv = new Adventurer(`p${Date.now()}_${i}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomTrait());
+      const quality = getQuality(tavernLvl);
+      const qInfo = getQualityLabel(quality);
+      
+      const adv = new Adventurer(`adv_${Date.now()}_${i}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomTrait(), quality);
       
       const card = document.createElement('div');
       card.className = 'recruit-card';
+      card.style.border = `2px solid ${qInfo.color}`;
+      card.style.boxShadow = `0 4px 15px ${qInfo.color}40`;
+      
       card.innerHTML = `
         <div style="font-size:2em; margin-bottom:10px;">🦸</div>
         <strong>${adv.name}</strong><br/>
-        <span style="color:#94a3b8; font-size:0.9em;">${adv.job.name} | ${adv.trait.name}</span><br/>
-        <div style="margin-top:10px; font-size:0.85em; color:#cbd5e1;">
+        <span style="color: ${qInfo.color}; font-weight: bold; font-size: 0.95em;">${qInfo.label}</span><br/>
+        <span style="color:#cbd5e1; font-size:0.85em;">${adv.job.name} | ${adv.trait.name}</span><br/>
+        <div style="margin-top:10px; font-size:0.85em; color:#94a3b8; line-height: 1.4; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
           力:${adv.baseAttributes.str} 敏:${adv.baseAttributes.agi} 體:${adv.baseAttributes.con}<br/>
           智:${adv.baseAttributes.int} 精:${adv.baseAttributes.spr} 幸:${adv.baseAttributes.luk}
         </div>
       `;
       const btnConfirm = document.createElement('button');
-btnConfirm.className = 'action-btn';
-btnConfirm.style.marginTop = '15px';
-btnConfirm.style.width = '100%';
-btnConfirm.style.fontSize = '0.9em';
-btnConfirm.style.background = 'linear-gradient(135deg, #059669, #047857)';
-btnConfirm.innerText = '✅ 招募此人 (500金)';
-card.appendChild(btnConfirm);
-btnConfirm.addEventListener('click', (e) => {
-  e.stopPropagation();
-        GameState.myTerritory.gold -= 500;
-        GameState.adventurers.push(adv);
-        console.log(`🍻 [訓練所] 花費 500 金幣招募了新夥伴「${adv.name}」加入冒險者行列！`);
-        modalRecruit.classList.remove('active');
-        UIManager.updateUI();
+      btnConfirm.className = 'action-btn';
+      btnConfirm.style.marginTop = '15px';
+      btnConfirm.style.width = '100%';
+      btnConfirm.style.fontSize = '0.9em';
+      btnConfirm.style.background = 'linear-gradient(135deg, #059669, #047857)';
+      btnConfirm.innerText = '✅ 招募此人 (500金)';
+      card.appendChild(btnConfirm);
+      
+      btnConfirm.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (territory.gold >= 500) {
+          territory.gold -= 500;
+          GameState.adventurers.push(adv);
+          console.log(`🍻 [酒館] 花費 500 金幣招募了新夥伴「${adv.name}」(${qInfo.label}) 加入冒險者行列！`);
+          modalRecruit.classList.remove('active');
+          UIManager.updateUI();
+        } else {
+          ToastManager.show('⚠️ 金幣不足！');
+        }
       });
       recruitCardsContainer.appendChild(card);
     }
     modalRecruit.classList.add('active');
   } else {
-    console.log('[系統] ⚠️ 金幣不足，無法招募！');
+    ToastManager.show('⚠️ 金幣不足 500，無法進行招募！');
   }
 });
 
@@ -311,6 +404,7 @@ function renderSaveSlots() {
             setStartupMode(true);
             clearGameLog(); // 清除日誌，確保新旅程從空白開始
             initGameState(); // 重新初始化資料
+            rebindGlobalUIEvents();
             GameState.currentSaveSlot = s.slot; // 設定存檔欄位
             renderMap();
           });
@@ -320,6 +414,7 @@ function renderSaveSlots() {
           document.getElementById('modal-load-game')!.classList.remove('active');
           clearGameLog(); // 清除日誌，確保讀取的存檔從空白開始
           if (SaveManager.loadGame(s.slot)) {
+            rebindGlobalUIEvents();
             UIManager.playTransition(() => {
               mainMenu.classList.remove('active');
               topBar.style.display = 'flex';
@@ -442,3 +537,94 @@ const closeSystemMenu = () => {
 };
 document.getElementById('btn-close-system-menu')!.addEventListener('click', closeSystemMenu);
 document.getElementById('btn-cancel-system-menu')!.addEventListener('click', closeSystemMenu);
+
+// ============================================================================
+// === CHEAT_CODES_START ===
+// 【測試用密技 - 未來發布前必須將此區塊整段刪除】
+// ============================================================================
+
+// 全域控制台後門資源修改器
+(window as any).cheatGold = (amount: number) => {
+  if (typeof amount !== 'number' || isNaN(amount)) return console.log('❌ 請輸入有效的金幣數量！');
+  GameState.myTerritory.gold = amount;
+  UIManager.updateUI();
+  console.log(`🧙‍♂️ [密技] 金幣已修改為 ${amount}`);
+};
+
+(window as any).cheatWood = (amount: number) => {
+  if (typeof amount !== 'number' || isNaN(amount)) return console.log('❌ 請輸入有效的木材數量！');
+  GameState.myTerritory.wood = amount;
+  UIManager.updateUI();
+  console.log(`🧙‍♂️ [密技] 木材已修改為 ${amount}`);
+};
+
+(window as any).cheatStone = (amount: number) => {
+  if (typeof amount !== 'number' || isNaN(amount)) return console.log('❌ 請輸入有效的石材數量！');
+  GameState.myTerritory.stone = amount;
+  UIManager.updateUI();
+  console.log(`🧙‍♂️ [密技] 石材已修改為 ${amount}`);
+};
+
+(window as any).cheatIron = (amount: number) => {
+  if (typeof amount !== 'number' || isNaN(amount)) return console.log('❌ 請輸入有效的鐵礦數量！');
+  GameState.myTerritory.iron = amount;
+  UIManager.updateUI();
+  console.log(`🧙‍♂️ [密技] 鐵礦已修改為 ${amount}`);
+};
+
+// 鍵盤輸入彩蛋密技 (輸入 gold, wood, rock, iron 觸發)
+let cheatSequence: string[] = [];
+const CHEAT_MAP: { [key: string]: { name: string, setter: (val: number) => void } } = {
+  'gold': { name: '金幣', setter: (v) => GameState.myTerritory.gold = v },
+  'wood': { name: '木材', setter: (v) => GameState.myTerritory.wood = v },
+  'rock': { name: '石材', setter: (v) => GameState.myTerritory.stone = v },
+  'iron': { name: '鐵礦', setter: (v) => GameState.myTerritory.iron = v }
+};
+
+document.addEventListener('keydown', (e: KeyboardEvent) => {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    return;
+  }
+  const key = e.key.toLowerCase();
+  // 僅快取 26 個英文字母，最大長度限制為 6
+  if (/^[a-z]$/.test(key)) {
+    cheatSequence.push(key);
+    if (cheatSequence.length > 6) {
+      cheatSequence.shift();
+    }
+    
+    const currentStr = cheatSequence.join('');
+    for (const code in CHEAT_MAP) {
+      if (currentStr.endsWith(code)) {
+        cheatSequence = []; // 觸發後清空
+        const target = CHEAT_MAP[code];
+        const input = prompt(`🧙‍♂️ 偵測到領主祕密指令【${code}】。\n請輸入想要修改或設定的【${target.name}】數值：`);
+        if (input !== null) {
+          const val = parseInt(input.trim(), 10);
+          if (!isNaN(val)) {
+            const prev = (GameState.myTerritory as any)[code === 'rock' ? 'stone' : code === 'gold' ? 'gold' : code === 'wood' ? 'wood' : 'iron'];
+            target.setter(val);
+            UIManager.updateUI();
+            
+            // 如果此時玩家在自宅內部升級面板，則重新渲染升級按鈕狀態
+            const basePanel = document.getElementById('panel-enter-base');
+            if (basePanel && basePanel.style.display !== 'none') {
+              renderBaseBuildings();
+            }
+            
+            ToastManager.show(`✨ 領地【${target.name}】已變更為 ${val}！`);
+            console.log(`🧙‍♂️ [密技] 領主手動將【${target.name}】修改為 ${val}。`);
+          } else {
+            ToastManager.show('⚠️ 請輸入正確的整數！');
+          }
+        }
+        break;
+      }
+    }
+  }
+});
+
+// ============================================================================
+// === CHEAT_CODES_END ===
+// ============================================================================
+

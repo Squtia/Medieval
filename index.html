@@ -115,7 +115,7 @@
       animation: tradeRouteFlowAnim 1s linear infinite;
     }
     /* 地圖全域 Tooltip - 由 JS 控制，不用 ::after 避免被其他節點蓋住 */
-    #map-tooltip {
+    #map-tooltip, #adv-tooltip {
       position: fixed;
       background-color: rgba(20, 20, 20, 0.95);
       color: #ebdcb6;
@@ -213,7 +213,7 @@
 
     /* 街景建築物 */
     .street-building {
-      position: absolute;
+      position: relative;
       width: 250px;
       height: 250px;
       background-size: contain;
@@ -636,12 +636,177 @@
       transform: scale(0.95);
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
     }
+    /* 戰鬥結算 modal */
+    #combat-modal {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 600px;
+      background: rgba(20, 20, 20, 0.95);
+      border: 2px solid #8b4513;
+      border-radius: 8px;
+      z-index: 3000;
+      display: none;
+      flex-direction: column;
+      box-shadow: 0 0 50px rgba(0,0,0,0.9);
+      color: #ebdcb6;
+    }
+    #combat-modal.active { display: flex; }
+    
+    .combat-stage {
+      flex: 2; /* 佔 2/3 */
+      padding: 20px;
+      border-bottom: 2px solid #8b4513;
+      display: flex;
+      justify-content: space-between;
+      align-items: stretch;
+      background: linear-gradient(to bottom, #1e293b, #0f172a);
+      position: relative;
+    }
+    .combat-team { 
+      flex: 1; 
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* 兩排(前/後排) */
+      gap: 10px;
+      align-items: center;
+    }
+    .combat-team.player-team {
+      /* 玩家在左，前排在右(靠近中央)，後排在左 */
+      grid-template-columns: 1fr 1fr;
+      direction: rtl; /* 讓 DOM 順序反向，以配合 grid 的方向，或者直接在 JS 控制 grid-column */
+    }
+    .combat-team.enemy-team { 
+      /* 敵軍在右，前排在左(靠近中央)，後排在右 */
+      text-align: right; 
+    }
+    
+    .combat-participant { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; position: relative; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid #333; }
+    .combat-hp-bg { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; border: 1px solid #000; }
+    .combat-hp-fill { height: 100%; background: #22c55e; transition: width 0.3s ease-out, background-color 0.3s ease; }
+    .combat-hp-fill.low { background: #ef4444; }
+    
+    .combat-log-area {
+      flex: 1; /* 佔 1/3 */
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 1.1em;
+      line-height: 1.6;
+      background: rgba(0, 0, 0, 0.85);
+      color: #f8f9fa; /* 深色背景配亮色字 */
+      text-shadow: 1px 1px 2px #000;
+    }
+    
+    .combat-participant { position: relative; display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
+    
+    @keyframes attackBumpPlayer { 0% { transform: translateX(0); } 50% { transform: translateX(20px) scale(1.1); } 100% { transform: translateX(0); } }
+    @keyframes attackBumpEnemy { 0% { transform: translateX(0); } 50% { transform: translateX(-20px) scale(1.1); } 100% { transform: translateX(0); } }
+    .attack-bump-player { animation: attackBumpPlayer 0.2s ease-out; }
+    .attack-bump-enemy { animation: attackBumpEnemy 0.2s ease-out; }
+    
+    @keyframes hitFlash { 0% { filter: brightness(1); } 50% { filter: brightness(2) drop-shadow(0 0 10px red); color: #ef4444; } 100% { filter: brightness(1); } }
+    .hit-flash { animation: hitFlash 0.3s; }
+    
+    .floating-dmg {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-weight: bold;
+      color: #ef4444;
+      text-shadow: 0 2px 4px rgba(0,0,0,1);
+      animation: floatUp 0.8s forwards;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .floating-dmg.crit { color: #f59e0b; font-size: 1.5em; }
+    @keyframes floatUp { 0% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -40px) scale(1.2); } }
+    
+    .combat-footer {
+      padding: 15px;
+      border-top: 2px solid #8b4513;
+      display: flex;
+      justify-content: flex-end;
+      background: rgba(0,0,0,0.8);
+    }
+    
+    .combat-log-entry { margin-bottom: 8px; opacity: 0; animation: fadeInLog 0.3s forwards; }
+    @keyframes fadeInLog { to { opacity: 1; } }
+    
+    .log-crit { font-weight: bold; color: #b91c1c; font-size: 1.1em; }
+    .log-miss { color: #4b5563; font-style: italic; }
+    .log-status { color: #047857; font-weight: bold; }
+    .log-death { color: #111; font-weight: bold; text-decoration: line-through; }
+    
+    @keyframes shake {
+      0% { transform: translate(-50%, -50%) translate(1px, 1px) rotate(0deg); }
+      10% { transform: translate(-50%, -50%) translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-50%, -50%) translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(-50%, -50%) translate(3px, 2px) rotate(0deg); }
+      40% { transform: translate(-50%, -50%) translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-50%, -50%) translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-50%, -50%) translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(-50%, -50%) translate(3px, 1px) rotate(-1deg); }
+      80% { transform: translate(-50%, -50%) translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(-50%, -50%) translate(1px, 2px) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) translate(1px, -2px) rotate(-1deg); }
+    }
+    .shake { animation: shake 0.4s; }
+    
+    /* 戰鬥結果結算 */
+    .combat-result-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85); display: none; flex-direction: column;
+      justify-content: center; align-items: center; z-index: 10;
+    }
+    .combat-result-overlay.active { display: flex; }
   </style>
 </head>
 <body>
   <div id="transition-overlay"></div>
   <div id="map-tooltip"></div>
+  <div id="adv-tooltip"></div>
   <div id="app-background"></div>
+
+  <!-- 戰鬥結算 Modal -->
+  <div id="combat-modal">
+    <div id="combat-stage" class="combat-stage">
+      <div id="combat-player-team" class="combat-team player-team"></div>
+      <div style="font-family: 'Cinzel', serif; font-size: 2em; color: #ef4444; margin: auto 20px; font-weight: bold; text-shadow: 0 0 10px #000; align-self: center;">VS</div>
+      <div id="combat-enemy-team" class="combat-team enemy-team"></div>
+    </div>
+    <div id="combat-log-area" class="combat-log-area"></div>
+    <div class="combat-footer" style="justify-content: space-between;">
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span style="font-size: 0.9em; color: #cbd5e1;">播放速度:</span>
+        <button id="btn-combat-speed-1x" class="action-btn active" style="padding: 5px 10px; font-size: 0.9em; border: 1px solid #eab308; color: #eab308;">1x</button>
+        <button id="btn-combat-speed-2x" class="action-btn" style="padding: 5px 10px; font-size: 0.9em; border: 1px solid #64748b; color: #64748b;">2x</button>
+      </div>
+      <div>
+        <button id="btn-combat-skip" class="action-btn" style="background: #eab308; color: #000;">⏩ 瞬間完成</button>
+        <button id="btn-combat-close" class="action-btn" style="background: #10b981; display: none;">完成</button>
+      </div>
+    </div>
+    <div id="combat-result-overlay" class="combat-result-overlay">
+      <h2 id="combat-result-title" style="font-size: 3em; margin-bottom: 20px; color: #eab308;">戰鬥勝利</h2>
+      <p id="combat-result-desc" style="font-size: 1.2em; margin-bottom: 30px;"></p>
+      <button id="btn-combat-result-close" class="action-btn" style="background: #10b981; font-size: 1.2em;">返回</button>
+    </div>
+    </div>
+  </div>
+
+  <!-- 歷史戰鬥紀錄 Modal -->
+  <div id="modal-combat-history" class="modal-overlay">
+    <div class="glass-panel modal-content" style="width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
+      <button class="close-btn" id="btn-close-combat-history">×</button>
+      <h2 style="text-align: center; color: #eab308; margin-top: 0;">📜 戰鬥歷史紀錄</h2>
+      <p style="text-align: center; color: #94a3b8; font-size: 0.9em; margin-bottom: 5px;">(僅保留最近三天的戰報)</p>
+      
+      <div id="combat-history-list" style="flex: 1; overflow-y: auto; margin-top: 10px; display: flex; flex-direction: column; gap: 15px; padding-right: 5px;">
+        <!-- JS 動態產生紀錄卡片 -->
+      </div>
+    </div>
+  </div>
 
   <!-- 跑商路線規劃 HUD -->
   <div id="route-planning-hud" style="display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 2px solid #eab308; border-radius: 10px; padding: 15px; z-index: 2000; text-align: center; color: white;">
@@ -781,9 +946,9 @@
           </div>
         </div>
 
-        <div id="startup-banner" style="position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 2px solid #eab308; padding: 20px 40px; border-radius: 10px; z-index: 150; display: none; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-          <h2 style="color: #eab308; margin: 0; font-size: 2em; letter-spacing: 2px;">你要從哪裡開始你的旅程？</h2>
-          <p style="color: #cbd5e1; margin: 10px 0 0 0; font-size: 1.1em;">請點擊地圖上的任意節點</p>
+        <div id="startup-banner" style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: none; justify-content: center; align-items: center; gap: 20px; z-index: 150; pointer-events: none; background: transparent;">
+          <h2 style="color: #eab308; margin: 0; font-size: 1.6em; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">你要從哪裡開始你的旅程？</h2>
+          <p style="color: #cbd5e1; margin: 0; font-size: 1.1em; text-shadow: 0 1px 2px rgba(0,0,0,0.9);">請點擊地圖上的任意節點</p>
         </div>
 
         <!-- 節點由 JS 動態生成 -->
@@ -817,23 +982,26 @@
       <div class="street-scroller-container" style="width: 100%;">
         <!-- 背景圖片會由 JS 根據繁榮度動態更換 -->
         <div id="street-parallax-bg" class="street-parallax-bg" style="background-image: url('./bg_street_prosperous_1784087131344.png');"></div>
-        <div class="street-scroll-area" id="street-scroll-area">
-          <div style="width: 2000px; height: 100%; position: relative;" id="street-buildings-wrapper"> <!-- 滾動寬度 -->
-            <div id="btn-enter-hall" class="street-building" style="background-image: url('./bld_hall_1784087169726.png'); width: 350px; height: 350px;">
+          <div style="position: absolute; z-index: 2; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: flex-end; gap: 30px; padding-bottom: 50px;" id="street-buildings-wrapper">
+            <div id="btn-enter-hall" class="street-building" style="background-image: url('./bld_hall_1784087169726.png'); width: 260px; height: 260px; display: none;">
               <div class="building-label">👑 謁見廳</div>
             </div>
-            <div id="btn-enter-base" class="street-building" style="background-image: url('./bld_base_1784087181104.png'); width: 300px; height: 300px;">
+            <div id="btn-enter-base" class="street-building" style="background-image: url('./bld_base_1784087181104.png'); width: 250px; height: 250px;">
                <div class="building-label">🏠 領主自宅</div>
             </div>
-            <div id="btn-enter-camp" class="street-building" style="background-image: url('./bld_camp_1784087193131.png');">
-               <div class="building-label">⚔️ 訓練所</div>
+            <div id="btn-enter-tavern" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); width: 220px; height: 220px; display: none;">
+               <div class="building-label">🍻 冒險者酒館</div>
             </div>
-            <div id="btn-enter-forge" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(180deg) brightness(0.8);"> 
-               <!-- 鐵匠鋪暫時代用營地圖並套濾鏡 -->
+            <div id="btn-enter-weapon-shop" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(90deg) brightness(0.8); width: 220px; height: 220px; display: none;">
+               <div class="building-label">⚔️ 武器店</div>
+            </div>
+            <div id="btn-enter-armor-shop" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(240deg) brightness(0.8); width: 220px; height: 220px; display: none;">
+               <div class="building-label">🛡️ 防具店</div>
+            </div>
+            <div id="btn-enter-forge" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(180deg) brightness(0.8); width: 220px; height: 220px; display: none;"> 
                <div class="building-label">⚒️ 鍛造屋</div>
             </div>
           </div>
-        </div>
       </div>
     </div>
 
@@ -843,61 +1011,70 @@
       <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">⬅ 返回街道</button>
       <button id="btn-base-trade" class="action-btn" style="position: absolute; top: 20px; right: 20px; width: auto; background: linear-gradient(135deg, #059669, #047857);">⚖️ 建立商隊</button>
       <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🏰 領主書房 (Base)</h2>
-      <div style="display: flex; gap: 20px; flex: 1;">
+      <div style="display: flex; gap: 20px; flex: 1; align-items: stretch; min-height: 550px;">
         <!-- 勞動力分配面板 -->
-        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.6);">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">📜 領地工作分配</h3>
+        <div class="glass-panel" style="flex: 1.5; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.6);">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">📜 領地工作分配</h3>
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 1.2em; color: #cbd5e1;">閒置人力 (消耗糧食但不生產)</span>
+            <span style="font-size: 1.1em; color: #cbd5e1;">閒置人力 (消耗糧食但不生產)</span>
             <span id="ui-unassigned-workers" style="font-size: 1.5em; font-weight: bold; color: #fff;">0</span>
           </div>
           
           <!-- 農夫 -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
             <div>
-              <div style="font-size: 1.2em; font-weight: bold;">🌾 農夫</div>
-              <div style="font-size: 0.9em; color: #94a3b8;">每人產出 3 糧食/天</div>
+              <div style="font-size: 1.1em; font-weight: bold;">🌾 農夫</div>
+              <div style="font-size: 0.85em; color: #94a3b8;">每人產出 3 糧食/天</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-              <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 5px 15px; font-size: 1.5em;">-</button>
-              <span id="ui-worker-FARMER" style="font-size: 1.5em; width: 40px; text-align: center;">0</span>
-              <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 5px 15px; font-size: 1.5em;">+</button>
+              <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 3px 12px; font-size: 1.3em;">-</button>
+              <span id="ui-worker-FARMER" style="font-size: 1.3em; width: 35px; text-align: center;">0</span>
+              <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 3px 12px; font-size: 1.3em;">+</button>
             </div>
           </div>
-
+ 
           <!-- 伐木工 -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
             <div>
-              <div style="font-size: 1.2em; font-weight: bold;">🪓 伐木工</div>
-              <div style="font-size: 0.9em; color: #94a3b8;">每人產出 2 木材/天</div>
+              <div style="font-size: 1.1em; font-weight: bold;">🪓 伐木工</div>
+              <div style="font-size: 0.85em; color: #94a3b8;">每人產出 2 木材/天</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 5px 15px; font-size: 1.5em;">-</button>
-              <span id="ui-worker-WOODCUTTER" style="font-size: 1.5em; width: 40px; text-align: center;">0</span>
-              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="1" style="padding: 5px 15px; font-size: 1.5em;">+</button>
+              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 3px 12px; font-size: 1.3em;">-</button>
+              <span id="ui-worker-WOODCUTTER" style="font-size: 1.3em; width: 35px; text-align: center;">0</span>
+              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="1" style="padding: 3px 12px; font-size: 1.3em;">+</button>
             </div>
           </div>
-
+ 
           <!-- 礦工 -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
             <div>
-              <div style="font-size: 1.2em; font-weight: bold;">⛏️ 礦工</div>
-              <div style="font-size: 0.9em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
+              <div style="font-size: 1.1em; font-weight: bold;">⛏️ 礦工</div>
+              <div style="font-size: 0.85em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
             </div>
             <div style="display: flex; align-items: center; gap: 15px;">
-              <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 5px 15px; font-size: 1.5em;">-</button>
-              <span id="ui-worker-MINER" style="font-size: 1.5em; width: 40px; text-align: center;">0</span>
-              <button class="action-btn btn-assign" data-job="MINER" data-amount="1" style="padding: 5px 15px; font-size: 1.5em;">+</button>
+              <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 3px 12px; font-size: 1.3em;">-</button>
+              <span id="ui-worker-MINER" style="font-size: 1.3em; width: 35px; text-align: center;">0</span>
+              <button class="action-btn btn-assign" data-job="MINER" data-amount="1" style="padding: 3px 12px; font-size: 1.3em;">+</button>
             </div>
           </div>
           
-          <div id="ui-net-production" style="margin-top: 10px; font-size: 1em; text-align: center;">
+          <div id="ui-net-production" style="margin-top: 5px; font-size: 0.95em; text-align: center;">
             <!-- JS 更新淨產量 -->
           </div>
         </div>
 
-        <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; background: rgba(0,0,0,0.6);">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; width: 100%; text-align: center;">其他指令</h3>
+        <!-- 建築建造與升級面板 (新) -->
+        <div class="glass-panel" style="flex: 1.5; padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.6);">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">🏛️ 領地建築升級</h3>
+          <div id="base-upgrade-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; padding-right: 5px;">
+            <!-- JS 動態生成建築升級項 -->
+          </div>
+        </div>
+ 
+        <!-- 其他指令 -->
+        <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 20px; background: rgba(0,0,0,0.6);">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; width: 100%; text-align: center; margin: 0;">其他指令</h3>
           <button id="btn-explore" class="action-btn" style="font-size: 1.1em; padding: 15px; width: 100%;">🗺️ 探索周邊</button>
           <button id="btn-base-warehouse" class="action-btn" style="font-size: 1.1em; padding: 15px; width: 100%;">📦 檢視倉庫</button>
           <button id="btn-todo-list" class="action-btn" style="font-size: 1.1em; padding: 15px; width: 100%; position: relative;">
@@ -920,18 +1097,49 @@
       </div>
     </div>
 
-    <!-- 獨立建築：訓練所 -->
+    <!-- 獨立建築：冒險者酒館 -->
     <div id="view-camp" class="facility-view">
       <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
-      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">⚔️ 訓練所 (Camp)</h2>
-      <div style="display: flex; gap: 20px; flex: 1; flex-direction: column;">
-        <div style="text-align: center;">
-          <button id="btn-recruit" class="action-btn" style="font-size: 1.2em; padding: 15px 30px;">🍻 招募新血 (花費 500 金幣)</button>
+      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🍻 冒險者酒館 (Tavern)</h2>
+      <div style="display: flex; gap: 20px; flex: 1; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="glass-panel" style="padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; background: rgba(0,0,0,0.6); max-width: 600px;">
+          <p style="color: #cbd5e1; font-size: 1.2em; text-align: center; line-height: 1.6;">
+            這裡是冒險者齊聚的酒館。隨著酒館等級的提升，將有機會吸引更具名氣與實力的英雄加入您的傭兵團！
+          </p>
+          <button id="btn-recruit" class="action-btn" style="font-size: 1.3em; padding: 20px 40px; background: linear-gradient(135deg, #d97706, #b45309);">
+            🍻 招募新血 (花費 500 金幣)
+          </button>
         </div>
-        <div class="glass-panel" style="flex: 1; padding: 20px; overflow-y: auto;">
-          <h3>💪 冒險者個別特訓名單</h3>
-          <div id="camp-train-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 15px;">
-            <!-- JS 渲染特訓卡片 -->
+      </div>
+    </div>
+
+    <!-- 獨立建築：武器店 -->
+    <div id="view-weapon-shop" class="facility-view">
+      <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
+      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">⚔️ 皇家武器店 (Weapon Shop)</h2>
+      <div style="display: flex; gap: 20px; flex: 1; width: 90%; margin: 0 auto; min-height: 500px;">
+        <div class="glass-panel" style="flex: 1; padding: 25px; display: flex; flex-direction: column; background: rgba(0,0,0,0.6);">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">
+            🛒 購買武器 (當前商店等級: <span id="ui-weapon-shop-lvl">0</span>)
+          </h3>
+          <div id="weapon-shop-list" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; overflow-y: auto; flex: 1; padding-right: 5px;">
+            <!-- JS 動態生成武器列表 -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 獨立建築：防具店 -->
+    <div id="view-armor-shop" class="facility-view">
+      <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
+      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🛡️ 皇家防具店 (Armor Shop)</h2>
+      <div style="display: flex; gap: 20px; flex: 1; width: 90%; margin: 0 auto; min-height: 500px;">
+        <div class="glass-panel" style="flex: 1; padding: 25px; display: flex; flex-direction: column; background: rgba(0,0,0,0.6);">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">
+            🛒 購買防具 (當前商店等級: <span id="ui-armor-shop-lvl">0</span>)
+          </h3>
+          <div id="armor-shop-list" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; overflow-y: auto; flex: 1; padding-right: 5px;">
+            <!-- JS 動態生成防具列表 -->
           </div>
         </div>
       </div>
@@ -964,8 +1172,11 @@
       </div>
       
       <div style="flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0;">
-        <h4 style="margin: 0 0 5px 0; color: #94a3b8;">近期動態</h4>
-        <div id="map-log-container" style="flex: 1; min-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 10px; font-size: 0.8em; border-radius: 4px; display: flex; flex-direction: column; gap: 5px;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <h4 style="margin: 0; color: #94a3b8;">近期動態</h4>
+          <button id="btn-combat-history" class="action-btn" style="padding: 3px 8px; font-size: 0.8em; background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #eab308;">📜 戰鬥紀錄</button>
+        </div>
+        <div id="map-log-container" style="flex: 1; min-height: 100px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 10px; font-size: 0.8em; border-radius: 4px; display: flex; flex-direction: column; gap: 5px;"></div>
       </div>
 
       <!-- 系統功能按鈕已移至頂部資源列及地圖懸浮位置 -->
@@ -1152,6 +1363,12 @@
         <p id="node-select-faction-desc" style="color: #cbd5e1; font-size: 0.9em; margin: 0; line-height: 1.5;">王國氛圍與個性介紹</p>
       </div>
 
+      <div id="node-select-difficulty-box" class="glass-panel" style="padding: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.4);">
+        <span style="font-weight: bold; color: #cbd5e1;">開局難易度：</span>
+        <span id="node-select-difficulty-level" style="font-weight: bold; color: #eab308;">簡單</span>
+        <p id="node-select-difficulty-desc" style="color: #94a3b8; font-size: 0.85em; margin: 5px 0 0 0; line-height: 1.5;">起始資金與資源說明</p>
+      </div>
+
       <div style="display: flex; gap: 10px;">
         <button id="btn-confirm-node" class="action-btn" style="flex: 1; padding: 10px; font-weight: bold;">🏕️ 就決定是這裡了！</button>
         <button id="btn-close-node-select" class="action-btn" style="background: rgba(255,255,255,0.1); padding: 10px;">再看看</button>
@@ -1181,6 +1398,16 @@
       
       <div style="margin-top: 20px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;" id="dispatch-adv-list">
         <!-- JS 動態生成可派遣名單 -->
+      </div>
+      
+      <div id="dispatch-subjugation-options" style="display: none; margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+        <div style="color: #cbd5e1; margin-bottom: 8px;">⚔️ 請選擇討伐模式：</div>
+        <label style="display: block; cursor: pointer; color: #e2e8f0; margin-bottom: 5px;">
+          <input type="radio" name="subjugation-mode" value="SINGLE" checked> 單次討伐 <span style="color:#94a3b8; font-size:0.9em;">(遭遇 1 波敵人)</span>
+        </label>
+        <label style="display: block; cursor: pointer; color: #e2e8f0;">
+          <input type="radio" name="subjugation-mode" value="PROGRESS"> 進度討伐 <span style="color:#fbbf24; font-size:0.9em;">(連續遭遇 3 波敵人，高風險高報酬)</span>
+        </label>
       </div>
       
       <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">

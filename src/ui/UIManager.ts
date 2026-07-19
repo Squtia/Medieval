@@ -1,7 +1,7 @@
 import { GameState } from '../core/GameState';
 import { AdventurerState, NobleTitle } from '../models/types';
 import { openAdvDetail } from './ModalController';
-import { renderCampTraining } from './SceneController';
+import { renderBaseBuildings } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
 
@@ -162,21 +162,76 @@ class UIManagerClass {
         } else if (adv.currentState !== AdventurerState.IDLE) {
           stateText = `🔴 任務中`;
         }
-        // Tooltip內容
-        const tooltip = `【${adv.name}】\nLv.${adv.level} ${adv.job.name} | ${adv.trait.name}\n戰力：${adv.power}\n狀態：${stateText}`;
-        card.setAttribute('data-tooltip', tooltip);
+        // 查詢外派任務資訊
+        let dispatchInfo = '';
+        if (adv.currentState !== AdventurerState.IDLE && adv.currentState !== AdventurerState.RESTING) {
+          const activeMissions = GameState.system?.getActiveMissions() || [];
+          const mission = activeMissions.find(m => m.adventurers.some(a => a.id === adv.id));
+          if (mission) {
+            const targetNode = GameState.mapSystem.getNodes().find(n => n.id === mission.task.targetNodeId);
+            dispatchInfo = `\n派遣據點：${targetNode ? targetNode.name : '未知'}\n任務名稱：${mission.task.name}`;
+          }
+        }
+
+        const attr = adv.getEffectiveAttributes();
+        let equipText = '';
+        if (adv.equipment.WEAPON) equipText += `\n- ⚔️ ${adv.equipment.WEAPON.name}`;
+        if (adv.equipment.ARMOR) equipText += `\n- 🛡️ ${adv.equipment.ARMOR.name}`;
+        if (adv.equipment.ACCESSORY) equipText += `\n- 💍 ${adv.equipment.ACCESSORY.name}`;
+        if (!equipText) equipText = '\n- 無裝備';
+
+        const qMap: Record<string, string> = { 'SSR': 'SSR 傳奇', 'SR': 'SR 史詩', 'R': 'R 精英', 'N': 'N 普通' };
+        const qLabel = qMap[adv.quality || 'N'] || 'N 普通';
+
+        const tooltipText = `【${adv.name}】 (${qLabel})
+Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
+戰力：${adv.power}
+狀態：${stateText}${dispatchInfo}
+
+【六維屬性】
+力量: ${attr.str} | 敏捷: ${attr.agi} | 體質: ${attr.con}
+智慧: ${attr.int} | 精神: ${attr.spr} | 幸運: ${attr.luk}
+
+【目前裝備】${equipText}`;
+
+        // 監聽 Hover 事件
+        card.addEventListener('mouseenter', () => {
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) {
+            tEl.textContent = tooltipText;
+            tEl.style.opacity = '1';
+          }
+        });
+
+        card.addEventListener('mousemove', (e) => {
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) {
+            tEl.style.left = `${e.clientX + 15}px`;
+            tEl.style.top = `${e.clientY + 15}px`;
+          }
+        });
+
+        card.addEventListener('mouseleave', () => {
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) {
+            tEl.style.opacity = '0';
+          }
+        });
         
         // 卡片內部顯示
-        // We use the job's icon if available, otherwise default to 🦸
-        const avatarIcon = '🦸'; // We can change this later if Job has icon
-        
+        const avatarIcon = '🦸';
         card.innerHTML = `
           <div class="adv-avatar">${avatarIcon}</div>
           <div class="adv-name">${adv.name}</div>
-          <div class="adv-level">Lv.${adv.level}</div>
+          <div class="adv-level" style="color: ${adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#a855f7' : adv.quality === 'R' ? '#3b82f6' : '#cbd5e1'}; font-weight: bold;">Lv.${adv.level}</div>
         `;
         
-        card.addEventListener('click', () => openAdvDetail(adv));
+        card.addEventListener('click', () => {
+          // 點擊卡片時，隱藏浮動 Tooltip 避免殘留
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) tEl.style.opacity = '0';
+          openAdvDetail(adv);
+        });
         this.advContainer.appendChild(card);
         if (adv.currentState !== AdventurerState.IDLE) allIdle = false;
       });
@@ -205,8 +260,8 @@ class UIManagerClass {
       }
     }
 
-    // 更新訓練所清單
-    renderCampTraining();
+    // 更新領地建築升級清單
+    renderBaseBuildings();
 
     // 更新地圖面板與共用右側欄位
     const sharedRightPanel = document.getElementById('shared-right-panel');

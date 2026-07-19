@@ -1,4 +1,4 @@
-import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats } from './types';
+import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow } from './types';
 
 export class Adventurer {
   public id: string;
@@ -22,22 +22,100 @@ export class Adventurer {
   // OPT-02: RESTING 狀態剩餘天數
   public restingDaysLeft: number;
 
-  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig) {
+  // 戰鬥陣位
+  public formationRow: FormationRow;
+
+  public quality: 'N' | 'R' | 'SR' | 'SSR';
+
+  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' = 'N') {
     this.id = id;
     this.name = name;
     this.level = 1;
     this.xp = 0;
     this.job = job;
     this.trait = trait;
+    this.quality = quality;
 
-    // 初始化基礎屬性為職業的 Lv.1 屬性拷貝，並預設魅力與統帥為 1
-    this.baseAttributes = { ...job.baseAttributes, charm: 1, command: 1 };
+    // 1. 根據品質段範圍隨機抽取六維總合（套用加權隨機抽取，讓偏大的極品數值機率遞減）
+    let minSum = 35;
+    let maxSum = 52;
+    switch (quality) {
+      case 'N': minSum = 35; maxSum = 52; break;
+      case 'R': minSum = 45; maxSum = 65; break;
+      case 'SR': minSum = 58; maxSum = 78; break;
+      case 'SSR': minSum = 72; maxSum = 95; break;
+    }
+
+    // 權重隨機分布抽取 X
+    const possibleValues: number[] = [];
+    const weights: number[] = [];
+    for (let i = minSum; i <= maxSum; i++) {
+      possibleValues.push(i);
+      weights.push(maxSum - i + 1); // 數值越高，權重越小
+    }
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    let rand = Math.random() * totalWeight;
+    let targetSum = minSum;
+    for (let i = 0; i < possibleValues.length; i++) {
+      rand -= weights[i];
+      if (rand <= 0) {
+        targetSum = possibleValues[i];
+        break;
+      }
+    }
+
+    // 2. 依照職業原生的六維比例，將總合按權重分配到六維屬性上
+    const keys: (keyof Attributes)[] = ['str', 'agi', 'con', 'int', 'spr', 'luk'];
+    const jobWeights = keys.map(k => job.baseAttributes[k] || 1);
+    const totalJobWeight = jobWeights.reduce((a, b) => a + b, 0);
+
+    const attrs: any = {};
+    let allocatedSum = 0;
+    keys.forEach((key, idx) => {
+      const val = Math.max(1, Math.round((jobWeights[idx] / totalJobWeight) * targetSum));
+      attrs[key] = val;
+      allocatedSum += val;
+    });
+
+    // 3. 微調使六維總合精確等於 targetSum 且皆 >= 1
+    let safety = 0;
+    while (allocatedSum !== targetSum && safety < 500) {
+      safety++;
+      const diff = targetSum - allocatedSum;
+      const step = diff > 0 ? 1 : -1;
+      const randomKey = keys[Math.floor(Math.random() * keys.length)];
+      if (step === -1 && attrs[randomKey] <= 1) continue;
+
+      attrs[randomKey] += step;
+      allocatedSum += step;
+    }
+
+    // 4. 魅力與統帥根據品質段給予獨立隨機加成
+    let chmCmdMin = 1;
+    let chmCmdMax = 3;
+    switch (quality) {
+      case 'N': chmCmdMin = 1; chmCmdMax = 3; break;
+      case 'R': chmCmdMin = 2; chmCmdMax = 4; break;
+      case 'SR': chmCmdMin = 3; chmCmdMax = 5; break;
+      case 'SSR': chmCmdMin = 5; chmCmdMax = 8; break;
+    }
+    attrs.charm = Math.floor(Math.random() * (chmCmdMax - chmCmdMin + 1)) + chmCmdMin;
+    attrs.command = Math.floor(Math.random() * (chmCmdMax - chmCmdMin + 1)) + chmCmdMin;
+
+    this.baseAttributes = attrs as Attributes;
     this.unspentStatPoints = 0;
 
     this.equipment = {};
     this.currentState = AdventurerState.IDLE;
     this.dispatchEndTime = null;
     this.restingDaysLeft = 0;
+    
+    // 預設戰士、騎士類近戰職業在前排，法師、弓箭手在後排
+    if (job.name.includes('戰士') || job.name.includes('騎士') || job.name.includes('守衛') || job.name.includes('刺客')) {
+      this.formationRow = FormationRow.FRONT;
+    } else {
+      this.formationRow = FormationRow.BACK;
+    }
   }
 
   /**

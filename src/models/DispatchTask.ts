@@ -10,6 +10,11 @@ export enum TaskType {
   TRADE = 'TRADE'
 }
 
+export enum SubjugationMode {
+  SINGLE = 'SINGLE',     // 單次討伐
+  PROGRESS = 'PROGRESS'  // 進度討伐 (多波次, 未來擴充 100% 首領)
+}
+
 export interface TradeInstruction {
   nodeId: string;
   buy: { goodId: string; maxAmount: number }[];
@@ -44,6 +49,11 @@ export class DispatchTask {
 
   // 探索任務：目標節點 ID
   public targetNodeId?: string;
+
+  // 討伐任務專用
+  public subjugationMode?: SubjugationMode;
+  public totalWaves?: number; // 進度討伐的波次數量
+
 
   constructor(
     name: string,

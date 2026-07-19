@@ -6,7 +6,9 @@ import { EquipmentGenerator } from './EquipmentGenerator';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
+import { CombatHistoryRecord } from '../models/Combat';
 import { TRADE_GOODS } from './MarketSystem';
+import { CombatSystem } from './CombatSystem';
 
 /**
  * 代表正在執行中的任務
@@ -319,53 +321,18 @@ export class DispatchSystem {
       return;
     }
 
-    let totalAtk = 0;
-    let totalHit = 0;
-    let totalStr = 0;
-    let totalHp = 0;
-    let totalPower = 0;
+    const waveCount = task.subjugationMode === 'PROGRESS' ? (task.totalWaves || 3) : 1;
     
-    adventurers.forEach(adv => {
-      const stats = adv.getCombatStats();
-      const attr = adv.getEffectiveAttributes();
-      totalAtk += stats.atk;
-      totalHit += stats.hit;
-      totalStr += attr.str;
-      totalHp += stats.hp;
-      totalPower += adv.power;
-    });
-
-    let isSuccess = false;
-    let battleLog = '';
-
-    if (task.enemyFeature === EnemyFeature.HIGH_DEF) {
-      if (totalAtk > task.minPowerRequired * 1.5) {
-         isSuccess = true;
-         battleLog = '依靠著強大的攻擊力，隊伍硬生生擊碎了敵人的重甲！';
-      } else if (totalHit > task.minPowerRequired * 0.8) {
-         isSuccess = true;
-         battleLog = '透過精準的命中，隊伍找到了敵人裝甲的弱點！';
-      } else {
-         battleLog = '敵人的重甲太過堅硬，隊伍的攻擊無法造成有效傷害...';
-      }
-    } else if (task.enemyFeature === EnemyFeature.HIGH_EVADE) {
-      if (totalHit > task.minPowerRequired * 1.2) {
-         isSuccess = true;
-         battleLog = '依靠著極高的命中率，隊伍精準擊殺了敏捷的敵人！';
-      } else if (totalHp > task.minPowerRequired * 5) {
-         isSuccess = true;
-         battleLog = '隊伍以強大的血量與耐久力耗死了敵人！';
-      } else {
-         battleLog = '敵人身手太過敏捷，隊伍的攻擊多數落空...';
-      }
-    } else {
-      if (totalAtk + (totalHp / 10) > task.minPowerRequired * 0.8) {
-         isSuccess = true;
-         battleLog = '隊伍憑藉著穩定的戰力壓制了敵人。';
-      } else {
-         battleLog = '隊伍的綜合戰力不足，被敵人擊退了。';
-      }
-    }
+    const finalReport = CombatSystem.simulateCombat(
+      adventurers.map(a => a.id),
+      task.baseDifficulty,
+      task.enemyFeature,
+      undefined, // terrain 暫時缺省
+      waveCount
+    );
+    
+    const isSuccess = finalReport.isVictory;
+    let battleLog = finalReport.battleLog;
 
     if (isSuccess) {
       this.territory.addGold(task.expectedGold);
@@ -393,9 +360,20 @@ export class DispatchSystem {
 
       console.log(`✅ [任務完成] 冒險者小隊 (${advNames}) 成功討伐「${task.name}」！${battleLog} 帶回 ${task.expectedGold} 金幣與 ${gainedPrestige} 聲望${expBonusStr}。${dropMsg}`);
 
+      finalReport.lootValue = gainedPrestige; // 將最終獎勵補入 report 供 UI 顯示
+      
+      const record: CombatHistoryRecord = {
+        id: `combat_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        day: GameState.totalDays,
+        nodeName: task.name + (task.subjugationMode === 'PROGRESS' ? ' (進度討伐)' : ''),
+        report: finalReport
+      };
+      this.territory.addCombatRecord(record);
+      this.territory.cleanupCombatHistory(GameState.totalDays, 3);
+
       EventBus.getInstance().publish({
         type: GameEventType.COMBAT_FINISHED,
-        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: gainedPrestige, battleLog }
+        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: gainedPrestige, battleLog, report: finalReport }
       });
 
       // 勝利後立即設為閒置
@@ -414,6 +392,21 @@ export class DispatchSystem {
         adv.restingDaysLeft = restDays;
         adv.dispatchEndTime = null;
       }
+      finalReport.lootValue = 0;
+
+      const record: CombatHistoryRecord = {
+        id: `combat_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        day: GameState.totalDays,
+        nodeName: task.name + (task.subjugationMode === 'PROGRESS' ? ' (進度討伐)' : ''),
+        report: finalReport
+      };
+      this.territory.addCombatRecord(record);
+      this.territory.cleanupCombatHistory(GameState.totalDays, 3);
+
+      EventBus.getInstance().publish({
+        type: GameEventType.COMBAT_FINISHED,
+        payload: { isVictory: false, participants: adventurers.map(a => a.id), lootValue: 0, battleLog, report: finalReport }
+      });
       console.log(`🩹 [休養中] 小隊需要休養 ${restDays} 天才能再次出動。`);
     }
   }

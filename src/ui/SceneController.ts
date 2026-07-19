@@ -75,31 +75,24 @@ export function enterScene(node: MapNode) {
       }
       
       const isMyHome = node.isPlayerBase;
+      const myTerritory = GameState.myTerritory;
+
       const btnEnterBase = document.getElementById('btn-enter-base')!;
-      const btnEnterCamp = document.getElementById('btn-enter-camp')!;
+      const btnEnterTavern = document.getElementById('btn-enter-tavern')!;
+      const btnEnterWeaponShop = document.getElementById('btn-enter-weapon-shop')!;
+      const btnEnterArmorShop = document.getElementById('btn-enter-armor-shop')!;
       const btnEnterForge = document.getElementById('btn-enter-forge')!;
       const btnMigrate = document.getElementById('btn-migrate')!;
       const btnEnterHall = document.getElementById('btn-enter-hall')!;
       
       btnEnterBase.style.display = isMyHome ? 'block' : 'none';
-      btnEnterCamp.style.display = isMyHome ? 'block' : 'none';
-      btnEnterForge.style.display = isMyHome ? 'block' : 'none';
+      btnEnterTavern.style.display = (isMyHome && (myTerritory.tavernLevel || 0) > 0) ? 'block' : 'none';
+      btnEnterWeaponShop.style.display = (isMyHome && (myTerritory.weaponShopLevel || 0) > 0) ? 'block' : 'none';
+      btnEnterArmorShop.style.display = (isMyHome && (myTerritory.armorShopLevel || 0) > 0) ? 'block' : 'none';
+      btnEnterForge.style.display = (isMyHome && (myTerritory.forgeLevel || 0) > 0) ? 'block' : 'none';
       btnMigrate.style.display = isMyHome ? 'none' : 'block';
       
       btnEnterHall.style.display = (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null) ? 'block' : 'none';
-      
-      const visibleBuildings = [];
-      if (btnEnterHall.style.display !== 'none') visibleBuildings.push(btnEnterHall);
-      if (btnEnterBase.style.display !== 'none') visibleBuildings.push(btnEnterBase);
-      if (btnEnterCamp.style.display !== 'none') visibleBuildings.push(btnEnterCamp);
-      if (btnEnterForge.style.display !== 'none') visibleBuildings.push(btnEnterForge);
-
-      visibleBuildings.forEach((bld, idx) => {
-        bld.style.left = `${200 + idx * 400}px`;
-        bld.style.bottom = `${50 + (idx % 2) * 20}px`;
-      });
-      
-      document.getElementById('street-scroll-area')!.scrollLeft = 0;
     } else {
       wildernessView.classList.add('active');
       document.getElementById('wild-name')!.textContent = node.name;
@@ -121,6 +114,8 @@ export function returnToMap() {
     document.getElementById('view-hall')!.classList.remove('active');
     document.getElementById('view-camp')!.classList.remove('active');
     document.getElementById('view-forge')!.classList.remove('active');
+    document.getElementById('view-weapon-shop')!.classList.remove('active');
+    document.getElementById('view-armor-shop')!.classList.remove('active');
     document.getElementById('scene-view')!.classList.remove('active');
     document.getElementById('wilderness-view')!.classList.remove('active');
     
@@ -162,5 +157,81 @@ export function backToScene() {
     facilityView.classList.remove('active');
     
     UIManager.updateUI();
+  });
+}
+
+export function renderBaseBuildings() {
+  const listEl = document.getElementById('base-upgrade-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+  
+  const territory = GameState.myTerritory;
+  const bldTypes: { key: 'tavern' | 'weapon' | 'armor' | 'forge', name: string, desc: string, icon: string }[] = [
+    { key: 'tavern', name: '冒險者酒館', desc: '解鎖招募並提高招募高品質英雄機率', icon: '🍻' },
+    { key: 'weapon', name: '皇家武器店', desc: '解鎖並購買 1~3 階強力武器', icon: '⚔️' },
+    { key: 'armor', name: '皇家防具店', desc: '解鎖並購買 1~3 階精美防具', icon: '🛡️' },
+    { key: 'forge', name: '工坊鍛造屋', desc: '解鎖並提供強化武具火爐', icon: '⚒️' }
+  ];
+  
+  bldTypes.forEach(bld => {
+    const lvl = territory.getBuildingLevel(bld.key);
+    const nextLvl = lvl + 1;
+    const isMax = lvl >= 3;
+    
+    const card = document.createElement('div');
+    card.className = 'glass-panel';
+    card.style.padding = '10px';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.gap = '6px';
+    card.style.background = 'rgba(0,0,0,0.4)';
+    card.style.borderRadius = '6px';
+    
+    let actionBtnHtml = '';
+    if (isMax) {
+      actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px;">已達最高等級 (3等)</button>`;
+    } else {
+      const cost = territory.getUpgradeCost(bld.key, nextLvl);
+      const canUpgrade = territory.canUpgradeBuilding(bld.key);
+      const btnText = lvl === 0 ? `🔨 建造 (${cost.gold}金)` : `🔺 升級 (${cost.gold}金)`;
+      
+      const costStr = `
+        <div style="font-size: 0.82em; color: #cbd5e1; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 4px; font-weight: bold; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px;">
+          <span>🌲 木材: ${cost.wood}</span>
+          <span>🧱 石材: ${cost.stone}</span>
+          ${cost.iron > 0 ? `<span>🔗 鐵礦: ${cost.iron}</span>` : ''}
+        </div>
+      `;
+      
+      actionBtnHtml = `
+        ${costStr}
+        <button class="action-btn btn-upgrade-bld" data-bld="${bld.key}" ${canUpgrade ? '' : 'disabled'} style="width: 100%; font-size: 0.85em; padding: 5px 0; margin-top: 4px; background: ${canUpgrade ? 'linear-gradient(135deg, #059669, #047857)' : 'rgba(255,255,255,0.05)'};">
+          ${btnText}
+        </button>
+      `;
+    }
+    
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+        <div>
+          <span style="font-size: 1em; font-weight: bold; color: #fff;">${bld.icon} ${bld.name}</span>
+          <span style="font-size: 0.85em; color: #eab308; font-weight: bold; margin-left: 5px;">Lv.${lvl}</span>
+        </div>
+      </div>
+      <div style="font-size: 0.8em; color: #cbd5e1; line-height: 1.3;">${bld.desc}</div>
+      ${actionBtnHtml}
+    `;
+    
+    const btn = card.querySelector('.btn-upgrade-bld') as HTMLButtonElement | null;
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (territory.upgradeBuilding(bld.key)) {
+          renderBaseBuildings();
+          UIManager.updateUI();
+        }
+      });
+    }
+    
+    listEl.appendChild(card);
   });
 }

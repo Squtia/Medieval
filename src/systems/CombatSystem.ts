@@ -1,28 +1,230 @@
-import { EventBus } from '../core/EventBus';
-import { GameEventType } from '../core/GameEvents';
+import { GameState } from '../core/GameState';
+import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect } from '../models/Combat';
+import { FormationRow, TerrainType } from '../models/types';
 
 export class CombatSystem {
-  constructor() {
-    const eventBus = EventBus.getInstance();
-
-    // 監聽戰鬥請求
-    eventBus.subscribe(GameEventType.COMBAT_REQUESTED, (payload) => {
-      console.log(`[CombatSystem] 收到戰鬥請求！發起者: [${payload.attackerIds.join(', ')}], 目標: ${payload.targetId}`);
-      
-      // 這裡應該會有非同步的戰鬥計算邏輯...
-      // 模擬戰鬥結果並發佈事件
-      setTimeout(() => {
-        const isVictory = Math.random() > 0.5; // 50% 勝率模擬
-        eventBus.publish({
-          type: GameEventType.COMBAT_FINISHED,
-          payload: {
-            isVictory,
-            participants: payload.attackerIds,
-            lootValue: isVictory ? 100 : 0,
-            battleLog: isVictory ? '我方以壓倒性優勢獲勝！' : '敵軍火力太強，我方撤退。'
-          }
+  public static simulateCombat(attackerIds: string[], taskDifficulty: number = 10, enemyFeature: string = '', terrain?: TerrainType, totalWaves: number = 1): CombatReport {
+    const events: CombatEvent[] = [];
+    const playerTeam: CombatParticipant[] = [];
+    
+    // 1. 初始化我方 (僅初始化一次，狀態延續)
+    attackerIds.forEach((id: string) => {
+      const adv = GameState.adventurers.find(a => a.id === id);
+      if (adv) {
+        const stats = adv.getCombatStats();
+        playerTeam.push({
+          id: adv.id,
+          name: adv.name,
+          isPlayer: true,
+          row: adv.formationRow || FormationRow.FRONT,
+          maxHp: stats.hp,
+          currentHp: stats.hp,
+          stats: { ...stats },
+          statusEffects: []
         });
-      }, 1000);
+      }
     });
+
+    // 記錄玩家初始狀態供 UI 繪製，敵方則在 WAVE_START 動態處理
+    const initialStates = [...playerTeam].map(p => ({
+      id: p.id,
+      name: p.name,
+      isPlayer: p.isPlayer,
+      row: p.row,
+      maxHp: p.maxHp
+    }));
+
+    let isVictory = false;
+
+    for (let wave = 1; wave <= totalWaves; wave++) {
+      const enemyTeam: CombatParticipant[] = [];
+      const currentWaveDiff = taskDifficulty + (wave - 1) * 5;
+      const enemyCount = Math.floor(Math.random() * 3) + 1;
+      
+      for (let i = 0; i < enemyCount; i++) {
+        const eHp = 50 + currentWaveDiff * 5;
+        let eDef = currentWaveDiff * 2;
+        let eEvade = currentWaveDiff * 1.5;
+
+        if (enemyFeature === 'HIGH_DEF') eDef *= 2;
+        if (enemyFeature === 'HIGH_EVADE') eEvade *= 2;
+
+        enemyTeam.push({
+          id: `enemy_w${wave}_${i}`,
+          name: `怪物 ${i + 1}`,
+          isPlayer: false,
+          row: Math.random() > 0.5 ? FormationRow.FRONT : FormationRow.BACK,
+          maxHp: eHp,
+          currentHp: eHp,
+          stats: { hp: eHp, mp: 0, atk: 10 + currentWaveDiff * 2, def: eDef, hit: 20 + currentWaveDiff, evade: eEvade },
+          statusEffects: []
+        });
+      }
+
+      events.push({ 
+        type: CombatEventType.WAVE_START, 
+        wave, 
+        enemies: enemyTeam.map(e => ({ id: e.id, name: e.name, isPlayer: e.isPlayer, row: e.row, maxHp: e.maxHp })),
+        text: `--- 第 ${wave} 波戰鬥開始！遭遇了 ${enemyCount} 名敵人。 ---` 
+      });
+
+      // 戰鬥主迴圈 (單波次)
+      let turn = 1;
+      const MAX_TURNS = 20;
+
+      while (turn <= MAX_TURNS) {
+        const allParticipants = [...playerTeam, ...enemyTeam].filter(p => p.currentHp > 0);
+        if (playerTeam.every(p => p.currentHp <= 0) || enemyTeam.every(p => p.currentHp <= 0)) {
+          break; // 單波次一方全滅
+        }
+
+        // 依敏捷排序
+      allParticipants.sort((a, b) => (b.stats.evade + Math.random() * 20) - (a.stats.evade + Math.random() * 20));
+
+      for (const actor of allParticipants) {
+        if (actor.currentHp <= 0) continue;
+
+        CombatSystem.processStatusEffects(actor, events);
+        if (actor.currentHp <= 0) continue;
+
+        const isStunned = actor.statusEffects.some(s => s.type === StatusEffectType.STUN);
+        if (isStunned) {
+          events.push({ type: CombatEventType.MISS, actorName: actor.name, text: `${actor.name} 處於暈眩狀態，無法行動！` });
+          continue;
+        }
+
+        const enemies = actor.isPlayer ? enemyTeam.filter(e => e.currentHp > 0) : playerTeam.filter(p => p.currentHp > 0);
+        if (enemies.length === 0) break;
+
+        // 近戰基礎邏輯：只能攻擊前排，除非前排死光
+        let validTargets = enemies;
+        const frontEnemies = enemies.filter(e => e.row === FormationRow.FRONT);
+        if (frontEnemies.length > 0) {
+          validTargets = frontEnemies;
+        }
+
+        let target = validTargets.find(e => e.statusEffects.some(s => s.type === StatusEffectType.TAUNT));
+        if (!target) {
+          target = validTargets[Math.floor(Math.random() * validTargets.length)];
+        }
+
+        const hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
+        if (Math.random() > hitChance) {
+          events.push({
+            type: CombatEventType.MISS,
+            actorName: actor.name,
+            targetName: target.name,
+            text: `${actor.name} 的攻擊被 ${target.name} 閃避了！`
+          });
+          continue;
+        }
+
+        const critChance = 0.05 + (actor.stats.hit / 500);
+        const isCrit = Math.random() < critChance;
+        let baseDamage = actor.stats.atk;
+        if (isCrit) baseDamage *= 1.5;
+
+        const dmgReduction = target.stats.def / (target.stats.def + 50);
+        let finalDamage = Math.max(1, Math.floor(baseDamage * (1 - dmgReduction)));
+        finalDamage = Math.floor(finalDamage * (0.9 + Math.random() * 0.2));
+
+        target.currentHp -= finalDamage;
+
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: actor.id, actorName: actor.name,
+          targetId: target.id, targetName: target.name,
+          damage: finalDamage,
+          targetHp: target.currentHp,
+          targetMaxHp: target.maxHp,
+          text: `${actor.name} 攻擊了 ${target.name}，${isCrit ? '致命一擊！' : ''}造成 ${finalDamage} 點傷害。`
+        });
+
+        if (target.currentHp > 0) {
+           if (actor.isPlayer && Math.random() < 0.15) {
+             target.statusEffects.push({ type: StatusEffectType.BLEED, duration: 3 });
+             events.push({ type: CombatEventType.STATUS_APPLY, targetId: target.id, targetName: target.name, statusType: StatusEffectType.BLEED, text: `${target.name} 陷入流血狀態！` });
+           } else if (!actor.isPlayer && Math.random() < 0.1) {
+             target.statusEffects.push({ type: StatusEffectType.POISON, duration: 2, value: 5 });
+             events.push({ type: CombatEventType.STATUS_APPLY, targetId: target.id, targetName: target.name, statusType: StatusEffectType.POISON, text: `${target.name} 陷入中毒狀態！` });
+           }
+        }
+
+        if (target.currentHp <= 0) {
+          target.currentHp = 0;
+          events.push({ type: CombatEventType.DEATH, targetName: target.name, text: `${target.name} 倒下了！` });
+        }
+      }
+      turn++;
+    } // 單波次迴圈結束
+
+      if (playerTeam.every(p => p.currentHp <= 0)) {
+         break; // 英雄全滅，提早結束總波次迴圈
+      }
+    } // 總波次迴圈結束
+
+    isVictory = playerTeam.some(p => p.currentHp > 0);
+    const battleLog = isVictory ? '我方部隊奮勇作戰，成功清剿了所有敵人！' : '敵軍火力太強，我方部隊被迫撤退。';
+    events.push({ type: CombatEventType.END, text: battleLog });
+
+    const playerHpMap: Record<string, number> = {};
+    playerTeam.forEach(p => playerHpMap[p.id] = p.currentHp);
+
+    let totalDamageDealt = 0;
+    const damageMap: Record<string, number> = {};
+    events.forEach(e => {
+      if ((e.type === CombatEventType.HIT || e.type === CombatEventType.CRIT) && e.actorId && e.damage) {
+        if (playerTeam.find(p => p.id === e.actorId)) {
+          totalDamageDealt += e.damage;
+          damageMap[e.actorId] = (damageMap[e.actorId] || 0) + e.damage;
+        }
+      }
+    });
+    let mvpId = '';
+    let maxDmg = -1;
+    Object.entries(damageMap).forEach(([id, dmg]) => {
+      if (dmg > maxDmg) { maxDmg = dmg; mvpId = id; }
+    });
+    const mvpName = playerTeam.find(p => p.id === mvpId)?.name || '無';
+
+    return {
+      isVictory,
+      participants: playerTeam.map(p => p.id),
+      lootValue: 0, // 由 DispatchSystem 負責發獎勵
+      events,
+      playerHpMap,
+      battleLog,
+      initialStates,
+      mvpName,
+      totalDamageDealt,
+      terrain
+    };
+  }
+
+  private static processStatusEffects(actor: CombatParticipant, events: CombatEvent[]) {
+    const activeEffects = [];
+    for (const effect of actor.statusEffects) {
+      if (effect.type === StatusEffectType.BLEED) {
+        const dmg = Math.max(1, Math.floor(actor.maxHp * 0.05));
+        actor.currentHp -= dmg;
+        events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因流血受到 ${dmg} 點傷害。`});
+      } else if (effect.type === StatusEffectType.POISON) {
+        const dmg = effect.value || 5;
+        actor.currentHp -= dmg;
+        events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因中毒受到 ${dmg} 點傷害。`});
+      }
+
+      if (actor.currentHp <= 0) {
+        actor.currentHp = 0;
+        events.push({ type: CombatEventType.DEATH, targetName: actor.name, text: `${actor.name} 傷重倒地！` });
+        return; 
+      }
+
+      effect.duration--;
+      if (effect.duration > 0) {
+        activeEffects.push(effect);
+      }
+    }
+    actor.statusEffects = activeEffects;
   }
 }

@@ -1,14 +1,17 @@
 import { ToastManager } from './ToastManager';
 import { Adventurer } from '../models/Adventurer';
-import { EquipmentSlot, MapNode, NodeLevel, AdventurerState, getMaxCaravansLimit } from '../models/types';
+import { EquipmentSlot, MapNode, NodeLevel, NodeFeature, AdventurerState, getMaxCaravansLimit } from '../models/types';
 import { GameState } from '../core/GameState';
 import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { UIManager } from './UIManager';
+import { DataStore } from '../systems/DataStore';
+import { EquipmentGenerator } from '../systems/EquipmentGenerator';
 import { DispatchTask, EnemyFeature, TaskType, TradeInstruction } from '../models/DispatchTask';
 import { GAME_EVENTS } from '../data/EventData';
-import { startRoutePlanning } from './MapController';
+import { startRoutePlanning, renderMap } from './MapController';
 import { TRADE_GOODS } from '../systems/MarketSystem';
 import { DispatchSystem, ActiveMission } from '../systems/DispatchSystem';
+import { CombatUIManager } from './CombatUIManager';
 
 export function openWarehouse(isForgeMode: boolean) {
   const modalWarehouse = document.getElementById('modal-warehouse')!;
@@ -200,9 +203,17 @@ function renderWarehouseGoods() {
   }
 }
 
+let currentDetailAdv: Adventurer | null = null;
+let tempAllocations: Record<string, number> = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
+
 export function openAdvDetail(adv: Adventurer) {
   const modalAdvDetail = document.getElementById('modal-adv-detail')!;
   const myTerritory = GameState.myTerritory;
+
+  if (currentDetailAdv !== adv) {
+    currentDetailAdv = adv;
+    tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
+  }
 
   document.getElementById('adv-detail-name')!.textContent = adv.name;
   document.getElementById('adv-detail-desc')!.textContent = `Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}`;
@@ -210,16 +221,35 @@ export function openAdvDetail(adv: Adventurer) {
   
   const stats = adv.getCombatStats();
   const attr = adv.getEffectiveAttributes();
-  const unspent = adv.unspentStatPoints > 0 
-    ? `<div style="grid-column: span 2; text-align: center; color: #eab308; font-weight: bold; margin-bottom: 10px;">可用屬性點：${adv.unspentStatPoints}</div>` 
+  
+  const sumAllocated = tempAllocations.str + tempAllocations.agi + tempAllocations.con + tempAllocations.int + tempAllocations.spr + tempAllocations.luk;
+  const tempUnspent = adv.unspentStatPoints - sumAllocated;
+  
+  const unspent = (adv.unspentStatPoints > 0 || sumAllocated > 0)
+    ? `<div style="grid-column: span 2; text-align: center; color: #eab308; font-weight: bold; margin-bottom: 10px;">可用屬性點：${tempUnspent}</div>` 
     : '';
 
-  const getStatHtml = (label: string, key: keyof typeof attr, val: number) => {
-    const btn = adv.unspentStatPoints > 0 
-      ? `<button class="btn-allocate" data-stat="${key}" style="margin-left:5px; padding:0 5px; font-size:0.8em; cursor:pointer;">+</button>` 
+  const getStatHtml = (label: string, key: 'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', val: number) => {
+    const tempVal = tempAllocations[key] || 0;
+    const plusBtn = tempUnspent > 0 
+      ? `<button class="btn-temp-plus" data-stat="${key}" style="margin-left:5px; padding:0 5px; font-size:0.8em; cursor:pointer;">+</button>` 
       : '';
-    return `<div class="stat-item"><span class="stat-label">${label}</span><span class="stat-value">${val}${btn}</span></div>`;
+    const minusBtn = tempVal > 0 
+      ? `<button class="btn-temp-minus" data-stat="${key}" style="margin-left:3px; padding:0 5px; font-size:0.8em; cursor:pointer; background:rgba(239,68,68,0.3); border-color:#ef4444; color:#fff;">-</button>` 
+      : '';
+    const greenStr = tempVal > 0 ? ` <span style="color:#22c55e; font-size:0.85em; font-weight:bold;">(+${tempVal})</span>` : '';
+    return `<div class="stat-item"><span class="stat-label">${label}</span><span class="stat-value">${val + tempVal}${greenStr}${plusBtn}${minusBtn}</span></div>`;
   };
+
+  let confirmBtnsHtml = '';
+  if (sumAllocated > 0) {
+    confirmBtnsHtml = `
+      <div style="grid-column: span 2; display: flex; gap: 15px; margin-top: 15px;">
+        <button id="btn-confirm-stats" class="action-btn" style="flex:1; background:linear-gradient(135deg, #059669, #047857); padding:8px 0; font-size:0.9em; font-weight:bold;">確認分配</button>
+        <button id="btn-reset-stats" class="action-btn" style="flex:1; background:rgba(255,255,255,0.1); padding:8px 0; font-size:0.9em;">取消重設</button>
+      </div>
+    `;
+  }
 
   const statsHtml = `
     ${unspent}
@@ -236,23 +266,61 @@ export function openAdvDetail(adv: Adventurer) {
     <div class="stat-item"><span class="stat-label">閃避率 (EVD)</span><span class="stat-value highlight">${stats.evade}</span></div>
     ${getStatHtml('幸運 (LUK)', 'luk', attr.luk)}
     <div class="stat-item" style="grid-column: span 2; display: flex; justify-content: space-between;">
-      <div style="flex:1;">${getStatHtml('魅力 (CHM)', 'charm', attr.charm)}</div>
-      <div style="flex:1;">${getStatHtml('統帥 (CMD)', 'command', attr.command)}</div>
+      <div style="flex:1;"><div class="stat-item"><span class="stat-label">魅力 (CHM)</span><span class="stat-value">${attr.charm}</span></div></div>
+      <div style="flex:1;"><div class="stat-item"><span class="stat-label">統帥 (CMD)</span><span class="stat-value">${attr.command}</span></div></div>
     </div>
+    ${confirmBtnsHtml}
   `;
   document.getElementById('adv-detail-stats')!.innerHTML = statsHtml;
 
-  // 綁定配點按鈕事件
-  const allocateBtns = document.getElementById('adv-detail-stats')!.querySelectorAll('.btn-allocate');
-  allocateBtns.forEach(btn => {
+  // 綁定暫存配點 + 事件
+  const plusBtns = document.getElementById('adv-detail-stats')!.querySelectorAll('.btn-temp-plus');
+  plusBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
-      const statKey = (e.currentTarget as HTMLElement).getAttribute('data-stat') as any;
-      if (adv.allocateStat(statKey)) {
-        openAdvDetail(adv); // 重新渲染畫面
-        UIManager.updateUI();
-      }
+      const key = (e.currentTarget as HTMLElement).getAttribute('data-stat')!;
+      tempAllocations[key]++;
+      openAdvDetail(adv);
     });
   });
+
+  // 綁定暫存配點 - 事件
+  const minusBtns = document.getElementById('adv-detail-stats')!.querySelectorAll('.btn-temp-minus');
+  minusBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const key = (e.currentTarget as HTMLElement).getAttribute('data-stat')!;
+      if (tempAllocations[key] > 0) {
+        tempAllocations[key]--;
+      }
+      openAdvDetail(adv);
+    });
+  });
+
+  // 綁定確認配點
+  const btnConfirm = document.getElementById('btn-confirm-stats');
+  if (btnConfirm) {
+    btnConfirm.addEventListener('click', () => {
+      for (const [key, val] of Object.entries(tempAllocations)) {
+        if (val > 0) {
+          for (let i = 0; i < val; i++) {
+            adv.allocateStat(key as any);
+          }
+        }
+      }
+      console.log(`[屬性] ⚔️ ${adv.name} 完成了屬性配點，當前六維已更新！`);
+      tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
+      openAdvDetail(adv);
+      UIManager.updateUI();
+    });
+  }
+
+  // 綁定取消重設
+  const btnReset = document.getElementById('btn-reset-stats');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
+      openAdvDetail(adv);
+    });
+  }
 
   const equipGrid = document.getElementById('adv-detail-equips')!;
   equipGrid.innerHTML = '';
@@ -499,17 +567,23 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
   // 荒野的 minPower 降為 30，後續每等加 40
   const minPower = node.nodeLevel === NodeLevel.WILDERNESS ? 30 : 50 + node.nodeLevel * 40;
   
+  const optionsContainer = document.getElementById('dispatch-subjugation-options')!;
+  
   if (actionType === 'explore') {
+    optionsContainer.style.display = 'none';
     title.innerHTML = '🗺️ 探索隊伍編制';
     desc.textContent = `目標：${node.name} (進行區域探索與採集)`;
     // 探索任務需要較短天數 (預設 2 天)
     pendingDispatchTask = new DispatchTask(`探索${node.name}`, TaskType.EXPLORE, 2, baseDiff / 2, 50, 5, Math.floor(minPower * 0.5));
+    pendingDispatchTask.targetNodeId = node.id;
   } else {
+    optionsContainer.style.display = 'block';
     title.innerHTML = '⚔️ 討伐隊伍編制';
     const features = Object.values(EnemyFeature);
     const randomFeature = features[Math.floor(Math.random() * features.length)];
     // 討伐任務需要較長天數 (預設 4 天)
     pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
+    pendingDispatchTask.targetNodeId = node.id;
     
     let fStr = '';
     if (randomFeature === EnemyFeature.HIGH_DEF) fStr = ' (高防禦敵人)';
@@ -533,7 +607,15 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
     }
     const team = GameState.adventurers.filter(a => selectedAdventurersForDispatch.has(a.id));
     if (pendingDispatchTask) {
+      if (actionType === 'subjugation') {
+        const selectedMode = (document.querySelector('input[name="subjugation-mode"]:checked') as HTMLInputElement)?.value as any;
+        pendingDispatchTask.subjugationMode = selectedMode;
+        if (selectedMode === 'PROGRESS') {
+           pendingDispatchTask.totalWaves = 3;
+        }
+      }
       GameState.system.dispatchAdventurers(team, pendingDispatchTask);
+      renderMap(); // 派遣出發後即時重繪 Phaser 地圖以更新插地交叉雙劍動畫
       UIManager.updateUI();
       modal.classList.remove('active');
     }
@@ -1061,8 +1143,8 @@ export function openNodeDetailPanel(node: MapNode) {
 
   // 設定底部操作按鈕 (例如討伐/探索)
   if (node.ownerFactionId === null) {
-    if (node.nodeLevel === NodeLevel.WILDERNESS) {
-      newBtnAction.textContent = '🗺️ 探索此地';
+    if (node.nodeLevel === NodeLevel.WILDERNESS && node.feature !== NodeFeature.MONSTER_NEST && node.feature !== NodeFeature.SUBJUGATION) {
+      newBtnAction.textContent = '📖 探索此地';
       newBtnAction.onclick = () => {
         openDispatchSetup(node, 'explore');
         closeNodeDetailPanel();
@@ -1141,3 +1223,227 @@ export function openTradeModal(node: MapNode) {
     startRoutePlanning(node);
   };
 }
+
+export function openCombatHistory() {
+  const modal = document.getElementById('modal-combat-history')!;
+  const listContainer = document.getElementById('combat-history-list')!;
+  
+  modal.style.display = 'flex';
+  listContainer.innerHTML = '';
+  
+  if (!GameState.myTerritory.combatHistory || GameState.myTerritory.combatHistory.length === 0) {
+    listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">目前沒有任何近期的戰鬥紀錄。</p>';
+    return;
+  }
+  
+  GameState.myTerritory.combatHistory.forEach(record => {
+    const isVictory = record.report.isVictory;
+    const titleColor = isVictory ? '#10b981' : '#ef4444';
+    const titleText = isVictory ? '勝利' : '失敗';
+    
+    const card = document.createElement('div');
+    card.style.cssText = 'background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 15px; display: flex; justify-content: space-between; align-items: center;';
+    
+    card.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="font-size: 1.1em; font-weight: bold;">
+          <span style="color: ${titleColor};">【${titleText}】</span> ${record.nodeName} 
+          <span style="font-size: 0.8em; color: #64748b; font-weight: normal; margin-left: 10px;">(第 ${record.day} 天)</span>
+        </div>
+        <div style="font-size: 0.9em; color: #cbd5e1;">
+          MVP: <span style="color: #eab308; font-weight: bold;">${record.report.mvpName || '無'}</span> | 
+          總傷害: <span style="color: #f87171;">${record.report.totalDamageDealt || 0}</span> | 
+          總收益: <span style="color: #fbbf24;">${record.report.lootValue || 0}</span>
+        </div>
+      </div>
+      <button class="action-btn replay-btn" style="padding: 8px 15px; font-size: 0.9em; background: rgba(59, 130, 246, 0.4); border-color: #3b82f6;">🎬 重播</button>
+    `;
+    
+    const replayBtn = card.querySelector('.replay-btn') as HTMLButtonElement;
+    replayBtn.onclick = () => {
+      modal.style.display = 'none';
+      CombatUIManager.replayCombat(record.report);
+    };
+    
+    listContainer.appendChild(card);
+  });
+}
+
+export function renderWeaponShop() {
+  const shopList = document.getElementById('weapon-shop-list');
+  const shopLvlEl = document.getElementById('ui-weapon-shop-lvl');
+  if (!shopList || !shopLvlEl) return;
+
+  const territory = GameState.myTerritory;
+  const lvl = territory.weaponShopLevel || 0;
+  shopLvlEl.textContent = lvl.toString();
+  shopList.innerHTML = '';
+
+  if (lvl <= 0) {
+    shopList.style.display = 'block';
+    shopList.innerHTML = `
+      <div style="grid-column: span 3; text-align: center; color: #f87171; font-size: 1.2em; padding: 40px 0; background: rgba(0,0,0,0.3); border-radius: 8px;">
+        ⚠️ 武器店尚未建造！請至領主書房（自宅）的「領地建築升級」面板進行建造。
+      </div>
+    `;
+    return;
+  }
+  shopList.style.display = 'grid';
+
+  // 根據武器店等級解鎖商品 (1階: itemLevel=10, 2階: itemLevel=25, 3階: itemLevel=50)
+  const allowedItemLevels: number[] = [];
+  if (lvl >= 1) allowedItemLevels.push(10);
+  if (lvl >= 2) allowedItemLevels.push(25);
+  if (lvl >= 3) allowedItemLevels.push(50);
+
+  const allTemplates = Object.values(DataStore.EquipmentDB);
+  const weapons = allTemplates.filter(t => t.slot === EquipmentSlot.WEAPON && allowedItemLevels.includes(t.itemLevel));
+
+  weapons.forEach(wpn => {
+    const price = DataStore.EquipmentPriceDB[wpn.id] || 0;
+    const canBuy = territory.gold >= price;
+    
+    // 生成屬性介紹文字
+    let reqs = '';
+    for (const [k, v] of Object.entries(wpn.baseRequirements)) {
+      reqs += `${k.toUpperCase()}:${v} `;
+    }
+    let effs = '';
+    for (const [k, v] of Object.entries(wpn.baseEffects)) {
+      effs += `${k.toUpperCase()}:+${v} `;
+    }
+    for (const [k, v] of Object.entries(wpn.baseCombatEffects)) {
+      effs += `${k.toUpperCase()}:+${v} `;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'glass-panel';
+    card.style.padding = '15px';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.justifyContent = 'space-between';
+    card.style.background = 'rgba(0,0,0,0.4)';
+    card.style.borderRadius = '8px';
+    card.style.border = '1px solid rgba(255,255,255,0.05)';
+
+    card.innerHTML = `
+      <div style="display: flex; flex-direction: column; height: 100%;">
+        <div style="font-size: 1.8em; margin-bottom: 5px; text-align: center;">${wpn.icon || '⚔️'}</div>
+        <div style="font-weight: bold; font-size: 1.1em; text-align: center; color: #fff; margin-bottom: 5px;">${wpn.name}</div>
+        <div style="font-size: 0.8em; color: #f87171; margin-bottom: 5px; text-align: center;">需求: ${reqs || '無'}</div>
+        <div style="font-size: 0.8em; color: #34d399; line-height: 1.4; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;">加成: ${effs}</div>
+      </div>
+      <button class="action-btn btn-buy-wpn" style="margin-top:15px; font-size: 0.9em; width:100%; background: ${canBuy ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.05)'};" ${canBuy ? '' : 'disabled'}>
+        💰 購買 (${price} 金幣)
+      </button>
+    `;
+
+    const buyBtn = card.querySelector('.btn-buy-wpn') as HTMLButtonElement;
+    buyBtn.onclick = () => {
+      if (territory.gold >= price) {
+        territory.gold -= price;
+        const eq = EquipmentGenerator.generate(wpn.id);
+        if (eq) {
+          territory.addEquipmentToWarehouse(eq);
+          console.log(`[武器店] 💰 購買了【${wpn.name}】並放入了您的倉庫！`);
+          ToastManager.show(`成功購買【${wpn.name}】！`);
+          renderWeaponShop();
+          UIManager.updateUI();
+        }
+      }
+    };
+
+    shopList.appendChild(card);
+  });
+}
+
+export function renderArmorShop() {
+  const shopList = document.getElementById('armor-shop-list');
+  const shopLvlEl = document.getElementById('ui-armor-shop-lvl');
+  if (!shopList || !shopLvlEl) return;
+
+  const territory = GameState.myTerritory;
+  const lvl = territory.armorShopLevel || 0;
+  shopLvlEl.textContent = lvl.toString();
+  shopList.innerHTML = '';
+
+  if (lvl <= 0) {
+    shopList.style.display = 'block';
+    shopList.innerHTML = `
+      <div style="grid-column: span 3; text-align: center; color: #f87171; font-size: 1.2em; padding: 40px 0; background: rgba(0,0,0,0.3); border-radius: 8px;">
+        ⚠️ 防具店尚未建造！請至領主書房（自宅）的「領地建築升級」面板進行建造。
+      </div>
+    `;
+    return;
+  }
+  shopList.style.display = 'grid';
+
+  // 根據防具店等級解鎖商品 (1階: itemLevel=8, 10; 2階: itemLevel=22, 25; 3階: itemLevel=45, 50)
+  const allowedItemLevels: number[] = [];
+  if (lvl >= 1) { allowedItemLevels.push(8); allowedItemLevels.push(10); }
+  if (lvl >= 2) { allowedItemLevels.push(22); allowedItemLevels.push(25); }
+  if (lvl >= 3) { allowedItemLevels.push(45); allowedItemLevels.push(50); }
+
+  const allTemplates = Object.values(DataStore.EquipmentDB);
+  const armors = allTemplates.filter(t => t.slot === EquipmentSlot.ARMOR && allowedItemLevels.includes(t.itemLevel));
+
+  armors.forEach(arm => {
+    const price = DataStore.EquipmentPriceDB[arm.id] || 0;
+    const canBuy = territory.gold >= price;
+    
+    // 生成屬性介紹文字
+    let reqs = '';
+    for (const [k, v] of Object.entries(arm.baseRequirements)) {
+      reqs += `${k.toUpperCase()}:${v} `;
+    }
+    let effs = '';
+    for (const [k, v] of Object.entries(arm.baseEffects)) {
+      effs += `${k.toUpperCase()}:+${v} `;
+    }
+    for (const [k, v] of Object.entries(arm.baseCombatEffects)) {
+      effs += `${k.toUpperCase()}:+${v} `;
+    }
+
+    const card = document.createElement('div');
+    card.className = 'glass-panel';
+    card.style.padding = '15px';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.justifyContent = 'space-between';
+    card.style.background = 'rgba(0,0,0,0.4)';
+    card.style.borderRadius = '8px';
+    card.style.border = '1px solid rgba(255,255,255,0.05)';
+
+    card.innerHTML = `
+      <div style="display: flex; flex-direction: column; height: 100%;">
+        <div style="font-size: 1.8em; margin-bottom: 5px; text-align: center;">${arm.icon || '🛡️'}</div>
+        <div style="font-weight: bold; font-size: 1.1em; text-align: center; color: #fff; margin-bottom: 5px;">${arm.name}</div>
+        <div style="font-size: 0.8em; color: #f87171; margin-bottom: 5px; text-align: center;">需求: ${reqs || '無'}</div>
+        <div style="font-size: 0.8em; color: #34d399; line-height: 1.4; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;">加成: ${effs}</div>
+      </div>
+      <button class="action-btn btn-buy-arm" style="margin-top:15px; font-size: 0.9em; width:100%; background: ${canBuy ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.05)'};" ${canBuy ? '' : 'disabled'}>
+        💰 購買 (${price} 金幣)
+      </button>
+    `;
+
+    const buyBtn = card.querySelector('.btn-buy-arm') as HTMLButtonElement;
+    buyBtn.onclick = () => {
+      if (territory.gold >= price) {
+        territory.gold -= price;
+        const eq = EquipmentGenerator.generate(arm.id);
+        if (eq) {
+          territory.addEquipmentToWarehouse(eq);
+          console.log(`[防具店] 💰 購買了【${arm.name}】並放入了您的倉庫！`);
+          ToastManager.show(`成功購買【${arm.name}】！`);
+          renderArmorShop();
+          UIManager.updateUI();
+        }
+      }
+    };
+
+    shopList.appendChild(card);
+  });
+}
+
+(window as any).renderWeaponShop = renderWeaponShop;
+(window as any).renderArmorShop = renderArmorShop;

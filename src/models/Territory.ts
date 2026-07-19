@@ -1,5 +1,6 @@
 import { Equipment, NobleTitle } from './types';
 import { Adventurer } from './Adventurer';
+import { CombatHistoryRecord } from './Combat';
 
 /**
  * 領地 (Territory) 模型
@@ -42,6 +43,19 @@ export class Territory {
   // 探索屬性
   public exploredToday: number;
   public maxExplorationsPerDay: number;
+  
+  // 建築等級與建造狀態 (0 級代表未建造)
+  public tavernLevel: number;
+  public weaponShopLevel: number;
+  public armorShopLevel: number;
+  public forgeLevel: number;
+
+  // 自宅探索招募進度與保底狀態
+  public exploreCount: number;
+  public hasRecruitedFromFirstExplorations: boolean;
+  
+  // 戰鬥歷史紀錄
+  public combatHistory: CombatHistoryRecord[];
 
   constructor(name: string, startingCountryId: string | null = null) {
     this.name = name;
@@ -69,6 +83,14 @@ export class Territory {
     this.retiredStaff = [];        // 初始化退休名單
     this.tradeInventory = {};      // 初始化交易品庫存
     
+    // 初始化建築等級與探索保底
+    this.tavernLevel = 0;
+    this.weaponShopLevel = 0;
+    this.armorShopLevel = 0;
+    this.forgeLevel = 0;
+    this.exploreCount = 0;
+    this.hasRecruitedFromFirstExplorations = false;
+    
     // 初始化內政預設值
     this.taxRate = 1.0;
     this.adventurerBudget = 0;
@@ -77,6 +99,64 @@ export class Territory {
     this.eventPressure = 0;
     this.exploredToday = 0;
     this.maxExplorationsPerDay = 1; // 預設一回合只能探索一次
+    this.combatHistory = []; // 初始化歷史紀錄
+  }
+
+  // ==========================================
+  // 建築升級與建造系統
+  // ==========================================
+  
+  public getBuildingLevel(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): number {
+    if (bldType === 'tavern') return this.tavernLevel || 0;
+    if (bldType === 'weapon') return this.weaponShopLevel || 0;
+    if (bldType === 'armor') return this.armorShopLevel || 0;
+    return this.forgeLevel || 0;
+  }
+
+  public getUpgradeCost(bldType: 'tavern' | 'weapon' | 'armor' | 'forge', nextLevel: number) {
+    if (bldType === 'tavern') {
+      if (nextLevel === 1) return { gold: 300, wood: 80, stone: 40, iron: 0 };
+      if (nextLevel === 2) return { gold: 1000, wood: 200, stone: 120, iron: 10 };
+      return { gold: 3000, wood: 500, stone: 350, iron: 40 };
+    } else if (bldType === 'weapon' || bldType === 'armor') {
+      if (nextLevel === 1) return { gold: 200, wood: 60, stone: 30, iron: 0 };
+      if (nextLevel === 2) return { gold: 800, wood: 150, stone: 90, iron: 10 };
+      return { gold: 2500, wood: 400, stone: 250, iron: 30 };
+    } else { // forge 鐵匠鋪
+      if (nextLevel === 1) return { gold: 300, wood: 50, stone: 50, iron: 0 };
+      if (nextLevel === 2) return { gold: 1200, wood: 250, stone: 200, iron: 15 };
+      return { gold: 3500, wood: 600, stone: 500, iron: 50 };
+    }
+  }
+
+  public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): boolean {
+    const nextLevel = this.getBuildingLevel(bldType) + 1;
+    if (nextLevel > 3) return false; // 上限 3 等
+    
+    const cost = this.getUpgradeCost(bldType, nextLevel);
+    return this.gold >= cost.gold &&
+           this.wood >= cost.wood &&
+           this.stone >= cost.stone &&
+           this.iron >= cost.iron;
+  }
+
+  public upgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): boolean {
+    if (!this.canUpgradeBuilding(bldType)) return false;
+    const nextLevel = this.getBuildingLevel(bldType) + 1;
+    const cost = this.getUpgradeCost(bldType, nextLevel);
+    
+    this.gold -= cost.gold;
+    this.wood -= cost.wood;
+    this.stone -= cost.stone;
+    this.iron -= cost.iron;
+    
+    if (bldType === 'tavern') this.tavernLevel = nextLevel;
+    else if (bldType === 'weapon') this.weaponShopLevel = nextLevel;
+    else if (bldType === 'armor') this.armorShopLevel = nextLevel;
+    else this.forgeLevel = nextLevel;
+    
+    console.log(`[系統] 🏛️ 建造/升級成功！您的 ${bldType === 'tavern' ? '酒館' : bldType === 'weapon' ? '武器店' : bldType === 'armor' ? '防具店' : '鍛造屋'} 已提升至等級 ${nextLevel}。`);
+    return true;
   }
 
   /**
@@ -165,5 +245,21 @@ export class Territory {
       }
     }
     return false;
+  }
+
+  /**
+   * 新增一筆戰鬥紀錄
+   */
+  public addCombatRecord(record: CombatHistoryRecord): void {
+    this.combatHistory.unshift(record); // 將最新紀錄放在最前面
+  }
+
+  /**
+   * 清理超過天數的戰鬥紀錄
+   */
+  public cleanupCombatHistory(currentDay: number, keepDays: number = 3): void {
+    this.combatHistory = this.combatHistory.filter(record => {
+      return (currentDay - record.day) <= keepDays;
+    });
   }
 }

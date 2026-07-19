@@ -119,7 +119,7 @@ export function setStartupMode(mode: boolean) {
   isStartupMode = mode;
   const banner = document.getElementById('startup-banner');
   if (banner) {
-    banner.style.display = mode ? 'block' : 'none';
+    banner.style.display = mode ? 'flex' : 'none';
   }
 }
 
@@ -178,6 +178,7 @@ export function startRoutePlanning(startNode?: MapNode) {
   });
 }
 
+
 function updateRoutePlanningHUD() {
   const mapSystem = GameState.mapSystem;
   if (plannedRouteNodeIds.length === 0) {
@@ -199,6 +200,36 @@ export function openNodeSelectModal(node: MapNode) {
   document.getElementById('node-select-terrain')!.textContent = `📍 地形：${getTerrainEmoji(node.terrain)} | 規模：${node.nodeLevel}`;
   document.getElementById('node-select-desc')!.textContent = node.description;
 
+  // 1. 判斷難易度與起始資源說明
+  let difficulty = '普通';
+  let diffColor = '#ebdcb6';
+  let diffDesc = '';
+  
+  if (node.nodeLevel === NodeLevel.CAPITAL) {
+    difficulty = '簡單 (CAPITAL)';
+    diffColor = '#10b981'; // 綠色
+    diffDesc = '起始資金非常充裕，物資雄厚，擁有較多的初始勞動人口。\n💰3000金幣 | 👤5人口 | 🌾300糧食 | 🪵80木材 | 🪨50石材 | 🔗10鐵礦';
+  } else if (node.nodeLevel === NodeLevel.TOWN) {
+    difficulty = '普通 (TOWN)';
+    diffColor = '#3b82f6'; // 藍色
+    diffDesc = '標準開局。初始資源平衡，適合大多數玩家。\n💰1500金幣 | 👤3人口 | 🌾150糧食 | 🪵40木材 | 🪨20石材 | 🔗2鐵礦';
+  } else if (node.nodeLevel === NodeLevel.VILLAGE || node.nodeLevel === NodeLevel.CAMP) {
+    difficulty = '困難 (VILLAGE / CAMP)';
+    diffColor = '#f59e0b'; // 橘黃色
+    diffDesc = '初始資源緊繃，發展阻力較大，極具考驗。\n💰800金幣 | 👤2人口 | 🌾80糧食 | 🪵20木材 | 🪨10石材 | 🔗0鐵礦';
+  } else { // WILDERNESS
+    difficulty = '極難 (WILDERNESS)';
+    diffColor = '#ef4444'; // 紅色
+    diffDesc = '流放開局！一窮二白，資源近乎枯竭，需要在荒野中艱難求生。\n💰400金幣 | 👤1人口 | 🌾40糧食 | 🪵10木材 | 🪨5石材 | 🔗0鐵礦';
+  }
+
+  const diffLvlEl = document.getElementById('node-select-difficulty-level')!;
+  const diffDescEl = document.getElementById('node-select-difficulty-desc')!;
+  diffLvlEl.textContent = difficulty;
+  diffLvlEl.style.color = diffColor;
+  diffDescEl.textContent = diffDesc;
+  diffDescEl.style.whiteSpace = 'pre-line';
+
   const factionBox = document.getElementById('node-select-faction-box')!;
   if (node.ownerFactionId) {
     factionBox.style.display = 'block';
@@ -219,14 +250,62 @@ export function openNodeSelectModal(node: MapNode) {
   newBtn.addEventListener('click', () => {
     modal.classList.remove('active');
     
+    // 2. 根據據點難易度初始化起始資源
+    const territory = GameState.myTerritory;
+    if (node.nodeLevel === NodeLevel.CAPITAL) {
+      territory.gold = 3000;
+      territory.population = 5;
+      territory.food = 300;
+      territory.wood = 80;
+      territory.stone = 50;
+      territory.iron = 10;
+    } else if (node.nodeLevel === NodeLevel.TOWN) {
+      territory.gold = 1500;
+      territory.population = 3;
+      territory.food = 150;
+      territory.wood = 40;
+      territory.stone = 20;
+      territory.iron = 2;
+    } else if (node.nodeLevel === NodeLevel.VILLAGE || node.nodeLevel === NodeLevel.CAMP) {
+      territory.gold = 800;
+      territory.population = 2;
+      territory.food = 80;
+      territory.wood = 20;
+      territory.stone = 10;
+      territory.iron = 0;
+    } else { // WILDERNESS
+      territory.gold = 400;
+      territory.population = 1;
+      territory.food = 40;
+      territory.wood = 10;
+      territory.stone = 5;
+      territory.iron = 0;
+    }
+    
+    // 重置未指派流民與各工種的人數
+    territory.workers = {
+      'UNASSIGNED': territory.population,
+      'FARMER': 0,
+      'WOODCUTTER': 0,
+      'MINER': 0
+    };
+
     GameState.myTerritory.currentCountryId = node.id;
     node.isPlayerBase = true;
+    const actualNode = GameState.mapSystem.getNodes().find(n => n.id === node.id);
+    if (actualNode) {
+      actualNode.isPlayerBase = true;
+    }
     setStartupMode(false);
     
-    console.log(`⚔️ 遊戲啟動：您選擇了在「${node.name}」建立初始據點。`);
+    console.log(`⚔️ 遊戲啟動：您選擇了在「${node.name}」以【${difficulty}】難度建立初始據點！`);
     document.getElementById('top-bar')!.style.display = 'flex';
     
     renderMap();
+    
+    // 開局即自動進入城鎮街景視圖，避免新玩家卡在世界地圖造成無法進入遊戲的疑惑
+    enterScene(node);
+    
     UIManager.updateUI();
 
     document.dispatchEvent(new Event('game-started'));
@@ -243,4 +322,3 @@ export let hasMapDragged = false;
 export function initMapInteraction() {
   // 由於改由 Phaser 處理相機，此處改為空實作
 }
-

@@ -15,18 +15,18 @@
 │   │   ├── GameState.ts     # 全局狀態容器與初始化
 │   │   └── GameLoop.ts      # 遊戲主循環計時器
 │   ├── models/              # 核心資料模型 (Data Models, 純粹的資料)
-│   │   ├── Adventurer.ts
-│   │   ├── Territory.ts
+│   │   ├── Adventurer.ts    # 英雄資料與隨機品質/屬性
+│   │   ├── Territory.ts     # 領地資料、工作分配與建造設施等級 (Tavern/WeaponShop/ArmorShop/Forge)
 │   │   └── ...
 │   ├── systems/             # 系統邏輯引擎 (負責監聽與發布事件)
 │   │   ├── SettlementSystem.ts # 據點與內政系統
-│   │   ├── HeroSystem.ts       # 英雄養成系統
-│   │   ├── CombatSystem.ts     # 戰鬥演算系統
+│   │   ├── HeroSystem.ts       # 英雄養成與招募系統
+│   │   ├── CombatSystem.ts     # 戰鬥與多波次模擬系統
 │   │   ├── ThreatSystem.ts     # 生存壓力與災難系統
-│   │   ├── DispatchSystem.ts   # 派遣與任務系統 (舊版，將逐步拆分)
+│   │   ├── DispatchSystem.ts   # 派遣與任務系統
 │   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張
-│   │   └── DataStore.ts        # 靜態資料庫
-│   └── main.ts              # 測試介面進入點
+│   │   └── DataStore.ts        # 靜態資料庫 (含 1~3 階裝備與價格 DB)
+│   └── main.ts              # 測試介面進入點與 DOM 事件監聽
 ├── index.html               # 測試用網頁骨架
 └── package.json             # Vite 建置配置檔
 ```

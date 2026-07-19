@@ -142,6 +142,67 @@ export class MapScene extends Phaser.Scene {
 
       const container = this.add.container(px, py);
       container.add([iconText, labelText]);
+
+      // 判斷該據點是否有派遣任務 (COMBAT 或 EXPLORE)
+      const activeMissions = GameState.system?.getActiveMissions() || [];
+      const hasMission = activeMissions.some(m => m.task.targetNodeId === node.id);
+      
+      if (hasMission) {
+        // 建立交叉雙劍 (⚔️) - 一體化 45 度斜插交叉，尺寸超大且顯眼，徹底解決兩把劍單獨定位對齊偏角的所有視覺問題
+        const crossSwords = this.add.text(0, -45, '⚔️', { fontSize: '38px' }).setOrigin(0.5);
+        crossSwords.setDepth(60);
+        
+        container.add(crossSwords);
+        
+        const runSwordAnim = () => {
+          if (!crossSwords.active) return;
+          
+          crossSwords.alpha = 0;
+          crossSwords.setPosition(0, -90);
+          crossSwords.setAngle(0);
+          
+          // 1. 掉落與淡入
+          this.tweens.add({
+            targets: crossSwords,
+            alpha: 1,
+            y: -35,
+            duration: 250,
+            ease: 'Cubic.easeIn',
+            onComplete: () => {
+              // 2. 插地顫動反彈 (微小抖動)
+              this.tweens.add({
+                targets: crossSwords,
+                angle: 10,
+                duration: 50,
+                yoyo: true,
+                repeat: 3,
+                onComplete: () => {
+                  crossSwords.setAngle(0); // 確保抖動後回到水平正向
+                }
+              });
+            }
+          });
+          
+          // 3. 停留 1.5 秒後淡出
+          this.time.delayedCall(250 + 50 * 6 + 1500, () => {
+            if (!crossSwords.active) return;
+            this.tweens.add({
+              targets: crossSwords,
+              alpha: 0,
+              duration: 300,
+              ease: 'Linear',
+              onComplete: () => {
+                // 4. 等待 0.5 秒後再次重啟循環
+                this.time.delayedCall(500, () => {
+                  runSwordAnim();
+                });
+              }
+            });
+          });
+        };
+        
+        runSwordAnim();
+      }
       
       let depth = 10;
       if (node.isPlayerBase) depth = 50;
@@ -241,6 +302,17 @@ export class MapScene extends Phaser.Scene {
       tooltipText += '\n狀態：未偵查';
     } else if (node.scoutData) {
       tooltipText += `\n危險度：${node.scoutData.dangerLevel}`;
+    }
+
+    // 取得並顯示該據點的外派冒險者名單
+    const activeMissions = GameState.system?.getActiveMissions() || [];
+    const nodeMissions = activeMissions.filter(m => m.task.targetNodeId === node.id);
+    if (nodeMissions.length > 0) {
+      tooltipText += '\n\n👤 外派人員名單：';
+      nodeMissions.forEach(m => {
+        const names = m.adventurers.map(adv => adv.name).join(', ');
+        tooltipText += `\n- ${names} (${m.remainingDays}天)`;
+      });
     }
 
     tooltip.textContent = tooltipText;

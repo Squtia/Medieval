@@ -14,8 +14,8 @@ export interface GameEventPayloads {
   [GameEventType.DAY_PASSED]: { daysPassed: number; currentTimestamp: number };
   [GameEventType.HERO_DIED]: { heroId: string; reason: string };
   [GameEventType.NODE_EXPLORED]: { nodeId: string; explorerId: string };
-  [GameEventType.COMBAT_REQUESTED]: { attackerIds: string[]; targetId: string };
-  [GameEventType.COMBAT_FINISHED]: { isVictory: boolean; participants: string[]; lootValue: number; battleLog: string };
+  [GameEventType.COMBAT_REQUESTED]: { attackerIds: string[]; targetId: string; taskType?: string; taskDifficulty?: number; enemyFeature?: string };
+  [GameEventType.COMBAT_FINISHED]: { isVictory: boolean; participants: string[]; lootValue: number; battleLog: string; report?: import('../models/Combat').CombatReport };
   [GameEventType.THREAT_ARRIVED]: { threatName: string; severity: number };
   [GameEventType.RESOURCE_CHANGED]: { resourceType: string; amount: number; currentTotal: number };
   [GameEventType.WORKER_ASSIGNED]: { job: string; currentCount: number; unassignedCount: number };
