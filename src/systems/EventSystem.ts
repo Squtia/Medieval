@@ -15,8 +15,8 @@ export class EventSystem {
     const pressureGain = 10 + (territory.prestige * 0.05) + (GameState.adventurers.length * 2);
     territory.eventPressure += pressureGain;
 
-    // 當壓力值達標時，嘗試觸發事件
-    if (territory.eventPressure >= 100) {
+    // BAL-03: 將觸發門滿提高至 200，避免玉家中後期被事件轟炸
+    if (territory.eventPressure >= 200) {
       // 篩選出符合條件的事件
       const validEvents = GAME_EVENTS.filter(evt => evt.condition());
       

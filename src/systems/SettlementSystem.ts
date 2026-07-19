@@ -57,10 +57,16 @@ export class SettlementSystem {
         territory.population -= actualStarved;
         territory.prestige = Math.max(0, territory.prestige - actualStarved * 2);
         
-        // 隨機裁減工人
+        // 隨機裁減工人（BUG-03: 加入安全退出護段，防止所有工人為 0 時無限迴圈）
         let removed = 0;
         const jobKeys = [WorkerJob.UNASSIGNED, WorkerJob.FARMER, WorkerJob.WOODCUTTER, WorkerJob.MINER];
-        while (removed < actualStarved && territory.population >= 0) {
+        let safetyCounter = 0;
+        while (removed < actualStarved && safetyCounter < 1000) {
+          safetyCounter++;
+          // 安全退出：若所有職業工人均為 0，直接結束
+          const hasWorkers = jobKeys.some(j => territory.workers[j] > 0);
+          if (!hasWorkers) break;
+
           const randJob = jobKeys[Math.floor(Math.random() * jobKeys.length)];
           if (territory.workers[randJob] > 0) {
             territory.workers[randJob]--;

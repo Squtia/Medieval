@@ -19,6 +19,8 @@ export class Adventurer {
   // 派遣狀態
   public currentState: AdventurerState;
   public dispatchEndTime: number | null;
+  // OPT-02: RESTING 狀態剩餘天數
+  public restingDaysLeft: number;
 
   constructor(id: string, name: string, job: JobConfig, trait: TraitConfig) {
     this.id = id;
@@ -35,6 +37,7 @@ export class Adventurer {
     this.equipment = {};
     this.currentState = AdventurerState.IDLE;
     this.dispatchEndTime = null;
+    this.restingDaysLeft = 0;
   }
 
   /**
@@ -238,8 +241,8 @@ export class Adventurer {
     const attr = this.getEffectiveAttributes();
     // 魅力加智慧的總和乘上 5 作為基礎載重
     const maxCargoWeight = (attr.charm + attr.int) * 5;
-    // 智慧加魅力每 10 點提供 1% 議價加成，上限 20%
-    const negotiationBonus = Math.min(0.2, (attr.charm + attr.int) / 1000); 
+    // BAL-02: 分母改為 100，譲議價加成真正可感知
+    const negotiationBonus = Math.min(0.2, (attr.charm + attr.int) / 100); 
     return { maxCargoWeight, negotiationBonus };
   }
 }

@@ -16,6 +16,7 @@ class UIManagerClass {
   uiFood = document.getElementById('ui-food');
   uiWood = document.getElementById('ui-wood');
   uiStone = document.getElementById('ui-stone');
+  uiIron = document.getElementById('ui-iron'); // UI-02: 補加鐵礦顯示
 
   // 勞動力分配UI
   uiUnassignedWorkers = document.getElementById('ui-unassigned-workers');
@@ -56,8 +57,14 @@ class UIManagerClass {
 
   updateUI() {
     const territory = GameState.myTerritory;
-    this.uiTitle.textContent = `爵位：${territory.title}`;
-    this.uiTitle.textContent = `爵位：${territory.title}`;
+    // UI-12: 爵位顯示中文化轉換函數
+    const nobleTitleChinese: Record<string, string> = {
+      COMMONER: '平民', KNIGHT: '騎士', BARON: '男爵',
+      VISCOUNT: '子爵', COUNT: '伯爵', MARQUIS: '侯爵', DUKE: '公爵'
+    };
+    const titleCN = nobleTitleChinese[territory.title] ?? territory.title;
+    // UI-11: 移除重複賍値（原代碼第 59~60 行重複了兩次）
+    this.uiTitle.textContent = `爵位：${titleCN}`;
     if (this.uiGold) this.uiGold.textContent = territory.gold.toString();
     if (this.uiPrestige) this.uiPrestige.textContent = territory.prestige.toString();
     if (this.uiFavor) this.uiFavor.textContent = territory.royalFavor.toString();
@@ -65,6 +72,7 @@ class UIManagerClass {
     if (this.uiFood) this.uiFood.textContent = territory.food.toString();
     if (this.uiWood) this.uiWood.textContent = territory.wood.toString();
     if (this.uiStone) this.uiStone.textContent = territory.stone.toString();
+    if (this.uiIron) this.uiIron.textContent = (territory.iron || 0).toString(); // UI-02
 
     // 更新日期與雙倍經驗池 (Rested EXP)
     if (this.uiDate) {
@@ -90,21 +98,21 @@ class UIManagerClass {
       this.uiNetProduction.style.color = netFood >= 0 ? '#10b981' : '#ef4444';
     }
   
-    // 儀表板資源更新
-    this.uiDashboardTitle.textContent = `爵位：${territory.title}`;
+    // UI-12: 改用中文爵位顯示儀表板
+    this.uiDashboardTitle.textContent = `爵位：${titleCN}`;
     this.uiDashboardGold.textContent = territory.gold.toString();
     this.uiDashboardPrestige.textContent = territory.prestige.toString();
     this.uiDashboardFavor.textContent = territory.royalFavor.toString();
     
     // 爵位進度條計算
     const titles = [
-      { title: NobleTitle.COMMONER, req: 0 },
-      { title: NobleTitle.KNIGHT, req: 100 },
-      { title: NobleTitle.BARON, req: 500 },
-      { title: NobleTitle.VISCOUNT, req: 2000 },
-      { title: NobleTitle.COUNT, req: 5000 },
-      { title: NobleTitle.MARQUIS, req: 15000 },
-      { title: NobleTitle.DUKE, req: 50000 }
+      { title: 'COMMONER', titleCN: '平民', req: 0 },
+      { title: 'KNIGHT', titleCN: '騎士', req: 100 },
+      { title: 'BARON', titleCN: '男爵', req: 500 },
+      { title: 'VISCOUNT', titleCN: '子爵', req: 2000 },
+      { title: 'COUNT', titleCN: '伯爵', req: 5000 },
+      { title: 'MARQUIS', titleCN: '侯爵', req: 15000 },
+      { title: 'DUKE', titleCN: '公爵', req: 50000 }
     ];
     try {
       const currIdx = titles.findIndex(t => t.title === territory.title);
@@ -113,7 +121,21 @@ class UIManagerClass {
         const prevReq = titles[currIdx].req;
         const progress = Math.min(100, Math.max(0, ((territory.prestige - prevReq) / (nextRank.req - prevReq)) * 100));
         if (this.uiTitleProgress) this.uiTitleProgress.style.width = `${progress}%`;
-        if (this.uiTitleText) this.uiTitleText.textContent = `距離下一階 (${nextRank.title}) 還需 ${nextRank.req - territory.prestige} 聲望`;
+        if (this.uiTitleText) this.uiTitleText.textContent = `距離下一階 (${nextRank.titleCN}) 還需 ${nextRank.req - territory.prestige} 聲望`;
+
+        // DEP-03: 爵位晰升通知（聲望初次超過覇間値）
+        const justPromoted = territory.prestige >= nextRank.req && territory.prestige - 5 < nextRank.req;
+        if (justPromoted) {
+          const newTitle = titleCN;
+          setTimeout(() => {
+            const banner = document.getElementById('promotion-banner');
+            if (banner) {
+              banner.innerHTML = `🎉 恭喜晴升為「${newTitle}」！新商隊上限已提升。`;
+              banner.style.display = 'block';
+              setTimeout(() => { banner.style.display = 'none'; }, 4000);
+            }
+          }, 100);
+        }
       } else {
         if (this.uiTitleProgress) this.uiTitleProgress.style.width = `100%`;
         if (this.uiTitleText) this.uiTitleText.textContent = `已達最高爵位`;
@@ -133,8 +155,13 @@ class UIManagerClass {
           card.classList.add('guardian');
         }
         
-        const stateText = adv.currentState === AdventurerState.IDLE ? '🟢 閒置' : `🔴 派遣中 (${Math.ceil(((adv.dispatchEndTime || 0) - Date.now())/1000)}s)`;
-        
+        // UI-01: 修正狀態顯示（移除錯誤的秒數計算，加入 RESTING 狀態）
+        let stateText = '🟢 閒置';
+        if (adv.currentState === AdventurerState.RESTING) {
+          stateText = `🮥 休养中 (${adv.restingDaysLeft}天後)`;
+        } else if (adv.currentState !== AdventurerState.IDLE) {
+          stateText = `🔴 任務中`;
+        }
         // Tooltip內容
         const tooltip = `【${adv.name}】\nLv.${adv.level} ${adv.job.name} | ${adv.trait.name}\n戰力：${adv.power}\n狀態：${stateText}`;
         card.setAttribute('data-tooltip', tooltip);
@@ -225,6 +252,18 @@ class UIManagerClass {
       this.mapInfoPanel.style.display = 'none';
       this.mapStatusPanel.style.display = 'none';
       if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
+    }
+
+    // 更新返回據點懸浮按鈕的顯示/隱藏
+    const btnReturnBase = document.getElementById('btn-return-base');
+    if (btnReturnBase) {
+      const isMapViewActive = document.getElementById('map-view')?.classList.contains('active');
+      const hasBase = !!territory.currentCountryId;
+      if (isMapViewActive && !isStartupMode && hasBase) {
+        btnReturnBase.style.display = 'block';
+      } else {
+        btnReturnBase.style.display = 'none';
+      }
     }
   }
 

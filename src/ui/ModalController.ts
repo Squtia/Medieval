@@ -1,3 +1,4 @@
+import { ToastManager } from './ToastManager';
 import { Adventurer } from '../models/Adventurer';
 import { EquipmentSlot, MapNode, NodeLevel, AdventurerState, getMaxCaravansLimit } from '../models/types';
 import { GameState } from '../core/GameState';
@@ -106,6 +107,97 @@ export function openWarehouse(isForgeMode: boolean) {
   }
   
   modalWarehouse.classList.add('active');
+}
+
+/**
+ * OPT-04: 渲染跑商貨物倉庫，提供出售功能讓跑商有完整收益閉環
+ */
+function renderWarehouseGoods() {
+  const goodsContainer = document.getElementById('warehouse-goods-panel')!;
+  const myTerritory = GameState.myTerritory;
+  
+  goodsContainer.innerHTML = '';
+  
+  const inventory = myTerritory.tradeInventory || {};
+  const goodIds = Object.keys(inventory).filter(id => inventory[id] > 0);
+  
+  if (goodIds.length === 0) {
+    goodsContainer.innerHTML = '<p style="color:#94a3b8; text-align: center; padding: 20px;">跑商倉庫目前沒有貨物。派遣商隊後貨物會存放在這裡。</p>';
+    return;
+  }
+  
+  // 總資產提示
+  let totalAssetValue = 0;
+  const rows: string[] = [];
+  
+  for (const goodId of goodIds) {
+    const amount = inventory[goodId];
+    const goodDef = TRADE_GOODS.find(g => g.id === goodId);
+    if (!goodDef || amount <= 0) continue;
+    
+    const sellPrice = Math.floor(goodDef.basePrice * 0.8); // 本地收購折扣 80%
+    const totalValue = sellPrice * amount;
+    totalAssetValue += totalValue;
+    
+    rows.push(`
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px;">
+        <div>
+          <strong style="color: #e2e8f0;">${goodDef.icon || '📦'} ${goodDef.name}</strong>
+          <span style="color: #94a3b8; margin-left: 10px;">x ${amount}</span><br/>
+          <span style="font-size: 0.8em; color: #94a3b8;">本地售價：${sellPrice} 金/件（原價 ${goodDef.basePrice}）</span>
+        </div>
+        <div style="text-align: right;">
+          <div style="color: #fbbf24; font-weight: bold; margin-bottom: 5px;">≈ ${totalValue} 金</div>
+          <button class="action-btn btn-sell-good" data-id="${goodId}" data-price="${sellPrice}" style="padding: 4px 12px; font-size: 0.85em;">💰 全部出售</button>
+        </div>
+      </div>
+    `);
+  }
+  
+  goodsContainer.innerHTML = `
+    <div style="color: #94a3b8; font-size: 0.85em; margin-bottom: 12px; padding: 8px; background: rgba(251,191,36,0.1); border-radius: 6px; border-left: 3px solid #fbbf24;">
+      💰 貨物總資產估值：<strong style="color: #fbbf24;">${totalAssetValue} 金幣</strong>（按本地收購價 80% 計算）
+    </div>
+    ${rows.join('')}
+    <button class="action-btn btn-sell-all-goods" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #059669, #065f46);">
+      🏪 一鍵全部出售（獲得 ${totalAssetValue} 金幣）
+    </button>
+  `;
+  
+  // 綁定單項出售
+  goodsContainer.querySelectorAll('.btn-sell-good').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const goodId = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
+      const price = parseInt((e.currentTarget as HTMLElement).getAttribute('data-price')!);
+      const amount = myTerritory.tradeInventory[goodId] || 0;
+      const revenue = price * amount;
+      myTerritory.addGold(revenue);
+      myTerritory.tradeInventory[goodId] = 0;
+      console.log(`💰 [跑商收益] 出售了 ${amount} 件貨物，獲得 ${revenue} 金幣！`);
+      UIManager.updateUI();
+      renderWarehouseGoods();
+    });
+  });
+  
+  // 綁定一鍵全部出售
+  const btnSellAll = goodsContainer.querySelector('.btn-sell-all-goods');
+  if (btnSellAll) {
+    btnSellAll.addEventListener('click', () => {
+      let total = 0;
+      for (const goodId of Object.keys(myTerritory.tradeInventory)) {
+        const amount = myTerritory.tradeInventory[goodId] || 0;
+        const goodDef = TRADE_GOODS.find(g => g.id === goodId);
+        if (!goodDef || amount <= 0) continue;
+        const sellPrice = Math.floor(goodDef.basePrice * 0.8);
+        total += sellPrice * amount;
+        myTerritory.tradeInventory[goodId] = 0;
+      }
+      myTerritory.addGold(total);
+      console.log(`💰 [跑商收益] 一鍵出售全部貨物，獲得 ${total} 金幣！`);
+      UIManager.updateUI();
+      renderWarehouseGoods();
+    });
+  }
 }
 
 export function openAdvDetail(adv: Adventurer) {
@@ -274,7 +366,7 @@ export function openEquipSelect(adv: Adventurer, slotKey: EquipmentSlot) {
           openAdvDetail(adv);
           UIManager.updateUI();
         } catch (e: any) {
-          alert(e.message); 
+          ToastManager.show(e.message); 
         }
       });
       equipSelectList.appendChild(card);
@@ -315,11 +407,12 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
   tooltip.id = 'radial-tooltip';
   radialMenu.appendChild(tooltip);
   
-  const buttons: { icon: string, text: string, action: () => void }[] = [];
+  const buttons: { icon: string, text: string, action: () => void, disabled?: boolean }[] = [];
 
   // 動態判斷可用功能
   if (node.ownerFactionId !== null && !node.isPlayerBase) {
-    buttons.push({ icon: '👁️', text: '派遣間諜 (開發中)', action: () => alert('間諜功能尚未實作') });
+    // UI-13: 間諜功能準備中，改為 disabled 灰色不可點擊（保留提醒待開發）
+    buttons.push({ icon: '👁️', text: '派遣間諜 (開發中)', action: () => {}, disabled: true });
   }
   if (node.ownerFactionId === null && !node.isPlayerBase) {
     buttons.push({ icon: '🗺️', text: '派遣探索小隊', action: () => openDispatchSetup(node, 'explore') });
@@ -353,6 +446,14 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
 
     const btnEl = document.createElement('div');
     btnEl.className = 'radial-btn';
+    
+    // UI-13: 若為 disabled 狀態，加入灰色樣式且不可點擊
+    if (btnInfo.disabled) {
+      btnEl.style.opacity = '0.35';
+      btnEl.style.filter = 'grayscale(1)';
+      btnEl.style.cursor = 'not-allowed';
+    }
+    
     btnEl.innerHTML = btnInfo.icon;
     btnEl.style.left = `${x}px`;
     btnEl.style.top = `${y}px`;
@@ -360,7 +461,6 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
     btnEl.addEventListener('mouseenter', () => {
       tooltip.textContent = btnInfo.text;
       tooltip.style.opacity = '1';
-      // 根據位置調整 tooltip 避免被擋住，暫且放正下方
       tooltip.style.top = '80px';
     });
     btnEl.addEventListener('mouseleave', () => {
@@ -369,6 +469,8 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
     
     btnEl.addEventListener('click', (e) => {
       e.stopPropagation();
+      // UI-13: disabled 按鈕不觸發區塊
+      if (btnInfo.disabled) return;
       btnInfo.action();
       closeRadialMenu();
     });
@@ -426,7 +528,7 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
 
   newBtn.addEventListener('click', () => {
     if (selectedAdventurersForDispatch.size === 0) {
-      alert('請至少選擇一名冒險者！');
+      ToastManager.show('請至少選擇一名冒險者！');
       return;
     }
     const team = GameState.adventurers.filter(a => selectedAdventurersForDispatch.has(a.id));
@@ -695,18 +797,18 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     const activeCaravansCount = GameState.system.getActiveMissions().filter(m => m.task.type === TaskType.TRADE).length;
     const maxAllowed = getMaxCaravansLimit(GameState.myTerritory.title);
     if (activeCaravansCount >= maxAllowed) {
-      alert(`行商序列已達上限！當前爵位【${GameState.myTerritory.title}】最多同時派遣 ${maxAllowed} 個商隊。`);
+      ToastManager.show(`行商序列已達上限！當前爵位【${GameState.myTerritory.title}】最多同時派遣 ${maxAllowed} 個商隊。`);
       return;
     }
 
     if (selectedAdventurersForCaravan.size === 0) {
-      alert('請至少指派一名冒險者來帶領商隊！');
+      ToastManager.show('請至少指派一名冒險者來帶領商隊！');
       return;
     }
     
     const inputGold = parseInt(goldInput.value) || 0;
     if (inputGold > GameState.myTerritory.gold) {
-      alert('領地金幣不足以支付投入本金！');
+      ToastManager.show('領地金幣不足以支付投入本金！');
       return;
     }
 
@@ -974,7 +1076,7 @@ export function openNodeDetailPanel(node: MapNode) {
     }
   } else {
     newBtnAction.textContent = '🔒 無法操作';
-    newBtnAction.onclick = () => alert('目前無法對該派系領地進行操作！');
+    newBtnAction.onclick = () => ToastManager.show('目前無法對該派系領地進行操作！');
   }
 
   // 關閉按鈕
@@ -1038,86 +1140,4 @@ export function openTradeModal(node: MapNode) {
     closeNodeDetailPanel();
     startRoutePlanning(node);
   };
-}
-
-/**
- * 渲染交易品倉庫物資並提供出售功能
- */
-export function renderWarehouseGoods() {
-  const goodsGrid = document.getElementById('warehouse-goods-grid')!;
-  if (!goodsGrid) return;
-  goodsGrid.innerHTML = '';
-  
-  const myTerritory = GameState.myTerritory;
-  const goodsEntries = Object.entries(myTerritory.tradeInventory).filter(([_, amount]) => amount > 0);
-
-  if (goodsEntries.length === 0) {
-    goodsGrid.innerHTML = '<p style="color:#94a3b8; grid-column: span 2; text-align: center; padding: 20px;">倉庫中目前沒有任何交易品物資。</p>';
-    return;
-  }
-
-  goodsEntries.forEach(([goodId, amount]) => {
-    const goodRef = TRADE_GOODS.find(g => g.id === goodId);
-    const name = goodRef?.name || goodId;
-    const icon = goodRef?.icon || '📦';
-    const desc = goodRef?.description || '跑商帶回來的交易品。';
-    const basePrice = goodRef?.basePrice || 10;
-
-    const card = document.createElement('div');
-    card.className = 'glass-panel';
-    card.style.padding = '15px';
-    card.style.display = 'flex';
-    card.style.gap = '15px';
-    card.style.alignItems = 'center';
-    card.style.background = 'rgba(0,0,0,0.4)';
-    card.style.border = '1px solid rgba(255,255,255,0.05)';
-
-    card.innerHTML = `
-      <div style="font-size:3em;">${icon}</div>
-      <div style="flex:1;">
-        <strong style="color:#eab308; font-size:1.1em;">${name}</strong>
-        <span style="color:#10b981; font-weight:bold; margin-left:10px;">數量: ${amount}</span><br/>
-        <span style="font-size:0.8em; color:#94a3b8; display:block; margin: 4px 0;">${desc}</span>
-        <span style="font-size:0.8em; color:#eab308;">基礎價值: ${basePrice} 金幣</span>
-      </div>
-      <div>
-        <button class="action-btn btn-sell-good" style="padding: 5px 10px; font-size: 0.85em; background: linear-gradient(135deg, #d97706, #b45309);" data-good-id="${goodId}">
-          💰 出售
-        </button>
-      </div>
-    `;
-
-    goodsGrid.appendChild(card);
-  });
-
-  // 綁定出售按鈕事件
-  const sellBtns = goodsGrid.querySelectorAll('.btn-sell-good');
-  sellBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const goodId = (e.currentTarget as HTMLElement).getAttribute('data-good-id')!;
-      const goodRef = TRADE_GOODS.find(g => g.id === goodId);
-      if (!goodRef) return;
-      
-      const currentAmount = myTerritory.tradeInventory[goodId] || 0;
-      if (currentAmount <= 0) return;
-
-      const sellAmount = prompt(`請輸入要出售的「${goodRef.name}」數量 (當前擁有: ${currentAmount}):`, currentAmount.toString());
-      if (sellAmount === null) return;
-      
-      const num = parseInt(sellAmount);
-      if (isNaN(num) || num <= 0 || num > currentAmount) {
-        alert('請輸入正確的出售數量！');
-        return;
-      }
-
-      // 扣除並給予金幣
-      myTerritory.tradeInventory[goodId] -= num;
-      const goldGained = goodRef.basePrice * num;
-      myTerritory.addGold(goldGained);
-      console.log(`[系統] 💰 您出售了 ${num} 個「${goodRef.name}」，獲得了 ${goldGained} 金幣！`);
-      
-      UIManager.updateUI();
-      renderWarehouseGoods(); // 重新渲染交易品清單
-    });
-  });
 }

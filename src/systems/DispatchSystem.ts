@@ -1,7 +1,7 @@
 import { Adventurer } from '../models/Adventurer';
 import { DispatchTask, EnemyFeature, TaskType } from '../models/DispatchTask';
 import { Territory } from '../models/Territory';
-import { AdventurerState, NobleTitle } from '../models/types';
+import { AdventurerState, NobleTitle, NodeFeature } from '../models/types';
 import { EquipmentGenerator } from './EquipmentGenerator';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
@@ -87,21 +87,20 @@ export class DispatchSystem {
    * 月底大結算 (內政與外交結算)
    */
   public resolveMonth(): void {
-    EventBus.getInstance().publish({
-      type: GameEventType.DAY_PASSED,
-      payload: { daysPassed: 30, currentTimestamp: Date.now() }
-    });
+    // ❗ BUG-02 修復：移除重複的 DAY_PASSED 發送（已由 GameLoop 發送）
 
-    const baseTax = 100 * this.territory.taxRate;
-    const prestigeLoss = Math.max(0, (this.territory.taxRate - 1) * 2); 
-    const populationUpkeep = 50; 
-    
-    const netIncome = baseTax - this.territory.adventurerBudget - this.territory.diplomaticGift - populationUpkeep;
-    this.territory.addGold(netIncome);
+    // OPT-03: 重設計月底稅收公式（讓內政有意義）
+    const baseTax = this.territory.population * 5 * this.territory.taxRate;
+    const populationUpkeep = this.territory.population * 2;           // 人口維護費隨人口成長
+    const adventurerWages = GameState.adventurers.length * 30;         // 决陽者每月薪資 30 金
+    const prestigeLoss = Math.max(0, (this.territory.taxRate - 1) * 2);
+    const netIncome = baseTax - adventurerWages - this.territory.diplomaticGift - populationUpkeep;
+
+    this.territory.addGold(netIncome);    // addGold 已允許負值，赤字會真正扣錢
     this.territory.prestige -= prestigeLoss;
 
     if (netIncome < 0 && this.territory.gold < 0) {
-      console.log(`⚠️ [赤字警告] 領地陷入財務危機！無法支付維護費！`);
+      console.log(`⚠️ [赤字警告] 領地陷入財務危機！無法支付維護費！當前負偉：${Math.abs(this.territory.gold)} 金幣。`);
     }
 
     if (this.territory.diplomaticGift > 0) {
@@ -109,7 +108,7 @@ export class DispatchSystem {
       this.territory.prestige += this.territory.diplomaticGift * 0.2;
     }
 
-    console.log(`📜 [月底結算] 獲得淨稅收 ${netIncome} 金幣。當前好感度：${this.territory.royalFavor} | 當前聲望：${this.territory.prestige}`);
+    console.log(`📜 [月底結算] 收入：${Math.floor(baseTax)}金 | 人口維護：-${Math.floor(populationUpkeep)} | 决陽者薪資：-${adventurerWages} | 凈口：${Math.floor(netIncome)} 金幣。當前聲望：${this.territory.prestige}`);
   }
 
   private reachWaypoint(mission: ActiveMission): boolean {
@@ -249,11 +248,12 @@ export class DispatchSystem {
           }
         }
       }
-      console.log(`✅ [商隊歸來] 冒險者小隊 (${advNames}) 完成了跑商任務！帶回了 ${task.caravanGold} 金幣。剩餘貨物: ${logCargo || '無'}`);
+      console.log(`✅ [商隊歸來] 决陽者小隊 (${advNames}) 完成了跑商任務！帶回了 ${task.caravanGold} 金幣。貨物遷回：${logCargo || '無（本金已全投入買貨）'}`);
       
       for (const adv of adventurers) {
         adv.currentState = AdventurerState.IDLE;
         adv.dispatchEndTime = null;
+        adv.restingDaysLeft = 0;
       }
       return;
     }
@@ -270,13 +270,52 @@ export class DispatchSystem {
             this.territory.tradeInventory[goodId] = amount;
           }
         }
-        console.log(`✅ [商隊歸來] 冒險者小隊 (${advNames}) 成功完成「${task.name}」！買入了物資並存入領地倉庫。`);
+        console.log(`✅ [商隊歸來] 决陽者小隊 (${advNames}) 成功完成「${task.name}」！買入了物資並存入領地倉庫。`);
       }
       
       for (const adv of adventurers) {
         adv.currentState = AdventurerState.IDLE;
         adv.dispatchEndTime = null;
+        adv.restingDaysLeft = 0;
       }
+      return;
+    }
+
+    // DEP-01: 探索任務獨立結算邏輯
+    if (task.type === TaskType.EXPLORE) {
+      const mapSystem = GameState.mapSystem;
+      // 探索成功：自動完成目標節點的偵查（不消耗金幣）
+      if (mapSystem && task.targetNodeId) {
+        const node = mapSystem.getNodeById(task.targetNodeId);
+        if (node && !node.isScouted) {
+          node.isScouted = true;
+          node.scoutExpiryDate = GameState.totalDays + 30;
+          let danger = '未知';
+          let treasure = '無';
+          if (node.feature === NodeFeature.MONSTER_NEST) { danger = '極度危险'; treasure = '史詩寶藏'; }
+          else if (node.feature === NodeFeature.SUBJUGATION) { danger = '中等危险'; treasure = '稀有素材'; }
+          node.scoutData = { dangerLevel: danger, treasureTier: treasure };
+          console.log(`📍 [探索成功] 小隊的探查勘很應詳細側查了「${node.name}」！情報有效期 30 天。`);
+        }
+      }
+      // 探索回報：隨機少量資源 + 少量聲望
+      const woodGain = Math.floor(Math.random() * 5) + 2;
+      const stoneGain = Math.floor(Math.random() * 3) + 1;
+      const xpReward = task.expectedPrestige;
+      this.territory.wood += woodGain;
+      this.territory.stone += stoneGain;
+      this.territory.prestige += task.expectedPrestige;
+      console.log(`✅ [探索完成] 决陽者小隊 (${advNames}) 探索歸來！獲得木材+${woodGain}、石材+${stoneGain}、聲望+${task.expectedPrestige}。`);
+      for (const adv of adventurers) {
+        adv.gainXP(xpReward);
+        adv.currentState = AdventurerState.IDLE;
+        adv.dispatchEndTime = null;
+        adv.restingDaysLeft = 0;
+      }
+      EventBus.getInstance().publish({
+        type: GameEventType.COMBAT_FINISHED,
+        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: xpReward, battleLog: '探索完成' }
+      });
       return;
     }
 
@@ -353,18 +392,29 @@ export class DispatchSystem {
       }
 
       console.log(`✅ [任務完成] 冒險者小隊 (${advNames}) 成功討伐「${task.name}」！${battleLog} 帶回 ${task.expectedGold} 金幣與 ${gainedPrestige} 聲望${expBonusStr}。${dropMsg}`);
-      
+
       EventBus.getInstance().publish({
         type: GameEventType.COMBAT_FINISHED,
-        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: task.expectedGold, battleLog }
+        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: gainedPrestige, battleLog }
       });
+
+      // 勝利後立即設為閒置
+      for (const adv of adventurers) {
+        adv.currentState = AdventurerState.IDLE;
+        adv.dispatchEndTime = null;
+        adv.restingDaysLeft = 0;
+      }
     } else {
       console.log(`❌ [任務失敗] 冒險者小隊 (${advNames}) 討伐「${task.name}」失敗。${battleLog}`);
-    }
 
-    for (const adv of adventurers) {
-      adv.currentState = AdventurerState.IDLE;
-      adv.dispatchEndTime = null;
+      // OPT-02: 失敗後進入 RESTING，難度越高休息越久
+      const restDays = Math.max(1, Math.ceil(task.baseDifficulty / 20));
+      for (const adv of adventurers) {
+        adv.currentState = AdventurerState.RESTING;
+        adv.restingDaysLeft = restDays;
+        adv.dispatchEndTime = null;
+      }
+      console.log(`🩹 [休養中] 小隊需要休養 ${restDays} 天才能再次出動。`);
     }
   }
 

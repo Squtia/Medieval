@@ -16,7 +16,7 @@ export function renderCampTraining() {
     card.style.justifyContent = 'space-between';
     card.style.alignItems = 'center';
 
-    const cost = adv.level * 50;
+    const cost = adv.level * 100 + 100; // BAL-04: Lv.1=200金、Lv.5=600金，避免战鬥就能马上升满等
     card.innerHTML = `
       <div>
         <strong>${adv.name}</strong> (Lv.${adv.level})<br/>

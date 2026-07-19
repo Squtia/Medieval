@@ -42,6 +42,9 @@ export class DispatchTask {
   public caravanCargo?: Record<string, number>;
   public caravanGold?: number;
 
+  // 探索任務：目標節點 ID
+  public targetNodeId?: string;
+
   constructor(
     name: string,
     type: TaskType,

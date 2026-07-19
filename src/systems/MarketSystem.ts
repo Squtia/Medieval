@@ -25,21 +25,38 @@ export class MarketSystem {
       goods: []
     };
     
-    // 每個節點隨機挑選 3~5 種商品販售
-    const numGoods = Math.floor(Math.random() * 3) + 3;
-    const shuffled = [...TRADE_GOODS].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, numGoods);
+    // OPT-05: 地形特產必定出現，其餘隨機補充至 3~5 種
+    const TERRAIN_SPECIALTY: Partial<Record<string, string[]>> = {
+      PLAINS:        ['tg_wheat'],
+      FOREST:        ['tg_timber', 'tg_meat'],
+      SNOW_MOUNTAIN: ['tg_ice_crystal', 'tg_stone'],
+      VOLCANO:       ['tg_obsidian', 'tg_iron'],
+      DESERT:        ['tg_spice']
+    };
+
+    const specialtyIds = TERRAIN_SPECIALTY[node.terrain] ?? [];
+    const specialtyGoods = specialtyIds
+      .map(id => TRADE_GOODS.find(g => g.id === id))
+      .filter(Boolean) as typeof TRADE_GOODS;
+
+    const numGoods = Math.floor(Math.random() * 3) + 3; // 3~5 種
+    const otherGoods = TRADE_GOODS.filter(g => !specialtyIds.includes(g.id));
+    const shuffled = [...otherGoods].sort(() => 0.5 - Math.random());
+    const extras = shuffled.slice(0, Math.max(0, numGoods - specialtyGoods.length));
+    const selected = [...specialtyGoods, ...extras];
 
     for (const good of selected) {
       let multiplier = 1.0;
       
-      // 根據地形調整價格
-      if (node.terrain === TerrainType.DESERT && good.id === 'tg_spice') multiplier = 0.5; // 原產地便宜
+      // 地形特產半價（原產地優惠）
+      if (node.terrain === TerrainType.DESERT && good.id === 'tg_spice') multiplier = 0.5;
       if (node.terrain === TerrainType.SNOW_MOUNTAIN && good.id === 'tg_ice_crystal') multiplier = 0.5;
       if (node.terrain === TerrainType.VOLCANO && good.id === 'tg_obsidian') multiplier = 0.5;
       if (node.terrain === TerrainType.FOREST && good.id === 'tg_timber') multiplier = 0.5;
       if (node.terrain === TerrainType.PLAINS && good.id === 'tg_wheat') multiplier = 0.5;
-      if (node.terrain === TerrainType.SNOW_MOUNTAIN && good.id === 'tg_stone') multiplier = 0.5; // 山地石材便宜
+      if (node.terrain === TerrainType.SNOW_MOUNTAIN && good.id === 'tg_stone') multiplier = 0.5;
+      if (node.terrain === TerrainType.VOLCANO && good.id === 'tg_iron') multiplier = 0.6;
+      if (node.terrain === TerrainType.FOREST && good.id === 'tg_meat') multiplier = 0.6;
 
       const baseValue = good.basePrice * multiplier;
       const fluctuation = 0.8 + Math.random() * 0.4; // 0.8 ~ 1.2

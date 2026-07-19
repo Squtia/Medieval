@@ -42,6 +42,14 @@ export function initLogger(logContainer: HTMLElement) {
     msgSpan.style.flex = '1';
     div.appendChild(msgSpan);
     
+    if (msg.includes('任務結算') || msg.includes('任務完成') || msg.includes('跑商收益')) {
+      div.style.border = '1px solid #facc15';
+      div.style.backgroundColor = 'rgba(250, 204, 21, 0.1)';
+      div.style.padding = '8px';
+      div.style.borderRadius = '4px';
+      div.style.margin = '4px 0';
+    }
+    
     logContainer.appendChild(div);
     
     // 限制帝國日誌最多 MAX_LOG_ENTRIES 筆，超出則刪除最舊的

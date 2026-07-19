@@ -1,5 +1,6 @@
 import { GameState } from './GameState';
 import { SaveManager } from './SaveManager';
+import { AdventurerState } from '../models/types';
 
 import { EventSystem } from '../systems/EventSystem';
 import { MarketSystem } from '../systems/MarketSystem';
@@ -37,6 +38,17 @@ export function advanceDay() {
   
   // 推進領地屬性重置
   GameState.myTerritory.exploredToday = 0;
+
+  // OPT-02: 每日檢查 RESTING 狀態的决陽者，倒數恢復
+  GameState.adventurers.forEach(adv => {
+    if (adv.currentState === AdventurerState.RESTING) {
+      adv.restingDaysLeft = Math.max(0, adv.restingDaysLeft - 1);
+      if (adv.restingDaysLeft <= 0) {
+        adv.currentState = AdventurerState.IDLE;
+        console.log(`[HeroSystem] 🌞 ${adv.name} 已恢復健康，可以再次出動！`);
+      }
+    }
+  });
   
   // 每日更新天氣
   GameState.mapSystem.updateWeather();

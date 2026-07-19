@@ -100,7 +100,7 @@
       font-size: 14px;
       color: #fff;
       text-shadow: 1px 1px 2px #000, 0 0 5px rgba(0,0,0,0.8);
-      white-space: nowrap;
+      display: flex; align-items: flex-end; padding: 0 50px 50px 50px; gap: 80px;
       pointer-events: none;
       font-family: 'Cinzel', serif;
       font-weight: bold;
@@ -610,6 +610,32 @@
       height: 20px;
       cursor: pointer;
     }
+
+    /* 返回據點懸浮按鈕 */
+    .floating-base-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 70px;
+      height: 70px;
+      background: url('./assets/return_base_btn.png') no-repeat center/104% 104%;
+      border: none;
+      cursor: pointer;
+      z-index: 150;
+      transition: transform 0.2s ease, filter 0.2s ease;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+      border-radius: 50%;
+      clip-path: circle(46% at 50% 50%);
+      overflow: hidden;
+    }
+    .floating-base-btn:hover {
+      transform: scale(1.1);
+      filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.8)) brightness(1.15);
+    }
+    .floating-base-btn:active {
+      transform: scale(0.95);
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    }
   </style>
 </head>
 <body>
@@ -714,9 +740,10 @@
       <div class="resource-item" title="聲望"><span class="resource-icon">✨</span> <span id="ui-prestige">0</span></div>
       <div class="resource-item" title="好感度"><span class="resource-icon">🤝</span> <span id="ui-favor">0</span></div>
     </div>
-    <div class="resource-group">
-      <div class="resource-item" title="遊戲日期" style="margin-right: 20px;"><span class="resource-icon">📅</span> <span id="ui-date">第 1 年 1 月 1 日</span></div>
+    <div class="resource-group" style="gap: 10px; align-items: center;">
+      <div class="resource-item" title="遊戲日期" style="margin-right: 10px;"><span class="resource-icon">📅</span> <span id="ui-date">第 1 年 1 月 1 日</span></div>
       <button id="btn-end-day" class="action-btn" style="padding: 5px 15px; background: rgba(59, 130, 246, 0.4); border-color: #60a5fa; color: white;">⏳ 結束本日</button>
+      <button id="btn-system-menu" class="action-btn" style="padding: 5px 15px; background: rgba(255, 255, 255, 0.15); border-color: #cbd5e1; color: white;">📜 系統選單</button>
     </div>
   </div>
 
@@ -741,6 +768,9 @@
       <!-- 左側：地圖主體區塊 -->
       <div style="flex: 1; height: 100%; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden;">
         
+        <!-- 返回據點懸浮按鈕 -->
+        <button id="btn-return-base" class="floating-base-btn" title="返回我的據點" style="display: none;"></button>
+
         <!-- 左下角：目前狀態 -->
         <div id="map-status-panel" class="glass-panel" style="position: absolute; bottom: 20px; left: 20px; padding: 20px; width: 280px; display: none; z-index: 100;">
           <h3 style="margin-top: 0; color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">🛡️ 傭兵團狀態</h3>
@@ -938,12 +968,7 @@
         <div id="map-log-container" style="flex: 1; min-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 10px; font-size: 0.8em; border-radius: 4px; display: flex; flex-direction: column; gap: 5px;"></div>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 10px; padding: 20px; border-top: 1px solid rgba(139, 69, 19, 0.5);">
-        <h4 style="margin: 0; color: #94a3b8;">系統功能</h4>
-        <button id="btn-return-base" class="action-btn" style="padding: 10px; background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5);">🏰 返回我的據點</button>
-        <button id="btn-manual-save" class="action-btn" style="padding: 10px;">💾 手動儲存</button>
-        <button id="btn-exit-game" class="action-btn" style="padding: 10px; background: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.5);">🚪 儲存並退出至主選單</button>
-      </div>
+      <!-- 系統功能按鈕已移至頂部資源列及地圖懸浮位置 -->
     </div>
 
     <!-- 節點詳細資訊面板 (情報迷霧系統) -->
@@ -1056,7 +1081,10 @@
           <div class="adv-detail-avatar" id="adv-detail-avatar">🦸</div>
           <div style="font-size: 0.9em; color: #cbd5e1;">綜合戰力</div>
           <div style="font-size: 1.5em; font-weight: bold; color: #eab308;" id="adv-detail-power">100</div>
-          <button id="btn-retire-adv" class="action-btn" style="margin-top: 15px; background: rgba(220, 38, 38, 0.2); border-color: rgba(220, 38, 38, 0.5);">👴 退休轉任</button>
+          <div style="margin-top: 30px; border-top: 1px solid rgba(220,38,38,0.3); padding-top: 15px; text-align: center;">
+            <span style="color:#ef4444; font-size:0.85em; display:block; margin-bottom:5px;">⚠️ 此操作不可撤回，裝備將自動卸下</span>
+            <button id="btn-retire-adv" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #ef4444; color: white; width: 100%;">👴 永久退休轉任</button>
+          </div>
         </div>
         <div class="adv-detail-right">
           <!-- 戰鬥數值 -->
@@ -1162,6 +1190,18 @@
         </div>
         <button id="btn-confirm-dispatch" class="action-btn" style="width: 100%; padding: 12px; font-size: 1.2em;">🚀 確認出發</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 系統選單 Modal -->
+  <div class="modal-overlay" id="modal-system-menu">
+    <div class="glass-panel modal-content" style="width: 320px; text-align: center; padding: 30px 20px; display: flex; flex-direction: column; gap: 15px; border-radius: 8px;">
+      <button class="close-btn" id="btn-close-system-menu">×</button>
+      <h2 style="color: #eab308; margin-top: 0; margin-bottom: 5px; font-family: 'Cinzel', serif;">📜 系統選單</h2>
+      <p style="color: #cbd5e1; font-size: 0.9em; margin-bottom: 10px;">請選擇您要執行的系統操作</p>
+      <button id="btn-manual-save" class="action-btn" style="width: 100%; padding: 12px 15px; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981; color: white; display: block;">💾 儲存目前進度</button>
+      <button id="btn-exit-game" class="action-btn" style="width: 100%; padding: 12px 15px; background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #dc2626; color: white; display: block;">🚪 儲存並退出遊戲</button>
+      <button id="btn-cancel-system-menu" class="action-btn" style="width: 100%; padding: 10px 15px; background: rgba(255, 255, 255, 0.1); border-color: #cbd5e1; color: white; display: block;">❌ 關閉選單</button>
     </div>
   </div>
   

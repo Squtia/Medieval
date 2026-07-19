@@ -30,8 +30,15 @@ export class MapDynamicsSystem {
    * @param deltaTime 經過的毫秒數 (保留參數供未來時間步長計算使用)
    */
   public simulateMapDynamics(months: number): void {
-    // 1. 繁榮度自然下降 (因怪物威脅) 與升降級檢定
+    // 1. 繁榮度變化與升降級檢定
     for (const node of this.mapNodes) {
+      // OPT-06: 繁榮度自然成長（有主化的節點每月小幅成長）
+      if (node.isPlayerBase) {
+        node.prosperity += 10; // 玩家據點每月 +10
+      } else if (node.ownerFactionId !== null) {
+        node.prosperity += 5;  // 派系改節點每月 +5
+      }
+
       // 檢查相鄰高危險節點 (距離 15 內的荒野或巢穴)
       const hasAdjacentDanger = this.mapNodes.some(other => 
         other.id !== node.id && 

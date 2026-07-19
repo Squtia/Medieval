@@ -1,3 +1,4 @@
+import { ToastManager } from './ToastManager';
 import Phaser from 'phaser';
 import { GameState } from '../core/GameState';
 import { TerrainType, NodeFeature, MapNode, NodeLevel, getMaxCaravansLimit } from '../models/types';
@@ -71,7 +72,7 @@ function handlePhaserNodeClick(node: MapNode) {
           const dist = Math.sqrt(Math.pow(playerNode.x - node.x, 2) + Math.pow(playerNode.y - node.y, 2));
           const maxDist = 30;
           if (dist > maxDist) {
-            alert(`⚠️ 行商起點太遠了！第一個停靠站距離本鎮不能超過 ${maxDist} 里 (當前距離: ${dist.toFixed(1)} 里)。`);
+            ToastManager.show(`⚠️ 行商起點太遠了！第一個停靠站距離本鎮不能超過 ${maxDist} 里 (當前距離: ${dist.toFixed(1)} 里)。`);
             return;
           }
         }
@@ -132,7 +133,7 @@ export function startRoutePlanning(startNode?: MapNode) {
   const activeCaravansCount = GameState.system.getActiveMissions().filter(m => m.task.type === TaskType.TRADE).length;
   const maxAllowed = getMaxCaravansLimit(GameState.myTerritory.title);
   if (activeCaravansCount >= maxAllowed) {
-    alert(`行商序列已達上限！當前爵位【${GameState.myTerritory.title}】最多同時派遣 ${maxAllowed} 個商隊。`);
+    ToastManager.show(`行商序列已達上限！當前爵位【${GameState.myTerritory.title}】最多同時派遣 ${maxAllowed} 個商隊。`);
     return;
   }
 
@@ -142,7 +143,7 @@ export function startRoutePlanning(startNode?: MapNode) {
       const dist = Math.sqrt(Math.pow(playerNode.x - startNode.x, 2) + Math.pow(playerNode.y - startNode.y, 2));
       const maxDist = 30;
       if (dist > maxDist) {
-        alert(`⚠️ 無法從此城市開始行商！該城市距離本鎮太遠 (${dist.toFixed(1)} 里)，第一個停靠站距離不能超過 ${maxDist} 里。`);
+        ToastManager.show(`⚠️ 無法從此城市開始行商！該城市距離本鎮太遠 (${dist.toFixed(1)} 里)，第一個停靠站距離不能超過 ${maxDist} 里。`);
         return;
       }
     }
@@ -161,7 +162,7 @@ export function startRoutePlanning(startNode?: MapNode) {
   btnFinish.parentNode!.replaceChild(finishClone, btnFinish);
   finishClone.addEventListener('click', () => {
     if (plannedRouteNodeIds.length === 0) {
-      alert('請至少在地圖上點選 1 個城市作為商隊中途站！');
+      ToastManager.show('請至少在地圖上點選 1 個城市作為商隊中途站！');
       return;
     }
     isRoutePlanningMode = false;

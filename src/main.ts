@@ -1,3 +1,4 @@
+import { ToastManager } from './ui/ToastManager';
 import { GameState, initGameState } from './core/GameState';
 import { startGameLoop, advanceDay } from './core/GameLoop';
 import { initLogger, clearGameLog } from './utils/Logger';
@@ -96,7 +97,7 @@ EventBus.getInstance().subscribe(GameEventType.RESOURCE_CHANGED, () => {
 });
 EventBus.getInstance().subscribe(GameEventType.POPULATION_STARVED, (payload) => {
   UIManager.updateUI();
-  alert(`⚠️ 飢荒警告！由於糧食不足，${payload.starvedAmount} 名人口流失了！`);
+  ToastManager.show(`⚠️ 飢荒警告！由於糧食不足，${payload.starvedAmount} 名人口流失了！`);
 });
 
 // 野外討伐
@@ -141,7 +142,7 @@ document.getElementById('btn-found-settlement')!.addEventListener('click', () =>
 // 設施按鈕事件
 document.getElementById('btn-explore')!.addEventListener('click', () => {
   if (GameState.myTerritory.exploredToday >= GameState.myTerritory.maxExplorationsPerDay) {
-    alert(`本回合已探索過周邊（上限：${GameState.myTerritory.maxExplorationsPerDay}次），請推進回合後再試！`);
+    ToastManager.show(`本回合已探索過周邊（上限：${GameState.myTerritory.maxExplorationsPerDay}次），請推進回合後再試！`);
     return;
   }
   
@@ -189,7 +190,16 @@ document.getElementById('btn-recruit')!.addEventListener('click', () => {
           智:${adv.baseAttributes.int} 精:${adv.baseAttributes.spr} 幸:${adv.baseAttributes.luk}
         </div>
       `;
-      card.addEventListener('click', () => {
+      const btnConfirm = document.createElement('button');
+btnConfirm.className = 'action-btn';
+btnConfirm.style.marginTop = '15px';
+btnConfirm.style.width = '100%';
+btnConfirm.style.fontSize = '0.9em';
+btnConfirm.style.background = 'linear-gradient(135deg, #059669, #047857)';
+btnConfirm.innerText = '✅ 招募此人 (500金)';
+card.appendChild(btnConfirm);
+btnConfirm.addEventListener('click', (e) => {
+  e.stopPropagation();
         GameState.myTerritory.gold -= 500;
         GameState.adventurers.push(adv);
         console.log(`🍻 [訓練所] 花費 500 金幣招募了新夥伴「${adv.name}」加入冒險者行列！`);
@@ -371,7 +381,7 @@ import { stopGameLoop } from './core/GameLoop';
 document.getElementById('btn-manual-save')!.addEventListener('click', () => {
   if (GameState.currentSaveSlot) {
     SaveManager.saveGame(GameState.currentSaveSlot);
-    alert('遊戲進度已手動儲存！');
+    ToastManager.show('遊戲進度已手動儲存！');
   }
 });
 
@@ -382,7 +392,9 @@ document.getElementById('btn-exit-game')!.addEventListener('click', () => {
   stopGameLoop();
   
   // 隱藏地圖與其他視圖
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.view, .facility-view').forEach(v => v.classList.remove('active'));
+  const sysMenu = document.getElementById('modal-system-menu');
+  if (sysMenu) sysMenu.classList.remove('active');
   document.getElementById('top-bar')!.style.display = 'none';
   document.getElementById('shared-right-panel')!.style.display = 'none';
   
@@ -397,7 +409,7 @@ document.getElementById('btn-return-base')!.addEventListener('click', () => {
       enterScene(baseNode);
     }
   } else {
-    alert('您尚未建立據點！');
+    ToastManager.show('您尚未建立據點！');
   }
 });
 
@@ -419,3 +431,14 @@ document.addEventListener('game-started', () => {
   }
 });
 
+
+// 系統選單
+document.getElementById('btn-system-menu')!.addEventListener('click', () => {
+  document.getElementById('modal-system-menu')!.classList.add('active');
+});
+
+const closeSystemMenu = () => {
+  document.getElementById('modal-system-menu')!.classList.remove('active');
+};
+document.getElementById('btn-close-system-menu')!.addEventListener('click', closeSystemMenu);
+document.getElementById('btn-cancel-system-menu')!.addEventListener('click', closeSystemMenu);

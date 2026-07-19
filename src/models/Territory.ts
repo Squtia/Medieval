@@ -92,12 +92,10 @@ export class Territory {
   }
 
   /**
-   * 增加金幣收益 (示範基本邏輯)
+   * 增加金幣收益（允許負值，讓赤字結算真正扣錢）
    */
   public addGold(amount: number): void {
-    if (amount > 0) {
-      this.gold += amount;
-    }
+    this.gold += amount;
   }
 
   /**
