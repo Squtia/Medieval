@@ -17,7 +17,7 @@
 
 ## 下一輪優先順序
 
-1. P0：為新遊戲→據點→派遣→結束本日→存讀檔加入自動化瀏覽器 smoke test。
+1. [x] P0：為新遊戲→據點→派遣→結束本日→存讀檔加入自動化瀏覽器 smoke test。（已實裝 `npm run test:smoke`）
 2. P1：拆分 `main.ts` 的 UI wiring，依據畫面建立 controller，降低單檔耦合。
 3. P1：將 Phaser 及低頻建築介面做真正的 lazy chunk，縮短首次載入時間。
 4. P2：建立 3／10／30 日 seeded 模擬，監控資源淨值、任務成功率與災害損失。

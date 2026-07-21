@@ -29,8 +29,15 @@
 │   │   ├── DispatchSystem.ts   # 派遣與任務系統
 │   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張
 │   │   └── DataStore.ts        # 靜態資料庫 (含 1~3 階裝備與價格 DB)
-│   ├── ui/                  # DOM UI、Phaser Scene 與呈現資料
-│   └── main.ts              # 組合根：系統初始化、事件轉接與 DOM 綁定
+│   ├── ui/                  # DOM UI、Phaser Scene、呈現資料與獨立 UI Controllers
+│   │   ├── RecruitController.ts   # 冒險者酒館招募與動態卡片邏輯
+│   │   ├── MainMenuController.ts  # 主選單與存檔欄位渲染
+│   │   ├── GameFlowController.ts  # 遊戲流程控制、日誌與選單
+│   │   ├── FacilityController.ts  # 建築設施進出、工作分配
+│   │   ├── ActionController.ts    # 探索、討伐、進貢與據點遷移
+│   │   ├── CheatController.ts     # 開發環境測試密技
+│   │   └── ...
+│   └── main.ts              # 組合根：系統初始化、事件轉接與 Controller 初始化
 ├── index.html               # 測試用網頁骨架
 └── package.json             # Vite 建置配置檔
 ```

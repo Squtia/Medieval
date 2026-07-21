@@ -13,6 +13,9 @@
 - 新增災害倒數、提前備災、派遣風險與預期報酬、每日資源差異摘要。
 - 修正窄螢幕版面，存檔欄位改為語意化按鈕，補上鍵盤可操作的地圖節點清單。
 - 新增 Vitest、TypeScript、production build、bundle budget 與 GitHub Actions 品質閘門。
+- 新增 P0 自動化 Headless Chromium Smoke Test (Playwright)，覆蓋新遊戲選擇據點、進入街道與領主自宅、結束本日日期遞增、系統選單手動存檔與頁面重新整理進度還原閉環，並整合至 `npm run check` 流程。
+- 拆分 `main.ts` 的 UI wiring，依據畫面將過度集中的 DOM 事件與邏輯抽離為獨立的 UI Controllers (`RecruitController`, `MainMenuController`, `GameFlowController`, `FacilityController`, `ActionController`, `CheatController`)，顯著降低單一檔案耦合與代碼複雜度。
+
 
 ## [2026-07-19] 領地建築升級、獨立武具商店與冒險者卡片 Tooltip 懸浮化
 

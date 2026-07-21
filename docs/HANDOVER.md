@@ -3,7 +3,8 @@
 這份交接文件記錄了目前的開發進度、已知問題，以及下一步的建議方向，以便未來任何開發者接手時能迅速進入狀況。
 
 ## 📍 目前開發進度 (Current Status)
-- **2026-07-21 可靠性與架構整理 (New!)**：修復多波戰鬥判定及重複獎勵，完成威脅預警與備災、每日摘要、派遣風險提示、窄螢幕 UI、鍵盤地圖節點、存檔 schema v2 與 deterministic RNG。Phaser Scene 已具備資源清理，並解除與 DOM Controller 的循環依賴。完整品質檢查使用 `npm run check`。
+- **2026-07-21 P1 main.ts UI Wiring 重構拆分 (New!)**：將過度集中的 `main.ts` DOM 事件與綁定邏輯完全解耦，依據畫面模組拆分為 `RecruitController`（招募卡片）、`MainMenuController`（主選單與存檔）、`GameFlowController`（流程與選單）、`FacilityController`（建築與分配）、`ActionController`（探索與討伐）與 `CheatController`（密技）。`main.ts` 作為純粹的組合根，成功通過 TypeScript、Vitest 單元測試與 Vite production build 驗證。
+- **2026-07-21 可靠性與架構整理**：實裝 P0 Playwright 自動化 Headless Smoke Test (`npm run test:smoke`) 覆蓋全流程閉環；修復多波戰鬥判定及重複獎勵，完成威脅預警與備災、每日摘要、派遣風險提示、窄螢幕 UI、鍵盤地圖節點、存檔 schema v2 與 deterministic RNG。Phaser Scene 已具備資源清理，並解除與 DOM Controller 的循環依賴。完整品質檢查使用 `npm run check`。
 - **2026-07-21 行商與任務生命週期修正 (New!)**：行商以 itinerary／phase／leg 表示進度，第一段與回程路線可正確呈現；任務透過 `MISSIONS_CHANGED` 驅動地圖更新。雙劍動畫改為精準清理，一般招募排除誓約守衛，tooltip 支援四方向防裁切，行商回報顯示本金與現金損益。
 - **2026-07-21 戰鬥節點信標 (New!)**：淘汰平台相依的交叉劍 Emoji，改用兩個以劍尖定位的獨立 SVG Sprite；兩劍從相反斜角如炮彈般射入節點形成 X，以 3.2 秒循環金色衝擊光、停留與淡出。紅色遮罩圓已移除，任務完成時整體銷毀。
 - **2026-07-19 領地建築升級、獨立武具商店與冒險者卡片 Tooltip 懸浮化 (New!)**：

@@ -52,6 +52,7 @@ export const GameState = {
 };
 
 export function initGameState() {
+  (window as any).GameState = GameState;
   GameState.myTerritory = new Territory('流浪傭兵團', null);
   GameState.myTerritory.gold = 100000;
   GameState.adventurers = [];
