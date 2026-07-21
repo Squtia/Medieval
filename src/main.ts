@@ -7,7 +7,8 @@ import { CombatUIManager } from './ui/CombatUIManager';
 import { renderMap, setStartupMode, initMapInteraction, startRoutePlanning, initPhaserMap } from './ui/MapController';
 import { SaveManager } from './core/SaveManager';
 import { enterScene, returnToMap, renderBaseBuildings } from './ui/SceneController';
-import { openWarehouse, openTodoModal, openCombatHistory } from './ui/ModalController';
+import { openWarehouse, openTodoModal, openCombatHistory, openEventModal } from './ui/ModalController';
+import { GAME_EVENTS } from './data/EventData';
 import { DispatchTask, EnemyFeature, TaskType } from './models/DispatchTask';
 import { Adventurer } from './models/Adventurer';
 import { NodeLevel } from './models/types';
@@ -15,6 +16,7 @@ import { DataStore } from './systems/DataStore';
 import { NameGenerator } from './systems/NameGenerator';
 import { EventBus } from './core/EventBus';
 import { GameEventType } from './core/GameEvents';
+import { Random } from './core/Random';
 
 // 1. 初始化日誌攔截
 const logContainer = document.getElementById('game-log')!;
@@ -31,6 +33,18 @@ export function rebindGlobalUIEvents() {
   EventBus.getInstance().subscribe(GameEventType.POPULATION_STARVED, (payload) => {
     UIManager.updateUI();
     ToastManager.show(`⚠️ 飢荒警告！由於糧食不足，${payload.starvedAmount} 名人口流失了！`);
+  });
+  EventBus.getInstance().subscribe(GameEventType.THREAT_WARNING, (payload) => {
+    ToastManager.show(`⚠️ ${payload.threatName} 將在 ${payload.daysRemaining} 天後抵達，請預留糧食！`, 'warning');
+    UIManager.updateUI();
+  });
+  EventBus.getInstance().subscribe(GameEventType.GAME_EVENT_TRIGGERED, ({ eventId }) => {
+    const event = GAME_EVENTS.find(candidate => candidate.id === eventId);
+    if (event) openEventModal(event);
+  });
+  EventBus.getInstance().subscribe(GameEventType.MISSIONS_CHANGED, () => {
+    renderMap();
+    UIManager.updateUI();
   });
   CombatUIManager.init();
 }
@@ -111,7 +125,7 @@ document.getElementById('btn-wild-quest')!.addEventListener('click', () => {
   const node = GameState.currentViewNode;
   if (!node) return;
   const features = Object.values(EnemyFeature);
-  const randomFeature = features[Math.floor(Math.random() * features.length)];
+  const randomFeature = Random.pick(features);
   const task = new DispatchTask(`掃蕩${node.name}`, TaskType.COMBAT, 0, 20, 200, 20, 100, randomFeature);
   GameState.system.dispatchAdventurers(GameState.adventurers, task);
   
@@ -163,25 +177,25 @@ document.getElementById('btn-explore')!.addEventListener('click', () => {
     // 初始 3 次內探索，若是第 3 次且尚未招募過，則必定成功招募 (品質固定為 N)
     // 或者是前 2 次以 20% 機率成功招募
     const forceRecruit = territory.exploreCount === 3;
-    const luckyRecruit = Math.random() < 0.20;
+    const luckyRecruit = Random.next() < 0.20;
     
     if (forceRecruit || luckyRecruit) {
-      recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomTrait(), 'N');
+      recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomRecruitTrait(), 'N');
       territory.hasRecruitedFromFirstExplorations = true;
       qLabel = 'N 普通';
     }
   } else {
     // 已經保底過或超過 3 次後，每次探索有 10% 機率招募！
-    if (Math.random() < 0.10) {
+    if (Random.next() < 0.10) {
       // 隨機抽取品質：N極大、R低、SR極低、SSR最低
       let q: 'N' | 'R' | 'SR' | 'SSR' = 'N';
-      const randQ = Math.random() * 100;
+      const randQ = Random.next() * 100;
       if (randQ < 0.2) { q = 'SSR'; qLabel = 'SSR 傳奇'; }
       else if (randQ < 3.0) { q = 'SR'; qLabel = 'SR 史詩'; }
       else if (randQ < 10.0) { q = 'R'; qLabel = 'R 精英'; }
       else { q = 'N'; qLabel = 'N 普通'; }
       
-      recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomTrait(), q);
+      recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomRecruitTrait(), q);
     }
   }
   
@@ -235,7 +249,7 @@ document.getElementById('btn-recruit')!.addEventListener('click', () => {
     
     // 品質隨機抽取算法
     const getQuality = (lvl: number): 'N' | 'R' | 'SR' | 'SSR' => {
-      const r = Math.random();
+      const r = Random.next();
       if (lvl === 1) {
         return r < 0.1 ? 'R' : 'N';
       } else if (lvl === 2) {
@@ -261,7 +275,7 @@ document.getElementById('btn-recruit')!.addEventListener('click', () => {
       const quality = getQuality(tavernLvl);
       const qInfo = getQualityLabel(quality);
       
-      const adv = new Adventurer(`adv_${Date.now()}_${i}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomTrait(), quality);
+      const adv = new Adventurer(`adv_${Date.now()}_${i}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomRecruitTrait(), quality);
       
       const card = document.createElement('div');
       card.className = 'recruit-card';
@@ -368,7 +382,9 @@ function renderSaveSlots() {
     btnWrapper.style.alignItems = 'stretch';
     btnWrapper.style.width = '100%';
 
-    const btn = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('aria-label', s.isEmpty ? `在欄位 ${s.slot} 建立新旅程` : `載入欄位 ${s.slot}：${s.territoryName}`);
     btn.className = 'glass-panel';
     btn.style.padding = '15px';
     btn.style.cursor = 'pointer';
@@ -376,6 +392,7 @@ function renderSaveSlots() {
     btn.style.justifyContent = 'space-between';
     btn.style.alignItems = 'center';
     btn.style.flex = '1';
+    btn.style.textAlign = 'left';
 
     if (s.isEmpty) {
       btn.innerHTML = `<span style="color:#94a3b8;">欄位 ${s.slot} - 尚無紀錄</span>`;
@@ -515,6 +532,18 @@ document.getElementById('btn-end-day')!.addEventListener('click', () => {
   });
 });
 
+document.getElementById('btn-prepare-threat')!.addEventListener('click', () => {
+  if (GameState.threat.prepared) return;
+  if (GameState.myTerritory.wood < 20) {
+    ToastManager.show('木材不足，需要 20 木材才能完成防災準備。', 'warning');
+    return;
+  }
+  GameState.myTerritory.wood -= 20;
+  GameState.threat.prepared = true;
+  ToastManager.show(`已為${GameState.threat.name}完成防災準備，災害損失將減半。`, 'success');
+  UIManager.updateUI();
+});
+
 // 當玩家在新旅程中選擇了據點後觸發
 document.addEventListener('game-started', () => {
   startGameLoop(() => {
@@ -542,6 +571,8 @@ document.getElementById('btn-cancel-system-menu')!.addEventListener('click', clo
 // === CHEAT_CODES_START ===
 // 【測試用密技 - 未來發布前必須將此區塊整段刪除】
 // ============================================================================
+
+if ((import.meta as any).env?.DEV) {
 
 // 全域控制台後門資源修改器
 (window as any).cheatGold = (amount: number) => {
@@ -623,6 +654,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
     }
   }
 });
+}
 
 // ============================================================================
 // === CHEAT_CODES_END ===

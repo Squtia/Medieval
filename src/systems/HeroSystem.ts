@@ -9,7 +9,7 @@ export class HeroSystem {
     // OPT-01: 監聽戰鬥勝利，給予英雄經驗値
     eventBus.subscribe(GameEventType.COMBAT_FINISHED, (payload) => {
       if (payload.isVictory) {
-        const xpReward = Math.max(10, Math.floor(payload.lootValue * 2));
+        const xpReward = payload.xpReward ?? Math.max(10, Math.floor(payload.lootValue * 2));
         GameState.adventurers
           .filter(a => payload.participants.includes(a.id))
           .forEach(a => {

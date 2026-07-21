@@ -1,5 +1,5 @@
 import { Adventurer } from '../models/Adventurer';
-import { DispatchTask, EnemyFeature, TaskType } from '../models/DispatchTask';
+import { DispatchTask, EnemyFeature, TaskType, TradePhase, normalizeTradeTask } from '../models/DispatchTask';
 import { Territory } from '../models/Territory';
 import { AdventurerState, NobleTitle, NodeFeature } from '../models/types';
 import { EquipmentGenerator } from './EquipmentGenerator';
@@ -9,6 +9,7 @@ import { GameState } from '../core/GameState';
 import { CombatHistoryRecord } from '../models/Combat';
 import { TRADE_GOODS } from './MarketSystem';
 import { CombatSystem } from './CombatSystem';
+import { Random } from '../core/Random';
 
 /**
  * 代表正在執行中的任務
@@ -46,6 +47,7 @@ export class DispatchSystem {
       }
     }
 
+    if (task.type === TaskType.TRADE) normalizeTradeTask(task);
     const remainingDays = task.requiredDays;
 
     for (const adv of adventurers) {
@@ -60,29 +62,40 @@ export class DispatchSystem {
     });
 
     console.log(`🚀 [任務派發] 小隊已出發前往執行「${task.name}」！預計 ${task.requiredDays} 天後完成。`);
+    this.publishMissionChange('DISPATCHED', task.type);
   }
 
   /**
    * 推進遊戲天數
    */
   public updateDays(days: number): void {
+    let progressed = false;
+    let completedType: TaskType | undefined;
     for (let i = this.activeMissions.length - 1; i >= 0; i--) {
       const mission = this.activeMissions[i];
       mission.remainingDays -= days;
+      progressed = true;
 
       if (mission.remainingDays <= 0) {
-        if (mission.task.type === TaskType.TRADE && mission.task.tradeRouteNodeIds && mission.task.tradeRouteNodeIds.length > 0) {
-          const isFinished = this.reachWaypoint(mission);
-          if (isFinished) {
+        if (mission.task.type === TaskType.TRADE) {
+          normalizeTradeTask(mission.task);
+          const itinerary = mission.task.tradeItineraryNodeIds || [];
+          if (itinerary.length > 0 && mission.task.tradePhase !== TradePhase.RETURNING) {
+            this.reachWaypoint(mission);
+          } else {
             this.completeMission(mission);
             this.activeMissions.splice(i, 1);
+            completedType = mission.task.type;
           }
         } else {
           this.completeMission(mission);
           this.activeMissions.splice(i, 1);
+          completedType = mission.task.type;
         }
       }
     }
+    if (completedType) this.publishMissionChange('COMPLETED', completedType);
+    else if (progressed) this.publishMissionChange('PROGRESSED');
   }
 
   /**
@@ -113,17 +126,25 @@ export class DispatchSystem {
     console.log(`📜 [月底結算] 收入：${Math.floor(baseTax)}金 | 人口維護：-${Math.floor(populationUpkeep)} | 决陽者薪資：-${adventurerWages} | 凈口：${Math.floor(netIncome)} 金幣。當前聲望：${this.territory.prestige}`);
   }
 
-  private reachWaypoint(mission: ActiveMission): boolean {
+  private reachWaypoint(mission: ActiveMission): void {
     const { adventurers, task } = mission;
     
     const mapSystem = GameState.mapSystem;
-    if (!mapSystem) return true;
+    if (!mapSystem) return;
 
-    if (task.currentRouteIndex === undefined) task.currentRouteIndex = 0;
-    const currentNodeId = task.tradeRouteNodeIds![task.currentRouteIndex!];
+    normalizeTradeTask(task);
+    const itinerary = task.tradeItineraryNodeIds || [];
+    const currentLegIndex = task.currentLegIndex ?? 0;
+    const currentNodeId = itinerary[currentLegIndex];
     const currentNode = mapSystem.getNodeById(currentNodeId);
 
-    if (!currentNode) return true;
+    if (!currentNode) {
+      task.tradePhase = TradePhase.RETURNING;
+      task.currentLegIndex = itinerary.length;
+      task.currentRouteIndex = task.currentLegIndex;
+      mission.remainingDays = 1;
+      return;
+    }
 
     let advNames = adventurers.map(a => a.name).join(', ');
     console.log(`📍 [商隊抵達] 冒險者小隊 (${advNames}) 抵達中途站：${currentNode.name}`);
@@ -201,8 +222,9 @@ export class DispatchSystem {
       }
     }
 
-    task.currentRouteIndex!++;
-    if (task.currentRouteIndex! >= task.tradeRouteNodeIds!.length) {
+    task.currentLegIndex = currentLegIndex + 1;
+    task.currentRouteIndex = task.currentLegIndex;
+    if (task.currentLegIndex >= itinerary.length) {
       console.log(`🏁 [商隊返程] 商隊已完成所有停靠站，正在返回領地！`);
       
       const playerNode = mapSystem.getNodes().find(n => n.isPlayerBase);
@@ -213,10 +235,11 @@ export class DispatchSystem {
       }
       
       mission.remainingDays = returnDays + weatherPenalty;
-      task.tradeRouteNodeIds = []; // 標記為返程
-      return false; 
+      task.tradePhase = TradePhase.RETURNING;
+      task.currentLegIndex = itinerary.length;
+      task.currentRouteIndex = task.currentLegIndex;
     } else {
-      const nextNodeId = task.tradeRouteNodeIds![task.currentRouteIndex!];
+      const nextNodeId = itinerary[task.currentLegIndex];
       const nextNode = mapSystem.getNodeById(nextNodeId);
       if (nextNode) {
          const dist = Math.sqrt(Math.pow(currentNode.x - nextNode.x, 2) + Math.pow(currentNode.y - nextNode.y, 2));
@@ -225,7 +248,6 @@ export class DispatchSystem {
       } else {
          mission.remainingDays = 1;
       }
-      return false;
     }
   }
 
@@ -239,6 +261,9 @@ export class DispatchSystem {
     // 處理新版多節點貿易任務完成
     if (task.type === TaskType.TRADE && task.caravanGold !== undefined) {
       this.territory.addGold(task.caravanGold);
+      const cashProfit = task.initialCaravanGold === undefined
+        ? null
+        : task.caravanGold - task.initialCaravanGold;
       let logCargo = '';
       if (task.caravanCargo) {
         for (const [goodId, amount] of Object.entries(task.caravanCargo)) {
@@ -250,7 +275,10 @@ export class DispatchSystem {
           }
         }
       }
-      console.log(`✅ [商隊歸來] 决陽者小隊 (${advNames}) 完成了跑商任務！帶回了 ${task.caravanGold} 金幣。貨物遷回：${logCargo || '無（本金已全投入買貨）'}`);
+      const profitText = cashProfit === null
+        ? '舊任務未記錄初始本金，無法計算現金損益'
+        : `現金損益：${cashProfit >= 0 ? '+' : ''}${cashProfit} 金幣`;
+      console.log(`✅ [商隊歸來] 决陽者小隊 (${advNames}) 完成跑商！投入本金：${task.initialCaravanGold ?? '未記錄'}，帶回現金：${task.caravanGold}，${profitText}。帶回貨物：${logCargo || '無'}`);
       
       for (const adv of adventurers) {
         adv.currentState = AdventurerState.IDLE;
@@ -301,8 +329,8 @@ export class DispatchSystem {
         }
       }
       // 探索回報：隨機少量資源 + 少量聲望
-      const woodGain = Math.floor(Math.random() * 5) + 2;
-      const stoneGain = Math.floor(Math.random() * 3) + 1;
+      const woodGain = Random.int(2, 6);
+      const stoneGain = Random.int(1, 3);
       const xpReward = task.expectedPrestige;
       this.territory.wood += woodGain;
       this.territory.stone += stoneGain;
@@ -314,10 +342,6 @@ export class DispatchSystem {
         adv.dispatchEndTime = null;
         adv.restingDaysLeft = 0;
       }
-      EventBus.getInstance().publish({
-        type: GameEventType.COMBAT_FINISHED,
-        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: xpReward, battleLog: '探索完成' }
-      });
       return;
     }
 
@@ -336,20 +360,21 @@ export class DispatchSystem {
 
     if (isSuccess) {
       this.territory.addGold(task.expectedGold);
-      let gainedPrestige = task.expectedPrestige;
+      const gainedPrestige = task.expectedPrestige;
+      let heroXpReward = Math.max(10, task.expectedPrestige * 2);
       
       let expBonusStr = '';
       if (GameState.restedExpPool > 0) {
-         const bonus = Math.min(GameState.restedExpPool, gainedPrestige);
+         const bonus = Math.min(GameState.restedExpPool, heroXpReward);
          GameState.restedExpPool -= bonus;
-         gainedPrestige += bonus;
+         heroXpReward += bonus;
          expBonusStr = ` (其中包含 💤${bonus} 點休息加成)`;
       }
 
       this.territory.prestige += gainedPrestige;
       
       let dropMsg = '';
-      if (Math.random() * 100 <= task.baseDifficulty) {
+      if (Random.next() * 100 <= task.baseDifficulty) {
         const maxLevel = Math.max(5, Math.floor(task.baseDifficulty / 2));
         const droppedEq = EquipmentGenerator.dropRandomEquipment(maxLevel);
         if (droppedEq) {
@@ -363,7 +388,7 @@ export class DispatchSystem {
       finalReport.lootValue = gainedPrestige; // 將最終獎勵補入 report 供 UI 顯示
       
       const record: CombatHistoryRecord = {
-        id: `combat_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        id: `combat_${Date.now()}_${Random.int(0, 999)}`,
         day: GameState.totalDays,
         nodeName: task.name + (task.subjugationMode === 'PROGRESS' ? ' (進度討伐)' : ''),
         report: finalReport
@@ -373,7 +398,7 @@ export class DispatchSystem {
 
       EventBus.getInstance().publish({
         type: GameEventType.COMBAT_FINISHED,
-        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: gainedPrestige, battleLog, report: finalReport }
+        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: gainedPrestige, xpReward: heroXpReward, battleLog, report: finalReport }
       });
 
       // 勝利後立即設為閒置
@@ -395,7 +420,7 @@ export class DispatchSystem {
       finalReport.lootValue = 0;
 
       const record: CombatHistoryRecord = {
-        id: `combat_${Date.now()}_${Math.floor(Math.random()*1000)}`,
+        id: `combat_${Date.now()}_${Random.int(0, 999)}`,
         day: GameState.totalDays,
         nodeName: task.name + (task.subjugationMode === 'PROGRESS' ? ' (進度討伐)' : ''),
         report: finalReport
@@ -441,6 +466,7 @@ export class DispatchSystem {
         tData.enemyFeature
       );
       Object.assign(task, tData);
+      normalizeTradeTask(task);
 
       // 3. 還原 ActiveMission 物件
       return {
@@ -448,6 +474,17 @@ export class DispatchSystem {
         task: task,
         remainingDays: raw.remainingDays
       };
+    });
+    this.publishMissionChange('LOADED');
+  }
+
+  private publishMissionChange(
+    reason: 'DISPATCHED' | 'PROGRESSED' | 'COMPLETED' | 'LOADED',
+    missionType?: TaskType
+  ): void {
+    EventBus.getInstance().publish({
+      type: GameEventType.MISSIONS_CHANGED,
+      payload: { reason, missionType }
     });
   }
 }

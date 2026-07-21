@@ -6,12 +6,13 @@ import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { UIManager } from './UIManager';
 import { DataStore } from '../systems/DataStore';
 import { EquipmentGenerator } from '../systems/EquipmentGenerator';
-import { DispatchTask, EnemyFeature, TaskType, TradeInstruction } from '../models/DispatchTask';
+import { DispatchTask, EnemyFeature, TaskType, TradeInstruction, TradePhase } from '../models/DispatchTask';
 import { GAME_EVENTS } from '../data/EventData';
-import { startRoutePlanning, renderMap } from './MapController';
+import { startRoutePlanning } from './MapController';
 import { TRADE_GOODS } from '../systems/MarketSystem';
 import { DispatchSystem, ActiveMission } from '../systems/DispatchSystem';
 import { CombatUIManager } from './CombatUIManager';
+import { Random } from '../core/Random';
 
 export function openWarehouse(isForgeMode: boolean) {
   const modalWarehouse = document.getElementById('modal-warehouse')!;
@@ -580,14 +581,14 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
     optionsContainer.style.display = 'block';
     title.innerHTML = '⚔️ 討伐隊伍編制';
     const features = Object.values(EnemyFeature);
-    const randomFeature = features[Math.floor(Math.random() * features.length)];
+    const randomFeature = Random.pick(features);
     // 討伐任務需要較長天數 (預設 4 天)
     pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
     pendingDispatchTask.targetNodeId = node.id;
     
     let fStr = '';
-    if (randomFeature === EnemyFeature.HIGH_DEF) fStr = ' (高防禦敵人)';
-    if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = ' (高閃避敵人)';
+    if (randomFeature === EnemyFeature.HIGH_DEF) fStr = '（高防禦敵人：建議高攻擊與多波續戰能力）';
+    if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
     desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   }
 
@@ -615,8 +616,6 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
         }
       }
       GameState.system.dispatchAdventurers(team, pendingDispatchTask);
-      renderMap(); // 派遣出發後即時重繪 Phaser 地圖以更新插地交叉雙劍動畫
-      UIManager.updateUI();
       modal.classList.remove('active');
     }
   });
@@ -925,10 +924,15 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
 
     const taskName = `商隊路線 (${routeNodes.map(n => n.name).join(' ➔ ')})`;
     const task = new DispatchTask(taskName, TaskType.TRADE, firstLegDays, 0, 0, 0, 0, EnemyFeature.BALANCED);
-    task.tradeRouteNodeIds = plannedRouteNodeIds;
+    task.tradeRouteNodeIds = [...plannedRouteNodeIds];
+    task.tradeItineraryNodeIds = [...plannedRouteNodeIds];
+    task.currentLegIndex = 0;
+    task.currentRouteIndex = 0;
+    task.tradePhase = TradePhase.OUTBOUND;
     task.tradeInstructions = instructions;
     task.caravanCargo = {};
     task.caravanGold = inputGold;
+    task.initialCaravanGold = inputGold;
     
     GameState.myTerritory.gold -= inputGold; // 扣除本金
     
@@ -937,7 +941,6 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     
     console.log(`[系統] 🐪 商隊已出發！帶著 ${inputGold} 金幣的本金。`);
     modal.style.display = 'none';
-    UIManager.updateUI();
   };
   
   // 避免重複綁定
@@ -958,12 +961,19 @@ function updateDispatchPowerPreview() {
     }
   });
   const el = document.getElementById('dispatch-total-power')!;
+  const riskEl = document.getElementById('dispatch-risk-preview')!;
   el.textContent = totalPower.toString();
   
   if (pendingDispatchTask && totalPower >= pendingDispatchTask.minPowerRequired) {
     el.style.color = '#10b981'; // 綠色
   } else {
     el.style.color = '#eab308'; // 黃色
+  }
+  if (pendingDispatchTask) {
+    const ratio = pendingDispatchTask.minPowerRequired > 0 ? totalPower / pendingDispatchTask.minPowerRequired : 1;
+    const risk = ratio >= 1.4 ? '低' : ratio >= 1 ? '中' : '高';
+    const color = risk === '低' ? '#10b981' : risk === '中' ? '#f59e0b' : '#ef4444';
+    riskEl.innerHTML = `風險：<strong style="color:${color}">${risk}</strong>｜耗時 ${pendingDispatchTask.requiredDays} 天｜預期 💰${pendingDispatchTask.expectedGold}／✨${pendingDispatchTask.expectedPrestige}｜失敗將休養`;
   }
 }
 

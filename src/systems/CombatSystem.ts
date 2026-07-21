@@ -1,6 +1,7 @@
 import { GameState } from '../core/GameState';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect } from '../models/Combat';
 import { FormationRow, TerrainType } from '../models/types';
+import { Random } from '../core/Random';
 
 export class CombatSystem {
   public static simulateCombat(attackerIds: string[], taskDifficulty: number = 10, enemyFeature: string = '', terrain?: TerrainType, totalWaves: number = 1): CombatReport {
@@ -35,11 +36,12 @@ export class CombatSystem {
     }));
 
     let isVictory = false;
+    let allWavesCleared = true;
 
     for (let wave = 1; wave <= totalWaves; wave++) {
       const enemyTeam: CombatParticipant[] = [];
       const currentWaveDiff = taskDifficulty + (wave - 1) * 5;
-      const enemyCount = Math.floor(Math.random() * 3) + 1;
+      const enemyCount = Random.int(1, 3);
       
       for (let i = 0; i < enemyCount; i++) {
         const eHp = 50 + currentWaveDiff * 5;
@@ -53,7 +55,7 @@ export class CombatSystem {
           id: `enemy_w${wave}_${i}`,
           name: `怪物 ${i + 1}`,
           isPlayer: false,
-          row: Math.random() > 0.5 ? FormationRow.FRONT : FormationRow.BACK,
+          row: Random.next() > 0.5 ? FormationRow.FRONT : FormationRow.BACK,
           maxHp: eHp,
           currentHp: eHp,
           stats: { hp: eHp, mp: 0, atk: 10 + currentWaveDiff * 2, def: eDef, hit: 20 + currentWaveDiff, evade: eEvade },
@@ -79,7 +81,7 @@ export class CombatSystem {
         }
 
         // 依敏捷排序
-      allParticipants.sort((a, b) => (b.stats.evade + Math.random() * 20) - (a.stats.evade + Math.random() * 20));
+      allParticipants.sort((a, b) => (b.stats.evade + Random.next() * 20) - (a.stats.evade + Random.next() * 20));
 
       for (const actor of allParticipants) {
         if (actor.currentHp <= 0) continue;
@@ -105,11 +107,11 @@ export class CombatSystem {
 
         let target = validTargets.find(e => e.statusEffects.some(s => s.type === StatusEffectType.TAUNT));
         if (!target) {
-          target = validTargets[Math.floor(Math.random() * validTargets.length)];
+          target = Random.pick(validTargets);
         }
 
         const hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
-        if (Math.random() > hitChance) {
+        if (Random.next() > hitChance) {
           events.push({
             type: CombatEventType.MISS,
             actorName: actor.name,
@@ -120,13 +122,13 @@ export class CombatSystem {
         }
 
         const critChance = 0.05 + (actor.stats.hit / 500);
-        const isCrit = Math.random() < critChance;
+        const isCrit = Random.next() < critChance;
         let baseDamage = actor.stats.atk;
         if (isCrit) baseDamage *= 1.5;
 
         const dmgReduction = target.stats.def / (target.stats.def + 50);
         let finalDamage = Math.max(1, Math.floor(baseDamage * (1 - dmgReduction)));
-        finalDamage = Math.floor(finalDamage * (0.9 + Math.random() * 0.2));
+        finalDamage = Math.floor(finalDamage * (0.9 + Random.next() * 0.2));
 
         target.currentHp -= finalDamage;
 
@@ -141,10 +143,10 @@ export class CombatSystem {
         });
 
         if (target.currentHp > 0) {
-           if (actor.isPlayer && Math.random() < 0.15) {
+           if (actor.isPlayer && Random.next() < 0.15) {
              target.statusEffects.push({ type: StatusEffectType.BLEED, duration: 3 });
              events.push({ type: CombatEventType.STATUS_APPLY, targetId: target.id, targetName: target.name, statusType: StatusEffectType.BLEED, text: `${target.name} 陷入流血狀態！` });
-           } else if (!actor.isPlayer && Math.random() < 0.1) {
+           } else if (!actor.isPlayer && Random.next() < 0.1) {
              target.statusEffects.push({ type: StatusEffectType.POISON, duration: 2, value: 5 });
              events.push({ type: CombatEventType.STATUS_APPLY, targetId: target.id, targetName: target.name, statusType: StatusEffectType.POISON, text: `${target.name} 陷入中毒狀態！` });
            }
@@ -161,10 +163,19 @@ export class CombatSystem {
       if (playerTeam.every(p => p.currentHp <= 0)) {
          break; // 英雄全滅，提早結束總波次迴圈
       }
+      if (!enemyTeam.every(enemy => enemy.currentHp <= 0)) {
+        allWavesCleared = false;
+        break;
+      }
     } // 總波次迴圈結束
 
-    isVictory = playerTeam.some(p => p.currentHp > 0);
-    const battleLog = isVictory ? '我方部隊奮勇作戰，成功清剿了所有敵人！' : '敵軍火力太強，我方部隊被迫撤退。';
+    isVictory = playerTeam.some(p => p.currentHp > 0) && allWavesCleared;
+    const timedOut = playerTeam.some(p => p.currentHp > 0) && !allWavesCleared;
+    const battleLog = isVictory
+      ? '我方部隊奮勇作戰，成功清剿了所有敵人！'
+      : timedOut
+        ? '戰鬥陷入僵局，我方在傷亡擴大前選擇撤退。'
+        : '敵軍火力太強，我方部隊被迫撤退。';
     events.push({ type: CombatEventType.END, text: battleLog });
 
     const playerHpMap: Record<string, number> = {};

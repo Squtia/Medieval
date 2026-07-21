@@ -1,4 +1,5 @@
 import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow } from './types';
+import { Random } from '../core/Random';
 
 export class Adventurer {
   public id: string;
@@ -54,7 +55,7 @@ export class Adventurer {
       weights.push(maxSum - i + 1); // 數值越高，權重越小
     }
     const totalWeight = weights.reduce((a, b) => a + b, 0);
-    let rand = Math.random() * totalWeight;
+    let rand = Random.next() * totalWeight;
     let targetSum = minSum;
     for (let i = 0; i < possibleValues.length; i++) {
       rand -= weights[i];
@@ -83,7 +84,7 @@ export class Adventurer {
       safety++;
       const diff = targetSum - allocatedSum;
       const step = diff > 0 ? 1 : -1;
-      const randomKey = keys[Math.floor(Math.random() * keys.length)];
+      const randomKey = Random.pick(keys);
       if (step === -1 && attrs[randomKey] <= 1) continue;
 
       attrs[randomKey] += step;
@@ -99,8 +100,8 @@ export class Adventurer {
       case 'SR': chmCmdMin = 3; chmCmdMax = 5; break;
       case 'SSR': chmCmdMin = 5; chmCmdMax = 8; break;
     }
-    attrs.charm = Math.floor(Math.random() * (chmCmdMax - chmCmdMin + 1)) + chmCmdMin;
-    attrs.command = Math.floor(Math.random() * (chmCmdMax - chmCmdMin + 1)) + chmCmdMin;
+    attrs.charm = Random.int(chmCmdMin, chmCmdMax);
+    attrs.command = Random.int(chmCmdMin, chmCmdMax);
 
     this.baseAttributes = attrs as Attributes;
     this.unspentStatPoints = 0;

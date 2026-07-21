@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fantasy Idle RPG</title>
+  <title>中古世紀傭兵團｜回合制經營 RPG</title>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
     /* 基礎重置與字型 */
@@ -132,6 +132,8 @@
       font-family: 'Cinzel', 'Noto Serif TC', serif;
       box-shadow: 0 4px 10px rgba(0,0,0,0.7);
       max-width: 220px;
+      max-height: calc(100vh - 24px);
+      overflow-y: auto;
       line-height: 1.6;
     }
 
@@ -408,7 +410,7 @@
     }
     .modal-overlay.active { display: flex; }
     .modal-content {
-      width: 650px; max-height: 85,vh; overflow-y: auto;
+      width: 650px; max-height: 85vh; overflow-y: auto;
       padding: 30px; position: relative;
     }
     .close-btn {
@@ -635,6 +637,84 @@
     .floating-base-btn:active {
       transform: scale(0.95);
       filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+    }
+
+    .visually-hidden-map-list {
+      position: absolute;
+      left: -10000px;
+      top: 70px;
+      z-index: 220;
+    }
+    .visually-hidden-map-list:focus-within {
+      left: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 70vh;
+      overflow-y: auto;
+      padding: 12px;
+      background: rgba(20, 15, 10, 0.96);
+      border: 1px solid #8b4513;
+    }
+    .daily-summary {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid rgba(139, 69, 19, 0.5);
+      background: rgba(0, 0, 0, 0.3);
+      font-size: 0.8em;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 1199px) {
+      .empire-dashboard { width: 36%; }
+      .resource-group { gap: 10px; }
+      #top-bar { padding: 0 14px; font-size: 0.9em; }
+    }
+
+    @media (max-width: 767px) {
+      body { overflow: hidden; }
+      #top-bar {
+        height: 104px;
+        padding: 6px 10px;
+        flex-wrap: wrap;
+        align-content: center;
+        gap: 4px;
+        background: rgba(0, 0, 0, 0.9);
+      }
+      #top-bar > .resource-group:nth-child(2) {
+        order: 3;
+        width: 100%;
+        overflow-x: auto;
+        padding: 4px 0;
+        flex-wrap: nowrap;
+      }
+      #top-bar > .resource-group:nth-child(3) { margin-left: auto; }
+      #main-layout { top: 104px; }
+      #view-container { width: 100%; flex: 1 1 100%; }
+      .empire-dashboard {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 42%;
+        border-left: 0;
+        border-top: 2px solid #8b4513;
+        background-color: rgba(26, 21, 17, 0.96);
+      }
+      .dashboard-header { padding: 12px; }
+      .dashboard-middle { padding: 0 12px; }
+      .dashboard-bottom { padding: 10px 12px; height: 45%; }
+      .modal-content { width: calc(100vw - 24px); padding: 20px; }
+      .facility-view { padding: 24px 16px; overflow-y: auto; }
+      #main-menu-view { padding: 24px; text-align: center; }
+      #main-menu-view h1 { font-size: 2.4em !important; }
+      #main-menu-view p { font-size: 1em !important; }
+      #startup-banner { height: 52px !important; gap: 6px !important; flex-direction: column; }
+      #startup-banner h2 { font-size: 1.05em !important; }
+      #startup-banner p { font-size: 0.8em !important; }
+      #map-status-panel { width: 220px !important; padding: 12px !important; bottom: 10px !important; left: 10px !important; }
+      .street-building { transform: scale(0.8); margin: -20px; }
     }
     /* 戰鬥結算 modal */
     #combat-modal {
@@ -905,7 +985,8 @@
       <div class="resource-item" title="聲望"><span class="resource-icon">✨</span> <span id="ui-prestige">0</span></div>
       <div class="resource-item" title="好感度"><span class="resource-icon">🤝</span> <span id="ui-favor">0</span></div>
     </div>
-    <div class="resource-group" style="gap: 10px; align-items: center;">
+      <div class="resource-group" style="gap: 10px; align-items: center;">
+      <div class="resource-item" id="ui-threat" title="下一次威脅"><span class="resource-icon">⚠️</span> <span id="ui-threat-days">10天</span></div>
       <div class="resource-item" title="遊戲日期" style="margin-right: 10px;"><span class="resource-icon">📅</span> <span id="ui-date">第 1 年 1 月 1 日</span></div>
       <button id="btn-end-day" class="action-btn" style="padding: 5px 15px; background: rgba(59, 130, 246, 0.4); border-color: #60a5fa; color: white;">⏳ 結束本日</button>
       <button id="btn-system-menu" class="action-btn" style="padding: 5px 15px; background: rgba(255, 255, 255, 0.15); border-color: #cbd5e1; color: white;">📜 系統選單</button>
@@ -956,6 +1037,7 @@
           <!-- Radial Menu 覆蓋在地圖上，不能被 renderMap 清除 -->
           <div id="radial-menu" class="radial-menu"></div>
           <div id="map-nodes-container" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);"></div>
+          <div id="map-accessible-node-list" class="visually-hidden-map-list" aria-label="世界地圖節點"></div>
         </div>
 
       </div>
@@ -1241,7 +1323,12 @@
              <div id="ui-title-progress" class="progress-fill" style="width: 50%;"></div>
            </div>
            <div style="text-align: right; font-size: 0.75em; color: #cbd5e1; margin-top: 5px;" id="ui-title-text">距離下一階還需 150 聲望</div>
-        </div>
+         </div>
+         <div id="daily-summary" class="daily-summary" aria-live="polite">
+           <strong>📊 今日摘要</strong>
+           <div id="daily-summary-content">尚未結束第一天。</div>
+           <button id="btn-prepare-threat" class="action-btn" style="display:none; margin-top:8px; padding:6px 10px; width:100%;">🛡️ 防災準備（20 木材）</button>
+         </div>
       </div>
 
       <div class="dashboard-middle">
@@ -1415,6 +1502,7 @@
           <div style="color: #cbd5e1;">預估隊伍總戰力：<span id="dispatch-total-power" style="color: #eab308; font-size: 1.2em; font-weight: bold;">0</span></div>
           <div style="color: #94a3b8; font-size: 0.9em;" id="dispatch-req-power">建議戰力：-</div>
         </div>
+        <div id="dispatch-risk-preview" style="margin-bottom: 12px; color: #cbd5e1; font-size: 0.9em;">風險與獎勵將在選擇隊伍後顯示。</div>
         <button id="btn-confirm-dispatch" class="action-btn" style="width: 100%; padding: 12px; font-size: 1.2em;">🚀 確認出發</button>
       </div>
     </div>

@@ -30,6 +30,16 @@ export function stopGameLoop() {
 export function advanceDay() {
   if (!GameState.system || !GameState.mapSystem) return;
 
+  const before = {
+    gold: GameState.myTerritory.gold,
+    food: GameState.myTerritory.food,
+    wood: GameState.myTerritory.wood,
+    stone: GameState.myTerritory.stone,
+    iron: GameState.myTerritory.iron,
+    population: GameState.myTerritory.population,
+    activeMissions: GameState.system.getActiveMissionsCount()
+  };
+
   GameState.currentDay += 1;
   GameState.totalDays += 1;
   
@@ -88,6 +98,17 @@ export function advanceDay() {
     
     console.log(`📅 [系統] 月底結算：目前時間為第 ${GameState.currentYear} 年 ${GameState.currentMonth} 月。`);
   }
+
+  GameState.lastDailySummary = {
+    day: GameState.totalDays,
+    goldDelta: GameState.myTerritory.gold - before.gold,
+    foodDelta: GameState.myTerritory.food - before.food,
+    woodDelta: GameState.myTerritory.wood - before.wood,
+    stoneDelta: GameState.myTerritory.stone - before.stone,
+    ironDelta: GameState.myTerritory.iron - before.iron,
+    populationDelta: GameState.myTerritory.population - before.population,
+    missionsCompleted: Math.max(0, before.activeMissions - GameState.system.getActiveMissionsCount())
+  };
 
   // 更新 UI
   if (typeof (window as any).updateUICallback === 'function') {

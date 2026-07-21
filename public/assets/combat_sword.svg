@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 128">
+  <defs>
+    <linearGradient id="blade" x1="0" x2="1">
+      <stop offset="0" stop-color="#77808b"/>
+      <stop offset="0.48" stop-color="#f8fafc"/>
+      <stop offset="0.7" stop-color="#b8c2cc"/>
+      <stop offset="1" stop-color="#4b5563"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff1a8"/>
+      <stop offset="0.45" stop-color="#d9a72e"/>
+      <stop offset="1" stop-color="#7c4a10"/>
+    </linearGradient>
+  </defs>
+  <path d="M27 38 L37 38 L41 87 L32 120 L23 87 Z" fill="url(#blade)" stroke="#1f2937" stroke-width="2"/>
+  <path d="M32 43 L32 110" stroke="#ffffff" stroke-opacity="0.55" stroke-width="2"/>
+  <path d="M12 34 Q32 27 52 34 L49 41 Q32 36 15 41 Z" fill="url(#gold)" stroke="#4a2b0b" stroke-width="2"/>
+  <rect x="28" y="13" width="8" height="23" rx="3" fill="#6b3519" stroke="#2b160c" stroke-width="2"/>
+  <path d="M28 17 H36 M28 23 H36 M28 29 H36" stroke="#d7a35a" stroke-width="2"/>
+  <circle cx="32" cy="10" r="7" fill="url(#gold)" stroke="#4a2b0b" stroke-width="2"/>
+  <circle cx="32" cy="10" r="2.5" fill="#fff1a8"/>
+</svg>

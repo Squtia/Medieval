@@ -1,5 +1,6 @@
 import { Equipment } from '../models/types';
 import { Territory } from '../models/Territory';
+import { Random } from '../core/Random';
 
 export class EnhancementSystem {
   /**
@@ -43,7 +44,7 @@ export class EnhancementSystem {
     territory.gold -= cost;
     
     const successRate = this.getSuccessRate(currentLevel);
-    const roll = Math.random() * 100;
+    const roll = Random.next() * 100;
     const isSuccess = roll <= successRate;
 
     if (isSuccess) {

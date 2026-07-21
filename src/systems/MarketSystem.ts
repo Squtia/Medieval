@@ -1,4 +1,5 @@
 import { MapNode, NodeLevel, TradeGood, WeatherType, TerrainType } from '../models/types';
+import { Random } from '../core/Random';
 
 export const TRADE_GOODS: TradeGood[] = [
   { id: 'tg_wheat', name: '小麥', description: '基礎糧食，平原多產。', basePrice: 10, type: 'FOOD', icon: '🌾' },
@@ -39,9 +40,9 @@ export class MarketSystem {
       .map(id => TRADE_GOODS.find(g => g.id === id))
       .filter(Boolean) as typeof TRADE_GOODS;
 
-    const numGoods = Math.floor(Math.random() * 3) + 3; // 3~5 種
+    const numGoods = Random.int(3, 5);
     const otherGoods = TRADE_GOODS.filter(g => !specialtyIds.includes(g.id));
-    const shuffled = [...otherGoods].sort(() => 0.5 - Math.random());
+    const shuffled = [...otherGoods].sort(() => 0.5 - Random.next());
     const extras = shuffled.slice(0, Math.max(0, numGoods - specialtyGoods.length));
     const selected = [...specialtyGoods, ...extras];
 
@@ -59,14 +60,14 @@ export class MarketSystem {
       if (node.terrain === TerrainType.FOREST && good.id === 'tg_meat') multiplier = 0.6;
 
       const baseValue = good.basePrice * multiplier;
-      const fluctuation = 0.8 + Math.random() * 0.4; // 0.8 ~ 1.2
+      const fluctuation = 0.8 + Random.next() * 0.4; // 0.8 ~ 1.2
       const finalPrice = Math.max(1, Math.floor(baseValue * fluctuation));
 
       node.marketData.goods.push({
         goodId: good.id,
         buyPrice: Math.floor(finalPrice * 1.2), // 買入價較貴
         sellPrice: finalPrice,                  // 賣出價較低
-        stock: Math.floor(Math.random() * 50) + 10 * node.nodeLevel // 依據等級決定庫存
+        stock: Random.int(0, 49) + 10 * node.nodeLevel // 依據等級決定庫存
       });
     }
   }
@@ -104,14 +105,14 @@ export class MarketSystem {
             if (node.currentWeather === WeatherType.SNOW && goodRef.type === 'FOOD') modifier *= 1.5; // 暴雪缺糧
             if (node.currentWeather === WeatherType.SANDSTORM && goodRef.type === 'MATERIAL') modifier *= 1.3; // 沙暴缺建材
             
-            const fluctuation = 0.8 + Math.random() * 0.4;
+            const fluctuation = 0.8 + Random.next() * 0.4;
             const newBase = goodRef.basePrice * modifier * fluctuation;
             
             item.buyPrice = Math.max(1, Math.floor(newBase * 1.2));
             item.sellPrice = Math.max(1, Math.floor(newBase));
             
             // 補充庫存
-            item.stock += Math.floor(Math.random() * 20);
+            item.stock += Random.int(0, 19);
           }
         }
       }

@@ -1,6 +1,6 @@
 # 專案架構 (Architecture)
 
-這份文件概述了 Idle RPG 的系統架構與設計模式。
+這份文件概述了回合制傭兵團經營 RPG 的系統架構與設計模式。
 為了支撐複雜的「據點發展 x 英雄養成 x 戰略戰鬥 x 生存壓力」多系統複合體，本專案採用**事件驅動架構 (Event-Driven Architecture)**。
 
 ## 目錄結構
@@ -13,7 +13,10 @@
 │   │   ├── EventBus.ts      # [核心] 全局事件總線
 │   │   ├── GameEvents.ts    # [核心] 事件定義與 Payload 型別
 │   │   ├── GameState.ts     # 全局狀態容器與初始化
-│   │   └── GameLoop.ts      # 遊戲主循環計時器
+│   │   ├── GameLoop.ts      # 玩家操作驅動的每日結算流程
+│   │   ├── Random.ts        # 可注入、可重現的亂數來源
+│   │   ├── Calendar.ts      # 日曆與累計天數換算
+│   │   └── SaveMigration.ts # 純函式存檔版本遷移
 │   ├── models/              # 核心資料模型 (Data Models, 純粹的資料)
 │   │   ├── Adventurer.ts    # 英雄資料與隨機品質/屬性
 │   │   ├── Territory.ts     # 領地資料、工作分配與建造設施等級 (Tavern/WeaponShop/ArmorShop/Forge)
@@ -26,7 +29,8 @@
 │   │   ├── DispatchSystem.ts   # 派遣與任務系統
 │   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張
 │   │   └── DataStore.ts        # 靜態資料庫 (含 1~3 階裝備與價格 DB)
-│   └── main.ts              # 測試介面進入點與 DOM 事件監聽
+│   ├── ui/                  # DOM UI、Phaser Scene 與呈現資料
+│   └── main.ts              # 組合根：系統初始化、事件轉接與 DOM 綁定
 ├── index.html               # 測試用網頁骨架
 └── package.json             # Vite 建置配置檔
 ```
@@ -51,3 +55,30 @@
 ## 其他設計原則
 - **時間戳記結算**：狀態等待不使用 `setInterval` 的逐秒遞減，而是記錄 `endTime`。
 - **單向資料流**：`models` 僅放資料結構，狀態修改一律在 `systems` 內透過事件響應完成。
+
+## Phaser 與 DOM 的責任邊界
+
+- `MapScene` 只負責 Canvas 地圖、相機、節點和動畫；離開 Scene 時必須解除自身監聽並清除 tween。
+- `MapController` 負責 DOM 面板、可及性節點清單，以及把 Phaser 的節點點擊轉成 UI 操作。
+- `MapPresentation` 放置兩邊共用的純呈現函式，避免 `MapScene` 與 `MapController` 循環依賴。
+- Phaser 不直接呼叫系統或 Modal；跨邊界使用 `CustomEvent`。系統也不匯入 UI，遊戲事件由 `main.ts` 轉接到視窗。
+- 任務狀態變更由 `MISSIONS_CHANGED` 廣播，`main.ts` 再要求 DOM 與 Phaser 重繪；`GameLoop` 不匯入地圖控制器。
+- Scene 內的任務效果、商隊和其他 tween 分別持有 reference，只清理各自資源，禁止以 `killAll()` 處理局部更新。
+- 戰鬥節點光效由 `combatBeacons: Map<nodeId, CombatBeacon>` 差異化同步；信標疊在節點圖示上並循環播放插劍，地圖重繪會保留既有 tween，任務完成後才整體淡出並銷毀。
+
+## 行商狀態模型
+
+- `tradeItineraryNodeIds` 是不可變的完整停靠順序，不可用清空陣列代表回程。
+- `tradePhase` 明確區分 `OUTBOUND` 與 `RETURNING`，`currentLegIndex` 指向目前路段。
+- `normalizeTradeTask` 在派遣與讀檔時將舊版 `tradeRouteNodeIds/currentRouteIndex` 轉為新模型；舊回程任務可從 `tradeInstructions` 重建 itinerary。
+- 地圖線段由 `buildTradeRouteSegments` 純函式產生，第一段與回程段皆可單獨測試。
+
+## 可重現性與儲存相容
+
+- 所有遊戲亂數經由 `Random`；測試可注入 `SeededRandomSource`，執行後必須 reset。
+- 存檔帶有 `schemaVersion`。讀檔先通過 `migrateSaveData`，再重建 class instance 與系統訂閱。
+- 日曆顯示值與 `totalDays` 同時保存；市場等長期模擬以單調遞增的 `totalDays` 為準。
+
+## 品質閘門
+
+本機與 CI 統一執行 `npm run check`：型別檢查、Vitest、production build 與 JS bundle budget。新系統應至少涵蓋成功、失敗及存檔遷移中的相關邊界案例。

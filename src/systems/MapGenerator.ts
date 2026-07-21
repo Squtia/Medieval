@@ -1,5 +1,6 @@
 import { MapNode, NodeLevel } from '../models/types';
 import { TERRAIN_BOUNDS, RegionBounds } from '../data/MapRegions';
+import { Random } from '../core/Random';
 
 export class MapGenerator {
   /**
@@ -32,19 +33,19 @@ export class MapGenerator {
 
       for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         // 隨機選擇一個該地形的 Bound
-        const bounds = boundsList[Math.floor(Math.random() * boundsList.length)];
+        const bounds = Random.pick(boundsList);
         
         let tx: number, ty: number;
         
         // 如果是首都，盡量放在區塊中心偏一點
         if (node.nodeLevel === NodeLevel.CAPITAL) {
-           tx = bounds.xMin + (bounds.xMax - bounds.xMin) / 2 + (Math.random() - 0.5) * 5;
-           ty = bounds.yMin + (bounds.yMax - bounds.yMin) / 2 + (Math.random() - 0.5) * 5;
+           tx = bounds.xMin + (bounds.xMax - bounds.xMin) / 2 + (Random.next() - 0.5) * 5;
+           ty = bounds.yMin + (bounds.yMax - bounds.yMin) / 2 + (Random.next() - 0.5) * 5;
         } else if (node.ownerFactionId && capitalPositions[node.ownerFactionId]) {
            // 如果有首都，盡量靠近首都 (距離 10~25 內)
            const cap = capitalPositions[node.ownerFactionId];
-           const angle = Math.random() * Math.PI * 2;
-           const dist = 5 + Math.random() * 15;
+           const angle = Random.next() * Math.PI * 2;
+           const dist = 5 + Random.next() * 15;
            tx = cap.x + Math.cos(angle) * dist;
            ty = cap.y + Math.sin(angle) * dist;
            
@@ -52,8 +53,8 @@ export class MapGenerator {
            tx = Math.max(bounds.xMin, Math.min(bounds.xMax, tx));
            ty = Math.max(bounds.yMin, Math.min(bounds.yMax, ty));
         } else {
-           tx = bounds.xMin + Math.random() * (bounds.xMax - bounds.xMin);
-           ty = bounds.yMin + Math.random() * (bounds.yMax - bounds.yMin);
+           tx = bounds.xMin + Random.next() * (bounds.xMax - bounds.xMin);
+           ty = bounds.yMin + Random.next() * (bounds.yMax - bounds.yMin);
         }
 
         // 碰撞檢測

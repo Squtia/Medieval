@@ -31,7 +31,24 @@ export const GameState = {
   currentMonth: 1,
   currentYear: 1,
   totalDays: 1,
-  restedExpPool: 0
+  restedExpPool: 0,
+  threat: {
+    name: '凜冬寒流',
+    severity: 5,
+    daysRemaining: 10,
+    warningIssued: false,
+    prepared: false
+  },
+  lastDailySummary: null as null | {
+    day: number;
+    goldDelta: number;
+    foodDelta: number;
+    woodDelta: number;
+    stoneDelta: number;
+    ironDelta: number;
+    populationDelta: number;
+    missionsCompleted: number;
+  }
 };
 
 export function initGameState() {
@@ -55,6 +72,8 @@ export function initGameState() {
   GameState.currentYear = 1;
   GameState.totalDays = 1;
   GameState.restedExpPool = 0;
+  GameState.threat = { name: '凜冬寒流', severity: 5, daysRemaining: 10, warningIssued: false, prepared: false };
+  GameState.lastDailySummary = null;
   
   // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
   EventBus.getInstance().clearAll();

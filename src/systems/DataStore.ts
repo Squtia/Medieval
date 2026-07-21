@@ -1,4 +1,5 @@
 import { EquipmentTemplate, EquipmentSlot, JobConfig, TraitConfig } from '../models/types';
+import { Random } from '../core/Random';
 
 export class DataStore {
   // ============================
@@ -30,7 +31,7 @@ export class DataStore {
   /** 取得隨機職業 */
   public static getRandomJob(): JobConfig {
     const keys = Object.keys(this.JobDB);
-    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+    const randomKey = Random.pick(keys);
     return this.JobDB[randomKey];
   }
 
@@ -50,8 +51,14 @@ export class DataStore {
   /** 取得隨機性格 */
   public static getRandomTrait(): TraitConfig {
     const keys = Object.keys(this.TraitDB);
-    const randomKey = keys[Math.floor(Math.random() * keys.length)];
+    const randomKey = Random.pick(keys);
     return this.TraitDB[randomKey];
+  }
+
+  /** 一般招募專用；誓約守衛只保留給初始角色。 */
+  public static getRandomRecruitTrait(): TraitConfig {
+    const keys = Object.keys(this.TraitDB).filter(key => key !== 'GUARDIAN');
+    return this.TraitDB[Random.pick(keys)];
   }
 
   // ============================

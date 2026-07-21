@@ -2,12 +2,21 @@ import Phaser from 'phaser';
 import { GameState } from '../core/GameState';
 import { MapNode, NodeFeature } from '../models/types';
 import { TaskType } from '../models/DispatchTask';
-import { getNodeIcon } from './MapController';
+import { buildTradeRouteSegments, getNodeIcon } from './MapPresentation';
+import { positionFloatingElement } from './FloatingPosition';
+
+interface CombatBeacon {
+  container: Phaser.GameObjects.Container;
+  tweens: Phaser.Tweens.Tween[];
+}
 
 export class MapScene extends Phaser.Scene {
   private routeGraphics!: Phaser.GameObjects.Graphics;
   private nodeContainers: Map<string, Phaser.GameObjects.Container> = new Map();
   private caravans: Phaser.GameObjects.Text[] = [];
+  private caravanTweens: Phaser.Tweens.Tween[] = [];
+  private combatBeacons: Map<string, CombatBeacon> = new Map();
+  private readonly resizeHandler = () => this.updateCameraZoomAndLimits();
   
   private clickStartX = 0;
   private clickStartY = 0;
@@ -22,6 +31,7 @@ export class MapScene extends Phaser.Scene {
   preload() {
     // 載入背景圖
     this.load.image('bg-map', './bg-map.png');
+    this.load.svg('combat-sword', './assets/combat_sword.svg', { width: 48, height: 96 });
   }
 
   create() {
@@ -45,9 +55,7 @@ export class MapScene extends Phaser.Scene {
     this.cameras.main.centerOn(800, 450);
 
     // 監聽視窗變更，自動調整
-    this.scale.on('resize', () => {
-      this.updateCameraZoomAndLimits();
-    });
+    this.scale.on('resize', this.resizeHandler);
 
     // 設定滑鼠拖曳 Camera
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -88,6 +96,18 @@ export class MapScene extends Phaser.Scene {
 
     // 5. 繪製貿易路線與商隊
     this.updateRoutesAndCaravans();
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanupSceneResources());
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => this.cleanupSceneResources());
+  }
+
+  private cleanupSceneResources() {
+    this.clearCombatBeacons();
+    this.caravanTweens.forEach(tween => tween.remove());
+    this.caravanTweens = [];
+    this.hideTooltip();
+    this.scale.off('resize', this.resizeHandler);
+    this.input.removeAllListeners();
   }
 
   private updateCameraZoomAndLimits() {
@@ -143,67 +163,6 @@ export class MapScene extends Phaser.Scene {
       const container = this.add.container(px, py);
       container.add([iconText, labelText]);
 
-      // 判斷該據點是否有派遣任務 (COMBAT 或 EXPLORE)
-      const activeMissions = GameState.system?.getActiveMissions() || [];
-      const hasMission = activeMissions.some(m => m.task.targetNodeId === node.id);
-      
-      if (hasMission) {
-        // 建立交叉雙劍 (⚔️) - 一體化 45 度斜插交叉，尺寸超大且顯眼，徹底解決兩把劍單獨定位對齊偏角的所有視覺問題
-        const crossSwords = this.add.text(0, -45, '⚔️', { fontSize: '38px' }).setOrigin(0.5);
-        crossSwords.setDepth(60);
-        
-        container.add(crossSwords);
-        
-        const runSwordAnim = () => {
-          if (!crossSwords.active) return;
-          
-          crossSwords.alpha = 0;
-          crossSwords.setPosition(0, -90);
-          crossSwords.setAngle(0);
-          
-          // 1. 掉落與淡入
-          this.tweens.add({
-            targets: crossSwords,
-            alpha: 1,
-            y: -35,
-            duration: 250,
-            ease: 'Cubic.easeIn',
-            onComplete: () => {
-              // 2. 插地顫動反彈 (微小抖動)
-              this.tweens.add({
-                targets: crossSwords,
-                angle: 10,
-                duration: 50,
-                yoyo: true,
-                repeat: 3,
-                onComplete: () => {
-                  crossSwords.setAngle(0); // 確保抖動後回到水平正向
-                }
-              });
-            }
-          });
-          
-          // 3. 停留 1.5 秒後淡出
-          this.time.delayedCall(250 + 50 * 6 + 1500, () => {
-            if (!crossSwords.active) return;
-            this.tweens.add({
-              targets: crossSwords,
-              alpha: 0,
-              duration: 300,
-              ease: 'Linear',
-              onComplete: () => {
-                // 4. 等待 0.5 秒後再次重啟循環
-                this.time.delayedCall(500, () => {
-                  runSwordAnim();
-                });
-              }
-            });
-          });
-        };
-        
-        runSwordAnim();
-      }
-      
       let depth = 10;
       if (node.isPlayerBase) depth = 50;
       else if (node.ownerFactionId) depth = 30;
@@ -274,6 +233,139 @@ export class MapScene extends Phaser.Scene {
 
       this.nodeContainers.set(node.id, container);
     });
+    this.syncCombatBeacons(nodes);
+  }
+
+  private syncCombatBeacons(nodes: MapNode[]): void {
+    const combatNodeIds = new Set(
+      (GameState.system?.getActiveMissions() || [])
+        .filter(mission => mission.task.type === TaskType.COMBAT && mission.task.targetNodeId)
+        .map(mission => mission.task.targetNodeId!)
+    );
+
+    this.combatBeacons.forEach((beacon, nodeId) => {
+      if (!combatNodeIds.has(nodeId)) {
+        this.destroyCombatBeacon(beacon, true);
+        this.combatBeacons.delete(nodeId);
+      }
+    });
+
+    combatNodeIds.forEach(nodeId => {
+      const node = nodes.find(candidate => candidate.id === nodeId);
+      if (!node) return;
+      const x = (node.x / 100) * 1600;
+      // 與節點 Emoji 中心重疊，信標本身不設 interactive，不阻擋原節點點擊。
+      const y = (node.y / 100) * 900 - 10;
+      const existing = this.combatBeacons.get(nodeId);
+      if (existing) {
+        existing.container.setPosition(x, y);
+      } else {
+        this.combatBeacons.set(nodeId, this.createCombatBeacon(x, y));
+      }
+    });
+  }
+
+  private createCombatBeacon(x: number, y: number): CombatBeacon {
+    const container = this.add.container(x, y).setDepth(140);
+    const weaponGroup = this.add.container(0, 0);
+    const impactGlow = this.add.ellipse(0, 15, 52, 16, 0xf59e0b, 0.16).setBlendMode(Phaser.BlendModes.ADD);
+    const pulseRing = this.add.ellipse(0, 17, 76, 26, 0x000000, 0)
+      .setStrokeStyle(3, 0xfbbf24, 1)
+      .setAlpha(0)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    const swordGlow = this.add.circle(0, -9, 20, 0xfbbf24, 0.18).setBlendMode(Phaser.BlendModes.ADD);
+
+    const leftSword = this.add.image(72, -82, 'combat-sword')
+      .setDisplaySize(30, 60)
+      .setOrigin(0.5, 0.94)
+      .setAngle(38)
+      .setAlpha(0);
+    const rightSword = this.add.image(-72, -82, 'combat-sword')
+      .setDisplaySize(30, 60)
+      .setOrigin(0.5, 0.94)
+      .setAngle(-38)
+      .setAlpha(0);
+
+    weaponGroup.add([swordGlow, leftSword, rightSword]);
+    container.add([impactGlow, pulseRing, weaponGroup]);
+
+    const tweens: Phaser.Tweens.Tween[] = [];
+    // 3.2 秒一輪：沿劍身方向高速斜射入土，而非垂直落下。
+    tweens.push(this.tweens.add({
+      targets: leftSword,
+      x: { from: 72, to: -10 },
+      y: { from: -82, to: 18 },
+      duration: 220,
+      hold: 2980,
+      ease: 'Cubic.easeIn',
+      repeat: -1
+    }));
+    tweens.push(this.tweens.add({
+      targets: rightSword,
+      x: { from: -72, to: 10 },
+      y: { from: -82, to: 18 },
+      duration: 220,
+      delay: 120,
+      ease: 'Cubic.easeIn',
+      hold: 2980,
+      repeat: -1
+    }));
+    [leftSword, rightSword].forEach((sword, index) => {
+      tweens.push(this.tweens.add({
+        targets: sword,
+        alpha: { from: 0, to: 1 },
+        duration: 140,
+        delay: index * 120,
+        hold: 2400,
+        yoyo: true,
+        repeatDelay: 520,
+        repeat: -1
+      }));
+    });
+    tweens.push(this.tweens.add({
+      targets: pulseRing,
+      alpha: { from: 0.82, to: 0 },
+      scaleX: { from: 0.7, to: 1.5 },
+      scaleY: { from: 0.7, to: 1.5 },
+      duration: 800,
+      delay: 350,
+      repeatDelay: 2400,
+      ease: 'Sine.easeOut',
+      repeat: -1
+    }));
+    tweens.push(this.tweens.add({
+      targets: [impactGlow, swordGlow],
+      alpha: { from: 0.12, to: 0.42 },
+      scaleX: { from: 0.9, to: 1.12 },
+      duration: 800,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1
+    }));
+
+    return { container, tweens };
+  }
+
+  private destroyCombatBeacon(beacon: CombatBeacon, animate: boolean): void {
+    beacon.tweens.forEach(tween => tween.remove());
+    beacon.tweens.length = 0;
+    if (!animate || !beacon.container.active) {
+      beacon.container.destroy(true);
+      return;
+    }
+    this.tweens.add({
+      targets: beacon.container,
+      alpha: 0,
+      scale: 1.3,
+      duration: 320,
+      ease: 'Cubic.easeOut',
+      onComplete: () => beacon.container.destroy(true)
+    });
+  }
+
+  private clearCombatBeacons(): void {
+    this.combatBeacons.forEach(beacon => this.destroyCombatBeacon(beacon, false));
+    this.combatBeacons.clear();
   }
 
   private handleNodeClick(node: MapNode) {
@@ -325,17 +417,7 @@ export class MapScene extends Phaser.Scene {
     const e = pointer.event as MouseEvent;
     if (!e) return;
     
-    const padding = 12;
-    let x = e.clientX + padding;
-    let y = e.clientY - tooltip.offsetHeight - padding;
-    if (x + tooltip.offsetWidth > window.innerWidth) {
-      x = e.clientX - tooltip.offsetWidth - padding;
-    }
-    if (y < 0) {
-      y = e.clientY + padding;
-    }
-    tooltip.style.left = x + 'px';
-    tooltip.style.top = y + 'px';
+    positionFloatingElement(tooltip, e.clientX, e.clientY);
   }
 
   private hideTooltip() {
@@ -345,6 +427,8 @@ export class MapScene extends Phaser.Scene {
 
   updateRoutesAndCaravans() {
     this.routeGraphics.clear();
+    this.caravanTweens.forEach(tween => tween.remove());
+    this.caravanTweens = [];
     
     this.caravans.forEach(c => c.destroy());
     this.caravans = [];
@@ -358,20 +442,12 @@ export class MapScene extends Phaser.Scene {
     const activeMissions = GameState.system?.getActiveMissions()?.filter(m => m.task.type === TaskType.TRADE) || [];
 
     activeMissions.forEach(mission => {
-      const routeIds = mission.task.tradeRouteNodeIds || [];
-      if (routeIds.length === 0) return;
+      const segments = buildTradeRouteSegments(mission.task, playerNode.id);
 
-      const nodesPath: MapNode[] = [];
-      nodesPath.push(playerNode);
-      routeIds.forEach(id => {
-        const n = mapSystem.getNodeById(id);
-        if (n) nodesPath.push(n);
-      });
-      nodesPath.push(playerNode);
-
-      for (let i = 0; i < nodesPath.length - 1; i++) {
-        const startNode = nodesPath[i];
-        const endNode = nodesPath[i+1];
+      for (const segment of segments) {
+        const startNode = mapSystem.getNodeById(segment.startNodeId);
+        const endNode = mapSystem.getNodeById(segment.endNodeId);
+        if (!startNode || !endNode) continue;
 
         const px1 = (startNode.x / 100) * 1600;
         const py1 = (startNode.y / 100) * 900;
@@ -406,9 +482,7 @@ export class MapScene extends Phaser.Scene {
           new Phaser.Math.Vector2(px2, py2)
         );
 
-        const isCurrentSegment = (mission.task.currentRouteIndex !== undefined && i === mission.task.currentRouteIndex);
-
-        if (isCurrentSegment) {
+        if (segment.isCurrent) {
           this.routeGraphics.lineStyle(3, 0xeab308, 0.8);
           curve.draw(this.routeGraphics, 40);
 
@@ -421,7 +495,7 @@ export class MapScene extends Phaser.Scene {
           this.caravans.push(caravanText);
 
           const pathObj = { t: 0 };
-          this.tweens.add({
+          const caravanTween = this.tweens.add({
             targets: pathObj,
             t: 1,
             ease: 'Linear',
@@ -434,6 +508,7 @@ export class MapScene extends Phaser.Scene {
               }
             }
           });
+          this.caravanTweens.push(caravanTween);
         } else {
           this.routeGraphics.lineStyle(2, 0x94a3b8, 0.3);
           const points = curve.getPoints(20);

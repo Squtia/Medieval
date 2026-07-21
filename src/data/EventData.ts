@@ -1,6 +1,6 @@
 import { GameState } from '../core/GameState';
 import { FactionType } from '../models/types';
-import { UIManager } from '../ui/UIManager';
+import { Random } from '../core/Random';
 
 export interface EventOption {
   text: string;
@@ -55,7 +55,7 @@ export const GAME_EVENTS: GameEvent[] = [
     condition: () => {
       // 隨機事件，無特別條件限制
       const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_morvayn');
-      return !!mor && Math.random() < 0.2; 
+      return !!mor && Random.next() < 0.2;
     },
     options: [
       {

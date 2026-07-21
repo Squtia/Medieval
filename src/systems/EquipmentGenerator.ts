@@ -1,5 +1,6 @@
 import { Equipment, EquipmentTemplate, Attributes, CombatStats } from '../models/types';
 import { DataStore } from './DataStore';
+import { Random } from '../core/Random';
 
 export class EquipmentGenerator {
   /**
@@ -12,7 +13,7 @@ export class EquipmentGenerator {
     if (!template) return null;
 
     // 產生專屬 UUID
-    const uuid = `eq_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    const uuid = `eq_${Date.now()}_${Random.int(0, 9999)}`;
 
     const eq: Equipment = {
       uuid,
@@ -34,13 +35,13 @@ export class EquipmentGenerator {
 
       // 隨機分配點數邏輯
       while (remainingPoints > 0) {
-        const alloc = Math.min(remainingPoints, Math.floor(Math.random() * 3) + 1); // 每次分配 1~3 點
+        const alloc = Math.min(remainingPoints, Random.int(1, 3));
         remainingPoints -= alloc;
 
-        const isCombatStat = pool.combatStats && pool.combatStats.length > 0 && Math.random() > 0.5;
+        const isCombatStat = pool.combatStats && pool.combatStats.length > 0 && Random.next() > 0.5;
         
         if (isCombatStat && pool.combatStats) {
-          const stat = pool.combatStats[Math.floor(Math.random() * pool.combatStats.length)];
+          const stat = Random.pick(pool.combatStats);
           // 針對不同戰鬥屬性，分配的倍率不同 (例如 HP/MP 倍率較高)
           let multiplier = 1;
           if (stat === 'hp' || stat === 'mp') multiplier = 5;
@@ -48,7 +49,7 @@ export class EquipmentGenerator {
           if (!eq.combatEffects) eq.combatEffects = {};
           eq.combatEffects[stat] = (eq.combatEffects[stat] || 0) + (alloc * multiplier);
         } else if (pool.attributes && pool.attributes.length > 0) {
-          const attr = pool.attributes[Math.floor(Math.random() * pool.attributes.length)];
+          const attr = Random.pick(pool.attributes);
           if (!eq.effects) eq.effects = {};
           eq.effects[attr] = (eq.effects[attr] || 0) + alloc;
         }
@@ -68,7 +69,7 @@ export class EquipmentGenerator {
     
     if (validTemplates.length === 0) return null;
     
-    const selectedTemplate = validTemplates[Math.floor(Math.random() * validTemplates.length)];
+    const selectedTemplate = Random.pick(validTemplates);
     return this.generate(selectedTemplate.id);
   }
 }

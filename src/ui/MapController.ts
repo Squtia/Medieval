@@ -7,30 +7,8 @@ import { UIManager } from './UIManager';
 import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
 import { TaskType } from '../models/DispatchTask';
 import { MapScene } from './MapScene';
-
-export function getTerrainEmoji(terrain: TerrainType): string {
-  switch(terrain) {
-    case TerrainType.FOREST: return '🌲';
-    case TerrainType.SNOW_MOUNTAIN: return '🏔️';
-    case TerrainType.VOLCANO: return '🌋';
-    case TerrainType.DESERT: return '🏜️';
-    case TerrainType.PLAINS: return '🌾';
-    default: return '📍';
-  }
-}
-
-export function getNodeIcon(node: MapNode): string {
-  if (node.isPlayerBase) return '🏰';
-  if (node.feature === NodeFeature.MONSTER_NEST) return '👹';
-  if (node.feature === NodeFeature.SUBJUGATION) return '🏚️';
-  
-  if (node.nodeLevel === NodeLevel.CAPITAL) return '🏰';
-  if (node.nodeLevel === NodeLevel.TOWN) return '🏘️';
-  if (node.nodeLevel === NodeLevel.VILLAGE) return '🏡';
-  if (node.nodeLevel === NodeLevel.CAMP) return '⛺';
-  
-  return getTerrainEmoji(node.terrain);
-}
+import { getTerrainEmoji } from './MapPresentation';
+export { getTerrainEmoji, getNodeIcon } from './MapPresentation';
 
 export let phaserGame: Phaser.Game | null = null;
 
@@ -102,6 +80,21 @@ export function renderMap() {
       scene.updateRoutesAndCaravans();
     }
   }
+  renderAccessibleMapNodes();
+}
+
+function renderAccessibleMapNodes() {
+  const container = document.getElementById('map-accessible-node-list');
+  if (!container || !GameState.mapSystem) return;
+  container.innerHTML = '';
+  GameState.mapSystem.getNodes().forEach(node => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'action-btn';
+    button.textContent = `${getTerrainEmoji(node.terrain)} ${node.name}`;
+    button.addEventListener('click', () => handlePhaserNodeClick(node));
+    container.appendChild(button);
+  });
 }
 
 export function renderTradeRoutes() {
@@ -121,6 +114,11 @@ export function setStartupMode(mode: boolean) {
   if (banner) {
     banner.style.display = mode ? 'flex' : 'none';
   }
+}
+
+export function hideMapTooltip() {
+  const tooltip = document.getElementById('map-tooltip');
+  if (tooltip) tooltip.style.opacity = '0';
 }
 
 // 掛載至全域以打破與 UIManager 的循環依賴，保障編譯與部署流暢
@@ -195,6 +193,7 @@ function updateRoutePlanningHUD() {
 }
 
 export function openNodeSelectModal(node: MapNode) {
+  hideMapTooltip();
   const modal = document.getElementById('modal-node-select')!;
   document.getElementById('node-select-name')!.textContent = node.name;
   document.getElementById('node-select-terrain')!.textContent = `📍 地形：${getTerrainEmoji(node.terrain)} | 規模：${node.nodeLevel}`;

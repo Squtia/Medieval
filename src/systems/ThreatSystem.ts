@@ -1,29 +1,40 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
+import { GameState } from '../core/GameState';
+import { Random } from '../core/Random';
 
 export class ThreatSystem {
-  private daysUntilNextThreat = 10; // 預設 10 天後發生災難
-
   constructor() {
     const eventBus = EventBus.getInstance();
 
     // 監聽天數流逝推動災難倒數
     eventBus.subscribe(GameEventType.DAY_PASSED, (payload) => {
-      this.daysUntilNextThreat--;
+      const threat = GameState.threat;
+      threat.daysRemaining--;
       // 倒數資訊僅供 debug，不顯示在遊戲日誌中
 
-      if (this.daysUntilNextThreat <= 0) {
+      if (threat.daysRemaining <= 3 && threat.daysRemaining > 0 && !threat.warningIssued) {
+        threat.warningIssued = true;
+        eventBus.publish({
+          type: GameEventType.THREAT_WARNING,
+          payload: { threatName: threat.name, daysRemaining: threat.daysRemaining, severity: threat.severity }
+        });
+      }
+
+      if (threat.daysRemaining <= 0) {
         // 觸發災難
         eventBus.publish({
           type: GameEventType.THREAT_ARRIVED,
           payload: {
-            threatName: '凜冬寒流',
-            severity: 5
+            threatName: threat.name,
+            severity: threat.severity
           }
         });
         
         // 重置倒數
-        this.daysUntilNextThreat = Math.floor(Math.random() * 10) + 15; // 15~25天
+        threat.daysRemaining = Random.int(15, 25);
+        threat.warningIssued = false;
+        threat.prepared = false;
       }
     });
   }

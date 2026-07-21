@@ -9,6 +9,8 @@ import { HeroSystem } from '../systems/HeroSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { ThreatSystem } from '../systems/ThreatSystem';
 import { MarketSystem } from '../systems/MarketSystem';
+import { calendarToTotalDays } from './Calendar';
+import { CURRENT_SAVE_SCHEMA_VERSION, migrateSaveData } from './SaveMigration';
 
 export interface SaveSlotMetadata {
   slot: number;
@@ -53,6 +55,7 @@ export class SaveManager {
     const currentPlayTime = GameState.playTime + (Date.now() - GameState.sessionStartTime);
     
     const saveData = {
+      schemaVersion: CURRENT_SAVE_SCHEMA_VERSION,
       timestamp: Date.now(),
       playTime: currentPlayTime,
       territory: GameState.myTerritory,
@@ -63,7 +66,10 @@ export class SaveManager {
       currentDay: GameState.currentDay,
       currentMonth: GameState.currentMonth,
       currentYear: GameState.currentYear,
-      restedExpPool: GameState.restedExpPool
+      totalDays: GameState.totalDays,
+      restedExpPool: GameState.restedExpPool,
+      threat: GameState.threat,
+      lastDailySummary: GameState.lastDailySummary
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
@@ -80,7 +86,7 @@ export class SaveManager {
     if (!dataStr) return false;
 
     try {
-      const data = JSON.parse(dataStr);
+      const data = migrateSaveData(JSON.parse(dataStr));
       
       // 1. 還原 Territory
       const t = new Territory(data.territory.name, data.territory.currentCountryId);
@@ -143,6 +149,9 @@ export class SaveManager {
       GameState.currentDay = data.currentDay || 1;
       GameState.currentMonth = data.currentMonth || 1;
       GameState.currentYear = data.currentYear || 1;
+      GameState.totalDays = data.totalDays || calendarToTotalDays(GameState.currentYear, GameState.currentMonth, GameState.currentDay);
+      GameState.threat = { name: '凜冬寒流', severity: 5, daysRemaining: 10, warningIssued: false, prepared: false, ...(data.threat || {}) };
+      GameState.lastDailySummary = data.lastDailySummary || null;
 
       // 還原 currentViewNode
       if (t.currentCountryId) {
@@ -176,4 +185,5 @@ export class SaveManager {
       return `${minutes}分 ${seconds}秒`;
     }
   }
+
 }

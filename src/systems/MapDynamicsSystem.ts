@@ -1,5 +1,6 @@
 import { Faction, MapNode, NodeLevel, NodeFeature, WeatherType, TerrainType } from '../models/types';
 import { Territory } from '../models/Territory';
+import { Random } from '../core/Random';
 
 export class MapDynamicsSystem {
   private mapNodes: MapNode[];
@@ -345,65 +346,65 @@ export class MapDynamicsSystem {
 
       // 天氣結束，重新骰一次天氣
       // 依據地形賦予權重
-      const r = Math.random();
+      const r = Random.next();
       
       if (node.terrain === TerrainType.SNOW_MOUNTAIN) {
         if (r < 0.6) {
           node.currentWeather = WeatherType.SNOW;
-          node.weatherDuration = Math.floor(Math.random() * 3) + 2; // 2~4天
+          node.weatherDuration = Random.int(2, 4);
         } else if (r < 0.8) {
           node.currentWeather = WeatherType.FOG;
-          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+          node.weatherDuration = Random.int(1, 2);
         } else {
           node.currentWeather = WeatherType.CLEAR;
-          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+          node.weatherDuration = Random.int(1, 2);
         }
       } else if (node.terrain === TerrainType.DESERT) {
         if (r < 0.3) {
           node.currentWeather = WeatherType.SANDSTORM;
-          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+          node.weatherDuration = Random.int(1, 3);
         } else if (r < 0.35) { // 異常天氣
           node.currentWeather = WeatherType.RAIN;
           node.weatherDuration = 1;
         } else {
           node.currentWeather = WeatherType.CLEAR;
-          node.weatherDuration = Math.floor(Math.random() * 5) + 3;
+          node.weatherDuration = Random.int(3, 7);
         }
       } else if (node.terrain === TerrainType.FOREST) {
         if (r < 0.4) {
           node.currentWeather = WeatherType.RAIN;
-          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+          node.weatherDuration = Random.int(1, 3);
         } else if (r < 0.6) {
           node.currentWeather = WeatherType.FOG;
-          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+          node.weatherDuration = Random.int(1, 2);
         } else {
           node.currentWeather = WeatherType.CLEAR;
-          node.weatherDuration = Math.floor(Math.random() * 4) + 2;
+          node.weatherDuration = Random.int(2, 5);
         }
       } else if (node.terrain === TerrainType.VOLCANO) {
         if (r < 0.2) {
           node.currentWeather = WeatherType.FOG;
-          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+          node.weatherDuration = Random.int(1, 3);
         } else if (r < 0.25) { // 異常天氣
           node.currentWeather = WeatherType.SNOW;
           node.weatherDuration = 1;
         } else {
           node.currentWeather = WeatherType.CLEAR;
-          node.weatherDuration = Math.floor(Math.random() * 6) + 2;
+          node.weatherDuration = Random.int(2, 7);
         }
       } else { // PLAINS 及其他
         if (r < 0.3) {
           node.currentWeather = WeatherType.RAIN;
-          node.weatherDuration = Math.floor(Math.random() * 3) + 1;
+          node.weatherDuration = Random.int(1, 3);
         } else if (r < 0.4) {
           node.currentWeather = WeatherType.FOG;
-          node.weatherDuration = Math.floor(Math.random() * 2) + 1;
+          node.weatherDuration = Random.int(1, 2);
         } else if (r < 0.45) { // 異常天氣
           node.currentWeather = WeatherType.SNOW;
           node.weatherDuration = 1;
         } else {
           node.currentWeather = WeatherType.CLEAR;
-          node.weatherDuration = Math.floor(Math.random() * 5) + 2;
+          node.weatherDuration = Random.int(2, 6);
         }
       }
     }

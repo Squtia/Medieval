@@ -15,11 +15,12 @@ export class EventBus {
     return EventBus.instance;
   }
 
-  public subscribe<T extends GameEventType>(eventType: T, handler: EventHandler<T>): void {
+  public subscribe<T extends GameEventType>(eventType: T, handler: EventHandler<T>): () => void {
     if (!this.listeners[eventType]) {
       this.listeners[eventType] = [];
     }
     this.listeners[eventType]!.push(handler as any);
+    return () => this.unsubscribe(eventType, handler);
   }
 
   public unsubscribe<T extends GameEventType>(eventType: T, handler: EventHandler<T>): void {

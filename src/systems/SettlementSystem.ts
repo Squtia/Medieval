@@ -2,6 +2,7 @@ import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
 import { WorkerJob } from '../models/types';
+import { Random } from '../core/Random';
 
 export class SettlementSystem {
   constructor() {
@@ -14,7 +15,13 @@ export class SettlementSystem {
 
     // 監聽災難威脅抵達
     eventBus.subscribe(GameEventType.THREAT_ARRIVED, (payload) => {
+      const territory = GameState.myTerritory;
+      const effectiveSeverity = GameState.threat.prepared ? Math.ceil(payload.severity / 2) : payload.severity;
+      const foodLost = Math.min(territory.food, effectiveSeverity * 4);
+      territory.food -= foodLost;
+      territory.prestige = Math.max(0, territory.prestige - effectiveSeverity);
       console.log(`[SettlementSystem] 警告！據點遭受了 ${payload.threatName} 的襲擊！(嚴重度: ${payload.severity})`);
+      console.log(`[內政] ❄️ 災害造成糧食 -${foodLost}、聲望 -${effectiveSeverity}${GameState.threat.prepared ? '（防災準備已降低損失）' : ''}。`);
     });
   }
 
@@ -29,7 +36,7 @@ export class SettlementSystem {
     
     // 礦工有機率挖到鐵礦
     let ironProduced = 0;
-    if (workers[WorkerJob.MINER] > 0 && Math.random() < 0.2) {
+    if (workers[WorkerJob.MINER] > 0 && Random.next() < 0.2) {
       ironProduced = 1;
     }
 
@@ -67,7 +74,7 @@ export class SettlementSystem {
           const hasWorkers = jobKeys.some(j => territory.workers[j] > 0);
           if (!hasWorkers) break;
 
-          const randJob = jobKeys[Math.floor(Math.random() * jobKeys.length)];
+          const randJob = Random.pick(jobKeys);
           if (territory.workers[randJob] > 0) {
             territory.workers[randJob]--;
             removed++;
@@ -82,7 +89,7 @@ export class SettlementSystem {
       }
     } else {
       // 若糧食充足，可以自然吸引流民 (10%機率)
-      if (territory.food > totalPeople * 2 && Math.random() < 0.1) {
+      if (territory.food > totalPeople * 2 && Random.next() < 0.1) {
          territory.population += 1;
          territory.workers[WorkerJob.UNASSIGNED] += 1;
          console.log(`[SettlementSystem] 🏕️ 領地繁榮！流民被吸引而來，總人口增加 1 人。`);

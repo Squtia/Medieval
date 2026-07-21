@@ -4,6 +4,7 @@ import { openAdvDetail } from './ModalController';
 import { renderBaseBuildings } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
+import { positionFloatingElement } from './FloatingPosition';
 
 class UIManagerClass {
   // 頂部資源列
@@ -25,6 +26,9 @@ class UIManagerClass {
   uiWorkerMiner = document.getElementById('ui-worker-MINER');
   uiNetProduction = document.getElementById('ui-net-production');
   uiDate = document.getElementById('ui-date');
+  uiThreatDays = document.getElementById('ui-threat-days');
+  dailySummaryContent = document.getElementById('daily-summary-content');
+  btnPrepareThreat = document.getElementById('btn-prepare-threat') as HTMLButtonElement;
 
   // 儀表板與環境控制
   uiDashboardTitle = document.getElementById('ui-dashboard-title')!;
@@ -81,6 +85,21 @@ class UIManagerClass {
         dateText += ` (💤${GameState.restedExpPool})`;
       }
       this.uiDate.textContent = dateText;
+    }
+    if (this.uiThreatDays) {
+      this.uiThreatDays.textContent = `${GameState.threat.daysRemaining}天`;
+      this.uiThreatDays.parentElement!.setAttribute('title', `${GameState.threat.name}，嚴重度 ${GameState.threat.severity}`);
+    }
+    if (this.btnPrepareThreat) {
+      const canPrepare = GameState.threat.daysRemaining <= 3 && GameState.threat.daysRemaining > 0 && !GameState.threat.prepared;
+      this.btnPrepareThreat.style.display = canPrepare ? 'block' : 'none';
+      this.btnPrepareThreat.disabled = territory.wood < 20;
+    }
+    if (this.dailySummaryContent) {
+      const summary = GameState.lastDailySummary;
+      this.dailySummaryContent.textContent = summary
+        ? `第${summary.day}天｜金 ${formatDelta(summary.goldDelta)}｜糧 ${formatDelta(summary.foodDelta)}｜木 ${formatDelta(summary.woodDelta)}｜石 ${formatDelta(summary.stoneDelta)}｜鐵 ${formatDelta(summary.ironDelta)}｜完成任務 ${summary.missionsCompleted}`
+        : '尚未結束第一天。';
     }
 
     // 更新勞動力面板
@@ -147,6 +166,8 @@ class UIManagerClass {
     // 更新冒險者名單
     let allIdle = true;
     if (this.advContainer) {
+      const activeTooltip = document.getElementById('adv-tooltip');
+      if (activeTooltip) activeTooltip.style.opacity = '0';
       this.advContainer.innerHTML = '';
       GameState.adventurers.forEach(adv => {
         const card = document.createElement('div');
@@ -158,7 +179,7 @@ class UIManagerClass {
         // UI-01: 修正狀態顯示（移除錯誤的秒數計算，加入 RESTING 狀態）
         let stateText = '🟢 閒置';
         if (adv.currentState === AdventurerState.RESTING) {
-          stateText = `🮥 休养中 (${adv.restingDaysLeft}天後)`;
+          stateText = `🛌 休養中 (${adv.restingDaysLeft}天後)`;
         } else if (adv.currentState !== AdventurerState.IDLE) {
           stateText = `🔴 任務中`;
         }
@@ -206,8 +227,7 @@ Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
         card.addEventListener('mousemove', (e) => {
           const tEl = document.getElementById('adv-tooltip');
           if (tEl) {
-            tEl.style.left = `${e.clientX + 15}px`;
-            tEl.style.top = `${e.clientY + 15}px`;
+            positionFloatingElement(tEl, e.clientX, e.clientY);
           }
         });
 
@@ -247,7 +267,7 @@ Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
     this.btnFoundSettlement.disabled = territory.gold < 500;
   
     this.btnWildQuest.disabled = !allIdle;
-    this.btnWildQuest.textContent = !allIdle ? '🚫 冒險者忙碌中' : '⚔️ 派遣小隊討伐 (0秒)';
+    this.btnWildQuest.textContent = !allIdle ? '🚫 冒險者忙碌中' : '⚔️ 編制討伐小隊';
     
     // 更新待辦事項徽章
     const todoBadge = document.getElementById('todo-badge');
@@ -343,3 +363,7 @@ Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
 }
 
 export const UIManager = new UIManagerClass();
+
+function formatDelta(value: number): string {
+  return value > 0 ? `+${value}` : `${value}`;
+}
