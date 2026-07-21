@@ -1,7 +1,8 @@
+import { ToastManager } from './ToastManager';
 import { GameState, initGameState } from '../core/GameState';
 import { SaveManager } from '../core/SaveManager';
 import { UIManager } from './UIManager';
-import { setStartupMode, renderMap } from './MapController';
+import { setStartupMode, renderMap, ensurePhaserLoaded } from './MapController';
 import { clearGameLog } from '../utils/Logger';
 import { enterScene } from './SceneController';
 import { startGameLoop } from '../core/GameLoop';
@@ -56,9 +57,11 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
       `;
     }
 
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       if (s.isEmpty) {
         if (confirm(`確定要在欄位 ${s.slot} 開始新旅程嗎？`)) {
+          ToastManager.show('🗺️ 正在加載地圖與遊戲資源...', 'info');
+          await ensurePhaserLoaded();
           UIManager.playTransition(() => {
             document.getElementById('modal-load-game')?.classList.remove('active');
             mainMenu.classList.remove('active');
@@ -75,6 +78,8 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
         if (confirm(`確定要進入欄位 ${s.slot} 的旅程嗎？`)) {
           document.getElementById('modal-load-game')?.classList.remove('active');
           clearGameLog(); // 清除日誌，確保讀取的存檔從空白開始
+          ToastManager.show('🗺️ 正在加載地圖與遊戲資源...', 'info');
+          await ensurePhaserLoaded();
           if (SaveManager.loadGame(s.slot)) {
             rebindUIEvents();
             UIManager.playTransition(() => {

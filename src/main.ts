@@ -3,7 +3,7 @@ import { initGameState } from './core/GameState';
 import { initLogger } from './utils/Logger';
 import { UIManager } from './ui/UIManager';
 import { CombatUIManager } from './ui/CombatUIManager';
-import { renderMap, initMapInteraction, initPhaserMap } from './ui/MapController';
+import { renderMap, initMapInteraction } from './ui/MapController';
 import { openEventModal } from './ui/ModalController';
 import { GAME_EVENTS } from './data/EventData';
 import { EventBus } from './core/EventBus';
@@ -50,8 +50,7 @@ export function rebindGlobalUIEvents() {
 initGameState();
 rebindGlobalUIEvents();
 
-// 4. 初始化地圖
-initPhaserMap('map-nodes-container');
+// 4. 初始化地圖互動事件
 initMapInteraction();
 
 // 5. 初始化各個 UI Controller

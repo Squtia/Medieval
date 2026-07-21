@@ -1,32 +1,31 @@
 import { ToastManager } from './ToastManager';
-import Phaser from 'phaser';
 import { GameState } from '../core/GameState';
 import { TerrainType, NodeFeature, MapNode, NodeLevel, getMaxCaravansLimit } from '../models/types';
 import { enterScene } from './SceneController';
 import { UIManager } from './UIManager';
 import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
 import { TaskType } from '../models/DispatchTask';
-import { MapScene } from './MapScene';
 import { getTerrainEmoji } from './MapPresentation';
 export { getTerrainEmoji, getNodeIcon } from './MapPresentation';
 
-export let phaserGame: Phaser.Game | null = null;
+let phaserManagerModule: typeof import('./PhaserManager') | null = null;
 
-export function initPhaserMap(parentId: string) {
-  if (phaserGame) return;
-  const config: Phaser.Types.Core.GameConfig = {
-    type: Phaser.AUTO,
-    width: '100%',
-    height: '100%',
-    parent: parentId,
-    transparent: true,
-    scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.NO_CENTER
-    },
-    scene: [MapScene]
-  };
-  phaserGame = new Phaser.Game(config);
+export async function getPhaserManager() {
+  if (!phaserManagerModule) {
+    phaserManagerModule = await import('./PhaserManager');
+  }
+  return phaserManagerModule;
+}
+
+export async function ensurePhaserLoaded() {
+  const pm = await getPhaserManager();
+  pm.initPhaserMap('map-nodes-container');
+  return pm;
+}
+
+export async function initPhaserMap(parentId: string) {
+  const pm = await getPhaserManager();
+  pm.initPhaserMap(parentId);
 }
 
 // 監聽 Phaser 節點點擊事件
@@ -73,12 +72,8 @@ function handlePhaserNodeClick(node: MapNode) {
 }
 
 export function renderMap() {
-  if (phaserGame) {
-    const scene = phaserGame.scene.getScene('MapScene') as MapScene;
-    if (scene && scene.sys.isActive()) {
-      scene.rebuildNodes();
-      scene.updateRoutesAndCaravans();
-    }
+  if (phaserManagerModule) {
+    phaserManagerModule.renderMap();
   }
   renderAccessibleMapNodes();
 }
@@ -98,11 +93,8 @@ function renderAccessibleMapNodes() {
 }
 
 export function renderTradeRoutes() {
-  if (phaserGame) {
-    const scene = phaserGame.scene.getScene('MapScene') as MapScene;
-    if (scene && scene.sys.isActive()) {
-      scene.updateRoutesAndCaravans();
-    }
+  if (phaserManagerModule) {
+    phaserManagerModule.renderTradeRoutes();
   }
 }
 

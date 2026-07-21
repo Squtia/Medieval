@@ -15,6 +15,10 @@
 - 新增 Vitest、TypeScript、production build、bundle budget 與 GitHub Actions 品質閘門。
 - 新增 P0 自動化 Headless Chromium Smoke Test (Playwright)，覆蓋新遊戲選擇據點、進入街道與領主自宅、結束本日日期遞增、系統選單手動存檔與頁面重新整理進度還原閉環，並整合至 `npm run check` 流程。
 - 拆分 `main.ts` 的 UI wiring，依據畫面將過度集中的 DOM 事件與邏輯抽離為獨立的 UI Controllers (`RecruitController`, `MainMenuController`, `GameFlowController`, `FacilityController`, `ActionController`, `CheatController`)，顯著降低單一檔案耦合與代碼複雜度。
+- 完成 P1 Lazy Chunk 優化：
+  - 將 Phaser 引擎與地圖繪製邏輯抽離為 `PhaserManager.ts`，並在 `MainMenuController.ts`（進入旅程/載入存檔時）改為動態 `await import('./PhaserManager')` 加載，配合 Toast 載入提示。
+  - 將低頻建築與倉庫介面抽離為 `ShopController.ts`，並改為點擊視圖時動態加載。
+  - 將跑商規劃與交易介面抽離為 `TradeController.ts`（標有清晰架構註記），實現按需動態加載，使主包 (main bundle) 體積大幅縮減。
 
 
 ## [2026-07-19] 領地建築升級、獨立武具商店與冒險者卡片 Tooltip 懸浮化

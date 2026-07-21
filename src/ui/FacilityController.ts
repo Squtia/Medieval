@@ -18,18 +18,16 @@ export function initFacilityController(): void {
   document.getElementById('btn-enter-hall')?.addEventListener('click', () => enterFacility('view-hall'));
   document.getElementById('btn-enter-tavern')?.addEventListener('click', () => enterFacility('view-camp'));
   
-  document.getElementById('btn-enter-weapon-shop')?.addEventListener('click', () => {
+  document.getElementById('btn-enter-weapon-shop')?.addEventListener('click', async () => {
     enterFacility('view-weapon-shop');
-    if (typeof (window as any).renderWeaponShop === 'function') {
-      (window as any).renderWeaponShop();
-    }
+    const { renderWeaponShop } = await import('./ShopController');
+    renderWeaponShop();
   });
 
-  document.getElementById('btn-enter-armor-shop')?.addEventListener('click', () => {
+  document.getElementById('btn-enter-armor-shop')?.addEventListener('click', async () => {
     enterFacility('view-armor-shop');
-    if (typeof (window as any).renderArmorShop === 'function') {
-      (window as any).renderArmorShop();
-    }
+    const { renderArmorShop } = await import('./ShopController');
+    renderArmorShop();
   });
 
   document.getElementById('btn-enter-forge')?.addEventListener('click', () => enterFacility('view-forge'));
@@ -65,9 +63,15 @@ export function initFacilityController(): void {
   });
 
   // 倉庫與代辦事件
-  document.getElementById('btn-base-warehouse')?.addEventListener('click', () => openWarehouse(false));
+  document.getElementById('btn-base-warehouse')?.addEventListener('click', async () => {
+    const { openWarehouse } = await import('./ShopController');
+    openWarehouse(false);
+  });
   document.getElementById('btn-todo-list')?.addEventListener('click', () => openTodoModal());
-  document.getElementById('btn-forge-warehouse')?.addEventListener('click', () => openWarehouse(true));
+  document.getElementById('btn-forge-warehouse')?.addEventListener('click', async () => {
+    const { openWarehouse } = await import('./ShopController');
+    openWarehouse(true);
+  });
 
   // 建立商隊：從書房啟動市場跟蹤商圖流程
   document.getElementById('btn-base-trade')?.addEventListener('click', () => {
