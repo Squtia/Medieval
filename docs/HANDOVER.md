@@ -3,6 +3,15 @@
 這份交接文件記錄了目前的開發進度、已知問題，以及下一步的建議方向，以便未來任何開發者接手時能迅速進入狀況。
 
 ## 📍 目前開發進度 (Current Status)
+- **2026-07-21 史詩 UI/UX 重構、結束本日轉場恢復與三重導航修復 (New!)**：
+  - **100% 恢復「結束本日」質感轉場**：重新帶入 0.5s 黑屏/羊皮紙漸變轉場 (`playTransition`)，天數推進時享受完整 RPG 沉浸感。
+  - **三重導航動線（徹底解決「返回據點」問題）**：
+    1. 右側資訊面板 (`map-info-panel`) 加入獨立顯眼按鈕 `[ 🏰 返回我的據點 ]` / `[ 🌍 返回世界地圖 ]`。
+    2. 右下角 Command Crest Hub 金邊羅盤圖示懸浮鈕。
+    3. 頂部資訊列 `🏰 [據點/世界名稱]` 點擊瞬間切換。
+  - **主選單預設隔離**：`#command-crest-container` 初始樣式改為 `display: none;`，主選單與創角畫面完全乾淨無雜物。
+  - **3D Isometric 地圖建築圖示**：完全繪製全套 3D 繪寫風中世紀建築節點，搭配橢圓地基陰影與黑金羊皮紙名牌標籤。
+  - 全數通過 TypeScript 型別檢查、13 項 Vitest 單元測試、Production Build、P0 Playwright Automated Smoke Test 與 Bundle Budget。
 - **2026-07-21 P1 Phaser 與低頻 UI Lazy Chunk 重構 (New!)**：
   - 將原本在啟動時強行下載的 Phaser 引擎移至獨立模組 `PhaserManager.ts`，主腳本由 1.84 MB **巨幅縮減為 131 KB**（降幅超過 92%）。
   - 在主選單點擊「進入旅程」或載入存檔時非同步加載 Phaser（帶 Toast 加載提示動畫）。

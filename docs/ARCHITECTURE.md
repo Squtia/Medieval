@@ -68,9 +68,10 @@
 
 ## Phaser 與 DOM 的責任邊界
 
-- `MapScene` 只負責 Canvas 地圖、相機、節點和動畫；離開 Scene 時必須解除自身監聽並清除 tween。
+- `MapScene` 只負責 Canvas 地圖、相機、節點和動畫；依據 `getNodeTextureKey` 載入與繪製繪寫風 Isometric 3/4 俯視角地圖建築圖案（`node_castle`, `node_village` 等）；離開 Scene 時必須解除自身監聽並清除 tween。
 - `MapController` 負責 DOM 面板、可及性節點清單，以及把 Phaser 的節點點擊轉成 UI 操作。
-- `MapPresentation` 放置兩邊共用的純呈現函式，避免 `MapScene` 與 `MapController` 循環依賴。
+- `MapPresentation` 放置兩邊共用的純呈現函式（`getTerrainEmoji`, `getNodeIcon`, `getNodeTextureKey`），避免 `MapScene` 與 `MapController` 循環依賴。
+- `Command Crest Hub` (`#command-crest-container`) 為固定於右下角的控制樞紐，統一收納大圓形「結束本日史詩劍盾按鈕」（帶當前天數標記）、相鄰「切換據點/世界地圖」羅盤圓鈕與左側快捷 Dock（包含獨立 `🛡️ 傭兵小隊 Modal` 與 `⚙️ 系統選單`）。
 - Phaser 不直接呼叫系統或 Modal；跨邊界使用 `CustomEvent`。系統也不匯入 UI，遊戲事件由 `main.ts` 轉接到視窗。
 - 任務狀態變更由 `MISSIONS_CHANGED` 廣播，`main.ts` 再要求 DOM 與 Phaser 重繪；`GameLoop` 不匯入地圖控制器。
 - Scene 內的任務效果、商隊和其他 tween 分別持有 reference，只清理各自資源，禁止以 `killAll()` 處理局部更新。

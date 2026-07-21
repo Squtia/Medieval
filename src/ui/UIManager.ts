@@ -38,7 +38,7 @@ class UIManagerClass {
   uiTitleProgress = document.getElementById('ui-title-progress')!;
   uiTitleText = document.getElementById('ui-title-text')!;
   
-  advContainer = document.getElementById('adventurer-container')!;
+    advContainer = (document.getElementById('party-modal-container') || document.getElementById('adventurer-container'))!;
 
   // 國家按鈕
   btnMigrate = document.getElementById('btn-migrate') as HTMLButtonElement;
@@ -329,13 +329,36 @@ Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
       if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
     }
 
-    // 更新返回據點懸浮按鈕的顯示/隱藏
+    const isRightPanelShown = sharedRightPanel && sharedRightPanel.style.display !== 'none';
+    document.body.classList.toggle('has-right-panel', !!isRightPanelShown);
+
+    // 更新 Command Crest Hub 與返回據點懸浮按鈕的顯示/隱藏與標籤
+    const commandCrest = document.getElementById('command-crest-container');
     const btnReturnBase = document.getElementById('btn-return-base');
+    const endDayTag = document.getElementById('end-day-tag');
+    const isMainMenuViewActive = document.getElementById('main-menu-view')?.classList.contains('active');
+
+    if (commandCrest) {
+      if (isMainMenuViewActive || isStartupMode) {
+        commandCrest.style.display = 'none';
+      } else {
+        commandCrest.style.display = 'flex';
+      }
+    }
+
+    if (endDayTag) {
+      endDayTag.textContent = `第 ${GameState.totalDays} 天`;
+    }
+
     if (btnReturnBase) {
       const isMapViewActive = document.getElementById('map-view')?.classList.contains('active');
       const hasBase = !!territory.currentCountryId;
       if (isMapViewActive && !isStartupMode && hasBase) {
         btnReturnBase.style.display = 'block';
+        btnReturnBase.setAttribute('data-tip', '切換至 我的據點');
+      } else if (!isMapViewActive && !isStartupMode && hasBase) {
+        btnReturnBase.style.display = 'block';
+        btnReturnBase.setAttribute('data-tip', '切換至 世界地圖');
       } else {
         btnReturnBase.style.display = 'none';
       }

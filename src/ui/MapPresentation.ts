@@ -45,3 +45,27 @@ export function getNodeIcon(node: MapNode): string {
   if (node.nodeLevel === NodeLevel.CAMP) return '⛺';
   return getTerrainEmoji(node.terrain);
 }
+
+export function getNodeTextureKey(node: MapNode): string {
+  // 1. 玩家初始/主要據點
+  if (node.isPlayerBase) return 'node-castle';
+
+  // 2. 特殊功能與危險討伐據點 (NodeFeature)
+  if (node.feature === NodeFeature.MONSTER_NEST) return 'node-volcano';
+  if (node.feature === NodeFeature.SUBJUGATION) return 'node-ruins';
+
+  // 3. 依據據點等級 (NodeLevel) 匹配繪寫風建築圖樣
+  switch (node.nodeLevel) {
+    case NodeLevel.CAPITAL:
+      return 'node-castle';
+    case NodeLevel.TOWN:
+      return 'node-town';
+    case NodeLevel.VILLAGE:
+      return 'node-village';
+    case NodeLevel.CAMP:
+      return 'node-forest';
+    default:
+      return 'node-village';
+  }
+}
+

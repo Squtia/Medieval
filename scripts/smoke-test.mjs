@@ -153,8 +153,8 @@ async function main() {
     // Stage 3: End Day (Date Increment)
     console.log('📍 Stage 3: Testing End Day (結束本日)...');
     await page.waitForSelector('#btn-end-day', { state: 'visible', timeout: 5000 });
-    await page.click('#btn-end-day');
-    await page.waitForTimeout(1200);
+    await page.click('#btn-end-day', { force: true });
+    await page.waitForTimeout(1500);
 
     const nextDateText = await page.textContent('#ui-date');
     console.log(`  📅 Date after End Day: ${nextDateText?.trim()}`);
@@ -166,7 +166,7 @@ async function main() {
     // Stage 4: System Settings Menu & Save Game
     console.log('📍 Stage 4: Testing System Settings & Save Game...');
     await page.waitForSelector('#btn-system-menu', { state: 'visible', timeout: 5000 });
-    await page.click('#btn-system-menu');
+    await page.click('#btn-system-menu', { force: true });
 
     await page.waitForSelector('#modal-system-menu.active', { state: 'visible', timeout: 5000 });
     console.log('  ✅ System settings menu modal displayed.');

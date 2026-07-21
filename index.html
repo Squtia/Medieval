@@ -115,14 +115,14 @@
       animation: tradeRouteFlowAnim 1s linear infinite;
     }
     /* 地圖全域 Tooltip - 由 JS 控制，不用 ::after 避免被其他節點蓋住 */
-    #map-tooltip, #adv-tooltip {
+    #map-tooltip, #adv-tooltip, #global-tooltip {
       position: fixed;
       background-color: rgba(20, 20, 20, 0.95);
       color: #ebdcb6;
       padding: 8px 12px;
       border: 1px solid #705530;
       border-radius: 4px;
-      white-space: pre;
+      white-space: normal;
       font-size: 0.85rem;
       pointer-events: none;
       opacity: 0;
@@ -131,9 +131,7 @@
       text-align: left;
       font-family: 'Cinzel', 'Noto Serif TC', serif;
       box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-      max-width: 220px;
-      max-height: calc(100vh - 24px);
-      overflow-y: auto;
+      max-width: 320px;
       line-height: 1.6;
     }
 
@@ -402,6 +400,24 @@
     }
     .close-btn:hover { color: white; }
 
+    /* 左側抽屜面板 (非模態) */
+    .side-panel-left {
+      position: fixed;
+      top: 70px;
+      left: -420px;
+      bottom: 20px;
+      width: 400px;
+      z-index: 900;
+      transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      pointer-events: auto;
+    }
+    .side-panel-left.active {
+      left: 20px;
+    }
+
     /* 市場交易 Modal */
     .modal-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -613,30 +629,121 @@
       cursor: pointer;
     }
 
-    /* 返回據點懸浮按鈕 */
+    /* === 右下角史詩 Command Crest Hub === */
+    #command-crest-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9900;
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    #command-crest-container * {
+      pointer-events: auto;
+    }
+
+
+
+    /* 結束本日史詩劍盾大圓鈕 */
+    #btn-end-day-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .epic-crest-btn {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      background: url('./assets/btn_epic_crest.png') no-repeat center/cover;
+      border: 2px solid rgba(234, 179, 8, 0.75);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(0, 0, 0, 0.6);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+    .epic-crest-btn:hover {
+      transform: scale(1.1);
+      border-color: #f59e0b;
+      filter: brightness(1.2) drop-shadow(0 0 20px rgba(245, 158, 11, 0.85));
+    }
+    .epic-crest-btn:active {
+      transform: scale(0.92);
+      filter: brightness(0.9);
+    }
+    .end-day-pill {
+      position: absolute;
+      bottom: -6px;
+      background: linear-gradient(135deg, #1e1b18, #3e2e1e);
+      border: 1px solid #d97706;
+      color: #fef08a;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 10px;
+      border-radius: 12px;
+      text-shadow: 0 1px 2px #000;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    }
+
+    /* 切換據點/世界地圖圓鈕 (相鄰在上方) */
     .floating-base-btn {
       position: absolute;
-      top: 20px;
-      right: 20px;
-      width: 70px;
-      height: 70px;
-      background: url('./assets/return_base_btn.png') no-repeat center/104% 104%;
-      border: none;
+      bottom: 100px;
+      right: 16px;
+      width: 56px;
+      height: 56px;
+      background: url('./assets/btn_return_base_gold.png') no-repeat center/cover;
+      border: 2px solid rgba(234, 179, 8, 0.6);
       cursor: pointer;
       z-index: 150;
-      transition: transform 0.2s ease, filter 0.2s ease;
-      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+      transition: all 0.2s ease;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.8));
       border-radius: 50%;
-      clip-path: circle(46% at 50% 50%);
-      overflow: hidden;
     }
     .floating-base-btn:hover {
-      transform: scale(1.1);
-      filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.8)) brightness(1.15);
+      transform: scale(1.15);
+      border-color: #fbbf24;
+      filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.9)) brightness(1.2);
     }
     .floating-base-btn:active {
-      transform: scale(0.95);
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+      transform: scale(0.92);
+    }
+
+    /* 左側快捷列 (Quick Dock) */
+    #floating-quick-dock {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+    .dock-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: url('./bg-parchment.png') center/cover;
+      border: 1px solid rgba(139, 69, 19, 0.8);
+      box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.6);
+      color: #ebdcb6;
+      font-size: 1.2em;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+    .dock-btn:hover {
+      transform: translateY(-3px) scale(1.1);
+      border-color: #f59e0b;
+      filter: brightness(1.2);
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.5), 0 6px 12px rgba(234, 179, 8, 0.4);
+    }
+    .dock-btn:active {
+      transform: translateY(1px);
     }
 
     .visually-hidden-map-list {
@@ -846,6 +953,7 @@
   <div id="transition-overlay"></div>
   <div id="map-tooltip"></div>
   <div id="adv-tooltip"></div>
+  <div id="global-tooltip"></div>
   <div id="app-background"></div>
 
   <!-- 戰鬥結算 Modal -->
@@ -981,15 +1089,14 @@
       <div class="resource-item" title="糧食"><span class="resource-icon">🍞</span> <span id="ui-food">0</span></div>
       <div class="resource-item" title="木材"><span class="resource-icon">🌲</span> <span id="ui-wood">0</span></div>
       <div class="resource-item" title="石材"><span class="resource-icon">🧱</span> <span id="ui-stone">0</span></div>
+      <div class="resource-item" title="鐵礦"><span class="resource-icon">🔗</span> <span id="ui-iron">0</span></div>
       <div class="resource-item" title="金幣"><span class="resource-icon">💰</span> <span id="ui-gold">0</span></div>
       <div class="resource-item" title="聲望"><span class="resource-icon">✨</span> <span id="ui-prestige">0</span></div>
       <div class="resource-item" title="好感度"><span class="resource-icon">🤝</span> <span id="ui-favor">0</span></div>
     </div>
       <div class="resource-group" style="gap: 10px; align-items: center;">
       <div class="resource-item" id="ui-threat" title="下一次威脅"><span class="resource-icon">⚠️</span> <span id="ui-threat-days">10天</span></div>
-      <div class="resource-item" title="遊戲日期" style="margin-right: 10px;"><span class="resource-icon">📅</span> <span id="ui-date">第 1 年 1 月 1 日</span></div>
-      <button id="btn-end-day" class="action-btn" style="padding: 5px 15px; background: rgba(59, 130, 246, 0.4); border-color: #60a5fa; color: white;">⏳ 結束本日</button>
-      <button id="btn-system-menu" class="action-btn" style="padding: 5px 15px; background: rgba(255, 255, 255, 0.15); border-color: #cbd5e1; color: white;">📜 系統選單</button>
+      <div class="resource-item" title="遊戲日期"><span class="resource-icon">📅</span> <span id="ui-date">第 1 年 1 月 1 日</span></div>
     </div>
   </div>
 
@@ -1013,9 +1120,6 @@
       
       <!-- 左側：地圖主體區塊 -->
       <div style="flex: 1; height: 100%; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden;">
-        
-        <!-- 返回據點懸浮按鈕 -->
-        <button id="btn-return-base" class="floating-base-btn" title="返回我的據點" style="display: none;"></button>
 
         <!-- 左下角：目前狀態 -->
         <div id="map-status-panel" class="glass-panel" style="position: absolute; bottom: 20px; left: 20px; padding: 20px; width: 280px; display: none; z-index: 100;">
@@ -1303,7 +1407,6 @@
     <!-- 據點儀表板內容 -->
     <div id="scene-dashboard-content" style="display: none; flex-direction: column; height: 100%;">
       <div class="dashboard-header">
-        <button id="btn-back-map" class="action-btn" style="position: absolute; right: 20px; top: 20px; padding: 5px 10px; font-size: 0.8em;">🔙 返回世界</button>
         <button id="btn-migrate" class="action-btn" style="position: absolute; right: 120px; top: 20px; padding: 5px 10px; font-size: 0.8em; display: none;">📦 遷移據點</button>
         <h2 id="scene-country-name" style="margin-right: 180px; font-size: 1.8em;">赤炎帝國</h2>
         <p id="scene-country-state" style="color: #94a3b8; font-size: 0.9em; margin-top: 5px;">規模：首都 | 繁榮</p>
@@ -1331,14 +1434,7 @@
          </div>
       </div>
 
-      <div class="dashboard-middle">
-        <h3 style="margin-bottom: 10px; border-bottom: 1px solid rgba(139, 69, 19, 0.3); padding-bottom: 5px;">🛡️ 冒險者陣列</h3>
-        <div id="adventurer-container" class="adv-cards-grid">
-          <!-- 冒險者卡片由 JS 生成 -->
-        </div>
-      </div>
-
-      <div class="dashboard-bottom">
+      <div class="dashboard-bottom" style="flex: 1; height: auto; position: relative;">
         <div class="log-header">
           <h3 style="margin: 0; font-size: 1.2em;">📜 帝國日誌</h3>
           <div class="log-tabs" id="log-tabs">
@@ -1348,8 +1444,11 @@
             <button class="log-tab" data-filter="domestic">內政</button>
           </div>
         </div>
-        <div id="game-log" data-filter="all" style="background: rgba(0,0,0,0.3); border: 1px inset rgba(139,69,19,0.5); padding: 10px; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);"></div>
+        <div id="game-log" data-filter="all" style="background: rgba(0,0,0,0.3); border: 1px inset rgba(139,69,19,0.5); padding: 10px; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); margin-bottom: 75px;"></div>
       </div>
+
+
+    </div>
     </div>
   </div>
 
@@ -1541,6 +1640,35 @@
       <div id="todo-list-container" style="margin-top: 20px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
         <!-- JS 動態生成待辦事項卡片 -->
       </div>
+    </div>
+  </div>
+  <!-- 傭兵小隊 左側面板 -->
+  <div class="side-panel-left glass-panel" id="modal-party-list">
+    <button class="close-btn" id="btn-close-party-list">×</button>
+    <h2 style="text-align: center; color: #eab308; margin-top: 0; font-family: 'Cinzel', serif;">🛡️ 傭兵小隊</h2>
+    <p style="text-align: center; color: #94a3b8; margin-top: 5px; font-size: 14px;">查看隸屬於您的所有冒險者，進行狀態確認或編制。</p>
+    
+    <div id="party-modal-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 12px; margin-top: 20px; flex: 1; overflow-y: auto; padding: 10px 5px;">
+      <!-- JS 動態生成冒險者卡片 -->
+    </div>
+  </div>
+
+  <!-- 右下角史詩 Command Crest Hub (全域固定於右下角) -->
+  <div id="command-crest-container" style="display: none;">
+    <!-- 左側快捷按鈕列 -->
+    <div id="floating-quick-dock">
+      <button id="btn-dock-party" class="dock-btn" title="冒險者隊伍">👥</button>
+      <button id="btn-system-menu" class="dock-btn" title="系統選單">⚙️</button>
+    </div>
+
+    <!-- 切換據點/世界地圖圓鈕 (相鄰在上方) -->
+    <button id="btn-return-base" class="floating-base-btn" data-tip="切換 據點 / 世界地圖" style="display: none;"></button>
+
+    <!-- 結束本日史詩劍盾大圓鈕 -->
+    <div id="btn-end-day-wrapper">
+      <button id="btn-end-day" class="epic-crest-btn" data-tip="點擊結束本日">
+        <span id="end-day-tag" class="end-day-pill">第 1 天</span>
+      </button>
     </div>
   </div>
 

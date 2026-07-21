@@ -4,11 +4,10 @@ import { ToastManager } from './ToastManager';
 import { UIManager } from './UIManager';
 import { advanceDay, startGameLoop, stopGameLoop } from '../core/GameLoop';
 import { enterScene, returnToMap } from './SceneController';
+import { positionFloatingElement } from './FloatingPosition';
 
 export function initGameFlowController(): void {
-  // 返回地圖按鈕
-  const btnBackMap = document.getElementById('btn-back-map');
-  if (btnBackMap) btnBackMap.addEventListener('click', returnToMap);
+
   
   const btnWildBack = document.getElementById('btn-wild-back');
   if (btnWildBack) btnWildBack.addEventListener('click', returnToMap);
@@ -61,26 +60,104 @@ export function initGameFlowController(): void {
   const btnReturnBase = document.getElementById('btn-return-base');
   if (btnReturnBase) {
     btnReturnBase.addEventListener('click', () => {
-      if (GameState.myTerritory.currentCountryId) {
-        const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
-        if (baseNode) {
-          enterScene(baseNode);
+      const isMapViewActive = document.getElementById('map-view')?.classList.contains('active');
+      if (isMapViewActive) {
+        if (GameState.myTerritory.currentCountryId) {
+          const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
+          if (baseNode) {
+            enterScene(baseNode);
+          }
+        } else {
+          ToastManager.show('您尚未建立據點！');
         }
       } else {
-        ToastManager.show('您尚未建立據點！');
+        returnToMap();
       }
     });
   }
 
-  // 手動結束本日
-  const btnEndDay = document.getElementById('btn-end-day');
-  if (btnEndDay) {
-    btnEndDay.addEventListener('click', () => {
+  // 快捷 Dock 按鈕與 Modal 綁定
+  const btnDockParty = document.getElementById('btn-dock-party');
+  if (btnDockParty) {
+    btnDockParty.addEventListener('click', () => {
+      const modal = document.getElementById('modal-party-list');
+      if (modal) {
+        modal.classList.toggle('active');
+        UIManager.updateUI();
+      }
+    });
+  }
+
+  const btnClosePartyList = document.getElementById('btn-close-party-list');
+  if (btnClosePartyList) {
+    btnClosePartyList.addEventListener('click', () => {
+      const modal = document.getElementById('modal-party-list');
+      if (modal) modal.classList.remove('active');
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement)?.closest('#btn-system-menu') || (e.target as HTMLElement)?.closest('#btn-dock-menu');
+    if (target) {
+      const modal = document.getElementById('modal-system-menu');
+      if (modal) modal.classList.add('active');
+    }
+  });
+
+  // 全域 data-tip 懸浮提示邏輯
+  document.addEventListener('mouseover', (e) => {
+    const target = (e.target as HTMLElement)?.closest('[data-tip]') as HTMLElement;
+    if (target) {
+      const tipEl = document.getElementById('global-tooltip');
+      if (tipEl) {
+        tipEl.textContent = target.getAttribute('data-tip') || '';
+        tipEl.style.opacity = '1';
+      }
+    }
+  });
+  document.addEventListener('mousemove', (e) => {
+    const target = (e.target as HTMLElement)?.closest('[data-tip]');
+    if (target) {
+      const tipEl = document.getElementById('global-tooltip');
+      if (tipEl) {
+        positionFloatingElement(tipEl, e.clientX, e.clientY);
+      }
+    }
+  });
+  document.addEventListener('mouseout', (e) => {
+    const target = (e.target as HTMLElement)?.closest('[data-tip]');
+    const related = (e.relatedTarget as HTMLElement)?.closest('[data-tip]');
+    if (target && target !== related) {
+      const tipEl = document.getElementById('global-tooltip');
+      if (tipEl) {
+        tipEl.style.opacity = '0';
+      }
+    }
+  });
+
+  // 頂部資源列據點/位置標籤點擊切換
+  document.addEventListener('click', (e) => {
+    const locItem = (e.target as HTMLElement)?.closest('#ui-location')?.closest('.resource-item');
+    if (locItem) {
+      const isMapViewActive = document.getElementById('map-view')?.classList.contains('active');
+      if (isMapViewActive && GameState.myTerritory.currentCountryId) {
+        const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
+        if (baseNode) enterScene(baseNode);
+      } else if (!isMapViewActive) {
+        returnToMap();
+      }
+    }
+  });
+
+  // 手動結束本日 (帶 0.5s 質感黑屏過渡轉場)
+  document.addEventListener('click', (e) => {
+    const target = (e.target as HTMLElement)?.closest('#btn-end-day');
+    if (target) {
       UIManager.playTransition(() => {
         advanceDay();
       });
-    });
-  }
+    }
+  });
 
   // 防災準備
   const btnPrepareThreat = document.getElementById('btn-prepare-threat');

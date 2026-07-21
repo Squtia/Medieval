@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GameState } from '../core/GameState';
 import { MapNode, NodeFeature } from '../models/types';
 import { TaskType } from '../models/DispatchTask';
-import { buildTradeRouteSegments, getNodeIcon } from './MapPresentation';
+import { buildTradeRouteSegments, getNodeIcon, getNodeTextureKey } from './MapPresentation';
 import { positionFloatingElement } from './FloatingPosition';
 
 interface CombatBeacon {
@@ -32,6 +32,17 @@ export class MapScene extends Phaser.Scene {
     // 載入背景圖
     this.load.image('bg-map', './bg-map.png');
     this.load.svg('combat-sword', './assets/combat_sword.svg', { width: 48, height: 96 });
+
+    // 載入 Isometric 地圖節點圖示 (v2 簡潔高對比風格)
+    this.load.image('node-castle', './assets/node_castle.png');
+    this.load.image('node-town', './assets/node_town.png');
+    this.load.image('node-village', './assets/node_village.png');
+    this.load.image('node-ruins', './assets/node_ruins.png');
+    this.load.image('node-cave', './assets/node_cave.png');
+    this.load.image('node-forest', './assets/node_forest.png');
+    this.load.image('node-port', './assets/node_port.png');
+    this.load.image('node-monastery', './assets/node_monastery.png');
+    this.load.image('node-volcano', './assets/node_volcano.png');
   }
 
   create() {
@@ -140,28 +151,26 @@ export class MapScene extends Phaser.Scene {
         glowColor = '#6b7280'; // 灰色
       }
 
-      // 繪製 Emoji 圖標
-      const icon = getNodeIcon(node);
-      const iconText = this.add.text(0, -10, icon, {
-        fontSize: '36px',
-        fontFamily: 'Arial'
-      }).setOrigin(0.5);
+      // 繪製 Isometric 3/4 俯視角地圖節點圖案與地基陰影
+      const baseShadow = this.add.ellipse(0, 8, 38, 14, 0x000000, 0.45);
+      const textureKey = getNodeTextureKey(node);
+      const iconSprite = this.add.image(0, -8, textureKey).setDisplaySize(44, 44);
 
-      iconText.setShadow(0, 0, glowColor, 12, true, true);
-
-      // 繪製名字標籤
+      // 繪製名字標籤 (黑金羊皮框質感)
       const labelText = this.add.text(0, 22, node.name, {
-        fontSize: '13px',
-        color: '#ffffff',
-        fontFamily: 'Arial',
-        fontStyle: 'bold'
+        fontSize: '11px',
+        color: '#fef08a',
+        fontFamily: 'Cinzel, sans-serif',
+        fontStyle: 'bold',
+        backgroundColor: 'rgba(20, 15, 10, 0.88)',
+        padding: { x: 5, y: 2 }
       }).setOrigin(0.5);
 
       labelText.setShadow(1, 1, '#000000', 2, true, true);
-      labelText.setShadow(0, 0, glowColor, 4, true, true);
+      labelText.setShadow(0, 0, glowColor, 6, true, true);
 
       const container = this.add.container(px, py);
-      container.add([iconText, labelText]);
+      container.add([baseShadow, iconSprite, labelText]);
 
       let depth = 10;
       if (node.isPlayerBase) depth = 50;
@@ -169,47 +178,45 @@ export class MapScene extends Phaser.Scene {
       else if (node.feature === NodeFeature.MONSTER_NEST) depth = 20;
       container.setDepth(depth);
 
-      iconText.setInteractive({ useHandCursor: true });
+      iconSprite.setInteractive({ useHandCursor: true });
 
-      iconText.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      iconSprite.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
         this.isDragging = false; 
         this.clickStartX = pointer.x;
         this.clickStartY = pointer.y;
       });
 
-      iconText.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      iconSprite.on('pointerup', (pointer: Phaser.Input.Pointer) => {
         const dist = Phaser.Math.Distance.Between(this.clickStartX, this.clickStartY, pointer.x, pointer.y);
         if (dist < 5) {
           this.handleNodeClick(node);
         }
       });
 
-      iconText.on('pointerover', () => {
+      iconSprite.on('pointerover', () => {
         // 暫存原有的 depth，並將 depth 設為最高避免被遮擋
         container.setData('originalDepth', container.depth);
         container.setDepth(100);
 
-        // 些微放大 1.3 倍的平滑過渡動畫
+        // 些微放大 1.25 倍的平滑過渡動畫
         this.tweens.add({
           targets: container,
-          scale: 1.3,
+          scale: 1.25,
           duration: 150,
           ease: 'Back.easeOut',
           overwrite: true
         });
 
-        // 強化文字高亮效果與 Emoji 陰影
+        // 強化文字高亮效果
         labelText.setShadow(0, 0, glowColor, 12, true, true);
-        iconText.setShadow(0, 0, glowColor, 20, true, true);
-
         this.showTooltip(node);
       });
 
-      iconText.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      iconSprite.on('pointermove', (pointer: Phaser.Input.Pointer) => {
         this.moveTooltip(pointer);
       });
 
-      iconText.on('pointerout', () => {
+      iconSprite.on('pointerout', () => {
         // 還原 depth
         const originalDepth = container.getData('originalDepth') || depth;
         container.setDepth(originalDepth);
@@ -223,11 +230,9 @@ export class MapScene extends Phaser.Scene {
           overwrite: true
         });
 
-        // 還原文字與圖示陰影
+        // 還原文字陰影
         labelText.setShadow(1, 1, '#000000', 2, true, true);
         labelText.setShadow(0, 0, glowColor, 4, true, true);
-        iconText.setShadow(0, 0, glowColor, 12, true, true);
-
         this.hideTooltip();
       });
 
@@ -407,7 +412,7 @@ export class MapScene extends Phaser.Scene {
       });
     }
 
-    tooltip.textContent = tooltipText;
+    tooltip.innerHTML = tooltipText.replace(/\n/g, '<br/>');
     tooltip.style.opacity = '1';
   }
 

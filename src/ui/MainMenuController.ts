@@ -81,6 +81,7 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
           ToastManager.show('🗺️ 正在加載地圖與遊戲資源...', 'info');
           await ensurePhaserLoaded();
           if (SaveManager.loadGame(s.slot)) {
+            setStartupMode(false);
             rebindUIEvents();
             UIManager.playTransition(() => {
               mainMenu.classList.remove('active');
