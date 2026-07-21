@@ -11,6 +11,7 @@ export function initPhaserMap(parentId: string) {
     height: '100%',
     parent: parentId,
     transparent: true,
+    banner: false,
     scale: {
       mode: Phaser.Scale.RESIZE,
       autoCenter: Phaser.Scale.NO_CENTER

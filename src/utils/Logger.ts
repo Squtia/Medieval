@@ -6,6 +6,11 @@ export function initLogger(logContainer: HTMLElement) {
     originalConsoleLog(...args);
     let msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
     
+    // 過濾第三方套件控制台 Banner 或格式化字串 (如 Phaser %c)
+    if (msg.includes('%c') || msg.includes('phaser.io') || msg.includes('Phaser v')) {
+      return;
+    }
+    
     const div = document.createElement('div');
     div.className = 'log-entry';
     
