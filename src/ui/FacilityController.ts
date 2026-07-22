@@ -62,6 +62,27 @@ export function initFacilityController(): void {
     });
   });
 
+  // 工作分配滑桿事件
+  document.querySelectorAll<HTMLInputElement>('.worker-slider').forEach(slider => {
+    slider.addEventListener('input', (e) => {
+      const target = e.target as HTMLInputElement;
+      const job = target.getAttribute('data-job')!;
+      const newTargetValue = parseInt(target.value);
+      const currentVal = GameState.myTerritory.workers[job] || 0;
+      const delta = newTargetValue - currentVal;
+
+      if (delta !== 0) {
+        if (GameState.myTerritory.assignWorker(job, delta)) {
+          EventBus.getInstance().publish({
+            type: GameEventType.WORKER_ASSIGNED,
+            payload: { job, currentCount: GameState.myTerritory.workers[job], unassignedCount: GameState.myTerritory.workers['UNASSIGNED'] }
+          });
+          UIManager.updateUI();
+        }
+      }
+    });
+  });
+
   // 倉庫與代辦事件
   document.getElementById('btn-base-warehouse')?.addEventListener('click', async () => {
     const { openWarehouse } = await import('./ShopController');

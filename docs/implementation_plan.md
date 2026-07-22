@@ -1,30 +1,36 @@
-# 開發 Workflow
+# 專案 UI 調整前置確認報告：帝國日誌上縮方案
 
-## 每個功能的完成條件
+非常抱歉先前理解偏差！感謝您的糾正。
 
-1. 先把規則寫成純資料或純函式，隨機行為只能使用 `Random`。
-2. System 改變 `GameState` 並發布 typed event；UI 不得被 System 直接匯入。
-3. Phaser 僅處理地圖呈現與輸入，DOM 僅處理面板；共用呈現邏輯放在 `MapPresentation`。
-4. 新增成功、失敗及邊界測試；若改存檔欄位，同步提升 schema 並新增 legacy fixture。
-5. 執行 `npm run check`，再用瀏覽器檢查 1280×720 與 720×720 的主選單、地圖、派遣、結束本日和存讀檔流程。
-6. 更新 `CHANGELOG.md`；架構或交接資訊有改動時同步更新對應文件。
+我們將**完全保留您原有的按鈕上下堆疊樣式**（藍色羅盤在結束本日按鈕上方），並僅對**「帝國日誌」視窗進行上縮調整**。
 
-## 建議分支與 PR 節奏
+---
 
-- 一個 PR 只包含一個玩家可描述的改變，例如「備災系統」或「派遣風險預覽」。
-- PR 說明列出：玩家行為、規則變化、存檔影響、UI 截圖、測試結果。
-- CI 的 `npm run check` 必須通過；bundle 超過預算時，先拆分依賴或資產再合併。
+## 🎯 擬定調整方案 (Proposed Changes)
 
-## 下一輪優先順序
+### 1. 按鈕佈局（恢復並維持上下堆疊樣式）
+- **結束本日史詩大鈕 (`#btn-end-day`)**：放大一倍至 `176px × 176px`，固定於右下角 `bottom: 24px; right: 24px;`。
+- **切換至世界地圖 / 我的據點羅盤鈕 (`#btn-return-base`)**：放大一倍至 `112px × 112px`，固定於結束本日正上方 `bottom: 195px; right: 32px;`。
+- **冒險者隊伍與系統選單 (Quick Dock)**：位於結束本日大鈕左側（已去金光，改為古典皮革金屬質感）。
+- **右下角按鈕最高高度點**：約在 `307px` 處 (`bottom: 195px` + 按鈕直徑 `112px`)。
 
-1. [x] P0：為新遊戲→據點→派遣→結束本日→存讀檔加入自動化瀏覽器 smoke test。（已實裝 `npm run test:smoke`）
-2. P1：拆分 `main.ts` 的 UI wiring，依據畫面建立 controller，降低單檔耦合。
-3. P1：將 Phaser 及低頻建築介面做真正的 lazy chunk，縮短首次載入時間。
-4. P2：建立 3／10／30 日 seeded 模擬，監控資源淨值、任務成功率與災害損失。
+### 2. 帝國日誌視窗範圍「上縮」
+- **現狀問題**：帝國日誌黑框 (`#game-log`) 原本底部止於 `190px` 左右，導致 `307px` 高的藍色羅盤凸入黑框內部。
+- **上縮調整細節**：
+  - 將 `#game-log` 的 `margin-bottom` 設為 **`315px`**（或對父容器 `.dashboard-bottom` 設定 `padding-bottom: 315px`）。
+  - **效果**：帝國日誌黑框視窗底部位於 **`315px`** 高度，整個帝國日誌視窗精準向「上縮短」，底部邊框剛好停在藍色羅盤圓鈕的頂端上方（留有 8px 視域空間），羅盤與結束本日按鈕完全獨立於帝國日誌視窗之外，100% 互不遮蓋。
 
-## 任務與 Phaser 更新規則
+---
 
-- 任務出發、推進、完成或載入時發布 `MISSIONS_CHANGED`，由 UI 組合層刷新地圖。
-- 行商完整路線不可變；只能修改 `tradePhase`、`currentLegIndex` 與 `remainingDays`。
-- Phaser 局部重繪只能移除該功能持有的 tween／timer，不可呼叫全域 `killAll()` 或 `removeAllEvents()`。
-- 一般招募必須使用 `getRandomRecruitTrait()`；`getRandomTrait()` 不可用於玩家取得角色的流程。
+## 🛠️ 擬修改檔案
+
+#### [MODIFY] [index.html](file:///d:/tryagent/Medieval/index.html)
+- 恢復 `.floating-base-btn` 為絕對定位 `position: absolute; bottom: 195px; right: 32px;`（羅盤大鈕位於結束本日正上方）。
+- 恢復 `#command-crest-container` 佈局為 `align-items: flex-end;`。
+- 設定 `#game-log` 的內聯樣式與 CSS 為 `margin-bottom: 315px;`，完成帝國日誌視窗上縮。
+
+---
+
+## 🧪 驗證計畫
+1. 執行 `npm run check` 確保型別檢查與測試通過。
+2. 檢查帝國日誌黑框底部是否精準縮至羅盤圓鈕上方（315px），且按鈕佈局完全維持上下堆疊。

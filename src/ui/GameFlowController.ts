@@ -5,8 +5,18 @@ import { UIManager } from './UIManager';
 import { advanceDay, startGameLoop, stopGameLoop } from '../core/GameLoop';
 import { enterScene, returnToMap } from './SceneController';
 import { positionFloatingElement } from './FloatingPosition';
+import { setPartyTab } from './ModalController';
 
 export function initGameFlowController(): void {
+  // 綁定傭兵小隊頁籤切換按鈕
+  const tabBtnStats = document.getElementById('tab-btn-stats');
+  if (tabBtnStats) {
+    tabBtnStats.addEventListener('click', () => setPartyTab('stats'));
+  }
+  const tabBtnEquip = document.getElementById('tab-btn-equip');
+  if (tabBtnEquip) {
+    tabBtnEquip.addEventListener('click', () => setPartyTab('equip'));
+  }
 
   
   const btnWildBack = document.getElementById('btn-wild-back');

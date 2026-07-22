@@ -30,20 +30,54 @@ export enum NobleTitle {
 }
 
 /**
+ * 爵位設定檔，包含各項特權與晉升條件
+ */
+export interface TitleConfig {
+  title: NobleTitle;
+  titleCN: string;
+  maxCaravans: number;
+  maxRoster: number;
+  maxFacilityLevel: number;
+  taxBonusPer10Pop: number; // 每 10 人口帶來的額外稅收
+  reqPrestige: number;
+  reqPopulation: number;
+  reqGold: number;          // 晉升大典花費
+}
+
+/**
+ * 爵位數值設定表 (可隨時調整)
+ */
+export const TITLE_CONFIG: TitleConfig[] = [
+  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, maxFacilityLevel: 1, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0 },
+  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 2, taxBonusPer10Pop: 1, reqPrestige: 100, reqPopulation: 20, reqGold: 500 },
+  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 3, taxBonusPer10Pop: 2, reqPrestige: 500, reqPopulation: 50, reqGold: 2000 },
+  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 4, taxBonusPer10Pop: 3, reqPrestige: 2000, reqPopulation: 100, reqGold: 5000 },
+  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 5, taxBonusPer10Pop: 4, reqPrestige: 5000, reqPopulation: 200, reqGold: 15000 },
+  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 6, taxBonusPer10Pop: 5, reqPrestige: 15000, reqPopulation: 500, reqGold: 50000 },
+  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, maxFacilityLevel: 7, taxBonusPer10Pop: 6, reqPrestige: 50000, reqPopulation: 1000, reqGold: 100000 }
+];
+
+export function getTitleConfig(title: NobleTitle): TitleConfig {
+  return TITLE_CONFIG.find(c => c.title === title) || TITLE_CONFIG[0];
+}
+
+/**
  * 根據爵位獲取最大商隊派遣數量上限
- * TODO: 往後若需修改行商序列數量與爵位相關的限制，請修改此處的對應關係
  */
 export function getMaxCaravansLimit(title: NobleTitle): number {
-  switch (title) {
-    case NobleTitle.COMMONER: return 1;
-    case NobleTitle.KNIGHT: return 1;
-    case NobleTitle.BARON: return 2;
-    case NobleTitle.VISCOUNT: return 2;
-    case NobleTitle.COUNT: return 3;
-    case NobleTitle.MARQUIS: return 4;
-    case NobleTitle.DUKE: return 5;
-    default: return 1;
-  }
+  return getTitleConfig(title).maxCaravans;
+}
+
+export function getMaxRosterLimit(title: NobleTitle): number {
+  return getTitleConfig(title).maxRoster;
+}
+
+export function getMaxFacilityLevel(title: NobleTitle): number {
+  return getTitleConfig(title).maxFacilityLevel;
+}
+
+export function getTaxBonusPer10Pop(title: NobleTitle): number {
+  return getTitleConfig(title).taxBonusPer10Pop;
 }
 
 /**

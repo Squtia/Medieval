@@ -5,6 +5,7 @@ import { Random } from '../core/Random';
 import { Adventurer } from '../models/Adventurer';
 import { NameGenerator } from '../systems/NameGenerator';
 import { DataStore } from '../systems/DataStore';
+import { getMaxRosterLimit } from '../models/types';
 
 export function initRecruitController(): void {
   const modalRecruit = document.getElementById('modal-recruit');
@@ -22,6 +23,12 @@ export function initRecruitController(): void {
       return;
     }
     
+    const maxRoster = getMaxRosterLimit(territory.title);
+    if (GameState.adventurers.length >= maxRoster) {
+      ToastManager.show(`⚠️ 英雄名單已滿！當前爵位最多容納 ${maxRoster} 名英雄。`);
+      return;
+    }
+
     if (territory.gold >= 500) {
       recruitCardsContainer.innerHTML = '';
       

@@ -1,7 +1,7 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
-import { WorkerJob } from '../models/types';
+import { WorkerJob, getTaxBonusPer10Pop } from '../models/types';
 import { Random } from '../core/Random';
 
 export class SettlementSystem {
@@ -34,10 +34,13 @@ export class SettlementSystem {
     const woodProduced = (workers[WorkerJob.WOODCUTTER] || 0) * 2; // 每個伐木工產 2 木
     const stoneProduced = (workers[WorkerJob.MINER] || 0) * 1; // 每個礦工產 1 石
     
-    // 礦工有機率挖到鐵礦
+    // 礦工有機率挖到鐵礦 (每個礦工獨立 20% 機率)
     let ironProduced = 0;
-    if (workers[WorkerJob.MINER] > 0 && Random.next() < 0.2) {
-      ironProduced = 1;
+    const minerCount = workers[WorkerJob.MINER] || 0;
+    for (let i = 0; i < minerCount; i++) {
+      if (Random.next() < 0.2) {
+        ironProduced += 1;
+      }
     }
 
     // 2. 消耗計算 (總人口每人耗 1 糧，英雄每人耗 1 糧)
@@ -49,6 +52,14 @@ export class SettlementSystem {
     territory.stone += stoneProduced;
     territory.iron += ironProduced;
     territory.food += foodProduced - foodConsumed;
+
+    // 新增：每日稅收加成 (依據爵位與人口)
+    const taxBonusPer10 = getTaxBonusPer10Pop(territory.title);
+    if (taxBonusPer10 > 0 && territory.population >= 10) {
+      const taxIncome = Math.floor(territory.population / 10) * taxBonusPer10;
+      territory.addGold(taxIncome);
+      console.log(`[SettlementSystem] 💰 收取領地稅收，獲得 ${taxIncome} 金幣 (人口: ${territory.population}, 爵位加成: ${taxBonusPer10}金/10人)。`);
+    }
 
     // 4. 飢荒判定
     if (territory.food < 0) {
@@ -88,11 +99,19 @@ export class SettlementSystem {
         console.log(`[SettlementSystem] 💀 飢荒！糧食不足，${actualStarved} 名流民離開或餓死了。當前總人口：${territory.population}`);
       }
     } else {
-      // 若糧食充足，可以自然吸引流民 (10%機率)
-      if (territory.food > totalPeople * 2 && Random.next() < 0.1) {
-         territory.population += 1;
-         territory.workers[WorkerJob.UNASSIGNED] += 1;
-         console.log(`[SettlementSystem] 🏕️ 領地繁榮！流民被吸引而來，總人口增加 1 人。`);
+      // 領地有餘糧即可吸引流民 (不再需要大於2倍)
+      if (territory.food > totalPeople) {
+        // 基礎機率 20%，每 100 聲望 +1% (上限 50%)
+        const prestigeBonus = Math.floor(territory.prestige / 100) * 0.01;
+        const attractChance = Math.min(0.5, 0.2 + prestigeBonus);
+        
+        if (Random.next() < attractChance) {
+          // 收益動態化：增加當前總人口的 5% (最少 1 人)
+          const newComers = Math.max(1, Math.floor(territory.population * 0.05));
+          territory.population += newComers;
+          territory.workers[WorkerJob.UNASSIGNED] += newComers;
+          console.log(`[SettlementSystem] 🏕️ 領地繁榮！流民被您的聲望與餘糧吸引而來，總人口增加 ${newComers} 人。`);
+        }
       }
     }
 

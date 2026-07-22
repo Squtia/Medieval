@@ -19,193 +19,326 @@ export async function openWarehouse(isForgeMode: boolean) {
   impl(isForgeMode);
 }
 
-let currentDetailAdv: Adventurer | null = null;
+let currentPartyAdv: Adventurer | null = null;
+let currentPartyTab: 'stats' | 'equip' = 'stats';
 let tempAllocations: Record<string, number> = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
 
-export function openAdvDetail(adv: Adventurer) {
-  const modalAdvDetail = document.getElementById('modal-adv-detail')!;
-  const myTerritory = GameState.myTerritory;
+export function getSelectedPartyAdventurer(): Adventurer | null {
+  return currentPartyAdv;
+}
 
-  if (currentDetailAdv !== adv) {
-    currentDetailAdv = adv;
+export function selectPartyAdventurer(adv: Adventurer | null) {
+  if (currentPartyAdv !== adv) {
+    currentPartyAdv = adv;
     tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
   }
+  renderPartyUpperSection();
+}
 
-  document.getElementById('adv-detail-name')!.textContent = adv.name;
-  document.getElementById('adv-detail-desc')!.textContent = `Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}`;
-  document.getElementById('adv-detail-power')!.textContent = adv.power.toString();
-  
-  const stats = adv.getCombatStats();
-  const attr = adv.getEffectiveAttributes();
-  
-  const sumAllocated = tempAllocations.str + tempAllocations.agi + tempAllocations.con + tempAllocations.int + tempAllocations.spr + tempAllocations.luk;
-  const tempUnspent = adv.unspentStatPoints - sumAllocated;
-  
-  const unspent = (adv.unspentStatPoints > 0 || sumAllocated > 0)
-    ? `<div style="grid-column: span 2; text-align: center; color: #eab308; font-weight: bold; margin-bottom: 10px;">可用屬性點：${tempUnspent}</div>` 
-    : '';
+export function setPartyTab(tab: 'stats' | 'equip') {
+  currentPartyTab = tab;
+  const btnStats = document.getElementById('tab-btn-stats');
+  const btnEquip = document.getElementById('tab-btn-equip');
+  if (btnStats && btnEquip) {
+    if (tab === 'stats') {
+      btnStats.className = 'party-tab-btn active';
+      btnStats.style.border = '1px solid rgba(234,179,8,0.4)';
+      btnStats.style.background = 'rgba(234,179,8,0.2)';
+      btnStats.style.color = '#eab308';
+      
+      btnEquip.className = 'party-tab-btn';
+      btnEquip.style.border = '1px solid rgba(255,255,255,0.1)';
+      btnEquip.style.background = 'rgba(255,255,255,0.05)';
+      btnEquip.style.color = '#94a3b8';
+    } else {
+      btnEquip.className = 'party-tab-btn active';
+      btnEquip.style.border = '1px solid rgba(234,179,8,0.4)';
+      btnEquip.style.background = 'rgba(234,179,8,0.2)';
+      btnEquip.style.color = '#eab308';
 
-  const getStatHtml = (label: string, key: 'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', val: number) => {
-    const tempVal = tempAllocations[key] || 0;
-    const plusBtn = tempUnspent > 0 
-      ? `<button class="btn-temp-plus" data-stat="${key}" style="margin-left:5px; padding:0 5px; font-size:0.8em; cursor:pointer;">+</button>` 
-      : '';
-    const minusBtn = tempVal > 0 
-      ? `<button class="btn-temp-minus" data-stat="${key}" style="margin-left:3px; padding:0 5px; font-size:0.8em; cursor:pointer; background:rgba(239,68,68,0.3); border-color:#ef4444; color:#fff;">-</button>` 
-      : '';
-    const greenStr = tempVal > 0 ? ` <span style="color:#22c55e; font-size:0.85em; font-weight:bold;">(+${tempVal})</span>` : '';
-    return `<div class="stat-item"><span class="stat-label">${label}</span><span class="stat-value">${val + tempVal}${greenStr}${plusBtn}${minusBtn}</span></div>`;
-  };
+      btnStats.className = 'party-tab-btn';
+      btnStats.style.border = '1px solid rgba(255,255,255,0.1)';
+      btnStats.style.background = 'rgba(255,255,255,0.05)';
+      btnStats.style.color = '#94a3b8';
+    }
+  }
+  renderPartyUpperSection();
+}
 
-  let confirmBtnsHtml = '';
-  if (sumAllocated > 0) {
-    confirmBtnsHtml = `
-      <div style="grid-column: span 2; display: flex; gap: 15px; margin-top: 15px;">
-        <button id="btn-confirm-stats" class="action-btn" style="flex:1; background:linear-gradient(135deg, #059669, #047857); padding:8px 0; font-size:0.9em; font-weight:bold;">確認分配</button>
-        <button id="btn-reset-stats" class="action-btn" style="flex:1; background:rgba(255,255,255,0.1); padding:8px 0; font-size:0.9em;">取消重設</button>
-      </div>
-    `;
+export function renderPartyUpperSection() {
+  if (!currentPartyAdv || !GameState.adventurers.includes(currentPartyAdv)) {
+    currentPartyAdv = GameState.adventurers[0] || null;
+  }
+  const adv = currentPartyAdv;
+  const titleEl = document.getElementById('party-panel-title');
+  if (!adv) {
+    if (titleEl) titleEl.textContent = '🛡️ 冒險者小隊 (無冒險者)';
+    const viewport = document.getElementById('party-tab-viewport');
+    if (viewport) viewport.innerHTML = '<div style="color:#94a3b8; text-align:center; padding-top:40px;">目前尚無冒險者，請至酒館招募！</div>';
+    return;
   }
 
-  const statsHtml = `
-    ${unspent}
-    <div class="stat-item"><span class="stat-label">生命值 (HP)</span><span class="stat-value highlight">${stats.hp}</span></div>
-    ${getStatHtml('力量 (STR)', 'str', attr.str)}
-    <div class="stat-item"><span class="stat-label">魔力值 (MP)</span><span class="stat-value highlight">${stats.mp}</span></div>
-    ${getStatHtml('敏捷 (AGI)', 'agi', attr.agi)}
-    <div class="stat-item"><span class="stat-label">物理攻擊 (ATK)</span><span class="stat-value highlight">${stats.atk}</span></div>
-    ${getStatHtml('體質 (CON)', 'con', attr.con)}
-    <div class="stat-item"><span class="stat-label">防禦力 (DEF)</span><span class="stat-value highlight">${stats.def}</span></div>
-    ${getStatHtml('智慧 (INT)', 'int', attr.int)}
-    <div class="stat-item"><span class="stat-label">命中率 (HIT)</span><span class="stat-value highlight">${stats.hit}</span></div>
-    ${getStatHtml('精神 (SPR)', 'spr', attr.spr)}
-    <div class="stat-item"><span class="stat-label">閃避率 (EVD)</span><span class="stat-value highlight">${stats.evade}</span></div>
-    ${getStatHtml('幸運 (LUK)', 'luk', attr.luk)}
-    <div class="stat-item" style="grid-column: span 2; display: flex; justify-content: space-between;">
-      <div style="flex:1;"><div class="stat-item"><span class="stat-label">魅力 (CHM)</span><span class="stat-value">${attr.charm}</span></div></div>
-      <div style="flex:1;"><div class="stat-item"><span class="stat-label">統帥 (CMD)</span><span class="stat-value">${attr.command}</span></div></div>
-    </div>
-    ${confirmBtnsHtml}
-  `;
-  document.getElementById('adv-detail-stats')!.innerHTML = statsHtml;
+  // 1. 更新頂部動態冒險者姓名標題
+  if (titleEl) {
+    titleEl.textContent = `🛡️ ${adv.name} (Lv.${adv.level} ${adv.job.name})`;
+  }
 
-  // 綁定暫存配點 + 事件
-  const plusBtns = document.getElementById('adv-detail-stats')!.querySelectorAll('.btn-temp-plus');
-  plusBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const key = (e.currentTarget as HTMLElement).getAttribute('data-stat')!;
-      tempAllocations[key]++;
-      openAdvDetail(adv);
+  // 2. 更新左側常駐立繪卡
+  const avatarEl = document.getElementById('party-portrait-avatar');
+  const jobTraitEl = document.getElementById('party-job-trait');
+  const traitNameEl = document.getElementById('party-trait-name');
+  const statusBadgeEl = document.getElementById('party-status-badge');
+
+  if (avatarEl) avatarEl.textContent = '🦸';
+  if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${adv.job.name}`;
+  if (traitNameEl) traitNameEl.textContent = adv.trait.name;
+
+  // 更新半身像正下方的 HP / MP 能量條
+  const stats = adv.getCombatStats();
+  const hpTextEl = document.getElementById('party-bar-hp-text');
+  const hpFillEl = document.getElementById('party-bar-hp-fill');
+  const mpTextEl = document.getElementById('party-bar-mp-text');
+  const mpFillEl = document.getElementById('party-bar-mp-fill');
+  
+  if (hpTextEl) hpTextEl.textContent = `${stats.hp} / ${stats.hp}`;
+  if (hpFillEl) hpFillEl.style.width = '100%';
+  if (mpTextEl) mpTextEl.textContent = `${stats.mp} / ${stats.mp}`;
+  if (mpFillEl) mpFillEl.style.width = '100%';
+
+  if (statusBadgeEl) {
+    if (adv.currentState === AdventurerState.RESTING) {
+      statusBadgeEl.textContent = `🛌 休養(${adv.restingDaysLeft}天)`;
+      statusBadgeEl.style.background = 'rgba(234, 179, 8, 0.2)';
+      statusBadgeEl.style.color = '#fde047';
+      statusBadgeEl.style.borderColor = 'rgba(234, 179, 8, 0.4)';
+    } else if (adv.currentState !== AdventurerState.IDLE) {
+      statusBadgeEl.textContent = '🔴 任務中';
+      statusBadgeEl.style.background = 'rgba(239, 68, 68, 0.2)';
+      statusBadgeEl.style.color = '#f87171';
+      statusBadgeEl.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+    } else {
+      statusBadgeEl.textContent = '🟢 閒置中';
+      statusBadgeEl.style.background = 'rgba(34, 197, 94, 0.2)';
+      statusBadgeEl.style.color = '#4ade80';
+      statusBadgeEl.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+    }
+  }
+
+  // 3. 更新中間 Viewport (根據當前頁籤)
+  const viewport = document.getElementById('party-tab-viewport');
+  if (!viewport) return;
+
+  const attr = adv.getEffectiveAttributes();
+
+  if (currentPartyTab === 'stats') {
+    const sumAllocated = tempAllocations.str + tempAllocations.agi + tempAllocations.con + tempAllocations.int + tempAllocations.spr + tempAllocations.luk;
+    const tempUnspent = adv.unspentStatPoints - sumAllocated;
+    
+    const unspentBanner = (adv.unspentStatPoints > 0 || sumAllocated > 0)
+      ? `<div style="text-align: center; color: #eab308; font-weight: bold; font-size: 0.8em; margin-bottom: 4px; background: rgba(234,179,8,0.15); padding: 2px; border-radius: 4px;">可用點數：${tempUnspent}</div>` 
+      : '';
+
+    const getStatRow = (label: string, key: 'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', val: number) => {
+      const tempVal = tempAllocations[key] || 0;
+      const plusBtn = tempUnspent > 0 
+        ? `<button class="btn-temp-plus" data-stat="${key}" style="margin-left:4px; padding:0 4px; font-size:0.75em; cursor:pointer; background:rgba(34,197,94,0.3); border:1px solid #22c55e; color:#fff; border-radius:3px;">+</button>` 
+        : '';
+      const minusBtn = tempVal > 0 
+        ? `<button class="btn-temp-minus" data-stat="${key}" style="margin-left:2px; padding:0 4px; font-size:0.75em; cursor:pointer; background:rgba(239,68,68,0.3); border:1px solid #ef4444; color:#fff; border-radius:3px;">-</button>` 
+        : '';
+      const greenStr = tempVal > 0 ? `<span style="color:#22c55e; font-size:0.8em; font-weight:bold;">(+${tempVal})</span>` : '';
+      return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78em; background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px;"><span style="color:#94a3b8;">${label}</span><span style="font-weight:bold; color:#f1f5f9;">${val + tempVal}${greenStr}${plusBtn}${minusBtn}</span></div>`;
+    };
+
+    let confirmBtnsHtml = '';
+    if (sumAllocated > 0) {
+      confirmBtnsHtml = `
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <button id="btn-confirm-stats" class="action-btn" style="flex:1; background:linear-gradient(135deg, #059669, #047857); padding:3px 0; font-size:0.78em; font-weight:bold;">確認分配</button>
+          <button id="btn-reset-stats" class="action-btn" style="flex:1; background:rgba(255,255,255,0.1); padding:3px 0; font-size:0.78em;">重設</button>
+        </div>
+      `;
+    }
+
+    viewport.innerHTML = `
+      ${unspentBanner}
+      <div style="font-size: 0.78em; margin-bottom: 4px; background: rgba(234,179,8,0.12); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(234,179,8,0.2); display: flex; justify-content: space-between; align-items: center;">
+        <span>⚔️ 戰力：<b style="color:#eab308; font-size: 1.05em;">${adv.power}</b></span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
+        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">物攻 (ATK)</span><span style="color:#eab308; font-weight:bold;">${stats.atk}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">防禦 (DEF)</span><span style="color:#eab308; font-weight:bold;">${stats.def}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">命中 (HIT)</span><span style="color:#3b82f6;">${stats.hit}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">閃避 (EVD)</span><span style="color:#3b82f6;">${stats.evade}</span></div>
+      </div>
+
+      <div style="font-size:0.75em; color:#e2e8f0; font-weight:bold; margin: 4px 0 2px 0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:2px;">六維屬性：</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
+        ${getStatRow('STR 力量', 'str', attr.str)}
+        ${getStatRow('AGI 敏捷', 'agi', attr.agi)}
+        ${getStatRow('CON 體質', 'con', attr.con)}
+        ${getStatRow('INT 智慧', 'int', attr.int)}
+        ${getStatRow('SPR 精神', 'spr', attr.spr)}
+        ${getStatRow('LUK 幸運', 'luk', attr.luk)}
+      </div>
+
+      <div style="display: flex; gap: 8px; font-size:0.72em; margin-top:4px; background:rgba(255,255,255,0.02); padding:2px 5px; border-radius:3px;">
+        <span style="color:#94a3b8;">魅力 (CHM): <b style="color:#f472b6;">${attr.charm}</b></span>
+        <span style="color:#94a3b8;">統帥 (CMD): <b style="color:#60a5fa;">${attr.command}</b></span>
+      </div>
+
+      ${confirmBtnsHtml}
+    `;
+
+    viewport.querySelectorAll('.btn-temp-plus').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const key = (e.currentTarget as HTMLElement).getAttribute('data-stat')!;
+        tempAllocations[key] = (tempAllocations[key] || 0) + 1;
+        renderPartyUpperSection();
+      });
     });
-  });
 
-  // 綁定暫存配點 - 事件
-  const minusBtns = document.getElementById('adv-detail-stats')!.querySelectorAll('.btn-temp-minus');
-  minusBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const key = (e.currentTarget as HTMLElement).getAttribute('data-stat')!;
-      if (tempAllocations[key] > 0) {
-        tempAllocations[key]--;
-      }
-      openAdvDetail(adv);
+    viewport.querySelectorAll('.btn-temp-minus').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const key = (e.currentTarget as HTMLElement).getAttribute('data-stat')!;
+        if ((tempAllocations[key] || 0) > 0) {
+          tempAllocations[key]--;
+        }
+        renderPartyUpperSection();
+      });
     });
-  });
 
-  // 綁定確認配點
-  const btnConfirm = document.getElementById('btn-confirm-stats');
-  if (btnConfirm) {
-    btnConfirm.addEventListener('click', () => {
-      for (const [key, val] of Object.entries(tempAllocations)) {
-        if (val > 0) {
-          for (let i = 0; i < val; i++) {
-            adv.allocateStat(key as any);
+    const btnConfirm = viewport.querySelector('#btn-confirm-stats');
+    if (btnConfirm) {
+      btnConfirm.addEventListener('click', () => {
+        for (const [key, val] of Object.entries(tempAllocations)) {
+          if (val > 0) {
+            for (let i = 0; i < val; i++) {
+              adv.allocateStat(key as any);
+            }
           }
         }
-      }
-      console.log(`[屬性] ⚔️ ${adv.name} 完成了屬性配點，當前六維已更新！`);
-      tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
-      openAdvDetail(adv);
-      UIManager.updateUI();
-    });
-  }
-
-  // 綁定取消重設
-  const btnReset = document.getElementById('btn-reset-stats');
-  if (btnReset) {
-    btnReset.addEventListener('click', () => {
-      tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
-      openAdvDetail(adv);
-    });
-  }
-
-  const equipGrid = document.getElementById('adv-detail-equips')!;
-  equipGrid.innerHTML = '';
-  const slots = [
-    { key: EquipmentSlot.WEAPON, name: '武器', icon: '🗡️' },
-    { key: EquipmentSlot.ARMOR, name: '防具', icon: '🛡️' },
-    { key: EquipmentSlot.ACCESSORY, name: '飾品', icon: '💍' }
-  ];
-
-  slots.forEach(s => {
-    const equip = adv.equipment[s.key];
-    const el = document.createElement('div');
-    el.className = 'equip-slot';
-    el.style.position = 'relative';
-
-    if (equip) {
-      const lvlStr = equip.enhancementLevel ? `+${equip.enhancementLevel}` : '';
-      el.innerHTML = `
-        <div class="equip-icon">${equip.icon || '✨'}</div>
-        <div class="equip-name">${equip.name} ${lvlStr}</div>
-        <button class="action-btn btn-unequip" style="margin-top:5px; padding:2px 5px; font-size:0.8em;">卸下</button>
-      `;
-      const btnUnequip = el.querySelector('.btn-unequip')!;
-      btnUnequip.addEventListener('click', (e) => {
-        e.stopPropagation();
-        adv.unequip(s.key);
-        myTerritory.addEquipmentToWarehouse(equip);
-        console.log(`[系統] 已將 ${adv.name} 身上的 ${equip.name} 卸下並放入倉庫。`);
-        openAdvDetail(adv);
+        tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
+        renderPartyUpperSection();
         UIManager.updateUI();
       });
-    } else {
-      el.style.cursor = 'pointer';
-      el.innerHTML = `
-        <div class="equip-icon" style="filter: grayscale(1); opacity: 0.3;">${s.icon}</div>
-        <div class="equip-name" style="color: #64748b;">${s.name}</div>
-        <div style="font-size:0.8em; color:#3b82f6; margin-top:5px;">+ 裝備</div>
-      `;
-      el.addEventListener('click', () => openEquipSelect(adv, s.key));
     }
-    equipGrid.appendChild(el);
-  });
 
-  const btnRetire = document.getElementById('btn-retire-adv') as HTMLButtonElement;
-  btnRetire.onclick = () => {
-    if (confirm(`確定要讓 ${adv.name} 退休嗎？\n退休後將無法恢復，但他將利用自身的【魅力】屬性永久提升您的稅收 (當前魅力: ${attr.charm})！`)) {
-      // 從隊伍中移除
-      GameState.adventurers = GameState.adventurers.filter(a => a.id !== adv.id);
-      
-      // 卸下所有裝備放回倉庫
-      slots.forEach(s => {
-        const eq = adv.equipment[s.key];
+    const btnReset = viewport.querySelector('#btn-reset-stats');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        tempAllocations = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
+        renderPartyUpperSection();
+      });
+    }
+  } else if (currentPartyTab === 'equip') {
+    const slots = [
+      { key: EquipmentSlot.WEAPON, name: '武器', icon: '🗡️' },
+      { key: EquipmentSlot.ARMOR, name: '防具', icon: '🛡️' },
+      { key: EquipmentSlot.ACCESSORY, name: '飾品', icon: '💍' }
+    ];
+
+    let equipRowsHtml = '';
+    slots.forEach(s => {
+      const eq = adv.equipment[s.key];
+      if (eq) {
+        const lvlStr = eq.enhancementLevel ? `+${eq.enhancementLevel}` : '';
+        equipRowsHtml += `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:3px 6px; border-radius:4px; font-size:0.78em; margin-bottom:3px;">
+            <span>${eq.icon || s.icon} <b>${eq.name} ${lvlStr}</b></span>
+            <button class="action-btn btn-party-unequip" data-slot="${s.key}" style="padding:1px 5px; font-size:0.75em; background:rgba(239,68,68,0.3); border-color:#ef4444; color:#fff;">卸下</button>
+          </div>
+        `;
+      } else {
+        equipRowsHtml += `
+          <div class="btn-party-equip" data-slot="${s.key}" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.15); padding:3px 6px; border-radius:4px; font-size:0.78em; margin-bottom:3px; cursor:pointer;">
+            <span style="color:#64748b;">${s.icon} ${s.name} (空位)</span>
+            <span style="color:#3b82f6; font-size:0.8em;">+ 裝備</span>
+          </div>
+        `;
+      }
+    });
+
+    const isFrontRow = adv.formationRow === 'FRONT' || (adv.formationRow as any) === 0;
+    const formationText = isFrontRow ? '🛡️ 前排 (近戰坦克)' : '🏹 後排 (遠程/輔助)';
+    const formationBtnBg = isFrontRow ? 'linear-gradient(135deg, #1d4ed8, #1e40af)' : 'linear-gradient(135deg, #9333ea, #7e22ce)';
+
+    viewport.innerHTML = `
+      <div style="font-size:0.78em; color:#eab308; font-weight:bold; margin-bottom:3px;">裝備槽位：</div>
+      ${equipRowsHtml}
+
+      <div style="font-size:0.78em; color:#eab308; font-weight:bold; margin: 6px 0 3px 0;">戰鬥陣位編制：</div>
+      <button id="btn-toggle-formation" class="action-btn" style="width:100%; background:${formationBtnBg}; padding:4px 0; font-size:0.78em; font-weight:bold; margin-bottom:8px;">
+        ${formationText} (點擊切換)
+      </button>
+
+      <div style="border-top: 1px dashed rgba(239,68,68,0.3); padding-top: 6px; text-align: center;">
+        <button id="btn-party-retire" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #ef4444; color: white; width: 100%; padding: 3px 0; font-size: 0.78em;">
+          👴 永久退休轉任 (增加領地稅收)
+        </button>
+      </div>
+    `;
+
+    viewport.querySelectorAll('.btn-party-unequip').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const slotKey = (e.currentTarget as HTMLElement).getAttribute('data-slot') as EquipmentSlot;
+        const eq = adv.equipment[slotKey];
         if (eq) {
-          adv.unequip(s.key);
-          myTerritory.addEquipmentToWarehouse(eq);
+          adv.unequip(slotKey);
+          GameState.myTerritory.addEquipmentToWarehouse(eq);
+          renderPartyUpperSection();
+          UIManager.updateUI();
         }
       });
-      
-      // 執行退休邏輯 (加入名單並提升稅收)
-      myTerritory.retireAdventurer(adv);
-      
-      console.log(`[系統] 👴 感謝 ${adv.name} 的貢獻！他已轉往幕後協助領地發展。`);
-      
-      modalAdvDetail.classList.remove('active');
-      UIManager.updateUI();
-    }
-  };
+    });
 
-  modalAdvDetail.classList.add('active');
+    viewport.querySelectorAll('.btn-party-equip').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const slotKey = (e.currentTarget as HTMLElement).getAttribute('data-slot') as EquipmentSlot;
+        openEquipSelect(adv, slotKey);
+      });
+    });
+
+    const btnFormation = viewport.querySelector('#btn-toggle-formation');
+    if (btnFormation) {
+      btnFormation.addEventListener('click', () => {
+        adv.formationRow = (adv.formationRow === 'FRONT' || (adv.formationRow as any) === 0)
+          ? ('BACK' as any)
+          : ('FRONT' as any);
+        renderPartyUpperSection();
+        UIManager.updateUI();
+      });
+    }
+
+    const btnRetire = viewport.querySelector('#btn-party-retire');
+    if (btnRetire) {
+      btnRetire.addEventListener('click', () => {
+        if (confirm(`確定要讓 ${adv.name} 退休嗎？\n退休後將利用其魅力 (當前: ${attr.charm}) 永久提升領地每日稅收！`)) {
+          const slotsArr = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
+          slotsArr.forEach(s => {
+            const eq = adv.equipment[s];
+            if (eq) {
+              adv.unequip(s);
+              GameState.myTerritory.addEquipmentToWarehouse(eq);
+            }
+          });
+          GameState.myTerritory.retireAdventurer(adv);
+          currentPartyAdv = GameState.adventurers[0] || null;
+          renderPartyUpperSection();
+          UIManager.updateUI();
+        }
+      });
+    }
+  }
+}
+
+export function openAdvDetail(adv: Adventurer) {
+  selectPartyAdventurer(adv);
+  const modal = document.getElementById('modal-party-list');
+  if (modal) {
+    modal.classList.add('active');
+  }
 }
 
 export function openEquipSelect(adv: Adventurer, slotKey: EquipmentSlot) {

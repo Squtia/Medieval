@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { MapNode, NodeLevel } from '../models/types';
+import { MapNode, NodeLevel, getMaxFacilityLevel } from '../models/types';
 import { UIManager } from './UIManager';
 import { renderMap } from './MapController';
 
@@ -93,6 +93,12 @@ export function enterScene(node: MapNode) {
       btnMigrate.style.display = isMyHome ? 'none' : 'block';
       
       btnEnterHall.style.display = (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null) ? 'block' : 'none';
+      
+      setTimeout(() => {
+        if ((window as any).__updateStreetScrollArrows) {
+          (window as any).__updateStreetScrollArrows();
+        }
+      }, 100);
     } else {
       wildernessView.classList.add('active');
       document.getElementById('wild-name')!.textContent = node.name;
@@ -188,8 +194,11 @@ export function renderBaseBuildings() {
     card.style.borderRadius = '6px';
     
     let actionBtnHtml = '';
+    const maxAllowed = getMaxFacilityLevel(territory.title);
     if (isMax) {
       actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px;">已達最高等級 (3等)</button>`;
+    } else if (nextLvl > maxAllowed) {
+      actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px; color: #f87171;">需晉升爵位解鎖 Lv.${nextLvl}</button>`;
     } else {
       const cost = territory.getUpgradeCost(bld.key, nextLvl);
       const canUpgrade = territory.canUpgradeBuilding(bld.key);
@@ -234,4 +243,83 @@ export function renderBaseBuildings() {
     
     listEl.appendChild(card);
   });
+}
+
+/**
+ * 初始化街道滾動區域 (支援手動拖曳與左右箭頭輔助)
+ */
+export function initStreetScroller(): void {
+  const scrollArea = document.getElementById('street-scroll-area');
+  const arrowLeft = document.getElementById('street-arrow-left');
+  const arrowRight = document.getElementById('street-arrow-right');
+
+  if (!scrollArea || !arrowLeft || !arrowRight) return;
+
+  const updateArrows = () => {
+    const maxScroll = scrollArea.scrollWidth - scrollArea.clientWidth;
+    if (maxScroll <= 10) {
+      arrowLeft.style.display = 'none';
+      arrowRight.style.display = 'none';
+      return;
+    }
+    arrowLeft.style.display = scrollArea.scrollLeft > 10 ? 'flex' : 'none';
+    arrowRight.style.display = scrollArea.scrollLeft < maxScroll - 10 ? 'flex' : 'none';
+  };
+
+  let isDragging = false;
+  let startX = 0;
+  let scrollLeftStart = 0;
+  let hasMoved = false;
+
+  scrollArea.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    hasMoved = false;
+    startX = e.pageX - scrollArea.offsetLeft;
+    scrollLeftStart = scrollArea.scrollLeft;
+    scrollArea.style.cursor = 'grabbing';
+  });
+
+  scrollArea.addEventListener('mouseleave', () => {
+    isDragging = false;
+    scrollArea.style.cursor = 'grab';
+  });
+
+  scrollArea.addEventListener('mouseup', () => {
+    isDragging = false;
+    scrollArea.style.cursor = 'grab';
+  });
+
+  scrollArea.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const x = e.pageX - scrollArea.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 5) {
+      hasMoved = true;
+    }
+    scrollArea.scrollLeft = scrollLeftStart - walk;
+    updateArrows();
+  });
+
+  // 防止拖曳釋放時誤觸建築點擊事件
+  scrollArea.addEventListener('click', (e) => {
+    if (hasMoved) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+
+  scrollArea.addEventListener('scroll', updateArrows);
+
+  arrowLeft.addEventListener('click', () => {
+    scrollArea.scrollBy({ left: -250, behavior: 'smooth' });
+  });
+
+  arrowRight.addEventListener('click', () => {
+    scrollArea.scrollBy({ left: 250, behavior: 'smooth' });
+  });
+
+  window.addEventListener('resize', updateArrows);
+  (window as any).__updateStreetScrollArrows = updateArrows;
+
+  setTimeout(updateArrows, 100);
 }

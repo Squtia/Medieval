@@ -16,6 +16,8 @@ import { initActionController } from './ui/ActionController';
 import { initRecruitController } from './ui/RecruitController';
 import { initCheatController } from './ui/CheatController';
 
+import { initStreetScroller } from './ui/SceneController';
+
 // 1. 初始化日誌攔截
 const logContainer = document.getElementById('game-log');
 if (logContainer) {
@@ -60,3 +62,4 @@ initFacilityController();
 initActionController();
 initRecruitController();
 initCheatController();
+initStreetScroller();

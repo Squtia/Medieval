@@ -1,4 +1,4 @@
-import { Equipment, NobleTitle } from './types';
+import { Equipment, NobleTitle, WorkerJob, getMaxFacilityLevel } from './types';
 import { Adventurer } from './Adventurer';
 import { CombatHistoryRecord } from './Combat';
 
@@ -131,7 +131,11 @@ export class Territory {
 
   public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): boolean {
     const nextLevel = this.getBuildingLevel(bldType) + 1;
-    if (nextLevel > 3) return false; // 上限 3 等
+    if (nextLevel > 3) return false; // 遊戲絕對上限 3 等
+    
+    // 爵位等級上限卡控
+    const maxAllowed = getMaxFacilityLevel(this.title);
+    if (nextLevel > maxAllowed) return false;
     
     const cost = this.getUpgradeCost(bldType, nextLevel);
     return this.gold >= cost.gold &&

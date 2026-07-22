@@ -1,6 +1,6 @@
 import { GameState } from '../core/GameState';
-import { AdventurerState, NobleTitle } from '../models/types';
-import { openAdvDetail } from './ModalController';
+import { AdventurerState, NobleTitle, TITLE_CONFIG } from '../models/types';
+import { openAdvDetail, getSelectedPartyAdventurer, selectPartyAdventurer, renderPartyUpperSection } from './ModalController';
 import { renderBaseBuildings } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
@@ -108,6 +108,15 @@ class UIManagerClass {
     if (this.uiWorkerWoodcutter) this.uiWorkerWoodcutter.textContent = (territory.workers['WOODCUTTER'] || 0).toString();
     if (this.uiWorkerMiner) this.uiWorkerMiner.textContent = (territory.workers['MINER'] || 0).toString();
     
+    // 同步滑桿 max 與當前數值 (防呆：最高為當前人數 + 閒置人數)
+    const unassigned = territory.workers['UNASSIGNED'] || 0;
+    document.querySelectorAll<HTMLInputElement>('.worker-slider').forEach(slider => {
+      const job = slider.getAttribute('data-job')!;
+      const current = territory.workers[job] || 0;
+      slider.max = (current + unassigned).toString();
+      slider.value = current.toString();
+    });
+    
     if (this.uiNetProduction) {
       const foodProduced = (territory.workers['FARMER'] || 0) * 3;
       const totalPeople = territory.population + GameState.adventurers.length;
@@ -123,41 +132,56 @@ class UIManagerClass {
     this.uiDashboardPrestige.textContent = territory.prestige.toString();
     this.uiDashboardFavor.textContent = territory.royalFavor.toString();
     
-    // 爵位進度條計算
-    const titles = [
-      { title: 'COMMONER', titleCN: '平民', req: 0 },
-      { title: 'KNIGHT', titleCN: '騎士', req: 100 },
-      { title: 'BARON', titleCN: '男爵', req: 500 },
-      { title: 'VISCOUNT', titleCN: '子爵', req: 2000 },
-      { title: 'COUNT', titleCN: '伯爵', req: 5000 },
-      { title: 'MARQUIS', titleCN: '侯爵', req: 15000 },
-      { title: 'DUKE', titleCN: '公爵', req: 50000 }
-    ];
+    // 爵位進度條計算與晉升邏輯
     try {
-      const currIdx = titles.findIndex(t => t.title === territory.title);
-      if (currIdx >= 0 && currIdx < titles.length - 1) {
-        const nextRank = titles[currIdx + 1];
-        const prevReq = titles[currIdx].req;
-        const progress = Math.min(100, Math.max(0, ((territory.prestige - prevReq) / (nextRank.req - prevReq)) * 100));
+      const currIdx = TITLE_CONFIG.findIndex(t => t.title === territory.title);
+      const btnPromote = document.getElementById('btn-promote-title');
+      
+      if (currIdx >= 0 && currIdx < TITLE_CONFIG.length - 1) {
+        const currentRank = TITLE_CONFIG[currIdx];
+        const nextRank = TITLE_CONFIG[currIdx + 1];
+        const prevReq = currentRank.reqPrestige;
+        const progress = Math.min(100, Math.max(0, ((territory.prestige - prevReq) / (nextRank.reqPrestige - prevReq)) * 100));
+        
         if (this.uiTitleProgress) this.uiTitleProgress.style.width = `${progress}%`;
-        if (this.uiTitleText) this.uiTitleText.textContent = `距離下一階 (${nextRank.titleCN}) 還需 ${nextRank.req - territory.prestige} 聲望`;
+        
+        const condPrestige = territory.prestige >= nextRank.reqPrestige;
+        const condPop = territory.population >= nextRank.reqPopulation;
+        const condGold = territory.gold >= nextRank.reqGold;
+        const canPromote = condPrestige && condPop && condGold;
 
-        // DEP-03: 爵位晰升通知（聲望初次超過覇間値）
-        const justPromoted = territory.prestige >= nextRank.req && territory.prestige - 5 < nextRank.req;
-        if (justPromoted) {
-          const newTitle = titleCN;
-          setTimeout(() => {
-            const banner = document.getElementById('promotion-banner');
-            if (banner) {
-              banner.innerHTML = `🎉 恭喜晴升為「${newTitle}」！新商隊上限已提升。`;
-              banner.style.display = 'block';
-              setTimeout(() => { banner.style.display = 'none'; }, 4000);
-            }
-          }, 100);
+        if (canPromote) {
+          if (this.uiTitleText) this.uiTitleText.innerHTML = `<span style="color:#10b981;">條件已達成，準備晉升！</span>`;
+          if (btnPromote) {
+            btnPromote.style.display = 'block';
+            btnPromote.innerText = `🎉 舉辦晉升大典 (${nextRank.titleCN})`;
+            // 防止重複綁定
+            btnPromote.onclick = () => {
+              if (confirm(`確定要花費 ${nextRank.reqGold} 金幣舉辦晉升大典，成為【${nextRank.titleCN}】嗎？`)) {
+                if (territory.gold >= nextRank.reqGold) {
+                  territory.gold -= nextRank.reqGold;
+                  territory.title = nextRank.title;
+                  alert(`恭喜！您已正式晉升為【${nextRank.titleCN}】！\n新特權：商隊上限 ${nextRank.maxCaravans}、英雄上限 ${nextRank.maxRoster}、建築上限 Lv.${nextRank.maxFacilityLevel}`);
+                  this.updateUI();
+                } else {
+                  alert('金幣不足！');
+                }
+              }
+            };
+          }
+        } else {
+          let missingText = `距離下一階 (${nextRank.titleCN}) 還需: `;
+          let reqs = [];
+          if (!condPrestige) reqs.push(`${nextRank.reqPrestige - territory.prestige} 聲望`);
+          if (!condPop) reqs.push(`${nextRank.reqPopulation - territory.population} 人口`);
+          if (!condGold) reqs.push(`${nextRank.reqGold - territory.gold} 金幣`);
+          if (this.uiTitleText) this.uiTitleText.textContent = missingText + reqs.join(', ');
+          if (btnPromote) btnPromote.style.display = 'none';
         }
       } else {
         if (this.uiTitleProgress) this.uiTitleProgress.style.width = `100%`;
         if (this.uiTitleText) this.uiTitleText.textContent = `已達最高爵位`;
+        if (btnPromote) btnPromote.style.display = 'none';
       }
     } catch(e: any) {
       console.error('Error updating title progress:', e);
@@ -169,21 +193,39 @@ class UIManagerClass {
       const activeTooltip = document.getElementById('adv-tooltip');
       if (activeTooltip) activeTooltip.style.opacity = '0';
       this.advContainer.innerHTML = '';
+      
+      const partyCountTag = document.getElementById('party-count-tag');
+      if (partyCountTag) partyCountTag.textContent = `${GameState.adventurers.length} 人`;
+
+      let selectedAdv = getSelectedPartyAdventurer();
+      if (!selectedAdv || !GameState.adventurers.includes(selectedAdv)) {
+        selectedAdv = GameState.adventurers[0] || null;
+        selectPartyAdventurer(selectedAdv);
+      } else {
+        renderPartyUpperSection();
+      }
+
       GameState.adventurers.forEach(adv => {
         const card = document.createElement('div');
         card.className = 'adventurer-card';
+        card.style.cursor = 'pointer';
+        
+        if (selectedAdv && adv.id === selectedAdv.id) {
+          card.style.border = '2px solid #eab308';
+          card.style.background = 'rgba(234, 179, 8, 0.2)';
+        }
+
         if (adv.trait.name === '誓約守衛') {
           card.classList.add('guardian');
         }
         
-        // UI-01: 修正狀態顯示（移除錯誤的秒數計算，加入 RESTING 狀態）
         let stateText = '🟢 閒置';
         if (adv.currentState === AdventurerState.RESTING) {
           stateText = `🛌 休養中 (${adv.restingDaysLeft}天後)`;
         } else if (adv.currentState !== AdventurerState.IDLE) {
           stateText = `🔴 任務中`;
         }
-        // 查詢外派任務資訊
+        
         let dispatchInfo = '';
         if (adv.currentState !== AdventurerState.IDLE && adv.currentState !== AdventurerState.RESTING) {
           const activeMissions = GameState.system?.getActiveMissions() || [];
@@ -201,25 +243,12 @@ class UIManagerClass {
         if (adv.equipment.ACCESSORY) equipText += `\n- 💍 ${adv.equipment.ACCESSORY.name}`;
         if (!equipText) equipText = '\n- 無裝備';
 
-        const qMap: Record<string, string> = { 'SSR': 'SSR 傳奇', 'SR': 'SR 史詩', 'R': 'R 精英', 'N': 'N 普通' };
-        const qLabel = qMap[adv.quality || 'N'] || 'N 普通';
+        const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${adv.job.name}<br/>狀態：${stateText}`;
 
-        const tooltipText = `【${adv.name}】 (${qLabel})
-Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
-戰力：${adv.power}
-狀態：${stateText}${dispatchInfo}
-
-【六維屬性】
-力量: ${attr.str} | 敏捷: ${attr.agi} | 體質: ${attr.con}
-智慧: ${attr.int} | 精神: ${attr.spr} | 幸運: ${attr.luk}
-
-【目前裝備】${equipText}`;
-
-        // 監聽 Hover 事件
         card.addEventListener('mouseenter', () => {
           const tEl = document.getElementById('adv-tooltip');
           if (tEl) {
-            tEl.textContent = tooltipText;
+            tEl.innerHTML = tooltipHtml;
             tEl.style.opacity = '1';
           }
         });
@@ -238,19 +267,21 @@ Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
           }
         });
         
-        // 卡片內部顯示
         const avatarIcon = '🦸';
         card.innerHTML = `
-          <div class="adv-avatar">${avatarIcon}</div>
-          <div class="adv-name">${adv.name}</div>
-          <div class="adv-level" style="color: ${adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#a855f7' : adv.quality === 'R' ? '#3b82f6' : '#cbd5e1'}; font-weight: bold;">Lv.${adv.level}</div>
+          <div class="adv-avatar-wrapper">${avatarIcon}</div>
+          <div class="adv-card-gradient"></div>
+          <div class="adv-card-info">
+            <div class="adv-name">${adv.name}</div>
+            <div class="adv-level" style="color: ${adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1'}; font-weight: bold;">Lv.${adv.level}</div>
+          </div>
         `;
         
         card.addEventListener('click', () => {
-          // 點擊卡片時，隱藏浮動 Tooltip 避免殘留
           const tEl = document.getElementById('adv-tooltip');
           if (tEl) tEl.style.opacity = '0';
-          openAdvDetail(adv);
+          selectPartyAdventurer(adv);
+          this.updateUI();
         });
         this.advContainer.appendChild(card);
         if (adv.currentState !== AdventurerState.IDLE) allIdle = false;
@@ -300,6 +331,12 @@ Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
       }
       this.mapStatusPanel.style.display = 'block';
 
+      // 冒險者隊伍功能：在大陸地圖時隱藏按鈕並關閉面板
+      const btnDockParty = document.getElementById('btn-dock-party');
+      const modalPartyList = document.getElementById('modal-party-list');
+      if (btnDockParty) btnDockParty.style.display = 'none';
+      if (modalPartyList) modalPartyList.classList.remove('active');
+
       // 狀態
       const baseNode = GameState.mapSystem?.getNodes().find(n => n.id === territory.currentCountryId);
       this.statusLocation.textContent = baseNode ? baseNode.name : '無';
@@ -321,6 +358,10 @@ Lv.${adv.level} ${adv.job.name} | ${adv.trait.name}
       this.mapInfoPanel.style.display = 'none';
       this.mapStatusPanel.style.display = 'none';
       if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
+
+      // 在據點街道視圖時顯示冒險者隊伍按鈕
+      const btnDockParty = document.getElementById('btn-dock-party');
+      if (btnDockParty) btnDockParty.style.display = 'flex';
     } else {
       if (sharedRightPanel) sharedRightPanel.style.display = 'none';
       if (sceneDashboard) sceneDashboard.style.display = 'none';

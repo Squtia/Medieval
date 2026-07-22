@@ -134,6 +134,9 @@
       max-width: 320px;
       line-height: 1.6;
     }
+    #adv-tooltip {
+      text-align: center;
+    }
 
     /* 獨立建築視圖 */
     .facility-view {
@@ -206,10 +209,46 @@
       white-space: nowrap;
       cursor: grab;
       z-index: 2;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+      user-select: none;
     }
     .street-scroll-area:active { cursor: grabbing; }
-    .street-scroll-area::-webkit-scrollbar { height: 10px; }
-    .street-scroll-area::-webkit-scrollbar-thumb { background: rgba(139, 69, 19, 0.8); border-radius: 5px; }
+    .street-scroll-area::-webkit-scrollbar { display: none; } /* Chrome/Safari/Opera */
+
+    /* 街道左右捲動指示箭頭 */
+    .street-nav-arrow {
+      position: absolute;
+      top: 50%;
+      z-index: 10;
+      background: rgba(20, 15, 10, 0.85);
+      border: 2px solid #8b4513;
+      color: #ebdcb6;
+      font-size: 1.2rem;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.7), inset 0 0 8px rgba(234, 179, 8, 0.3);
+      transition: all 0.3s ease;
+      animation: streetArrowPulse 2s infinite;
+    }
+    .street-nav-arrow:hover {
+      background: rgba(139, 69, 19, 0.95);
+      color: #fff;
+      border-color: #f59e0b;
+      transform: translateY(-50%) scale(1.15);
+      box-shadow: 0 6px 16px rgba(245, 158, 11, 0.6);
+    }
+    .street-nav-arrow.arrow-left { left: 15px; }
+    .street-nav-arrow.arrow-right { right: 15px; }
+    @keyframes streetArrowPulse {
+      0%, 100% { transform: translateY(-50%) scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.7); }
+      50% { transform: translateY(-50%) scale(1.1); box-shadow: 0 4px 18px rgba(245, 158, 11, 0.5); }
+    }
 
     /* 街景建築物 */
     .street-building {
@@ -222,6 +261,7 @@
       cursor: pointer;
       transition: transform 0.3s ease, filter 0.3s ease;
       filter: drop-shadow(0 10px 10px rgba(0,0,0,0.8));
+      flex-shrink: 0;
     }
     .street-building:hover {
       transform: scale(1.1) translateY(-10px);
@@ -403,16 +443,18 @@
     /* 左側抽屜面板 (非模態) */
     .side-panel-left {
       position: fixed;
-      top: 70px;
-      left: -420px;
-      bottom: 20px;
-      width: 400px;
+      top: 60px;
+      left: -460px;
+      max-height: 625px;
+      width: 440px;
       z-index: 900;
       transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
-      padding: 20px;
+      padding: 12px 14px;
       pointer-events: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
     }
     .side-panel-left.active {
       left: 20px;
@@ -543,81 +585,86 @@
 
     .adventurer-card {
       position: relative;
-      width: 64px;
-      height: 80px;
-      background: rgba(20, 20, 20, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
+      width: 100%;
+      height: 78px;
+      background: linear-gradient(180deg, #1e293b, #0f172a);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 6px;
       display: flex;
       flex-direction: column;
+      justify-content: flex-end;
       align-items: center;
-      justify-content: flex-start;
-      padding-top: 8px;
+      padding: 4px 2px;
       transition: all 0.2s ease;
-      overflow: visible;
+      overflow: hidden;
       cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     }
     .adventurer-card:hover {
-      background: rgba(40, 40, 40, 0.9);
       border-color: #ebdcb6;
-      transform: translateY(-2px);
-      z-index: 9999;
+      transform: translateY(-3px);
+      box-shadow: 0 6px 14px rgba(234, 179, 8, 0.35);
+      z-index: 99;
     }
     .adventurer-card.guardian {
       border-color: #eab308;
-      box-shadow: 0 0 8px rgba(234, 179, 8, 0.5);
+      box-shadow: 0 0 10px rgba(234, 179, 8, 0.6);
     }
-    .adventurer-card .adv-avatar {
-      font-size: 28px;
-      line-height: 1;
-      width: auto;
-      height: auto;
-      border-radius: 0;
-      background: none;
-      border: none;
-      margin: 0;
+    /* 卡牌頭像/滿版立繪相框 */
+    .adventurer-card .adv-avatar-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .adventurer-card .adv-avatar-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top center;
+    }
+    /* 卡牌沉底深色漸層遮罩 (保證文字讀取清晰) */
+    .adventurer-card .adv-card-gradient {
+      position: absolute;
+      left: 0; right: 0; bottom: 0; top: 0;
+      background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.55) 45%, rgba(0,0,0,0) 100%);
+      z-index: 2;
+      pointer-events: none;
+    }
+    /* 沉底文字區塊 */
+    .adventurer-card .adv-card-info {
+      position: relative;
+      z-index: 3;
+      width: 100%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     .adventurer-card .adv-name {
-      font-size: 11px;
-      margin-top: 6px;
-      color: #ebdcb6;
+      font-size: 10.5px;
+      font-weight: bold;
+      color: #f1f5f9;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 90%;
+      max-width: 95%;
+      text-shadow: 0 1px 3px #000, 0 0 3px #000;
     }
     .adventurer-card .adv-level {
-      font-size: 9px;
-      color: #9ca3af;
-      margin-top: 2px;
+      font-size: 8.5px;
+      margin-top: 1px;
+      text-shadow: 0 1px 2px #000, 0 0 2px #000;
     }
     
-    /* Adventurer Tooltip */
-    .adventurer-card::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      top: 50%;
-      left: calc(100% + 8px);
-      transform: translateY(-50%);
-      background: rgba(10, 10, 10, 0.95);
-      color: #cbd5e1;
-      padding: 8px 12px;
-      border: 1px solid #555;
-      border-radius: 4px;
-      white-space: pre;
-      font-size: 0.85rem;
-      pointer-events: none;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.2s;
-      z-index: 1000;
-      text-align: left;
-      min-width: 160px;
-    }
-    .adventurer-card:hover::after {
-      opacity: 1;
-      visibility: visible;
-    }
+
 
     .adv-checkbox-card.selected {
       border-color: #3b82f6;
@@ -644,9 +691,7 @@
       pointer-events: auto;
     }
 
-
-
-    /* 結束本日史詩劍盾大圓鈕 */
+    /* 結束本日史詩劍盾大圓鈕 (176px) */
     #btn-end-day-wrapper {
       position: relative;
       display: flex;
@@ -654,96 +699,101 @@
       align-items: center;
     }
     .epic-crest-btn {
-      width: 88px;
-      height: 88px;
+      width: 176px;
+      height: 176px;
       border-radius: 50%;
       background: url('./assets/btn_epic_crest.png') no-repeat center/cover;
-      border: 2px solid rgba(234, 179, 8, 0.75);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.9), inset 0 0 15px rgba(0, 0, 0, 0.6);
+      border: 3px solid rgba(234, 179, 8, 0.85);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), inset 0 0 25px rgba(0, 0, 0, 0.6);
       cursor: pointer;
       transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       position: relative;
     }
     .epic-crest-btn:hover {
-      transform: scale(1.1);
+      transform: scale(1.05);
       border-color: #f59e0b;
-      filter: brightness(1.2) drop-shadow(0 0 20px rgba(245, 158, 11, 0.85));
+      filter: brightness(1.15) drop-shadow(0 0 20px rgba(245, 158, 11, 0.85));
     }
     .epic-crest-btn:active {
-      transform: scale(0.92);
+      transform: scale(0.94);
       filter: brightness(0.9);
     }
     .end-day-pill {
       position: absolute;
-      bottom: -6px;
+      bottom: -8px;
       background: linear-gradient(135deg, #1e1b18, #3e2e1e);
       border: 1px solid #d97706;
       color: #fef08a;
-      font-size: 11px;
+      font-size: 15px;
       font-weight: bold;
-      padding: 2px 10px;
-      border-radius: 12px;
+      padding: 4px 16px;
+      border-radius: 16px;
       text-shadow: 0 1px 2px #000;
       white-space: nowrap;
       pointer-events: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.7);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.8);
     }
 
-    /* 切換據點/世界地圖圓鈕 (相鄰在上方) */
+    /* 切換據點/世界地圖圓鈕 (縮小 1/3 至 75px，與結束本日右側對齊) */
     .floating-base-btn {
       position: absolute;
-      bottom: 100px;
-      right: 16px;
-      width: 56px;
-      height: 56px;
+      bottom: 190px;
+      right: 0;
+      width: 75px;
+      height: 75px;
       background: url('./assets/btn_return_base_gold.png') no-repeat center/cover;
-      border: 2px solid rgba(234, 179, 8, 0.6);
+      border: 2px solid rgba(234, 179, 8, 0.75);
       cursor: pointer;
       z-index: 150;
       transition: all 0.2s ease;
-      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.8));
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.85));
       border-radius: 50%;
     }
     .floating-base-btn:hover {
-      transform: scale(1.15);
+      transform: scale(1.1);
       border-color: #fbbf24;
-      filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.9)) brightness(1.2);
+      filter: drop-shadow(0 0 15px rgba(251, 191, 36, 0.9)) brightness(1.15);
     }
     .floating-base-btn:active {
-      transform: scale(0.92);
+      transform: scale(0.94);
     }
 
     /* 左側快捷列 (Quick Dock) */
     #floating-quick-dock {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
-      margin-right: 8px;
-      margin-bottom: 8px;
+      margin-right: 12px;
+      margin-bottom: 24px;
     }
     .dock-btn {
-      width: 44px;
-      height: 44px;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
-      background: url('./bg-parchment.png') center/cover;
-      border: 1px solid rgba(139, 69, 19, 0.8);
-      box-shadow: inset 0 0 8px rgba(0,0,0,0.8), 0 4px 8px rgba(0,0,0,0.6);
+      background: radial-gradient(circle at 35% 35%, #4a3828 0%, #1c150e 100%);
+      border: 2px solid #a37c4c;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.15);
       color: #ebdcb6;
-      font-size: 1.2em;
+      font-size: 1.4em;
       cursor: pointer;
       display: flex;
       justify-content: center;
       align-items: center;
       transition: all 0.2s ease;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+      filter: none;
     }
     .dock-btn:hover {
-      transform: translateY(-3px) scale(1.1);
-      border-color: #f59e0b;
-      filter: brightness(1.2);
-      box-shadow: inset 0 0 4px rgba(0,0,0,0.5), 0 6px 12px rgba(234, 179, 8, 0.4);
+      transform: translateY(-2px) scale(1.08);
+      border-color: #d4af37;
+      color: #ffffff;
+      background: radial-gradient(circle at 35% 35%, #5c4734 0%, #261d14 100%);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.9), inset 0 1px 3px rgba(255, 255, 255, 0.25);
+      filter: none;
     }
     .dock-btn:active {
-      transform: translateY(1px);
+      transform: translateY(1px) scale(0.95);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
     }
 
     .visually-hidden-map-list {
@@ -1168,7 +1218,10 @@
       <div class="street-scroller-container" style="width: 100%;">
         <!-- 背景圖片會由 JS 根據繁榮度動態更換 -->
         <div id="street-parallax-bg" class="street-parallax-bg" style="background-image: url('./bg_street_prosperous_1784087131344.png');"></div>
-          <div style="position: absolute; z-index: 2; top: 0; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; align-items: flex-end; gap: 30px; padding-bottom: 50px;" id="street-buildings-wrapper">
+        
+        <!-- 街道滾動遮罩 -->
+        <div id="street-scroll-area" class="street-scroll-area">
+          <div style="min-height: 100%; min-width: max-content; display: flex; justify-content: flex-start; align-items: flex-end; gap: 30px; padding: 0 50px 50px 50px; box-sizing: border-box;" id="street-buildings-wrapper">
             <div id="btn-enter-hall" class="street-building" style="background-image: url('./bld_hall_1784087169726.png'); width: 260px; height: 260px; display: none;">
               <div class="building-label">👑 謁見廳</div>
             </div>
@@ -1188,6 +1241,11 @@
                <div class="building-label">⚒️ 鍛造屋</div>
             </div>
           </div>
+        </div>
+
+        <!-- 街道左右捲動指示箭頭 -->
+        <button id="street-arrow-left" class="street-nav-arrow arrow-left" style="display: none;" title="向左捲動">◀</button>
+        <button id="street-arrow-right" class="street-nav-arrow arrow-right" style="display: none;" title="向右捲動">▶</button>
       </div>
     </div>
 
@@ -1207,42 +1265,45 @@
           </div>
           
           <!-- 農夫 -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
-            <div>
-              <div style="font-size: 1.1em; font-weight: bold;">🌾 農夫</div>
-              <div style="font-size: 0.85em; color: #94a3b8;">每人產出 3 糧食/天</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap;">🌾 農夫</div>
+              <span style="font-size: 1.1em; font-weight: bold; color: #eab308;"><span id="ui-worker-FARMER">0</span> 人</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-              <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 3px 12px; font-size: 1.3em;">-</button>
-              <span id="ui-worker-FARMER" style="font-size: 1.3em; width: 35px; text-align: center;">0</span>
-              <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 3px 12px; font-size: 1.3em;">+</button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <input type="range" class="worker-slider" data-job="FARMER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
             </div>
+            <div style="font-size: 0.85em; color: #94a3b8;">每人產出 3 糧食/天</div>
           </div>
  
           <!-- 伐木工 -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
-            <div>
-              <div style="font-size: 1.1em; font-weight: bold;">🪓 伐木工</div>
-              <div style="font-size: 0.85em; color: #94a3b8;">每人產出 2 木材/天</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap;">🪓 伐木工</div>
+              <span style="font-size: 1.1em; font-weight: bold; color: #eab308;"><span id="ui-worker-WOODCUTTER">0</span> 人</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 3px 12px; font-size: 1.3em;">-</button>
-              <span id="ui-worker-WOODCUTTER" style="font-size: 1.3em; width: 35px; text-align: center;">0</span>
-              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="1" style="padding: 3px 12px; font-size: 1.3em;">+</button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <input type="range" class="worker-slider" data-job="WOODCUTTER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
             </div>
+            <div style="font-size: 0.85em; color: #94a3b8;">每人產出 2 木材/天</div>
           </div>
  
           <!-- 礦工 -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
-            <div>
-              <div style="font-size: 1.1em; font-weight: bold;">⛏️ 礦工</div>
-              <div style="font-size: 0.85em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
+          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap;">⛏️ 礦工</div>
+              <span style="font-size: 1.1em; font-weight: bold; color: #eab308;"><span id="ui-worker-MINER">0</span> 人</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 15px;">
-              <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 3px 12px; font-size: 1.3em;">-</button>
-              <span id="ui-worker-MINER" style="font-size: 1.3em; width: 35px; text-align: center;">0</span>
-              <button class="action-btn btn-assign" data-job="MINER" data-amount="1" style="padding: 3px 12px; font-size: 1.3em;">+</button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <input type="range" class="worker-slider" data-job="MINER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="MINER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
             </div>
+            <div style="font-size: 0.85em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
           </div>
           
           <div id="ui-net-production" style="margin-top: 5px; font-size: 0.95em; text-align: center;">
@@ -1426,6 +1487,7 @@
              <div id="ui-title-progress" class="progress-fill" style="width: 50%;"></div>
            </div>
            <div style="text-align: right; font-size: 0.75em; color: #cbd5e1; margin-top: 5px;" id="ui-title-text">距離下一階還需 150 聲望</div>
+           <button id="btn-promote-title" class="action-btn" style="display:none; width:100%; margin-top:8px; padding:6px 10px; background: linear-gradient(135deg, #d97706, #b45309); border-color: #f59e0b; box-shadow: 0 0 10px #f59e0b80;">🎉 舉辦晉升大典</button>
          </div>
          <div id="daily-summary" class="daily-summary" aria-live="polite">
            <strong>📊 今日摘要</strong>
@@ -1434,7 +1496,7 @@
          </div>
       </div>
 
-      <div class="dashboard-bottom" style="flex: 1; height: auto; position: relative;">
+      <div class="dashboard-bottom" style="flex: 1; height: auto; position: relative; min-height: 0;">
         <div class="log-header">
           <h3 style="margin: 0; font-size: 1.2em;">📜 帝國日誌</h3>
           <div class="log-tabs" id="log-tabs">
@@ -1444,7 +1506,7 @@
             <button class="log-tab" data-filter="domestic">內政</button>
           </div>
         </div>
-        <div id="game-log" data-filter="all" style="background: rgba(0,0,0,0.3); border: 1px inset rgba(139,69,19,0.5); padding: 10px; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); margin-bottom: 75px;"></div>
+        <div id="game-log" data-filter="all" style="background: rgba(0,0,0,0.3); border: 1px inset rgba(139,69,19,0.5); padding: 10px; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); margin-bottom: 270px;"></div>
       </div>
 
 
@@ -1642,13 +1704,68 @@
       </div>
     </div>
   </div>
-  <!-- 傭兵小隊 左側面板 -->
+  <!-- 傭兵小隊/冒險者資訊 左側面板 (二分法與常駐立繪) -->
   <div class="side-panel-left glass-panel" id="modal-party-list">
     <button class="close-btn" id="btn-close-party-list">×</button>
-    <h2 style="text-align: center; color: #eab308; margin-top: 0; font-family: 'Cinzel', serif;">🛡️ 傭兵小隊</h2>
-    <p style="text-align: center; color: #94a3b8; margin-top: 5px; font-size: 14px;">查看隸屬於您的所有冒險者，進行狀態確認或編制。</p>
+    <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 冒險者小隊</h2>
     
-    <div id="party-modal-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 12px; margin-top: 20px; flex: 1; overflow-y: auto; padding: 10px 5px;">
+    <!-- 上半部 (2/3)：詳細資訊區 + 左側常駐立繪 + 右側頁籤 -->
+    <div id="party-upper-section" style="display: flex; height: 230px; gap: 8px; background: rgba(0,0,0,0.35); border-radius: 8px; padding: 6px; border: 1px solid rgba(255,255,255,0.08); position: relative; margin-bottom: 6px;">
+      <!-- 1. 左側常駐立繪卡 (~130px) -->
+      <div id="party-portrait-card" style="width: 130px; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.6); border-radius: 6px; padding: 5px; border: 1px solid rgba(234, 179, 8, 0.3); flex-shrink: 0; position: relative; justify-content: space-between;">
+        <div id="party-portrait-img-wrapper" style="width: 100%; height: 100px; border-radius: 6px; overflow: hidden; background: linear-gradient(180deg, #1e293b, #0f172a); display: flex; justify-content: center; align-items: center; font-size: 3em; position: relative; border: 1px solid rgba(255,255,255,0.1);">
+          <span id="party-portrait-avatar">🦸</span>
+        </div>
+        
+        <!-- ❤️/💧 HP/MP 能量條區塊 (移至半身像正下方) -->
+        <div id="party-portrait-bars" style="width: 100%; display: flex; flex-direction: column; gap: 3px; margin: 3px 0;">
+          <div style="display: flex; align-items: center; gap: 3px; font-size: 0.68em;">
+            <span style="color: #ef4444; font-weight: bold; width: 18px; text-align: right;">HP</span>
+            <div style="flex: 1; height: 12px; background: rgba(0,0,0,0.6); border-radius: 4px; border: 1px solid rgba(239,68,68,0.5); overflow: hidden; position: relative;">
+              <div id="party-bar-hp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #b91c1c, #ef4444); border-radius: 4px; transition: width 0.3s ease;"></div>
+              <span id="party-bar-hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #000;">0 / 0</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 3px; font-size: 0.68em;">
+            <span style="color: #3b82f6; font-weight: bold; width: 18px; text-align: right;">MP</span>
+            <div style="flex: 1; height: 12px; background: rgba(0,0,0,0.6); border-radius: 4px; border: 1px solid rgba(59,130,246,0.5); overflow: hidden; position: relative;">
+              <div id="party-bar-mp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #1d4ed8, #3b82f6); border-radius: 4px; transition: width 0.3s ease;"></div>
+              <span id="party-bar-mp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #000;">0 / 0</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="party-portrait-info" style="width: 100%; text-align: center;">
+          <div id="party-job-trait" style="font-size: 0.78em; color: #f1f5f9; font-weight: bold;">Lv.1 戰士</div>
+          <div id="party-trait-name" style="font-size: 0.72em; color: #94a3b8; margin-top: 1px;">勇敢</div>
+          <div id="party-status-badge" style="font-size: 0.72em; margin-top: 2px; padding: 1px 4px; border-radius: 4px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">🟢 閒置</div>
+        </div>
+      </div>
+
+      <!-- 2. 中間動態資訊頁 (~240px) -->
+      <div id="party-tab-viewport" style="flex: 1; overflow-y: auto; padding-right: 2px;">
+        <!-- JS 動態寫入 📊 屬點 或 ⚔️ 武具 頁面 -->
+      </div>
+
+      <!-- 3. 右側頁籤切換列 (~45px) -->
+      <div class="party-tab-bar" style="display: flex; flex-direction: column; gap: 6px; width: 45px; flex-shrink: 0;">
+        <button id="tab-btn-stats" class="party-tab-btn active" data-tab="stats" title="屬性與配點" style="padding: 10px 0; border: 1px solid rgba(234,179,8,0.4); background: rgba(234,179,8,0.2); color: #eab308; border-radius: 6px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span>📊</span>
+          <span style="font-size: 0.75em; writing-mode: vertical-lr;">屬點</span>
+        </button>
+        <button id="tab-btn-equip" class="party-tab-btn" data-tab="equip" title="裝備與陣位" style="padding: 10px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 6px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <span>⚔️</span>
+          <span style="font-size: 0.75em; writing-mode: vertical-lr;">武具</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 下半部 (1/3)：冒險者卡片選單列表 (5x3 Grid 無卷軸) -->
+    <div style="font-size: 0.8em; color: #94a3b8; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+      <span>👥 選擇成員 (點擊切換)：</span>
+      <span id="party-count-tag" style="color: #eab308;">0 人</span>
+    </div>
+    <div id="party-modal-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px 2px; overflow: hidden;">
       <!-- JS 動態生成冒險者卡片 -->
     </div>
   </div>
@@ -1657,8 +1774,8 @@
   <div id="command-crest-container" style="display: none;">
     <!-- 左側快捷按鈕列 -->
     <div id="floating-quick-dock">
-      <button id="btn-dock-party" class="dock-btn" title="冒險者隊伍">👥</button>
-      <button id="btn-system-menu" class="dock-btn" title="系統選單">⚙️</button>
+      <button id="btn-dock-party" class="dock-btn" data-tip="冒險者隊伍">👥</button>
+      <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>
     </div>
 
     <!-- 切換據點/世界地圖圓鈕 (相鄰在上方) -->

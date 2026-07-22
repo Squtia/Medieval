@@ -3,7 +3,7 @@ import { UIManager } from './UIManager';
 import { ToastManager } from './ToastManager';
 import { Random } from '../core/Random';
 import { DispatchTask, EnemyFeature, TaskType } from '../models/DispatchTask';
-import { NodeLevel } from '../models/types';
+import { NodeLevel, getMaxRosterLimit } from '../models/types';
 import { Adventurer } from '../models/Adventurer';
 import { NameGenerator } from '../systems/NameGenerator';
 import { DataStore } from '../systems/DataStore';
@@ -78,7 +78,8 @@ export function initActionController(): void {
       }
     } else {
       // 已經保底過或超過 3 次後，每次探索有 10% 機率招募！
-      if (Random.next() < 0.10) {
+      const maxRoster = getMaxRosterLimit(territory.title);
+      if (Random.next() < 0.10 && GameState.adventurers.length < maxRoster) {
         // 隨機抽取品質：N極大、R低、SR極低、SSR最低
         let q: 'N' | 'R' | 'SR' | 'SSR' = 'N';
         const randQ = Random.next() * 100;
@@ -91,7 +92,21 @@ export function initActionController(): void {
       }
     }
     
-    // 2. 結算獎勵
+    // 2. 繁榮度反比：探索獲得難民勞動力判定
+    let foundRefugees = 0;
+    const currentNode = GameState.mapSystem.getNodes().find(n => n.id === territory.currentCountryId);
+    const currentProsperity = currentNode ? currentNode.prosperity : 0;
+    const maxRefugeeChance = 0.30;
+    const penalty = Math.min(0.25, (currentProsperity / 500) * 0.25);
+    const findRefugeeChance = Math.max(0.05, maxRefugeeChance - penalty);
+
+    if (Random.next() < findRefugeeChance) {
+      foundRefugees = Random.int(1, 3);
+      territory.population += foundRefugees;
+      territory.workers['UNASSIGNED'] += foundRefugees;
+    }
+
+    // 3. 結算獎勵
     let msg = '🗺️ [探索] 領主親自巡視周邊，獲得了 20 金幣與少量物資！';
     territory.addGold(20);
     territory.wood += 2;
@@ -101,6 +116,9 @@ export function initActionController(): void {
       GameState.adventurers.push(recruitedAdv);
       msg = `🗺️ [探索] 領主親自巡視周邊，獲得了 20 金幣，並幸運地遇到一位流浪冒險者【${recruitedAdv.name}】(${qLabel}) 願意效忠您！已加入隊伍。`;
       ToastManager.show(`招募到了冒險者【${recruitedAdv.name}】！`);
+    } else if (foundRefugees > 0) {
+      msg = `🗺️ [探索] 領主巡視周邊，獲得了 20 金幣與物資，並在廢棄營地救出了 ${foundRefugees} 名流民，已加入領地閒置人力！`;
+      ToastManager.show(`荒野探索：救出了 ${foundRefugees} 名流民！`);
     }
     
     console.log(msg);
