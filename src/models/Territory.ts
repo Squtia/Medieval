@@ -57,6 +57,9 @@ export class Territory {
   // 戰鬥歷史紀錄
   public combatHistory: CombatHistoryRecord[];
 
+  // 治安
+  public security: number = 100;
+
   constructor(name: string, startingCountryId: string | null = null) {
     this.name = name;
     this.title = NobleTitle.COMMONER; // 玩家預設從平民起步

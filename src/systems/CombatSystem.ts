@@ -4,7 +4,14 @@ import { FormationRow, TerrainType } from '../models/types';
 import { Random } from '../core/Random';
 
 export class CombatSystem {
-  public static simulateCombat(attackerIds: string[], taskDifficulty: number = 10, enemyFeature: string = '', terrain?: TerrainType, totalWaves: number = 1): CombatReport {
+  public static simulateCombat(
+    attackerIds: string[], 
+    taskDifficulty: number = 10, 
+    enemyFeature: string = '', 
+    terrain?: TerrainType, 
+    totalWaves: number = 1,
+    troopAssignments?: Record<string, { type: string, count: number }>
+  ): CombatReport {
     const events: CombatEvent[] = [];
     const playerTeam: CombatParticipant[] = [];
     
@@ -13,6 +20,7 @@ export class CombatSystem {
       const adv = GameState.adventurers.find(a => a.id === id);
       if (adv) {
         const stats = adv.getCombatStats();
+        const troop = troopAssignments?.[id];
         playerTeam.push({
           id: adv.id,
           name: adv.name,
@@ -21,7 +29,10 @@ export class CombatSystem {
           maxHp: stats.hp,
           currentHp: stats.hp,
           stats: { ...stats },
-          statusEffects: []
+          statusEffects: [],
+          shieldType: troop?.type,
+          shieldMaxHp: troop?.count ? troop.count * 10 : 0, // 假設每兵力提供 10 點護盾值
+          shieldCurrentHp: troop?.count ? troop.count * 10 : 0
         });
       }
     });
@@ -130,17 +141,50 @@ export class CombatSystem {
         let finalDamage = Math.max(1, Math.floor(baseDamage * (1 - dmgReduction)));
         finalDamage = Math.floor(finalDamage * (0.9 + Random.next() * 0.2));
 
-        target.currentHp -= finalDamage;
+        // -- Phase 4: Shield Interceptor --
+        let multiplier = 1;
+        if (actor.shieldType && target.shieldType) {
+          if (actor.shieldType === 'INFANTRY' && target.shieldType === 'CAVALRY') multiplier = 1.5;
+          if (actor.shieldType === 'CAVALRY' && target.shieldType === 'ARCHER') multiplier = 1.5;
+          if (actor.shieldType === 'ARCHER' && target.shieldType === 'INFANTRY') multiplier = 1.5;
+          
+          if (actor.shieldType === 'CAVALRY' && target.shieldType === 'INFANTRY') multiplier = 0.8;
+          if (actor.shieldType === 'ARCHER' && target.shieldType === 'CAVALRY') multiplier = 0.8;
+          if (actor.shieldType === 'INFANTRY' && target.shieldType === 'ARCHER') multiplier = 0.8;
+        }
 
-        events.push({
-          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
-          actorId: actor.id, actorName: actor.name,
-          targetId: target.id, targetName: target.name,
-          damage: finalDamage,
-          targetHp: target.currentHp,
-          targetMaxHp: target.maxHp,
-          text: `${actor.name} 攻擊了 ${target.name}，${isCrit ? '致命一擊！' : ''}造成 ${finalDamage} 點傷害。`
-        });
+        const effectiveDamage = Math.floor(finalDamage * multiplier);
+        let hpDamage = effectiveDamage;
+        let sDamage = 0;
+
+        if (target.shieldCurrentHp && target.shieldCurrentHp > 0) {
+          sDamage = Math.min(target.shieldCurrentHp, effectiveDamage);
+          target.shieldCurrentHp -= sDamage;
+          hpDamage = effectiveDamage - sDamage;
+          
+          events.push({
+            type: target.shieldCurrentHp === 0 ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
+            actorId: actor.id, actorName: actor.name,
+            targetId: target.id, targetName: target.name,
+            shieldDamage: sDamage,
+            shieldRemaining: target.shieldCurrentHp,
+            text: `${actor.name} 攻擊了 ${target.name} 的部隊，造成了 ${sDamage} 點護盾傷害${multiplier !== 1 ? (multiplier > 1 ? ' (兵種剋制!)' : ' (兵種劣勢)') : ''}！${target.shieldCurrentHp === 0 ? '部隊全滅！' : ''}`
+          });
+        }
+        
+        if (hpDamage > 0) {
+          target.currentHp -= hpDamage;
+          events.push({
+            type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+            actorId: actor.id, actorName: actor.name,
+            targetId: target.id, targetName: target.name,
+            damage: hpDamage,
+            targetHp: target.currentHp,
+            targetMaxHp: target.maxHp,
+            text: `${actor.name} 攻擊了 ${target.name}，${isCrit ? '致命一擊！' : ''}對本體造成 ${hpDamage} 點傷害。`
+          });
+        }
+        // -- End Shield Interceptor --
 
         if (target.currentHp > 0) {
            if (actor.isPlayer && Random.next() < 0.15) {
@@ -179,7 +223,18 @@ export class CombatSystem {
     events.push({ type: CombatEventType.END, text: battleLog });
 
     const playerHpMap: Record<string, number> = {};
-    playerTeam.forEach(p => playerHpMap[p.id] = p.currentHp);
+    const shieldLoss: Record<string, Record<string, number>> = {};
+    
+    playerTeam.forEach(p => {
+      playerHpMap[p.id] = p.currentHp;
+      if (p.shieldType && p.shieldMaxHp !== undefined && p.shieldCurrentHp !== undefined) {
+        const lostHp = p.shieldMaxHp - p.shieldCurrentHp;
+        const lostTroops = Math.ceil(lostHp / 10);
+        if (lostTroops > 0) {
+          shieldLoss[p.id] = { [p.shieldType]: lostTroops };
+        }
+      }
+    });
 
     let totalDamageDealt = 0;
     const damageMap: Record<string, number> = {};
@@ -208,7 +263,8 @@ export class CombatSystem {
       initialStates,
       mvpName,
       totalDamageDealt,
-      terrain
+      terrain,
+      shieldLoss
     };
   }
 

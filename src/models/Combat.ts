@@ -23,6 +23,10 @@ export interface CombatParticipant {
   currentHp: number;
   stats: CombatStats; // hp, mp, atk, def, hit, evade
   statusEffects: StatusEffect[];
+  // Phase 4: Army Shield System
+  shieldType?: string;      // 攜帶的兵種 (例如: 'INFANTRY', 'CAVALRY', 'ARCHER')
+  shieldMaxHp?: number;     // 該兵種提供的總護盾值 (基於攜帶數量)
+  shieldCurrentHp?: number; // 剩餘護盾值
 }
 
 export enum CombatEventType {
@@ -33,6 +37,8 @@ export enum CombatEventType {
   CRIT = 'CRIT',
   STATUS_APPLY = 'STATUS_APPLY',
   STATUS_DAMAGE = 'STATUS_DAMAGE',
+  SHIELD_DAMAGE = 'SHIELD_DAMAGE', // 護盾受到傷害
+  SHIELD_BREAK = 'SHIELD_BREAK',   // 護盾破裂
   DEATH = 'DEATH',
   END = 'END'
 }
@@ -46,6 +52,8 @@ export interface CombatEvent {
   damage?: number;
   targetHp?: number;
   targetMaxHp?: number;
+  shieldDamage?: number;
+  shieldRemaining?: number;
   statusType?: StatusEffectType;
   text: string;
   wave?: number; // 標示屬於哪一波
@@ -72,6 +80,7 @@ export interface CombatReport {
   totalDamageDealt?: number; // 總造成傷害
   terrain?: TerrainType; // 發生戰鬥的地形
   waveIndex?: number; // 用於進度討伐時標記波次
+  shieldLoss?: Record<string, Record<string, number>>; // 記錄每個參與者損失的各兵種數量 { participantId: { INFANTRY: 50 } }
 }
 
 export interface CombatHistoryRecord {

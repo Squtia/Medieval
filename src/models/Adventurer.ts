@@ -1,4 +1,4 @@
-import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow } from './types';
+import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow, OfficeType, WeaponType } from './types';
 import { Random } from '../core/Random';
 
 export class Adventurer {
@@ -25,6 +25,9 @@ export class Adventurer {
 
   // 戰鬥陣位
   public formationRow: FormationRow;
+
+  // 軍階官職 (Military Office)
+  public office: OfficeType | null;
 
   public quality: 'N' | 'R' | 'SR' | 'SSR';
 
@@ -110,12 +113,47 @@ export class Adventurer {
     this.currentState = AdventurerState.IDLE;
     this.dispatchEndTime = null;
     this.restingDaysLeft = 0;
+    this.office = null;
     
     // 預設戰士、騎士類近戰職業在前排，法師、弓箭手在後排
     if (job.name.includes('戰士') || job.name.includes('騎士') || job.name.includes('守衛') || job.name.includes('刺客')) {
       this.formationRow = FormationRow.FRONT;
     } else {
       this.formationRow = FormationRow.BACK;
+    }
+  }
+
+  /**
+   * 取得傭兵目前的職業名稱 (動態檢定)
+   * 根據裝備的武器類型，決定是否轉變為進階變異職業
+   */
+  public get currentClass(): string {
+    const baseClass = this.job.name;
+    const weapon = this.equipment[EquipmentSlot.WEAPON];
+    const wt = weapon?.weaponType;
+    
+    switch (baseClass) {
+      case '戰士':
+        if (wt === WeaponType.DUAL_BLADES) return '魔劍士';
+        return baseClass; // 巨劍預設
+      case '騎士':
+        if (wt === WeaponType.RUNE_SHIELD) return '符文騎士';
+        return baseClass; // 劍盾預設
+      case '法師':
+        if (wt === WeaponType.SCYTHE) return '戰鬥法師';
+        return baseClass; // 法杖預設
+      case '盜賊':
+        if (wt === WeaponType.MAGIC_RING) return '詭術師';
+        return baseClass; // 雙匕首預設
+      case '祈禱者':
+        if (wt === WeaponType.HAMMER) return '異端拷問者';
+        return baseClass; // 聖典預設
+      case '弓箭手':
+        if (wt === WeaponType.MAGIC_BOW) return '精靈使';
+        if (wt === WeaponType.BOW) return '神射手';
+        return baseClass;
+      default:
+        return baseClass;
     }
   }
 
@@ -256,7 +294,7 @@ export class Adventurer {
   }
 
   /**
-   * 判斷該冒險者是否滿足裝備條件
+   * 判斷該傭兵是否滿足裝備條件
    * @param item 欲裝備的物品
    * @returns [是否達標, 失敗原因列表]
    */

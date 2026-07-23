@@ -12,7 +12,7 @@ export class EventSystem {
     const territory = GameState.myTerritory;
     if (!territory) return;
 
-    // 計算這回合增加的壓力值 (基礎 10 + 聲望加成 + 冒險者數量加成)
+    // 計算這回合增加的壓力值 (基礎 10 + 聲望加成 + 傭兵數量加成)
     const pressureGain = 10 + (territory.prestige * 0.05) + (GameState.adventurers.length * 2);
     territory.eventPressure += pressureGain;
 

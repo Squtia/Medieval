@@ -15,7 +15,11 @@ export function initFacilityController(): void {
   };
 
   document.getElementById('btn-enter-base')?.addEventListener('click', () => enterFacility('view-base'));
-  document.getElementById('btn-enter-hall')?.addEventListener('click', () => enterFacility('view-hall'));
+  document.getElementById('btn-enter-hall')?.addEventListener('click', async () => {
+    enterFacility('view-hall');
+    const { renderOfficeBoard } = await import('./OfficeController');
+    renderOfficeBoard();
+  });
   document.getElementById('btn-enter-tavern')?.addEventListener('click', () => enterFacility('view-camp'));
   
   document.getElementById('btn-enter-weapon-shop')?.addEventListener('click', async () => {

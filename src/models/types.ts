@@ -1,5 +1,5 @@
 /**
- * 冒險者當前的狀態
+ * 傭兵當前的狀態
  */
 export enum AdventurerState {
   IDLE = 'IDLE',             // 閒置：留在領地內，可以隨時派遣或執行其他操作
@@ -42,19 +42,30 @@ export interface TitleConfig {
   reqPrestige: number;
   reqPopulation: number;
   reqGold: number;          // 晉升大典花費
+  officeSlots: Partial<Record<OfficeType, number>>; // 各官職的數量上限
+}
+
+/**
+ * 官職系統
+ */
+export enum OfficeType {
+  RETAINER = 'RETAINER',       // 扈從
+  CAPTAIN = 'CAPTAIN',         // 隊長
+  BANNERET = 'BANNERET',       // 方旗騎士
+  CASTELLAN = 'CASTELLAN',     // 城主
 }
 
 /**
  * 爵位數值設定表 (可隨時調整)
  */
 export const TITLE_CONFIG: TitleConfig[] = [
-  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, maxFacilityLevel: 1, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0 },
-  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 2, taxBonusPer10Pop: 1, reqPrestige: 100, reqPopulation: 20, reqGold: 500 },
-  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 3, taxBonusPer10Pop: 2, reqPrestige: 500, reqPopulation: 50, reqGold: 2000 },
-  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 4, taxBonusPer10Pop: 3, reqPrestige: 2000, reqPopulation: 100, reqGold: 5000 },
-  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 5, taxBonusPer10Pop: 4, reqPrestige: 5000, reqPopulation: 200, reqGold: 15000 },
-  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 6, taxBonusPer10Pop: 5, reqPrestige: 15000, reqPopulation: 500, reqGold: 50000 },
-  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, maxFacilityLevel: 7, taxBonusPer10Pop: 6, reqPrestige: 50000, reqPopulation: 1000, reqGold: 100000 }
+  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, maxFacilityLevel: 1, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
+  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 2, taxBonusPer10Pop: 1, reqPrestige: 100, reqPopulation: 20, reqGold: 500, officeSlots: { [OfficeType.RETAINER]: 1 } },
+  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 3, taxBonusPer10Pop: 2, reqPrestige: 500, reqPopulation: 50, reqGold: 2000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1 } },
+  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 4, taxBonusPer10Pop: 3, reqPrestige: 2000, reqPopulation: 100, reqGold: 5000, officeSlots: { [OfficeType.RETAINER]: 3, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 5, taxBonusPer10Pop: 4, reqPrestige: 5000, reqPopulation: 200, reqGold: 15000, officeSlots: { [OfficeType.RETAINER]: 4, [OfficeType.CAPTAIN]: 4, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 2 } },
+  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 6, taxBonusPer10Pop: 5, reqPrestige: 15000, reqPopulation: 500, reqGold: 50000, officeSlots: { [OfficeType.RETAINER]: 6, [OfficeType.CAPTAIN]: 6, [OfficeType.BANNERET]: 2, [OfficeType.CASTELLAN]: 4 } },
+  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, maxFacilityLevel: 7, taxBonusPer10Pop: 6, reqPrestige: 50000, reqPopulation: 1000, reqGold: 100000, officeSlots: { [OfficeType.RETAINER]: 10, [OfficeType.CAPTAIN]: 10, [OfficeType.BANNERET]: 4, [OfficeType.CASTELLAN]: 6 } }
 ];
 
 export function getTitleConfig(title: NobleTitle): TitleConfig {
@@ -87,7 +98,10 @@ export enum WorkerJob {
   UNASSIGNED = 'UNASSIGNED', // 閒置 (仍會消耗糧食)
   FARMER = 'FARMER',         // 農夫 (產出糧食)
   WOODCUTTER = 'WOODCUTTER', // 伐木工 (產出木材)
-  MINER = 'MINER'            // 礦工 (產出石材與微量鐵礦)
+  MINER = 'MINER',           // 礦工 (產出石材與微量鐵礦)
+  INFANTRY = 'INFANTRY',     // 步兵 (軍隊，消耗額外糧食)
+  CAVALRY = 'CAVALRY',       // 騎兵 (軍隊，消耗額外糧食)
+  ARCHER = 'ARCHER'          // 弓兵 (軍隊，消耗額外糧食)
 }
 
 /**
@@ -224,6 +238,35 @@ export interface Faction {
 
 /**
  * ==========================================
+ * 軍階與官職系統 (Military Office System)
+ * ==========================================
+ */
+
+
+
+export interface OfficeConfig {
+  type: OfficeType;
+  nameCN: string;
+  salary: number;            // 每回合需支付的俸祿 (金幣)
+  troopLimit: number;        // 可帶兵數上限 (人口轉換為士兵)
+  commandBonus: number;      // 統帥附加值
+  combatBonusPct: number;    // 部隊戰鬥力加成百分比 (例如 0.1 代表 10%)
+  civicBonusPct: number;     // 內政/繁榮度/稅收加成百分比
+}
+
+export const OFFICE_CONFIG: Record<OfficeType, OfficeConfig> = {
+  [OfficeType.RETAINER]: { type: OfficeType.RETAINER, nameCN: '扈從', salary: 10, troopLimit: 0, commandBonus: 1, combatBonusPct: 0, civicBonusPct: 0.05 },
+  [OfficeType.CAPTAIN]: { type: OfficeType.CAPTAIN, nameCN: '隊長', salary: 50, troopLimit: 100, commandBonus: 5, combatBonusPct: 0, civicBonusPct: 0 },
+  [OfficeType.BANNERET]: { type: OfficeType.BANNERET, nameCN: '方旗騎士', salary: 200, troopLimit: 300, commandBonus: 15, combatBonusPct: 0.1, civicBonusPct: 0 },
+  [OfficeType.CASTELLAN]: { type: OfficeType.CASTELLAN, nameCN: '城主', salary: 150, troopLimit: 0, commandBonus: 0, combatBonusPct: 0, civicBonusPct: 0.2 },
+};
+
+export function getOfficeConfig(type: OfficeType): OfficeConfig {
+  return OFFICE_CONFIG[type];
+}
+
+/**
+ * ==========================================
  * 模組化生成系統 (六維屬性、職業、裝備)
  * ==========================================
  */
@@ -256,7 +299,7 @@ export interface CombatStats {
 
 /**
  * 職業設定檔
- * 決定冒險者的初始屬性與每次升級時的成長係數
+ * 決定傭兵的初始屬性與每次升級時的成長係數
  */
 export interface JobConfig {
   name: string;
@@ -272,6 +315,24 @@ export interface TraitConfig {
   name: string;
   xpModifier: number;          // 經驗值需求倍率 (例如 1.2 代表需要多 20% 經驗)
   statMultipliers: Partial<Attributes>; // 屬性百分比加成 (例如 { agi: 0.1 } 代表敏捷 +10%)
+}
+
+/**
+ * 武器標籤 (影響職業變化)
+ */
+export enum WeaponType {
+  GREATSWORD = 'GREATSWORD',             // 巨劍 (戰士)
+  DUAL_BLADES = 'DUAL_BLADES',           // 雙劍 (魔劍士)
+  SWORD_AND_SHIELD = 'SWORD_AND_SHIELD', // 劍盾 (騎士)
+  RUNE_SHIELD = 'RUNE_SHIELD',           // 符文巨盾 (符文騎士)
+  STAFF = 'STAFF',                       // 法杖 (法師)
+  SCYTHE = 'SCYTHE',                     // 戰鐮 (戰鬥法師)
+  DAGGERS = 'DAGGERS',                   // 雙匕首 (盜賊)
+  MAGIC_RING = 'MAGIC_RING',             // 魔戒 (詭術師)
+  HOLY_BOOK = 'HOLY_BOOK',               // 聖典 (祈禱者)
+  HAMMER = 'HAMMER',                     // 審判槌 (異端拷問者)
+  BOW = 'BOW',                           // 戰弓 (神射手)
+  MAGIC_BOW = 'MAGIC_BOW'                // 術弓 (精靈使)
 }
 
 /**
@@ -292,6 +353,7 @@ export interface Equipment {
   id: string;                           // 來源模板 ID
   name: string;
   slot: EquipmentSlot;
+  weaponType?: WeaponType;              // 武器專屬標籤，影響動態職業
   requirements: Partial<Attributes>;    // 穿戴條件 (例如 { str: 40 })
   effects: Partial<Attributes>;         // 裝備提供的基礎屬性加成 (例如 { int: 10 })
   combatEffects?: Partial<CombatStats>; // 直接給予的戰鬥數值加成 (例如加HP、攻擊力)
@@ -307,6 +369,7 @@ export interface EquipmentTemplate {
   id: string;                 // 模板ID (例如 wpn_iron_sword)
   name: string;               // 裝備名稱
   slot: EquipmentSlot;        // 裝備部位
+  weaponType?: WeaponType;    // 武器專屬標籤
   icon?: string;              // 裝備圖示
   itemLevel: number;          // 裝備等級 (影響隨機屬性的數值大小)
   baseRequirements: Partial<Attributes>;   // 基礎穿戴條件

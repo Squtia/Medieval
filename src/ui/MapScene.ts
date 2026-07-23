@@ -401,7 +401,7 @@ export class MapScene extends Phaser.Scene {
       tooltipText += `\n危險度：${node.scoutData.dangerLevel}`;
     }
 
-    // 取得並顯示該據點的外派冒險者名單
+    // 取得並顯示該據點的外派傭兵名單
     const activeMissions = GameState.system?.getActiveMissions() || [];
     const nodeMissions = activeMissions.filter(m => m.task.targetNodeId === node.id);
     if (nodeMissions.length > 0) {

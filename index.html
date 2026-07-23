@@ -486,7 +486,7 @@
     }
     .recruit-card:hover { border-color: #3b82f6; transform: translateY(-5px); background: rgba(59,130,246,0.1); }
     
-    /* 冒險者詳細狀態介面 */
+    /* 傭兵詳細狀態介面 */
     .adv-detail-layout { display: flex; gap: 20px; margin-top: 20px; }
     .adv-detail-left { width: 150px; text-align: center; }
     .adv-detail-avatar {
@@ -1092,7 +1092,7 @@
       </div>
 
       <div id="trade-planner-adv-list" class="adventurer-list" style="max-height: 150px; margin-bottom: 20px;">
-         <!-- 冒險者清單 -->
+         <!-- 傭兵清單 -->
       </div>
       
       <div style="display: flex; gap: 15px;">
@@ -1136,6 +1136,7 @@
     </div>
     <div class="resource-group">
       <div class="resource-item" title="總人口"><span class="resource-icon">👥</span> <span id="ui-population">0</span></div>
+      <div class="resource-item" title="治安度 (影響產出與稅收)"><span class="resource-icon">🛡️</span> <span id="ui-security">100</span>%</div>
       <div class="resource-item" title="糧食"><span class="resource-icon">🍞</span> <span id="ui-food">0</span></div>
       <div class="resource-item" title="木材"><span class="resource-icon">🌲</span> <span id="ui-wood">0</span></div>
       <div class="resource-item" title="石材"><span class="resource-icon">🧱</span> <span id="ui-stone">0</span></div>
@@ -1176,7 +1177,7 @@
           <h3 style="margin-top: 0; color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">🛡️ 傭兵團狀態</h3>
           <div style="font-size: 0.9em; line-height: 1.8;">
             <div><span style="color: #94a3b8;">所在據點：</span><span id="status-location" style="color: #fff;">-</span></div>
-            <div><span style="color: #94a3b8;">冒險者總數：</span><span id="status-adv-count" style="color: #fff;">0</span></div>
+            <div><span style="color: #94a3b8;">傭兵總數：</span><span id="status-adv-count" style="color: #fff;">0</span></div>
             <div><span style="color: #94a3b8;">遊玩時間：</span><span id="status-playtime" style="color: #fff;">0分 0秒</span></div>
           </div>
         </div>
@@ -1229,7 +1230,7 @@
                <div class="building-label">🏠 領主自宅</div>
             </div>
             <div id="btn-enter-tavern" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); width: 220px; height: 220px; display: none;">
-               <div class="building-label">🍻 冒險者酒館</div>
+               <div class="building-label">🍻 傭兵酒館</div>
             </div>
             <div id="btn-enter-weapon-shop" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(90deg) brightness(0.8); width: 220px; height: 220px; display: none;">
                <div class="building-label">⚔️ 武器店</div>
@@ -1257,7 +1258,7 @@
       <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🏰 領主書房 (Base)</h2>
       <div style="display: flex; gap: 20px; flex: 1; align-items: stretch; min-height: 550px;">
         <!-- 勞動力分配面板 -->
-        <div class="glass-panel" style="flex: 1.5; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.6);">
+        <div class="glass-panel" style="flex: 1.5; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.6); overflow-y: auto;">
           <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">📜 領地工作分配</h3>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <span style="font-size: 1.1em; color: #cbd5e1;">閒置人力 (消耗糧食但不生產)</span>
@@ -1306,6 +1307,48 @@
             <div style="font-size: 0.85em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
           </div>
           
+          <!-- 步兵 -->
+          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #fca5a5;">🛡️ 步兵部隊</div>
+              <span style="font-size: 1.1em; font-weight: bold; color: #fca5a5;"><span id="ui-worker-INFANTRY">0</span> 人</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <input type="range" class="worker-slider" data-job="INFANTRY" min="0" max="0" value="0" style="flex: 1; accent-color: #ef4444; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+            </div>
+            <div style="font-size: 0.85em; color: #fca5a5;">每人額外消耗 1 糧食/天，用於戰鬥護盾</div>
+          </div>
+          
+          <!-- 弓兵 -->
+          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #6ee7b7;">🏹 弓兵部隊</div>
+              <span style="font-size: 1.1em; font-weight: bold; color: #6ee7b7;"><span id="ui-worker-ARCHER">0</span> 人</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="ARCHER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <input type="range" class="worker-slider" data-job="ARCHER" min="0" max="0" value="0" style="flex: 1; accent-color: #10b981; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="ARCHER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+            </div>
+            <div style="font-size: 0.85em; color: #6ee7b7;">每人額外消耗 1 糧食/天，用於遠程支援</div>
+          </div>
+          
+          <!-- 騎兵 -->
+          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #c084fc;">🐎 騎兵部隊</div>
+              <span style="font-size: 1.1em; font-weight: bold; color: #c084fc;"><span id="ui-worker-CAVALRY">0</span> 人</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <input type="range" class="worker-slider" data-job="CAVALRY" min="0" max="0" value="0" style="flex: 1; accent-color: #a855f7; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+            </div>
+            <div style="font-size: 0.85em; color: #c084fc;">每人額外消耗 2 糧食/天 (含馬)，提供最高品質護盾</div>
+          </div>
+          
           <div id="ui-net-production" style="margin-top: 5px; font-size: 0.95em; text-align: center;">
             <!-- JS 更新淨產量 -->
           </div>
@@ -1336,22 +1379,42 @@
     <div id="view-hall" class="facility-view">
       <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
       <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">👑 謁見廳 (Hall)</h2>
-      <div style="display: flex; gap: 20px; flex: 1;">
-        <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px;">
-          <button id="btn-tribute" class="action-btn" style="font-size: 1.2em; padding: 15px 30px;">🎁 進貢 100 金幣 (+皇家好感)</button>
-          <button id="btn-feast" class="action-btn" style="font-size: 1.2em; padding: 15px 30px;">🍷 舉辦宴會 (花費 300 金幣, +聲望)</button>
+      <div style="display: flex; gap: 20px; flex: 1; padding: 0 40px 40px 40px; height: calc(100% - 100px);">
+        
+        <!-- 左側：官職空位與管理 -->
+        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.7);">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">🛡️ 領地官階與任命 (當前爵位解鎖)</h3>
+          <div id="ui-office-slots" style="flex: 1; overflow-y: auto; margin-top: 15px; display: grid; gap: 10px; padding-right: 10px;">
+            <!-- JS 動態生成官職槽位 -->
+          </div>
+        </div>
+
+        <!-- 右側：可用傭兵名單與外交動作 -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+          <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.7);">
+             <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">⚔️ 待命傭兵</h3>
+             <div id="ui-office-candidates" style="flex: 1; overflow-y: auto; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; padding-right: 10px;">
+               <div style="text-align: center; color: #94a3b8; padding: 20px; margin-top: 50px;">請先選擇左側的官職空位<br>來指派您的傭兵。</div>
+             </div>
+          </div>
+          
+          <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.7);">
+            <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">🤝 外交與內政</h3>
+            <button id="btn-tribute" class="action-btn" style="font-size: 1.1em; padding: 10px;">🎁 進貢 100 金幣 (+皇家好感)</button>
+            <button id="btn-feast" class="action-btn" style="font-size: 1.1em; padding: 10px;">🍷 舉辦宴會 (花費 300 金幣)</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 獨立建築：冒險者酒館 -->
+    <!-- 獨立建築：傭兵酒館 -->
     <div id="view-camp" class="facility-view">
       <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
-      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🍻 冒險者酒館 (Tavern)</h2>
+      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🍻 傭兵酒館 (Tavern)</h2>
       <div style="display: flex; gap: 20px; flex: 1; flex-direction: column; align-items: center; justify-content: center;">
         <div class="glass-panel" style="padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; background: rgba(0,0,0,0.6); max-width: 600px;">
           <p style="color: #cbd5e1; font-size: 1.2em; text-align: center; line-height: 1.6;">
-            這裡是冒險者齊聚的酒館。隨著酒館等級的提升，將有機會吸引更具名氣與實力的英雄加入您的傭兵團！
+            這裡是傭兵齊聚的酒館。隨著酒館等級的提升，將有機會吸引更具名氣與實力的英雄加入您的傭兵團！
           </p>
           <button id="btn-recruit" class="action-btn" style="font-size: 1.3em; padding: 20px 40px; background: linear-gradient(135deg, #d97706, #b45309);">
             🍻 招募新血 (花費 500 金幣)
@@ -1520,7 +1583,7 @@
   <div id="modal-recruit" class="modal-overlay">
     <div class="glass-panel modal-content">
       <button class="close-btn" id="btn-close-recruit">×</button>
-      <h2 style="text-align: center;">🍻 招募新冒險者</h2>
+      <h2 style="text-align: center;">🍻 招募新傭兵</h2>
       <p style="text-align: center; color: #94a3b8; margin-top: 10px;">請從以下三位候選人中選擇一位加入您的麾下。</p>
       <div id="recruit-cards-container" class="recruit-cards">
         <!-- JS 生成三張卡片 -->
@@ -1528,11 +1591,11 @@
     </div>
   </div>
 
-  <!-- 冒險者詳細狀態 Modal -->
+  <!-- 傭兵詳細狀態 Modal -->
   <div id="modal-adv-detail" class="modal-overlay">
     <div class="glass-panel modal-content">
       <button class="close-btn" id="btn-close-adv-detail">×</button>
-      <h2 id="adv-detail-name">冒險者名稱</h2>
+      <h2 id="adv-detail-name">傭兵名稱</h2>
       <p id="adv-detail-desc" style="color: #94a3b8; margin-top: 5px;">Lv.1 見習騎士 | 忠誠</p>
       
       <div class="adv-detail-layout">
@@ -1642,7 +1705,7 @@
     <div class="glass-panel modal-content" style="width: 600px;">
       <button class="close-btn" id="btn-close-dispatch-setup">×</button>
       <h2 style="text-align: center; color: #eab308;" id="dispatch-setup-title">⚔️ 隊伍編制</h2>
-      <p style="text-align: center; color: #94a3b8; margin-top: 5px;" id="dispatch-setup-desc">選擇要派出的冒險者</p>
+      <p style="text-align: center; color: #94a3b8; margin-top: 5px;" id="dispatch-setup-desc">選擇要派出的傭兵</p>
       
       <div style="margin-top: 20px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;" id="dispatch-adv-list">
         <!-- JS 動態生成可派遣名單 -->
@@ -1704,10 +1767,10 @@
       </div>
     </div>
   </div>
-  <!-- 傭兵小隊/冒險者資訊 左側面板 (二分法與常駐立繪) -->
+  <!-- 傭兵小隊/傭兵資訊 左側面板 (二分法與常駐立繪) -->
   <div class="side-panel-left glass-panel" id="modal-party-list">
     <button class="close-btn" id="btn-close-party-list">×</button>
-    <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 冒險者小隊</h2>
+    <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 傭兵小隊</h2>
     
     <!-- 上半部 (2/3)：詳細資訊區 + 左側常駐立繪 + 右側頁籤 -->
     <div id="party-upper-section" style="display: flex; height: 230px; gap: 8px; background: rgba(0,0,0,0.35); border-radius: 8px; padding: 6px; border: 1px solid rgba(255,255,255,0.08); position: relative; margin-bottom: 6px;">
@@ -1760,13 +1823,13 @@
       </div>
     </div>
 
-    <!-- 下半部 (1/3)：冒險者卡片選單列表 (5x3 Grid 無卷軸) -->
+    <!-- 下半部 (1/3)：傭兵卡片選單列表 (5x3 Grid 無卷軸) -->
     <div style="font-size: 0.8em; color: #94a3b8; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
       <span>👥 選擇成員 (點擊切換)：</span>
       <span id="party-count-tag" style="color: #eab308;">0 人</span>
     </div>
     <div id="party-modal-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px 2px; overflow: hidden;">
-      <!-- JS 動態生成冒險者卡片 -->
+      <!-- JS 動態生成傭兵卡片 -->
     </div>
   </div>
 
@@ -1774,7 +1837,7 @@
   <div id="command-crest-container" style="display: none;">
     <!-- 左側快捷按鈕列 -->
     <div id="floating-quick-dock">
-      <button id="btn-dock-party" class="dock-btn" data-tip="冒險者隊伍">👥</button>
+      <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
       <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>
     </div>
 

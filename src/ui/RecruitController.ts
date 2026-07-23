@@ -19,7 +19,7 @@ export function initRecruitController(): void {
     const territory = GameState.myTerritory;
     const tavernLvl = territory.tavernLevel || 0;
     if (tavernLvl <= 0) {
-      ToastManager.show('⚠️ 請先至領主自宅（書房）建造冒險者酒館！');
+      ToastManager.show('⚠️ 請先至領主自宅（書房）建造傭兵酒館！');
       return;
     }
     
@@ -71,7 +71,7 @@ export function initRecruitController(): void {
           <div style="font-size:2em; margin-bottom:10px;">🦸</div>
           <strong>${adv.name}</strong><br/>
           <span style="color: ${qInfo.color}; font-weight: bold; font-size: 0.95em;">${qInfo.label}</span><br/>
-          <span style="color:#cbd5e1; font-size:0.85em;">${adv.job.name} | ${adv.trait.name}</span><br/>
+          <span style="color:#cbd5e1; font-size:0.85em;">${adv.currentClass} | ${adv.trait.name}</span><br/>
           <div style="margin-top:10px; font-size:0.85em; color:#94a3b8; line-height: 1.4; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 4px;">
             力:${adv.baseAttributes.str} 敏:${adv.baseAttributes.agi} 體:${adv.baseAttributes.con}<br/>
             智:${adv.baseAttributes.int} 精:${adv.baseAttributes.spr} 幸:${adv.baseAttributes.luk}
@@ -91,7 +91,7 @@ export function initRecruitController(): void {
           if (territory.gold >= 500) {
             territory.gold -= 500;
             GameState.adventurers.push(adv);
-            console.log(`🍻 [酒館] 花費 500 金幣招募了新夥伴「${adv.name}」(${qInfo.label}) 加入冒險者行列！`);
+            console.log(`🍻 [酒館] 花費 500 金幣招募了新夥伴「${adv.name}」(${qInfo.label}) 加入傭兵行列！`);
             modalRecruit.classList.remove('active');
             UIManager.updateUI();
           } else {

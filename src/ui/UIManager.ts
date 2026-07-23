@@ -18,12 +18,16 @@ class UIManagerClass {
   uiWood = document.getElementById('ui-wood');
   uiStone = document.getElementById('ui-stone');
   uiIron = document.getElementById('ui-iron'); // UI-02: 補加鐵礦顯示
+  uiSecurity = document.getElementById('ui-security');
 
   // 勞動力分配UI
   uiUnassignedWorkers = document.getElementById('ui-unassigned-workers');
   uiWorkerFarmer = document.getElementById('ui-worker-FARMER');
   uiWorkerWoodcutter = document.getElementById('ui-worker-WOODCUTTER');
   uiWorkerMiner = document.getElementById('ui-worker-MINER');
+  uiWorkerInfantry = document.getElementById('ui-worker-INFANTRY');
+  uiWorkerCavalry = document.getElementById('ui-worker-CAVALRY');
+  uiWorkerArcher = document.getElementById('ui-worker-ARCHER');
   uiNetProduction = document.getElementById('ui-net-production');
   uiDate = document.getElementById('ui-date');
   uiThreatDays = document.getElementById('ui-threat-days');
@@ -77,6 +81,14 @@ class UIManagerClass {
     if (this.uiWood) this.uiWood.textContent = territory.wood.toString();
     if (this.uiStone) this.uiStone.textContent = territory.stone.toString();
     if (this.uiIron) this.uiIron.textContent = (territory.iron || 0).toString(); // UI-02
+    
+    // UI-03: 更新治安度並套用顏色提示
+    if (this.uiSecurity) {
+      this.uiSecurity.textContent = (territory.security || 100).toString();
+      if (territory.security >= 80) this.uiSecurity.style.color = '#10b981'; // 綠色
+      else if (territory.security < 30) this.uiSecurity.style.color = '#ef4444'; // 紅色
+      else this.uiSecurity.style.color = '#e2e8f0'; // 正常
+    }
 
     // 更新日期與雙倍經驗池 (Rested EXP)
     if (this.uiDate) {
@@ -107,6 +119,9 @@ class UIManagerClass {
     if (this.uiWorkerFarmer) this.uiWorkerFarmer.textContent = (territory.workers['FARMER'] || 0).toString();
     if (this.uiWorkerWoodcutter) this.uiWorkerWoodcutter.textContent = (territory.workers['WOODCUTTER'] || 0).toString();
     if (this.uiWorkerMiner) this.uiWorkerMiner.textContent = (territory.workers['MINER'] || 0).toString();
+    if (this.uiWorkerInfantry) this.uiWorkerInfantry.textContent = (territory.workers['INFANTRY'] || 0).toString();
+    if (this.uiWorkerCavalry) this.uiWorkerCavalry.textContent = (territory.workers['CAVALRY'] || 0).toString();
+    if (this.uiWorkerArcher) this.uiWorkerArcher.textContent = (territory.workers['ARCHER'] || 0).toString();
     
     // 同步滑桿 max 與當前數值 (防呆：最高為當前人數 + 閒置人數)
     const unassigned = territory.workers['UNASSIGNED'] || 0;
@@ -120,7 +135,10 @@ class UIManagerClass {
     if (this.uiNetProduction) {
       const foodProduced = (territory.workers['FARMER'] || 0) * 3;
       const totalPeople = territory.population + GameState.adventurers.length;
-      const foodConsumed = totalPeople * 1;
+      let foodConsumed = totalPeople * 1;
+      foodConsumed += (territory.workers['INFANTRY'] || 0) * 1;
+      foodConsumed += (territory.workers['ARCHER'] || 0) * 1;
+      foodConsumed += (territory.workers['CAVALRY'] || 0) * 2;
       const netFood = foodProduced - foodConsumed;
       this.uiNetProduction.textContent = `預期糧食淨產量：${netFood > 0 ? '+' : ''}${netFood} /天`;
       this.uiNetProduction.style.color = netFood >= 0 ? '#10b981' : '#ef4444';
@@ -187,7 +205,7 @@ class UIManagerClass {
       console.error('Error updating title progress:', e);
     }
   
-    // 更新冒險者名單
+    // 更新傭兵名單
     let allIdle = true;
     if (this.advContainer) {
       const activeTooltip = document.getElementById('adv-tooltip');
@@ -243,7 +261,7 @@ class UIManagerClass {
         if (adv.equipment.ACCESSORY) equipText += `\n- 💍 ${adv.equipment.ACCESSORY.name}`;
         if (!equipText) equipText = '\n- 無裝備';
 
-        const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${adv.job.name}<br/>狀態：${stateText}`;
+        const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${adv.currentClass}<br/>狀態：${stateText}`;
 
         card.addEventListener('mouseenter', () => {
           const tEl = document.getElementById('adv-tooltip');
@@ -298,7 +316,7 @@ class UIManagerClass {
     this.btnFoundSettlement.disabled = territory.gold < 500;
   
     this.btnWildQuest.disabled = !allIdle;
-    this.btnWildQuest.textContent = !allIdle ? '🚫 冒險者忙碌中' : '⚔️ 編制討伐小隊';
+    this.btnWildQuest.textContent = !allIdle ? '🚫 傭兵忙碌中' : '⚔️ 編制討伐小隊';
     
     // 更新待辦事項徽章
     const todoBadge = document.getElementById('todo-badge');
@@ -331,7 +349,7 @@ class UIManagerClass {
       }
       this.mapStatusPanel.style.display = 'block';
 
-      // 冒險者隊伍功能：在大陸地圖時隱藏按鈕並關閉面板
+      // 傭兵隊伍功能：在大陸地圖時隱藏按鈕並關閉面板
       const btnDockParty = document.getElementById('btn-dock-party');
       const modalPartyList = document.getElementById('modal-party-list');
       if (btnDockParty) btnDockParty.style.display = 'none';
@@ -359,7 +377,7 @@ class UIManagerClass {
       this.mapStatusPanel.style.display = 'none';
       if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
 
-      // 在據點街道視圖時顯示冒險者隊伍按鈕
+      // 在據點街道視圖時顯示傭兵隊伍按鈕
       const btnDockParty = document.getElementById('btn-dock-party');
       if (btnDockParty) btnDockParty.style.display = 'flex';
     } else {

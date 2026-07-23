@@ -7,12 +7,12 @@ export class DataStore {
   // ============================
   public static readonly JobDB: Record<string, JobConfig> = {
     WARRIOR: {
-      name: '見習騎士',
+      name: '戰士',
       baseAttributes: { str: 10, agi: 5, con: 12, int: 2, spr: 3, luk: 5, charm: 1, command: 1 },
       growthRates: { str: 3, agi: 1, con: 3, int: 0, spr: 1, luk: 1, charm: 0, command: 0 }
     },
     MAGE: {
-      name: '流浪法師',
+      name: '法師',
       baseAttributes: { str: 2, agi: 4, con: 4, int: 12, spr: 10, luk: 5, charm: 1, command: 1 },
       growthRates: { str: 0, agi: 1, con: 1, int: 3, spr: 3, luk: 1, charm: 0, command: 0 }
     },
@@ -22,9 +22,19 @@ export class DataStore {
       growthRates: { str: 1, agi: 3, con: 1, int: 0, spr: 0, luk: 3, charm: 0, command: 0 }
     },
     CLERIC: {
-      name: '牧師',
+      name: '祈禱者',
       baseAttributes: { str: 4, agi: 3, con: 8, int: 8, spr: 12, luk: 4, charm: 1, command: 1 },
       growthRates: { str: 1, agi: 0, con: 2, int: 2, spr: 4, luk: 0, charm: 0, command: 0 }
+    },
+    KNIGHT: {
+      name: '騎士',
+      baseAttributes: { str: 8, agi: 4, con: 15, int: 2, spr: 5, luk: 4, charm: 2, command: 3 },
+      growthRates: { str: 2, agi: 1, con: 4, int: 0, spr: 1, luk: 1, charm: 1, command: 1 }
+    },
+    ARCHER: {
+      name: '弓箭手',
+      baseAttributes: { str: 6, agi: 10, con: 6, int: 4, spr: 4, luk: 8, charm: 1, command: 1 },
+      growthRates: { str: 1, agi: 4, con: 1, int: 1, spr: 1, luk: 2, charm: 0, command: 0 }
     }
   };
 

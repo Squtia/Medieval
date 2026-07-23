@@ -212,7 +212,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     }
 
     if (selectedAdventurersForCaravan.size === 0) {
-      ToastManager.show('請至少指派一名冒險者來帶領商隊！');
+      ToastManager.show('請至少指派一名傭兵來帶領商隊！');
       return;
     }
     

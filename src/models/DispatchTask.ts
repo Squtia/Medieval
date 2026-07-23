@@ -39,6 +39,8 @@ export class DispatchTask {
   public expectedPrestige: number;    // 成功後的預期聲望收益
   public minPowerRequired: number;    // 承接任務的基礎難度要求
   public enemyFeature: EnemyFeature;  // 敵方特性
+  public isWar: boolean = false;      // Phase 5: 是否為攻城戰爭(允許帶兵)
+  public troopAssignments?: Record<string, { type: string, count: number }>; // 每個參戰傭兵分配的兵種與數量
   
   // 商隊特有資料 (舊版單點跑商留存相容)
   public tradeTargetNodeId?: string;

@@ -29,10 +29,30 @@ export class SettlementSystem {
     const territory = GameState.myTerritory;
     const workers = territory.workers;
     
-    // 1. 產出計算
-    const foodProduced = (workers[WorkerJob.FARMER] || 0) * 3; // 每個農夫產 3 糧
-    const woodProduced = (workers[WorkerJob.WOODCUTTER] || 0) * 2; // 每個伐木工產 2 木
-    const stoneProduced = (workers[WorkerJob.MINER] || 0) * 1; // 每個礦工產 1 石
+    // -- Phase 5: 治安度 (Security System) --
+    const effectivePop = Math.max(0, territory.population - 50); // 新手保護：前 50 人不需守衛
+    let newSecurity = 100;
+    const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
+    if (effectivePop > 0) {
+      const requiredTroops = effectivePop * 0.1; // 每 10 名有效人口需要 1 名士兵維持治安
+      const coverage = totalTroops / requiredTroops;
+      newSecurity = Math.floor(Math.min(1, coverage) * 100);
+    }
+    territory.security = newSecurity;
+
+    let productionMultiplier = 1.0;
+    if (territory.security >= 80) productionMultiplier = 1.2;
+    else if (territory.security < 30) productionMultiplier = 0.7;
+
+    // 軍事威望 (選項 B)：每 10 名士兵每日產生 1 點聲望
+    if (totalTroops >= 10) {
+      territory.prestige += Math.floor(totalTroops / 10);
+    }
+    
+    // 1. 產出計算 (套用治安倍率)
+    const foodProduced = Math.floor(((workers[WorkerJob.FARMER] || 0) * 3) * productionMultiplier);
+    const woodProduced = Math.floor(((workers[WorkerJob.WOODCUTTER] || 0) * 2) * productionMultiplier);
+    const stoneProduced = Math.floor(((workers[WorkerJob.MINER] || 0) * 1) * productionMultiplier);
     
     // 礦工有機率挖到鐵礦 (每個礦工獨立 20% 機率)
     let ironProduced = 0;
@@ -42,10 +62,17 @@ export class SettlementSystem {
         ironProduced += 1;
       }
     }
+    // 鐵礦也套用倍率
+    ironProduced = Math.floor(ironProduced * productionMultiplier);
 
     // 2. 消耗計算 (總人口每人耗 1 糧，英雄每人耗 1 糧)
     const totalPeople = territory.population + GameState.adventurers.length;
-    const foodConsumed = totalPeople * 1;
+    let foodConsumed = totalPeople * 1;
+
+    // 軍隊消耗額外糧食 (兵力護盾)
+    foodConsumed += (workers[WorkerJob.INFANTRY] || 0) * 1;
+    foodConsumed += (workers[WorkerJob.ARCHER] || 0) * 1;
+    foodConsumed += (workers[WorkerJob.CAVALRY] || 0) * 2; // 騎兵連馬一起吃
 
     // 3. 結算
     territory.wood += woodProduced;
@@ -53,12 +80,12 @@ export class SettlementSystem {
     territory.iron += ironProduced;
     territory.food += foodProduced - foodConsumed;
 
-    // 新增：每日稅收加成 (依據爵位與人口)
+    // 每日稅收加成 (依據爵位與人口，並套用治安倍率)
     const taxBonusPer10 = getTaxBonusPer10Pop(territory.title);
     if (taxBonusPer10 > 0 && territory.population >= 10) {
-      const taxIncome = Math.floor(territory.population / 10) * taxBonusPer10;
+      const baseTax = Math.floor(territory.population / 10) * taxBonusPer10;
+      const taxIncome = Math.floor(baseTax * productionMultiplier);
       territory.addGold(taxIncome);
-      console.log(`[SettlementSystem] 💰 收取領地稅收，獲得 ${taxIncome} 金幣 (人口: ${territory.population}, 爵位加成: ${taxBonusPer10}金/10人)。`);
     }
 
     // 4. 飢荒判定
@@ -77,7 +104,7 @@ export class SettlementSystem {
         
         // 隨機裁減工人（BUG-03: 加入安全退出護段，防止所有工人為 0 時無限迴圈）
         let removed = 0;
-        const jobKeys = [WorkerJob.UNASSIGNED, WorkerJob.FARMER, WorkerJob.WOODCUTTER, WorkerJob.MINER];
+        const jobKeys = [WorkerJob.UNASSIGNED, WorkerJob.FARMER, WorkerJob.WOODCUTTER, WorkerJob.MINER, WorkerJob.INFANTRY, WorkerJob.CAVALRY, WorkerJob.ARCHER];
         let safetyCounter = 0;
         while (removed < actualStarved && safetyCounter < 1000) {
           safetyCounter++;

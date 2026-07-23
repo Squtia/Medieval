@@ -211,7 +211,7 @@ export function initGameFlowController(): void {
   document.getElementById('btn-close-system-menu')?.addEventListener('click', closeSystemMenu);
   document.getElementById('btn-cancel-system-menu')?.addEventListener('click', closeSystemMenu);
 
-  // 模態框關閉事件 (冒險者詳情, 倉庫, 裝備選擇)
+  // 模態框關閉事件 (傭兵詳情, 倉庫, 裝備選擇)
   document.getElementById('btn-close-adv-detail')?.addEventListener('click', () => {
     document.getElementById('modal-adv-detail')?.classList.remove('active');
   });

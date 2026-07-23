@@ -33,7 +33,7 @@
 │   │   ├── PhaserManager.ts       # [Lazy Chunk] Phaser 引擎初始化與地圖繪製隔離模組
 │   │   ├── ShopController.ts      # [Lazy Chunk] 武器店、防具店與倉庫介面控制
 │   │   ├── TradeController.ts     # [Lazy Chunk] 跑商路線規劃與交易介面控制 (備註維護註記)
-│   │   ├── RecruitController.ts   # 冒險者酒館招募與動態卡片邏輯
+│   │   ├── RecruitController.ts   # 傭兵酒館招募與動態卡片邏輯
 │   │   ├── MainMenuController.ts  # 主選單與存檔欄位渲染
 │   │   ├── GameFlowController.ts  # 遊戲流程控制、日誌與選單
 │   │   ├── FacilityController.ts  # 建築設施進出、工作分配

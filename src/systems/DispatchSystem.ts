@@ -1,7 +1,7 @@
 import { Adventurer } from '../models/Adventurer';
 import { DispatchTask, EnemyFeature, TaskType, TradePhase, normalizeTradeTask } from '../models/DispatchTask';
 import { Territory } from '../models/Territory';
-import { AdventurerState, NobleTitle, NodeFeature } from '../models/types';
+import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig } from '../models/types';
 import { EquipmentGenerator } from './EquipmentGenerator';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
@@ -32,17 +32,17 @@ export class DispatchSystem {
   }
 
   /**
-   * 派遣冒險者小隊執行任務
+   * 派遣傭兵小隊執行任務
    */
   public dispatchAdventurers(adventurers: Adventurer[], task: DispatchTask): void {
     if (adventurers.length === 0) {
-      console.warn('⚠️ 派遣失敗：沒有選擇任何冒險者。');
+      console.warn('⚠️ 派遣失敗：沒有選擇任何傭兵。');
       return;
     }
 
     for (const adv of adventurers) {
       if (adv.currentState !== AdventurerState.IDLE) {
-        console.warn(`⚠️ 派遣失敗：冒險者 ${adv.name} 目前無法指派 (狀態: ${adv.currentState})。`);
+        console.warn(`⚠️ 派遣失敗：傭兵 ${adv.name} 目前無法指派 (狀態: ${adv.currentState})。`);
         return;
       }
     }
@@ -53,6 +53,21 @@ export class DispatchSystem {
     for (const adv of adventurers) {
       adv.currentState = AdventurerState.DISPATCHED;
       adv.dispatchEndTime = null; 
+    }
+    
+    // Phase 5: 若為攻城戰，發兵時即從庫存與人口中扣除帶領的兵力
+    if (task.isWar && task.troopAssignments) {
+      for (const t of Object.values(task.troopAssignments)) {
+        if (t.type !== 'NONE' && t.count > 0) {
+          const typeStr = t.type as import('../models/types').WorkerJob;
+          if (this.territory.workers[typeStr] !== undefined) {
+             this.territory.workers[typeStr]! -= t.count;
+             if (this.territory.workers[typeStr]! < 0) this.territory.workers[typeStr] = 0;
+          }
+          this.territory.population -= t.count;
+          if (this.territory.population < 0) this.territory.population = 0;
+        }
+      }
     }
 
     this.activeMissions.push({
@@ -107,7 +122,17 @@ export class DispatchSystem {
     // OPT-03: 重設計月底稅收公式（讓內政有意義）
     const baseTax = this.territory.population * 5 * this.territory.taxRate;
     const populationUpkeep = this.territory.population * 2;           // 人口維護費隨人口成長
-    const adventurerWages = GameState.adventurers.length * 30;         // 决陽者每月薪資 30 金
+    
+    // 計算所有傭兵的薪水 (無官職預設 30，有官職則是官職薪水)
+    let adventurerWages = 0;
+    GameState.adventurers.forEach(adv => {
+      if (adv.office) {
+        adventurerWages += getOfficeConfig(adv.office).salary;
+      } else {
+        adventurerWages += 30; // 基礎薪資
+      }
+    });
+
     const prestigeLoss = Math.max(0, (this.territory.taxRate - 1) * 2);
     const netIncome = baseTax - adventurerWages - this.territory.diplomaticGift - populationUpkeep;
 
@@ -115,7 +140,15 @@ export class DispatchSystem {
     this.territory.prestige -= prestigeLoss;
 
     if (netIncome < 0 && this.territory.gold < 0) {
-      console.log(`⚠️ [赤字警告] 領地陷入財務危機！無法支付維護費！當前負偉：${Math.abs(this.territory.gold)} 金幣。`);
+      console.log(`⚠️ [赤字警告] 領地陷入財務危機！無法支付維護費！當前負債：${Math.abs(this.territory.gold)} 金幣。`);
+      
+      // 欠薪懲罰：有機率觸發暫時性懲罰 (自動拔官)
+      GameState.adventurers.forEach(adv => {
+        if (adv.office && Random.next() < 0.3) {
+           console.log(`❌ [欠薪懲罰] 由於領地破產發不出俸祿，${adv.name} 憤而辭去了 ${getOfficeConfig(adv.office).nameCN} 的職位！`);
+           adv.office = null;
+        }
+      });
     }
 
     if (this.territory.diplomaticGift > 0) {
@@ -123,7 +156,7 @@ export class DispatchSystem {
       this.territory.prestige += this.territory.diplomaticGift * 0.2;
     }
 
-    console.log(`📜 [月底結算] 收入：${Math.floor(baseTax)}金 | 人口維護：-${Math.floor(populationUpkeep)} | 决陽者薪資：-${adventurerWages} | 凈口：${Math.floor(netIncome)} 金幣。當前聲望：${this.territory.prestige}`);
+    console.log(`📜 [月底結算] 收入：${Math.floor(baseTax)}金 | 人口維護：-${Math.floor(populationUpkeep)} | 傭兵薪資：-${adventurerWages} | 淨利：${Math.floor(netIncome)} 金幣。當前聲望：${this.territory.prestige}`);
   }
 
   private reachWaypoint(mission: ActiveMission): void {
@@ -147,7 +180,7 @@ export class DispatchSystem {
     }
 
     let advNames = adventurers.map(a => a.name).join(', ');
-    console.log(`📍 [商隊抵達] 冒險者小隊 (${advNames}) 抵達中途站：${currentNode.name}`);
+    console.log(`📍 [商隊抵達] 傭兵小隊 (${advNames}) 抵達中途站：${currentNode.name}`);
 
     let weatherPenalty = 0;
     if (currentNode.currentWeather === 'SNOW' || currentNode.currentWeather === 'SANDSTORM') {
@@ -278,7 +311,7 @@ export class DispatchSystem {
       const profitText = cashProfit === null
         ? '舊任務未記錄初始本金，無法計算現金損益'
         : `現金損益：${cashProfit >= 0 ? '+' : ''}${cashProfit} 金幣`;
-      console.log(`✅ [商隊歸來] 决陽者小隊 (${advNames}) 完成跑商！投入本金：${task.initialCaravanGold ?? '未記錄'}，帶回現金：${task.caravanGold}，${profitText}。帶回貨物：${logCargo || '無'}`);
+      console.log(`✅ [商隊歸來] 傭兵小隊 (${advNames}) 完成跑商！投入本金：${task.initialCaravanGold ?? '未記錄'}，帶回現金：${task.caravanGold}，${profitText}。帶回貨物：${logCargo || '無'}`);
       
       for (const adv of adventurers) {
         adv.currentState = AdventurerState.IDLE;
@@ -300,7 +333,7 @@ export class DispatchSystem {
             this.territory.tradeInventory[goodId] = amount;
           }
         }
-        console.log(`✅ [商隊歸來] 决陽者小隊 (${advNames}) 成功完成「${task.name}」！買入了物資並存入領地倉庫。`);
+        console.log(`✅ [商隊歸來] 傭兵小隊 (${advNames}) 成功完成「${task.name}」！買入了物資並存入領地倉庫。`);
       }
       
       for (const adv of adventurers) {
@@ -335,7 +368,7 @@ export class DispatchSystem {
       this.territory.wood += woodGain;
       this.territory.stone += stoneGain;
       this.territory.prestige += task.expectedPrestige;
-      console.log(`✅ [探索完成] 决陽者小隊 (${advNames}) 探索歸來！獲得木材+${woodGain}、石材+${stoneGain}、聲望+${task.expectedPrestige}。`);
+      console.log(`✅ [探索完成] 傭兵小隊 (${advNames}) 探索歸來！獲得木材+${woodGain}、石材+${stoneGain}、聲望+${task.expectedPrestige}。`);
       for (const adv of adventurers) {
         adv.gainXP(xpReward);
         adv.currentState = AdventurerState.IDLE;
@@ -352,11 +385,39 @@ export class DispatchSystem {
       task.baseDifficulty,
       task.enemyFeature,
       undefined, // terrain 暫時缺省
-      waveCount
+      waveCount,
+      task.troopAssignments
     );
     
     const isSuccess = finalReport.isVictory;
     let battleLog = finalReport.battleLog;
+
+    // -- Phase 5: 結算兵力戰損與存活者回歸 --
+    if (task.isWar && task.troopAssignments) {
+      let totalLossMsg = '';
+      Object.entries(task.troopAssignments).forEach(([advId, t]) => {
+        const advName = GameState.adventurers.find(a => a.id === advId)?.name || advId;
+        const loss = finalReport.shieldLoss?.[advId]?.[t.type] || 0;
+        const survivors = Math.max(0, t.count - loss);
+        
+        const typeStr = t.type as import('../models/types').WorkerJob;
+        const typeName = typeStr === 'INFANTRY' ? '步兵' : typeStr === 'CAVALRY' ? '騎兵' : typeStr === 'ARCHER' ? '弓兵' : typeStr;
+        
+        // 存活部隊回歸領地
+        if (survivors > 0) {
+          this.territory.workers[typeStr] = (this.territory.workers[typeStr] || 0) + survivors;
+          this.territory.population += survivors;
+        }
+        
+        if (loss > 0) {
+          totalLossMsg += `${advName} 帶領的 ${typeName} 陣亡 ${loss} 人。`;
+        }
+      });
+      if (totalLossMsg) {
+        battleLog += ` [戰損] ${totalLossMsg}`;
+        finalReport.battleLog = battleLog;
+      }
+    }
 
     if (isSuccess) {
       this.territory.addGold(task.expectedGold);
@@ -383,7 +444,7 @@ export class DispatchSystem {
         }
       }
 
-      console.log(`✅ [任務完成] 冒險者小隊 (${advNames}) 成功討伐「${task.name}」！${battleLog} 帶回 ${task.expectedGold} 金幣與 ${gainedPrestige} 聲望${expBonusStr}。${dropMsg}`);
+      console.log(`✅ [任務完成] 傭兵小隊 (${advNames}) 成功討伐「${task.name}」！${battleLog} 帶回 ${task.expectedGold} 金幣與 ${gainedPrestige} 聲望${expBonusStr}。${dropMsg}`);
 
       finalReport.lootValue = gainedPrestige; // 將最終獎勵補入 report 供 UI 顯示
       
@@ -408,7 +469,7 @@ export class DispatchSystem {
         adv.restingDaysLeft = 0;
       }
     } else {
-      console.log(`❌ [任務失敗] 冒險者小隊 (${advNames}) 討伐「${task.name}」失敗。${battleLog}`);
+      console.log(`❌ [任務失敗] 傭兵小隊 (${advNames}) 討伐「${task.name}」失敗。${battleLog}`);
 
       // OPT-02: 失敗後進入 RESTING，難度越高休息越久
       const restDays = Math.max(1, Math.ceil(task.baseDifficulty / 20));
@@ -446,7 +507,7 @@ export class DispatchSystem {
 
   public loadActiveMissions(rawMissions: any[]): void {
     this.activeMissions = rawMissions.map((raw: any) => {
-      // 1. 根據 ID 還原冒險者實體（對應到已加載的 GameState.adventurers）
+      // 1. 根據 ID 還原傭兵實體（對應到已加載的 GameState.adventurers）
       const advs: Adventurer[] = [];
       (raw.adventurers || []).forEach((advRaw: any) => {
         const found = GameState.adventurers.find(a => a.id === advRaw.id);
