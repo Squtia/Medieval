@@ -443,7 +443,11 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
     }
   }
   if (!node.isPlayerBase) {
-    buttons.push({ icon: '⚔️', text: '派遣討伐部隊', action: () => openDispatchSetup(node, 'subjugation') });
+    if (node.ownerFactionId !== null) {
+      buttons.push({ icon: '🛡️', text: '發動攻城戰', action: () => openDispatchSetup(node, 'war') });
+    } else {
+      buttons.push({ icon: '⚔️', text: '派遣傭兵討伐', action: () => openDispatchSetup(node, 'subjugation') });
+    }
   }
 
   const radius = 60; // 圓半徑
@@ -501,8 +505,9 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
 let pendingDispatchTask: DispatchTask | null = null;
 let pendingDispatchNode: MapNode | null = null;
 let selectedAdventurersForDispatch: Set<string> = new Set();
+let selectedTroopsForDispatch: Record<string, number> = {};
 
-export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjugation') {
+export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjugation' | 'war') {
   const modal = document.getElementById('modal-dispatch-setup')!;
   const title = document.getElementById('dispatch-setup-title')!;
   const desc = document.getElementById('dispatch-setup-desc')!;
@@ -510,6 +515,7 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
   
   pendingDispatchNode = node;
   selectedAdventurersForDispatch.clear();
+  selectedTroopsForDispatch = {};
 
   // 根據 NodeLevel 決定難度
   const baseDiff = node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10;
@@ -525,9 +531,22 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
     // 探索任務需要較短天數 (預設 2 天)
     pendingDispatchTask = new DispatchTask(`探索${node.name}`, TaskType.EXPLORE, 2, baseDiff / 2, 50, 5, Math.floor(minPower * 0.5));
     pendingDispatchTask.targetNodeId = node.id;
+  } else if (actionType === 'war') {
+    optionsContainer.style.display = 'block';
+    title.innerHTML = '🛡️ 攻城隊伍編制';
+    const features = Object.values(EnemyFeature);
+    const randomFeature = Random.pick(features);
+    pendingDispatchTask = new DispatchTask(`攻城${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
+    pendingDispatchTask.targetNodeId = node.id;
+    pendingDispatchTask.isWar = true;
+    
+    let fStr = '';
+    if (randomFeature === EnemyFeature.HIGH_DEF) fStr = '（高防禦敵人：建議高攻擊與多波續戰能力）';
+    if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
+    desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   } else {
     optionsContainer.style.display = 'block';
-    title.innerHTML = '⚔️ 討伐隊伍編制';
+    title.innerHTML = '⚔️ 討伐隊伍編制 (不帶兵)';
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
     // 討伐任務需要較長天數 (預設 4 天)
@@ -556,11 +575,39 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
     }
     const team = GameState.adventurers.filter(a => selectedAdventurersForDispatch.has(a.id));
     if (pendingDispatchTask) {
-      if (actionType === 'subjugation') {
+      if (actionType === 'subjugation' || actionType === 'war') {
         const selectedMode = (document.querySelector('input[name="subjugation-mode"]:checked') as HTMLInputElement)?.value as any;
         pendingDispatchTask.subjugationMode = selectedMode;
         if (selectedMode === 'PROGRESS') {
            pendingDispatchTask.totalWaves = 3;
+        }
+        
+        // 驗證總派兵數是否超過領地庫存 (只有 WAR 模式才會帶兵)
+        if (pendingDispatchTask.isWar) {
+          const terr = GameState.myTerritory;
+          const totals: Record<string, number> = { INFANTRY: 0, CAVALRY: 0, ARCHER: 0 };
+          // selectedTroopsForDispatch is Record<string, any> where any is {type, count}
+          for (const [id, tObj] of Object.entries(selectedTroopsForDispatch)) {
+            const t = tObj as any;
+            if (t.type !== 'NONE' && selectedAdventurersForDispatch.has(id)) {
+               totals[t.type] += t.count;
+            }
+          }
+          if ((totals.INFANTRY > (terr.workers.INFANTRY || 0)) ||
+              (totals.CAVALRY > (terr.workers.CAVALRY || 0)) ||
+              (totals.ARCHER > (terr.workers.ARCHER || 0))) {
+            ToastManager.show('派出的兵力總和超過了領地現有庫存！');
+            return;
+          }
+          
+          // 將有效兵力綁定至 Task
+          pendingDispatchTask.troopAssignments = {};
+          for (const [id, tObj] of Object.entries(selectedTroopsForDispatch)) {
+            const t = tObj as any;
+            if (t.type !== 'NONE' && t.count > 0 && selectedAdventurersForDispatch.has(id)) {
+              pendingDispatchTask.troopAssignments[id] = { type: t.type, count: t.count };
+            }
+          }
         }
       }
       GameState.system.dispatchAdventurers(team, pendingDispatchTask);
@@ -614,16 +661,46 @@ function renderDispatchAdvList() {
     card.className = 'adv-checkbox-card' + (selectedAdventurersForDispatch.has(adv.id) ? ' selected' : '');
     
     const isChecked = selectedAdventurersForDispatch.has(adv.id) ? 'checked' : '';
-    
+    const isWar = pendingDispatchTask?.isWar === true;
+    let troopHtml = '';
+
+    if (isChecked && isWar) {
+      const terr = GameState.myTerritory;
+      const inf = terr.workers.INFANTRY || 0;
+      const cav = terr.workers.CAVALRY || 0;
+      const arc = terr.workers.ARCHER || 0;
+      const current = (selectedTroopsForDispatch[adv.id] as any) || { type: 'NONE', count: 0 };
+      
+      troopHtml = `
+        <div style="margin-top: 8px; font-size: 0.9em; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);" onclick="event.stopPropagation()">
+          <label style="color:#94a3b8;">🛡️ 派兵護衛：</label>
+          <select id="troop-type-${adv.id}" style="background:rgba(0,0,0,0.5); color:#fff; border:1px solid #475569; border-radius:4px; padding:2px;">
+            <option value="NONE" ${current.type==='NONE'?'selected':''}>無兵種</option>
+            <option value="INFANTRY" ${current.type==='INFANTRY'?'selected':''}>步兵 (庫存:${inf})</option>
+            <option value="CAVALRY" ${current.type==='CAVALRY'?'selected':''}>騎兵 (庫存:${cav})</option>
+            <option value="ARCHER" ${current.type==='ARCHER'?'selected':''}>弓兵 (庫存:${arc})</option>
+          </select>
+          <input type="number" id="troop-count-${adv.id}" value="${current.count}" min="0" style="width:60px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #475569; border-radius:4px; padding:2px; margin-left:5px;">
+        </div>
+      `;
+    }
+
+    // UI-04: currentClass mapping handling
+    const displayClass = (adv as any).currentClass || adv.job.name;
+
     card.innerHTML = `
       <input type="checkbox" ${isChecked} style="pointer-events:none;">
       <div style="flex:1;">
-        <strong style="color:#e2e8f0; font-size:1.1em;">${adv.name}</strong> <span style="color:#94a3b8; font-size:0.9em;">(Lv.${adv.level} ${adv.job.name})</span><br/>
+        <strong style="color:#e2e8f0; font-size:1.1em;">${adv.name}</strong> <span style="color:#94a3b8; font-size:0.9em;">(Lv.${adv.level} ${displayClass})</span><br/>
         <span style="color:#fbbf24; font-size:0.85em;">綜合戰力: ${adv.power}</span>
+        ${troopHtml}
       </div>
     `;
 
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      // 避免點擊 select/input 觸發卡片切換
+      if ((e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'INPUT') return;
+      
       if (selectedAdventurersForDispatch.has(adv.id)) {
         selectedAdventurersForDispatch.delete(adv.id);
       } else {
@@ -631,6 +708,22 @@ function renderDispatchAdvList() {
       }
       renderDispatchAdvList(); // 重新渲染清單以更新樣式
     });
+    
+    // 綁定動態事件 (儲存輸入值)
+    setTimeout(() => {
+      if (isChecked && isWar) {
+        const typeEl = document.getElementById(`troop-type-${adv.id}`) as HTMLSelectElement;
+        const countEl = document.getElementById(`troop-count-${adv.id}`) as HTMLInputElement;
+        if (typeEl && countEl) {
+          typeEl.addEventListener('change', () => {
+            selectedTroopsForDispatch[adv.id] = { type: typeEl.value, count: parseInt(countEl.value) || 0 } as any;
+          });
+          countEl.addEventListener('change', () => {
+             selectedTroopsForDispatch[adv.id] = { type: typeEl.value, count: parseInt(countEl.value) || 0 } as any;
+          });
+        }
+      }
+    }, 0);
 
     container.appendChild(card);
   });
@@ -857,8 +950,16 @@ export function openNodeDetailPanel(node: MapNode) {
       };
     }
   } else {
-    newBtnAction.textContent = '🔒 無法操作';
-    newBtnAction.onclick = () => ToastManager.show('目前無法對該派系領地進行操作！');
+    if (node.isPlayerBase) {
+      newBtnAction.textContent = '🔒 無法操作';
+      newBtnAction.onclick = () => ToastManager.show('這是您自己的領地！');
+    } else {
+      newBtnAction.textContent = '⚔️ 發動攻城戰';
+      newBtnAction.onclick = () => {
+        openDispatchSetup(node, 'war');
+        closeNodeDetailPanel();
+      };
+    }
   }
 
   // 關閉按鈕

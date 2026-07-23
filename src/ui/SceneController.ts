@@ -20,7 +20,7 @@ export function renderCampTraining() {
     card.innerHTML = `
       <div>
         <strong>${adv.name}</strong> (Lv.${adv.level})<br/>
-        <span style="font-size:0.8em; color:#94a3b8;">${adv.job.name} | ${adv.trait.name}</span>
+        <span style="font-size:0.8em; color:#94a3b8;">${adv.currentClass} | ${adv.trait.name}</span>
       </div>
       <button class="action-btn btn-train-adv" style="font-size: 0.9em; padding: 8px 15px;" data-id="${adv.id}" ${myTerritory.gold < cost ? 'disabled' : ''}>
         💪 特訓 (${cost} 金幣)
@@ -92,7 +92,7 @@ export function enterScene(node: MapNode) {
       btnEnterForge.style.display = (isMyHome && (myTerritory.forgeLevel || 0) > 0) ? 'block' : 'none';
       btnMigrate.style.display = isMyHome ? 'none' : 'block';
       
-      btnEnterHall.style.display = (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null) ? 'block' : 'none';
+      btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
       
       setTimeout(() => {
         if ((window as any).__updateStreetScrollArrows) {
@@ -173,7 +173,7 @@ export function renderBaseBuildings() {
   
   const territory = GameState.myTerritory;
   const bldTypes: { key: 'tavern' | 'weapon' | 'armor' | 'forge', name: string, desc: string, icon: string }[] = [
-    { key: 'tavern', name: '冒險者酒館', desc: '解鎖招募並提高招募高品質英雄機率', icon: '🍻' },
+    { key: 'tavern', name: '傭兵酒館', desc: '解鎖招募並提高招募高品質英雄機率', icon: '🍻' },
     { key: 'weapon', name: '皇家武器店', desc: '解鎖並購買 1~3 階強力武器', icon: '⚔️' },
     { key: 'armor', name: '皇家防具店', desc: '解鎖並購買 1~3 階精美防具', icon: '🛡️' },
     { key: 'forge', name: '工坊鍛造屋', desc: '解鎖並提供強化武具火爐', icon: '⚒️' }
