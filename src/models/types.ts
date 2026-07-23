@@ -176,6 +176,13 @@ export interface MapNode {
   terrain: TerrainType;       // 地形類型
   feature: NodeFeature;       // 節點特性
   
+  // 動態顯示與解鎖機制
+  isHidden?: boolean;
+  unlockCondition?: {
+    minDay?: number;
+    minPrestige?: number;
+  };
+
   // 情報迷霧系統 (Scouting System)
   isScouted: boolean;
   scoutExpiryDate: number | null;

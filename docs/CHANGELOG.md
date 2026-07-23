@@ -7,6 +7,11 @@
 - **自動化去背與縮放腳本 (Tools)**：
   - 開發並實裝了 `scripts/remove-green-bg.mjs`，採用綠幕去背演算法 (Chroma Key)，針對生成的節點圖片（純螢光綠底色）進行完美邊緣去背，解決了白邊與陰影被誤殺的問題。
   - 腳本現已支援批量自動縮放畫布至 128x128 像素，確立了 `原生(128x128) -> 渲染(55x55)` 的高效能圖檔規格。
+- **圖檔資源清理 (Refactor)**：
+  - 開發並執行了 `scripts/cleanup-assets.mjs`，自動掃描原始碼依賴，清除了未使用的廢棄測試圖檔，釋放了專案空間。
+- **據點動態解鎖系統 (Map System)**：
+  - 於 `MapNode` 介面擴充了 `isHidden` 與 `unlockCondition` 屬性。
+  - 於 `MapDynamicsSystem` 與 `GameLoop` 實裝了每日檢定機制，支援基於天數或聲望的動態解鎖，達成條件時會即時更新地圖並發送 `toastManager` UI 提示。(目前預設全節點開放，保留擴充彈性)
 
 ## [2026-07-23] 攻城與守城兵力系統 & 治安度擴充 (Phase 5)
 

@@ -135,6 +135,9 @@ export class MapScene extends Phaser.Scene {
 
     const nodes = GameState.mapSystem?.getNodes() || [];
     nodes.forEach(node => {
+      // 隱藏中後期的未解鎖據點
+      if (node.isHidden) return;
+
       const px = (node.x / 100) * 1600;
       const py = (node.y / 100) * 900;
 

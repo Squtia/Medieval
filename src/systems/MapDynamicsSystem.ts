@@ -93,6 +93,43 @@ export class MapDynamicsSystem {
   }
 
   /**
+   * 每日檢查未解鎖節點是否達成條件
+   */
+  public checkNodeUnlocks(currentDay: number, currentPrestige: number): void {
+    let unlockedAny = false;
+    for (const node of this.mapNodes) {
+      if (node.isHidden && node.unlockCondition) {
+        const meetsDay = !node.unlockCondition.minDay || currentDay >= node.unlockCondition.minDay;
+        const meetsPrestige = !node.unlockCondition.minPrestige || currentPrestige >= node.unlockCondition.minPrestige;
+        
+        if (meetsDay && meetsPrestige) {
+          node.isHidden = false;
+          unlockedAny = true;
+          console.log(`🗺️ [情報解鎖] 發現了新的據點：${node.name}！`);
+          
+          // 可在此發送通知或事件給玩家
+          if ((window as any).toastManager) {
+            (window as any).toastManager.show(`🗺️ 發現了新區域：${node.name}！`, 'info');
+          }
+        }
+      }
+    }
+    
+    // 如果有解鎖新節點，觸發事件要求重繪地圖
+    if (unlockedAny) {
+      Promise.all([
+        import('../core/EventBus'),
+        import('../core/GameEvents')
+      ]).then(([{ EventBus }, { GameEventType }]) => {
+        EventBus.getInstance().publish({ 
+          type: GameEventType.MISSIONS_CHANGED, // 借用此事件強制更新地圖
+          payload: { reason: 'PROGRESSED' }
+        });
+      });
+    }
+  }
+
+  /**
    * 玩家手動投資城鎮繁榮度
    */
   public investProsperity(nodeId: string, territory: Territory): boolean {

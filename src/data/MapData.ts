@@ -29,6 +29,9 @@ export const INITIAL_MAP_NODES: MapNode[] = [
   { id: 'n_cas_4', name: '枯骨綠洲', description: '只有黑市商人才知道的隱秘水源。', x: 0, y: 0, population: 150, prosperity: 150, nodeLevel: NodeLevel.CAMP, ownerFactionId: 'f_cassian', isPlayerBase: false, terrain: TerrainType.DESERT, feature: NodeFeature.OCCUPIABLE, isScouted: false, scoutExpiryDate: null, currentWeather: WeatherType.CLEAR, weatherDuration: 0 },
 
   // --- 王權與特權階級 (中央/特殊區) ---
+  // 💡 [中後期解鎖系統註記]：
+  // 若未來需要實作動態顯示據點，可在節點加入 `isHidden: true` 與 `unlockCondition: { minDay: 15, minPrestige: 1000 }`。
+  // MapDynamicsSystem 每日會自動檢查並解鎖，解鎖時會觸發地圖更新與 UI 提示。目前全數預設開放。
   { id: 'n_royal_1', name: '舊王都 永恆之城', description: '曾經輝煌無比，如今卻顯得頹敗的皇權象徵。', x: 0, y: 0, population: 8000, prosperity: 900, nodeLevel: NodeLevel.CAPITAL, ownerFactionId: 'f_royal', isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE, isScouted: false, scoutExpiryDate: null, currentWeather: WeatherType.CLEAR, weatherDuration: 0 },
   { id: 'n_adv_1', name: '學士塔', description: '培提爾樞密院的知識與情報中心。', x: 0, y: 0, population: 400, prosperity: 300, nodeLevel: NodeLevel.TOWN, ownerFactionId: 'f_advisor', isPlayerBase: false, terrain: TerrainType.PLAINS, feature: NodeFeature.OCCUPIABLE, isScouted: false, scoutExpiryDate: null, currentWeather: WeatherType.CLEAR, weatherDuration: 0 },
 
