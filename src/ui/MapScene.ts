@@ -30,7 +30,7 @@ export class MapScene extends Phaser.Scene {
 
   preload() {
     // 載入背景圖
-    this.load.image('bg-map', './bg-map.png');
+    this.load.image('bg-map', './bg-map.webp');
     this.load.svg('combat-sword', './assets/combat_sword.svg', { width: 48, height: 96 });
 
     // 載入 Isometric 地圖節點圖示 (v2 簡潔高對比風格)
@@ -138,8 +138,7 @@ export class MapScene extends Phaser.Scene {
       const px = (node.x / 100) * 1600;
       const py = (node.y / 100) * 900;
 
-      let glowColor = '#000000';
-      
+      let glowColor = '#ffffff';
       if (node.isPlayerBase) {
         glowColor = '#ffd700'; // 金色
       } else if (node.ownerFactionId) {
@@ -148,26 +147,24 @@ export class MapScene extends Phaser.Scene {
       } else if (node.feature === NodeFeature.MONSTER_NEST) {
         glowColor = '#dc2626'; // 紅色
       } else if (node.feature === NodeFeature.SUBJUGATION) {
-        glowColor = '#6b7280'; // 灰色
+        glowColor = '#9ca3af'; // 灰色
       }
 
       // 繪製 Isometric 3/4 俯視角地圖節點圖案與地基陰影
-      const baseShadow = this.add.ellipse(0, 8, 38, 14, 0x000000, 0.45);
+      const baseShadow = this.add.ellipse(0, 10, 48, 18, 0x000000, 0.45); // 稍微放大地基陰影以配合 55 的圖示
       const textureKey = getNodeTextureKey(node);
-      const iconSprite = this.add.image(0, -8, textureKey).setDisplaySize(44, 44);
+      const iconSprite = this.add.image(0, -10, textureKey).setDisplaySize(55, 55);
 
-      // 繪製名字標籤 (黑金羊皮框質感)
-      const labelText = this.add.text(0, 22, node.name, {
+      // 繪製名字標籤 (移除黑框，改為純文字加發光陰影)
+      const labelText = this.add.text(0, 28, node.name, {
         fontSize: '11px',
         color: '#fef08a',
         fontFamily: 'Cinzel, sans-serif',
-        fontStyle: 'bold',
-        backgroundColor: 'rgba(20, 15, 10, 0.88)',
-        padding: { x: 5, y: 2 }
+        fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      labelText.setShadow(1, 1, '#000000', 2, true, true);
-      labelText.setShadow(0, 0, glowColor, 6, true, true);
+      labelText.setStroke('#000000', 4);
+      labelText.setShadow(0, 4, '#000000', 4, true, true);
 
       const container = this.add.container(px, py);
       container.add([baseShadow, iconSprite, labelText]);
