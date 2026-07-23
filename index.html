@@ -1522,9 +1522,10 @@
         </div>
       </div>
       
-      <div style="padding: 20px; border-top: 1px solid rgba(139, 69, 19, 0.5); display: flex; flex-direction: column; gap: 10px;">
-         <button id="nd-btn-market" class="action-btn" style="width: 100%; padding: 15px; display: none; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981;">⚖️ 查看市場</button>
-         <button id="btn-nd-action" class="action-btn" style="width: 100%; padding: 15px;">進行操作</button>
+      <!-- 考量未來擴充：改用 Flex 排版，並預留下方 315px 空間避開史詩按鈕 -->
+      <div id="nd-action-container" style="padding: 20px; border-top: 1px solid rgba(139, 69, 19, 0.5); display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 315px;">
+         <button id="nd-btn-market" class="action-btn" style="flex: 1 1 120px; padding: 15px; display: none; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981;">⚖️ 查看市場</button>
+         <button id="btn-nd-action" class="action-btn" style="flex: 1 1 120px; padding: 15px;">進行操作</button>
       </div>
     </div>
 
