@@ -480,4 +480,116 @@ export class MapDynamicsSystem {
   public getFactions(): Faction[] {
     return this.factions;
   }
+
+  /**
+   * 生成隨機動態周邊節點
+   */
+  public spawnDynamicNode(baseNode: MapNode, radius: number = 10): MapNode | null {
+    // 簡單判定目前地圖上 isDynamic 的數量
+    const dynamicCount = this.mapNodes.filter(n => n.isDynamic).length;
+    if (dynamicCount >= 5) {
+      return null; // 超過上限，不生成
+    }
+
+    // 隨機在 baseNode 周圍找一個不會與現有節點重疊的座標
+    let newX = baseNode.x;
+    let newY = baseNode.y;
+    let validPos = false;
+    let attempts = 0;
+    while (!validPos && attempts < 20) {
+      const offsetX = Random.int(-radius, radius);
+      const offsetY = Random.int(-radius, radius);
+      // 避免太近
+      if (Math.abs(offsetX) < 2 && Math.abs(offsetY) < 2) {
+        attempts++;
+        continue;
+      }
+      newX = Math.max(2, Math.min(98, baseNode.x + offsetX));
+      newY = Math.max(2, Math.min(98, baseNode.y + offsetY));
+
+      // 檢查是否太靠近其他節點
+      let tooClose = false;
+      for (const n of this.mapNodes) {
+        const dx = n.x - newX;
+        const dy = n.y - newY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 3) {
+          tooClose = true;
+          break;
+        }
+      }
+
+      if (!tooClose) {
+        validPos = true;
+      }
+      attempts++;
+    }
+
+    if (!validPos) {
+      return null;
+    }
+
+    // 隨機決定地貌與類型
+    const possibleTerrains = [TerrainType.FOREST, TerrainType.PLAINS, TerrainType.CAVE, TerrainType.RUINS, TerrainType.WILDERNESS];
+    const terrain = Random.pick(possibleTerrains);
+    
+    let feature = NodeFeature.MONSTER_NEST;
+    let namePrefix = '怪物巢穴';
+    if (Random.next() < 0.3) {
+      feature = NodeFeature.SUBJUGATION;
+      namePrefix = '隨機事件';
+    }
+
+    // 根據玩家「最強 5 名冒險者」的戰力，隨機決定這個巢穴的難度 [5 ~ (10 + Top5Power / 40)]
+    // 避免因爲閒置傭兵太多導致難度無限膨脹，超過派遣隊伍的極限
+    let top5Power = 0;
+    try {
+       const gs = (window as any).GameState; // 繞過直接 import 避免循環依賴
+       if (gs && gs.adventurers) {
+          const sorted = [...gs.adventurers].sort((a: any, b: any) => b.power - a.power);
+          top5Power = sorted.slice(0, 5).reduce((sum: number, a: any) => sum + a.power, 0);
+       }
+    } catch(e) {}
+    
+    // 最高難度的敵方總戰力大約是玩家 Top 5 總戰力的 1.25 倍左右，確保挑戰性但不會必敗
+    const maxDiff = Math.max(10, Math.floor(10 + top5Power / 40));
+    const dynamicDiff = Random.int(5, maxDiff);
+
+    const newNode: MapNode = {
+      id: `dynamic_node_${Date.now()}_${Random.int(100, 999)}`,
+      name: `未知的${namePrefix}`,
+      description: '這是領主親自探索時發現的神秘地點。',
+      x: newX,
+      y: newY,
+      population: 0,
+      prosperity: 0,
+      nodeLevel: NodeLevel.WILDERNESS,
+      ownerFactionId: null,
+      isPlayerBase: false,
+      terrain: terrain,
+      feature: feature,
+      isHidden: false,
+      isDynamic: true,
+      baseDifficulty: dynamicDiff,
+      isScouted: false,
+      scoutExpiryDate: null,
+      currentWeather: WeatherType.CLEAR,
+      weatherDuration: 0
+    };
+
+    this.mapNodes.push(newNode);
+
+    // 觸發地圖更新事件
+    Promise.all([
+      import('../core/EventBus'),
+      import('../core/GameEvents')
+    ]).then(([{ EventBus }, { GameEventType }]) => {
+      EventBus.getInstance().publish({ 
+        type: GameEventType.MISSIONS_CHANGED, 
+        payload: { reason: 'PROGRESSED' }
+      });
+    });
+
+    return newNode;
+  }
 }

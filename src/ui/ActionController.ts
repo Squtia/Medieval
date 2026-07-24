@@ -111,6 +111,15 @@ export function initActionController(): void {
     territory.addGold(20);
     territory.wood += 2;
     territory.stone += 1;
+
+    // 4. 新增：動態探索周邊節點 (30% 機率)
+    let spawnedNode = null;
+    if (Random.next() < 0.3) {
+      const playerNode = GameState.mapSystem.getNodes().find(n => n.id === territory.currentCountryId);
+      if (playerNode) {
+        spawnedNode = GameState.mapSystem.spawnDynamicNode(playerNode, 10);
+      }
+    }
     
     if (recruitedAdv) {
       GameState.adventurers.push(recruitedAdv);
@@ -119,6 +128,11 @@ export function initActionController(): void {
     } else if (foundRefugees > 0) {
       msg = `🗺️ [探索] 領主巡視周邊，獲得了 20 金幣與物資，並在廢棄營地救出了 ${foundRefugees} 名流民，已加入領地閒置人力！`;
       ToastManager.show(`荒野探索：救出了 ${foundRefugees} 名流民！`);
+    }
+
+    if (spawnedNode) {
+      msg += `\n⚠️ 【警報】斥候回報在領地周遭發現了「${spawnedNode.name}」，已標記於大陸地圖上！`;
+      ToastManager.show(`發現周邊巢穴：${spawnedNode.name}！`, 'warning');
     }
     
     console.log(msg);

@@ -7,6 +7,7 @@ import { UIManager } from './UIManager';
 import { DataStore } from '../systems/DataStore';
 import { EquipmentGenerator } from '../systems/EquipmentGenerator';
 import { DispatchTask, EnemyFeature, TaskType, TradeInstruction, TradePhase } from '../models/DispatchTask';
+import { monsterSystem } from '../systems/MonsterSystem';
 import { GAME_EVENTS } from '../data/EventData';
 import { startRoutePlanning } from './MapController';
 import { TRADE_GOODS } from '../systems/MarketSystem';
@@ -260,20 +261,11 @@ export function renderPartyUpperSection() {
       }
     });
 
-    const isFrontRow = adv.formationRow === 'FRONT' || (adv.formationRow as any) === 0;
-    const formationText = isFrontRow ? '🛡️ 前排 (近戰坦克)' : '🏹 後排 (遠程/輔助)';
-    const formationBtnBg = isFrontRow ? 'linear-gradient(135deg, #1d4ed8, #1e40af)' : 'linear-gradient(135deg, #9333ea, #7e22ce)';
-
     viewport.innerHTML = `
       <div style="font-size:0.78em; color:#eab308; font-weight:bold; margin-bottom:3px;">裝備槽位：</div>
       ${equipRowsHtml}
 
-      <div style="font-size:0.78em; color:#eab308; font-weight:bold; margin: 6px 0 3px 0;">戰鬥陣位編制：</div>
-      <button id="btn-toggle-formation" class="action-btn" style="width:100%; background:${formationBtnBg}; padding:4px 0; font-size:0.78em; font-weight:bold; margin-bottom:8px;">
-        ${formationText} (點擊切換)
-      </button>
-
-      <div style="border-top: 1px dashed rgba(239,68,68,0.3); padding-top: 6px; text-align: center;">
+      <div style="border-top: 1px dashed rgba(239,68,68,0.3); padding-top: 6px; margin-top: 8px; text-align: center;">
         <button id="btn-party-retire" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #ef4444; color: white; width: 100%; padding: 3px 0; font-size: 0.78em;">
           👴 永久退休轉任 (增加領地稅收)
         </button>
@@ -300,16 +292,7 @@ export function renderPartyUpperSection() {
       });
     });
 
-    const btnFormation = viewport.querySelector('#btn-toggle-formation');
-    if (btnFormation) {
-      btnFormation.addEventListener('click', () => {
-        adv.formationRow = (adv.formationRow === 'FRONT' || (adv.formationRow as any) === 0)
-          ? ('BACK' as any)
-          : ('FRONT' as any);
-        renderPartyUpperSection();
-        UIManager.updateUI();
-      });
-    }
+
 
     const btnRetire = viewport.querySelector('#btn-party-retire');
     if (btnRetire) {
@@ -516,9 +499,8 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
   pendingDispatchNode = node;
   selectedAdventurersForDispatch.clear();
   selectedTroopsForDispatch = {};
-
-  // 根據 NodeLevel 決定難度
-  const baseDiff = node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10;
+  // 根據 NodeLevel 或自訂難度決定難度
+  const baseDiff = node.baseDifficulty !== undefined ? node.baseDifficulty : (node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10);
   // 荒野的 minPower 降為 30，後續每等加 40
   const minPower = node.nodeLevel === NodeLevel.WILDERNESS ? 30 : 50 + node.nodeLevel * 40;
   
@@ -546,20 +528,30 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
     desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   } else {
     optionsContainer.style.display = 'block';
-    title.innerHTML = '⚔️ 討伐隊伍編制 (不帶兵)';
+    title.innerHTML = '⚔️ 討伐隊伍編制';
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
+    
+    // 透過魔物系統產出實際的怪物陣容
+    const enemyLineup = monsterSystem.generateEncounter(node.terrain, baseDiff);
+    
     // 討伐任務需要較長天數 (預設 4 天)
     pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
     pendingDispatchTask.targetNodeId = node.id;
+    pendingDispatchTask.enemyLineup = enemyLineup;
     
     let fStr = '';
-    if (randomFeature === EnemyFeature.HIGH_DEF) fStr = '（高防禦敵人：建議高攻擊與多波續戰能力）';
-    if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
+    if (enemyLineup && enemyLineup.length > 0) {
+      const monsterInstance = enemyLineup[0] as any; // Cast to access calculatedPowerScore easily
+      fStr = `\n情報回報：營地周圍預估有 ${enemyLineup.length} 隻【${enemyLineup[0].name}】(單體戰力評估：${monsterInstance.calculatedPowerScore ? Math.round(monsterInstance.calculatedPowerScore) : '未知'})`;
+    } else {
+      if (randomFeature === EnemyFeature.HIGH_DEF) fStr = '（高防禦敵人：建議高攻擊與多波續戰能力）';
+      if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
+    }
     desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   }
 
-  reqPowerEl.textContent = `建議戰力門檻：${pendingDispatchTask.minPowerRequired}`;
+  reqPowerEl.textContent = `🎯 目標戰力：${pendingDispatchTask.minPowerRequired}`;
   
   renderDispatchAdvList();
 
@@ -644,6 +636,70 @@ export function openEventModal(event: any) {
   modal.classList.add('active');
 }
 
+function renderDispatchTeamRoster() {
+  const container = document.getElementById('dispatch-team-roster')!;
+  if (!container) return;
+  container.innerHTML = '';
+  
+  const selectedAdvs = GameState.adventurers.filter(a => selectedAdventurersForDispatch.has(a.id));
+  
+  for (let i = 0; i < 5; i++) {
+    const adv = selectedAdvs[i];
+    const slot = document.createElement('div');
+    slot.style.width = '100px';
+    slot.style.height = '105px';
+    slot.style.background = 'rgba(0,0,0,0.5)';
+    slot.style.border = '1px dashed rgba(255,255,255,0.2)';
+    slot.style.borderRadius = '6px';
+    slot.style.display = 'flex';
+    slot.style.flexDirection = 'column';
+    slot.style.alignItems = 'center';
+    slot.style.justifyContent = 'center';
+    slot.style.position = 'relative';
+
+    if (adv) {
+      slot.style.border = '1px solid #3b82f6';
+      slot.style.background = 'linear-gradient(180deg, #1e293b, #0f172a)';
+      
+      const isFront = adv.formationRow === 'FRONT' || (adv.formationRow as any) === 0;
+      const rowText = isFront ? '前排' : '後排';
+      const rowBg = isFront ? '#1d4ed8' : '#9333ea';
+      
+      slot.innerHTML = `
+        <div style="font-size: 2em; margin-bottom: 5px;">🦸</div>
+        <div style="font-size: 0.85em; font-weight: bold; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">${adv.name}</div>
+        <div style="font-size: 0.7em; color: #fbbf24;">戰力: ${adv.power}</div>
+        <button class="action-btn" style="position: absolute; top: -5px; right: -5px; padding: 2px 5px; font-size: 0.7em; background: #ef4444; border-radius: 50%; color: white;">×</button>
+        <div class="row-toggle" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: ${rowBg}; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; cursor: pointer; white-space: nowrap; border: 1px solid #fff;">
+          ${rowText}
+        </div>
+      `;
+      
+      const toggleBtn = slot.querySelector('.row-toggle')!;
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        adv.formationRow = isFront ? ('BACK' as any) : ('FRONT' as any);
+        renderDispatchTeamRoster();
+      });
+      
+      const removeBtn = slot.querySelector('button')!;
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedAdventurersForDispatch.delete(adv.id);
+        renderDispatchTeamRoster();
+        renderDispatchAdvList();
+      });
+      
+    } else {
+      slot.innerHTML = `<span style="color:#64748b; font-size: 0.8em;">空位</span>`;
+    }
+    
+    container.appendChild(slot);
+  }
+  
+  updateDispatchPowerPreview();
+}
+
 function renderDispatchAdvList() {
   const container = document.getElementById('dispatch-adv-list')!;
   container.innerHTML = '';
@@ -651,84 +707,51 @@ function renderDispatchAdvList() {
   const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
   
   if (idleAdvs.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:#94a3b8;">目前沒有閒置的冒險者可以派遣。</p>';
-    updateDispatchPowerPreview();
+    container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1 / -1;">目前沒有閒置的冒險者可以派遣。</p>';
+    renderDispatchTeamRoster();
     return;
   }
 
   idleAdvs.forEach(adv => {
+    const isSelected = selectedAdventurersForDispatch.has(adv.id);
     const card = document.createElement('div');
-    card.className = 'adv-checkbox-card' + (selectedAdventurersForDispatch.has(adv.id) ? ' selected' : '');
-    
-    const isChecked = selectedAdventurersForDispatch.has(adv.id) ? 'checked' : '';
-    const isWar = pendingDispatchTask?.isWar === true;
-    let troopHtml = '';
-
-    if (isChecked && isWar) {
-      const terr = GameState.myTerritory;
-      const inf = terr.workers.INFANTRY || 0;
-      const cav = terr.workers.CAVALRY || 0;
-      const arc = terr.workers.ARCHER || 0;
-      const current = (selectedTroopsForDispatch[adv.id] as any) || { type: 'NONE', count: 0 };
-      
-      troopHtml = `
-        <div style="margin-top: 8px; font-size: 0.9em; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);" onclick="event.stopPropagation()">
-          <label style="color:#94a3b8;">🛡️ 派兵護衛：</label>
-          <select id="troop-type-${adv.id}" style="background:rgba(0,0,0,0.5); color:#fff; border:1px solid #475569; border-radius:4px; padding:2px;">
-            <option value="NONE" ${current.type==='NONE'?'selected':''}>無兵種</option>
-            <option value="INFANTRY" ${current.type==='INFANTRY'?'selected':''}>步兵 (庫存:${inf})</option>
-            <option value="CAVALRY" ${current.type==='CAVALRY'?'selected':''}>騎兵 (庫存:${cav})</option>
-            <option value="ARCHER" ${current.type==='ARCHER'?'selected':''}>弓兵 (庫存:${arc})</option>
-          </select>
-          <input type="number" id="troop-count-${adv.id}" value="${current.count}" min="0" style="width:60px; background:rgba(0,0,0,0.5); color:#fff; border:1px solid #475569; border-radius:4px; padding:2px; margin-left:5px;">
-        </div>
-      `;
+    card.className = 'adventurer-card';
+    if (isSelected) {
+      card.style.borderColor = '#3b82f6';
+      card.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+      card.style.opacity = '0.5';
     }
-
-    // UI-04: currentClass mapping handling
+    
     const displayClass = (adv as any).currentClass || adv.job.name;
 
     card.innerHTML = `
-      <input type="checkbox" ${isChecked} style="pointer-events:none;">
-      <div style="flex:1;">
-        <strong style="color:#e2e8f0; font-size:1.1em;">${adv.name}</strong> <span style="color:#94a3b8; font-size:0.9em;">(Lv.${adv.level} ${displayClass})</span><br/>
-        <span style="color:#fbbf24; font-size:0.85em;">綜合戰力: ${adv.power}</span>
-        ${troopHtml}
+      <div class="adv-avatar-wrapper"><span style="font-size: 1.5em;">🦸</span></div>
+      <div class="adv-card-gradient"></div>
+      <div class="adv-card-info">
+        <div class="adv-name">${adv.name}</div>
+        <div class="adv-level">Lv.${adv.level} ${displayClass}</div>
+        <div style="font-size: 0.75em; color: #fbbf24; margin-top: 2px;">戰力: ${adv.power}</div>
       </div>
     `;
 
-    card.addEventListener('click', (e) => {
-      // 避免點擊 select/input 觸發卡片切換
-      if ((e.target as HTMLElement).tagName === 'SELECT' || (e.target as HTMLElement).tagName === 'INPUT') return;
-      
-      if (selectedAdventurersForDispatch.has(adv.id)) {
+    card.addEventListener('click', () => {
+      if (isSelected) {
         selectedAdventurersForDispatch.delete(adv.id);
       } else {
+        if (selectedAdventurersForDispatch.size >= 5) {
+          ToastManager.show('隊伍最多只能派出 5 名傭兵！');
+          return;
+        }
         selectedAdventurersForDispatch.add(adv.id);
       }
-      renderDispatchAdvList(); // 重新渲染清單以更新樣式
+      renderDispatchAdvList();
+      renderDispatchTeamRoster();
     });
-    
-    // 綁定動態事件 (儲存輸入值)
-    setTimeout(() => {
-      if (isChecked && isWar) {
-        const typeEl = document.getElementById(`troop-type-${adv.id}`) as HTMLSelectElement;
-        const countEl = document.getElementById(`troop-count-${adv.id}`) as HTMLInputElement;
-        if (typeEl && countEl) {
-          typeEl.addEventListener('change', () => {
-            selectedTroopsForDispatch[adv.id] = { type: typeEl.value, count: parseInt(countEl.value) || 0 } as any;
-          });
-          countEl.addEventListener('change', () => {
-             selectedTroopsForDispatch[adv.id] = { type: typeEl.value, count: parseInt(countEl.value) || 0 } as any;
-          });
-        }
-      }
-    }, 0);
 
     container.appendChild(card);
   });
   
-  updateDispatchPowerPreview();
+  renderDispatchTeamRoster();
 }
 
 export async function openTradePlanner(plannedRouteNodeIds: string[]) {

@@ -60,12 +60,12 @@ export enum OfficeType {
  */
 export const TITLE_CONFIG: TitleConfig[] = [
   { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, maxFacilityLevel: 1, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
-  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 2, taxBonusPer10Pop: 1, reqPrestige: 100, reqPopulation: 20, reqGold: 500, officeSlots: { [OfficeType.RETAINER]: 1 } },
-  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 3, taxBonusPer10Pop: 2, reqPrestige: 500, reqPopulation: 50, reqGold: 2000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1 } },
-  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 4, taxBonusPer10Pop: 3, reqPrestige: 2000, reqPopulation: 100, reqGold: 5000, officeSlots: { [OfficeType.RETAINER]: 3, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 5, taxBonusPer10Pop: 4, reqPrestige: 5000, reqPopulation: 200, reqGold: 15000, officeSlots: { [OfficeType.RETAINER]: 4, [OfficeType.CAPTAIN]: 4, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 2 } },
-  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 6, taxBonusPer10Pop: 5, reqPrestige: 15000, reqPopulation: 500, reqGold: 50000, officeSlots: { [OfficeType.RETAINER]: 6, [OfficeType.CAPTAIN]: 6, [OfficeType.BANNERET]: 2, [OfficeType.CASTELLAN]: 4 } },
-  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, maxFacilityLevel: 7, taxBonusPer10Pop: 6, reqPrestige: 50000, reqPopulation: 1000, reqGold: 100000, officeSlots: { [OfficeType.RETAINER]: 10, [OfficeType.CAPTAIN]: 10, [OfficeType.BANNERET]: 4, [OfficeType.CASTELLAN]: 6 } }
+  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 2, taxBonusPer10Pop: 1, reqPrestige: 500, reqPopulation: 30, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
+  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 3, taxBonusPer10Pop: 2, reqPrestige: 2000, reqPopulation: 80, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1 } },
+  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 4, taxBonusPer10Pop: 3, reqPrestige: 5000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 3, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 5, taxBonusPer10Pop: 4, reqPrestige: 12000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 4, [OfficeType.CAPTAIN]: 4, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 6, taxBonusPer10Pop: 5, reqPrestige: 25000, reqPopulation: 1200, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 6, [OfficeType.CAPTAIN]: 6, [OfficeType.BANNERET]: 2, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, maxFacilityLevel: 7, taxBonusPer10Pop: 6, reqPrestige: 60000, reqPopulation: 3000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 10, [OfficeType.CAPTAIN]: 10, [OfficeType.BANNERET]: 4, [OfficeType.CASTELLAN]: 1 } }
 ];
 
 export function getTitleConfig(title: NobleTitle): TitleConfig {
@@ -143,7 +143,10 @@ export enum TerrainType {
   FOREST = 'FOREST',
   SNOW_MOUNTAIN = 'SNOW_MOUNTAIN',
   VOLCANO = 'VOLCANO',
-  DESERT = 'DESERT'
+  DESERT = 'DESERT',
+  CAVE = 'CAVE',
+  RUINS = 'RUINS',
+  WILDERNESS = 'WILDERNESS'
 }
 
 /**
@@ -178,6 +181,8 @@ export interface MapNode {
   
   // 動態顯示與解鎖機制
   isHidden?: boolean;
+  isDynamic?: boolean; // 是否為動態生成的節點 (如：探索出來的隨機巢穴)
+  baseDifficulty?: number; // 用於動態巢穴等自訂難度的節點
   unlockCondition?: {
     minDay?: number;
     minPrestige?: number;
@@ -388,4 +393,38 @@ export interface EquipmentTemplate {
     combatStats?: (keyof CombatStats)[];
   };
 }
+
+/**
+ * 四大魔物種族
+ */
+export enum MonsterRace {
+  MONSTER = 'MONSTER',
+  HUMAN = 'HUMAN',
+  UNDEAD = 'UNDEAD',
+  DRAGON = 'DRAGON'
+}
+
+/**
+ * 魔物資料結構
+ */
+export interface MonsterData {
+  id: string;
+  name: string;
+  race: MonsterRace;
+  terrains: TerrainType[];
+  powerTier: number;
+  isBoss?: boolean;
+}
+
+/**
+ * 戰鬥用實體魔物資料 (帶有具體數值)
+ */
+export interface MonsterInstance extends MonsterData {
+  hp: number;
+  damage: number;
+  defense: number;
+  evade: number;
+  calculatedPowerScore: number;
+}
+
 

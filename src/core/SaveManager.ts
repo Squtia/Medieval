@@ -102,6 +102,9 @@ export class SaveManager {
       if (t.exploreCount === undefined) t.exploreCount = 0;
       if (t.hasRecruitedFromFirstExplorations === undefined) t.hasRecruitedFromFirstExplorations = false;
       
+      // 同步舊存檔的總人口與閒置人力落差
+      t.syncPopulation();
+      
       GameState.myTerritory = t;
 
       // 2. 還原 Adventurers

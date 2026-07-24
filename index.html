@@ -1307,47 +1307,7 @@
             <div style="font-size: 0.85em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
           </div>
           
-          <!-- 步兵 -->
-          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #fca5a5;">🛡️ 步兵部隊</div>
-              <span style="font-size: 1.1em; font-weight: bold; color: #fca5a5;"><span id="ui-worker-INFANTRY">0</span> 人</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
-              <input type="range" class="worker-slider" data-job="INFANTRY" min="0" max="0" value="0" style="flex: 1; accent-color: #ef4444; cursor: pointer;">
-              <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
-            </div>
-            <div style="font-size: 0.85em; color: #fca5a5;">每人額外消耗 1 糧食/天，用於戰鬥護盾</div>
-          </div>
-          
-          <!-- 弓兵 -->
-          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #6ee7b7;">🏹 弓兵部隊</div>
-              <span style="font-size: 1.1em; font-weight: bold; color: #6ee7b7;"><span id="ui-worker-ARCHER">0</span> 人</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="action-btn btn-assign" data-job="ARCHER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
-              <input type="range" class="worker-slider" data-job="ARCHER" min="0" max="0" value="0" style="flex: 1; accent-color: #10b981; cursor: pointer;">
-              <button class="action-btn btn-assign" data-job="ARCHER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
-            </div>
-            <div style="font-size: 0.85em; color: #6ee7b7;">每人額外消耗 1 糧食/天，用於遠程支援</div>
-          </div>
-          
-          <!-- 騎兵 -->
-          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #c084fc;">🐎 騎兵部隊</div>
-              <span style="font-size: 1.1em; font-weight: bold; color: #c084fc;"><span id="ui-worker-CAVALRY">0</span> 人</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
-              <input type="range" class="worker-slider" data-job="CAVALRY" min="0" max="0" value="0" style="flex: 1; accent-color: #a855f7; cursor: pointer;">
-              <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
-            </div>
-            <div style="font-size: 0.85em; color: #c084fc;">每人額外消耗 2 糧食/天 (含馬)，提供最高品質護盾</div>
-          </div>
+          <!-- 軍事單位已移至謁見廳 -->
           
           <div id="ui-net-production" style="margin-top: 5px; font-size: 0.95em; text-align: center;">
             <!-- JS 更新淨產量 -->
@@ -1398,6 +1358,51 @@
              </div>
           </div>
           
+          <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.7);">
+            <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">⚔️ 兵力調度</h3>
+            <!-- 步兵 -->
+            <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #fca5a5;">🛡️ 步兵部隊</div>
+                <span style="font-size: 1.1em; font-weight: bold; color: #fca5a5;"><span id="ui-worker-INFANTRY">0</span> 人</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+                <input type="range" class="worker-slider" data-job="INFANTRY" min="0" max="0" value="0" style="flex: 1; accent-color: #ef4444; cursor: pointer;">
+                <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+              </div>
+              <div style="font-size: 0.85em; color: #fca5a5;">每人額外消耗 1 糧食/天，用於戰鬥護盾</div>
+            </div>
+            
+            <!-- 弓兵 -->
+            <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #6ee7b7;">🏹 弓兵部隊</div>
+                <span style="font-size: 1.1em; font-weight: bold; color: #6ee7b7;"><span id="ui-worker-ARCHER">0</span> 人</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="action-btn btn-assign" data-job="ARCHER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+                <input type="range" class="worker-slider" data-job="ARCHER" min="0" max="0" value="0" style="flex: 1; accent-color: #10b981; cursor: pointer;">
+                <button class="action-btn btn-assign" data-job="ARCHER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+              </div>
+              <div style="font-size: 0.85em; color: #6ee7b7;">每人額外消耗 1 糧食/天，用於遠程支援</div>
+            </div>
+            
+            <!-- 騎兵 -->
+            <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.3);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #c084fc;">🐎 騎兵部隊</div>
+                <span style="font-size: 1.1em; font-weight: bold; color: #c084fc;"><span id="ui-worker-CAVALRY">0</span> 人</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+                <input type="range" class="worker-slider" data-job="CAVALRY" min="0" max="0" value="0" style="flex: 1; accent-color: #a855f7; cursor: pointer;">
+                <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+              </div>
+              <div style="font-size: 0.85em; color: #c084fc;">每人額外消耗 2 糧食/天 (含馬)，提供最高品質護盾</div>
+            </div>
+          </div>
+
           <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.7);">
             <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">🤝 外交與內政</h3>
             <button id="btn-tribute" class="action-btn" style="font-size: 1.1em; padding: 10px;">🎁 進貢 100 金幣 (+皇家好感)</button>
@@ -1708,24 +1713,37 @@
       <h2 style="text-align: center; color: #eab308;" id="dispatch-setup-title">⚔️ 隊伍編制</h2>
       <p style="text-align: center; color: #94a3b8; margin-top: 5px;" id="dispatch-setup-desc">選擇要派出的傭兵</p>
       
-      <div style="margin-top: 20px; max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;" id="dispatch-adv-list">
+      <!-- 隊伍配置區 -->
+      <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(234,179,8,0.3); border-radius: 8px;">
+        <div style="color: #eab308; font-weight: bold; margin-bottom: 8px; text-align: center;">🛡️ 出戰隊伍 (最多 5 人)</div>
+        <div id="dispatch-team-roster" style="display: flex; gap: 8px; justify-content: center; min-height: 105px;">
+          <!-- JS 動態生成 5 個空位或選中傭兵 -->
+        </div>
+      </div>
+
+      <div style="color: #cbd5e1; margin-top: 15px; margin-bottom: 5px; font-weight: bold;">⚔️ 可選傭兵</div>
+      <div style="max-height: 250px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; padding: 5px;" id="dispatch-adv-list">
         <!-- JS 動態生成可派遣名單 -->
       </div>
       
-      <div id="dispatch-subjugation-options" style="display: none; margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 8px;">
-        <div style="color: #cbd5e1; margin-bottom: 8px;">⚔️ 請選擇討伐模式：</div>
-        <label style="display: block; cursor: pointer; color: #e2e8f0; margin-bottom: 5px;">
-          <input type="radio" name="subjugation-mode" value="SINGLE" checked> 單次討伐 <span style="color:#94a3b8; font-size:0.9em;">(遭遇 1 波敵人)</span>
+      <div id="dispatch-subjugation-options" style="display: none; margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;">
+        <div style="color: #cbd5e1; margin-bottom: 12px; font-weight: bold;">⚔️ 請選擇討伐模式：</div>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #e2e8f0; margin-bottom: 10px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 6px; transition: background 0.2s;">
+          <input type="radio" name="subjugation-mode" value="SINGLE" checked>
+          <span>單次討伐 <span style="color:#94a3b8; font-size:0.9em; margin-left: 5px;">(遭遇 1 波敵人)</span></span>
         </label>
-        <label style="display: block; cursor: pointer; color: #e2e8f0;">
-          <input type="radio" name="subjugation-mode" value="PROGRESS"> 進度討伐 <span style="color:#fbbf24; font-size:0.9em;">(連續遭遇 3 波敵人，高風險高報酬)</span>
+        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #e2e8f0; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 6px; transition: background 0.2s;">
+          <input type="radio" name="subjugation-mode" value="PROGRESS">
+          <span>進度討伐 <span style="color:#fbbf24; font-size:0.9em; margin-left: 5px;">(連續遭遇 3 波敵人，高風險高報酬)</span></span>
         </label>
       </div>
       
       <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
           <div style="color: #cbd5e1;">預估隊伍總戰力：<span id="dispatch-total-power" style="color: #eab308; font-size: 1.2em; font-weight: bold;">0</span></div>
-          <div style="color: #94a3b8; font-size: 0.9em;" id="dispatch-req-power">建議戰力：-</div>
+          <div style="background: rgba(234, 179, 8, 0.15); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(234, 179, 8, 0.3);">
+            <span style="color: #fbbf24; font-size: 0.95em; font-weight: bold;" id="dispatch-req-power">🎯 目標戰力：-</span>
+          </div>
         </div>
         <div id="dispatch-risk-preview" style="margin-bottom: 12px; color: #cbd5e1; font-size: 0.9em;">風險與獎勵將在選擇隊伍後顯示。</div>
         <button id="btn-confirm-dispatch" class="action-btn" style="width: 100%; padding: 12px; font-size: 1.2em;">🚀 確認出發</button>

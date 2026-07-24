@@ -269,4 +269,13 @@ export class Territory {
       return (currentDay - record.day) <= keepDays;
     });
   }
+
+  /**
+   * 同步總人口與各項工作人口的總和
+   * 以修復讀檔或數據異常時造成的總人口與閒置人力落差
+   */
+  public syncPopulation(): void {
+    const totalWorkers = Object.values(this.workers).reduce((sum, count) => sum + (count || 0), 0);
+    this.population = totalWorkers;
+  }
 }

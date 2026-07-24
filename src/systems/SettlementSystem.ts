@@ -1,7 +1,7 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
-import { WorkerJob, getTaxBonusPer10Pop } from '../models/types';
+import { WorkerJob, getTaxBonusPer10Pop, NodeLevel } from '../models/types';
 import { Random } from '../core/Random';
 
 export class SettlementSystem {
@@ -11,6 +11,11 @@ export class SettlementSystem {
     // 監聽天數流逝，進行資源結算
     eventBus.subscribe(GameEventType.DAY_PASSED, (payload) => {
       this.resolveDailyResources();
+    });
+
+    // 監聽勞工分配，即時更新治安度
+    eventBus.subscribe(GameEventType.WORKER_ASSIGNED, () => {
+      this.updateSecurity();
     });
 
     // 監聽災難威脅抵達
@@ -25,20 +30,32 @@ export class SettlementSystem {
     });
   }
 
+  public updateSecurity() {
+    const territory = GameState.myTerritory;
+    const workers = territory.workers;
+    let newSecurity = 100;
+    const currentNode = GameState.mapSystem.getNodes().find(n => n.id === territory.currentCountryId);
+    const requiresGuards = currentNode && (currentNode.nodeLevel === NodeLevel.VILLAGE || currentNode.nodeLevel === NodeLevel.TOWN || currentNode.nodeLevel === NodeLevel.CAPITAL);
+    const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
+
+    if (requiresGuards) {
+      const effectivePop = Math.max(0, territory.population - 50); // 新手保護：前 50 人不需守衛
+      if (effectivePop > 0) {
+        const requiredTroops = effectivePop * 0.1; // 每 10 名有效人口需要 1 名士兵維持治安
+        const coverage = totalTroops / requiredTroops;
+        newSecurity = Math.floor(Math.min(1, coverage) * 100);
+      }
+    }
+    territory.security = newSecurity;
+  }
+
   private resolveDailyResources() {
     const territory = GameState.myTerritory;
     const workers = territory.workers;
     
     // -- Phase 5: 治安度 (Security System) --
-    const effectivePop = Math.max(0, territory.population - 50); // 新手保護：前 50 人不需守衛
-    let newSecurity = 100;
+    this.updateSecurity();
     const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
-    if (effectivePop > 0) {
-      const requiredTroops = effectivePop * 0.1; // 每 10 名有效人口需要 1 名士兵維持治安
-      const coverage = totalTroops / requiredTroops;
-      newSecurity = Math.floor(Math.min(1, coverage) * 100);
-    }
-    territory.security = newSecurity;
 
     let productionMultiplier = 1.0;
     if (territory.security >= 80) productionMultiplier = 1.2;

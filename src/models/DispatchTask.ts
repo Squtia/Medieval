@@ -4,6 +4,8 @@ export enum EnemyFeature {
   HIGH_EVADE = 'HIGH_EVADE'    // 高閃避
 }
 
+import { MonsterData, MonsterInstance } from './types';
+
 export enum TaskType {
   COMBAT = 'COMBAT',
   EXPLORE = 'EXPLORE',
@@ -41,6 +43,7 @@ export class DispatchTask {
   public enemyFeature: EnemyFeature;  // 敵方特性
   public isWar: boolean = false;      // Phase 5: 是否為攻城戰爭(允許帶兵)
   public troopAssignments?: Record<string, { type: string, count: number }>; // 每個參戰傭兵分配的兵種與數量
+  public enemyLineup?: MonsterInstance[]; // 具體的敵方魔物陣容
   
   // 商隊特有資料 (舊版單點跑商留存相容)
   public tradeTargetNodeId?: string;

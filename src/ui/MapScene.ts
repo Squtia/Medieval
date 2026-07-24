@@ -153,10 +153,10 @@ export class MapScene extends Phaser.Scene {
         glowColor = '#9ca3af'; // 灰色
       }
 
-      // 繪製 Isometric 3/4 俯視角地圖節點圖案與地基陰影
-      const baseShadow = this.add.ellipse(0, 10, 48, 18, 0x000000, 0.45); // 稍微放大地基陰影以配合 55 的圖示
+      // 繪製 Isometric 3/4 俯視角地圖節點圖案
       const textureKey = getNodeTextureKey(node);
-      const iconSprite = this.add.image(0, -10, textureKey).setDisplaySize(55, 55);
+      const iconSize = node.isDynamic ? 25 : 35;
+      const iconSprite = this.add.image(0, -10, textureKey).setDisplaySize(iconSize, iconSize);
 
       // 繪製名字標籤 (移除黑框，改為純文字加發光陰影)
       const labelText = this.add.text(0, 28, node.name, {
@@ -170,7 +170,7 @@ export class MapScene extends Phaser.Scene {
       labelText.setShadow(0, 4, '#000000', 4, true, true);
 
       const container = this.add.container(px, py);
-      container.add([baseShadow, iconSprite, labelText]);
+      container.add([iconSprite, labelText]);
 
       let depth = 10;
       if (node.isPlayerBase) depth = 50;

@@ -10,7 +10,8 @@ export class CombatSystem {
     enemyFeature: string = '', 
     terrain?: TerrainType, 
     totalWaves: number = 1,
-    troopAssignments?: Record<string, { type: string, count: number }>
+    troopAssignments?: Record<string, { type: string, count: number }>,
+    enemyLineup?: import('../models/types').MonsterInstance[]
   ): CombatReport {
     const events: CombatEvent[] = [];
     const playerTeam: CombatParticipant[] = [];
@@ -55,21 +56,29 @@ export class CombatSystem {
       const enemyCount = Random.int(1, 3);
       
       for (let i = 0; i < enemyCount; i++) {
-        const eHp = 50 + currentWaveDiff * 5;
-        let eDef = currentWaveDiff * 2;
-        let eEvade = currentWaveDiff * 1.5;
+        // 若有具體敵方名單，從中依序取用（若不夠則重複取用最後一隻）
+        let lineupMonster = undefined;
+        if (enemyLineup && enemyLineup.length > 0) {
+           lineupMonster = enemyLineup[Math.min(i, enemyLineup.length - 1)];
+        }
+        
+        const eHp = lineupMonster ? lineupMonster.hp : (50 + currentWaveDiff * 5);
+        let eDef = lineupMonster ? lineupMonster.defense : (currentWaveDiff * 2);
+        let eEvade = lineupMonster ? lineupMonster.evade : (currentWaveDiff * 1.5);
+        const eAtk = lineupMonster ? lineupMonster.damage : (10 + currentWaveDiff * 2);
+        const eName = lineupMonster ? `${lineupMonster.name} ${i + 1}` : `怪物 ${i + 1}`;
 
-        if (enemyFeature === 'HIGH_DEF') eDef *= 2;
-        if (enemyFeature === 'HIGH_EVADE') eEvade *= 2;
+        if (enemyFeature === 'HIGH_DEF' && !lineupMonster) eDef *= 2;
+        if (enemyFeature === 'HIGH_EVADE' && !lineupMonster) eEvade *= 2;
 
         enemyTeam.push({
           id: `enemy_w${wave}_${i}`,
-          name: `怪物 ${i + 1}`,
+          name: eName,
           isPlayer: false,
           row: Random.next() > 0.5 ? FormationRow.FRONT : FormationRow.BACK,
           maxHp: eHp,
           currentHp: eHp,
-          stats: { hp: eHp, mp: 0, atk: 10 + currentWaveDiff * 2, def: eDef, hit: 20 + currentWaveDiff, evade: eEvade },
+          stats: { hp: eHp, mp: 0, atk: eAtk, def: eDef, hit: 20 + currentWaveDiff, evade: eEvade },
           statusEffects: []
         });
       }

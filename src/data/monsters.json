@@ -1,0 +1,59 @@
+[
+  {
+    "id": "goblin_scout",
+    "name": "哥布林斥候",
+    "race": "MONSTER",
+    "terrains": ["FOREST", "PLAINS", "WILDERNESS"],
+    "powerTier": 0.5
+  },
+  {
+    "id": "orc_warrior",
+    "name": "半獸人戰士",
+    "race": "MONSTER",
+    "terrains": ["FOREST", "WILDERNESS"],
+    "powerTier": 1.2
+  },
+  {
+    "id": "bandit_thug",
+    "name": "荒野流寇",
+    "race": "HUMAN",
+    "terrains": ["PLAINS", "WILDERNESS", "DESERT"],
+    "powerTier": 0.8
+  },
+  {
+    "id": "rebel_knight",
+    "name": "叛教騎士",
+    "race": "HUMAN",
+    "terrains": ["RUINS", "PLAINS"],
+    "powerTier": 1.8
+  },
+  {
+    "id": "skeleton_warrior",
+    "name": "骷髏戰士",
+    "race": "UNDEAD",
+    "terrains": ["RUINS", "CAVE"],
+    "powerTier": 0.7
+  },
+  {
+    "id": "ghoul",
+    "name": "食屍鬼",
+    "race": "UNDEAD",
+    "terrains": ["RUINS", "FOREST"],
+    "powerTier": 1.1
+  },
+  {
+    "id": "cave_spider",
+    "name": "穴居巨蛛",
+    "race": "MONSTER",
+    "terrains": ["CAVE"],
+    "powerTier": 0.9
+  },
+  {
+    "id": "young_dragon",
+    "name": "幼年火龍",
+    "race": "DRAGON",
+    "terrains": ["VOLCANO", "SNOW_MOUNTAIN"],
+    "powerTier": 5.0,
+    "isBoss": true
+  }
+]

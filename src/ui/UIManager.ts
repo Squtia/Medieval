@@ -84,9 +84,10 @@ class UIManagerClass {
     
     // UI-03: 更新治安度並套用顏色提示
     if (this.uiSecurity) {
-      this.uiSecurity.textContent = (territory.security || 100).toString();
-      if (territory.security >= 80) this.uiSecurity.style.color = '#10b981'; // 綠色
-      else if (territory.security < 30) this.uiSecurity.style.color = '#ef4444'; // 紅色
+      const secValue = (territory.security === null || territory.security === undefined || isNaN(territory.security)) ? 100 : territory.security;
+      this.uiSecurity.textContent = secValue.toString();
+      if (secValue >= 80) this.uiSecurity.style.color = '#10b981'; // 綠色
+      else if (secValue < 30) this.uiSecurity.style.color = '#ef4444'; // 紅色
       else this.uiSecurity.style.color = '#e2e8f0'; // 正常
     }
 

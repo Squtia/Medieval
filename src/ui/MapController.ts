@@ -1,6 +1,6 @@
 import { ToastManager } from './ToastManager';
 import { GameState } from '../core/GameState';
-import { TerrainType, NodeFeature, MapNode, NodeLevel, getMaxCaravansLimit } from '../models/types';
+import { TerrainType, NodeFeature, MapNode, NodeLevel, getMaxCaravansLimit, NobleTitle } from '../models/types';
 import { enterScene } from './SceneController';
 import { UIManager } from './UIManager';
 import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
@@ -199,19 +199,19 @@ export function openNodeSelectModal(node: MapNode) {
   if (node.nodeLevel === NodeLevel.CAPITAL) {
     difficulty = '簡單 (CAPITAL)';
     diffColor = '#10b981'; // 綠色
-    diffDesc = '起始資金非常充裕，物資雄厚，擁有較多的初始勞動人口。\n💰3000金幣 | 👤5人口 | 🌾300糧食 | 🪵80木材 | 🪨50石材 | 🔗10鐵礦';
+    diffDesc = '起始資金非常充裕，物資雄厚，擁有較多的初始勞動人口。\n👑 起始爵位：男爵 (BARON)\n💰4000金幣 | 👤80人口 | 🌾1000糧食 | 🪵200木材 | 🪨100石材 | 🔗20鐵礦';
   } else if (node.nodeLevel === NodeLevel.TOWN) {
     difficulty = '普通 (TOWN)';
     diffColor = '#3b82f6'; // 藍色
-    diffDesc = '標準開局。初始資源平衡，適合大多數玩家。\n💰1500金幣 | 👤3人口 | 🌾150糧食 | 🪵40木材 | 🪨20石材 | 🔗2鐵礦';
+    diffDesc = '標準開局。初始資源平衡，適合大多數玩家。\n👑 起始爵位：騎士 (KNIGHT)\n💰1500金幣 | 👤30人口 | 🌾300糧食 | 🪵60木材 | 🪨20石材 | 🔗5鐵礦';
   } else if (node.nodeLevel === NodeLevel.VILLAGE || node.nodeLevel === NodeLevel.CAMP) {
     difficulty = '困難 (VILLAGE / CAMP)';
     diffColor = '#f59e0b'; // 橘黃色
-    diffDesc = '初始資源緊繃，發展阻力較大，極具考驗。\n💰800金幣 | 👤2人口 | 🌾80糧食 | 🪵20木材 | 🪨10石材 | 🔗0鐵礦';
+    diffDesc = '初始資源緊繃，發展阻力較大，極具考驗。\n👑 起始爵位：平民 (COMMONER)\n💰600金幣 | 👤5人口 | 🌾100糧食 | 🪵20木材 | 🪨10石材 | 🔗0鐵礦';
   } else { // WILDERNESS
     difficulty = '極難 (WILDERNESS)';
     diffColor = '#ef4444'; // 紅色
-    diffDesc = '流放開局！一窮二白，資源近乎枯竭，需要在荒野中艱難求生。\n💰400金幣 | 👤1人口 | 🌾40糧食 | 🪵10木材 | 🪨5石材 | 🔗0鐵礦';
+    diffDesc = '流放開局！一窮二白，資源近乎枯竭，需要在荒野中艱難求生。\n👑 起始爵位：平民 (COMMONER)\n💰200金幣 | 👤1人口 | 🌾40糧食 | 🪵5木材 | 🪨0石材 | 🔗0鐵礦';
   }
 
   const diffLvlEl = document.getElementById('node-select-difficulty-level')!;
@@ -241,35 +241,39 @@ export function openNodeSelectModal(node: MapNode) {
   newBtn.addEventListener('click', () => {
     modal.classList.remove('active');
     
-    // 2. 根據據點難易度初始化起始資源
+    // 2. 根據據點難易度初始化起始資源與爵位
     const territory = GameState.myTerritory;
     if (node.nodeLevel === NodeLevel.CAPITAL) {
-      territory.gold = 3000;
-      territory.population = 5;
-      territory.food = 300;
-      territory.wood = 80;
-      territory.stone = 50;
-      territory.iron = 10;
+      territory.title = NobleTitle.BARON;
+      territory.gold = 4000;
+      territory.population = 80;
+      territory.food = 1000;
+      territory.wood = 200;
+      territory.stone = 100;
+      territory.iron = 20;
     } else if (node.nodeLevel === NodeLevel.TOWN) {
+      territory.title = NobleTitle.KNIGHT;
       territory.gold = 1500;
-      territory.population = 3;
-      territory.food = 150;
-      territory.wood = 40;
+      territory.population = 30;
+      territory.food = 300;
+      territory.wood = 60;
       territory.stone = 20;
-      territory.iron = 2;
+      territory.iron = 5;
     } else if (node.nodeLevel === NodeLevel.VILLAGE || node.nodeLevel === NodeLevel.CAMP) {
-      territory.gold = 800;
-      territory.population = 2;
-      territory.food = 80;
+      territory.title = NobleTitle.COMMONER;
+      territory.gold = 600;
+      territory.population = 5;
+      territory.food = 100;
       territory.wood = 20;
       territory.stone = 10;
       territory.iron = 0;
     } else { // WILDERNESS
-      territory.gold = 400;
+      territory.title = NobleTitle.COMMONER;
+      territory.gold = 200;
       territory.population = 1;
       territory.food = 40;
-      territory.wood = 10;
-      territory.stone = 5;
+      territory.wood = 5;
+      territory.stone = 0;
       territory.iron = 0;
     }
     
