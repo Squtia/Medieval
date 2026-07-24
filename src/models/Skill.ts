@@ -40,13 +40,16 @@ export function calculateSkillDamage(
   if (isCrit) finalBase *= 1.5;
 
   let effectiveDef = target.stats.def;
-  // 如果是混傷，防禦改取 (DEF+MDEF)/2。因為怪物目前只有 def，我們先用 def 當作平均值，或是之後怪物增加 mdef。
   // 若目標處於破甲，減少 20%
   if (target.statusEffects.some(s => s.type === StatusEffectType.ARMOR_BREAK)) {
     effectiveDef = effectiveDef * 0.8;
   }
 
-  // 特殊：若施法者為大劍士(具有無視15%防禦)，這裡可以讀取被動標籤。但為了簡化，先透過技能直接傳入。
+  // 大劍士被動：裝備巨劍時，無視 15% 防禦力
+  if (caster.weaponType === 'GREATSWORD') {
+    effectiveDef = effectiveDef * 0.85;
+  }
+
   const dmgReduction = effectiveDef / (effectiveDef + 50);
   let finalDamage = Math.max(1, Math.floor(finalBase * (1 - dmgReduction)));
   finalDamage = Math.floor(finalDamage * (0.9 + Random.next() * 0.2));

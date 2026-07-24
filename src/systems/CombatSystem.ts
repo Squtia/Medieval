@@ -194,7 +194,15 @@ export class CombatSystem {
         let baseDamage = actor.stats.atk;
         if (isCrit) baseDamage *= 1.5;
 
-        const dmgReduction = target.stats.def / (target.stats.def + 50);
+        let effectiveDef = target.stats.def;
+        if (target.statusEffects.some(s => s.type === StatusEffectType.ARMOR_BREAK)) {
+          effectiveDef *= 0.8;
+        }
+        if (actor.weaponType === 'GREATSWORD') {
+          effectiveDef *= 0.85;
+        }
+
+        const dmgReduction = effectiveDef / (effectiveDef + 50);
         let finalDamage = Math.max(1, Math.floor(baseDamage * (1 - dmgReduction)));
         finalDamage = Math.floor(finalDamage * (0.9 + Random.next() * 0.2));
 
