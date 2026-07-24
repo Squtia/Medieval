@@ -610,6 +610,12 @@
       border-color: #eab308;
       box-shadow: 0 0 10px rgba(234, 179, 8, 0.6);
     }
+    
+    /* 討伐編制介面中，等比例放大卡牌 */
+    #modal-dispatch-setup .adventurer-card {
+      height: 100px;
+    }
+
     /* 卡牌頭像/滿版立繪相框 */
     .adventurer-card .adv-avatar-wrapper {
       position: absolute;
@@ -649,14 +655,23 @@
       align-items: center;
     }
     .adventurer-card .adv-name {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%);
+      padding: 2px 0;
       font-size: 10.5px;
       font-weight: bold;
       color: #f1f5f9;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 95%;
       text-shadow: 0 1px 3px #000, 0 0 3px #000;
+      z-index: 4;
+      text-align: center;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
     }
     .adventurer-card .adv-level {
       font-size: 8.5px;
@@ -1135,19 +1150,17 @@
       <div class="resource-item"><span class="resource-icon">👑</span> <span id="ui-title">平民</span></div>
     </div>
     <div class="resource-group">
-      <div class="resource-item" title="總人口"><span class="resource-icon">👥</span> <span id="ui-population">0</span></div>
-      <div class="resource-item" title="治安度 (影響產出與稅收)"><span class="resource-icon">🛡️</span> <span id="ui-security">100</span>%</div>
-      <div class="resource-item" title="糧食"><span class="resource-icon">🍞</span> <span id="ui-food">0</span></div>
-      <div class="resource-item" title="木材"><span class="resource-icon">🌲</span> <span id="ui-wood">0</span></div>
-      <div class="resource-item" title="石材"><span class="resource-icon">🧱</span> <span id="ui-stone">0</span></div>
-      <div class="resource-item" title="鐵礦"><span class="resource-icon">🔗</span> <span id="ui-iron">0</span></div>
-      <div class="resource-item" title="金幣"><span class="resource-icon">💰</span> <span id="ui-gold">0</span></div>
-      <div class="resource-item" title="聲望"><span class="resource-icon">✨</span> <span id="ui-prestige">0</span></div>
-      <div class="resource-item" title="好感度"><span class="resource-icon">🤝</span> <span id="ui-favor">0</span></div>
+      <div class="resource-item" data-tip="總人口"><span class="resource-icon">👥</span> <span id="ui-population">0</span></div>
+      <div class="resource-item" data-tip="治安度 (影響產出與稅收)"><span class="resource-icon">🛡️</span> <span id="ui-security">100</span>%</div>
+      <div class="resource-item" data-tip="糧食"><span class="resource-icon">🍞</span> <span id="ui-food">0</span></div>
+      <div class="resource-item" data-tip="木材"><span class="resource-icon">🌲</span> <span id="ui-wood">0</span></div>
+      <div class="resource-item" data-tip="石材"><span class="resource-icon">🧱</span> <span id="ui-stone">0</span></div>
+      <div class="resource-item" data-tip="鐵礦"><span class="resource-icon">🔗</span> <span id="ui-iron">0</span></div>
+      <div class="resource-item" data-tip="金幣"><span class="resource-icon">💰</span> <span id="ui-gold">0</span></div>
     </div>
       <div class="resource-group" style="gap: 10px; align-items: center;">
-      <div class="resource-item" id="ui-threat" title="下一次威脅"><span class="resource-icon">⚠️</span> <span id="ui-threat-days">10天</span></div>
-      <div class="resource-item" title="遊戲日期"><span class="resource-icon">📅</span> <span id="ui-date">第 1 年 1 月 1 日</span></div>
+      <div class="resource-item" id="ui-threat" data-tip="下一次威脅"><span class="resource-icon">⚠️</span> <span id="ui-threat-days">10天</span></div>
+      <div class="resource-item" data-tip="遊戲日期"><span class="resource-icon">📅</span> <span id="ui-date">第 1 年 1 月 1 日</span></div>
     </div>
   </div>
 
@@ -1546,16 +1559,10 @@
            <div style="display: flex; justify-content: space-between; align-items: center;">
              <h3 id="ui-dashboard-title" style="color: #f59e0b;">爵位：男爵</h3>
              <div style="display: flex; gap: 15px; font-size: 0.95em;">
-               <span>💰 <span id="ui-dashboard-gold">0</span></span>
-               <span>👑 <span id="ui-dashboard-prestige">0</span></span>
-               <span>🤝 <span id="ui-dashboard-favor">0</span></span>
+               <span data-tip="金幣">💰 <span id="ui-dashboard-gold">0</span></span>
+               <span data-tip="聲望">👑 <span id="ui-dashboard-prestige">0</span></span>
              </div>
            </div>
-           <!-- 爵位經驗條 -->
-           <div class="progress-bar-container" style="margin-top: 10px;">
-             <div id="ui-title-progress" class="progress-fill" style="width: 50%;"></div>
-           </div>
-           <div style="text-align: right; font-size: 0.75em; color: #cbd5e1; margin-top: 5px;" id="ui-title-text">距離下一階還需 150 聲望</div>
            <button id="btn-promote-title" class="action-btn" style="display:none; width:100%; margin-top:8px; padding:6px 10px; background: linear-gradient(135deg, #d97706, #b45309); border-color: #f59e0b; box-shadow: 0 0 10px #f59e0b80;">🎉 舉辦晉升大典</button>
          </div>
          <div id="daily-summary" class="daily-summary" aria-live="polite">
@@ -1722,7 +1729,7 @@
       </div>
 
       <div style="color: #cbd5e1; margin-top: 15px; margin-bottom: 5px; font-weight: bold;">⚔️ 可選傭兵</div>
-      <div style="max-height: 250px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; padding: 5px;" id="dispatch-adv-list">
+      <div style="max-height: 250px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; padding: 5px;" id="dispatch-adv-list">
         <!-- JS 動態生成可派遣名單 -->
       </div>
       

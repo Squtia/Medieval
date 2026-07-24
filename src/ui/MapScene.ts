@@ -159,7 +159,7 @@ export class MapScene extends Phaser.Scene {
       const iconSprite = this.add.image(0, -10, textureKey).setDisplaySize(iconSize, iconSize);
 
       // 繪製名字標籤 (移除黑框，改為純文字加發光陰影)
-      const labelText = this.add.text(0, 28, node.name, {
+      const labelText = this.add.text(0, 12, node.name, {
         fontSize: '11px',
         color: '#fef08a',
         fontFamily: 'Cinzel, sans-serif',

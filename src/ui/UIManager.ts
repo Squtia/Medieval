@@ -35,12 +35,12 @@ class UIManagerClass {
   btnPrepareThreat = document.getElementById('btn-prepare-threat') as HTMLButtonElement;
 
   // 儀表板與環境控制
-  uiDashboardTitle = document.getElementById('ui-dashboard-title')!;
-  uiDashboardGold = document.getElementById('ui-dashboard-gold')!;
-  uiDashboardPrestige = document.getElementById('ui-dashboard-prestige')!;
-  uiDashboardFavor = document.getElementById('ui-dashboard-favor')!;
-  uiTitleProgress = document.getElementById('ui-title-progress')!;
-  uiTitleText = document.getElementById('ui-title-text')!;
+  uiDashboardTitle = document.getElementById('ui-dashboard-title');
+  uiDashboardGold = document.getElementById('ui-dashboard-gold');
+  uiDashboardPrestige = document.getElementById('ui-dashboard-prestige');
+  uiDashboardFavor = document.getElementById('ui-dashboard-favor');
+  uiTitleProgress = document.getElementById('ui-title-progress');
+  uiTitleText = document.getElementById('ui-title-text');
   
     advContainer = (document.getElementById('party-modal-container') || document.getElementById('adventurer-container'))!;
 
@@ -101,7 +101,7 @@ class UIManagerClass {
     }
     if (this.uiThreatDays) {
       this.uiThreatDays.textContent = `${GameState.threat.daysRemaining}天`;
-      this.uiThreatDays.parentElement!.setAttribute('title', `${GameState.threat.name}，嚴重度 ${GameState.threat.severity}`);
+      this.uiThreatDays.parentElement!.setAttribute('data-tip', `${GameState.threat.name}，嚴重度 ${GameState.threat.severity}`);
     }
     if (this.btnPrepareThreat) {
       const canPrepare = GameState.threat.daysRemaining <= 3 && GameState.threat.daysRemaining > 0 && !GameState.threat.prepared;
@@ -146,10 +146,10 @@ class UIManagerClass {
     }
   
     // UI-12: 改用中文爵位顯示儀表板
-    this.uiDashboardTitle.textContent = `爵位：${titleCN}`;
-    this.uiDashboardGold.textContent = territory.gold.toString();
-    this.uiDashboardPrestige.textContent = territory.prestige.toString();
-    this.uiDashboardFavor.textContent = territory.royalFavor.toString();
+    if (this.uiDashboardTitle) this.uiDashboardTitle.textContent = `爵位：${titleCN}`;
+    if (this.uiDashboardGold) this.uiDashboardGold.textContent = territory.gold.toString();
+    if (this.uiDashboardPrestige) this.uiDashboardPrestige.textContent = territory.prestige.toString();
+    if (this.uiDashboardFavor) this.uiDashboardFavor.textContent = territory.royalFavor.toString();
     
     // 爵位進度條計算與晉升邏輯
     try {
@@ -288,10 +288,10 @@ class UIManagerClass {
         
         const avatarIcon = '🦸';
         card.innerHTML = `
+          <div class="adv-name">${adv.name}</div>
           <div class="adv-avatar-wrapper">${avatarIcon}</div>
           <div class="adv-card-gradient"></div>
           <div class="adv-card-info">
-            <div class="adv-name">${adv.name}</div>
             <div class="adv-level" style="color: ${adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1'}; font-weight: bold;">Lv.${adv.level}</div>
           </div>
         `;

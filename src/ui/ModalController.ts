@@ -1,3 +1,4 @@
+import { positionFloatingElement } from './FloatingPosition';
 import { ToastManager } from './ToastManager';
 import { Adventurer } from '../models/Adventurer';
 import { EquipmentSlot, MapNode, NodeLevel, NodeFeature, AdventurerState, getMaxCaravansLimit } from '../models/types';
@@ -646,8 +647,8 @@ function renderDispatchTeamRoster() {
   for (let i = 0; i < 5; i++) {
     const adv = selectedAdvs[i];
     const slot = document.createElement('div');
-    slot.style.width = '100px';
-    slot.style.height = '105px';
+    slot.style.width = '90px';
+    slot.style.height = '100px';
     slot.style.background = 'rgba(0,0,0,0.5)';
     slot.style.border = '1px dashed rgba(255,255,255,0.2)';
     slot.style.borderRadius = '6px';
@@ -668,12 +669,36 @@ function renderDispatchTeamRoster() {
       slot.innerHTML = `
         <div style="font-size: 2em; margin-bottom: 5px;">🦸</div>
         <div style="font-size: 0.85em; font-weight: bold; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">${adv.name}</div>
-        <div style="font-size: 0.7em; color: #fbbf24;">戰力: ${adv.power}</div>
         <button class="action-btn" style="position: absolute; top: -5px; right: -5px; padding: 2px 5px; font-size: 0.7em; background: #ef4444; border-radius: 50%; color: white;">×</button>
         <div class="row-toggle" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: ${rowBg}; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; cursor: pointer; white-space: nowrap; border: 1px solid #fff;">
           ${rowText}
         </div>
       `;
+      
+      const displayClass = (adv as any).currentClass || adv.job.name;
+      const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>狀態：🟢 出戰配置中<br/>戰力：${adv.power}`;
+
+      slot.addEventListener('mouseenter', () => {
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.innerHTML = tooltipHtml;
+          tEl.style.opacity = '1';
+        }
+      });
+
+      slot.addEventListener('mousemove', (e) => {
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          positionFloatingElement(tEl, e.clientX, e.clientY);
+        }
+      });
+
+      slot.addEventListener('mouseleave', () => {
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.style.opacity = '0';
+        }
+      });
       
       const toggleBtn = slot.querySelector('.row-toggle')!;
       toggleBtn.addEventListener('click', (e) => {
@@ -685,6 +710,8 @@ function renderDispatchTeamRoster() {
       const removeBtn = slot.querySelector('button')!;
       removeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) tEl.style.opacity = '0';
         selectedAdventurersForDispatch.delete(adv.id);
         renderDispatchTeamRoster();
         renderDispatchAdvList();
@@ -725,16 +752,42 @@ function renderDispatchAdvList() {
     const displayClass = (adv as any).currentClass || adv.job.name;
 
     card.innerHTML = `
+      <div class="adv-name">${adv.name}</div>
       <div class="adv-avatar-wrapper"><span style="font-size: 1.5em;">🦸</span></div>
       <div class="adv-card-gradient"></div>
       <div class="adv-card-info">
-        <div class="adv-name">${adv.name}</div>
         <div class="adv-level">Lv.${adv.level} ${displayClass}</div>
-        <div style="font-size: 0.75em; color: #fbbf24; margin-top: 2px;">戰力: ${adv.power}</div>
       </div>
     `;
 
+    const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>狀態：🟢 閒置<br/>戰力：${adv.power}`;
+
+    card.addEventListener('mouseenter', () => {
+      const tEl = document.getElementById('adv-tooltip');
+      if (tEl) {
+        tEl.innerHTML = tooltipHtml;
+        tEl.style.opacity = '1';
+      }
+    });
+
+    card.addEventListener('mousemove', (e) => {
+      const tEl = document.getElementById('adv-tooltip');
+      if (tEl) {
+        positionFloatingElement(tEl, e.clientX, e.clientY);
+      }
+    });
+
+    card.addEventListener('mouseleave', () => {
+      const tEl = document.getElementById('adv-tooltip');
+      if (tEl) {
+        tEl.style.opacity = '0';
+      }
+    });
+
     card.addEventListener('click', () => {
+      const tEl = document.getElementById('adv-tooltip');
+      if (tEl) tEl.style.opacity = '0';
+      
       if (isSelected) {
         selectedAdventurersForDispatch.delete(adv.id);
       } else {

@@ -2,6 +2,7 @@ import { GameState } from '../core/GameState';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect } from '../models/Combat';
 import { FormationRow, TerrainType } from '../models/types';
 import { Random } from '../core/Random';
+import { SKILLS, TargetType } from '../models/Skill';
 
 export class CombatSystem {
   public static simulateCombat(
@@ -22,6 +23,16 @@ export class CombatSystem {
       if (adv) {
         const stats = adv.getCombatStats();
         const troop = troopAssignments?.[id];
+        const weapon = adv.equipment['WEAPON' as any];
+        const weaponType = weapon ? weapon.weaponType : undefined;
+        
+        let skills: string[] = [];
+        if (adv.job.name.includes('戰士')) {
+          skills.push('FIGHTER_HEAVY_STRIKE', 'FIGHTER_ARMOR_BREAK');
+          if (weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
+          if (weaponType === 'DUAL_BLADES') skills.push('MAGIC_SWORDSMAN_PHANTOM');
+        }
+
         playerTeam.push({
           id: adv.id,
           name: adv.name,
@@ -32,8 +43,11 @@ export class CombatSystem {
           stats: { ...stats },
           statusEffects: [],
           shieldType: troop?.type,
-          shieldMaxHp: troop?.count ? troop.count * 10 : 0, // 假設每兵力提供 10 點護盾值
-          shieldCurrentHp: troop?.count ? troop.count * 10 : 0
+          shieldMaxHp: troop?.count ? troop.count * 10 : 0, 
+          shieldCurrentHp: troop?.count ? troop.count * 10 : 0,
+          baseClass: adv.job.name,
+          weaponType: weaponType,
+          skills: skills
         });
       }
     });
@@ -128,6 +142,40 @@ export class CombatSystem {
         let target = validTargets.find(e => e.statusEffects.some(s => s.type === StatusEffectType.TAUNT));
         if (!target) {
           target = Random.pick(validTargets);
+        }
+
+        // 選擇技能 (若有技能且 MP 足夠，這裡簡化為隨機挑選可施放的最高花費技能)
+        let selectedSkill = null;
+        if (actor.skills && actor.skills.length > 0) {
+          const availableSkills = actor.skills
+            .map(id => SKILLS[id])
+            .filter(s => s && actor.stats.mp >= s.mpCost);
+          
+          if (availableSkills.length > 0) {
+            // 挑選 MP 消耗最高的大招，或是隨機
+            availableSkills.sort((a, b) => b.mpCost - a.mpCost);
+            selectedSkill = availableSkills[0];
+          }
+        }
+
+        if (selectedSkill) {
+          // 施放技能
+          actor.stats.mp -= selectedSkill.mpCost;
+          
+          // 根據 TargetType 決定目標
+          let skillTargets = [target];
+          if (selectedSkill.targetType === TargetType.FRONT_ENEMIES) skillTargets = frontEnemies.length > 0 ? frontEnemies : validTargets;
+          if (selectedSkill.targetType === TargetType.ALL_ENEMIES) skillTargets = enemies;
+          
+          events.push({
+            type: CombatEventType.SKILL_CAST,
+            actorId: actor.id, actorName: actor.name,
+            text: `${actor.name} 消耗了 ${selectedSkill.mpCost} MP 施放【${selectedSkill.name}】！`
+          });
+          
+          const skillEvents = selectedSkill.execute(actor, skillTargets, enemies);
+          events.push(...skillEvents);
+          continue; // 技能施放完畢，跳過普攻階段
         }
 
         const hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));

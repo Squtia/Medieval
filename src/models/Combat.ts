@@ -5,7 +5,8 @@ export enum StatusEffectType {
   POISON = 'POISON',
   STUN = 'STUN',
   TAUNT = 'TAUNT',
-  FEAR = 'FEAR'
+  FEAR = 'FEAR',
+  ARMOR_BREAK = 'ARMOR_BREAK' // 新增破甲
 }
 
 export interface StatusEffect {
@@ -27,6 +28,11 @@ export interface CombatParticipant {
   shieldType?: string;      // 攜帶的兵種 (例如: 'INFANTRY', 'CAVALRY', 'ARCHER')
   shieldMaxHp?: number;     // 該兵種提供的總護盾值 (基於攜帶數量)
   shieldCurrentHp?: number; // 剩餘護盾值
+  
+  // 新增：職業與裝備武器，用來判定變異狀態與可用技能
+  baseClass?: string;
+  weaponType?: string;
+  skills?: string[]; // 可使用的技能 ID 列表
 }
 
 export enum CombatEventType {
@@ -35,6 +41,7 @@ export enum CombatEventType {
   HIT = 'HIT',
   MISS = 'MISS',
   CRIT = 'CRIT',
+  SKILL_CAST = 'SKILL_CAST', // 施放技能
   STATUS_APPLY = 'STATUS_APPLY',
   STATUS_DAMAGE = 'STATUS_DAMAGE',
   SHIELD_DAMAGE = 'SHIELD_DAMAGE', // 護盾受到傷害
@@ -55,6 +62,7 @@ export interface CombatEvent {
   shieldDamage?: number;
   shieldRemaining?: number;
   statusType?: StatusEffectType;
+  skillName?: string; // 施放的技能名稱
   text: string;
   wave?: number; // 標示屬於哪一波
   enemies?: CombatParticipantState[]; // 在 WAVE_START 時，傳遞該波次新敵人的血條狀態
