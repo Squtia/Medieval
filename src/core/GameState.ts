@@ -85,9 +85,9 @@ export function initGameState() {
   new CombatSystem();
   new ThreatSystem();
 
-  GameState.adventurers.push(
-    new Adventurer('p1', NameGenerator.generateFullName(), DataStore.JobDB.WARRIOR, DataStore.TraitDB.GUARDIAN)
-  );
+  const startingAdv = new Adventurer('p1', NameGenerator.generateFullName(), DataStore.JobDB.WARRIOR, DataStore.TraitDB.GUARDIAN);
+  startingAdv.locationNodeId = GameState.myTerritory.currentCountryId;
+  GameState.adventurers.push(startingAdv);
 
   const startWpn = DataStore.getEquipmentTemplate('wpn_heirloom_sword');
   if (startWpn) {

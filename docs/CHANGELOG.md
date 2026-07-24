@@ -1,3 +1,97 @@
+## [2026-07-24] UI Bug 修復：官職卡片截切與出戰隊伍格子消失（第二輪追加修復）
+
+- **追加修復 - .adventurer-card overflow:hidden 根本問題**：
+  - **根因**：`.adventurer-card` CSS 的 `overflow: hidden` 是所有 badge 截切問題的根源。所有 `position:absolute; bottom:-8px` 的標籤（前排/後排/城主/隊長/扈從）都因此被截掉，在截圖中呈現為寬色條（只有最頂部幾像素露出）。
+  - **修復**：將 `.adventurer-card` 的 `overflow: hidden` 改為 `overflow: visible`。同時為 `.adv-avatar-wrapper` 和 `.adv-card-gradient` 加上 `border-radius: 6px`，確保卡片圓角裁切效果由這些子元素自行維護。
+- **追加修復 - dispatch roster slot 尺寸衝突**：
+  - **根因**：`renderDispatchTeamRoster()` 先對 slot div 設定 `width:90px; height:100px` 的 inline style，然後再加上 `adventurer-card` class，導致 inline style 和 CSS class 互相衝突，尺寸不一致。
+  - **修復**：重構 slot 建立邏輯，有傭兵時完全依賴 `.adventurer-card` class CSS；空位時才用 inline style 設定外觀。
+  - **相關檔案**：`index.html`、`src/ui/ModalController.ts`
+
+- **Bug 修復 - 討伐出戰隊伍格子消失 (renderDispatchTeamRoster)**：
+  - **根因**：`renderDispatchTeamRoster()` 中使用 `setTimeout(..., 0)` 異步在 bottomLabel div 上加上 `.row-toggle` class，但緊接著的 `slot.querySelector('.row-toggle')` 是同步執行的，導致每次都取到 `null`，接著 `null.addEventListener` 拋出 JS 錯誤，整個 5 格 roster 渲染中止、格子全部消失。
+  - **修復**：移除 `setTimeout` 異步邏輯；改在 `AdventurerCard.ts` 的 `CardOptions` 介面新增 `bottomLabelBg` 與 `bottomLabelRole` 選項，讓 div 在 HTML 生成時就直接帶有 `data-role` 屬性，使 `slot.querySelector('[data-role="row-toggle"]')` 能同步找到元素。
+  - **相關檔案**：`src/ui/ModalController.ts`、`src/ui/components/AdventurerCard.ts`
+
+- **Bug 修復 - 據點官職總覽卡片資訊截切 (ui-office-slots)**：
+  - **根因**：`#ui-office-slots` 容器只設定了 `overflow-x: auto` 但未設 `overflow-y: visible`，瀏覽器預設 overflow-y 也變為 `auto`，導致 `.adventurer-card` 中 `bottomLabel`（`position: absolute; bottom: -8px`）被截掉。同時父層 `glass-panel` 設有 `overflow: hidden`，也截掉了子容器的 overflow-y visible 效果。
+  - **修復**：將 `#ui-office-slots` 加上 `overflow-y: visible; padding-bottom: 18px`；將父層 `glass-panel` 的 `overflow: hidden` 改為 `overflow-x: hidden; overflow-y: auto`（允許縱向捲動，不截切 overflow-y）。
+  - **相關檔案**：`index.html`
+
+## [2026-07-24] 傭兵卡片模板化與半身像 Spritesheet 接口 (Adventurer Card Template System)
+
+- **UI 架構優化 (UI Architecture)**：
+  - 新增 `AdventurerCard.ts` 模板元件，統一全遊戲的傭兵卡片生成邏輯。
+  - 將謁見廳、討伐編制、隊伍總覽的卡片與槽位渲染，全面重構並套用新模板，解決因為手動串接 HTML 造成的排版跑版問題。
+- **美術接口實裝 (Art Assets Interface)**：
+  - 為 `Adventurer` 模型新增 `avatarIndex` 屬性。
+  - 於卡片模板中實作基於 `background-image` 與 `background-position` 的 5x5 精靈圖 (Spritesheet) 自動裁切技術，為未來導入傭兵美術半身像打好基礎。
+
+## [2026-07-24] 謁見廳 UI 全面大修與傭兵實體化 (Physical Location System)
+
+- **底層邏輯重構 (Architecture & Data Structure)**：
+  - 為 `Adventurer` 新增了 `locationNodeId` 屬性，傭兵不再是全域隨叫隨到，而是真正擁有了「實體所在地」。
+  - 在酒館招募或是探索事件中獲得的新傭兵，將會預設出生在玩家當前所在的據點。
+
+- **介面大修 (UI Refactoring)**：
+  - **廢除任命彈出視窗 (Modal)**：依照玩家指示，將謁見廳的官職任命介面徹底改寫為類似「出戰隊伍」的雙層面板結構（上方：職位槽，下方：候選傭兵）。
+  - **半身像卡片化**：無論是「空位」、「已就任」還是「待命傭兵」，全部套用統一的方塊半身像卡片 UI，並支援直覺式的點擊配對操作。
+  - **所在地過濾**：現在點擊謁見廳的空位槽時，下方的候選名單**只會顯示身處在該據點**的閒置傭兵，完全屏除了其他據點的人員。
+
+## [2026-07-24] 謁見廳 UI 重構與據點官職獨立制 (Node-based Office System)
+
+- **底層邏輯重構 (Architecture & Data Structure)**：
+  - 將官職職缺數量從「全域爵位總數綁定」改為**「依據各據點獨立計算上限」**。
+  - 在 `types.ts` 中的 `TITLE_CONFIG` 重新定義了解鎖權限：例如公爵會在每個擁有的據點解鎖 1 名城主、2 名隊長、2 名扈從。
+  - 於 `MapNode` 新增 `isCapital` 標籤，用來支援「首都專屬職位」的邏輯。
+  - 修改 `Adventurer.ts`，新增 `stationedNodeId` 以紀錄傭兵被指派到哪一個據點擔任官職。
+
+- **介面大修 (UI Refactoring)**：
+  - **排版優化**：移除了謁見廳右側常駐的「待命傭兵」區塊，將原本被擠壓裁切的「兵力調度」面板拉高，完美解決版面破圖問題。
+  - **卡片化與彈出視窗**：謁見廳左側現在會呈現簡潔的「職位總覽卡片」。點擊卡片後，會彈出視窗 (Modal) 來獨立處理該職缺的任命與解任，大幅提升操作流暢度。
+  - **首都冊封系統**：當玩家達到「公爵」爵位，即可在任何一個己方據點按下「👑 冊封為首都」。被冊封為首都的據點將獨家解鎖「方旗騎士」的職位。更換首都時，原首都的方旗騎士將被自動解任，確保榮譽的唯一性。
+
+## [2026-07-24] 新增聲望作弊碼 (Fame)
+
+- **新增功能 (Feature)**：
+  - 在 `CheatController.ts` 加入了 `fame` 作弊碼，可用於快速增加領地的聲望值。
+
+## [2026-07-24] 修復 ARMY 作弊碼總人口計算問題
+
+- **修正邏輯錯誤 (Bug Fix)**：
+  - 修復 `CheatController.ts` 中 `ARMY` 作弊碼的邏輯。原本直接對總人口固定增加 `v` 導致人口數量與實際增加的兵力不符。
+  - 現在改用內建的 `syncPopulation()` 自動偵測並加總所有人口，確保資料一致性。
+
+## [2026-07-24] 確立事件與敘事系統架構設計
+
+- **架構設計 (Architecture Design)**：
+  - 於 `docs/ARCHITECTURE.md` 新增「事件與敘事系統 (Narrative Design)」章節。
+  - 確立採用「故事牌組與標籤系統 (Story Deck & Tag System)」與「傳聞與調查系統 (Rumors & Investigation)」作為擴充碎片化敘事的核心理念。
+  - 確立開發規範：不依賴外部 JSON 編輯器，維持直接於 `EventData.ts` 撰寫 `GameEvent` 陣列，並建立 AI 溝通模板以快速生成腳本，確保程式碼乾淨與高擴充性。
+
+## [2026-07-24] 法師與死靈法師技能實裝及裝備系統擴充
+
+- **職業命名修正 (Class Rename)**：
+  - 將戰鐮 (SCYTHE) 對應的變異職業名稱從「戰鬥法師」正式更名為「**死靈法師 (Necromancer)**」。
+- **介面擴充 (Interface Extension)**：
+  - `Equipment` 與 `EquipmentTemplate` 新增 `grantedSkill?: string` 屬性，為未來的隨機法術機制預留擴充槽。
+  - 新增狀態異常 `StatusEffectType.SHOCK` (感電)。
+- **法師系技能庫實作 (Mage Skills)**：
+  - **基礎法師**：新增 [奧術飛彈] (隨機 3 下 60% 傷害) 與 [靜電新星] (全體感電)。
+  - **大魔導士 (法杖)**：新增 [隕石轟炸] (全體 150% 傷害，隨 Max MP 增傷)，並在戰鬥迴圈中實裝「法術真理」被動 (普攻與技能必定命中)。
+  - **死靈法師 (戰鐮)**：新增 [死神收割] (單體 250% 傷害，擊殺後自動連鎖追擊血量最低者)。
+- **法坦被動機制實作 (Necromancer Passives)**：
+  - 實作「**靈魂虹吸**」被動：死靈法師造成的傷害將有 20% 轉化為自身 HP 恢復。
+  - 實作「**苦痛分擔**」機制：隊友受到攻擊時，死靈法師將主動吸收 50% 的傷害，並將此傷害減免至 20% (由死靈法師承受)，奠定法坦的戰略地位。
+- **裝備資料庫更新 (DataStore)**：
+  - 補足 `橡木法杖` 缺漏的 `weaponType: WeaponType.STAFF` 屬性。
+  - 新增 `學徒戰鐮` (帶有體質需求) 以供死靈法師測試。
+
+## [2026-07-24] 修復 CombatSystem 裝備讀取型別錯誤
+
+- **修正 TypeScript 錯誤 (Bug Fix)**：
+  - 修復 `CombatSystem.ts` 取得武器資訊時，未使用 `EquipmentSlot` Enum 而導致的型別提示錯誤 (`'WEAPON' as any`)。
+
 ## [2026-07-24] 戰鬥系統技能框架與戰士系技能實作
 
 - **技能資料結構實作 (Skill System Framework)**：
@@ -6,7 +100,7 @@
   - 在 `CombatParticipant` 加入 `baseClass`, `weaponType` 與 `skills` 陣列。
 - **戰士與變異職業技能實作 (Fighter & Variants Skills)**：
   - **戰士 (基礎)**：實作 [奮力一擊] (單體 130%) 與 [破甲碎擊] (附加破甲 20% 減防)。
-  - **大劍士 (進階)**：實作 [旋風斬] (前排全體 180%，若破甲則 250%)。
+  - **狂戰士 (進階)**：實作 [旋風斬] (前排全體 180%，若破甲則 250%)。
   - **魔劍士 (變異)**：實作 [幻影連擊] (單體連續 4 次 50% 混傷)，以及混傷被動機制：當裝備「雙劍」時，所有戰士基礎技能改吃 `(ATK + MATK)` 並轉為混合傷害，敵方防禦判定改以雙防平均值(目前簡化為減傷降低)處理。
 - **戰鬥迴圈整合 (Combat Loop Integration)**：
   - 修改 `CombatSystem.ts`，當傭兵 MP 充足時，會優先挑選 MP 消耗最高的可用大招進行施放，執行專屬的戰鬥事件與動畫文字，解決原本僅能普攻的單調戰鬥。

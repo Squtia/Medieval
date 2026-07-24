@@ -42,11 +42,12 @@ export function initCheatController(): void {
     'wood': { name: '木材', setter: (v) => GameState.myTerritory.wood = v },
     'rock': { name: '石材', setter: (v) => GameState.myTerritory.stone = v },
     'iron': { name: '鐵礦', setter: (v) => GameState.myTerritory.iron = v },
+    'fame': { name: '聲望', setter: (v) => GameState.myTerritory.prestige += v },
     'army': { name: '軍隊', setter: (v) => { 
-        GameState.myTerritory.population += v; 
         GameState.myTerritory.workers['INFANTRY'] = (GameState.myTerritory.workers['INFANTRY'] || 0) + v;
         GameState.myTerritory.workers['CAVALRY'] = (GameState.myTerritory.workers['CAVALRY'] || 0) + v;
         GameState.myTerritory.workers['ARCHER'] = (GameState.myTerritory.workers['ARCHER'] || 0) + v;
+        GameState.myTerritory.syncPopulation();
     }}
   };
 

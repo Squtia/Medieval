@@ -1,6 +1,6 @@
 import { GameState } from '../core/GameState';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect } from '../models/Combat';
-import { FormationRow, TerrainType } from '../models/types';
+import { FormationRow, TerrainType, EquipmentSlot } from '../models/types';
 import { Random } from '../core/Random';
 import { SKILLS, TargetType } from '../models/Skill';
 
@@ -23,14 +23,25 @@ export class CombatSystem {
       if (adv) {
         const stats = adv.getCombatStats();
         const troop = troopAssignments?.[id];
-        const weapon = adv.equipment['WEAPON' as any];
+        const weapon = adv.equipment[EquipmentSlot.WEAPON];
         const weaponType = weapon ? weapon.weaponType : undefined;
         
         let skills: string[] = [];
         if (adv.job.name.includes('戰士')) {
           skills.push('FIGHTER_HEAVY_STRIKE', 'FIGHTER_ARMOR_BREAK');
           if (weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
-          if (weaponType === 'DUAL_BLADES') skills.push('MAGIC_SWORDSMAN_PHANTOM');
+          if (weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
+        }
+        if (adv.job.name.includes('法師')) {
+          skills.push('MAGE_ARCANE_MISSILES', 'MAGE_STATIC_FIELD');
+          if (weaponType === 'STAFF') skills.push('STAFF_METEOR');
+          if (weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
+        }
+        
+        // [註記] 裝備附加技能檢定：將裝備附帶的額外技能加入可用技能庫
+        // 此處預留給未來法杖與戰鐮等裝備，讓法師功能性上升的擴充特性
+        if (weapon && weapon.grantedSkill) {
+          skills.push(weapon.grantedSkill);
         }
 
         playerTeam.push({
@@ -175,10 +186,25 @@ export class CombatSystem {
           
           const skillEvents = selectedSkill.execute(actor, skillTargets, enemies);
           events.push(...skillEvents);
+          
+          // 死靈法師被動：靈魂虹吸 (技能吸血)
+          if (actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
+             const totalSkillDmg = skillEvents.reduce((sum, e) => sum + (e.damage || 0), 0);
+             if (totalSkillDmg > 0) {
+               const heal = Math.floor(totalSkillDmg * 0.2);
+               actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);
+               events.push({
+                 type: CombatEventType.HIT,
+                 text: `${actor.name} 觸發【靈魂虹吸】，從造成的傷害中恢復了 ${heal} 點 HP！`
+               });
+             }
+          }
+          
           continue; // 技能施放完畢，跳過普攻階段
         }
 
-        const hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
+        let hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
+        if (actor.weaponType === 'STAFF') hitChance = 1.0; // 法杖被動：必定命中
         if (Random.next() > hitChance) {
           events.push({
             type: CombatEventType.MISS,
@@ -238,6 +264,27 @@ export class CombatSystem {
         }
         
         if (hpDamage > 0) {
+          // -- 法坦被動：苦痛分擔 (死靈法師) --
+          if (target.isPlayer) {
+            const necromancers = playerTeam.filter(p => p.weaponType === 'SCYTHE' && p.currentHp > 0 && p.id !== target.id);
+            if (necromancers.length > 0) {
+              const necro = necromancers[0]; // 優先由第一位死靈法師分擔
+              const absorbAmount = Math.floor(hpDamage * 0.5);
+              const necroDamage = Math.floor(absorbAmount * 0.4); // 反映 20% 原始傷害 (50% * 0.4 = 20%)
+              hpDamage -= absorbAmount;
+              
+              necro.currentHp -= necroDamage;
+              events.push({
+                type: CombatEventType.HIT,
+                text: `${necro.name} 觸發【靈魂虹吸-苦痛分擔】，為 ${target.name} 吸收了 ${absorbAmount} 點傷害，自身承受了 ${necroDamage} 點傷害！`
+              });
+              if (necro.currentHp <= 0) {
+                 necro.currentHp = 0;
+                 events.push({ type: CombatEventType.DEATH, targetName: necro.name, text: `${necro.name} 因分擔過多傷害而倒下！` });
+              }
+            }
+          }
+
           target.currentHp -= hpDamage;
           events.push({
             type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -248,6 +295,16 @@ export class CombatSystem {
             targetMaxHp: target.maxHp,
             text: `${actor.name} 攻擊了 ${target.name}，${isCrit ? '致命一擊！' : ''}對本體造成 ${hpDamage} 點傷害。`
           });
+          
+          // 死靈法師被動：靈魂虹吸 (普攻吸血)
+          if (actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
+            const heal = Math.floor(hpDamage * 0.2);
+            actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);
+            events.push({
+              type: CombatEventType.HIT,
+              text: `${actor.name} 觸發【靈魂虹吸】，恢復了 ${heal} 點 HP！`
+            });
+          }
         }
         // -- End Shield Interceptor --
 

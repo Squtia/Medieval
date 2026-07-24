@@ -122,6 +122,7 @@ export function initActionController(): void {
     }
     
     if (recruitedAdv) {
+      recruitedAdv.locationNodeId = territory.currentCountryId;
       GameState.adventurers.push(recruitedAdv);
       msg = `🗺️ [探索] 領主親自巡視周邊，獲得了 20 金幣，並幸運地遇到一位流浪傭兵【${recruitedAdv.name}】(${qLabel}) 願意效忠您！已加入隊伍。`;
       ToastManager.show(`招募到了傭兵【${recruitedAdv.name}】！`);

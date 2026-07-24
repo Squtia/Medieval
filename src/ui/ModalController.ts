@@ -3,6 +3,7 @@ import { ToastManager } from './ToastManager';
 import { Adventurer } from '../models/Adventurer';
 import { EquipmentSlot, MapNode, NodeLevel, NodeFeature, AdventurerState, getMaxCaravansLimit } from '../models/types';
 import { GameState } from '../core/GameState';
+import { renderAdventurerCard } from './components/AdventurerCard';
 import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { UIManager } from './UIManager';
 import { DataStore } from '../systems/DataStore';
@@ -647,33 +648,26 @@ function renderDispatchTeamRoster() {
   for (let i = 0; i < 5; i++) {
     const adv = selectedAdvs[i];
     const slot = document.createElement('div');
-    slot.style.width = '90px';
-    slot.style.height = '100px';
-    slot.style.background = 'rgba(0,0,0,0.5)';
-    slot.style.border = '1px dashed rgba(255,255,255,0.2)';
-    slot.style.borderRadius = '6px';
-    slot.style.display = 'flex';
-    slot.style.flexDirection = 'column';
-    slot.style.alignItems = 'center';
-    slot.style.justifyContent = 'center';
     slot.style.position = 'relative';
 
     if (adv) {
-      slot.style.border = '1px solid #3b82f6';
-      slot.style.background = 'linear-gradient(180deg, #1e293b, #0f172a)';
+      // 有傭兵時使用 adventurer-card class，讓 CSS 主導尺寸
+      slot.className = 'adventurer-card';
+      slot.style.borderStyle = 'solid';
+      slot.style.borderColor = '#3b82f6';
       
       const isFront = adv.formationRow === 'FRONT' || (adv.formationRow as any) === 0;
       const rowText = isFront ? '前排' : '後排';
       const rowBg = isFront ? '#1d4ed8' : '#9333ea';
       
-      slot.innerHTML = `
-        <div style="font-size: 2em; margin-bottom: 5px;">🦸</div>
-        <div style="font-size: 0.85em; font-weight: bold; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">${adv.name}</div>
-        <button class="action-btn" style="position: absolute; top: -5px; right: -5px; padding: 2px 5px; font-size: 0.7em; background: #ef4444; border-radius: 50%; color: white;">×</button>
-        <div class="row-toggle" style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: ${rowBg}; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; cursor: pointer; white-space: nowrap; border: 1px solid #fff;">
-          ${rowText}
-        </div>
-      `;
+      // 修復：直接在 innerHTML 生成時加入 data-role="row-toggle"，避免 setTimeout 異步導致同步查詢找不到元素
+      slot.innerHTML = renderAdventurerCard(adv, {
+        showDismissBtn: true,
+        dismissId: adv.id,
+        bottomLabel: rowText,
+        bottomLabelBg: rowBg,
+        bottomLabelRole: 'row-toggle'
+      });
       
       const displayClass = (adv as any).currentClass || adv.job.name;
       const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>狀態：🟢 出戰配置中<br/>戰力：${adv.power}`;
@@ -700,25 +694,40 @@ function renderDispatchTeamRoster() {
         }
       });
       
-      const toggleBtn = slot.querySelector('.row-toggle')!;
-      toggleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        adv.formationRow = isFront ? ('BACK' as any) : ('FRONT' as any);
-        renderDispatchTeamRoster();
-      });
+      // 修復：同步查詢 data-role 屬性，不再依賴 setTimeout 異步加上的 class
+      const toggleBtn = slot.querySelector('[data-role="row-toggle"]') as HTMLElement | null;
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          adv.formationRow = isFront ? ('BACK' as any) : ('FRONT' as any);
+          renderDispatchTeamRoster();
+        });
+      }
       
-      const removeBtn = slot.querySelector('button')!;
-      removeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) tEl.style.opacity = '0';
-        selectedAdventurersForDispatch.delete(adv.id);
-        renderDispatchTeamRoster();
-        renderDispatchAdvList();
-      });
+      const removeBtn = slot.querySelector('button');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) tEl.style.opacity = '0';
+          selectedAdventurersForDispatch.delete(adv.id);
+          renderDispatchTeamRoster();
+          renderDispatchAdvList();
+        });
+      }
       
     } else {
-      slot.innerHTML = `<span style="color:#64748b; font-size: 0.8em;">空位</span>`;
+      // 空位：手動設定尺寸和外觀
+      slot.style.width = '90px';
+      slot.style.height = '100px';
+      slot.style.background = 'rgba(0,0,0,0.5)';
+      slot.style.border = '1px dashed rgba(255,255,255,0.2)';
+      slot.style.borderRadius = '6px';
+      slot.style.display = 'flex';
+      slot.style.flexDirection = 'column';
+      slot.style.alignItems = 'center';
+      slot.style.justifyContent = 'center';
+      slot.innerHTML = renderAdventurerCard(null, { isEmpty: true });
     }
     
     container.appendChild(slot);
@@ -751,14 +760,7 @@ function renderDispatchAdvList() {
     
     const displayClass = (adv as any).currentClass || adv.job.name;
 
-    card.innerHTML = `
-      <div class="adv-name">${adv.name}</div>
-      <div class="adv-avatar-wrapper"><span style="font-size: 1.5em;">🦸</span></div>
-      <div class="adv-card-gradient"></div>
-      <div class="adv-card-info">
-        <div class="adv-level">Lv.${adv.level} ${displayClass}</div>
-      </div>
-    `;
+    card.innerHTML = renderAdventurerCard(adv);
 
     const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>狀態：🟢 閒置<br/>戰力：${adv.power}`;
 

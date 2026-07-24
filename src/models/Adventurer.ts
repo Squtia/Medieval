@@ -28,6 +28,9 @@ export class Adventurer {
 
   // 軍階官職 (Military Office)
   public office: OfficeType | null;
+  public stationedNodeId: string | null; // 被派駐擔任官職的據點 ID
+  public locationNodeId: string | null; // 目前實際所在的據點 ID
+  public avatarIndex: number; // 0-24, 對應 5x5 的半身像 Spritesheet
 
   public quality: 'N' | 'R' | 'SR' | 'SSR';
 
@@ -39,6 +42,7 @@ export class Adventurer {
     this.job = job;
     this.trait = trait;
     this.quality = quality;
+    this.avatarIndex = Math.floor(Math.random() * 25); // 0-24
 
     // 1. 根據品質段範圍隨機抽取六維總合（套用加權隨機抽取，讓偏大的極品數值機率遞減）
     let minSum = 35;
@@ -113,7 +117,10 @@ export class Adventurer {
     this.currentState = AdventurerState.IDLE;
     this.dispatchEndTime = null;
     this.restingDaysLeft = 0;
+    this.formationRow = FormationRow.FRONT;
     this.office = null;
+    this.stationedNodeId = null;
+    this.locationNodeId = null;
     
     // 預設戰士、騎士類近戰職業在前排，法師、弓箭手在後排
     if (job.name.includes('戰士') || job.name.includes('騎士') || job.name.includes('守衛') || job.name.includes('刺客')) {
@@ -134,13 +141,13 @@ export class Adventurer {
     
     switch (baseClass) {
       case '戰士':
-        if (wt === WeaponType.DUAL_BLADES) return '魔劍士';
+        if (wt === WeaponType.DUAL_SWORDS) return '魔劍士';
         return baseClass; // 巨劍預設
       case '騎士':
         if (wt === WeaponType.RUNE_SHIELD) return '符文騎士';
         return baseClass; // 劍盾預設
       case '法師':
-        if (wt === WeaponType.SCYTHE) return '戰鬥法師';
+        if (wt === WeaponType.SCYTHE) return '死靈法師';
         return baseClass; // 法杖預設
       case '盜賊':
         if (wt === WeaponType.MAGIC_RING) return '詭術師';

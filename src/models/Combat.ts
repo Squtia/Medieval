@@ -6,7 +6,8 @@ export enum StatusEffectType {
   STUN = 'STUN',
   TAUNT = 'TAUNT',
   FEAR = 'FEAR',
-  ARMOR_BREAK = 'ARMOR_BREAK' // 新增破甲
+  ARMOR_BREAK = 'ARMOR_BREAK', // 破甲
+  SHOCK = 'SHOCK' // 感電
 }
 
 export interface StatusEffect {

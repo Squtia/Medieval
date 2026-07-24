@@ -90,6 +90,7 @@ export function initRecruitController(): void {
           e.stopPropagation();
           if (territory.gold >= 500) {
             territory.gold -= 500;
+            adv.locationNodeId = GameState.currentViewNode ? GameState.currentViewNode.id : territory.currentCountryId;
             GameState.adventurers.push(adv);
             console.log(`🍻 [酒館] 花費 500 金幣招募了新夥伴「${adv.name}」(${qInfo.label}) 加入傭兵行列！`);
             modalRecruit.classList.remove('active');

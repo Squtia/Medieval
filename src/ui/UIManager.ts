@@ -1,6 +1,7 @@
 import { GameState } from '../core/GameState';
 import { AdventurerState, NobleTitle, TITLE_CONFIG } from '../models/types';
 import { openAdvDetail, getSelectedPartyAdventurer, selectPartyAdventurer, renderPartyUpperSection } from './ModalController';
+import { renderAdventurerCard } from './components/AdventurerCard';
 import { renderBaseBuildings } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
@@ -47,7 +48,6 @@ class UIManagerClass {
   // 國家按鈕
   btnMigrate = document.getElementById('btn-migrate') as HTMLButtonElement;
   btnExplore = document.getElementById('btn-explore') as HTMLButtonElement;
-  btnTribute = document.getElementById('btn-tribute') as HTMLButtonElement;
   btnFeast = document.getElementById('btn-feast') as HTMLButtonElement;
   btnRecruit = document.getElementById('btn-recruit') as HTMLButtonElement;
   btnFoundSettlement = document.getElementById('btn-found-settlement') as HTMLButtonElement;
@@ -286,15 +286,9 @@ class UIManagerClass {
           }
         });
         
-        const avatarIcon = '🦸';
-        card.innerHTML = `
-          <div class="adv-name">${adv.name}</div>
-          <div class="adv-avatar-wrapper">${avatarIcon}</div>
-          <div class="adv-card-gradient"></div>
-          <div class="adv-card-info">
-            <div class="adv-level" style="color: ${adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1'}; font-weight: bold;">Lv.${adv.level}</div>
-          </div>
-        `;
+        card.innerHTML = renderAdventurerCard(adv, {
+          cornerLabel: adv.office ? '👑 ' + stateText : stateText
+        });
         
         card.addEventListener('click', () => {
           const tEl = document.getElementById('adv-tooltip');
@@ -310,7 +304,6 @@ class UIManagerClass {
     const isAtHome = GameState.currentViewNode?.isPlayerBase === true;
     this.btnEnterBase.disabled = !isAtHome;
     this.btnExplore.disabled = !isAtHome;
-    this.btnTribute.disabled = territory.gold < 100;
     this.btnFeast.disabled = territory.gold < 300;
     this.btnRecruit.disabled = territory.gold < 500;
     this.btnMigrate.disabled = territory.gold < 1000;

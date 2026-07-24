@@ -45,7 +45,7 @@ export function calculateSkillDamage(
     effectiveDef = effectiveDef * 0.8;
   }
 
-  // 大劍士被動：裝備巨劍時，無視 15% 防禦力
+  // 狂戰士被動：裝備巨劍時，無視 15% 防禦力
   if (caster.weaponType === 'GREATSWORD') {
     effectiveDef = effectiveDef * 0.85;
   }
@@ -67,7 +67,7 @@ export const SKILLS: Record<string, Skill> = {
     description: '消耗 5 MP。造成 130% 物理傷害。',
     execute: (caster, targets) => {
       const target = targets[0];
-      const isHybrid = caster.weaponType === 'DUAL_BLADES'; // 魔劍士覆寫
+      const isHybrid = caster.weaponType === 'DUAL_SWORDS'; // 魔劍士覆寫
       const baseAtk = isHybrid ? (caster.stats.atk + caster.stats.mp/5) : caster.stats.atk; // 簡化：因為怪物系統沒分matk，假設 mp 上限/5 代表 INT
       const dmgMultiplier = isHybrid ? 0.8 : 1.3; // 若為混傷 80%，否則 130%
       
@@ -92,7 +92,7 @@ export const SKILLS: Record<string, Skill> = {
     description: '消耗 12 MP。造成 100% 物理傷害，必定附加破甲(防禦-20%)。',
     execute: (caster, targets) => {
       const target = targets[0];
-      const isHybrid = caster.weaponType === 'DUAL_BLADES';
+      const isHybrid = caster.weaponType === 'DUAL_SWORDS';
       const baseAtk = isHybrid ? (caster.stats.atk + caster.stats.mp/5) : caster.stats.atk;
       const dmgMultiplier = isHybrid ? 0.8 : 1.0;
       
@@ -120,7 +120,7 @@ export const SKILLS: Record<string, Skill> = {
       ];
     }
   },
-  // --- 一般進階：大劍士 ---
+  // --- 一般進階：狂戰士 ---
   'GREATSWORD_WHIRLWIND': {
     id: 'GREATSWORD_WHIRLWIND',
     name: '旋風斬',
@@ -172,6 +172,143 @@ export const SKILLS: Record<string, Skill> = {
           skillName: '幻影連擊',
           text: `${caster.name} 的連擊第 ${i+1} 下對 ${target.name} 造成了 ${damage} 點混合傷害！`
         });
+      }
+      return events;
+    }
+  },
+  // --- 法師系基礎技能 ---
+  'MAGE_ARCANE_MISSILES': {
+    id: 'MAGE_ARCANE_MISSILES',
+    name: '奧術飛彈',
+    mpCost: 8,
+    targetType: TargetType.SINGLE_ENEMY, // 預設單體，但會根據敵方全體隨機打擊
+    description: '消耗 8 MP。隨機對敵方發射 3 枚飛彈，每枚造成 60% 魔法傷害。',
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      const aliveEnemies = allEnemies.filter(e => e.currentHp > 0);
+      if (aliveEnemies.length === 0) return events;
+      
+      let totalDamage = 0;
+      for (let i = 0; i < 3; i++) {
+        const currentAlive = allEnemies.filter(e => e.currentHp > 0);
+        if (currentAlive.length === 0) break;
+        
+        const target = Random.pick(currentAlive);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * 0.6);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        totalDamage += damage;
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '奧術飛彈',
+          text: `${caster.name} 的飛彈命中了 ${target.name}，造成 ${damage} 點傷害！`
+        });
+      }
+      return events;
+    }
+  },
+  'MAGE_STATIC_FIELD': {
+    id: 'MAGE_STATIC_FIELD',
+    name: '靜電新星',
+    mpCost: 15,
+    targetType: TargetType.ALL_ENEMIES,
+    description: '消耗 15 MP。對敵方全體附加【感電】(迴避下降，受傷加深)，持續 2 回合。',
+    execute: (caster, targets) => {
+      const events: CombatEvent[] = [];
+      targets.forEach(target => {
+        target.statusEffects.push({ type: StatusEffectType.SHOCK, duration: 2 });
+        events.push({
+          type: CombatEventType.STATUS_APPLY,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          statusType: StatusEffectType.SHOCK,
+          skillName: '靜電新星',
+          text: `${target.name} 被靜電包圍，陷入了感電狀態！`
+        });
+      });
+      return events;
+    }
+  },
+  // --- 進階法師：大魔導士 ---
+  'STAFF_METEOR': {
+    id: 'STAFF_METEOR',
+    name: '隕石轟炸',
+    mpCost: 35,
+    targetType: TargetType.ALL_ENEMIES,
+    description: '消耗 35 MP。對敵方全體造成 150% 魔法傷害。(搭配法杖被動：必定命中且隨最大MP增傷)',
+    execute: (caster, targets) => {
+      const events: CombatEvent[] = [];
+      targets.forEach(target => {
+        // 大魔導士被動增傷：每 10 點 Max MP 增加 1% 傷害倍率
+        const mpBonus = (caster.stats.mp / 10) * 0.01;
+        const multiplier = 1.5 + mpBonus;
+        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * multiplier);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '隕石轟炸',
+          text: `${caster.name} 的隕石無情地砸在 ${target.name} 身上，造成了 ${damage} 點毀滅傷害！`
+        });
+      });
+      return events;
+    }
+  },
+  // --- 變異職業：死靈法師 ---
+  'SCYTHE_SOUL_REAP': {
+    id: 'SCYTHE_SOUL_REAP',
+    name: '死神收割',
+    mpCost: 30,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 30 MP。對單體造成 250% 傷害，若擊殺目標，則立刻無消耗對血量最低的敵人再次施放。',
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      let currentTarget = targets[0];
+      
+      let chainCount = 0;
+      while (currentTarget && currentTarget.currentHp > 0 && chainCount < 5) { // 設上限防死迴圈
+        const { damage, isCrit } = calculateSkillDamage(caster, currentTarget, caster.stats.atk * 2.5);
+        currentTarget.currentHp = Math.max(0, currentTarget.currentHp - damage);
+        
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: currentTarget.id, targetName: currentTarget.name,
+          damage, targetHp: currentTarget.currentHp, targetMaxHp: currentTarget.maxHp,
+          skillName: '死神收割',
+          text: `${caster.name} 揮舞戰鐮，對 ${currentTarget.name} 造成 ${damage} 點致命傷害！`
+        });
+        
+        // 靈魂虹吸(大招特別回饋，普攻在戰鬥主迴圈結算)
+        // 擊殺判定
+        if (currentTarget.currentHp <= 0) {
+          events.push({
+            type: CombatEventType.DEATH,
+            targetName: currentTarget.name,
+            text: `${currentTarget.name} 的靈魂被收割了！`
+          });
+          
+          // 找下一個血量大於0且血最低的敵人
+          const aliveEnemies = allEnemies.filter(e => e.currentHp > 0).sort((a, b) => a.currentHp - b.currentHp);
+          if (aliveEnemies.length > 0) {
+            currentTarget = aliveEnemies[0];
+            chainCount++;
+            events.push({
+              type: CombatEventType.SKILL_CAST,
+              actorId: caster.id, actorName: caster.name,
+              skillName: '死神收割',
+              text: `${caster.name} 觸發了靈魂連鎖，繼續收割 ${currentTarget.name}！`
+            });
+          } else {
+            break;
+          }
+        } else {
+          break; // 未擊殺則結束連鎖
+        }
       }
       return events;
     }

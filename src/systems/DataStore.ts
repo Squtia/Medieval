@@ -1,4 +1,4 @@
-import { EquipmentTemplate, EquipmentSlot, JobConfig, TraitConfig } from '../models/types';
+import { EquipmentTemplate, EquipmentSlot, JobConfig, TraitConfig, WeaponType } from '../models/types';
 import { Random } from '../core/Random';
 
 export class DataStore {
@@ -87,7 +87,7 @@ export class DataStore {
       randomPool: { attributes: ['str', 'con'], combatStats: ['atk', 'def', 'hp'] }
     },
     'wpn_iron_greatsword': {
-      id: 'wpn_iron_greatsword', name: '精鐵巨劍', slot: EquipmentSlot.WEAPON, icon: '⚔️',
+      id: 'wpn_iron_greatsword', name: '精鐵巨劍', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.GREATSWORD, icon: '⚔️',
       itemLevel: 10,
       baseRequirements: { str: 8 }, 
       baseEffects: { str: 4 }, 
@@ -95,7 +95,7 @@ export class DataStore {
       randomPool: { attributes: ['str'], combatStats: ['atk', 'hit'] }
     },
     'wpn_iron_daggers': {
-      id: 'wpn_iron_daggers', name: '精鐵雙短刀', slot: EquipmentSlot.WEAPON, icon: '🔪',
+      id: 'wpn_iron_daggers', name: '精鐵雙短刀', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.DAGGERS, icon: '🔪',
       itemLevel: 10,
       baseRequirements: { agi: 6 }, 
       baseEffects: { agi: 3 }, 
@@ -103,12 +103,20 @@ export class DataStore {
       randomPool: { attributes: ['agi', 'luk'], combatStats: ['atk', 'evade'] }
     },
     'wpn_oak_staff': {
-      id: 'wpn_oak_staff', name: '橡木法杖', slot: EquipmentSlot.WEAPON, icon: '🪄',
+      id: 'wpn_oak_staff', name: '橡木法杖', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.STAFF, icon: '🪄',
       itemLevel: 10,
       baseRequirements: { int: 6 }, 
       baseEffects: { int: 3 }, 
       baseCombatEffects: { atk: 6, mp: 15 },
       randomPool: { attributes: ['int', 'spr'], combatStats: ['mp', 'atk'] }
+    },
+    'wpn_apprentice_scythe': {
+      id: 'wpn_apprentice_scythe', name: '學徒戰鐮', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.SCYTHE, icon: '🌾',
+      itemLevel: 10,
+      baseRequirements: { int: 4, con: 4 }, 
+      baseEffects: { int: 2, con: 2 }, 
+      baseCombatEffects: { atk: 14, hp: 10 },
+      randomPool: { attributes: ['con', 'int'], combatStats: ['hp', 'atk'] }
     },
     'wpn_rookie_tome': {
       id: 'wpn_rookie_tome', name: '初學者魔導書', slot: EquipmentSlot.WEAPON, icon: '📖',
@@ -155,7 +163,7 @@ export class DataStore {
       randomPool: { attributes: ['str', 'con'], combatStats: ['atk', 'def', 'hp'] }
     },
     'wpn_steel_greatsword': {
-      id: 'wpn_steel_greatsword', name: '鍛鋼巨劍', slot: EquipmentSlot.WEAPON, icon: '⚔️',
+      id: 'wpn_steel_greatsword', name: '鍛鋼巨劍', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.GREATSWORD, icon: '⚔️',
       itemLevel: 25,
       baseRequirements: { str: 20 }, 
       baseEffects: { str: 10 }, 
@@ -163,7 +171,7 @@ export class DataStore {
       randomPool: { attributes: ['str'], combatStats: ['atk', 'hit'] }
     },
     'wpn_steel_daggers': {
-      id: 'wpn_steel_daggers', name: '鋼製雙短刀', slot: EquipmentSlot.WEAPON, icon: '🔪',
+      id: 'wpn_steel_daggers', name: '鋼製雙短刀', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.DAGGERS, icon: '🔪',
       itemLevel: 25,
       baseRequirements: { agi: 18 }, 
       baseEffects: { agi: 8 }, 
@@ -223,7 +231,7 @@ export class DataStore {
       randomPool: { attributes: ['str', 'con'], combatStats: ['atk', 'def', 'hp'] }
     },
     'wpn_tungsten_greatsword': {
-      id: 'wpn_tungsten_greatsword', name: '鎢鋼巨劍', slot: EquipmentSlot.WEAPON, icon: '⚔️',
+      id: 'wpn_tungsten_greatsword', name: '鎢鋼巨劍', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.GREATSWORD, icon: '⚔️',
       itemLevel: 50,
       baseRequirements: { str: 40 }, 
       baseEffects: { str: 24 }, 
@@ -231,7 +239,7 @@ export class DataStore {
       randomPool: { attributes: ['str'], combatStats: ['atk', 'hit'] }
     },
     'wpn_tungsten_daggers': {
-      id: 'wpn_tungsten_daggers', name: '鎢鋼雙短刀', slot: EquipmentSlot.WEAPON, icon: '🔪',
+      id: 'wpn_tungsten_daggers', name: '鎢鋼雙短刀', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.DAGGERS, icon: '🔪',
       itemLevel: 50,
       baseRequirements: { agi: 36 }, 
       baseEffects: { agi: 20 }, 

@@ -1,150 +1,221 @@
 import { GameState } from '../core/GameState';
 import { UIManager } from './UIManager';
 import { getTitleConfig, OfficeType, getOfficeConfig, NobleTitle } from '../models/types';
-import { Adventurer } from '../models/Adventurer';
 import { ToastManager } from './ToastManager';
+import { renderAdventurerCard } from './components/AdventurerCard';
 
+
+let selectedSlotType: OfficeType | null = null;
 let selectedSlotIndex: number = -1;
-let selectedOfficeType: OfficeType | null = null;
 
 export function renderOfficeBoard(): void {
   const slotsContainer = document.getElementById('ui-office-slots');
   const candidatesContainer = document.getElementById('ui-office-candidates');
+  const btnMakeCapital = document.getElementById('btn-make-capital');
+  
   if (!slotsContainer || !candidatesContainer) return;
+
+  const currentNode = GameState.currentViewNode;
+  if (!currentNode) {
+    slotsContainer.innerHTML = `<div style="color: #94a3b8; padding: 20px;">無法取得當前據點資訊。</div>`;
+    return;
+  }
 
   const currentTitle = GameState.myTerritory.title;
   const config = getTitleConfig(currentTitle);
   const slots = config.officeSlots;
 
-  // Render left panel: Office Slots
+  // Handle Capital button logic
+  if (btnMakeCapital) {
+    const isDukeOrHigher = currentTitle === NobleTitle.DUKE;
+    if (isDukeOrHigher && !currentNode.isCapital) {
+      btnMakeCapital.style.display = 'block';
+      btnMakeCapital.onclick = () => {
+        const allNodes = GameState.mapSystem ? GameState.mapSystem.getNodes() : [];
+        const oldCapital = allNodes.find(n => n.isCapital);
+        if (oldCapital) oldCapital.isCapital = false;
+        
+        currentNode.isCapital = true;
+        
+        GameState.adventurers.forEach(a => {
+          if (a.office === OfficeType.BANNERET) {
+            a.office = null;
+            a.stationedNodeId = null;
+          }
+        });
+        
+        ToastManager.show(`已冊封 ${currentNode.name} 為首都！`);
+        renderOfficeBoard();
+      };
+    } else {
+      btnMakeCapital.style.display = 'none';
+    }
+  }
+
+  // 1. Render Top Grid: Office Slots
   let slotsHtml = '';
-  const officesToRender = [OfficeType.RETAINER, OfficeType.CAPTAIN, OfficeType.BANNERET, OfficeType.CASTELLAN];
+  slotsContainer.innerHTML = '';
+  const officesToRender = [OfficeType.CASTELLAN, OfficeType.BANNERET, OfficeType.CAPTAIN, OfficeType.RETAINER];
+  let totalAllowedSlots = 0;
   
-  let totalSlotCount = 0;
-  
+  // Track all slots that should be rendered so we can bind events
+  const slotDataList: Array<{ type: OfficeType, index: number, holder: any | null, isAllowed: boolean }> = [];
+
   officesToRender.forEach(type => {
-    const maxCount = slots[type] || 0;
-    const officeConfig = getOfficeConfig(type);
+    if (type === OfficeType.BANNERET && !currentNode.isCapital) return;
     
-    // Find all adventurers currently holding this office
-    const holders = GameState.adventurers.filter(a => a.office === type);
+    const maxCount = slots[type] || 0;
+    if (maxCount === 0) return;
+    
+    totalAllowedSlots += maxCount;
+    const holders = GameState.adventurers.filter(a => a.office === type && a.stationedNodeId === currentNode.id);
     
     for (let i = 0; i < maxCount; i++) {
       const holder = holders[i] || null;
-      const isSelected = selectedOfficeType === type && selectedSlotIndex === i;
-      const selectedClass = isSelected ? 'border: 2px solid #3b82f6;' : 'border: 1px solid rgba(255,255,255,0.1);';
-      
-      let innerHtml = '';
-      if (holder) {
-        innerHtml = `
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <span style="color: #eab308; font-weight: bold;">[${officeConfig.nameCN}]</span> ${holder.name} (Lv.${holder.level})
-            </div>
-            <button class="action-btn btn-dismiss" data-adv-id="${holder.id}" style="padding: 5px 10px; font-size: 0.9em; width: auto; background: #991b1b;">解任</button>
-          </div>
-          <div style="font-size: 0.85em; color: #94a3b8; margin-top: 5px;">
-            俸祿: ${officeConfig.salary}金/回合 | 帶兵: ${officeConfig.troopLimit} | 統帥 +${officeConfig.commandBonus}
-          </div>
-        `;
-      } else {
-        innerHtml = `
-          <div style="color: #94a3b8; cursor: pointer;">
-            <span style="color: #eab308; font-weight: bold;">[${officeConfig.nameCN}]</span> 空缺 (點擊指派)
-          </div>
-          <div style="font-size: 0.85em; color: #64748b; margin-top: 5px;">
-            俸祿: ${officeConfig.salary}金/回合 | 帶兵: ${officeConfig.troopLimit} | 統帥 +${officeConfig.commandBonus}
-          </div>
-        `;
-      }
-
-      slotsHtml += `
-        <div class="office-slot-card" style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 4px; ${selectedClass}" data-type="${type}" data-index="${i}" ${!holder ? 'cursor: pointer;' : ''}>
-          ${innerHtml}
-        </div>
-      `;
-      totalSlotCount++;
+      slotDataList.push({ type, index: i, holder, isAllowed: true });
     }
   });
 
-  if (totalSlotCount === 0) {
-    slotsHtml = `<div style="color: #94a3b8; padding: 20px;">當前爵位 (${config.titleCN}) 尚未解鎖任何官職。請努力提升聲望與晉升爵位！</div>`;
-  }
-  
-  slotsContainer.innerHTML = slotsHtml;
-
-  // Add event listeners for selecting slots
-  slotsContainer.querySelectorAll('.office-slot-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      const target = e.currentTarget as HTMLElement;
-      if (target.querySelector('.btn-dismiss')) return; // If clicking dismiss button, let its handler work
-      
-      selectedOfficeType = target.getAttribute('data-type') as OfficeType;
-      selectedSlotIndex = parseInt(target.getAttribute('data-index')!);
-      renderOfficeBoard();
-    });
-  });
-
-  // Add event listeners for dismiss
-  slotsContainer.querySelectorAll('.btn-dismiss').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const advId = (e.currentTarget as HTMLElement).getAttribute('data-adv-id');
-      const adv = GameState.adventurers.find(a => a.id === advId);
-      if (adv) {
-        adv.office = null;
-        ToastManager.show(`已解除 ${adv.name} 的官職`);
-        selectedOfficeType = null;
-        selectedSlotIndex = -1;
-        renderOfficeBoard();
-        UIManager.updateUI(); // To update top bar resources if needed
-      }
-    });
-  });
-
-  // Render right panel: Candidates
-  if (selectedOfficeType === null) {
-    candidatesContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 20px; margin-top: 50px;">請先選擇左側的官職空位<br>來指派您的傭兵。</div>`;
+  if (totalAllowedSlots === 0) {
+    slotsContainer.innerHTML = `<div style="color: #94a3b8; padding: 20px;">當前爵位尚未解鎖任何官職。</div>`;
+    candidatesContainer.innerHTML = '';
     return;
   }
 
-  const officeConfig = getOfficeConfig(selectedOfficeType);
-  const availableAdvs = GameState.adventurers.filter(a => a.office === null);
+  // Render slots in Party-like style
+  slotDataList.forEach(slotData => {
+    const { type, index, holder } = slotData;
+    const officeConfig = getOfficeConfig(type);
+    const isSelected = (selectedSlotType === type && selectedSlotIndex === index);
+    
+    // Create slot element
+    const slotEl = document.createElement('div');
+    slotEl.className = 'adventurer-card';
+    if (isSelected) {
+      slotEl.style.borderColor = '#eab308';
+      slotEl.style.boxShadow = '0 0 10px rgba(234, 179, 8, 0.5)';
+    } else {
+      slotEl.style.borderColor = 'rgba(255,255,255,0.2)';
+      slotEl.style.borderStyle = 'dashed';
+    }
 
-  let candidatesHtml = '';
-  if (availableAdvs.length === 0) {
-    candidatesHtml = `<div style="color: #94a3b8; padding: 20px;">目前沒有閒置的傭兵可供指派。</div>`;
-  } else {
-    candidatesHtml = `<div style="margin-bottom: 10px; color: #eab308;">請選擇一位傭兵擔任 [${officeConfig.nameCN}]：</div>`;
-    availableAdvs.forEach(adv => {
-      candidatesHtml += `
-        <div class="candidate-card" style="padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" data-adv-id="${adv.id}">
-          <div>
-            <div style="font-weight: bold; color: #fff;">${adv.name} <span style="color: #94a3b8; font-size: 0.9em;">(Lv.${adv.level} ${adv.currentClass})</span></div>
-            <div style="font-size: 0.85em; color: #64748b;">統帥: ${adv.baseAttributes.command} | 品質: ${adv.quality}</div>
-          </div>
-          <button class="action-btn" style="padding: 5px 15px; width: auto; font-size: 0.9em;">任命</button>
-        </div>
-      `;
+    if (holder) {
+      slotEl.style.borderStyle = 'solid';
+      slotEl.style.borderColor = '#3b82f6';
+      
+      slotEl.innerHTML = renderAdventurerCard(holder, {
+        bottomLabel: officeConfig.nameCN,
+        showDismissBtn: true,
+        dismissId: holder.id
+      });
+    } else {
+      slotEl.innerHTML = renderAdventurerCard(null, {
+        isEmpty: true,
+        emptyLabel: officeConfig.nameCN
+      });
+    }
+
+    // Interactions
+    slotEl.addEventListener('click', (e) => {
+      // If click dismiss button, do not select slot
+      if ((e.target as HTMLElement).classList.contains('btn-dismiss-holder')) return;
+      
+      if (selectedSlotType === type && selectedSlotIndex === index) {
+        selectedSlotType = null;
+        selectedSlotIndex = -1;
+      } else {
+        selectedSlotType = type;
+        selectedSlotIndex = index;
+      }
+      renderOfficeBoard();
     });
+
+    const dismissBtn = slotEl.querySelector('.btn-dismiss-holder');
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const advId = (e.currentTarget as HTMLElement).getAttribute('data-id');
+        const adv = GameState.adventurers.find(a => a.id === advId);
+        if (adv) {
+          adv.office = null;
+          adv.stationedNodeId = null;
+          ToastManager.show(`已解除 ${adv.name} 的官職`);
+          selectedSlotType = null;
+          selectedSlotIndex = -1;
+          renderOfficeBoard();
+          UIManager.updateUI();
+        }
+      });
+    }
+
+    slotsContainer.appendChild(slotEl);
+  });
+
+  // 2. Render Bottom Grid: Candidates from THIS node
+  candidatesContainer.innerHTML = '';
+  
+  if (selectedSlotType === null) {
+    candidatesContainer.innerHTML = `<div style="grid-column: 1 / -1; color: #94a3b8; text-align: center; padding: 20px;">請先點擊上方要任命的「空位」，然後選擇下方的傭兵。</div>`;
+    return;
   }
 
-  candidatesContainer.innerHTML = candidatesHtml;
+  // Filter idle mercenaries AT THIS NODE
+  const idleAdvsAtNode = GameState.adventurers.filter(a => a.office === null && a.locationNodeId === currentNode.id);
 
-  // Add event listeners for assigning office
-  candidatesContainer.querySelectorAll('.candidate-card').forEach(card => {
-    card.addEventListener('click', (e) => {
-      const advId = (e.currentTarget as HTMLElement).getAttribute('data-adv-id');
-      const adv = GameState.adventurers.find(a => a.id === advId);
-      if (adv && selectedOfficeType) {
-        adv.office = selectedOfficeType;
-        const config = getOfficeConfig(selectedOfficeType);
-        ToastManager.show(`已任命 ${adv.name} 為 ${config.nameCN}`);
-        selectedOfficeType = null;
-        selectedSlotIndex = -1;
-        renderOfficeBoard();
-        UIManager.updateUI();
-      }
+  if (idleAdvsAtNode.length === 0) {
+    candidatesContainer.innerHTML = `<div style="grid-column: 1 / -1; color: #f87171; text-align: center; padding: 20px;">本據點目前沒有閒置的傭兵可供調遣。<br><span style="font-size: 0.8em; color: #94a3b8;">(必須是身處在該據點且無官職的傭兵)</span></div>`;
+    return;
+  }
+
+  // We reuse the styling from ModalController's adventurer-card
+  idleAdvsAtNode.forEach(adv => {
+    const displayClass = (adv as any).currentClass || adv.job.name;
+    const card = document.createElement('div');
+    card.className = 'adventurer-card';
+    card.style.width = '100px';
+    card.style.height = '110px';
+    card.style.flexShrink = '0';
+    card.style.background = 'rgba(255,255,255,0.05)';
+    card.style.border = '1px solid rgba(255,255,255,0.1)';
+    card.style.borderRadius = '6px';
+    card.style.padding = '8px';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.alignItems = 'center';
+    card.style.cursor = 'pointer';
+    card.style.transition = 'all 0.2s';
+    
+    card.onmouseover = () => { card.style.background = 'rgba(255,255,255,0.1)'; card.style.borderColor = '#eab308'; };
+    card.onmouseout = () => { card.style.background = 'rgba(255,255,255,0.05)'; card.style.borderColor = 'rgba(255,255,255,0.1)'; };
+
+    card.innerHTML = renderAdventurerCard(adv, {
+      extraStats: `統帥: ${adv.baseAttributes.command}`
     });
+
+    card.addEventListener('click', () => {
+      // Ensure the selected slot is empty before assigning
+      const existingHolders = GameState.adventurers.filter(a => a.office === selectedSlotType && a.stationedNodeId === currentNode.id);
+      
+      const config = getTitleConfig(currentTitle);
+      const maxCount = config.officeSlots[selectedSlotType!] || 0;
+      
+      if (existingHolders.length >= maxCount) {
+        ToastManager.show('該官職的槽位已滿，請先解任原有官員！');
+        return;
+      }
+
+      adv.office = selectedSlotType;
+      adv.stationedNodeId = currentNode.id;
+      
+      const officeConfig = getOfficeConfig(selectedSlotType!);
+      ToastManager.show(`已任命 ${adv.name} 為 ${officeConfig.nameCN}`);
+      
+      selectedSlotType = null;
+      selectedSlotIndex = -1;
+      renderOfficeBoard();
+      UIManager.updateUI();
+    });
+
+    candidatesContainer.appendChild(card);
   });
 }

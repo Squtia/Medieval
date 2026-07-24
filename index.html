@@ -577,16 +577,17 @@
     }
     
     #adventurer-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       padding-top: 10px;
     }
 
     .adventurer-card {
       position: relative;
-      width: 100%;
-      height: 78px;
+      width: 95px;
+      height: 110px;
+      flex-shrink: 0;
       background: linear-gradient(180deg, #1e293b, #0f172a);
       border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 6px;
@@ -596,7 +597,7 @@
       align-items: center;
       padding: 4px 2px;
       transition: all 0.2s ease;
-      overflow: hidden;
+      overflow: visible; /* 允許 bottom badge 超出卡片邊界顯示 */
       cursor: pointer;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     }
@@ -629,6 +630,7 @@
       font-size: 32px;
       z-index: 1;
       overflow: hidden;
+      border-radius: 6px;
     }
     .adventurer-card .adv-avatar-wrapper img {
       width: 100%;
@@ -643,6 +645,7 @@
       background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.55) 45%, rgba(0,0,0,0) 100%);
       z-index: 2;
       pointer-events: none;
+      border-radius: 6px; /* 配合卡片圓角 */
     }
     /* 沉底文字區塊 */
     .adventurer-card .adv-card-info {
@@ -1354,22 +1357,29 @@
       <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">👑 謁見廳 (Hall)</h2>
       <div style="display: flex; gap: 20px; flex: 1; padding: 0 40px 40px 40px; height: calc(100% - 100px);">
         
-        <!-- 左側：官職空位與管理 -->
-        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.7);">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">🛡️ 領地官階與任命 (當前爵位解鎖)</h3>
-          <div id="ui-office-slots" style="flex: 1; overflow-y: auto; margin-top: 15px; display: grid; gap: 10px; padding-right: 10px;">
-            <!-- JS 動態生成官職槽位 -->
+        <!-- 左側：官職總覽與管理 -->
+        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.7); overflow-x: hidden; overflow-y: auto;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0;">
+            <h3 style="color: #eab308; margin: 0;">🛡️ 據點官職總覽</h3>
+            <button id="btn-make-capital" class="action-btn" style="display: none; padding: 5px 15px; width: auto; font-size: 0.9em; background: #c2410c;">👑 冊封為首都</button>
+          </div>
+          
+          <!-- 上方：官職槽位 -->
+          <div id="ui-office-slots" style="flex-shrink: 0; min-height: 130px; display: flex; gap: 10px; overflow-x: auto; overflow-y: visible; padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px;">
+            <!-- JS 動態生成空位或已就任的卡片 -->
+          </div>
+          
+          <!-- 下方：本據點閒置傭兵 -->
+          <div style="flex-shrink: 0; margin-bottom: 10px;">
+            <h4 style="color: #94a3b8; margin: 0;">本據點待命人員 (點擊指派至選取的空位)</h4>
+          </div>
+          <div id="ui-office-candidates" style="flex: 1; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; padding-right: 5px;">
+            <!-- JS 動態生成傭兵卡片 -->
           </div>
         </div>
 
-        <!-- 右側：可用傭兵名單與外交動作 -->
+        <!-- 右側：兵力調度與外交 -->
         <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
-          <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.7);">
-             <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">⚔️ 待命傭兵</h3>
-             <div id="ui-office-candidates" style="flex: 1; overflow-y: auto; margin-top: 15px; display: flex; flex-direction: column; gap: 10px; padding-right: 10px;">
-               <div style="text-align: center; color: #94a3b8; padding: 20px; margin-top: 50px;">請先選擇左側的官職空位<br>來指派您的傭兵。</div>
-             </div>
-          </div>
           
           <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.7);">
             <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">⚔️ 兵力調度</h3>
@@ -1418,7 +1428,6 @@
 
           <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.7);">
             <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">🤝 外交與內政</h3>
-            <button id="btn-tribute" class="action-btn" style="font-size: 1.1em; padding: 10px;">🎁 進貢 100 金幣 (+皇家好感)</button>
             <button id="btn-feast" class="action-btn" style="font-size: 1.1em; padding: 10px;">🍷 舉辦宴會 (花費 300 金幣)</button>
           </div>
         </div>
@@ -1729,7 +1738,7 @@
       </div>
 
       <div style="color: #cbd5e1; margin-top: 15px; margin-bottom: 5px; font-weight: bold;">⚔️ 可選傭兵</div>
-      <div style="max-height: 250px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; padding: 5px;" id="dispatch-adv-list">
+      <div style="max-height: 250px; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 10px; padding: 5px;" id="dispatch-adv-list">
         <!-- JS 動態生成可派遣名單 -->
       </div>
       
@@ -1854,7 +1863,7 @@
       <span>👥 選擇成員 (點擊切換)：</span>
       <span id="party-count-tag" style="color: #eab308;">0 人</span>
     </div>
-    <div id="party-modal-container" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px 2px; overflow: hidden;">
+    <div id="party-modal-container" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 2px; overflow: hidden; justify-content: center;">
       <!-- JS 動態生成傭兵卡片 -->
     </div>
   </div>
@@ -1877,6 +1886,8 @@
       </button>
     </div>
   </div>
+
+
 
   <script type="module" src="/src/main.ts"></script>
 </body>
