@@ -251,6 +251,32 @@ export enum FactionPersonality {
 }
 
 /**
+ * AI 派系陣營武將 (Champion)
+ */
+export interface FactionChampion {
+  id: string;
+  name: string;               // 武將姓名
+  title: string;              // 稱號
+  factionId: string;          // 所屬派系 ID
+  powerTier: number;          // 強度係數 (1~10)
+  isBoss: true;               // 標記為 Boss 等級
+  jobId: string;              // 對應 DataStore.JobDB 職業
+  traitId: string;            // 對應 DataStore.TraitDB 特質
+  portraitEmoji: string;      // 頭像 Emoji
+  description: string;        // 角色背景
+  rarity: 'ELITE' | 'CHAMPION' | 'LEGENDARY'; // 稀有度
+}
+
+export interface FactionChampionInstance extends FactionChampion {
+  hp: number;
+  damage: number;
+  defense: number;
+  evade: number;
+  calculatedPowerScore: number;
+  race: MonsterRace;          // 設為 HUMAN
+}
+
+/**
  * AI 派系
  */
 export interface Faction {
@@ -266,6 +292,9 @@ export interface Faction {
   relations: Record<string, number>; // 對其他派系的關係矩陣 (-100 ~ 100)
   atWarWith: string[];               // 交戰中的派系 ID
   personality: FactionPersonality;   // 派系性格
+  champions?: FactionChampion[];     // 派系武將名冊
+  capturedChampionIds?: string[];    // 目前被玩家俘虜的武將 ID
+  defeatedChampionIds?: string[];    // 已陣亡的武將 ID
 }
 
 /**

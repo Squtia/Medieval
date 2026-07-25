@@ -197,28 +197,26 @@ export class MapDynamicsSystem {
       if (node.isHidden && node.unlockCondition) {
         const meetsDay = !node.unlockCondition.minDay || currentDay >= node.unlockCondition.minDay;
         const meetsPrestige = !node.unlockCondition.minPrestige || currentPrestige >= node.unlockCondition.minPrestige;
-        
+
         if (meetsDay && meetsPrestige) {
           node.isHidden = false;
           unlockedAny = true;
           console.log(`🗺️ [情報解鎖] 發現了新的據點：${node.name}！`);
-          
-          // 可在此發送通知或事件給玩家
+
           if ((window as any).toastManager) {
             (window as any).toastManager.show(`🗺️ 發現了新區域：${node.name}！`, 'info');
           }
         }
       }
     }
-    
-    // 如果有解鎖新節點，觸發事件要求重繪地圖
+
     if (unlockedAny) {
       Promise.all([
         import('../core/EventBus'),
         import('../core/GameEvents')
       ]).then(([{ EventBus }, { GameEventType }]) => {
-        EventBus.getInstance().publish({ 
-          type: GameEventType.MISSIONS_CHANGED, // 借用此事件強制更新地圖
+        EventBus.getInstance().publish({
+          type: GameEventType.MISSIONS_CHANGED,
           payload: { reason: 'PROGRESSED' }
         });
       });
@@ -232,7 +230,6 @@ export class MapDynamicsSystem {
     const node = this.mapNodes.find(n => n.id === nodeId);
     if (!node) return false;
 
-    // 每次投資固定花費 500 金，增加 50 繁榮度
     const cost = 500;
     const gain = 50;
 
@@ -240,8 +237,7 @@ export class MapDynamicsSystem {
       territory.gold -= cost;
       node.prosperity += gain;
       console.log(`[系統] 💰 您花費了 ${cost} 金幣投資「${node.name}」，繁榮度上升了 ${gain}！`);
-      
-      // 立即檢查是否能升級
+
       if (node.nodeLevel < NodeLevel.CAPITAL) {
         const nextLevelThreshold = this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1];
         if (node.prosperity >= nextLevelThreshold) {
@@ -274,8 +270,7 @@ export class MapDynamicsSystem {
     node.nodeLevel -= 1;
     const newLevelName = levelNames[node.nodeLevel];
     console.log(`[系統] ⚠️ 隨著時間凋零，「${node.name}」從${oldLevelName}衰退成了${newLevelName}。`);
-    
-    // 若降為荒野，失去擁有者
+
     if (node.nodeLevel === NodeLevel.WILDERNESS) {
       if (node.ownerFactionId) {
         this.removeNodeFromFaction(node.id, node.ownerFactionId);
@@ -285,23 +280,71 @@ export class MapDynamicsSystem {
   }
 
   /**
-   * 嘗試派系擴張
+   * 嘗試派系擴張 (含攻城戰發起)
    */
   private attemptFactionExpansion(faction: Faction): void {
-    // 尋找可佔領的目標 (且沒有被其他派系佔領，也不是玩家據點)
-    const availableTargets = this.mapNodes.filter(node => 
-      node.ownerFactionId === null && 
+    // 1. 若處於交戰狀態，優先嘗試發起攻城
+    if (faction.atWarWith && faction.atWarWith.length > 0 && faction.resources >= this.FACTION_EXPANSION_COST * 2) {
+      const enemyNodes = this.mapNodes.filter(node =>
+        !node.siegeData && (
+          (node.isPlayerBase && faction.atWarWith.includes('player')) ||
+          (node.ownerFactionId && faction.atWarWith.includes(node.ownerFactionId))
+        )
+      );
+
+      if (enemyNodes.length > 0) {
+        const factionNodes = this.mapNodes.filter(n => faction.controlledNodes.includes(n.id));
+        let siegeTarget: MapNode | null = null;
+        let minSiegeDist = Infinity;
+
+        for (const target of enemyNodes) {
+          for (const fn of factionNodes) {
+            const dist = this.getDistance(fn, target);
+            if (dist < 20 && dist < minSiegeDist) {
+              minSiegeDist = dist;
+              siegeTarget = target;
+            }
+          }
+        }
+
+        if (siegeTarget) {
+          faction.resources -= this.FACTION_EXPANSION_COST * 2;
+          const remainingDays = Random.int(3, 6);
+          siegeTarget.siegeData = {
+            attackerFactionId: faction.id,
+            remainingDays: remainingDays,
+            attackerPower: faction.resources + 500
+          };
+
+          console.log(`[系統] ⚔️ 攻城戰發起！【${faction.factionName}】開始圍攻「${siegeTarget.name}」（剩餘 ${remainingDays} 天）。`);
+
+          if (siegeTarget.isPlayerBase && (window as any).toastManager) {
+            (window as any).toastManager.show(`🚨 警告！【${faction.factionName}】開始圍攻您的據點「${siegeTarget.name}」！`, 'error');
+          }
+
+          import('../core/EventBus').then(({ EventBus }) => {
+            EventBus.getInstance().publish({
+              type: GameEventType.SIEGE_STARTED,
+              payload: { targetNodeId: siegeTarget!.id, attackerFactionId: faction.id }
+            });
+          });
+          return;
+        }
+      }
+    }
+
+    // 2. 尋找可佔領的空白目標
+    const availableTargets = this.mapNodes.filter(node =>
+      node.ownerFactionId === null &&
       !node.isPlayerBase &&
       node.feature === NodeFeature.OCCUPIABLE
     );
 
     if (availableTargets.length > 0) {
-      // 找出距離當前派系最近的節點
-      let bestTarget = null;
+      let bestTarget: MapNode | null = null;
       let minDistance = Infinity;
 
       for (const target of availableTargets) {
-        // 從該派系的所有已知節點尋找最近距離
         const factionNodes = this.mapNodes.filter(n => faction.controlledNodes.includes(n.id));
         for (const fn of factionNodes) {
           const dist = this.getDistance(fn, target);
@@ -313,14 +356,12 @@ export class MapDynamicsSystem {
       }
 
       if (bestTarget) {
-        // 只有相鄰(距離 < 15)才允許擴張，避免跨越半個地圖
         if (minDistance < 15) {
           faction.resources -= this.FACTION_EXPANSION_COST;
           faction.controlledNodes.push(bestTarget.id);
           bestTarget.ownerFactionId = faction.id;
           console.log(`[系統] 🛡️ 派系動態：【${faction.factionName}】的勢力穩步擴張，佔領了「${bestTarget.name}」。`);
         } else if (faction.resources >= this.FACTION_EXPANSION_COST * 5) {
-          // 遠征：距離較遠，需付出五倍代價
           faction.resources -= this.FACTION_EXPANSION_COST * 5;
           faction.controlledNodes.push(bestTarget.id);
           bestTarget.ownerFactionId = faction.id;
@@ -330,9 +371,6 @@ export class MapDynamicsSystem {
     }
   }
 
-  /**
-   * 玩家遷徙據點
-   */
   public relocateBase(targetNodeId: string, territory: Territory): boolean {
     const targetNode = this.mapNodes.find(n => n.id === targetNodeId);
     if (!targetNode) return false;

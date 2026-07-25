@@ -1756,6 +1756,30 @@
     </div>
   </div>
 
+  <!-- 戰後俘虜處置 Modal -->
+  <div class="modal-overlay" id="modal-prisoner-action">
+    <div class="glass-panel modal-content" style="width: 520px; text-align: center;">
+      <h2 style="color: #fbbf24; margin-top: 0; font-family: 'Cinzel', serif;">⚔️ 戰後俘虜處置</h2>
+      <p style="color: #cbd5e1; font-size: 0.9em; margin-bottom: 15px;">在戰鬥中，您俘獲了敵方的武將大將：</p>
+      
+      <div id="prisoner-info-card" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(234,179,8,0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: left; display: flex; gap: 15px; align-items: center;">
+        <div id="prisoner-avatar" style="font-size: 3em; line-height: 1;">👑</div>
+        <div style="flex: 1;">
+          <div style="font-size: 1.2em; font-weight: bold; color: #fbbf24;" id="prisoner-name">武將姓名</div>
+          <div style="font-size: 0.85em; color: #94a3b8;" id="prisoner-title">【稱號】 派系名稱</div>
+          <div style="font-size: 0.85em; color: #e2e8f0; margin-top: 6px;" id="prisoner-desc">背景故事說明...</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+        <button id="btn-prisoner-recruit" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857); border-color: #10b981; padding: 12px;">🤝 招降加入</button>
+        <button id="btn-prisoner-ransom" class="action-btn" style="background: linear-gradient(135deg, #d97706, #b45309); border-color: #f59e0b; padding: 12px;">💰 索取贖金</button>
+        <button id="btn-prisoner-execute" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #ef4444; padding: 12px;">⚰️ 處決武將</button>
+        <button id="btn-prisoner-release" class="action-btn" style="background: rgba(255,255,255,0.1); border-color: #cbd5e1; padding: 12px;">🔓 釋放武將</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 系統選單 Modal -->
   <div class="modal-overlay" id="modal-system-menu">
     <div class="glass-panel modal-content" style="width: 320px; text-align: center; padding: 30px 20px; display: flex; flex-direction: column; gap: 15px; border-radius: 8px;">

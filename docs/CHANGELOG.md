@@ -1,3 +1,15 @@
+## [2026-07-25] AI 派系武將與戰後俘虜處置系統 (Milestone 1)
+
+- **AI 武將資料模型 (Faction Champion System)**：
+  - 在 `types.ts` 新增 `FactionChampion` 與 `FactionChampionInstance` 型別，並在 `Faction` 擴充 `champions`、`capturedChampionIds` 與 `defeatedChampionIds` 欄位。
+  - 在 `FactionData.ts` 為埃瑟加德王室、瓦萊里烏斯家族、莫凡恩家族、萊桑德家族等 7 大派系配置了專屬的陣營武將（如鐵拳將軍「格里姆」、皇家大總管「奧古斯都三世」）。
+- **動態攻城戰啟動 (Siege Initiation)**：
+  - 在 `MapDynamicsSystem.ts` 補全了攻城戰發起邏輯：當派系資源充裕且處於交戰狀態時，會主動對相鄰敵對據點或玩家據點發起圍攻 (`node.siegeData`)，真正激活地圖上的 ⚔️ 攻城戰與天數倒數。
+- **戰後俘虜處置視窗 (Prisoner Modal UI & Conversion)**：
+  - 在 `index.html` 新增 `#modal-prisoner-action` 戰後俘虜處置 Modal。
+  - 在 `ModalController.ts` 實裝 `openPrisonerModal` 與 4 種處置分支（🤝 招降、💰 索取贖金、⚰️ 處決、🔓 釋放）。
+  - 實裝 `convertChampionToAdventurer` 函數：招降時將 AI 武將無縫轉換為玩家邏輯的傭兵（帶有等級、經驗值與技能）。
+
 ## [2026-07-25] 戰鬥紀錄面板重構 & 三面板互斥切換
 
 - **UI 重構 (UI Refactor)**：

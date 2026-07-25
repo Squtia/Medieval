@@ -157,10 +157,10 @@ async function main() {
     await page.waitForTimeout(1500);
 
     try {
-      const confirmSummaryBtn = await page.waitForSelector('#btn-confirm-daily-summary', { state: 'visible', timeout: 3000 });
+      const confirmSummaryBtn = await page.waitForSelector('#btn-daily-summary-confirm', { state: 'visible', timeout: 3000 });
       if (confirmSummaryBtn) {
         await confirmSummaryBtn.click();
-        await page.waitForTimeout(1500);
+        await page.waitForTimeout(2000);
       }
     } catch (e) {
       console.log('  ℹ️ Daily summary modal confirm button not needed or timed out.');
