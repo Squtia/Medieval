@@ -492,7 +492,7 @@ let pendingDispatchNode: MapNode | null = null;
 let selectedAdventurersForDispatch: Set<string> = new Set();
 let selectedTroopsForDispatch: Record<string, number> = {};
 
-export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjugation' | 'war') {
+export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjugation' | 'war' | 'diplomacy') {
   const modal = document.getElementById('modal-dispatch-setup')!;
   const title = document.getElementById('dispatch-setup-title')!;
   const desc = document.getElementById('dispatch-setup-desc')!;
@@ -514,6 +514,12 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
     desc.textContent = `目標：${node.name} (進行區域探索與採集)`;
     // 探索任務需要較短天數 (預設 2 天)
     pendingDispatchTask = new DispatchTask(`探索${node.name}`, TaskType.EXPLORE, 2, baseDiff / 2, 50, 5, Math.floor(minPower * 0.5));
+    pendingDispatchTask.targetNodeId = node.id;
+  } else if (actionType === 'diplomacy') {
+    optionsContainer.style.display = 'none';
+    title.innerHTML = '🤝 外交使節隊伍編制';
+    desc.textContent = `目標：${node.name} (派遣使節前往簽署通商條約)`;
+    pendingDispatchTask = new DispatchTask(`外交使節前往${node.name}`, TaskType.DIPLOMACY, 3, 0, 50, 0, 30);
     pendingDispatchTask.targetNodeId = node.id;
   } else if (actionType === 'war') {
     optionsContainer.style.display = 'block';
@@ -1003,7 +1009,7 @@ export function openNodeDetailPanel(node: MapNode) {
 
   // 市場按鈕
   const marketBtn = document.getElementById('nd-btn-market') as HTMLButtonElement;
-  if (node.nodeLevel >= NodeLevel.VILLAGE && node.isScouted && node.marketData) {
+  if (node.nodeLevel >= NodeLevel.VILLAGE && node.isScouted && node.marketData && node.ownerFactionId !== null && node.ownerFactionId !== 'player' && !node.isPlayerBase) {
     marketBtn.style.display = 'block';
     marketBtn.onclick = () => {
       openTradeModal(node);
@@ -1012,21 +1018,69 @@ export function openNodeDetailPanel(node: MapNode) {
     marketBtn.style.display = 'none';
   }
 
-  // 設定底部操作按鈕 (例如討伐/探索)
-  if (node.ownerFactionId === null) {
-    if (node.nodeLevel === NodeLevel.WILDERNESS && node.feature !== NodeFeature.MONSTER_NEST && node.feature !== NodeFeature.SUBJUGATION) {
-      newBtnAction.textContent = '📖 探索此地';
-      newBtnAction.onclick = () => {
-        openDispatchSetup(node, 'explore');
-        closeNodeDetailPanel();
-      };
+  // 代官 UI (僅限玩家佔領的附庸地)
+  const govBox = document.getElementById('nd-governor-box')!;
+  if (node.ownerFactionId === 'player' && !node.isPlayerBase) {
+    govBox.style.display = 'block';
+    const govNameEl = document.getElementById('nd-governor-name')!;
+    const govSelect = document.getElementById('nd-governor-select') as HTMLSelectElement;
+    const btnAssign = document.getElementById('btn-assign-governor')!;
+
+    if (node.governorId) {
+      const govAdv = GameState.adventurers.find(a => a.id === node.governorId);
+      govNameEl.textContent = govAdv ? govAdv.name : '未知的代官';
     } else {
-      newBtnAction.textContent = '🛡️ 討伐該區';
-      newBtnAction.onclick = () => {
-        openDispatchSetup(node, 'subjugation');
-        closeNodeDetailPanel();
-      };
+      govNameEl.textContent = '無';
     }
+
+    // 填充閒置傭兵
+    govSelect.innerHTML = '<option value="">選擇閒置傭兵...</option>';
+    const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE && !a.office && a.id !== node.governorId);
+    idleAdvs.forEach(adv => {
+      const intAttr = adv.getEffectiveAttributes().int;
+      govSelect.innerHTML += `<option value="${adv.id}">${adv.name} (INT: ${intAttr})</option>`;
+    });
+
+    // 替換新的 assign 按鈕清除舊事件
+    const newBtnAssign = btnAssign.cloneNode(true) as HTMLButtonElement;
+    btnAssign.parentNode!.replaceChild(newBtnAssign, btnAssign);
+    newBtnAssign.onclick = () => {
+      const selId = govSelect.value;
+      if (!selId) {
+        ToastManager.show('請選擇一名傭兵！');
+        return;
+      }
+      
+      // 如果原本有代官，卸任
+      if (node.governorId) {
+        const oldGov = GameState.adventurers.find(a => a.id === node.governorId);
+        if (oldGov) oldGov.currentState = AdventurerState.IDLE;
+      }
+      
+      const newGov = GameState.adventurers.find(a => a.id === selId);
+      if (newGov) {
+        newGov.currentState = AdventurerState.DISPATCHED; // 指派出去當代官
+        node.governorId = newGov.id;
+        ToastManager.show(`已指派 ${newGov.name} 為 ${node.name} 的代官！`);
+        openNodeDetailPanel(node); // 重新渲染 UI
+      }
+    };
+  } else {
+    govBox.style.display = 'none';
+  }
+
+  // 設定底部操作按鈕 (例如討伐/攻城)
+  if (node.ownerFactionId === null) {
+    newBtnAction.textContent = '🛡️ 討伐該區';
+    newBtnAction.onclick = () => {
+      if (!node.isScouted) {
+        if (!confirm('⚠️ 【警告】您尚未偵查該區域，敵方戰力未知，貿然進軍將面臨極大風險！是否確定要盲目討伐？')) {
+          return;
+        }
+      }
+      openDispatchSetup(node, 'subjugation');
+      closeNodeDetailPanel();
+    };
   } else {
     if (node.isPlayerBase) {
       newBtnAction.textContent = '🔒 無法操作';
@@ -1034,6 +1088,11 @@ export function openNodeDetailPanel(node: MapNode) {
     } else {
       newBtnAction.textContent = '⚔️ 發動攻城戰';
       newBtnAction.onclick = () => {
+        if (!node.isScouted) {
+          if (!confirm('⚠️ 【警告】您尚未偵查該據點，敵方駐軍數量與城防未知！是否確定要盲目發動攻城？')) {
+            return;
+          }
+        }
         openDispatchSetup(node, 'war');
         closeNodeDetailPanel();
       };

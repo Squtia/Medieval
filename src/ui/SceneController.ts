@@ -78,18 +78,55 @@ export function enterScene(node: MapNode) {
       const myTerritory = GameState.myTerritory;
 
       const btnEnterBase = document.getElementById('btn-enter-base')!;
-      const btnEnterTavern = document.getElementById('btn-enter-tavern')!;
-      const btnEnterWeaponShop = document.getElementById('btn-enter-weapon-shop')!;
-      const btnEnterArmorShop = document.getElementById('btn-enter-armor-shop')!;
-      const btnEnterForge = document.getElementById('btn-enter-forge')!;
+      const btnEnterTavern = document.getElementById('btn-enter-tavern');
+      const btnEnterWeaponShop = document.getElementById('btn-enter-weapon-shop');
+      const btnEnterArmorShop = document.getElementById('btn-enter-armor-shop');
+      const btnEnterForge = document.getElementById('btn-enter-forge');
+      const btnEnterDefense = document.getElementById('btn-enter-defense');
       const btnMigrate = document.getElementById('btn-migrate')!;
       const btnEnterHall = document.getElementById('btn-enter-hall')!;
       
       btnEnterBase.style.display = isMyHome ? 'block' : 'none';
-      btnEnterTavern.style.display = (isMyHome && (myTerritory.tavernLevel || 0) > 0) ? 'block' : 'none';
-      btnEnterWeaponShop.style.display = (isMyHome && (myTerritory.weaponShopLevel || 0) > 0) ? 'block' : 'none';
-      btnEnterArmorShop.style.display = (isMyHome && (myTerritory.armorShopLevel || 0) > 0) ? 'block' : 'none';
-      btnEnterForge.style.display = (isMyHome && (myTerritory.forgeLevel || 0) > 0) ? 'block' : 'none';
+      if (btnEnterTavern) {
+        btnEnterTavern.style.display = (isMyHome && (myTerritory.tavernLevel || 0) > 0) ? 'block' : 'none';
+        const label = btnEnterTavern.querySelector('.building-label');
+        if (label && myTerritory.tavernLevel > 0) {
+          const info = getDynamicFacilityName('tavern', myTerritory.tavernLevel);
+          label.textContent = `${info.icon} ${info.name}`;
+        }
+      }
+      if (btnEnterWeaponShop) {
+        btnEnterWeaponShop.style.display = (isMyHome && (myTerritory.weaponShopLevel || 0) > 0) ? 'block' : 'none';
+        const label = btnEnterWeaponShop.querySelector('.building-label');
+        if (label && myTerritory.weaponShopLevel > 0) {
+          const info = getDynamicFacilityName('weapon', myTerritory.weaponShopLevel);
+          label.textContent = `${info.icon} ${info.name}`;
+        }
+      }
+      if (btnEnterArmorShop) {
+        btnEnterArmorShop.style.display = (isMyHome && (myTerritory.armorShopLevel || 0) > 0) ? 'block' : 'none';
+        const label = btnEnterArmorShop.querySelector('.building-label');
+        if (label && myTerritory.armorShopLevel > 0) {
+          const info = getDynamicFacilityName('armor', myTerritory.armorShopLevel);
+          label.textContent = `${info.icon} ${info.name}`;
+        }
+      }
+      if (btnEnterForge) {
+        btnEnterForge.style.display = (isMyHome && (myTerritory.forgeLevel || 0) > 0) ? 'block' : 'none';
+        const label = btnEnterForge.querySelector('.building-label');
+        if (label && myTerritory.forgeLevel > 0) {
+          const info = getDynamicFacilityName('forge', myTerritory.forgeLevel);
+          label.textContent = `${info.icon} ${info.name}`;
+        }
+      }
+      if (btnEnterDefense) {
+        btnEnterDefense.style.display = (isMyHome && (myTerritory.defenseLevel || 0) > 0) ? 'block' : 'none';
+        const label = btnEnterDefense.querySelector('.building-label');
+        if (label && myTerritory.defenseLevel > 0) {
+          const info = getDynamicFacilityName('defense', myTerritory.defenseLevel);
+          label.textContent = `${info.icon} ${info.name}`;
+        }
+      }
       btnMigrate.style.display = isMyHome ? 'none' : 'block';
       
       btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
@@ -166,23 +203,57 @@ export function backToScene() {
   });
 }
 
+export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', level: number): { name: string, desc: string, icon: string } {
+  if (type === 'tavern') {
+    if (level === 1) return { name: '露天營火', desc: '吸引荒野流浪者歇腳，提供最基礎的招募與休息', icon: '🔥' };
+    if (level === 2) return { name: '聚落帳篷', desc: '由多個帳篷組成的簡易交易與休息處', icon: '⛺' };
+    if (level === 3) return { name: '簡陋酒館', desc: '開始供應劣質麥酒，能吸引傭兵前來', icon: '🍻' };
+    return { name: '豪華酒館', desc: '正規的傭兵公會駐點與情報中心', icon: '🏰' };
+  } else if (type === 'weapon') {
+    if (level === 1) return { name: '拾荒者交易點', desc: '吸引流浪商人來交易粗糙的武器與石器', icon: '🪨' };
+    if (level === 2) return { name: '流浪武商營帳', desc: '有拉車的武商駐點，能買到勉強可用的鐵器', icon: '🏕️' };
+    if (level === 3) return { name: '武器鋪', desc: '正規的城鎮武器鋪，提供精良的制式武器', icon: '⚔️' };
+    return { name: '皇家武器庫', desc: '提供頂尖武器的軍事設施', icon: '🗡️' };
+  } else if (type === 'armor') {
+    if (level === 1) return { name: '獸皮交易鋪', desc: '能跟獵人買到粗糙的破爛皮甲', icon: '🪵' };
+    if (level === 2) return { name: '流浪防具商', desc: '販售修補過的皮甲與二手盾牌', icon: '🛡️' };
+    if (level === 3) return { name: '防具鋪', desc: '提供堅固鎖子甲與制式防具的店舖', icon: '🛡️' };
+    return { name: '皇家防具庫', desc: '提供最頂尖護甲的軍事設施', icon: '🛡️' };
+  } else if (type === 'forge') {
+    if (level === 1) return { name: '簡陋火窯', desc: '最粗糙的火窯，只能做最基礎的修補與強化', icon: '🔥' };
+    if (level === 2) return { name: '簡易熔爐', desc: '勉強能熔煉鐵礦石的小型熔爐', icon: '🧱' };
+    if (level === 3) return { name: '鐵匠鋪', desc: '擁有專業鐵砧與高溫熔爐的鐵匠工作坊', icon: '⚒️' };
+    return { name: '工坊鍛造屋', desc: '能鍛造出傳說神兵的頂級工坊', icon: '⚒️' };
+  } else { // defense
+    if (level === 1) return { name: '木柵欄', desc: '用削尖的圓木圍成，能抵禦野獸與零星流寇', icon: '🪵' };
+    if (level === 2) return { name: '拒馬與壕溝', desc: '強化的營地防禦，能有效阻擋強盜集團', icon: '🚧' };
+    if (level === 3) return { name: '瞭望塔', desc: '能提早發現敵人並提供弓箭手射擊視野', icon: '🗼' };
+    return { name: '護城要塞', desc: '堅不可摧的石頭城牆，足以應付正規軍隊', icon: '🏰' };
+  }
+}
+
 export function renderBaseBuildings() {
   const listEl = document.getElementById('base-upgrade-list');
   if (!listEl) return;
   listEl.innerHTML = '';
   
   const territory = GameState.myTerritory;
-  const bldTypes: { key: 'tavern' | 'weapon' | 'armor' | 'forge', name: string, desc: string, icon: string }[] = [
-    { key: 'tavern', name: '傭兵酒館', desc: '解鎖招募並提高招募高品質英雄機率', icon: '🍻' },
-    { key: 'weapon', name: '皇家武器店', desc: '解鎖並購買 1~3 階強力武器', icon: '⚔️' },
-    { key: 'armor', name: '皇家防具店', desc: '解鎖並購買 1~3 階精美防具', icon: '🛡️' },
-    { key: 'forge', name: '工坊鍛造屋', desc: '解鎖並提供強化武具火爐', icon: '⚒️' }
+  const bldTypes: { key: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' }[] = [
+    { key: 'defense' },
+    { key: 'tavern' },
+    { key: 'weapon' },
+    { key: 'armor' },
+    { key: 'forge' }
   ];
   
   bldTypes.forEach(bld => {
     const lvl = territory.getBuildingLevel(bld.key);
     const nextLvl = lvl + 1;
-    const isMax = lvl >= 3;
+    const isMax = lvl >= 3; // TODO: 未來實裝更高階建築
+    
+    // 動態獲取名稱與描述 (若尚未建造，顯示 Lv1 的預期名稱)
+    const displayLvl = lvl === 0 ? 1 : lvl;
+    const dynamicInfo = getDynamicFacilityName(bld.key, displayLvl);
     
     const card = document.createElement('div');
     card.className = 'glass-panel';
@@ -195,8 +266,9 @@ export function renderBaseBuildings() {
     
     let actionBtnHtml = '';
     const maxAllowed = getMaxFacilityLevel(territory.title);
+    
     if (isMax) {
-      actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px;">已達最高等級 (3等)</button>`;
+      actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px;">已達當前最高等級</button>`;
     } else if (nextLvl > maxAllowed) {
       actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px; color: #f87171;">需晉升爵位解鎖 Lv.${nextLvl}</button>`;
     } else {
@@ -223,11 +295,11 @@ export function renderBaseBuildings() {
     card.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
         <div>
-          <span style="font-size: 1em; font-weight: bold; color: #fff;">${bld.icon} ${bld.name}</span>
+          <span style="font-size: 1em; font-weight: bold; color: #fff;">${dynamicInfo.icon} ${dynamicInfo.name}</span>
           <span style="font-size: 0.85em; color: #eab308; font-weight: bold; margin-left: 5px;">Lv.${lvl}</span>
         </div>
       </div>
-      <div style="font-size: 0.8em; color: #cbd5e1; line-height: 1.3;">${bld.desc}</div>
+      <div style="font-size: 0.8em; color: #cbd5e1; line-height: 1.3;">${dynamicInfo.desc}</div>
       ${actionBtnHtml}
     `;
     

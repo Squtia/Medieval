@@ -83,6 +83,9 @@ export function initGameFlowController(): void {
       const sharedRightPanel = document.getElementById('shared-right-panel');
       if (sharedRightPanel) sharedRightPanel.style.display = 'none';
       
+      const commandCrest = document.getElementById('command-crest-container');
+      if (commandCrest) commandCrest.style.display = 'none';
+      
       // 顯示主選單
       const mainMenu = document.getElementById('main-menu-view');
       if (mainMenu) mainMenu.classList.add('active');

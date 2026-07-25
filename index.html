@@ -1053,16 +1053,6 @@
 
   <!-- 歷史戰鬥紀錄已移至左側抽屜面板 (#combat-history-panel)，見下方 -->
 
-  <!-- 跑商路線規劃 HUD -->
-  <div id="route-planning-hud" style="display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 2px solid #eab308; border-radius: 10px; padding: 15px; z-index: 2000; text-align: center; color: white;">
-    <h3>🗺️ 路線規劃中</h3>
-    <p id="route-planning-status">已選擇 0/3 個節點</p>
-    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-      <button id="btn-finish-route" class="action-btn" style="background: #10b981;">完成規劃</button>
-      <button id="btn-cancel-route" class="action-btn" style="background: #ef4444;">取消</button>
-    </div>
-  </div>
-
   <!-- 商隊預設指令面板 -->
   <div id="modal-trade-planner" class="modal-overlay" style="display: none; z-index: 2100;">
     <div class="modal-content" style="max-width: 800px; text-align: left;">
@@ -1127,9 +1117,10 @@
       </div>
       
       <div style="margin-top: 20px;">
-        <h4>跑商系統已升級</h4>
-        <p>現在您可以自訂最多 3 個中途站的跑商路線，並預先設定買賣指令。</p>
-        <button id="btn-plan-route" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857);">規劃跑商路線</button>
+        <h4 id="trade-modal-msg-title">與此據點進行貿易</h4>
+        <p id="trade-modal-msg-desc">單線跑商：派商隊前往此地，抵達後可立即進行交易與購買特產。</p>
+        <button id="btn-diplomacy" class="action-btn" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); display: none;">派遣外交使節</button>
+        <button id="btn-plan-route" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857);">發起單線跑商</button>
         <button id="btn-close-trade" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b);">關閉</button>
       </div>
     </div>
@@ -1224,6 +1215,43 @@
       <div class="street-scroller-container" style="width: 100%;">
         <!-- 背景圖片會由 JS 根據繁榮度動態更換 -->
         <div id="street-parallax-bg" class="street-parallax-bg" style="background-image: url('./bg_street_prosperous_1784087131344.png');"></div>
+
+        <!-- C3: 繁榮度進度條 -->
+        <div id="prosperity-bar-container" style="
+          position: absolute;
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: min(480px, 90%);
+          background: rgba(0,0,0,0.65);
+          border: 1px solid rgba(139,69,19,0.6);
+          border-radius: 8px;
+          padding: 8px 14px;
+          z-index: 50;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          backdrop-filter: blur(4px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82em;">
+            <span id="prosperity-level-label" style="color: #f59e0b; font-weight: bold; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">🏕️ 營地</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="prosperity-danger-badge" style="display: none; color: #ef4444; font-size: 0.85em; animation: pulse 2s infinite;">⚠️ 受周邊危險影響</span>
+              <span id="prosperity-value-label" style="color: #cbd5e1; font-size: 0.9em;">0 / 40</span>
+            </div>
+          </div>
+          <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 8px; overflow: hidden;">
+            <div id="prosperity-bar-fill" style="
+              height: 100%;
+              width: 0%;
+              background: linear-gradient(90deg, #d97706, #fbbf24);
+              border-radius: 4px;
+              transition: width 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+            "></div>
+          </div>
+          <div id="prosperity-next-label" style="font-size: 0.75em; color: #94a3b8; text-align: right;">距升級還差 40 點繁榮度</div>
+        </div>
         
         <!-- 街道滾動遮罩 -->
         <div id="street-scroll-area" class="street-scroll-area">
@@ -1243,6 +1271,9 @@
             <div id="btn-enter-armor-shop" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(240deg) brightness(0.8); width: 220px; height: 220px; display: none;">
                <div class="building-label">🛡️ 防具店</div>
             </div>
+            <div id="btn-enter-defense" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: sepia(1) hue-rotate(-50deg) saturate(2); width: 220px; height: 220px; display: none; cursor: default;">
+               <div class="building-label">🪵 木柵欄</div>
+            </div>
             <div id="btn-enter-forge" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(180deg) brightness(0.8); width: 220px; height: 220px; display: none;"> 
                <div class="building-label">⚒️ 鍛造屋</div>
             </div>
@@ -1259,7 +1290,6 @@
     <!-- 設施視圖：自宅 -->
     <div id="view-base" class="facility-view">
       <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">⬅ 返回街道</button>
-      <button id="btn-base-trade" class="action-btn" style="position: absolute; top: 20px; right: 20px; width: auto; background: linear-gradient(135deg, #059669, #047857);">⚖️ 建立商隊</button>
       <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🏰 領主書房 (Base)</h2>
       <div style="display: flex; gap: 20px; flex: 1; align-items: stretch; min-height: 550px;">
         <!-- 勞動力分配面板 -->
@@ -1536,6 +1566,18 @@
           <p style="font-size: 0.85em; color: #64748b; margin-bottom: 15px;">此區域的詳細資訊未知，充滿風險。派遣斥候以獲取情報。</p>
           <button id="btn-scout-node" class="action-btn" style="padding: 10px 20px;">👁️ 派遣斥候 (花費 100 金幣)</button>
         </div>
+      </div>
+      
+      <!-- 玩家附庸地：代官系統 -->
+      <div id="nd-governor-box" style="padding: 15px 20px; border-top: 1px solid rgba(139, 69, 19, 0.5); display: none; background: rgba(5, 150, 105, 0.1);">
+         <h4 style="color: #10b981; margin: 0 0 10px 0;">👑 領地代官</h4>
+         <p style="font-size: 0.9em; color: #cbd5e1; margin-bottom: 10px;">目前代官：<span id="nd-governor-name" style="font-weight: bold; color: #fff;">無</span></p>
+         <div style="display: flex; gap: 10px;">
+           <select id="nd-governor-select" style="flex: 1; padding: 5px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #10b981; border-radius: 4px;">
+             <option value="">選擇閒置傭兵...</option>
+           </select>
+           <button id="btn-assign-governor" class="action-btn" style="padding: 5px 15px; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981;">指派</button>
+         </div>
       </div>
       
       <!-- 考量未來擴充：改用 Flex 排版，並預留下方 315px 空間避開史詩按鈕 -->

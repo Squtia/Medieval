@@ -89,6 +89,28 @@ export class MarketSystem {
         if (currentDay - node.marketData.lastUpdateDay >= 7) {
           node.marketData.lastUpdateDay = currentDay;
           
+          // 隨機觸發動態需求事件 (20% 機率)
+          if (Random.next() < 0.20) {
+             const randomGood = Random.pick(node.marketData.goods);
+             const goodRef = TRADE_GOODS.find(g => g.id === randomGood.goodId);
+             if (goodRef) {
+                let desc = '';
+                let mult = 2.0;
+                if (goodRef.type === 'FOOD') desc = '當地遭遇飢荒，急需糧食！';
+                else if (goodRef.type === 'MATERIAL') desc = '當地大興土木，急需建材！';
+                else if (goodRef.type === 'LUXURY') desc = '當地貴族舉辦盛宴，高價收購奢侈品！';
+                else desc = '當地對此特產產生狂熱需求！';
+                
+                node.marketData.demandEvent = {
+                  goodId: goodRef.id,
+                  description: desc,
+                  priceMultiplier: mult
+                };
+             }
+          } else {
+             node.marketData.demandEvent = undefined;
+          }
+          
           for (const item of node.marketData.goods) {
             const goodRef = TRADE_GOODS.find(g => g.id === item.goodId);
             if (!goodRef) continue;
@@ -106,7 +128,11 @@ export class MarketSystem {
             if (node.currentWeather === WeatherType.SANDSTORM && goodRef.type === 'MATERIAL') modifier *= 1.3; // 沙暴缺建材
             
             const fluctuation = 0.8 + Random.next() * 0.4;
-            const newBase = goodRef.basePrice * modifier * fluctuation;
+            let newBase = goodRef.basePrice * modifier * fluctuation;
+            
+            if (node.marketData.demandEvent && node.marketData.demandEvent.goodId === item.goodId) {
+               newBase *= node.marketData.demandEvent.priceMultiplier;
+            }
             
             item.buyPrice = Math.max(1, Math.floor(newBase * 1.2));
             item.sellPrice = Math.max(1, Math.floor(newBase));

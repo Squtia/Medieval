@@ -1,7 +1,7 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
-import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig } from '../models/types';
+import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig, getNodeMaxPopulation } from '../models/types';
 import { Random } from '../core/Random';
 
 export class SettlementSystem {
@@ -166,12 +166,50 @@ export class SettlementSystem {
         
         if (Random.next() < attractChance) {
           // 收益動態化：增加當前總人口的 5% (最少 1 人)
-          const newComers = Math.max(1, Math.floor(territory.population * 0.05));
-          territory.population += newComers;
-          territory.workers[WorkerJob.UNASSIGNED] += newComers;
+          let newComers = Math.max(1, Math.floor(territory.population * 0.05));
+          
+          const baseNode = GameState.mapSystem.getNodeById(territory.currentCountryId!);
+          const maxPop = baseNode ? getNodeMaxPopulation(baseNode.nodeLevel) : 9999;
+          const spaceLeft = maxPop - territory.population;
+          
+          if (spaceLeft > 0) {
+            newComers = Math.min(newComers, spaceLeft);
+            territory.population += newComers;
+            territory.workers[WorkerJob.UNASSIGNED] += newComers;
+          } else {
+            newComers = 0;
+          }
           console.log(`[SettlementSystem] 🏕️ 領地繁榮！流民被您的聲望與餘糧吸引而來，總人口增加 ${newComers} 人。`);
         }
       }
+    }
+    
+    // 5. 附庸地每月繁榮度成長
+    if (GameState.mapSystem) {
+      const vassalNodes = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase);
+      vassalNodes.forEach(node => {
+        if (node.governorId) {
+          const gov = GameState.adventurers.find(a => a.id === node.governorId);
+          if (gov) {
+            // 代官的魅力與智力會帶動當地的繁榮度成長
+            const attrs = gov.getEffectiveAttributes();
+            const growth = Math.max(1, Math.floor((attrs.int + attrs.charm) / 10));
+            node.prosperity += growth;
+            console.log(`[SettlementSystem] 🏰 附庸地成長：在代官 ${gov.name} 的治理下，「${node.name}」的繁榮度增加了 ${growth} 點！`);
+            
+            // 根據繁榮度可能升級 NodeLevel
+            const oldLevel = node.nodeLevel;
+            if (node.prosperity >= 500 && node.nodeLevel < NodeLevel.CAPITAL) node.nodeLevel = NodeLevel.CAPITAL;
+            else if (node.prosperity >= 300 && node.nodeLevel < NodeLevel.TOWN) node.nodeLevel = NodeLevel.TOWN;
+            else if (node.prosperity >= 100 && node.nodeLevel < NodeLevel.VILLAGE) node.nodeLevel = NodeLevel.VILLAGE;
+            else if (node.prosperity >= 100 && node.nodeLevel < NodeLevel.CAMP) node.nodeLevel = NodeLevel.CAMP;
+            
+            if (node.nodeLevel > oldLevel) {
+               console.log(`[SettlementSystem] 🎉 升級！「${node.name}」的規模擴大了！`);
+            }
+          }
+        }
+      });
     }
 
     // 發布資源變更事件，讓 UI 更新

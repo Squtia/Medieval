@@ -10,7 +10,7 @@ export class MapDynamicsSystem {
   // 升級所需的繁榮度門檻 (依據 NodeLevel)
   private readonly PROSPERITY_THRESHOLDS: Record<number, number> = {
     [NodeLevel.WILDERNESS]: 0,
-    [NodeLevel.CAMP]: 100,
+    [NodeLevel.CAMP]: 40,       // B2: 降低初始門檻，讓自然成長約 4 個月可達成
     [NodeLevel.VILLAGE]: 200,
     [NodeLevel.TOWN]: 300,
     [NodeLevel.CAPITAL]: 500
@@ -100,7 +100,7 @@ export class MapDynamicsSystem {
       );
 
       if (hasAdjacentDanger && (node.ownerFactionId !== null || node.isPlayerBase)) {
-        node.prosperity -= 10; // 每個月受怪物威脅大幅下降
+        node.prosperity -= 3; // B2: 降低危險懲罰（-10→-3），避免完全鎖死早期玩家繁榮度成長
       }
 
       // 確保繁榮度不小於 0
@@ -112,6 +112,27 @@ export class MapDynamicsSystem {
         if (node.prosperity >= nextLevelThreshold) {
           this.upgradeNode(node);
         }
+      }
+
+      // C2: 玩家據點繁榮度結算後發布更新事件，供 UI 進度條監聽
+      if (node.isPlayerBase) {
+        const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
+        const nextThresh = node.nodeLevel < NodeLevel.CAPITAL
+          ? this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1]
+          : node.prosperity;
+        import('../core/EventBus').then(({ EventBus }) => {
+          import('../core/GameEvents').then(({ GameEventType }) => {
+            EventBus.getInstance().publish({
+              type: GameEventType.PROSPERITY_CHANGED,
+              payload: {
+                delta: 0, // 此處 delta 由呼叫端計算，UI 以 current 為主
+                current: node.prosperity,
+                nextThreshold: nextThresh,
+                levelName: levelNames[node.nodeLevel] ?? '未知'
+              }
+            });
+          });
+        });
       }
 
       // 節點降級檢定

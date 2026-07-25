@@ -169,7 +169,7 @@ export class Adventurer {
    * 公式：(基礎 100 * 當前等級) * 性格倍率
    */
   public getRequiredXP(): number {
-    return Math.floor(100 * this.level * this.trait.xpModifier);
+    return Math.floor(200 * this.level * this.trait.xpModifier);
   }
 
   /**

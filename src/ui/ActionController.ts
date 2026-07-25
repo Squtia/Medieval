@@ -3,7 +3,7 @@ import { UIManager } from './UIManager';
 import { ToastManager } from './ToastManager';
 import { Random } from '../core/Random';
 import { DispatchTask, EnemyFeature, TaskType } from '../models/DispatchTask';
-import { NodeLevel, getMaxRosterLimit } from '../models/types';
+import { NodeLevel, getMaxRosterLimit, getNodeMaxPopulation } from '../models/types';
 import { Adventurer } from '../models/Adventurer';
 import { NameGenerator } from '../systems/NameGenerator';
 import { DataStore } from '../systems/DataStore';
@@ -61,36 +61,10 @@ export function initActionController(): void {
     territory.exploredToday++;
     territory.exploreCount = (territory.exploreCount || 0) + 1;
     
-    let recruitedAdv: Adventurer | null = null;
-    let qLabel = '';
+
     
-    // 1. 判斷首 3 次保底與機率
-    if (!territory.hasRecruitedFromFirstExplorations && territory.exploreCount <= 3) {
-      // 初始 3 次內探索，若是第 3 次且尚未招募過，則必定成功招募 (品質固定為 N)
-      // 或者是前 2 次以 20% 機率成功招募
-      const forceRecruit = territory.exploreCount === 3;
-      const luckyRecruit = Random.next() < 0.20;
-      
-      if (forceRecruit || luckyRecruit) {
-        recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomRecruitTrait(), 'N');
-        territory.hasRecruitedFromFirstExplorations = true;
-        qLabel = 'N 普通';
-      }
-    } else {
-      // 已經保底過或超過 3 次後，每次探索有 10% 機率招募！
-      const maxRoster = getMaxRosterLimit(territory.title);
-      if (Random.next() < 0.10 && GameState.adventurers.length < maxRoster) {
-        // 隨機抽取品質：N極大、R低、SR極低、SSR最低
-        let q: 'N' | 'R' | 'SR' | 'SSR' = 'N';
-        const randQ = Random.next() * 100;
-        if (randQ < 0.2) { q = 'SSR'; qLabel = 'SSR 傳奇'; }
-        else if (randQ < 3.0) { q = 'SR'; qLabel = 'SR 史詩'; }
-        else if (randQ < 10.0) { q = 'R'; qLabel = 'R 精英'; }
-        else { q = 'N'; qLabel = 'N 普通'; }
-        
-        recruitedAdv = new Adventurer(`adv_explore_${Date.now()}`, NameGenerator.generateFullName(), DataStore.getRandomJob(), DataStore.getRandomRecruitTrait(), q);
-      }
-    }
+    // 1. 拔除所有探索產生傭兵的機制 (無論是否為前三次)
+    // 玩家現在必須透過「營火/酒館」來招募傭兵
     
     // 2. 繁榮度反比：探索獲得難民勞動力判定
     let foundRefugees = 0;
@@ -101,9 +75,19 @@ export function initActionController(): void {
     const findRefugeeChance = Math.max(0.05, maxRefugeeChance - penalty);
 
     if (Random.next() < findRefugeeChance) {
+      const baseNode = GameState.mapSystem.getNodeById(territory.currentCountryId!);
+      const maxPop = baseNode ? getNodeMaxPopulation(baseNode.nodeLevel) : 9999;
+      
       foundRefugees = Random.int(1, 3);
-      territory.population += foundRefugees;
-      territory.workers['UNASSIGNED'] += foundRefugees;
+      const spaceLeft = maxPop - territory.population;
+      if (spaceLeft > 0) {
+        const added = Math.min(foundRefugees, spaceLeft);
+        territory.population += added;
+        territory.workers['UNASSIGNED'] += added;
+        foundRefugees = added;
+      } else {
+        foundRefugees = 0; // 無法收容
+      }
     }
 
     // 3. 結算獎勵
@@ -121,12 +105,7 @@ export function initActionController(): void {
       }
     }
     
-    if (recruitedAdv) {
-      recruitedAdv.locationNodeId = territory.currentCountryId;
-      GameState.adventurers.push(recruitedAdv);
-      msg = `🗺️ [探索] 領主親自巡視周邊，獲得了 20 金幣，並幸運地遇到一位流浪傭兵【${recruitedAdv.name}】(${qLabel}) 願意效忠您！已加入隊伍。`;
-      ToastManager.show(`招募到了傭兵【${recruitedAdv.name}】！`);
-    } else if (foundRefugees > 0) {
+    if (foundRefugees > 0) {
       msg = `🗺️ [探索] 領主巡視周邊，獲得了 20 金幣與物資，並在廢棄營地救出了 ${foundRefugees} 名流民，已加入領地閒置人力！`;
       ToastManager.show(`荒野探索：救出了 ${foundRefugees} 名流民！`);
     }

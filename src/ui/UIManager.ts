@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { AdventurerState, NobleTitle, TITLE_CONFIG } from '../models/types';
+import { AdventurerState, NobleTitle, TITLE_CONFIG, getNodeMaxPopulation, NodeLevel, NodeFeature } from '../models/types';
 import { openAdvDetail, getSelectedPartyAdventurer, selectPartyAdventurer, renderPartyUpperSection } from './ModalController';
 import { renderAdventurerCard } from './components/AdventurerCard';
 import { renderBaseBuildings } from './SceneController';
@@ -76,7 +76,14 @@ class UIManagerClass {
     if (this.uiGold) this.uiGold.textContent = territory.gold.toString();
     if (this.uiPrestige) this.uiPrestige.textContent = territory.prestige.toString();
     if (this.uiFavor) this.uiFavor.textContent = territory.royalFavor.toString();
-    if (this.uiPopulation) this.uiPopulation.textContent = territory.population.toString();
+    if (this.uiPopulation) {
+      let maxPop = 9999;
+      if (territory.currentCountryId) {
+        const baseNode = GameState.mapSystem.getNodeById(territory.currentCountryId);
+        if (baseNode) maxPop = getNodeMaxPopulation(baseNode.nodeLevel);
+      }
+      this.uiPopulation.textContent = `${territory.population} / ${maxPop}`;
+    }
     if (this.uiFood) this.uiFood.textContent = territory.food.toString();
     if (this.uiWood) this.uiWood.textContent = territory.wood.toString();
     if (this.uiStone) this.uiStone.textContent = territory.stone.toString();
@@ -436,9 +443,63 @@ class UIManagerClass {
       });
     }, 500); // 對應 CSS transition 0.5s
   }
+
+  // C4: 更新繁榮度進度條
+  updateProsperityBar(current: number, nextThreshold: number, levelName: string): void {
+    const levelLabel = document.getElementById('prosperity-level-label');
+    const valueLabel = document.getElementById('prosperity-value-label');
+    const barFill = document.getElementById('prosperity-bar-fill') as HTMLDivElement | null;
+    const nextLabel = document.getElementById('prosperity-next-label');
+    const dangerBadge = document.getElementById('prosperity-danger-badge');
+
+    if (levelLabel) levelLabel.textContent = `🏕️ ${levelName}`;
+    if (valueLabel) valueLabel.textContent = `${current} / ${nextThreshold}`;
+
+    const pct = nextThreshold > 0 ? Math.min(100, Math.round((current / nextThreshold) * 100)) : 100;
+    if (barFill) {
+      barFill.style.width = `${pct}%`;
+      // 顏色反饋：接近升級時轉綠色
+      if (pct >= 80) barFill.style.background = 'linear-gradient(90deg, #16a34a, #4ade80)';
+      else if (pct >= 50) barFill.style.background = 'linear-gradient(90deg, #d97706, #fbbf24)';
+      else barFill.style.background = 'linear-gradient(90deg, #7c3aed, #a78bfa)';
+    }
+
+    const diff = nextThreshold - current;
+    if (nextLabel) {
+      nextLabel.textContent = diff > 0
+        ? `距升級還差 ${diff} 點繁榮度`
+        : '✨ 繁榮度已達最高等級';
+    }
+
+    // 檢查相鄰危險並顯示警告徽章
+    if (dangerBadge && GameState.mapSystem && GameState.myTerritory.currentCountryId) {
+      const playerNode = GameState.mapSystem.getNodeById(GameState.myTerritory.currentCountryId);
+      if (playerNode) {
+        const hasDanger = GameState.mapSystem.getNodes().some(other =>
+          other.id !== playerNode.id &&
+          (other.nodeLevel === NodeLevel.WILDERNESS || other.feature === NodeFeature.MONSTER_NEST) &&
+          Math.sqrt((other.x - playerNode.x) ** 2 + (other.y - playerNode.y) ** 2) < 15
+        );
+        dangerBadge.style.display = hasDanger ? 'inline' : 'none';
+      }
+    }
+  }
 }
 
 export const UIManager = new UIManagerClass();
+
+// C4: 在 UIManager 初始化後，訂閱 PROSPERITY_CHANGED 事件更新進度條
+import('../core/EventBus').then(({ EventBus }) => {
+  import('../core/GameEvents').then(({ GameEventType }) => {
+    EventBus.getInstance().subscribe(GameEventType.PROSPERITY_CHANGED, (payload) => {
+      UIManager.updateProsperityBar(
+        payload.current,
+        payload.nextThreshold,
+        payload.levelName
+      );
+    });
+  });
+});
 
 function formatDelta(value: number): string {
   return value > 0 ? `+${value}` : `${value}`;

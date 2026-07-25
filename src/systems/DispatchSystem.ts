@@ -1,7 +1,7 @@
 import { Adventurer } from '../models/Adventurer';
 import { DispatchTask, EnemyFeature, TaskType, TradePhase, normalizeTradeTask } from '../models/DispatchTask';
 import { Territory } from '../models/Territory';
-import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig } from '../models/types';
+import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig, getNodeMaxPopulation, TradeTreaty } from '../models/types';
 import { EquipmentGenerator } from './EquipmentGenerator';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
@@ -129,8 +129,31 @@ export class DispatchSystem {
         adventurerWages += 7; // 基礎薪資: 每天 1 金
       }
     });
+    
+    // 結算附庸地歲貢
+    let totalTribute = 0;
+    if (GameState.mapSystem) {
+      const vassalNodes = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase);
+      vassalNodes.forEach(node => {
+        if (node.governorId) {
+          const gov = GameState.adventurers.find(a => a.id === node.governorId);
+          if (gov) {
+             // 基礎歲貢: 繁榮度的 20%
+             let tribute = Math.floor(node.prosperity * 0.20);
+             // 代官智力加成
+             const attrs = gov.getEffectiveAttributes();
+             const intBonus = attrs.int * 2;
+             tribute += intBonus;
+             totalTribute += tribute;
+             console.log(`📜 [代官歲貢] ${gov.name} 從附庸地「${node.name}」徵收了 ${tribute} 金幣歲貢！`);
+          }
+        } else {
+          console.log(`⚠️ [無人治理] 附庸地「${node.name}」由於沒有指派代官，無法徵收歲貢，且治安逐漸下降！`);
+        }
+      });
+    }
 
-    const netIncome = -adventurerWages - this.territory.diplomaticGift - populationUpkeep;
+    const netIncome = -adventurerWages - this.territory.diplomaticGift - populationUpkeep + totalTribute;
     this.territory.addGold(netIncome);
 
     if (this.territory.gold < 0) {
@@ -189,6 +212,29 @@ export class DispatchSystem {
          console.log(`⚠️ [遭遇惡劣天氣] 由於在 ${currentNode.name} 遭遇惡劣天氣，商隊受到阻礙，將延遲 2 天抵達下一站！`);
       } else {
          console.log(`🌤️ [化險為夷] 儘管天氣惡劣，商隊依靠高智慧與幸運順利度過了危機！`);
+      }
+    }
+    
+    // 商路安全度判定
+    if (!currentNode.isScouted) {
+      // 兩地沒有全開視野 (即目標據點未偵查)，有 20% 機率遭遇盜匪襲擊
+      if (Random.next() < 0.20) {
+        console.log(`⚠️ [商路襲擊] 由於通往 ${currentNode.name} 的路途視野未明，商隊遭遇了盜匪襲擊！`);
+        let totalPower = 0;
+        adventurers.forEach(a => totalPower += a.getEffectiveAttributes().str + a.getEffectiveAttributes().agi);
+        
+        // 戰鬥力檢定
+        if (totalPower < 100) {
+          const lostGold = Math.floor((task.caravanGold || 0) * 0.2);
+          if (lostGold > 0) {
+            task.caravanGold! -= lostGold;
+            console.log(`❌ [護衛不力] 傭兵戰力不足，商隊被搶走了 ${lostGold} 金幣！`);
+          } else {
+            console.log(`❌ [護衛不力] 傭兵戰力不足，但商隊已經沒有金幣可搶了。`);
+          }
+        } else {
+          console.log(`⚔️ [擊退盜匪] 護衛的傭兵英勇奮戰，成功擊退了盜匪，商隊毫髮無傷！`);
+        }
       }
     }
 
@@ -287,6 +333,32 @@ export class DispatchSystem {
 
     // 處理新版多節點貿易任務完成
     if (task.type === TaskType.TRADE && task.caravanGold !== undefined) {
+      const mapSystem = GameState.mapSystem;
+      if (mapSystem) {
+         const itinerary = task.tradeItineraryNodeIds || [];
+         if (itinerary.length > 0) {
+           const lastNodeId = itinerary[itinerary.length - 1];
+           const lastNode = mapSystem.getNodeById(lastNodeId);
+           if (lastNode && !lastNode.isScouted) {
+             if (Random.next() < 0.20) {
+               console.log(`⚠️ [商路襲擊] 由於通往 ${lastNode.name} 的路途視野未明，商隊在返程時遭遇了盜匪襲擊！`);
+               let totalPower = 0;
+               adventurers.forEach(a => totalPower += a.getEffectiveAttributes().str + a.getEffectiveAttributes().agi);
+               
+               if (totalPower < 100) {
+                 const lostGold = Math.floor((task.caravanGold || 0) * 0.2);
+                 if (lostGold > 0) {
+                   task.caravanGold! -= lostGold;
+                   console.log(`❌ [護衛不力] 傭兵戰力不足，商隊被搶走了 ${lostGold} 金幣！`);
+                 }
+               } else {
+                 console.log(`⚔️ [擊退盜匪] 護衛的傭兵英勇奮戰，成功擊退了盜匪，商隊毫髮無傷！`);
+               }
+             }
+           }
+         }
+      }
+
       this.territory.addGold(task.caravanGold);
       const cashProfit = task.initialCaravanGold === undefined
         ? null
@@ -372,6 +444,33 @@ export class DispatchSystem {
       return;
     }
 
+    if (task.type === TaskType.DIPLOMACY) {
+      const mapSystem = GameState.mapSystem;
+      if (mapSystem && task.targetNodeId) {
+        const node = mapSystem.getNodeById(task.targetNodeId);
+        if (node && node.ownerFactionId) {
+          const faction = mapSystem.getFactions().find(f => f.id === node.ownerFactionId);
+          if (faction) {
+            // 從 TradeTreaty.NONE 升級為 BASIC
+            // (未來可以擴充: 根據使節的交涉能力或攜帶獻金，有機率直接達成 ALLIED 或是失敗)
+            if (!faction.tradeTreaty || faction.tradeTreaty === TradeTreaty.NONE) {
+              faction.tradeTreaty = TradeTreaty.BASIC;
+              console.log(`🤝 [外交成功] 傭兵小隊 (${advNames}) 成功抵達 ${node.name}，並與【${faction.factionName}】簽署了基礎通商條約！現在可以與該勢力進行貿易了。`);
+            } else {
+              console.log(`🤝 [外交回報] 傭兵小隊 (${advNames}) 抵達 ${node.name}，發現與【${faction.factionName}】的條約已生效，無須重複簽署。`);
+            }
+          }
+        }
+      }
+      for (const adv of adventurers) {
+        adv.gainXP(25); // 外交任務給予固定經驗值
+        adv.currentState = AdventurerState.IDLE;
+        adv.dispatchEndTime = null;
+        adv.restingDaysLeft = 0;
+      }
+      return;
+    }
+
     const waveCount = task.subjugationMode === 'PROGRESS' ? (task.totalWaves || 3) : 1;
     
     const finalReport = CombatSystem.simulateCombat(
@@ -400,8 +499,20 @@ export class DispatchSystem {
         
         // 存活部隊回歸領地
         if (survivors > 0) {
-          this.territory.workers[typeStr] = (this.territory.workers[typeStr] || 0) + survivors;
-          this.territory.population += survivors;
+          const baseNode = GameState.mapSystem.getNodeById(this.territory.currentCountryId!);
+          const maxPop = baseNode ? getNodeMaxPopulation(baseNode.nodeLevel) : 9999;
+          const spaceLeft = maxPop - this.territory.population;
+          
+          if (spaceLeft > 0) {
+            const added = Math.min(survivors, spaceLeft);
+            this.territory.population += added;
+            this.territory.workers[typeStr] = (this.territory.workers[typeStr] || 0) + added;
+            if (added < survivors) {
+              battleLog += ` (有 ${survivors - added} 名生還士兵因領地人口上限無法歸建)`;
+            }
+          } else {
+            battleLog += ` (所有 ${survivors} 名生還士兵因領地人口上限無法歸建)`;
+          }
         }
         
         if (loss > 0) {
@@ -440,6 +551,16 @@ export class DispatchSystem {
       }
 
       console.log(`✅ [任務完成] 傭兵小隊 (${advNames}) 成功討伐「${task.name}」！${battleLog} 帶回 ${task.expectedGold} 金幣與 ${gainedPrestige} 聲望${expBonusStr}。${dropMsg}`);
+
+      // 如果是攻城任務，則佔領該據點
+      if (task.isWar && task.targetNodeId && GameState.mapSystem) {
+        const node = GameState.mapSystem.getNodeById(task.targetNodeId);
+        if (node) {
+          node.ownerFactionId = 'player';
+          node.governorId = undefined; // 剛佔領尚未指派代官
+          console.log(`🏰 [開疆闢土] 您成功佔領了「${node.name}」！現在您可以指派代官來管理該領地了。`);
+        }
+      }
 
       finalReport.lootValue = gainedPrestige; // 將最終獎勵補入 report 供 UI 顯示
       

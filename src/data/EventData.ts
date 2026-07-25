@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { FactionType } from '../models/types';
+import { FactionType, getNodeMaxPopulation } from '../models/types';
 import { Random } from '../core/Random';
 
 export interface EventOption {
@@ -182,7 +182,17 @@ export const GAME_EVENTS: GameEvent[] = [
         onSelect: () => {
           GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold - 200);
           const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
-          if (baseNode) baseNode.population += 50;
+          // A2 Bug 修復：人口增加需受 NodeLevel 人口上限約束，且必須同步 workers.UNASSIGNED
+          if (baseNode) {
+            const maxPop = getNodeMaxPopulation(baseNode.nodeLevel);
+            const spaceLeft = Math.max(0, maxPop - GameState.myTerritory.population);
+            const actualAdded = Math.min(50, spaceLeft);
+            if (actualAdded > 0) {
+              baseNode.population += actualAdded;
+              GameState.myTerritory.population += actualAdded;
+              GameState.myTerritory.workers['UNASSIGNED'] = (GameState.myTerritory.workers['UNASSIGNED'] || 0) + actualAdded;
+            }
+          }
           const oak = GameState.mapSystem.getFactions().find(f => f.id === 'f_oakhaven');
           if (oak) oak.playerFavor += 20;
           console.log('🤝 你慷慨地收留了難民，橡木谷家族對你表示深深的感激。');

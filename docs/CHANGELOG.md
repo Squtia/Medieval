@@ -1,3 +1,27 @@
+## [2026-07-25] 荒野開局平衡修復 (A/B/C 方案全實裝)
+
+- **[A1] Bug：附庸地 CAMP 升級門檻統一** (`SettlementSystem.ts`)
+  - 修復 `SettlementSystem` 中附庸地升 CAMP 判斷條件從 `>= 30` 更正為 `>= 100`，與 `MapDynamicsSystem.PROSPERITY_THRESHOLDS` 一致。
+- **[A2] Bug：難民事件人口黑洞修復** (`EventData.ts`)
+  - `evt_oakhaven_refugees` 收容難民時，新增 NodeLevel 人口上限限制，並同步更新 `territory.workers['UNASSIGNED']`，避免人口增加而勞動力不增的數據不一致問題。
+- **[A3] Bug：入侵敵力公式修正** (`GameLoop.ts`)
+  - 原 `50 * (currentYear * 2)` 呈指數爆炸，第 2 年最高可達 200；改為 `Math.min(300, 30 + currentYear * 15)` 線性成長並加上 300 硬上限。
+- **[B1] 平衡：荒野開局初始金幣提升** (`Territory.ts`)
+  - 初始金幣從 `50` 提升至 `150`，提供更多策略選擇空間。
+- **[B2] 平衡：CAMP 升級門檻與危險懲罰調整** (`MapDynamicsSystem.ts`)
+  - `CAMP` 升級門檻從 `100` 降至 `40`，讓自然成長路徑約 4 個月可達成。
+  - 相鄰危險節點月繁榮度懲罰從 `-10` 降至 `-3`，避免完全鎖死早期玩家進度。
+- **[B3] 平衡：入侵 CD 延長** (`GameLoop.ts`)
+  - 所有入侵 CD 重置值從 `7~12天` 統一延長至 `15~25天`，提供早期玩家充足喘息空間。
+- **[C1] 新增：PROSPERITY_CHANGED 事件** (`GameEvents.ts`)
+  - 新增 `PROSPERITY_CHANGED` 事件類型，攜帶 `{ delta, current, nextThreshold, levelName }` payload，供 UI 進度條監聽。
+- **[C2] 新增：月底繁榮度事件發布** (`MapDynamicsSystem.ts`)
+  - 玩家據點繁榮度月底結算後，發布 `PROSPERITY_CHANGED` 事件通知 UI。
+- **[C3] 新增：繁榮度進度條 DOM** (`index.html`)
+  - 在 `#scene-view` 街道視圖頂部新增 `#prosperity-bar-container`，包含等級標籤、數值、漸變進度條與相鄰危險警告徽章 (`#prosperity-danger-badge`)。
+- **[C4] 新增：進度條 UI 驅動邏輯** (`UIManager.ts`)
+  - 新增 `updateProsperityBar(current, nextThreshold, levelName)` 方法，包含顏色三段反饋（紫→黃→綠）與危險徽章顯示邏輯。訂閱 `PROSPERITY_CHANGED` 事件在月底自動更新。
+
 ## [2026-07-25] AI 派系武將與戰後俘虜處置系統 (Milestone 1)
 
 - **AI 武將資料模型 (Faction Champion System)**：

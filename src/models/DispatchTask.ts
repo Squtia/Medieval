@@ -9,7 +9,8 @@ import { MonsterData, MonsterInstance } from './types';
 export enum TaskType {
   COMBAT = 'COMBAT',
   EXPLORE = 'EXPLORE',
-  TRADE = 'TRADE'
+  TRADE = 'TRADE',
+  DIPLOMACY = 'DIPLOMACY'
 }
 
 export enum SubjugationMode {

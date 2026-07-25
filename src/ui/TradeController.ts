@@ -12,7 +12,7 @@
  */
 
 import { ToastManager } from './ToastManager';
-import { MapNode, AdventurerState, getMaxCaravansLimit } from '../models/types';
+import { MapNode, AdventurerState, getMaxCaravansLimit, TradeTreaty } from '../models/types';
 import { GameState } from '../core/GameState';
 import { DispatchTask, EnemyFeature, TaskType, TradeInstruction, TradePhase } from '../models/DispatchTask';
 import { TRADE_GOODS } from '../systems/MarketSystem';
@@ -129,7 +129,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     }
 
     nodeEl.innerHTML = `
-      <h4 style="margin: 0 0 5px 0; color: #60a5fa;">第 ${index + 1} 站: ${node.name}</h4>
+      <h4 style="margin: 0 0 5px 0; color: #60a5fa;">目標據點: ${node.name}</h4>
       <div style="display: flex; gap: 10px;">
         <div style="flex: 1;">
           <label style="font-size: 0.9em;">🛒 買入設定：</label><br/>
@@ -313,15 +313,26 @@ export function openTradeModal(node: MapNode) {
   // 當地市場
   marketContainer.innerHTML = '';
   if (node.marketData && node.marketData.goods.length > 0) {
-    const marketHtml = node.marketData.goods.map(item => {
+    let html = '';
+    if (node.marketData.demandEvent) {
+      html += `<div style="padding: 10px; margin-bottom: 10px; background: rgba(239,68,68,0.2); border-left: 4px solid #ef4444;">
+                 <strong>🔥 突發需求事件！</strong><br/>
+                 ${node.marketData.demandEvent.description}
+               </div>`;
+    }
+    
+    html += node.marketData.goods.map(item => {
       const goodRef = TRADE_GOODS.find(g => g.id === item.goodId);
       const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : item.goodId;
+      const isDemanded = node.marketData!.demandEvent?.goodId === item.goodId;
+      const highlight = isDemanded ? 'color: #ef4444; font-weight: bold;' : '';
+      
       return `<div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 5px; background: rgba(255,255,255,0.05);">
-                <span>${goodName}</span>
-                <span>買入: ${item.buyPrice} / 賣出: ${item.sellPrice} / 庫存: ${item.stock}</span>
+                <span style="${highlight}">${goodName}${isDemanded ? ' (熱銷中)' : ''}</span>
+                <span style="${highlight}">買入: ${item.buyPrice} / 賣出: ${item.sellPrice} / 庫存: ${item.stock}</span>
               </div>`;
     }).join('');
-    marketContainer.innerHTML = marketHtml;
+    marketContainer.innerHTML = html;
   } else {
     marketContainer.innerHTML = '<p>市場今日無貨</p>';
   }
@@ -332,9 +343,37 @@ export function openTradeModal(node: MapNode) {
     tradeModal.style.display = 'none';
   };
 
-  document.getElementById('btn-plan-route')!.onclick = () => {
-    tradeModal.style.display = 'none';
-    closeNodeDetailPanel();
-    startRoutePlanning(node);
-  };
+  const btnPlanRoute = document.getElementById('btn-plan-route')!;
+  const btnDiplomacy = document.getElementById('btn-diplomacy')!;
+  const titleMsg = document.getElementById('trade-modal-msg-title')!;
+  const descMsg = document.getElementById('trade-modal-msg-desc')!;
+
+  // 取得該節點的派系
+  const faction = GameState.mapSystem.getFactions().find(f => f.id === node.ownerFactionId);
+  const treaty = faction?.tradeTreaty || TradeTreaty.NONE;
+
+  if (treaty === TradeTreaty.NONE) {
+    btnPlanRoute.style.display = 'none';
+    btnDiplomacy.style.display = 'inline-block';
+    titleMsg.textContent = '🤝 尚未建立通商條約';
+    descMsg.textContent = `您與【${faction?.factionName || '未知勢力'}】尚未簽署通商條約，無法發起商隊。請派遣外交使節進行交涉。`;
+    btnDiplomacy.onclick = () => {
+      tradeModal.style.display = 'none';
+      closeNodeDetailPanel();
+      const { openDispatchSetup } = require('./ModalController');
+      openDispatchSetup(node, 'diplomacy');
+    };
+  } else {
+    btnPlanRoute.style.display = 'inline-block';
+    btnDiplomacy.style.display = 'none';
+    titleMsg.textContent = treaty === TradeTreaty.ALLIED ? '🤝 免稅貿易協定生效中' : '🤝 基礎通商條約生效中';
+    descMsg.textContent = '單線跑商：派商隊前往此地，抵達後可立即進行交易與購買特產。';
+    
+    btnPlanRoute.onclick = () => {
+      tradeModal.style.display = 'none';
+      closeNodeDetailPanel();
+      const { openTradePlanner } = require('./TradeController');
+      openTradePlanner([node.id]);
+    };
+  }
 }

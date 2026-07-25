@@ -4,7 +4,6 @@ import { GameEventType } from '../core/GameEvents';
 import { UIManager } from './UIManager';
 import { returnToMap } from './SceneController';
 import { openWarehouse, openTodoModal } from './ModalController';
-import { startRoutePlanning } from './MapController';
 
 export function initFacilityController(): void {
   // 點擊建築物效果
@@ -20,7 +19,27 @@ export function initFacilityController(): void {
     const { renderOfficeBoard } = await import('./OfficeController');
     renderOfficeBoard();
   });
-  document.getElementById('btn-enter-tavern')?.addEventListener('click', () => enterFacility('view-camp'));
+  document.getElementById('btn-enter-tavern')?.addEventListener('click', () => {
+    enterFacility('view-camp');
+    const lvl = GameState.myTerritory.getBuildingLevel('tavern');
+    const viewCamp = document.getElementById('view-camp');
+    if (viewCamp) {
+      const titleEl = viewCamp.querySelector('h2');
+      const descEl = viewCamp.querySelector('p');
+      if (titleEl && descEl) {
+        if (lvl <= 2) {
+          titleEl.innerHTML = '🔥 露天營火 (Campfire)';
+          descEl.innerHTML = '這是冒險者們在荒野中短暫歇息的營火。微弱的火光或許能吸引一些流浪的傭兵前來。';
+        } else if (lvl <= 4) {
+          titleEl.innerHTML = '🍻 簡易酒館 (Small Tavern)';
+          descEl.innerHTML = '用木板搭建的簡易酒館，提供了遮風避雨的場所，開始有更多傭兵聚集於此。';
+        } else {
+          titleEl.innerHTML = '🍻 傭兵酒館 (Tavern)';
+          descEl.innerHTML = '這裡是傭兵齊聚的酒館。隨著酒館等級的提升，將有機會吸引更具名氣與實力的英雄加入您的傭兵團！';
+        }
+      }
+    }
+  });
   
   document.getElementById('btn-enter-weapon-shop')?.addEventListener('click', async () => {
     enterFacility('view-weapon-shop');
@@ -98,17 +117,5 @@ export function initFacilityController(): void {
     openWarehouse(true);
   });
 
-  // 建立商隊：從書房啟動市場跟蹤商圖流程
-  document.getElementById('btn-base-trade')?.addEventListener('click', () => {
-    // 1. 關閉所有設施視圖
-    document.getElementById('view-base')?.classList.remove('active');
-    document.getElementById('view-hall')?.classList.remove('active');
-    document.getElementById('view-camp')?.classList.remove('active');
-    document.getElementById('view-forge')?.classList.remove('active');
-    // 2. 返回地圖
-    returnToMap();
-    // 3. 進入路線規劃模式
-    console.log('[系統] 🐪 請在地圖上依序點選最多 3 個城市作為商隊中途站，然後點擊「完成規劃」。');
-    startRoutePlanning();
-  });
+
 }

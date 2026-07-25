@@ -49,6 +49,7 @@ export class Territory {
   public weaponShopLevel: number;
   public armorShopLevel: number;
   public forgeLevel: number;
+  public defenseLevel: number;
 
   // 自宅探索招募進度與保底狀態
   public exploreCount: number;
@@ -57,8 +58,9 @@ export class Territory {
   // 戰鬥歷史紀錄
   public combatHistory: CombatHistoryRecord[];
 
-  // 治安
+  // 治安與侵略
   public security: number = 100;
+  public invasionCooldown: number = 0;
 
   constructor(name: string, startingCountryId: string | null = null) {
     this.name = name;
@@ -66,7 +68,7 @@ export class Territory {
     this.currentCountryId = startingCountryId;
     
     // 初始化資源與人口
-    this.gold = 50;                 
+    this.gold = 150;                 
     this.food = 200; // 初始給予一些存糧避免馬上餓死
     this.wood = 0;
     this.stone = 0;
@@ -91,6 +93,7 @@ export class Territory {
     this.weaponShopLevel = 0;
     this.armorShopLevel = 0;
     this.forgeLevel = 0;
+    this.defenseLevel = 0;
     this.exploreCount = 0;
     this.hasRecruitedFromFirstExplorations = false;
     
@@ -109,14 +112,32 @@ export class Territory {
   // 建築升級與建造系統
   // ==========================================
   
-  public getBuildingLevel(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): number {
+  public getBuildingLevel(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense'): number {
     if (bldType === 'tavern') return this.tavernLevel || 0;
     if (bldType === 'weapon') return this.weaponShopLevel || 0;
     if (bldType === 'armor') return this.armorShopLevel || 0;
+    if (bldType === 'defense') return this.defenseLevel || 0;
     return this.forgeLevel || 0;
   }
 
-  public getUpgradeCost(bldType: 'tavern' | 'weapon' | 'armor' | 'forge', nextLevel: number) {
+  public getBuildingProsperityBonus(): number {
+    // 每個等級提供永久繁榮度加成
+    const calcBonus = (lvl: number) => {
+      let bonus = 0;
+      for (let i = 1; i <= lvl; i++) {
+        bonus += (i === 1) ? 10 : (i === 2) ? 15 : 20; // Lv1=10, Lv2=10+15=25, Lv3=25+20=45...
+      }
+      return bonus;
+    };
+    
+    return calcBonus(this.getBuildingLevel('tavern')) +
+           calcBonus(this.getBuildingLevel('weapon')) +
+           calcBonus(this.getBuildingLevel('armor')) +
+           calcBonus(this.getBuildingLevel('forge')) +
+           calcBonus(this.getBuildingLevel('defense'));
+  }
+
+  public getUpgradeCost(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nextLevel: number) {
     let baseCost;
     if (bldType === 'tavern') {
       if (nextLevel === 1) return { gold: 300, wood: 80, stone: 40, iron: 0 };
@@ -126,10 +147,14 @@ export class Territory {
       if (nextLevel === 1) return { gold: 200, wood: 60, stone: 30, iron: 0 };
       if (nextLevel === 2) return { gold: 800, wood: 150, stone: 90, iron: 10 };
       baseCost = { gold: 2500, wood: 400, stone: 250, iron: 30 };
-    } else { // forge 鐵匠鋪
+    } else if (bldType === 'forge') { // forge 鐵匠鋪
       if (nextLevel === 1) return { gold: 300, wood: 50, stone: 50, iron: 0 };
       if (nextLevel === 2) return { gold: 1200, wood: 250, stone: 200, iron: 15 };
       baseCost = { gold: 3500, wood: 600, stone: 500, iron: 50 };
+    } else { // defense 防禦設施
+      if (nextLevel === 1) return { gold: 100, wood: 100, stone: 50, iron: 0 };
+      if (nextLevel === 2) return { gold: 500, wood: 300, stone: 200, iron: 0 };
+      baseCost = { gold: 2000, wood: 800, stone: 600, iron: 20 };
     }
     
     if (nextLevel <= 3) return baseCost;
@@ -144,7 +169,7 @@ export class Territory {
     };
   }
 
-  public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): boolean {
+  public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense'): boolean {
     const nextLevel = this.getBuildingLevel(bldType) + 1;
 
     
@@ -159,7 +184,7 @@ export class Territory {
            this.iron >= cost.iron;
   }
 
-  public upgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): boolean {
+  public upgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense'): boolean {
     if (!this.canUpgradeBuilding(bldType)) return false;
     const nextLevel = this.getBuildingLevel(bldType) + 1;
     const cost = this.getUpgradeCost(bldType, nextLevel);
@@ -172,9 +197,11 @@ export class Territory {
     if (bldType === 'tavern') this.tavernLevel = nextLevel;
     else if (bldType === 'weapon') this.weaponShopLevel = nextLevel;
     else if (bldType === 'armor') this.armorShopLevel = nextLevel;
-    else this.forgeLevel = nextLevel;
+    else if (bldType === 'forge') this.forgeLevel = nextLevel;
+    else this.defenseLevel = nextLevel;
     
-    console.log(`[系統] 🏛️ 建造/升級成功！您的 ${bldType === 'tavern' ? '酒館' : bldType === 'weapon' ? '武器店' : bldType === 'armor' ? '防具店' : '鍛造屋'} 已提升至等級 ${nextLevel}。`);
+    const bldName = bldType === 'tavern' ? '酒館' : bldType === 'weapon' ? '武器店' : bldType === 'armor' ? '防具店' : bldType === 'forge' ? '鍛造屋' : '防禦設施';
+    console.log(`[系統] 🏛️ 建造/升級成功！您的 ${bldName} 已提升至等級 ${nextLevel}。`);
     return true;
   }
 

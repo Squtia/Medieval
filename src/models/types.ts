@@ -59,12 +59,12 @@ export enum OfficeType {
  * 爵位數值設定表 (可隨時調整)
  */
 export const TITLE_CONFIG: TitleConfig[] = [
-  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, maxFacilityLevel: 1, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
-  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 2, taxBonusPer10Pop: 1, reqPrestige: 500, reqPopulation: 30, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
-  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 3, taxBonusPer10Pop: 2, reqPrestige: 2000, reqPopulation: 80, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 4, taxBonusPer10Pop: 3, reqPrestige: 5000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 5, taxBonusPer10Pop: 4, reqPrestige: 12000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 6, taxBonusPer10Pop: 5, reqPrestige: 25000, reqPopulation: 1200, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, maxFacilityLevel: 3, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
+  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 4, taxBonusPer10Pop: 1, reqPrestige: 500, reqPopulation: 30, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
+  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 5, taxBonusPer10Pop: 2, reqPrestige: 2000, reqPopulation: 80, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 6, taxBonusPer10Pop: 3, reqPrestige: 5000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 7, taxBonusPer10Pop: 4, reqPrestige: 12000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 7, taxBonusPer10Pop: 5, reqPrestige: 25000, reqPopulation: 1200, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
   { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, maxFacilityLevel: 7, taxBonusPer10Pop: 6, reqPrestige: 60000, reqPopulation: 3000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } }
 ];
 
@@ -124,6 +124,17 @@ export enum NodeLevel {
   VILLAGE = 2,    // 村莊
   TOWN = 3,       // 城鎮
   CAPITAL = 4     // 首都
+}
+
+export function getNodeMaxPopulation(level: NodeLevel): number {
+  switch (level) {
+    case NodeLevel.WILDERNESS: return 20;
+    case NodeLevel.CAMP: return 50;
+    case NodeLevel.VILLAGE: return 150;
+    case NodeLevel.TOWN: return 1000;
+    case NodeLevel.CAPITAL: return 5000;
+    default: return 20;
+  }
 }
 
 /**
@@ -203,6 +214,9 @@ export interface MapNode {
   
   // 圍城資料
   siegeData?: SiegeData;
+  
+  // 代官資料
+  governorId?: string;
 }
 
 export interface SiegeData {
@@ -234,6 +248,11 @@ export interface NodeMarketData {
     sellPrice: number;
     stock: number;
   }[];
+  demandEvent?: {
+    goodId: string;
+    description: string;
+    priceMultiplier: number;
+  };
 }
 
 export enum FactionType {
@@ -276,6 +295,12 @@ export interface FactionChampionInstance extends FactionChampion {
   race: MonsterRace;          // 設為 HUMAN
 }
 
+export enum TradeTreaty {
+  NONE = 'NONE',
+  BASIC = 'BASIC',     // 基礎通商條約 (含關稅)
+  ALLIED = 'ALLIED'    // 免稅貿易協定
+}
+
 /**
  * AI 派系
  */
@@ -289,6 +314,7 @@ export interface Faction {
   controlledNodes: string[];  // 控制的據點 ID
   capitalNodeId: string;      // 首都節點 ID
   playerFavor: number;        // 對玩家的好感度
+  tradeTreaty?: TradeTreaty;  // 與玩家簽署的貿易條約
   relations: Record<string, number>; // 對其他派系的關係矩陣 (-100 ~ 100)
   atWarWith: string[];               // 交戰中的派系 ID
   personality: FactionPersonality;   // 派系性格

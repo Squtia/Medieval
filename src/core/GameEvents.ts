@@ -16,6 +16,7 @@ export enum GameEventType {
   SIEGE_UPDATED = 'SIEGE_UPDATED',
   SIEGE_RESOLVED = 'SIEGE_RESOLVED',
   FACTION_DEMAND = 'FACTION_DEMAND',
+  PROSPERITY_CHANGED = 'PROSPERITY_CHANGED', // C1: 月底繁榮度結算通知
 }
 
 export interface GameEventPayloads {
@@ -39,6 +40,7 @@ export interface GameEventPayloads {
   [GameEventType.SIEGE_UPDATED]: { targetNodeId: string; remainingDays: number };
   [GameEventType.SIEGE_RESOLVED]: { targetNodeId: string; winnerId: string; isCityFallen: boolean };
   [GameEventType.FACTION_DEMAND]: { factionId: string; demandType: string; amount: number; message: string };
+  [GameEventType.PROSPERITY_CHANGED]: { delta: number; current: number; nextThreshold: number; levelName: string };
 }
 
 export interface GameEvent<T extends GameEventType = GameEventType> {
