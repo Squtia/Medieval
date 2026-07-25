@@ -39,7 +39,14 @@ export function rebindGlobalUIEvents() {
   });
   EventBus.getInstance().subscribe(GameEventType.GAME_EVENT_TRIGGERED, ({ eventId }) => {
     const event = GAME_EVENTS.find(candidate => candidate.id === eventId);
-    if (event) openEventModal(event);
+    if (event) {
+      if ((window as any).isAdvancingDay) {
+        if (!(window as any).eventQueue) (window as any).eventQueue = [];
+        (window as any).eventQueue.push(() => openEventModal(event));
+      } else {
+        openEventModal(event);
+      }
+    }
   });
   EventBus.getInstance().subscribe(GameEventType.MISSIONS_CHANGED, () => {
     renderMap();

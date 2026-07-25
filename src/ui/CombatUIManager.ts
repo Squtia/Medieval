@@ -26,11 +26,12 @@ export class CombatUIManager {
   private static isInitialized = false;
 
   public static init() {
-    EventBus.getInstance().subscribe(GameEventType.COMBAT_FINISHED, (payload) => {
-      if (payload.report) {
-         this.showCombat(payload.report);
-      }
-    });
+    // 戰鬥結束後不再自動播放，改由玩家主動從戰鬥紀錄開啟
+    // EventBus.getInstance().subscribe(GameEventType.COMBAT_FINISHED, (payload) => {
+    //   if (payload.report) {
+    //      this.showCombat(payload.report);
+    //   }
+    // });
 
     if (!this.isInitialized) {
       this.btnSkip.addEventListener('click', () => this.skipPlayback());

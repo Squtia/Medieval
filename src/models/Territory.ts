@@ -117,24 +117,36 @@ export class Territory {
   }
 
   public getUpgradeCost(bldType: 'tavern' | 'weapon' | 'armor' | 'forge', nextLevel: number) {
+    let baseCost;
     if (bldType === 'tavern') {
       if (nextLevel === 1) return { gold: 300, wood: 80, stone: 40, iron: 0 };
       if (nextLevel === 2) return { gold: 1000, wood: 200, stone: 120, iron: 10 };
-      return { gold: 3000, wood: 500, stone: 350, iron: 40 };
+      baseCost = { gold: 3000, wood: 500, stone: 350, iron: 40 };
     } else if (bldType === 'weapon' || bldType === 'armor') {
       if (nextLevel === 1) return { gold: 200, wood: 60, stone: 30, iron: 0 };
       if (nextLevel === 2) return { gold: 800, wood: 150, stone: 90, iron: 10 };
-      return { gold: 2500, wood: 400, stone: 250, iron: 30 };
+      baseCost = { gold: 2500, wood: 400, stone: 250, iron: 30 };
     } else { // forge 鐵匠鋪
       if (nextLevel === 1) return { gold: 300, wood: 50, stone: 50, iron: 0 };
       if (nextLevel === 2) return { gold: 1200, wood: 250, stone: 200, iron: 15 };
-      return { gold: 3500, wood: 600, stone: 500, iron: 50 };
+      baseCost = { gold: 3500, wood: 600, stone: 500, iron: 50 };
     }
+    
+    if (nextLevel <= 3) return baseCost;
+    
+    // 4級以上：成本指數成長 (每一級約需 2.5 倍)
+    const multiplier = Math.pow(2.5, nextLevel - 3);
+    return {
+      gold: Math.floor(baseCost.gold * multiplier),
+      wood: Math.floor(baseCost.wood * multiplier),
+      stone: Math.floor(baseCost.stone * multiplier),
+      iron: Math.floor(baseCost.iron * multiplier)
+    };
   }
 
   public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge'): boolean {
     const nextLevel = this.getBuildingLevel(bldType) + 1;
-    if (nextLevel > 3) return false; // 遊戲絕對上限 3 等
+
     
     // 爵位等級上限卡控
     const maxAllowed = getMaxFacilityLevel(this.title);

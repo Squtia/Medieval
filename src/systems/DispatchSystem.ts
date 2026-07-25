@@ -114,32 +114,26 @@ export class DispatchSystem {
   }
 
   /**
-   * 月底大結算 (內政與外交結算)
+   * 發薪日結算 (每 7 天觸發)
    */
-  public resolveMonth(): void {
-    // ❗ BUG-02 修復：移除重複的 DAY_PASSED 發送（已由 GameLoop 發送）
-
-    // OPT-03: 重設計月底稅收公式（讓內政有意義）
-    const baseTax = this.territory.population * 5 * this.territory.taxRate;
-    const populationUpkeep = this.territory.population * 2;           // 人口維護費隨人口成長
+  public resolvePayday(): void {
+    // 7天份的人口維護費
+    const populationUpkeep = Math.floor(this.territory.population * 0.5); 
     
-    // 計算所有傭兵的薪水 (無官職預設 30，有官職則是官職薪水)
+    // 計算所有傭兵的薪水 (7天份)
     let adventurerWages = 0;
     GameState.adventurers.forEach(adv => {
       if (adv.office) {
-        adventurerWages += getOfficeConfig(adv.office).salary;
+        adventurerWages += Math.floor(getOfficeConfig(adv.office).salary * 7 / 30);
       } else {
-        adventurerWages += 30; // 基礎薪資
+        adventurerWages += 7; // 基礎薪資: 每天 1 金
       }
     });
 
-    const prestigeLoss = Math.max(0, (this.territory.taxRate - 1) * 2);
-    const netIncome = baseTax - adventurerWages - this.territory.diplomaticGift - populationUpkeep;
+    const netIncome = -adventurerWages - this.territory.diplomaticGift - populationUpkeep;
+    this.territory.addGold(netIncome);
 
-    this.territory.addGold(netIncome);    // addGold 已允許負值，赤字會真正扣錢
-    this.territory.prestige -= prestigeLoss;
-
-    if (netIncome < 0 && this.territory.gold < 0) {
+    if (this.territory.gold < 0) {
       console.log(`⚠️ [赤字警告] 領地陷入財務危機！無法支付維護費！當前負債：${Math.abs(this.territory.gold)} 金幣。`);
       
       // 欠薪懲罰：有機率觸發暫時性懲罰 (自動拔官)
@@ -152,11 +146,11 @@ export class DispatchSystem {
     }
 
     if (this.territory.diplomaticGift > 0) {
-      this.territory.royalFavor += this.territory.diplomaticGift * 0.5;
-      this.territory.prestige += this.territory.diplomaticGift * 0.2;
+      this.territory.royalFavor += this.territory.diplomaticGift * (7 / 30) * 0.5;
+      this.territory.prestige += this.territory.diplomaticGift * (7 / 30) * 0.2;
     }
 
-    console.log(`📜 [月底結算] 收入：${Math.floor(baseTax)}金 | 人口維護：-${Math.floor(populationUpkeep)} | 傭兵薪資：-${adventurerWages} | 淨利：${Math.floor(netIncome)} 金幣。當前聲望：${this.territory.prestige}`);
+    console.log(`📜 [發薪日結算] 人口維護：-${Math.floor(populationUpkeep)} | 傭兵薪資：-${adventurerWages} | 支出總計：${Math.floor(netIncome)} 金幣。`);
   }
 
   private reachWaypoint(mission: ActiveMission): void {

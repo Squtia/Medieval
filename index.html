@@ -699,7 +699,7 @@
       position: fixed;
       bottom: 24px;
       right: 24px;
-      z-index: 9900;
+      z-index: 950;
       display: flex;
       align-items: flex-end;
       gap: 12px;
@@ -1802,6 +1802,20 @@
       </div>
     </div>
   </div>
+
+  <!-- 戰鬥紀錄 Modal -->
+  <div class="modal-overlay" id="modal-combat-history">
+    <div class="glass-panel modal-content" style="width: 600px;">
+      <button class="close-btn" id="btn-close-combat-history">×</button>
+      <h2 style="text-align: center; color: #eab308; margin-top: 0;">⚔️ 戰鬥紀錄</h2>
+      <p style="text-align: center; color: #94a3b8; margin-top: 5px;">查看您近期的討伐與防禦紀錄。</p>
+      
+      <div id="combat-history-list" style="margin-top: 20px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
+        <!-- JS 動態生成紀錄卡片 -->
+      </div>
+    </div>
+  </div>
+
   <!-- 傭兵小隊/傭兵資訊 左側面板 (二分法與常駐立繪) -->
   <div class="side-panel-left glass-panel" id="modal-party-list">
     <button class="close-btn" id="btn-close-party-list">×</button>
@@ -1873,6 +1887,7 @@
     <!-- 左側快捷按鈕列 -->
     <div id="floating-quick-dock">
       <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
+      <button id="btn-dock-combat-history" class="dock-btn" data-tip="戰鬥紀錄">⚔️</button>
       <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>
     </div>
 
@@ -1888,6 +1903,26 @@
   </div>
 
 
+
+  <!-- 每日結算與預測面板 -->
+  <div id="modal-daily-summary" class="modal-overlay">
+    <div class="modal-content glass-panel" style="width: 500px; padding: 40px; border: 2px solid #eab308; box-shadow: 0 0 30px rgba(234, 179, 8, 0.3);">
+      <h2 style="text-align: center; color: #fef08a; border-bottom: 1px solid rgba(234,179,8,0.5); padding-bottom: 15px; margin-bottom: 20px;">📜 本日結算</h2>
+      
+      <div id="daily-summary-content" style="margin-bottom: 25px; line-height: 1.6;">
+        <!-- JS 動態寫入本日結算 -->
+      </div>
+
+      <h3 style="color: #60a5fa; border-bottom: 1px solid rgba(96,165,250,0.5); padding-bottom: 10px; margin-bottom: 15px;">🔮 未來預測</h3>
+      <div id="daily-forecast-content" style="margin-bottom: 30px; line-height: 1.6; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+        <!-- JS 動態寫入預測資訊 -->
+      </div>
+
+      <div style="text-align: center;">
+        <button id="btn-daily-summary-confirm" class="action-btn" style="width: 100%; font-size: 1.1em; padding: 15px;">確認 / 進入下一天</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

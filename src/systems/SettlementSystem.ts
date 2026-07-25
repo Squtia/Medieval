@@ -1,7 +1,7 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
-import { WorkerJob, getTaxBonusPer10Pop, NodeLevel } from '../models/types';
+import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig } from '../models/types';
 import { Random } from '../core/Random';
 
 export class SettlementSystem {
@@ -57,9 +57,20 @@ export class SettlementSystem {
     this.updateSecurity();
     const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
 
-    let productionMultiplier = 1.0;
-    if (territory.security >= 80) productionMultiplier = 1.2;
-    else if (territory.security < 30) productionMultiplier = 0.7;
+    // 計算官職的內政加成總和
+    let officeCivicBonus = 0;
+    GameState.adventurers.forEach(adv => {
+      if (adv.office) {
+        const cfg = getOfficeConfig(adv.office);
+        if (cfg && cfg.civicBonusPct) {
+          officeCivicBonus += cfg.civicBonusPct;
+        }
+      }
+    });
+
+    let productionMultiplier = 1.0 + officeCivicBonus;
+    if (territory.security >= 80) productionMultiplier *= 1.2;
+    else if (territory.security < 30) productionMultiplier *= 0.7;
 
     // 軍事威望 (選項 B)：每 10 名士兵每日產生 1 點聲望
     if (totalTroops >= 10) {
@@ -97,11 +108,15 @@ export class SettlementSystem {
     territory.iron += ironProduced;
     territory.food += foodProduced - foodConsumed;
 
-    // 每日稅收加成 (依據爵位與人口，並套用治安倍率)
-    const taxBonusPer10 = getTaxBonusPer10Pop(territory.title);
-    if (taxBonusPer10 > 0 && territory.population >= 10) {
-      const baseTax = Math.floor(territory.population / 10) * taxBonusPer10;
+    // 每日統一日結稅收 (依據爵位與人口，並套用稅率與治安倍率)
+    const baseTaxPer10 = 2 + getTaxBonusPer10Pop(territory.title);
+    if (territory.population >= 10) {
+      const baseTax = Math.floor(territory.population / 10) * baseTaxPer10 * territory.taxRate;
       const taxIncome = Math.floor(baseTax * productionMultiplier);
+      territory.addGold(taxIncome);
+    } else {
+      // 人口不滿 10 的保底稅收
+      const taxIncome = Math.floor(1 * territory.taxRate * productionMultiplier);
       territory.addGold(taxIncome);
     }
 

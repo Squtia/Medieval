@@ -1,6 +1,6 @@
 import { GameState } from '../core/GameState';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect } from '../models/Combat';
-import { FormationRow, TerrainType, EquipmentSlot } from '../models/types';
+import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig } from '../models/types';
 import { Random } from '../core/Random';
 import { SKILLS, TargetType } from '../models/Skill';
 
@@ -22,6 +22,15 @@ export class CombatSystem {
       const adv = GameState.adventurers.find(a => a.id === id);
       if (adv) {
         const stats = adv.getCombatStats();
+        
+        // 官職戰鬥加成
+        if (adv.office) {
+          const cfg = getOfficeConfig(adv.office);
+          if (cfg && cfg.combatBonusPct) {
+            stats.atk = Math.floor(stats.atk * (1 + cfg.combatBonusPct));
+            stats.def = Math.floor(stats.def * (1 + cfg.combatBonusPct));
+          }
+        }
         const troop = troopAssignments?.[id];
         const weapon = adv.equipment[EquipmentSlot.WEAPON];
         const weaponType = weapon ? weapon.weaponType : undefined;

@@ -94,9 +94,12 @@ export function advanceDay() {
     payload: { daysPassed: 1, currentTimestamp: Date.now() } 
   });
 
-  // 3. 月底大結算 (內政與世界地圖)
+  if (GameState.totalDays % 7 === 0) {
+    GameState.system.resolvePayday();
+  }
+
+  // 4. 月底大結算 (世界地圖)
   if (monthEnded) {
-    GameState.system.resolveMonth();
     GameState.mapSystem.simulateMapDynamics(1);
     
     console.log(`📅 [系統] 月底結算：目前時間為第 ${GameState.currentYear} 年 ${GameState.currentMonth} 月。`);
@@ -113,9 +116,9 @@ export function advanceDay() {
     missionsCompleted: Math.max(0, before.activeMissions - GameState.system.getActiveMissionsCount())
   };
 
-  // 更新 UI
-  if (typeof (window as any).updateUICallback === 'function') {
-    (window as any).updateUICallback();
-  }
+  // UI 更新改由 GameFlowController 等呼叫端根據轉場時機手動呼叫，避免畫面前後跳躍
+  // if (typeof (window as any).updateUICallback === 'function') {
+  //   (window as any).updateUICallback();
+  // }
 }
 

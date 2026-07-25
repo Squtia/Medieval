@@ -6,6 +6,7 @@ import { advanceDay, startGameLoop, stopGameLoop } from '../core/GameLoop';
 import { enterScene, returnToMap } from './SceneController';
 import { positionFloatingElement } from './FloatingPosition';
 import { setPartyTab } from './ModalController';
+import { showDailySummaryModal } from './DailySummaryModal';
 
 export function initGameFlowController(): void {
   // 綁定傭兵小隊頁籤切換按鈕
@@ -28,6 +29,14 @@ export function initGameFlowController(): void {
     btnCloseCombatHistory.addEventListener('click', () => {
       const modal = document.getElementById('modal-combat-history');
       if (modal) modal.style.display = 'none';
+    });
+  }
+
+  // 開啟戰鬥紀錄按鈕
+  const btnDockCombatHistory = document.getElementById('btn-dock-combat-history');
+  if (btnDockCombatHistory) {
+    btnDockCombatHistory.addEventListener('click', () => {
+      import('./ModalController').then(m => m.openCombatHistory());
     });
   }
 
@@ -159,12 +168,31 @@ export function initGameFlowController(): void {
     }
   });
 
-  // 手動結束本日 (帶 0.5s 質感黑屏過渡轉場)
+  // 手動結束本日 (先計算並顯示結算，確認後才帶 0.5s 質感黑屏過渡轉場)
   document.addEventListener('click', (e) => {
     const target = (e.target as HTMLElement)?.closest('#btn-end-day');
     if (target) {
-      UIManager.playTransition(() => {
-        advanceDay();
+      // 標記正在結算中，攔截事件彈窗
+      (window as any).isAdvancingDay = true;
+      (window as any).eventQueue = [];
+
+      // 計算本日資源與推演
+      advanceDay();
+      
+      // 直接顯示每日結算面板，此時不黑屏，等待玩家確認
+      showDailySummaryModal(() => {
+        // 玩家確認結算後，才播放轉場動畫進入下一天
+        UIManager.playTransition(() => {
+          (window as any).isAdvancingDay = false;
+          UIManager.updateUI();
+          
+          // 轉場結束後，依序釋放佇列中的事件彈窗
+          const queue = (window as any).eventQueue || [];
+          if (queue.length > 0) {
+            queue.forEach((cb: () => void) => cb());
+            (window as any).eventQueue = [];
+          }
+        });
       });
     }
   });
