@@ -7,8 +7,13 @@ import { enterScene, returnToMap } from './SceneController';
 import { positionFloatingElement } from './FloatingPosition';
 import { setPartyTab } from './ModalController';
 import { showDailySummaryModal } from './DailySummaryModal';
+import { DiplomacyController } from './DiplomacyController';
 
 export function initGameFlowController(): void {
+  // 三個側邊抽屜面板的輔助取得函式（提前宣告供互斥邏輯共用）
+  const partyModal = () => document.getElementById('modal-party-list');
+  const combatHistoryPanel = () => document.getElementById('combat-history-panel');
+
   // 綁定傭兵小隊頁籤切換按鈕
   const tabBtnStats = document.getElementById('tab-btn-stats');
   if (tabBtnStats) {
@@ -23,20 +28,28 @@ export function initGameFlowController(): void {
   const btnWildBack = document.getElementById('btn-wild-back');
   if (btnWildBack) btnWildBack.addEventListener('click', returnToMap);
 
-  // 戰鬥歷史紀錄關閉按鈕
+  // 戰鬥紀錄關閉按鈕
   const btnCloseCombatHistory = document.getElementById('btn-close-combat-history');
   if (btnCloseCombatHistory) {
     btnCloseCombatHistory.addEventListener('click', () => {
-      const modal = document.getElementById('modal-combat-history');
-      if (modal) modal.style.display = 'none';
+      document.getElementById('combat-history-panel')?.classList.remove('active');
     });
   }
 
-  // 開啟戰鬥紀錄按鈕
+  // 開啟戰鬥紀錄按鈕（互斥：開啟時關閉其他兩個側邊面板）
   const btnDockCombatHistory = document.getElementById('btn-dock-combat-history');
   if (btnDockCombatHistory) {
     btnDockCombatHistory.addEventListener('click', () => {
-      import('./ModalController').then(m => m.openCombatHistory());
+      const combatPanel = document.getElementById('combat-history-panel');
+      if (!combatPanel) return;
+      if (combatPanel.classList.contains('active')) {
+        combatPanel.classList.remove('active');
+      } else {
+        // 關閉其他兩個面板
+        partyModal()?.classList.remove('active');
+        DiplomacyController.close();
+        import('./ModalController').then(m => m.openCombatHistory());
+      }
     });
   }
 
@@ -95,14 +108,36 @@ export function initGameFlowController(): void {
     });
   }
 
-  // 快捷 Dock 按鈕與 Modal 綁定
+  // 快捷 Dock 按鈕與 Modal 綁定 (互斥邏輯：三個側邊面板同時只能開一個)
+
   const btnDockParty = document.getElementById('btn-dock-party');
   if (btnDockParty) {
     btnDockParty.addEventListener('click', () => {
-      const modal = document.getElementById('modal-party-list');
-      if (modal) {
-        modal.classList.toggle('active');
+      const modal = partyModal();
+      if (!modal) return;
+      const willOpen = !modal.classList.contains('active');
+      if (willOpen) {
+        // 關閉其他兩個面板後再開傭兵面板
+        DiplomacyController.close();
+        combatHistoryPanel()?.classList.remove('active');
+        modal.classList.add('active');
         UIManager.updateUI();
+      } else {
+        modal.classList.remove('active');
+      }
+    });
+  }
+
+  const btnDockDiplomacy = document.getElementById('btn-dock-diplomacy');
+  if (btnDockDiplomacy) {
+    btnDockDiplomacy.addEventListener('click', () => {
+      if (DiplomacyController.isOpen()) {
+        DiplomacyController.close();
+      } else {
+        // 關閉其他兩個面板後再開外交面板
+        partyModal()?.classList.remove('active');
+        combatHistoryPanel()?.classList.remove('active');
+        DiplomacyController.open();
       }
     });
   }
@@ -110,8 +145,7 @@ export function initGameFlowController(): void {
   const btnClosePartyList = document.getElementById('btn-close-party-list');
   if (btnClosePartyList) {
     btnClosePartyList.addEventListener('click', () => {
-      const modal = document.getElementById('modal-party-list');
-      if (modal) modal.classList.remove('active');
+      partyModal()?.classList.remove('active');
     });
   }
 

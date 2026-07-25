@@ -11,6 +11,11 @@ export enum GameEventType {
   THREAT_WARNING = 'THREAT_WARNING',
   GAME_EVENT_TRIGGERED = 'GAME_EVENT_TRIGGERED',
   MISSIONS_CHANGED = 'MISSIONS_CHANGED',
+  DIPLOMACY_EVENT = 'DIPLOMACY_EVENT',
+  SIEGE_STARTED = 'SIEGE_STARTED',
+  SIEGE_UPDATED = 'SIEGE_UPDATED',
+  SIEGE_RESOLVED = 'SIEGE_RESOLVED',
+  FACTION_DEMAND = 'FACTION_DEMAND',
 }
 
 export interface GameEventPayloads {
@@ -29,6 +34,11 @@ export interface GameEventPayloads {
     reason: 'DISPATCHED' | 'PROGRESSED' | 'COMPLETED' | 'LOADED';
     missionType?: import('../models/DispatchTask').TaskType;
   };
+  [GameEventType.DIPLOMACY_EVENT]: { actionType: string; targetFactionId: string; resultMsg: string; newRelation?: number };
+  [GameEventType.SIEGE_STARTED]: { targetNodeId: string; attackerFactionId: string };
+  [GameEventType.SIEGE_UPDATED]: { targetNodeId: string; remainingDays: number };
+  [GameEventType.SIEGE_RESOLVED]: { targetNodeId: string; winnerId: string; isCityFallen: boolean };
+  [GameEventType.FACTION_DEMAND]: { factionId: string; demandType: string; amount: number; message: string };
 }
 
 export interface GameEvent<T extends GameEventType = GameEventType> {

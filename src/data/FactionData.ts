@@ -1,4 +1,4 @@
-import { Faction, FactionType } from '../models/types';
+import { Faction, FactionType, FactionPersonality } from '../models/types';
 
 export const INITIAL_FACTIONS: Faction[] = [
   // --- 王室與謀臣 ---
@@ -11,7 +11,10 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 5000,
     controlledNodes: ['n_royal_1'],
     capitalNodeId: 'n_royal_1',
-    playerFavor: 10
+    playerFavor: 10,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.SCHEMER
   },
   {
     id: 'f_advisor',
@@ -22,7 +25,10 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 800,
     controlledNodes: ['n_adv_1'],
     capitalNodeId: 'n_adv_1',
-    playerFavor: 0
+    playerFavor: 0,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.SCHEMER
   },
 
   // --- 四大統治家族 (Great Houses) ---
@@ -35,7 +41,10 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 1200,
     controlledNodes: ['n_val_1'],
     capitalNodeId: 'n_val_1',
-    playerFavor: -5
+    playerFavor: -5,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.WARMONGER
   },
   {
     id: 'f_morvayn',
@@ -46,7 +55,10 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 1000,
     controlledNodes: ['n_mor_1'],
     capitalNodeId: 'n_mor_1',
-    playerFavor: 0
+    playerFavor: 0,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.SCHEMER
   },
   {
     id: 'f_lysander',
@@ -57,7 +69,10 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 1100,
     controlledNodes: ['n_lys_1'],
     capitalNodeId: 'n_lys_1',
-    playerFavor: 0
+    playerFavor: 0,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.SCHEMER
   },
   {
     id: 'f_cassian',
@@ -68,7 +83,10 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 1500,
     controlledNodes: ['n_cas_1'],
     capitalNodeId: 'n_cas_1',
-    playerFavor: 5
+    playerFavor: 5,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.MERCHANT
   },
 
   // --- 隱世小家族 ---
@@ -81,7 +99,10 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 300,
     controlledNodes: ['n_oak_1'],
     capitalNodeId: 'n_oak_1',
-    playerFavor: 20
+    playerFavor: 20,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.PEACEFUL
   },
   {
     id: 'f_blackwood',
@@ -92,6 +113,9 @@ export const INITIAL_FACTIONS: Faction[] = [
     resources: 500,
     controlledNodes: ['n_blk_1'],
     capitalNodeId: 'n_blk_1',
-    playerFavor: -10
+    playerFavor: -10,
+    relations: {},
+    atWarWith: [],
+    personality: FactionPersonality.WARMONGER
   }
 ];

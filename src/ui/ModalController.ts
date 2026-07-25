@@ -1059,46 +1059,46 @@ export async function openTradeModal(node: MapNode) {
 }
 
 export function openCombatHistory() {
-  const modal = document.getElementById('modal-combat-history')!;
+  const panel = document.getElementById('combat-history-panel')!;
   const listContainer = document.getElementById('combat-history-list')!;
-  
-  modal.style.display = 'flex';
+
+  panel.classList.add('active');
   listContainer.innerHTML = '';
-  
+
   if (!GameState.myTerritory.combatHistory || GameState.myTerritory.combatHistory.length === 0) {
     listContainer.innerHTML = '<p style="text-align: center; color: #94a3b8; padding: 20px;">目前沒有任何近期的戰鬥紀錄。</p>';
     return;
   }
-  
+
   GameState.myTerritory.combatHistory.forEach(record => {
     const isVictory = record.report.isVictory;
     const titleColor = isVictory ? '#10b981' : '#ef4444';
     const titleText = isVictory ? '勝利' : '失敗';
-    
+
     const card = document.createElement('div');
-    card.style.cssText = 'background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 15px; display: flex; justify-content: space-between; align-items: center;';
-    
+    card.style.cssText = 'background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center;';
+
     card.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 5px;">
-        <div style="font-size: 1.1em; font-weight: bold;">
-          <span style="color: ${titleColor};">【${titleText}】</span> ${record.nodeName} 
-          <span style="font-size: 0.8em; color: #64748b; font-weight: normal; margin-left: 10px;">(第 ${record.day} 天)</span>
+      <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0;">
+        <div style="font-size: 1em; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <span style="color: ${titleColor};">【${titleText}】</span> ${record.nodeName}
+          <span style="font-size: 0.8em; color: #64748b; font-weight: normal; margin-left: 8px;">(第 ${record.day} 天)</span>
         </div>
-        <div style="font-size: 0.9em; color: #cbd5e1;">
-          MVP: <span style="color: #eab308; font-weight: bold;">${record.report.mvpName || '無'}</span> | 
-          總傷害: <span style="color: #f87171;">${record.report.totalDamageDealt || 0}</span> | 
-          總收益: <span style="color: #fbbf24;">${record.report.lootValue || 0}</span>
+        <div style="font-size: 0.82em; color: #cbd5e1;">
+          MVP: <span style="color: #eab308; font-weight: bold;">${record.report.mvpName || '無'}</span> |
+          傷害: <span style="color: #f87171;">${record.report.totalDamageDealt || 0}</span> |
+          收益: <span style="color: #fbbf24;">${record.report.lootValue || 0}</span>
         </div>
       </div>
-      <button class="action-btn replay-btn" style="padding: 8px 15px; font-size: 0.9em; background: rgba(59, 130, 246, 0.4); border-color: #3b82f6;">🎬 重播</button>
+      <button class="action-btn replay-btn" style="padding: 6px 12px; font-size: 0.82em; background: rgba(59,130,246,0.4); border-color: #3b82f6; margin-left: 10px; flex-shrink: 0;">🎬 重播</button>
     `;
-    
+
     const replayBtn = card.querySelector('.replay-btn') as HTMLButtonElement;
     replayBtn.onclick = () => {
-      modal.style.display = 'none';
+      panel.classList.remove('active');
       CombatUIManager.replayCombat(record.report);
     };
-    
+
     listContainer.appendChild(card);
   });
 }

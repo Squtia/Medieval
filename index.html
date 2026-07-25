@@ -1051,18 +1051,7 @@
     </div>
   </div>
 
-  <!-- 歷史戰鬥紀錄 Modal -->
-  <div id="modal-combat-history" class="modal-overlay">
-    <div class="glass-panel modal-content" style="width: 700px; max-height: 80vh; display: flex; flex-direction: column;">
-      <button class="close-btn" id="btn-close-combat-history">×</button>
-      <h2 style="text-align: center; color: #eab308; margin-top: 0;">📜 戰鬥歷史紀錄</h2>
-      <p style="text-align: center; color: #94a3b8; font-size: 0.9em; margin-bottom: 5px;">(僅保留最近三天的戰報)</p>
-      
-      <div id="combat-history-list" style="flex: 1; overflow-y: auto; margin-top: 10px; display: flex; flex-direction: column; gap: 15px; padding-right: 5px;">
-        <!-- JS 動態產生紀錄卡片 -->
-      </div>
-    </div>
-  </div>
+  <!-- 歷史戰鬥紀錄已移至左側抽屜面板 (#combat-history-panel)，見下方 -->
 
   <!-- 跑商路線規劃 HUD -->
   <div id="route-planning-hud" style="display: none; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); border: 2px solid #eab308; border-radius: 10px; padding: 15px; z-index: 2000; text-align: center; color: white;">
@@ -1803,21 +1792,28 @@
     </div>
   </div>
 
-  <!-- 戰鬥紀錄 Modal -->
-  <div class="modal-overlay" id="modal-combat-history">
-    <div class="glass-panel modal-content" style="width: 600px;">
-      <button class="close-btn" id="btn-close-combat-history">×</button>
-      <h2 style="text-align: center; color: #eab308; margin-top: 0;">⚔️ 戰鬥紀錄</h2>
-      <p style="text-align: center; color: #94a3b8; margin-top: 5px;">查看您近期的討伐與防禦紀錄。</p>
-      
-      <div id="combat-history-list" style="margin-top: 20px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
-        <!-- JS 動態生成紀錄卡片 -->
-      </div>
+  <!-- 戰鬥紀錄 左側抽屜面板 -->
+  <div class="side-panel-left glass-panel" id="combat-history-panel" style="border: 2px solid rgba(239,68,68,0.4); box-shadow: 0 0 20px rgba(239,68,68,0.1);">
+    <button class="close-btn" id="btn-close-combat-history">×</button>
+    <h2 style="text-align: left; color: #fca5a5; margin: 0 0 4px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">⚔️ 戰鬥紀錄</h2>
+    <p style="color: #94a3b8; font-size: 0.8em; margin: 0 0 10px 0;">(僅保留最近三天的戰報)</p>
+    <div id="combat-history-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">
+      <!-- JS 動態產生紀錄卡片 -->
+    </div>
+  </div>
+
+  <!-- 外交與派系 左側抽屜面板 -->
+  <div class="side-panel-left glass-panel" id="diplomacy-panel" style="border: 2px solid rgba(234,179,8,0.5); box-shadow: 0 0 20px rgba(234,179,8,0.15);">
+    <button class="close-btn" id="btn-close-diplomacy">×</button>
+    <h2 style="text-align: left; color: #fef08a; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">📜 外交與派系</h2>
+    <div id="diplomacy-list" style="flex: 1; overflow-y: auto; padding-right: 6px;">
+      <!-- JS 動態渲染派系列表 -->
     </div>
   </div>
 
   <!-- 傭兵小隊/傭兵資訊 左側面板 (二分法與常駐立繪) -->
   <div class="side-panel-left glass-panel" id="modal-party-list">
+
     <button class="close-btn" id="btn-close-party-list">×</button>
     <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 傭兵小隊</h2>
     
@@ -1887,6 +1883,7 @@
     <!-- 左側快捷按鈕列 -->
     <div id="floating-quick-dock">
       <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
+      <button id="btn-dock-diplomacy" class="dock-btn" data-tip="外交與派系">📜</button>
       <button id="btn-dock-combat-history" class="dock-btn" data-tip="戰鬥紀錄">⚔️</button>
       <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>
     </div>

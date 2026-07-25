@@ -32,16 +32,17 @@ export class CombatSystem {
           }
         }
         const troop = troopAssignments?.[id];
-        const weapon = adv.equipment[EquipmentSlot.WEAPON];
+        const weapon = adv.equipment ? adv.equipment[EquipmentSlot.WEAPON] : undefined;
         const weaponType = weapon ? weapon.weaponType : undefined;
         
         let skills: string[] = [];
-        if (adv.job.name.includes('戰士')) {
+        const jobName = adv.job?.name || '';
+        if (jobName.includes('戰士')) {
           skills.push('FIGHTER_HEAVY_STRIKE', 'FIGHTER_ARMOR_BREAK');
           if (weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
           if (weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
         }
-        if (adv.job.name.includes('法師')) {
+        if (jobName.includes('法師')) {
           skills.push('MAGE_ARCANE_MISSILES', 'MAGE_STATIC_FIELD');
           if (weaponType === 'STAFF') skills.push('STAFF_METEOR');
           if (weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
@@ -65,7 +66,7 @@ export class CombatSystem {
           shieldType: troop?.type,
           shieldMaxHp: troop?.count ? troop.count * 10 : 0, 
           shieldCurrentHp: troop?.count ? troop.count * 10 : 0,
-          baseClass: adv.job.name,
+          baseClass: adv.job?.name || '戰士',
           weaponType: weaponType,
           skills: skills
         });

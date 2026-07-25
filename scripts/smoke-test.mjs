@@ -156,6 +156,16 @@ async function main() {
     await page.click('#btn-end-day', { force: true });
     await page.waitForTimeout(1500);
 
+    try {
+      const confirmSummaryBtn = await page.waitForSelector('#btn-confirm-daily-summary', { state: 'visible', timeout: 3000 });
+      if (confirmSummaryBtn) {
+        await confirmSummaryBtn.click();
+        await page.waitForTimeout(1500);
+      }
+    } catch (e) {
+      console.log('  ℹ️ Daily summary modal confirm button not needed or timed out.');
+    }
+
     const nextDateText = await page.textContent('#ui-date');
     console.log(`  📅 Date after End Day: ${nextDateText?.trim()}`);
     if (!nextDateText || !nextDateText.includes('第 1 年 1 月 2 日')) {

@@ -200,6 +200,15 @@ export interface MapNode {
   
   // 市場資料
   marketData?: NodeMarketData;
+  
+  // 圍城資料
+  siegeData?: SiegeData;
+}
+
+export interface SiegeData {
+  attackerFactionId: string;
+  remainingDays: number;
+  attackerPower: number;
 }
 
 export interface NodeScoutData {
@@ -234,6 +243,13 @@ export enum FactionType {
   SYNDICATE = 'SYNDICATE'      // 商會/聯盟
 }
 
+export enum FactionPersonality {
+  WARMONGER = 'WARMONGER', // 好戰
+  PEACEFUL = 'PEACEFUL',   // 和平/保守
+  MERCHANT = 'MERCHANT',   // 重商/中立
+  SCHEMER = 'SCHEMER'      // 陰謀家/善變
+}
+
 /**
  * AI 派系
  */
@@ -247,6 +263,9 @@ export interface Faction {
   controlledNodes: string[];  // 控制的據點 ID
   capitalNodeId: string;      // 首都節點 ID
   playerFavor: number;        // 對玩家的好感度
+  relations: Record<string, number>; // 對其他派系的關係矩陣 (-100 ~ 100)
+  atWarWith: string[];               // 交戰中的派系 ID
+  personality: FactionPersonality;   // 派系性格
 }
 
 /**

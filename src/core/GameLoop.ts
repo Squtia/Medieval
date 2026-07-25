@@ -81,6 +81,9 @@ export function advanceDay() {
 
   // 1. 推進派遣系統 (以天數為基礎)
   GameState.system.updateDays(1);
+  
+  // 1.2 每日地圖動態 (圍城倒數等)
+  GameState.mapSystem.simulateDailyMapDynamics(GameState.totalDays);
 
   // 1.5 每日檢查地圖據點解鎖條件
   GameState.mapSystem.checkNodeUnlocks(GameState.totalDays, GameState.myTerritory.prestige);

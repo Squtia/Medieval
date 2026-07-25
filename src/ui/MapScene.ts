@@ -169,8 +169,22 @@ export class MapScene extends Phaser.Scene {
       labelText.setStroke('#000000', 4);
       labelText.setShadow(0, 4, '#000000', 4, true, true);
 
+      const elements: any[] = [iconSprite, labelText];
+      
+      if (node.siegeData) {
+        const siegeIcon = this.add.text(0, -35, '⚔️', { fontSize: '18px' }).setOrigin(0.5);
+        this.tweens.add({
+          targets: siegeIcon,
+          y: -40,
+          duration: 500,
+          yoyo: true,
+          repeat: -1
+        });
+        elements.push(siegeIcon);
+      }
+
       const container = this.add.container(px, py);
-      container.add([iconSprite, labelText]);
+      container.add(elements);
 
       let depth = 10;
       if (node.isPlayerBase) depth = 50;
@@ -399,6 +413,12 @@ export class MapScene extends Phaser.Scene {
       tooltipText += '\n狀態：未偵查';
     } else if (node.scoutData) {
       tooltipText += `\n危險度：${node.scoutData.dangerLevel}`;
+    }
+
+    if (node.siegeData) {
+      const attackerFaction = GameState.mapSystem.getFactions().find(f => f.id === node.siegeData!.attackerFactionId);
+      const attackerName = attackerFaction ? attackerFaction.factionName : '未知勢力';
+      tooltipText += `\n\n⚔️ 遭到圍攻！\n攻擊方：${attackerName}\n剩餘天數：${node.siegeData.remainingDays}天`;
     }
 
     // 取得並顯示該據點的外派傭兵名單

@@ -1,4 +1,5 @@
-import { Faction, MapNode, NodeLevel, NodeFeature, WeatherType, TerrainType } from '../models/types';
+import { Faction, MapNode, NodeLevel, NodeFeature, WeatherType, TerrainType, FactionPersonality, SiegeData } from '../models/types';
+import { GameEventType } from '../core/GameEvents';
 import { Territory } from '../models/Territory';
 import { Random } from '../core/Random';
 
@@ -30,6 +31,57 @@ export class MapDynamicsSystem {
    * 預期由 Game Loop 呼叫，例如每秒/每分鐘呼叫一次
    * @param deltaTime 經過的毫秒數 (保留參數供未來時間步長計算使用)
    */
+  
+  public simulateDailyMapDynamics(currentDay: number): void {
+    for (const node of this.mapNodes) {
+      if (node.siegeData) {
+        node.siegeData.remainingDays -= 1;
+        if (node.siegeData.remainingDays <= 0) {
+          this.resolveSiege(node);
+        } else {
+           import('../core/EventBus').then(({ EventBus }) => {
+             EventBus.getInstance().publish({ 
+               type: GameEventType.SIEGE_UPDATED, 
+               payload: { targetNodeId: node.id, remainingDays: node.siegeData!.remainingDays }
+             });
+           });
+        }
+      }
+    }
+  }
+
+  private resolveSiege(node: MapNode): void {
+    if (!node.siegeData) return;
+    const attackerFactionId = node.siegeData.attackerFactionId;
+    const attacker = this.factions.find(f => f.id === attackerFactionId);
+    
+    if (attacker) {
+      if (node.isPlayerBase) {
+        node.prosperity = Math.max(0, node.prosperity - 100);
+        console.log(`[系統] 💥 您的據點「${node.name}」被【${attacker.factionName}】攻陷，繁榮度大幅下降！`);
+        if ((window as any).toastManager) {
+           (window as any).toastManager.show(`💥 據點遭到【${attacker.factionName}】攻陷！`, 'error');
+        }
+      } else {
+        console.log(`[系統] 🏰 【${attacker.factionName}】成功攻陷了「${node.name}」。`);
+        if (node.ownerFactionId) {
+          this.removeNodeFromFaction(node.id, node.ownerFactionId);
+        }
+        node.ownerFactionId = attacker.id;
+        attacker.controlledNodes.push(node.id);
+      }
+      
+      import('../core/EventBus').then(({ EventBus }) => {
+         EventBus.getInstance().publish({ 
+           type: GameEventType.SIEGE_RESOLVED, 
+           payload: { targetNodeId: node.id, winnerId: attacker.id, isCityFallen: true }
+         });
+      });
+    }
+    
+    node.siegeData = undefined;
+  }
+
   public simulateMapDynamics(months: number): void {
     // 1. 繁榮度變化與升降級檢定
     for (const node of this.mapNodes) {
@@ -76,6 +128,8 @@ export class MapDynamicsSystem {
       }
     }
 
+    this.processAIFactionsInteractions();
+
     // 2. 派系資源累積與擴張/滅亡判定
     for (const faction of this.factions) {
       if (faction.controlledNodes.length === 0) {
@@ -88,6 +142,48 @@ export class MapDynamicsSystem {
       // 當派系資源超過閾值，嘗試佔領相鄰的荒野或營地
       if (faction.resources >= this.FACTION_EXPANSION_THRESHOLD) {
         this.attemptFactionExpansion(faction);
+      }
+    }
+  }
+
+  private processAIFactionsInteractions(): void {
+    for (const faction of this.factions) {
+      if (faction.controlledNodes.length === 0) continue;
+
+      if (!faction.relations) faction.relations = {};
+      if (!faction.atWarWith) faction.atWarWith = [];
+
+      for (const other of this.factions) {
+        if (faction.id === other.id || other.controlledNodes.length === 0) continue;
+        
+        const relation = faction.relations[other.id] || 0;
+        const rand = (Math.random() * 5) | 0;
+        if (faction.personality === FactionPersonality.WARMONGER) {
+          faction.relations[other.id] = Math.max(-100, relation - rand);
+        } else if (faction.personality === FactionPersonality.PEACEFUL) {
+          faction.relations[other.id] = Math.min(100, relation + rand);
+        }
+
+        if (faction.relations[other.id] < -50 && !faction.atWarWith.includes(other.id)) {
+          faction.atWarWith.push(other.id);
+          if (!other.atWarWith) other.atWarWith = [];
+          if (!other.atWarWith.includes(faction.id)) other.atWarWith.push(faction.id);
+          console.log(`[系統] ⚔️ 派系動態：【${faction.factionName}】對【${other.factionName}】宣戰了！`);
+        }
+        
+        if (faction.relations[other.id] > -20 && faction.atWarWith.includes(other.id)) {
+          faction.atWarWith = faction.atWarWith.filter(id => id !== other.id);
+          if (other.atWarWith) other.atWarWith = other.atWarWith.filter(id => id !== faction.id);
+          console.log(`[系統] 🕊️ 派系動態：【${faction.factionName}】與【${other.factionName}】達成了停戰協議。`);
+        }
+      }
+
+      if (faction.playerFavor < -50 && !faction.atWarWith.includes('player')) {
+        faction.atWarWith.push('player');
+        console.log(`[系統] ⚠️ 警告：【${faction.factionName}】對您的好感度過低，已對您正式宣戰！`);
+        if ((window as any).toastManager) {
+           (window as any).toastManager.show(`⚠️ 【${faction.factionName}】對您宣戰了！`, 'error');
+        }
       }
     }
   }
