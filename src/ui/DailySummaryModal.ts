@@ -15,6 +15,9 @@ export function showDailySummaryModal(onConfirm: () => void): void {
   // 1. 渲染本日結算
   renderDailySummary();
 
+  // 1.5 渲染今日見聞與里程碑
+  renderNarratives();
+
   // 2. 渲染未來預測
   renderForecast();
 
@@ -137,4 +140,36 @@ function renderForecast() {
   }
 
   container.innerHTML = html;
+}
+
+function renderNarratives() {
+  const container = document.getElementById('daily-narrative-container');
+  const content = document.getElementById('daily-narrative-content');
+  if (!container || !content) return;
+
+  const items: string[] = [];
+
+  // 1. 檢查並加入里程碑
+  if (GameState.pendingMilestones && GameState.pendingMilestones.length > 0) {
+    items.push(...GameState.pendingMilestones);
+    // 清空已顯示的待處理里程碑
+    GameState.pendingMilestones = [];
+  }
+
+  // 2. 隨機環境敘事
+  import('../data/NarrativeData').then(({ getRandomNarrative }) => {
+    const narrative = getRandomNarrative(GameState.totalDays);
+    if (narrative) {
+      items.push(narrative);
+    }
+
+    if (items.length > 0) {
+      container.style.display = 'block';
+      content.innerHTML = items
+        .map(item => `<div style="margin-bottom: 6px; display: flex; align-items: flex-start; gap: 6px;"><span>•</span><span>${item}</span></div>`)
+        .join('');
+    } else {
+      container.style.display = 'none';
+    }
+  });
 }

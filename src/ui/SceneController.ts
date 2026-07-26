@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { MapNode, NodeLevel, getMaxFacilityLevel } from '../models/types';
+import { MapNode, NodeLevel, getNodeMaxFacilityLevel } from '../models/types';
 import { UIManager } from './UIManager';
 import { renderMap } from './MapController';
 
@@ -238,6 +238,8 @@ export function renderBaseBuildings() {
   listEl.innerHTML = '';
   
   const territory = GameState.myTerritory;
+  const node = GameState.mapSystem.getNodeById(territory.currentCountryId!);
+  if (!node) return;
   const bldTypes: { key: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' }[] = [
     { key: 'defense' },
     { key: 'tavern' },
@@ -265,15 +267,15 @@ export function renderBaseBuildings() {
     card.style.borderRadius = '6px';
     
     let actionBtnHtml = '';
-    const maxAllowed = getMaxFacilityLevel(territory.title);
+    const maxAllowed = getNodeMaxFacilityLevel(node.nodeLevel);
     
     if (isMax) {
       actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px;">已達當前最高等級</button>`;
     } else if (nextLvl > maxAllowed) {
-      actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px; color: #f87171;">需晉升爵位解鎖 Lv.${nextLvl}</button>`;
+      actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px; color: #f87171;">需擴張據點規模解鎖 Lv.${nextLvl}</button>`;
     } else {
       const cost = territory.getUpgradeCost(bld.key, nextLvl);
-      const canUpgrade = territory.canUpgradeBuilding(bld.key);
+      const canUpgrade = territory.canUpgradeBuilding(bld.key, node.nodeLevel);
       const btnText = lvl === 0 ? `🔨 建造 (${cost.gold}金)` : `🔺 升級 (${cost.gold}金)`;
       
       const costStr = `
@@ -306,7 +308,7 @@ export function renderBaseBuildings() {
     const btn = card.querySelector('.btn-upgrade-bld') as HTMLButtonElement | null;
     if (btn) {
       btn.addEventListener('click', () => {
-        if (territory.upgradeBuilding(bld.key)) {
+        if (territory.upgradeBuilding(bld.key, node.nodeLevel)) {
           renderBaseBuildings();
           UIManager.updateUI();
         }

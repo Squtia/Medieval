@@ -1972,8 +1972,14 @@
     <div class="modal-content glass-panel" style="width: 500px; padding: 40px; border: 2px solid #eab308; box-shadow: 0 0 30px rgba(234, 179, 8, 0.3);">
       <h2 style="text-align: center; color: #fef08a; border-bottom: 1px solid rgba(234,179,8,0.5); padding-bottom: 15px; margin-bottom: 20px;">📜 本日結算</h2>
       
-      <div id="daily-summary-content" style="margin-bottom: 25px; line-height: 1.6;">
+      <div id="daily-summary-content" style="margin-bottom: 20px; line-height: 1.6;">
         <!-- JS 動態寫入本日結算 -->
+      </div>
+
+      <!-- 今日見聞 / 里程碑區塊 -->
+      <div id="daily-narrative-container" style="display: none; margin-bottom: 20px; background: rgba(234, 179, 8, 0.08); border: 1px dashed rgba(234, 179, 8, 0.4); padding: 12px; border-radius: 8px;">
+        <h4 style="color: #fef08a; font-size: 0.95em; margin-bottom: 8px;">📖 今日見聞</h4>
+        <div id="daily-narrative-content" style="font-size: 0.9em; color: #ebdcb6; line-height: 1.5;"></div>
       </div>
 
       <h3 style="color: #60a5fa; border-bottom: 1px solid rgba(96,165,250,0.5); padding-bottom: 10px; margin-bottom: 15px;">🔮 未來預測</h3>

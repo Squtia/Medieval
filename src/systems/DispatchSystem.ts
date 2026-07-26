@@ -1,7 +1,7 @@
 import { Adventurer } from '../models/Adventurer';
 import { DispatchTask, EnemyFeature, TaskType, TradePhase, normalizeTradeTask } from '../models/DispatchTask';
 import { Territory } from '../models/Territory';
-import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig, getNodeMaxPopulation, TradeTreaty } from '../models/types';
+import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig, TradeTreaty } from '../models/types';
 import { EquipmentGenerator } from './EquipmentGenerator';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
@@ -410,40 +410,6 @@ export class DispatchSystem {
       return;
     }
 
-    // DEP-01: 探索任務獨立結算邏輯
-    if (task.type === TaskType.EXPLORE) {
-      const mapSystem = GameState.mapSystem;
-      // 探索成功：自動完成目標節點的偵查（不消耗金幣）
-      if (mapSystem && task.targetNodeId) {
-        const node = mapSystem.getNodeById(task.targetNodeId);
-        if (node && !node.isScouted) {
-          node.isScouted = true;
-          node.scoutExpiryDate = GameState.totalDays + 30;
-          let danger = '未知';
-          let treasure = '無';
-          if (node.feature === NodeFeature.MONSTER_NEST) { danger = '極度危险'; treasure = '史詩寶藏'; }
-          else if (node.feature === NodeFeature.SUBJUGATION) { danger = '中等危险'; treasure = '稀有素材'; }
-          node.scoutData = { dangerLevel: danger, treasureTier: treasure };
-          console.log(`📍 [探索成功] 小隊的探查勘很應詳細側查了「${node.name}」！情報有效期 30 天。`);
-        }
-      }
-      // 探索回報：隨機少量資源 + 少量聲望
-      const woodGain = Random.int(2, 6);
-      const stoneGain = Random.int(1, 3);
-      const xpReward = task.expectedPrestige;
-      this.territory.wood += woodGain;
-      this.territory.stone += stoneGain;
-      this.territory.prestige += task.expectedPrestige;
-      console.log(`✅ [探索完成] 傭兵小隊 (${advNames}) 探索歸來！獲得木材+${woodGain}、石材+${stoneGain}、聲望+${task.expectedPrestige}。`);
-      for (const adv of adventurers) {
-        adv.gainXP(xpReward);
-        adv.currentState = AdventurerState.IDLE;
-        adv.dispatchEndTime = null;
-        adv.restingDaysLeft = 0;
-      }
-      return;
-    }
-
     if (task.type === TaskType.DIPLOMACY) {
       const mapSystem = GameState.mapSystem;
       if (mapSystem && task.targetNodeId) {
@@ -499,20 +465,8 @@ export class DispatchSystem {
         
         // 存活部隊回歸領地
         if (survivors > 0) {
-          const baseNode = GameState.mapSystem.getNodeById(this.territory.currentCountryId!);
-          const maxPop = baseNode ? getNodeMaxPopulation(baseNode.nodeLevel) : 9999;
-          const spaceLeft = maxPop - this.territory.population;
-          
-          if (spaceLeft > 0) {
-            const added = Math.min(survivors, spaceLeft);
-            this.territory.population += added;
-            this.territory.workers[typeStr] = (this.territory.workers[typeStr] || 0) + added;
-            if (added < survivors) {
-              battleLog += ` (有 ${survivors - added} 名生還士兵因領地人口上限無法歸建)`;
-            }
-          } else {
-            battleLog += ` (所有 ${survivors} 名生還士兵因領地人口上限無法歸建)`;
-          }
+          this.territory.population += survivors;
+          this.territory.workers[typeStr] = (this.territory.workers[typeStr] || 0) + survivors;
         }
         
         if (loss > 0) {

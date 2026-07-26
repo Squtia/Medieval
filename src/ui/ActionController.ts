@@ -3,7 +3,7 @@ import { UIManager } from './UIManager';
 import { ToastManager } from './ToastManager';
 import { Random } from '../core/Random';
 import { DispatchTask, EnemyFeature, TaskType } from '../models/DispatchTask';
-import { NodeLevel, getMaxRosterLimit, getNodeMaxPopulation } from '../models/types';
+import { NodeLevel, getMaxRosterLimit } from '../models/types';
 import { Adventurer } from '../models/Adventurer';
 import { NameGenerator } from '../systems/NameGenerator';
 import { DataStore } from '../systems/DataStore';
@@ -75,19 +75,9 @@ export function initActionController(): void {
     const findRefugeeChance = Math.max(0.05, maxRefugeeChance - penalty);
 
     if (Random.next() < findRefugeeChance) {
-      const baseNode = GameState.mapSystem.getNodeById(territory.currentCountryId!);
-      const maxPop = baseNode ? getNodeMaxPopulation(baseNode.nodeLevel) : 9999;
-      
       foundRefugees = Random.int(1, 3);
-      const spaceLeft = maxPop - territory.population;
-      if (spaceLeft > 0) {
-        const added = Math.min(foundRefugees, spaceLeft);
-        territory.population += added;
-        territory.workers['UNASSIGNED'] += added;
-        foundRefugees = added;
-      } else {
-        foundRefugees = 0; // 無法收容
-      }
+      territory.population += foundRefugees;
+      territory.workers['UNASSIGNED'] += foundRefugees;
     }
 
     // 3. 結算獎勵

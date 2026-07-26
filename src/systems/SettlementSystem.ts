@@ -1,7 +1,7 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
-import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig, getNodeMaxPopulation } from '../models/types';
+import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig } from '../models/types';
 import { Random } from '../core/Random';
 
 export class SettlementSystem {
@@ -157,29 +157,103 @@ export class SettlementSystem {
         });
         console.log(`[SettlementSystem] 💀 飢荒！糧食不足，${actualStarved} 名流民離開或餓死了。當前總人口：${territory.population}`);
       }
-    } else {
-      // 領地有餘糧即可吸引流民 (不再需要大於2倍)
-      if (territory.food > totalPeople) {
-        // 基礎機率 20%，每 100 聲望 +1% (上限 50%)
+    }
+    
+    // 4. 自然人口動態 (Realistic Demographics)
+    const currentPop = territory.population;
+    if (currentPop > 0) {
+      // 4.1 生育 (Births) - 每日 0.15%
+      const expectedBirths = currentPop * 0.0015;
+      let births = Math.floor(expectedBirths);
+      if (Random.next() < (expectedBirths - births)) births++;
+      
+      if (births > 0) {
+        territory.population += births;
+        territory.workers[WorkerJob.UNASSIGNED] = (territory.workers[WorkerJob.UNASSIGNED] || 0) + births;
+        console.log(`[SettlementSystem] 🍼 領地迎來了 ${births} 名新生兒。`);
+      }
+
+      // 4.2 老死與疾病 (Deaths & Disease)
+      const baseDeathRate = 0.0010;
+      const crowdPenalty = Math.floor(currentPop / 1000) * 0.0002;
+      const deathRate = baseDeathRate + crowdPenalty;
+      const expectedDeaths = currentPop * deathRate;
+      let deaths = Math.floor(expectedDeaths);
+      if (Random.next() < (expectedDeaths - deaths)) deaths++;
+      
+      deaths = Math.min(deaths, territory.population);
+      if (deaths > 0) {
+        territory.population -= deaths;
+        let deathsLeft = deaths;
+        if (territory.workers[WorkerJob.UNASSIGNED] >= deathsLeft) {
+          territory.workers[WorkerJob.UNASSIGNED] -= deathsLeft;
+          deathsLeft = 0;
+        } else {
+          deathsLeft -= (territory.workers[WorkerJob.UNASSIGNED] || 0);
+          territory.workers[WorkerJob.UNASSIGNED] = 0;
+        }
+        
+        while (deathsLeft > 0) {
+          const jobKeys = Object.keys(territory.workers).filter(k => k !== WorkerJob.UNASSIGNED) as WorkerJob[];
+          const hasWorkers = jobKeys.some(k => territory.workers[k] > 0);
+          if (!hasWorkers) break;
+
+          const randJob = Random.pick(jobKeys);
+          if (territory.workers[randJob] > 0) {
+            territory.workers[randJob]--;
+            deathsLeft--;
+          }
+        }
+        console.log(`[SettlementSystem] 💀 ${deaths} 名領民因年邁或染病而過世了。`);
+      }
+      
+      // 4.3 外移 (Emigration)
+      const security = (territory.security === undefined || territory.security === null) ? 100 : territory.security;
+      if (security < 40) {
+        const emigrateRate = (40 - security) * 0.0005;
+        const expectedEmigrants = territory.population * emigrateRate;
+        let emigrants = Math.floor(expectedEmigrants);
+        if (Random.next() < (expectedEmigrants - emigrants)) emigrants++;
+        
+        emigrants = Math.min(emigrants, territory.population);
+        if (emigrants > 0) {
+          territory.population -= emigrants;
+          let emiLeft = emigrants;
+          if (territory.workers[WorkerJob.UNASSIGNED] >= emiLeft) {
+            territory.workers[WorkerJob.UNASSIGNED] -= emiLeft;
+            emiLeft = 0;
+          } else {
+            emiLeft -= (territory.workers[WorkerJob.UNASSIGNED] || 0);
+            territory.workers[WorkerJob.UNASSIGNED] = 0;
+          }
+          
+          while (emiLeft > 0) {
+            const jobKeys = Object.keys(territory.workers).filter(k => k !== WorkerJob.UNASSIGNED) as WorkerJob[];
+            const hasWorkers = jobKeys.some(k => territory.workers[k] > 0);
+            if (!hasWorkers) break;
+
+            const randJob = Random.pick(jobKeys);
+            if (territory.workers[randJob] > 0) {
+              territory.workers[randJob]--;
+              emiLeft--;
+            }
+          }
+          console.log(`[SettlementSystem] 🚶 由於治安惡化，${emigrants} 名領民對領主失去信心，打包離開了領地。`);
+        }
+      }
+      
+      // 4.4 外部移民 (Immigration)
+      if (territory.food > totalPeople && security >= 50) {
         const prestigeBonus = Math.floor(territory.prestige / 100) * 0.01;
         const attractChance = Math.min(0.5, 0.2 + prestigeBonus);
         
         if (Random.next() < attractChance) {
-          // 收益動態化：增加當前總人口的 5% (最少 1 人)
-          let newComers = Math.max(1, Math.floor(territory.population * 0.05));
+          const bonusPop = Math.floor(territory.prestige / 1000);
+          const newComers = Random.int(1, 3 + bonusPop);
           
-          const baseNode = GameState.mapSystem.getNodeById(territory.currentCountryId!);
-          const maxPop = baseNode ? getNodeMaxPopulation(baseNode.nodeLevel) : 9999;
-          const spaceLeft = maxPop - territory.population;
-          
-          if (spaceLeft > 0) {
-            newComers = Math.min(newComers, spaceLeft);
-            territory.population += newComers;
-            territory.workers[WorkerJob.UNASSIGNED] += newComers;
-          } else {
-            newComers = 0;
-          }
-          console.log(`[SettlementSystem] 🏕️ 領地繁榮！流民被您的聲望與餘糧吸引而來，總人口增加 ${newComers} 人。`);
+          territory.population += newComers;
+          territory.workers[WorkerJob.UNASSIGNED] = (territory.workers[WorkerJob.UNASSIGNED] || 0) + newComers;
+          console.log(`[SettlementSystem] 🏕️ 領地繁榮且治安良好！流民被您的聲望吸引而來，人口增加 ${newComers} 人。`);
         }
       }
     }
@@ -197,15 +271,24 @@ export class SettlementSystem {
             node.prosperity += growth;
             console.log(`[SettlementSystem] 🏰 附庸地成長：在代官 ${gov.name} 的治理下，「${node.name}」的繁榮度增加了 ${growth} 點！`);
             
-            // 根據繁榮度可能升級 NodeLevel
-            const oldLevel = node.nodeLevel;
-            if (node.prosperity >= 500 && node.nodeLevel < NodeLevel.CAPITAL) node.nodeLevel = NodeLevel.CAPITAL;
-            else if (node.prosperity >= 300 && node.nodeLevel < NodeLevel.TOWN) node.nodeLevel = NodeLevel.TOWN;
-            else if (node.prosperity >= 100 && node.nodeLevel < NodeLevel.VILLAGE) node.nodeLevel = NodeLevel.VILLAGE;
-            else if (node.prosperity >= 100 && node.nodeLevel < NodeLevel.CAMP) node.nodeLevel = NodeLevel.CAMP;
+            // 根據有效繁榮度動態判定 NodeLevel
+            const effectiveProsperity = node.prosperity + node.population;
+            let computedLevel = NodeLevel.WILDERNESS;
+            const vassalNodesCount = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
             
-            if (node.nodeLevel > oldLevel) {
-               console.log(`[SettlementSystem] 🎉 升級！「${node.name}」的規模擴大了！`);
+            if (effectiveProsperity >= 5000 && vassalNodesCount > 0) computedLevel = NodeLevel.CAPITAL;
+            else if (effectiveProsperity >= 1000) computedLevel = NodeLevel.TOWN;
+            else if (effectiveProsperity >= 150) computedLevel = NodeLevel.VILLAGE;
+            else if (effectiveProsperity >= 20) computedLevel = NodeLevel.CAMP;
+            
+            if (node.nodeLevel !== computedLevel) {
+               const isUpgrade = computedLevel > node.nodeLevel;
+               node.nodeLevel = computedLevel;
+               if (isUpgrade) {
+                 console.log(`[SettlementSystem] 🎉 升級！「${node.name}」的規模擴張了！`);
+               } else {
+                 console.log(`[SettlementSystem] ⚠️ 衰退！「${node.name}」的規模縮小了！`);
+               }
             }
           }
         }

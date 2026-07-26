@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { FactionType, getNodeMaxPopulation } from '../models/types';
+import { FactionType } from '../models/types';
 import { Random } from '../core/Random';
 
 export interface EventOption {
@@ -124,9 +124,11 @@ export const GAME_EVENTS: GameEvent[] = [
         text: '資助祭典 (金幣 -300，繁榮度 +50)',
         onSelect: () => {
           GameState.myTerritory.gold -= 300;
-          const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
+          const baseNode = GameState.mapSystem.getNodes().find(n => n.isPlayerBase) ||
+                           GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
           if (baseNode) baseNode.prosperity += 50;
           console.log('🎉 祭典非常成功，領地充滿了歡聲笑語！');
+          import('../ui/UIManager').then(({ UIManager }) => UIManager.updateUI());
         }
       },
       {
@@ -184,14 +186,10 @@ export const GAME_EVENTS: GameEvent[] = [
           const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
           // A2 Bug 修復：人口增加需受 NodeLevel 人口上限約束，且必須同步 workers.UNASSIGNED
           if (baseNode) {
-            const maxPop = getNodeMaxPopulation(baseNode.nodeLevel);
-            const spaceLeft = Math.max(0, maxPop - GameState.myTerritory.population);
-            const actualAdded = Math.min(50, spaceLeft);
-            if (actualAdded > 0) {
-              baseNode.population += actualAdded;
-              GameState.myTerritory.population += actualAdded;
-              GameState.myTerritory.workers['UNASSIGNED'] = (GameState.myTerritory.workers['UNASSIGNED'] || 0) + actualAdded;
-            }
+            const actualAdded = 50;
+            baseNode.population += actualAdded;
+            GameState.myTerritory.population += actualAdded;
+            GameState.myTerritory.workers['UNASSIGNED'] = (GameState.myTerritory.workers['UNASSIGNED'] || 0) + actualAdded;
           }
           const oak = GameState.mapSystem.getFactions().find(f => f.id === 'f_oakhaven');
           if (oak) oak.playerFavor += 20;

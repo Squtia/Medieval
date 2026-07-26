@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { AdventurerState, NobleTitle, TITLE_CONFIG, getNodeMaxPopulation, NodeLevel, NodeFeature } from '../models/types';
+import { AdventurerState, NobleTitle, TITLE_CONFIG, NodeLevel, NodeFeature } from '../models/types';
 import { openAdvDetail, getSelectedPartyAdventurer, selectPartyAdventurer, renderPartyUpperSection } from './ModalController';
 import { renderAdventurerCard } from './components/AdventurerCard';
 import { renderBaseBuildings } from './SceneController';
@@ -77,12 +77,7 @@ class UIManagerClass {
     if (this.uiPrestige) this.uiPrestige.textContent = territory.prestige.toString();
     if (this.uiFavor) this.uiFavor.textContent = territory.royalFavor.toString();
     if (this.uiPopulation) {
-      let maxPop = 9999;
-      if (territory.currentCountryId) {
-        const baseNode = GameState.mapSystem.getNodeById(territory.currentCountryId);
-        if (baseNode) maxPop = getNodeMaxPopulation(baseNode.nodeLevel);
-      }
-      this.uiPopulation.textContent = `${territory.population} / ${maxPop}`;
+      this.uiPopulation.textContent = `${territory.population}`;
     }
     if (this.uiFood) this.uiFood.textContent = territory.food.toString();
     if (this.uiWood) this.uiWood.textContent = territory.wood.toString();
@@ -187,7 +182,7 @@ class UIManagerClass {
                 if (territory.gold >= nextRank.reqGold) {
                   territory.gold -= nextRank.reqGold;
                   territory.title = nextRank.title;
-                  alert(`恭喜！您已正式晉升為【${nextRank.titleCN}】！\n新特權：商隊上限 ${nextRank.maxCaravans}、英雄上限 ${nextRank.maxRoster}、建築上限 Lv.${nextRank.maxFacilityLevel}`);
+                  alert(`恭喜！您已正式晉升為【${nextRank.titleCN}】！\n新特權：商隊上限 ${nextRank.maxCaravans}、英雄上限 ${nextRank.maxRoster}`);
                   this.updateUI();
                 } else {
                   alert('金幣不足！');
@@ -423,6 +418,9 @@ class UIManagerClass {
         btnReturnBase.style.display = 'none';
       }
     }
+
+    // 重新整理繁榮度進度條 UI
+    this.refreshProsperityBar();
   }
 
   // 播放黑屏轉場動畫
@@ -444,15 +442,75 @@ class UIManagerClass {
     }, 500); // 對應 CSS transition 0.5s
   }
 
+  // 重新整理並更新繁榮度進度條
+  refreshProsperityBar(): void {
+    if (!GameState.mapSystem) return;
+    const playerNode = GameState.mapSystem.getNodes().find(n => n.isPlayerBase) ||
+      (GameState.myTerritory.currentCountryId ? GameState.mapSystem.getNodeById(GameState.myTerritory.currentCountryId) : null);
+    if (!playerNode) return;
+
+    const PROSPERITY_THRESHOLDS: Record<number, number> = {
+      [NodeLevel.WILDERNESS]: 0,
+      [NodeLevel.CAMP]: 20,
+      [NodeLevel.VILLAGE]: 150,
+      [NodeLevel.TOWN]: 1000,
+      [NodeLevel.CAPITAL]: 5000
+    };
+    const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
+    const levelIcons = ['🏚️', '🏕️', '🏡', '🏘️', '🏰'];
+
+    const effectiveProsperity = playerNode.prosperity + GameState.myTerritory.population;
+    let computedLevel = NodeLevel.WILDERNESS;
+    // 首都的嚴格條件：除了繁榮度 5000 外，還需要擁有其他附庸據點
+    const vassalNodesCount = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
+    
+    if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.CAPITAL] && vassalNodesCount > 0) computedLevel = NodeLevel.CAPITAL;
+    else if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.TOWN]) computedLevel = NodeLevel.TOWN;
+    else if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.VILLAGE]) computedLevel = NodeLevel.VILLAGE;
+    else if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.CAMP]) computedLevel = NodeLevel.CAMP;
+    
+    if (playerNode.nodeLevel !== computedLevel) {
+      const isUpgrade = computedLevel > playerNode.nodeLevel;
+      playerNode.nodeLevel = computedLevel;
+      const newName = levelNames[playerNode.nodeLevel] || '新階段';
+      if (isUpgrade) {
+        console.log(`[系統] 🎉 恭喜！「${playerNode.name}」規模擴張為【${newName}】！`);
+        if ((window as any).toastManager) {
+          (window as any).toastManager.show(`🎉 據點擴張！「${playerNode.name}」已成為【${newName}】！`, 'success');
+        }
+      } else {
+        console.log(`[系統] ⚠️ 警告！「${playerNode.name}」因人口流失或繁榮度下降，退化為【${newName}】！`);
+        if ((window as any).toastManager) {
+          (window as any).toastManager.show(`⚠️ 據點衰退！「${playerNode.name}」已退化為【${newName}】！`, 'warning');
+        }
+      }
+    }
+
+    const current = effectiveProsperity;
+    let nextThreshold = current;
+    if (playerNode.nodeLevel < NodeLevel.CAPITAL) {
+        nextThreshold = PROSPERITY_THRESHOLDS[playerNode.nodeLevel + 1] ?? 20;
+        // 如果卡在首都條件
+        if (playerNode.nodeLevel === NodeLevel.TOWN && current >= PROSPERITY_THRESHOLDS[NodeLevel.CAPITAL]) {
+             nextThreshold = current; // 顯示已滿，但未達成其他條件
+        }
+    }
+
+    const levelLabelText = `${levelIcons[playerNode.nodeLevel] || '🏕️'} ${levelNames[playerNode.nodeLevel] || '據點'}`;
+    const nextLevelName = levelNames[playerNode.nodeLevel + 1] || '';
+
+    this.updateProsperityBar(current, nextThreshold, levelLabelText, nextLevelName);
+  }
+
   // C4: 更新繁榮度進度條
-  updateProsperityBar(current: number, nextThreshold: number, levelName: string): void {
+  updateProsperityBar(current: number, nextThreshold: number, levelLabelText: string, nextLevelName?: string): void {
     const levelLabel = document.getElementById('prosperity-level-label');
     const valueLabel = document.getElementById('prosperity-value-label');
     const barFill = document.getElementById('prosperity-bar-fill') as HTMLDivElement | null;
     const nextLabel = document.getElementById('prosperity-next-label');
     const dangerBadge = document.getElementById('prosperity-danger-badge');
 
-    if (levelLabel) levelLabel.textContent = `🏕️ ${levelName}`;
+    if (levelLabel) levelLabel.textContent = levelLabelText;
     if (valueLabel) valueLabel.textContent = `${current} / ${nextThreshold}`;
 
     const pct = nextThreshold > 0 ? Math.min(100, Math.round((current / nextThreshold) * 100)) : 100;
@@ -466,14 +524,18 @@ class UIManagerClass {
 
     const diff = nextThreshold - current;
     if (nextLabel) {
-      nextLabel.textContent = diff > 0
-        ? `距升級還差 ${diff} 點繁榮度`
-        : '✨ 繁榮度已達最高等級';
+      if (diff > 0) {
+        const targetStr = nextLevelName ? `至 ${nextLevelName} ` : '';
+        nextLabel.textContent = `距升級${targetStr}還差 ${diff} 點繁榮度`;
+      } else {
+        nextLabel.textContent = '✨ 繁榮度已達最高等級';
+      }
     }
 
     // 檢查相鄰危險並顯示警告徽章
-    if (dangerBadge && GameState.mapSystem && GameState.myTerritory.currentCountryId) {
-      const playerNode = GameState.mapSystem.getNodeById(GameState.myTerritory.currentCountryId);
+    if (dangerBadge && GameState.mapSystem) {
+      const playerNode = GameState.mapSystem.getNodes().find(n => n.isPlayerBase) ||
+        (GameState.myTerritory.currentCountryId ? GameState.mapSystem.getNodeById(GameState.myTerritory.currentCountryId) : null);
       if (playerNode) {
         const hasDanger = GameState.mapSystem.getNodes().some(other =>
           other.id !== playerNode.id &&

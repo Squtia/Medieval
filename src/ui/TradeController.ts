@@ -360,8 +360,9 @@ export function openTradeModal(node: MapNode) {
     btnDiplomacy.onclick = () => {
       tradeModal.style.display = 'none';
       closeNodeDetailPanel();
-      const { openDispatchSetup } = require('./ModalController');
-      openDispatchSetup(node, 'diplomacy');
+      import('./ModalController').then(({ openDispatchSetup }) => {
+        openDispatchSetup(node, 'diplomacy');
+      });
     };
   } else {
     btnPlanRoute.style.display = 'inline-block';
@@ -372,8 +373,9 @@ export function openTradeModal(node: MapNode) {
     btnPlanRoute.onclick = () => {
       tradeModal.style.display = 'none';
       closeNodeDetailPanel();
-      const { openTradePlanner } = require('./TradeController');
-      openTradePlanner([node.id]);
+      import('./TradeController').then(({ openTradePlanner }) => {
+        openTradePlanner([node.id]);
+      });
     };
   }
 }

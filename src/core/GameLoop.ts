@@ -124,6 +124,11 @@ export function advanceDay() {
     missionsCompleted: Math.max(0, before.activeMissions - GameState.system.getActiveMissionsCount())
   };
 
+  // 每日檢查里程碑觸發
+  import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => {
+    MilestoneSystem.checkAll();
+  });
+
 // UI 更新改由 GameFlowController 等呼叫端根據轉場時機手動呼叫，避免畫面前後跳躍
   // if (typeof (window as any).updateUICallback === 'function') {
   //   (window as any).updateUICallback();
@@ -147,6 +152,7 @@ function handleRandomInvasion() {
     const requiredDefense = GameState.currentYear + Random.int(0, 2); 
     
     if (defenseLevel >= requiredDefense) {
+      import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => MilestoneSystem.trigger('first_invasion_repelled'));
       showInvasionReport('🛡️ 防禦成功', '盜賊試圖夜襲營地，但看見堅固的木柵欄後知難而退了！\n\n領地未受任何損失。', false);
       territory.invasionCooldown = Random.int(15, 25); // B3: 防禦成功後重置 CD
     } else {
@@ -158,6 +164,7 @@ function handleRandomInvasion() {
       if (idleAdvs.length === 0) {
         processInvasionDefeat(territory, '💥 敵襲！據點無人駐守，物資遭到嚴重洗劫！');
       } else if (totalPower >= enemyPower) {
+        import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => MilestoneSystem.trigger('first_invasion_repelled'));
         const goldLoot = Random.int(10, 50);
         territory.gold += goldLoot;
         showInvasionReport('⚔️ 擊退敵襲', `留守的傭兵成功擊退了來犯的敵人！\n\n戰利品：獲得 ${goldLoot} 金幣`, false);

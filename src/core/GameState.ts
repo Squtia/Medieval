@@ -48,7 +48,9 @@ export const GameState = {
     ironDelta: number;
     populationDelta: number;
     missionsCompleted: number;
-  }
+  },
+  milestones: [] as string[],         // 已達成的里程碑 ID 列表
+  pendingMilestones: [] as string[],  // 當日待顯示的里程碑（每日摘要後清空）
 };
 
 export function initGameState() {
@@ -75,6 +77,8 @@ export function initGameState() {
   GameState.restedExpPool = 0;
   GameState.threat = { name: '凜冬寒流', severity: 5, daysRemaining: 10, warningIssued: false, prepared: false };
   GameState.lastDailySummary = null;
+  GameState.milestones = [];
+  GameState.pendingMilestones = [];
   
   // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
   EventBus.getInstance().clearAll();

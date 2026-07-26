@@ -78,8 +78,13 @@ export function renderPartyUpperSection() {
     if (titleEl) titleEl.textContent = '🛡️ 冒險者小隊 (無冒險者)';
     const viewport = document.getElementById('party-tab-viewport');
     if (viewport) viewport.innerHTML = '<div style="color:#94a3b8; text-align:center; padding-top:40px;">目前尚無冒險者，請至酒館招募！</div>';
+    const cardEl = document.getElementById('party-portrait-card');
+    if (cardEl) cardEl.style.display = 'none';
     return;
   }
+
+  const cardEl = document.getElementById('party-portrait-card');
+  if (cardEl) cardEl.style.display = 'flex';
 
   // 1. 更新頂部動態冒險者姓名標題
   if (titleEl) {
@@ -263,15 +268,27 @@ export function renderPartyUpperSection() {
       }
     });
 
-    viewport.innerHTML = `
-      <div style="font-size:0.78em; color:#eab308; font-weight:bold; margin-bottom:3px;">裝備槽位：</div>
-      ${equipRowsHtml}
-
-      <div style="border-top: 1px dashed rgba(239,68,68,0.3); padding-top: 6px; margin-top: 8px; text-align: center;">
-        <button id="btn-party-retire" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #ef4444; color: white; width: 100%; padding: 3px 0; font-size: 0.78em;">
-          👴 永久退休轉任 (增加領地稅收)
+    const canRetire = adv.trait.name !== '誓約守衛';
+    const retireBtnHtml = canRetire ? `
+        <button id="btn-party-retire-init" class="action-btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; padding: 2px 6px; font-size: 0.72em; border-radius: 4px; cursor: pointer;">
+          🚪 退休...
         </button>
+        <div id="retire-confirm-group" style="display:none; gap:4px;">
+          <button id="btn-party-retire-confirm" class="action-btn" style="background: rgba(239,68,68,0.2); border: 1px solid #ef4444; color: #f87171; padding: 2px 6px; font-size: 0.72em; border-radius: 4px; cursor: pointer;">
+            ⚠️ 確認退休
+          </button>
+          <button id="btn-party-retire-cancel" class="action-btn" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #cbd5e1; padding: 2px 6px; font-size: 0.72em; border-radius: 4px; cursor: pointer;">
+            取消
+          </button>
+        </div>
+    ` : `<span style="font-size: 0.72em; color: #64748b; font-style: italic;">誓約守衛不可退休</span>`;
+
+    viewport.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+        <span style="font-size:0.78em; color:#eab308; font-weight:bold;">裝備槽位：</span>
+        ${retireBtnHtml}
       </div>
+      ${equipRowsHtml}
     `;
 
     viewport.querySelectorAll('.btn-party-unequip').forEach(btn => {
@@ -294,11 +311,23 @@ export function renderPartyUpperSection() {
       });
     });
 
+    const btnRetireInit = viewport.querySelector('#btn-party-retire-init') as HTMLButtonElement;
+    const retireConfirmGroup = viewport.querySelector('#retire-confirm-group') as HTMLDivElement;
+    const btnRetireConfirm = viewport.querySelector('#btn-party-retire-confirm') as HTMLButtonElement;
+    const btnRetireCancel = viewport.querySelector('#btn-party-retire-cancel') as HTMLButtonElement;
 
+    if (btnRetireInit && retireConfirmGroup && btnRetireConfirm && btnRetireCancel) {
+      btnRetireInit.addEventListener('click', () => {
+        btnRetireInit.style.display = 'none';
+        retireConfirmGroup.style.display = 'flex';
+      });
 
-    const btnRetire = viewport.querySelector('#btn-party-retire');
-    if (btnRetire) {
-      btnRetire.addEventListener('click', () => {
+      btnRetireCancel.addEventListener('click', () => {
+        retireConfirmGroup.style.display = 'none';
+        btnRetireInit.style.display = 'block';
+      });
+
+      btnRetireConfirm.addEventListener('click', () => {
         if (confirm(`確定要讓 ${adv.name} 退休嗎？\n退休後將利用其魅力 (當前: ${attr.charm}) 永久提升領地每日稅收！`)) {
           const slotsArr = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
           slotsArr.forEach(s => {
@@ -309,6 +338,10 @@ export function renderPartyUpperSection() {
             }
           });
           GameState.myTerritory.retireAdventurer(adv);
+          const index = GameState.adventurers.indexOf(adv);
+          if (index !== -1) {
+            GameState.adventurers.splice(index, 1);
+          }
           currentPartyAdv = GameState.adventurers[0] || null;
           renderPartyUpperSection();
           UIManager.updateUI();
@@ -417,7 +450,6 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
     buttons.push({ icon: '👁️', text: '派遣間諜 (開發中)', action: () => {}, disabled: true });
   }
   if (node.ownerFactionId === null && !node.isPlayerBase) {
-    buttons.push({ icon: '🗺️', text: '派遣探索小隊', action: () => openDispatchSetup(node, 'explore') });
     if (node.nodeLevel === NodeLevel.WILDERNESS) {
       buttons.push({ icon: '⛺', text: '在此建立據點', action: () => {
         if (GameState.mapSystem.foundSettlement(node.id, GameState.myTerritory)) {
@@ -492,7 +524,7 @@ let pendingDispatchNode: MapNode | null = null;
 let selectedAdventurersForDispatch: Set<string> = new Set();
 let selectedTroopsForDispatch: Record<string, number> = {};
 
-export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjugation' | 'war' | 'diplomacy') {
+export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'war' | 'diplomacy') {
   const modal = document.getElementById('modal-dispatch-setup')!;
   const title = document.getElementById('dispatch-setup-title')!;
   const desc = document.getElementById('dispatch-setup-desc')!;
@@ -508,14 +540,7 @@ export function openDispatchSetup(node: MapNode, actionType: 'explore' | 'subjug
   
   const optionsContainer = document.getElementById('dispatch-subjugation-options')!;
   
-  if (actionType === 'explore') {
-    optionsContainer.style.display = 'none';
-    title.innerHTML = '🗺️ 探索隊伍編制';
-    desc.textContent = `目標：${node.name} (進行區域探索與採集)`;
-    // 探索任務需要較短天數 (預設 2 天)
-    pendingDispatchTask = new DispatchTask(`探索${node.name}`, TaskType.EXPLORE, 2, baseDiff / 2, 50, 5, Math.floor(minPower * 0.5));
-    pendingDispatchTask.targetNodeId = node.id;
-  } else if (actionType === 'diplomacy') {
+  if (actionType === 'diplomacy') {
     optionsContainer.style.display = 'none';
     title.innerHTML = '🤝 外交使節隊伍編制';
     desc.textContent = `目標：${node.name} (派遣使節前往簽署通商條約)`;
@@ -999,12 +1024,33 @@ export function openNodeDetailPanel(node: MapNode) {
     scoutInfoBox.style.display = 'none';
     unscoutedBox.style.display = 'block';
     
-    newBtnScout.addEventListener('click', () => {
-      if (GameState.mapSystem.scoutNode(node.id, GameState.myTerritory, GameState.totalDays)) {
-        UIManager.updateUI(); // 更新金幣顯示
-        openNodeDetailPanel(node); // 重新渲染面板
-      }
-    });
+    if (node.pendingScoutDays && node.pendingScoutDays > 0) {
+      newBtnScout.style.display = 'none';
+      const pendingMsg = document.createElement('div');
+      pendingMsg.style.color = '#fbbf24';
+      pendingMsg.style.fontWeight = 'bold';
+      pendingMsg.style.marginTop = '10px';
+      pendingMsg.style.textAlign = 'center';
+      pendingMsg.textContent = `👁️ 斥候偵查中... (預計剩餘 ${node.pendingScoutDays} 回合)`;
+      
+      // 移除舊的提示訊息，避免重複
+      const oldMsg = unscoutedBox.querySelector('.pending-scout-msg');
+      if (oldMsg) oldMsg.remove();
+      
+      pendingMsg.className = 'pending-scout-msg';
+      unscoutedBox.appendChild(pendingMsg);
+    } else {
+      newBtnScout.style.display = 'inline-block';
+      const oldMsg = unscoutedBox.querySelector('.pending-scout-msg');
+      if (oldMsg) oldMsg.remove();
+      
+      newBtnScout.addEventListener('click', () => {
+        if (GameState.mapSystem.scoutNode(node.id, GameState.myTerritory, GameState.totalDays)) {
+          UIManager.updateUI(); // 更新金幣顯示
+          openNodeDetailPanel(node); // 重新渲染面板
+        }
+      });
+    }
   }
 
   // 市場按鈕

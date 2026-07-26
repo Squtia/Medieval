@@ -72,10 +72,8 @@ export function initGameFlowController(): void {
       }
       stopGameLoop();
       
-      // 隱藏地圖與其他視圖
-      document.querySelectorAll('.view, .facility-view').forEach(v => v.classList.remove('active'));
-      const sysMenu = document.getElementById('modal-system-menu');
-      if (sysMenu) sysMenu.classList.remove('active');
+      // 隱藏所有視圖與彈窗
+      document.querySelectorAll('.view, .facility-view, .modal-overlay, .side-panel-left, .side-panel-right').forEach(v => v.classList.remove('active'));
       
       const topBar = document.getElementById('top-bar');
       if (topBar) topBar.style.display = 'none';

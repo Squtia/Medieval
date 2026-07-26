@@ -1,4 +1,4 @@
-import { Equipment, NobleTitle, WorkerJob, getMaxFacilityLevel } from './types';
+import { Equipment, NobleTitle, WorkerJob, getNodeMaxFacilityLevel, NodeLevel } from './types';
 import { Adventurer } from './Adventurer';
 import { CombatHistoryRecord } from './Combat';
 
@@ -169,12 +169,12 @@ export class Territory {
     };
   }
 
-  public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense'): boolean {
+  public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nodeLevel: NodeLevel = NodeLevel.WILDERNESS): boolean {
     const nextLevel = this.getBuildingLevel(bldType) + 1;
 
     
-    // 爵位等級上限卡控
-    const maxAllowed = getMaxFacilityLevel(this.title);
+    // 據點規模上限卡控
+    const maxAllowed = getNodeMaxFacilityLevel(nodeLevel);
     if (nextLevel > maxAllowed) return false;
     
     const cost = this.getUpgradeCost(bldType, nextLevel);
@@ -184,8 +184,8 @@ export class Territory {
            this.iron >= cost.iron;
   }
 
-  public upgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense'): boolean {
-    if (!this.canUpgradeBuilding(bldType)) return false;
+  public upgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nodeLevel: NodeLevel = NodeLevel.WILDERNESS): boolean {
+    if (!this.canUpgradeBuilding(bldType, nodeLevel)) return false;
     const nextLevel = this.getBuildingLevel(bldType) + 1;
     const cost = this.getUpgradeCost(bldType, nextLevel);
     

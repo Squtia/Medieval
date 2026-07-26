@@ -37,7 +37,6 @@ export interface TitleConfig {
   titleCN: string;
   maxCaravans: number;
   maxRoster: number;
-  maxFacilityLevel: number;
   taxBonusPer10Pop: number; // 每 10 人口帶來的額外稅收
   reqPrestige: number;
   reqPopulation: number;
@@ -59,13 +58,13 @@ export enum OfficeType {
  * 爵位數值設定表 (可隨時調整)
  */
 export const TITLE_CONFIG: TitleConfig[] = [
-  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, maxFacilityLevel: 3, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
-  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, maxFacilityLevel: 4, taxBonusPer10Pop: 1, reqPrestige: 500, reqPopulation: 30, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
-  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, maxFacilityLevel: 5, taxBonusPer10Pop: 2, reqPrestige: 2000, reqPopulation: 80, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, maxFacilityLevel: 6, taxBonusPer10Pop: 3, reqPrestige: 5000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, maxFacilityLevel: 7, taxBonusPer10Pop: 4, reqPrestige: 12000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, maxFacilityLevel: 7, taxBonusPer10Pop: 5, reqPrestige: 25000, reqPopulation: 1200, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, maxFacilityLevel: 7, taxBonusPer10Pop: 6, reqPrestige: 60000, reqPopulation: 3000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } }
+  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
+  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, taxBonusPer10Pop: 1, reqPrestige: 500, reqPopulation: 0, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
+  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, taxBonusPer10Pop: 2, reqPrestige: 2000, reqPopulation: 0, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, taxBonusPer10Pop: 3, reqPrestige: 5000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, taxBonusPer10Pop: 4, reqPrestige: 12000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, taxBonusPer10Pop: 5, reqPrestige: 25000, reqPopulation: 1500, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, taxBonusPer10Pop: 6, reqPrestige: 60000, reqPopulation: 5000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } }
 ];
 
 export function getTitleConfig(title: NobleTitle): TitleConfig {
@@ -83,8 +82,15 @@ export function getMaxRosterLimit(title: NobleTitle): number {
   return getTitleConfig(title).maxRoster;
 }
 
-export function getMaxFacilityLevel(title: NobleTitle): number {
-  return getTitleConfig(title).maxFacilityLevel;
+export function getNodeMaxFacilityLevel(level: NodeLevel): number {
+  switch (level) {
+    case NodeLevel.WILDERNESS: return 1;
+    case NodeLevel.CAMP: return 2;
+    case NodeLevel.VILLAGE: return 3;
+    case NodeLevel.TOWN: return 5;
+    case NodeLevel.CAPITAL: return 7;
+    default: return 1;
+  }
 }
 
 export function getTaxBonusPer10Pop(title: NobleTitle): number {
@@ -126,16 +132,6 @@ export enum NodeLevel {
   CAPITAL = 4     // 首都
 }
 
-export function getNodeMaxPopulation(level: NodeLevel): number {
-  switch (level) {
-    case NodeLevel.WILDERNESS: return 20;
-    case NodeLevel.CAMP: return 50;
-    case NodeLevel.VILLAGE: return 150;
-    case NodeLevel.TOWN: return 1000;
-    case NodeLevel.CAPITAL: return 5000;
-    default: return 20;
-  }
-}
 
 /**
  * 節點特徵
@@ -204,6 +200,7 @@ export interface MapNode {
   isScouted: boolean;
   scoutExpiryDate: number | null;
   scoutData?: NodeScoutData;
+  pendingScoutDays?: number; // 距離偵查完成還剩多少天
   
   // 天氣系統
   currentWeather: WeatherType;
