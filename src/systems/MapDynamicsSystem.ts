@@ -2,6 +2,7 @@ import { Faction, MapNode, NodeLevel, NodeFeature, WeatherType, TerrainType, Fac
 import { GameEventType } from '../core/GameEvents';
 import { Territory } from '../models/Territory';
 import { Random } from '../core/Random';
+import { GameState } from '../core/GameState';
 
 export class MapDynamicsSystem {
   private mapNodes: MapNode[];
@@ -34,6 +35,16 @@ export class MapDynamicsSystem {
   
   public simulateDailyMapDynamics(currentDay: number): void {
     for (const node of this.mapNodes) {
+      if (node.pendingScoutDays && node.pendingScoutDays > 0) {
+        node.pendingScoutDays -= 1;
+        if (node.pendingScoutDays <= 0) {
+          this.resolveScout(node, currentDay);
+          import('../ui/ToastManager').then(({ ToastManager }) => {
+            ToastManager.show(`斥候傳回了「${node.name}」的情報！`);
+          });
+        }
+      }
+
       if (node.siegeData) {
         node.siegeData.remainingDays -= 1;
         if (node.siegeData.remainingDays <= 0) {
@@ -87,7 +98,25 @@ export class MapDynamicsSystem {
     for (const node of this.mapNodes) {
       // OPT-06: 繁榮度自然成長（有主化的節點每月小幅成長）
       if (node.isPlayerBase) {
-        node.prosperity += 10; // 玩家據點每月 +10
+        // 基礎 +10
+        let prosperityGain = 10;
+
+        // 工人貢獻（已分配的農夫 + 伐木工 + 礦工，每人 +1/月）
+        const t = GameState.myTerritory;
+        if (t) {
+          const assignedWorkers =
+            (t.workers['FARMER'] || 0) +
+            (t.workers['WOODCUTTER'] || 0) +
+            (t.workers['MINER'] || 0);
+          prosperityGain += assignedWorkers;
+
+          // 建築貢獻（使用現有 getBuildingProsperityBonus()，每月貢獻 1/5 的永久值）
+          const buildingBonus = Math.floor(t.getBuildingProsperityBonus() / 5);
+          prosperityGain += buildingBonus;
+        }
+
+        node.prosperity += prosperityGain;
+        console.log(`[MapDynamics] 📈 月底繁榮度成長 +${prosperityGain}（基礎+工人+建築）`);
       } else if (node.ownerFactionId !== null) {
         node.prosperity += 5;  // 派系改節點每月 +5
       }
@@ -106,8 +135,8 @@ export class MapDynamicsSystem {
       // 確保繁榮度不小於 0
       node.prosperity = Math.max(0, node.prosperity);
 
-      // 節點升級檢定
-      if (node.nodeLevel < NodeLevel.CAPITAL) {
+      // 節點升級檢定 (排除玩家據點，交由 UI 與內政系統處理)
+      if (!node.isPlayerBase && node.nodeLevel < NodeLevel.CAPITAL) {
         const nextLevelThreshold = this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1];
         if (node.prosperity >= nextLevelThreshold) {
           this.upgradeNode(node);
@@ -135,16 +164,11 @@ export class MapDynamicsSystem {
         });
       }
 
-      // 節點降級檢定
-      if (node.nodeLevel > NodeLevel.WILDERNESS) {
+      // 節點降級檢定 (排除玩家據點，交由 UI 與內政系統處理)
+      if (!node.isPlayerBase && node.nodeLevel > NodeLevel.WILDERNESS) {
         const currentLevelThreshold = this.PROSPERITY_THRESHOLDS[node.nodeLevel];
         if (node.prosperity < currentLevelThreshold) {
-          // TODO: 這是暫時的絕對安全設計，未來需加入 AI 攻城機制，目前玩家據點絕對不降級、不消失
-          if (node.isPlayerBase) {
-             node.prosperity = currentLevelThreshold; // 鎖定在當前門檻
-          } else {
-             this.downgradeNode(node);
-          }
+          this.downgradeNode(node);
         }
       }
     }
@@ -472,42 +496,67 @@ export class MapDynamicsSystem {
       console.log(`[系統] ⚠️ 該節點「${node.name}」已經偵查過了！`);
       return false;
     }
+    
+    if (node.pendingScoutDays && node.pendingScoutDays > 0) {
+      console.log(`[系統] ⚠️ 該節點「${node.name}」已經有斥候正在前往！`);
+      return false;
+    }
 
     const cost = 100; // 偵查花費
     if (territory.gold >= cost) {
       territory.gold -= cost;
-      node.isScouted = true;
-      node.scoutExpiryDate = currentDay + 30; // 情報有效期限 30 天
-
-      // 產生模擬情報資料 (scoutData)
-      let danger = '安全';
-      let treasure = '無';
-      let garrison = 0;
-
-      if (node.feature === NodeFeature.MONSTER_NEST) {
-        danger = '極度危險';
-        treasure = '史詩寶藏';
-      } else if (node.feature === NodeFeature.SUBJUGATION) {
-        danger = '中等危險';
-        treasure = '稀有素材';
-      } else if (node.ownerFactionId && !node.isPlayerBase) {
-        danger = '未知軍勢';
-        treasure = '豐富物資';
-        garrison = node.prosperity * 2 + 500;
+      
+      let scoutDays = 1;
+      const baseId = territory.currentCountryId;
+      if (baseId) {
+        const baseNode = this.getNodeById(baseId);
+        if (baseNode) {
+          const dx = baseNode.x - node.x;
+          const dy = baseNode.y - node.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist >= 70) scoutDays = 3;
+          else if (dist >= 30) scoutDays = 2;
+          else scoutDays = 1;
+        }
       }
-
-      node.scoutData = {
-        dangerLevel: danger,
-        treasureTier: treasure,
-        garrisonPower: garrison > 0 ? garrison : undefined
-      };
-
-      console.log(`[系統] 👁️ 花費 ${cost} 金幣，成功偵查「${node.name}」，獲得最新情報！(有效期限 30 天)`);
+      
+      node.pendingScoutDays = scoutDays;
+      console.log(`[系統] 👁️ 花費 ${cost} 金幣派遣斥候前往「${node.name}」，預計 ${scoutDays} 天後回報情報！`);
       return true;
     } else {
       console.log(`[系統] ⚠️ 金幣不足，無法派遣斥候！(需要 ${cost} 金幣)`);
       return false;
     }
+  }
+
+  public resolveScout(node: MapNode, currentDay: number): void {
+    node.isScouted = true;
+    node.scoutExpiryDate = currentDay + 30; // 情報有效期限 30 天
+
+    // 產生模擬情報資料 (scoutData)
+    let danger = '安全';
+    let treasure = '無';
+    let garrison = 0;
+
+    if (node.feature === NodeFeature.MONSTER_NEST) {
+      danger = '極度危險';
+      treasure = '史詩寶藏';
+    } else if (node.feature === NodeFeature.SUBJUGATION) {
+      danger = '中等危險';
+      treasure = '稀有素材';
+    } else if (node.ownerFactionId && !node.isPlayerBase) {
+      danger = '未知軍勢';
+      treasure = '豐富物資';
+      garrison = node.prosperity * 2 + 500;
+    }
+
+    node.scoutData = {
+      dangerLevel: danger,
+      treasureTier: treasure,
+      garrisonPower: garrison > 0 ? garrison : undefined
+    };
+
+    console.log(`[系統] 👁️ 斥候已傳回「${node.name}」的最新情報！(有效期限 30 天)`);
   }
 
   /**
