@@ -16,6 +16,12 @@ import { TRADE_GOODS } from '../systems/MarketSystem';
 import { DispatchSystem, ActiveMission } from '../systems/DispatchSystem';
 import { CombatUIManager } from './CombatUIManager';
 import { Random } from '../core/Random';
+import { EventBus } from '../core/EventBus';
+import { GameEventType } from '../core/GameEvents';
+import {
+  getCombatPrestigeReward,
+  getDifficultyModifiers
+} from '../data/BalanceData';
 
 export async function openWarehouse(isForgeMode: boolean) {
   const { openWarehouse: impl } = await import('./ShopController');
@@ -534,9 +540,11 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
   selectedAdventurersForDispatch.clear();
   selectedTroopsForDispatch = {};
   // 根據 NodeLevel 或自訂難度決定難度
-  const baseDiff = node.baseDifficulty !== undefined ? node.baseDifficulty : (node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10);
-  // 荒野的 minPower 降為 30，後續每等加 40
-  const minPower = node.nodeLevel === NodeLevel.WILDERNESS ? 30 : 50 + node.nodeLevel * 40;
+  const difficultyModifiers = getDifficultyModifiers(GameState.worldGeneration?.difficulty);
+  const rawBaseDiff = node.baseDifficulty !== undefined ? node.baseDifficulty : (node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10);
+  const baseDiff = Math.max(1, Math.round(rawBaseDiff * difficultyModifiers.enemyStrength));
+  const rawMinPower = node.nodeLevel === NodeLevel.WILDERNESS ? 30 : 50 + node.nodeLevel * 40;
+  const minPower = Math.max(1, Math.round(rawMinPower * difficultyModifiers.enemyStrength));
   
   const optionsContainer = document.getElementById('dispatch-subjugation-options')!;
   
@@ -551,7 +559,8 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
     title.innerHTML = '🛡️ 攻城隊伍編制';
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
-    pendingDispatchTask = new DispatchTask(`攻城${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
+    const prestigeReward = getCombatPrestigeReward(baseDiff, true, node.nodeLevel);
+    pendingDispatchTask = new DispatchTask(`攻城${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, minPower, randomFeature);
     pendingDispatchTask.targetNodeId = node.id;
     pendingDispatchTask.isWar = true;
     
@@ -569,7 +578,8 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
     const enemyLineup = monsterSystem.generateEncounter(node.terrain, baseDiff);
     
     // 討伐任務需要較長天數 (預設 4 天)
-    pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, 20 + node.nodeLevel * 10, minPower, randomFeature);
+    const prestigeReward = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
+    pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, minPower, randomFeature);
     pendingDispatchTask.targetNodeId = node.id;
     pendingDispatchTask.enemyLineup = enemyLineup;
     
@@ -584,8 +594,22 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
     desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   }
 
-  reqPowerEl.textContent = `🎯 目標戰力：${pendingDispatchTask.minPowerRequired}`;
+  reqPowerEl.textContent = `🎯 建議戰力：${pendingDispatchTask.minPowerRequired}`;
   
+  const playerBase = GameState.mapSystem.getNodes().find(candidate => candidate.isPlayerBase);
+  if (playerBase && GameState.roadSystem && pendingDispatchTask) {
+    const roadTiming = GameState.roadSystem.getMissionDays(
+      pendingDispatchTask.requiredDays,
+      playerBase,
+      node
+    );
+    if (roadTiming.hasRoad) {
+      pendingDispatchTask.baseRequiredDays = roadTiming.baseDays;
+      pendingDispatchTask.requiredDays = roadTiming.adjustedDays;
+      pendingDispatchTask.roadBenefitApplied = true;
+    }
+  }
+
   renderDispatchAdvList();
 
   // 更新確認按鈕事件
@@ -600,6 +624,13 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
     }
     const team = GameState.adventurers.filter(a => selectedAdventurersForDispatch.has(a.id));
     if (pendingDispatchTask) {
+      const totalPower = team.reduce((sum, adventurer) => sum + adventurer.power, 0);
+      if (
+        totalPower < pendingDispatchTask.minPowerRequired &&
+        !confirm(`我方戰力 ${totalPower} 低於建議戰力 ${pendingDispatchTask.minPowerRequired}，預估勝率偏低，仍要出征嗎？`)
+      ) {
+        return;
+      }
       if (actionType === 'subjugation' || actionType === 'war') {
         const selectedMode = (document.querySelector('input[name="subjugation-mode"]:checked') as HTMLInputElement)?.value as any;
         pendingDispatchTask.subjugationMode = selectedMode;
@@ -865,7 +896,10 @@ function updateDispatchPowerPreview() {
     const ratio = pendingDispatchTask.minPowerRequired > 0 ? totalPower / pendingDispatchTask.minPowerRequired : 1;
     const risk = ratio >= 1.4 ? '低' : ratio >= 1 ? '中' : '高';
     const color = risk === '低' ? '#10b981' : risk === '中' ? '#f59e0b' : '#ef4444';
-    riskEl.innerHTML = `風險：<strong style="color:${color}">${risk}</strong>｜耗時 ${pendingDispatchTask.requiredDays} 天｜預期 💰${pendingDispatchTask.expectedGold}／✨${pendingDispatchTask.expectedPrestige}｜失敗將休養`;
+    const roadText = pendingDispatchTask.roadBenefitApplied
+      ? `｜🛤️ 道路加速（原 ${pendingDispatchTask.baseRequiredDays} 天）`
+      : '';
+    riskEl.innerHTML = `風險：<strong style="color:${color}">${risk}</strong>｜耗時 ${pendingDispatchTask.requiredDays} 天${roadText}｜預期 💰${pendingDispatchTask.expectedGold}／✨${pendingDispatchTask.expectedPrestige}｜失敗將休養`;
   }
 }
 
@@ -1065,6 +1099,66 @@ export function openNodeDetailPanel(node: MapNode) {
   }
 
   // 代官 UI (僅限玩家佔領的附庸地)
+  const oldRoadButton = document.getElementById('btn-build-road') as HTMLButtonElement;
+  const roadButton = oldRoadButton.cloneNode(true) as HTMLButtonElement;
+  oldRoadButton.parentNode!.replaceChild(roadButton, oldRoadButton);
+  const playerBase = GameState.mapSystem.getNodes().find(candidate => candidate.isPlayerBase);
+  const isNonPlayerTarget = !node.isPlayerBase && node.ownerFactionId !== 'player';
+
+  if (isNonPlayerTarget && playerBase && GameState.roadSystem) {
+    roadButton.style.display = 'block';
+    const existingRoad = GameState.roadSystem.getRoadBetween(playerBase.id, node.id);
+    const project = GameState.roadSystem.getProjectBetween(playerBase.id, node.id);
+    const check = GameState.roadSystem.checkTarget(
+      playerBase,
+      node,
+      GameState.explorationSystem
+    );
+
+    if (existingRoad) {
+      roadButton.textContent = '✅ 道路已完成';
+      roadButton.disabled = true;
+      roadButton.title = '旅行路段縮短 40%、伏擊率降低，市場買價 -5%、賣價 +10%。';
+    } else if (project) {
+      roadButton.textContent = `🚧 道路施工中（${project.elapsedDays}/${project.totalDays} 天）`;
+      roadButton.disabled = true;
+    } else {
+      roadButton.disabled = !check.valid;
+      roadButton.textContent = check.valid
+        ? `🛤️ 建造道路（${check.requiredDays} 天）`
+        : '🛤️ 暫時無法建造';
+      roadButton.title = check.reason ?? '';
+      roadButton.onclick = () => {
+        if (!check.valid || !check.requiredDays) {
+          ToastManager.show(check.reason ?? '目前無法建造這條道路。', 'warning');
+          return;
+        }
+        if (!window.confirm(
+          `從 ${playerBase.name} 向 ${node.name} 建造道路？\n` +
+          `預計需要 ${check.requiredDays} 天，同一時間只能施工一條道路。`
+        )) return;
+
+        const startedProject = GameState.roadSystem.startConstruction(
+          playerBase,
+          node,
+          GameState.explorationSystem
+        );
+        EventBus.getInstance().publish({
+          type: GameEventType.ROAD_CHANGED,
+          payload: {
+            reason: 'STARTED',
+            roadId: startedProject.id,
+            targetNodeId: node.id
+          }
+        });
+        ToastManager.show(`通往 ${node.name} 的道路開始施工。`, 'success');
+        openNodeDetailPanel(node);
+      };
+    }
+  } else {
+    roadButton.style.display = 'none';
+  }
+
   const govBox = document.getElementById('nd-governor-box')!;
   if (node.ownerFactionId === 'player' && !node.isPlayerBase) {
     govBox.style.display = 'block';

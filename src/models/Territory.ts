@@ -54,6 +54,7 @@ export class Territory {
   // 自宅探索招募進度與保底狀態
   public exploreCount: number;
   public hasRecruitedFromFirstExplorations: boolean;
+  public refugeeDiscoveryCooldownDays: number;
   
   // 戰鬥歷史紀錄
   public combatHistory: CombatHistoryRecord[];
@@ -96,6 +97,7 @@ export class Territory {
     this.defenseLevel = 0;
     this.exploreCount = 0;
     this.hasRecruitedFromFirstExplorations = false;
+    this.refugeeDiscoveryCooldownDays = 0;
     
     // 初始化內政預設值
     this.taxRate = 1.0;

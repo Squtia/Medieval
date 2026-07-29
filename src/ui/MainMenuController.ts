@@ -6,6 +6,139 @@ import { setStartupMode, renderMap, ensurePhaserLoaded } from './MapController';
 import { clearGameLog } from '../utils/Logger';
 import { enterScene } from './SceneController';
 import { startGameLoop } from '../core/GameLoop';
+import { DIFFICULTY_ORDER, getDifficultyConfig } from '../data/DifficultyData';
+import { GameDifficulty } from '../models/WorldGeneration';
+import { NodeLevel } from '../models/types';
+
+function createWorldSeed(): string {
+  const randomPart = typeof crypto !== 'undefined' && 'getRandomValues' in crypto
+    ? crypto.getRandomValues(new Uint32Array(1))[0].toString(36)
+    : Math.floor(Math.random() * 0xffffffff).toString(36);
+  return `${Date.now().toString(36)}-${randomPart}`;
+}
+
+function getNodeLevelLabel(level: NodeLevel): string {
+  switch (level) {
+    case NodeLevel.CAPITAL: return '首都';
+    case NodeLevel.TOWN: return '城鎮';
+    case NodeLevel.VILLAGE: return '村莊';
+    case NodeLevel.CAMP: return '營地';
+    case NodeLevel.WILDERNESS: return '荒野';
+  }
+}
+
+function openNewGameSetup(slot: number, rebindUIEvents: () => void): void {
+  const modal = document.getElementById('modal-new-game');
+  const loadModal = document.getElementById('modal-load-game');
+  const difficultyList = document.getElementById('new-game-difficulty-list');
+  const difficultyTitle = document.getElementById('new-game-difficulty-title');
+  const difficultyDesc = document.getElementById('new-game-difficulty-desc');
+  const resources = document.getElementById('new-game-resources');
+  const seedInput = document.getElementById('new-game-seed') as HTMLInputElement | null;
+  const confirmButton = document.getElementById('btn-confirm-new-game') as HTMLButtonElement | null;
+  const closeButton = document.getElementById('btn-close-new-game') as HTMLButtonElement | null;
+  const randomizeButton = document.getElementById('btn-randomize-seed') as HTMLButtonElement | null;
+
+  if (
+    !modal || !loadModal || !difficultyList || !difficultyTitle || !difficultyDesc ||
+    !resources || !seedInput || !confirmButton || !closeButton || !randomizeButton
+  ) return;
+
+  let selectedDifficulty = GameDifficulty.NORMAL;
+  seedInput.value = createWorldSeed();
+  difficultyList.innerHTML = '';
+
+  const renderDifficulty = () => {
+    const config = getDifficultyConfig(selectedDifficulty);
+    difficultyTitle.textContent = `${config.label}｜${config.baseNodeLevels.map(getNodeLevelLabel).join('／')}`;
+    difficultyTitle.style.color = config.color;
+    difficultyDesc.textContent = config.description;
+    const start = config.startingResources;
+    resources.textContent =
+      `爵位：${config.startingTitle}｜金幣 ${start.gold}｜人口 ${start.population}｜` +
+      `糧食 ${start.food}｜木材 ${start.wood}｜石材 ${start.stone}｜鐵礦 ${start.iron}`;
+
+    difficultyList.querySelectorAll<HTMLButtonElement>('button[data-difficulty]').forEach(button => {
+      const active = button.dataset.difficulty === selectedDifficulty;
+      button.style.background = active ? 'rgba(234,179,8,0.22)' : 'rgba(255,255,255,0.06)';
+      button.style.borderColor = active ? '#eab308' : 'rgba(255,255,255,0.16)';
+      button.setAttribute('aria-pressed', String(active));
+    });
+  };
+
+  DIFFICULTY_ORDER.forEach(difficulty => {
+    const config = getDifficultyConfig(difficulty);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'action-btn';
+    button.dataset.difficulty = difficulty;
+    button.style.padding = '12px';
+    button.innerHTML =
+      `<strong style="color:${config.color}">${config.label}</strong><br>` +
+      `<span style="font-size:0.8em;color:#94a3b8">${config.baseNodeLevels.map(getNodeLevelLabel).join('／')}開局</span>`;
+    button.addEventListener('click', () => {
+      selectedDifficulty = difficulty;
+      renderDifficulty();
+    });
+    difficultyList.appendChild(button);
+  });
+
+  renderDifficulty();
+  loadModal.classList.remove('active');
+  modal.classList.add('active');
+
+  randomizeButton.onclick = () => {
+    seedInput.value = createWorldSeed();
+  };
+  closeButton.onclick = () => {
+    modal.classList.remove('active');
+    loadModal.classList.add('active');
+  };
+  confirmButton.onclick = async () => {
+    const seed = seedInput.value.trim();
+    if (!seed) {
+      ToastManager.show('請輸入世界種子，或按下「隨機」產生一組種子。', 'warning');
+      seedInput.focus();
+      return;
+    }
+
+    confirmButton.disabled = true;
+    ToastManager.show('🗺️ 正在生成新的大陸配置...', 'info');
+    try {
+      clearGameLog();
+      initGameState({ difficulty: selectedDifficulty, seed });
+      rebindUIEvents();
+      GameState.currentSaveSlot = slot;
+      await ensurePhaserLoaded();
+
+      const mainMenu = document.getElementById('main-menu-view');
+      const mapView = document.getElementById('map-view');
+      const topBar = document.getElementById('top-bar');
+      const playerBase = GameState.mapSystem.getNodes().find(node => node.isPlayerBase);
+      if (!mainMenu || !mapView || !topBar || !playerBase) {
+        throw new Error('New game UI could not find the generated player base.');
+      }
+
+      modal.classList.remove('active');
+      setStartupMode(false);
+      UIManager.playTransition(() => {
+        mainMenu.classList.remove('active');
+        mapView.classList.add('active');
+        topBar.style.display = 'flex';
+        renderMap();
+        enterScene(playerBase);
+        UIManager.updateUI();
+        SaveManager.saveGame(slot);
+        document.dispatchEvent(new Event('game-started'));
+      });
+    } catch (error) {
+      console.error(error);
+      ToastManager.show('世界生成失敗，請更換種子後再試一次。', 'error');
+    } finally {
+      confirmButton.disabled = false;
+    }
+  };
+}
 
 export function renderSaveSlots(rebindUIEvents: () => void): void {
   const container = document.getElementById('save-slots-container');
@@ -59,21 +192,7 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
 
     btn.addEventListener('click', async () => {
       if (s.isEmpty) {
-        if (confirm(`確定要在欄位 ${s.slot} 開始新旅程嗎？`)) {
-          ToastManager.show('🗺️ 正在加載地圖與遊戲資源...', 'info');
-          await ensurePhaserLoaded();
-          UIManager.playTransition(() => {
-            document.getElementById('modal-load-game')?.classList.remove('active');
-            mainMenu.classList.remove('active');
-            mapView.classList.add('active');
-            setStartupMode(true);
-            clearGameLog(); // 清除日誌，確保新旅程從空白開始
-            initGameState(); // 重新初始化資料
-            rebindUIEvents();
-            GameState.currentSaveSlot = s.slot; // 設定存檔欄位
-            renderMap();
-          });
-        }
+        openNewGameSetup(s.slot, rebindUIEvents);
       } else {
         if (confirm(`確定要進入欄位 ${s.slot} 的旅程嗎？`)) {
           document.getElementById('modal-load-game')?.classList.remove('active');

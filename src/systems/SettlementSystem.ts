@@ -3,6 +3,7 @@ import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
 import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig } from '../models/types';
 import { Random } from '../core/Random';
+import { calculateNodeLevel, getDifficultyModifiers } from '../data/BalanceData';
 
 export class SettlementSystem {
   constructor() {
@@ -69,12 +70,13 @@ export class SettlementSystem {
     });
 
     let productionMultiplier = 1.0 + officeCivicBonus;
+    productionMultiplier *= getDifficultyModifiers(GameState.worldGeneration?.difficulty).production;
     if (territory.security >= 80) productionMultiplier *= 1.2;
     else if (territory.security < 30) productionMultiplier *= 0.7;
 
     // 軍事威望 (選項 B)：每 10 名士兵每日產生 1 點聲望
-    if (totalTroops >= 10) {
-      territory.prestige += Math.floor(totalTroops / 10);
+    if (totalTroops >= 10 && GameState.totalDays % 30 === 0) {
+      territory.prestige += Math.min(30, Math.floor(totalTroops / 10));
     }
     
     // 1. 產出計算 (套用治安倍率)
@@ -271,16 +273,9 @@ export class SettlementSystem {
             node.prosperity += growth;
             console.log(`[SettlementSystem] 🏰 附庸地成長：在代官 ${gov.name} 的治理下，「${node.name}」的繁榮度增加了 ${growth} 點！`);
             
-            // 根據有效繁榮度動態判定 NodeLevel
-            const effectiveProsperity = node.prosperity + node.population;
-            let computedLevel = NodeLevel.WILDERNESS;
             const vassalNodesCount = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
-            
-            if (effectiveProsperity >= 5000 && vassalNodesCount > 0) computedLevel = NodeLevel.CAPITAL;
-            else if (effectiveProsperity >= 1000) computedLevel = NodeLevel.TOWN;
-            else if (effectiveProsperity >= 150) computedLevel = NodeLevel.VILLAGE;
-            else if (effectiveProsperity >= 20) computedLevel = NodeLevel.CAMP;
-            
+            const computedLevel = calculateNodeLevel(node, vassalNodesCount > 0);
+
             if (node.nodeLevel !== computedLevel) {
                const isUpgrade = computedLevel > node.nodeLevel;
                node.nodeLevel = computedLevel;

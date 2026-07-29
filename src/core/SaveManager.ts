@@ -11,6 +11,77 @@ import { ThreatSystem } from '../systems/ThreatSystem';
 import { MarketSystem } from '../systems/MarketSystem';
 import { calendarToTotalDays } from './Calendar';
 import { CURRENT_SAVE_SCHEMA_VERSION, migrateSaveData } from './SaveMigration';
+import { ExplorationSystem } from '../systems/ExplorationSystem';
+import { RoadSystem } from '../systems/RoadSystem';
+import { getTitleConfig } from '../models/types';
+import { MapGenerator } from '../systems/MapGenerator';
+import { GameDifficulty } from '../models/WorldGeneration';
+
+export function restoreOriginalPlayerBaseInSave(data: any): boolean {
+  const nodes = Array.isArray(data?.mapNodes) ? data.mapNodes : [];
+  const legacyBase = nodes.find((node: any) =>
+    node.isPlayerBase && (
+      node.id === 'player_base' ||
+      node.name === '流浪傭兵團' ||
+      node.name === '流浪傭兵團領地'
+    )
+  );
+  if (!legacyBase) return false;
+
+  const difficulty = data.worldGeneration?.difficulty as GameDifficulty | undefined;
+  const seed = data.worldGeneration?.seed as string | undefined;
+  const originalBase = difficulty && seed
+    ? MapGenerator.findOriginalPlayerBase(nodes, seed, difficulty)
+    : nodes.find((node: any) =>
+        node.id !== legacyBase.id &&
+        !node.isPlayerBase &&
+        node.nodeLevel === legacyBase.nodeLevel &&
+        node.feature === 'OCCUPIABLE' &&
+        !node.isHidden
+      );
+  if (!originalBase) return false;
+
+  const oldId = legacyBase.id;
+  const newId = originalBase.id;
+  Object.assign(originalBase, {
+    ownerFactionId: 'player',
+    isPlayerBase: true,
+    isDiscovered: true,
+    isScouted: true,
+    scoutExpiryDate: null,
+    population: legacyBase.population,
+    prosperity: legacyBase.prosperity
+  });
+  data.mapNodes = nodes.filter((node: any) => node !== legacyBase);
+
+  if (data.territory?.currentCountryId === oldId) data.territory.currentCountryId = newId;
+  (data.adventurers ?? []).forEach((adventurer: any) => {
+    if (adventurer.locationNodeId === oldId) adventurer.locationNodeId = newId;
+  });
+  (data.activeMissions ?? []).forEach((mission: any) => {
+    const task = mission.task ?? {};
+    if (task.targetNodeId === oldId) task.targetNodeId = newId;
+    if (task.tradeTargetNodeId === oldId) task.tradeTargetNodeId = newId;
+    for (const key of ['tradeRouteNodeIds', 'tradeItineraryNodeIds']) {
+      if (Array.isArray(task[key])) {
+        task[key] = task[key].map((nodeId: string) => nodeId === oldId ? newId : nodeId);
+      }
+    }
+    (task.tradeInstructions ?? []).forEach((instruction: any) => {
+      if (instruction.nodeId === oldId) instruction.nodeId = newId;
+    });
+  });
+  for (const collection of [data.roads?.roads, data.roads?.projects]) {
+    (collection ?? []).forEach((road: any) => {
+      if (road.originNodeId === oldId) road.originNodeId = newId;
+      if (road.targetNodeId === oldId) road.targetNodeId = newId;
+    });
+  }
+  (data.exploration?.expeditions ?? []).forEach((expedition: any) => {
+    if (expedition.originNodeId === oldId) expedition.originNodeId = newId;
+  });
+  return true;
+}
 
 export interface SaveSlotMetadata {
   slot: number;
@@ -69,7 +140,10 @@ export class SaveManager {
       totalDays: GameState.totalDays,
       restedExpPool: GameState.restedExpPool,
       threat: GameState.threat,
-      lastDailySummary: GameState.lastDailySummary
+      lastDailySummary: GameState.lastDailySummary,
+      worldGeneration: GameState.worldGeneration,
+      exploration: GameState.explorationSystem?.getData(),
+      roads: GameState.roadSystem?.getData()
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
@@ -87,10 +161,12 @@ export class SaveManager {
 
     try {
       const data = migrateSaveData(JSON.parse(dataStr));
+      const restoredLegacyBase = restoreOriginalPlayerBaseInSave(data);
       
       // 1. 還原 Territory
       const t = new Territory(data.territory.name, data.territory.currentCountryId);
       Object.assign(t, data.territory);
+      t.prestige = Math.max(t.prestige || 0, getTitleConfig(t.title).reqPrestige);
       
       // 相容舊存檔預設值
       if (t.exploredToday === undefined) t.exploredToday = 0;
@@ -101,6 +177,7 @@ export class SaveManager {
       if (t.forgeLevel === undefined) t.forgeLevel = 0;
       if (t.exploreCount === undefined) t.exploreCount = 0;
       if (t.hasRecruitedFromFirstExplorations === undefined) t.hasRecruitedFromFirstExplorations = false;
+      if (t.refugeeDiscoveryCooldownDays === undefined) t.refugeeDiscoveryCooldownDays = 0;
       
       // 同步舊存檔的總人口與閒置人力落差
       t.syncPopulation();
@@ -121,7 +198,18 @@ export class SaveManager {
       if (data.activeMissions) {
         GameState.system.loadActiveMissions(data.activeMissions);
       }
-      GameState.mapSystem = new MapDynamicsSystem(data.mapNodes, data.factions);
+      const restoredMapNodes = data.mapNodes.map((node: any) => ({
+        ...node,
+        minimumNodeLevel: node.minimumNodeLevel ??
+          (!node.isDynamic ? node.nodeLevel : undefined)
+      }));
+      GameState.mapSystem = new MapDynamicsSystem(restoredMapNodes, data.factions);
+      GameState.explorationSystem = new ExplorationSystem(data.exploration);
+      GameState.roadSystem = new RoadSystem(data.roads);
+      if (!data.exploration || restoredLegacyBase) {
+        const playerBase = GameState.mapSystem.getNodes().find(node => node.isPlayerBase);
+        if (playerBase) GameState.explorationSystem.revealCircle(playerBase.x, playerBase.y, 90);
+      }
       new SettlementSystem();
       new HeroSystem();
       new CombatSystem();
@@ -155,6 +243,7 @@ export class SaveManager {
       GameState.totalDays = data.totalDays || calendarToTotalDays(GameState.currentYear, GameState.currentMonth, GameState.currentDay);
       GameState.threat = { name: '凜冬寒流', severity: 5, daysRemaining: 10, warningIssued: false, prepared: false, ...(data.threat || {}) };
       GameState.lastDailySummary = data.lastDailySummary || null;
+      GameState.worldGeneration = data.worldGeneration || null;
 
       // 還原 currentViewNode
       if (t.currentCountryId) {

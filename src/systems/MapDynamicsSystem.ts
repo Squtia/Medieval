@@ -3,19 +3,17 @@ import { GameEventType } from '../core/GameEvents';
 import { Territory } from '../models/Territory';
 import { Random } from '../core/Random';
 import { GameState } from '../core/GameState';
+import {
+  PROSPERITY_THRESHOLDS,
+  calculateNodeLevel,
+  getMonthlyProsperityGain
+} from '../data/BalanceData';
 
 export class MapDynamicsSystem {
   private mapNodes: MapNode[];
   private factions: Faction[];
 
-  // 升級所需的繁榮度門檻 (依據 NodeLevel)
-  private readonly PROSPERITY_THRESHOLDS: Record<number, number> = {
-    [NodeLevel.WILDERNESS]: 0,
-    [NodeLevel.CAMP]: 40,       // B2: 降低初始門檻，讓自然成長約 4 個月可達成
-    [NodeLevel.VILLAGE]: 200,
-    [NodeLevel.TOWN]: 300,
-    [NodeLevel.CAPITAL]: 500
-  };
+  private readonly PROSPERITY_THRESHOLDS = PROSPERITY_THRESHOLDS;
 
   // 派系擴張所需的資源閾值
   private readonly FACTION_EXPANSION_THRESHOLD = 500;
@@ -98,8 +96,7 @@ export class MapDynamicsSystem {
     for (const node of this.mapNodes) {
       // OPT-06: 繁榮度自然成長（有主化的節點每月小幅成長）
       if (node.isPlayerBase) {
-        // 基礎 +10
-        let prosperityGain = 10;
+        let prosperityGain = 8;
 
         // 工人貢獻（已分配的農夫 + 伐木工 + 礦工，每人 +1/月）
         const t = GameState.myTerritory;
@@ -108,11 +105,10 @@ export class MapDynamicsSystem {
             (t.workers['FARMER'] || 0) +
             (t.workers['WOODCUTTER'] || 0) +
             (t.workers['MINER'] || 0);
-          prosperityGain += assignedWorkers;
-
-          // 建築貢獻（使用現有 getBuildingProsperityBonus()，每月貢獻 1/5 的永久值）
-          const buildingBonus = Math.floor(t.getBuildingProsperityBonus() / 5);
-          prosperityGain += buildingBonus;
+          prosperityGain = getMonthlyProsperityGain(
+            assignedWorkers,
+            t.getBuildingProsperityBonus()
+          );
         }
 
         node.prosperity += prosperityGain;
@@ -135,19 +131,23 @@ export class MapDynamicsSystem {
       // 確保繁榮度不小於 0
       node.prosperity = Math.max(0, node.prosperity);
 
-      // 節點升級檢定 (排除玩家據點，交由 UI 與內政系統處理)
-      if (!node.isPlayerBase && node.nodeLevel < NodeLevel.CAPITAL) {
-        const nextLevelThreshold = this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1];
-        if (node.prosperity >= nextLevelThreshold) {
-          this.upgradeNode(node);
-        }
+      const previousLevel = node.nodeLevel;
+      const hasVassal = this.mapNodes.some(other =>
+        other.id !== node.id &&
+        other.ownerFactionId !== null &&
+        other.ownerFactionId === node.ownerFactionId
+      );
+      node.nodeLevel = calculateNodeLevel(node, hasVassal);
+      node.isCapital = node.nodeLevel === NodeLevel.CAPITAL;
+      if (node.nodeLevel !== previousLevel) {
+        console.log(`[MapDynamics] ${node.name} 據點等級由 ${previousLevel} 調整為 ${node.nodeLevel}。`);
       }
 
       // C2: 玩家據點繁榮度結算後發布更新事件，供 UI 進度條監聽
       if (node.isPlayerBase) {
         const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
         const nextThresh = node.nodeLevel < NodeLevel.CAPITAL
-          ? this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1]
+          ? this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1 as NodeLevel]
           : node.prosperity;
         import('../core/EventBus').then(({ EventBus }) => {
           import('../core/GameEvents').then(({ GameEventType }) => {
@@ -164,13 +164,6 @@ export class MapDynamicsSystem {
         });
       }
 
-      // 節點降級檢定 (排除玩家據點，交由 UI 與內政系統處理)
-      if (!node.isPlayerBase && node.nodeLevel > NodeLevel.WILDERNESS) {
-        const currentLevelThreshold = this.PROSPERITY_THRESHOLDS[node.nodeLevel];
-        if (node.prosperity < currentLevelThreshold) {
-          this.downgradeNode(node);
-        }
-      }
     }
 
     this.processAIFactionsInteractions();
@@ -283,12 +276,13 @@ export class MapDynamicsSystem {
       node.prosperity += gain;
       console.log(`[系統] 💰 您花費了 ${cost} 金幣投資「${node.name}」，繁榮度上升了 ${gain}！`);
 
-      if (node.nodeLevel < NodeLevel.CAPITAL) {
-        const nextLevelThreshold = this.PROSPERITY_THRESHOLDS[node.nodeLevel + 1];
-        if (node.prosperity >= nextLevelThreshold) {
-          this.upgradeNode(node);
-        }
-      }
+      const hasVassal = this.mapNodes.some(other =>
+        other.id !== node.id &&
+        other.ownerFactionId !== null &&
+        other.ownerFactionId === node.ownerFactionId
+      );
+      node.nodeLevel = calculateNodeLevel(node, hasVassal);
+      node.isCapital = node.nodeLevel === NodeLevel.CAPITAL;
       return true;
     } else {
       console.log(`[系統] ⚠️ 金幣不足，無法投資！(需要 ${cost} 金幣)`);

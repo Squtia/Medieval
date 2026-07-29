@@ -71,22 +71,23 @@ export function initGameFlowController(): void {
         SaveManager.saveGame(GameState.currentSaveSlot);
       }
       stopGameLoop();
-      
-      // 隱藏所有視圖與彈窗
-      document.querySelectorAll('.view, .facility-view, .modal-overlay, .side-panel-left, .side-panel-right').forEach(v => v.classList.remove('active'));
-      
-      const topBar = document.getElementById('top-bar');
-      if (topBar) topBar.style.display = 'none';
-      
-      const sharedRightPanel = document.getElementById('shared-right-panel');
-      if (sharedRightPanel) sharedRightPanel.style.display = 'none';
-      
-      const commandCrest = document.getElementById('command-crest-container');
-      if (commandCrest) commandCrest.style.display = 'none';
-      
-      // 顯示主選單
-      const mainMenu = document.getElementById('main-menu-view');
-      if (mainMenu) mainMenu.classList.add('active');
+
+      UIManager.playTransition(() => {
+        // 黑幕完全覆蓋後才切換視圖，避免存檔彈窗與主選單瞬間跳接。
+        document.querySelectorAll('.view, .facility-view, .modal-overlay, .side-panel-left, .side-panel-right').forEach(v => v.classList.remove('active'));
+
+        const topBar = document.getElementById('top-bar');
+        if (topBar) topBar.style.display = 'none';
+
+        const sharedRightPanel = document.getElementById('shared-right-panel');
+        if (sharedRightPanel) sharedRightPanel.style.display = 'none';
+
+        const commandCrest = document.getElementById('command-crest-container');
+        if (commandCrest) commandCrest.style.display = 'none';
+
+        const mainMenu = document.getElementById('main-menu-view');
+        if (mainMenu) mainMenu.classList.add('active');
+      });
     });
   }
 

@@ -2,7 +2,7 @@ import { Adventurer } from '../models/Adventurer';
 import { Territory } from '../models/Territory';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
-import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature } from '../models/types';
+import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature, getTitleConfig } from '../models/types';
 import { DataStore } from '../systems/DataStore';
 import { NameGenerator } from '../systems/NameGenerator';
 import { INITIAL_FACTIONS } from '../data/FactionData';
@@ -14,6 +14,11 @@ import { ThreatSystem } from '../systems/ThreatSystem';
 import { MapGenerator } from '../systems/MapGenerator';
 import { MarketSystem } from '../systems/MarketSystem';
 import { EventBus } from './EventBus';
+import { GameDifficulty, NewGameOptions, WorldGenerationMeta } from '../models/WorldGeneration';
+import { getDifficultyConfig } from '../data/DifficultyData';
+import { ExplorationSystem } from '../systems/ExplorationSystem';
+import { RoadSystem } from '../systems/RoadSystem';
+import { getDifficultyModifiers } from '../data/BalanceData';
 
 export const factions: Faction[] = INITIAL_FACTIONS;
 export const mapNodes: MapNode[] = INITIAL_MAP_NODES;
@@ -51,22 +56,49 @@ export const GameState = {
   },
   milestones: [] as string[],         // 已達成的里程碑 ID 列表
   pendingMilestones: [] as string[],  // 當日待顯示的里程碑（每日摘要後清空）
+  worldGeneration: null as WorldGenerationMeta | null,
+  explorationSystem: null as unknown as ExplorationSystem,
+  roadSystem: null as unknown as RoadSystem,
 };
 
-export function initGameState() {
+export function initGameState(options: NewGameOptions = {
+  difficulty: GameDifficulty.NORMAL,
+  seed: 'bootstrap'
+}) {
   (window as any).GameState = GameState;
   GameState.myTerritory = new Territory('流浪傭兵團', null);
-  GameState.myTerritory.gold = 100000;
+  const difficultyConfig = getDifficultyConfig(options.difficulty);
+  const startingResources = difficultyConfig.startingResources;
+  GameState.myTerritory.title = difficultyConfig.startingTitle;
+  GameState.myTerritory.prestige = getTitleConfig(difficultyConfig.startingTitle).reqPrestige;
+  GameState.myTerritory.gold = startingResources.gold;
+  GameState.myTerritory.population = startingResources.population;
+  GameState.myTerritory.food = startingResources.food;
+  GameState.myTerritory.wood = startingResources.wood;
+  GameState.myTerritory.stone = startingResources.stone;
+  GameState.myTerritory.iron = startingResources.iron;
+  GameState.myTerritory.workers = {
+    UNASSIGNED: startingResources.population,
+    FARMER: 0,
+    WOODCUTTER: 0,
+    MINER: 0
+  };
   GameState.adventurers = [];
   GameState.system = new DispatchSystem(GameState.myTerritory);
   
-  const mapNodesCopy = JSON.parse(JSON.stringify(mapNodes));
   const factionsCopy = JSON.parse(JSON.stringify(factions));
-  
-  // 動態分配地圖節點的座標
-  MapGenerator.assignDynamicCoordinates(mapNodesCopy);
-  
-  GameState.mapSystem = new MapDynamicsSystem(mapNodesCopy, factionsCopy);
+  const generatedWorld = MapGenerator.generateWorld(
+    mapNodes,
+    options.seed,
+    options.difficulty
+  );
+  GameState.myTerritory.currentCountryId = generatedWorld.playerBase.id;
+  GameState.mapSystem = new MapDynamicsSystem(generatedWorld.nodes, factionsCopy);
+  GameState.worldGeneration = generatedWorld.meta;
+  GameState.explorationSystem = new ExplorationSystem();
+  GameState.explorationSystem.revealCircle(generatedWorld.playerBase.x, generatedWorld.playerBase.y, 90);
+  GameState.roadSystem = new RoadSystem();
+  GameState.currentViewNode = null;
   GameState.playTime = 0;
   GameState.sessionStartTime = Date.now();
   GameState.currentSaveSlot = null;
@@ -75,7 +107,13 @@ export function initGameState() {
   GameState.currentYear = 1;
   GameState.totalDays = 1;
   GameState.restedExpPool = 0;
-  GameState.threat = { name: '凜冬寒流', severity: 5, daysRemaining: 10, warningIssued: false, prepared: false };
+  GameState.threat = {
+    name: '凜冬寒流',
+    severity: 5,
+    daysRemaining: Math.max(5, Math.round(10 * getDifficultyModifiers(options.difficulty).threatInterval)),
+    warningIssued: false,
+    prepared: false
+  };
   GameState.lastDailySummary = null;
   GameState.milestones = [];
   GameState.pendingMilestones = [];
@@ -90,7 +128,7 @@ export function initGameState() {
   new ThreatSystem();
 
   const startingAdv = new Adventurer('p1', NameGenerator.generateFullName(), DataStore.JobDB.WARRIOR, DataStore.TraitDB.GUARDIAN);
-  startingAdv.locationNodeId = GameState.myTerritory.currentCountryId;
+  startingAdv.locationNodeId = generatedWorld.playerBase.id;
   GameState.adventurers.push(startingAdv);
 
   const startWpn = DataStore.getEquipmentTemplate('wpn_heirloom_sword');

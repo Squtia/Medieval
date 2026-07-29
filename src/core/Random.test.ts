@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { Random, SeededRandomSource } from './Random';
+import { createSeededRandom, hashSeed, Random, SeededRandomSource } from './Random';
 
 describe('Random', () => {
   afterEach(() => Random.reset());
@@ -16,5 +16,16 @@ describe('Random', () => {
     Random.setSource(new SeededRandomSource(7));
     const values = Array.from({ length: 100 }, () => Random.int(3, 5));
     expect(values.every(value => value >= 3 && value <= 5)).toBe(true);
+  });
+
+  it('turns string seeds into replayable random streams', () => {
+    expect(hashSeed('oak-road')).toBe(hashSeed('oak-road'));
+    const first = createSeededRandom('oak-road');
+    const second = createSeededRandom('oak-road');
+    expect([first.next(), first.next(), first.next()]).toEqual([
+      second.next(),
+      second.next(),
+      second.next()
+    ]);
   });
 });

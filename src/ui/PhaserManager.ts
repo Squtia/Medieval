@@ -26,6 +26,9 @@ export function renderMap() {
     const scene = phaserGame.scene.getScene('MapScene') as MapScene;
     if (scene && scene.sys.isActive()) {
       scene.rebuildNodes();
+      scene.renderFog();
+      scene.renderExplorationExpedition();
+      scene.renderRoadNetwork();
       scene.updateRoutesAndCaravans();
     }
   }

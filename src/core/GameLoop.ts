@@ -8,6 +8,8 @@ import { EventBus } from './EventBus';
 import { GameEventType } from './GameEvents';
 import { ToastManager } from '../ui/ToastManager';
 import { Random } from './Random';
+import { TaskType } from '../models/DispatchTask';
+import { getDifficultyModifiers } from '../data/BalanceData';
 
 export function startGameLoop(updateUICallback: () => void) {
   if ((window as any).autoSaveLoop) {
@@ -50,6 +52,10 @@ export function advanceDay() {
   
   // 推進領地屬性重置
   GameState.myTerritory.exploredToday = 0;
+  GameState.myTerritory.refugeeDiscoveryCooldownDays = Math.max(
+    0,
+    GameState.myTerritory.refugeeDiscoveryCooldownDays - 1
+  );
 
   // OPT-02: 每日檢查 RESTING 狀態的决陽者，倒數恢復
   GameState.adventurers.forEach(adv => {
@@ -83,6 +89,43 @@ export function advanceDay() {
 
   // 1. 推進派遣系統 (以天數為基礎)
   GameState.system.updateDays(1);
+
+  const explorationProgress = GameState.explorationSystem?.advanceDay(GameState.mapSystem.getNodes());
+  if (explorationProgress) {
+    explorationProgress.discoveredNodeIds.forEach(nodeId => {
+      EventBus.getInstance().publish({
+        type: GameEventType.NODE_EXPLORED,
+        payload: { nodeId, explorerId: explorationProgress.expedition.explorerId }
+      });
+    });
+
+    if (explorationProgress.completed) {
+      const explorer = GameState.adventurers.find(
+        adventurer => adventurer.id === explorationProgress.expedition.explorerId
+      );
+      if (explorer) explorer.currentState = AdventurerState.IDLE;
+    }
+
+    EventBus.getInstance().publish({
+      type: GameEventType.MISSIONS_CHANGED,
+      payload: {
+        reason: explorationProgress.completed ? 'COMPLETED' : 'PROGRESSED',
+        missionType: TaskType.EXPLORE
+      }
+    });
+  }
+
+  const roadProgress = GameState.roadSystem?.advanceDay(GameState.totalDays);
+  if (roadProgress) {
+    EventBus.getInstance().publish({
+      type: GameEventType.ROAD_CHANGED,
+      payload: {
+        reason: roadProgress.completed ? 'COMPLETED' : 'PROGRESSED',
+        roadId: roadProgress.project.id,
+        targetNodeId: roadProgress.project.targetNodeId
+      }
+    });
+  }
   
   // 1.2 每日地圖動態 (圍城倒數等)
   GameState.mapSystem.simulateDailyMapDynamics(GameState.totalDays);
@@ -138,44 +181,58 @@ export function advanceDay() {
 function handleRandomInvasion() {
   const territory = GameState.myTerritory;
   if (!territory) return;
+  const difficulty = getDifficultyModifiers(GameState.worldGeneration?.difficulty);
+  const nextCooldown = () => Math.max(5, Math.round(Random.int(15, 25) * difficulty.threatInterval));
   
   if (territory.invasionCooldown === undefined || territory.invasionCooldown === 0) {
-    territory.invasionCooldown = Random.int(15, 25); // B3: 延長初始 CD，給早期玩家喘息空間
+    territory.invasionCooldown = nextCooldown();
     return;
   }
   
   territory.invasionCooldown -= 1;
   if (territory.invasionCooldown <= 0) {
-    // 觸發侵略判定
     const defenseLevel = territory.defenseLevel || 0;
-    // 難度依據年份與隨機值成長，確保玩家有升級防禦的壓力
-    const requiredDefense = GameState.currentYear + Random.int(0, 2); 
-    
-    if (defenseLevel >= requiredDefense) {
+    const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
+    const totalPower = idleAdvs.reduce((sum, a) => sum + a.power, 0);
+    const topThreePower = [...GameState.adventurers]
+      .sort((left, right) => right.power - left.power)
+      .slice(0, 3)
+      .reduce((sum, adventurer) => sum + adventurer.power, 0);
+    const baseEnemyPower =
+      20 +
+      GameState.currentYear * 10 +
+      Math.sqrt(Math.max(0, territory.population)) * 4 +
+      topThreePower * 0.45;
+    const defenseReduction = Math.min(0.6, defenseLevel * 0.08);
+    const randomFactor = Random.int(85, 115) / 100;
+    const enemyPower = Math.max(
+      10,
+      Math.round(baseEnemyPower * difficulty.enemyStrength * randomFactor * (1 - defenseReduction))
+    );
+
+    if (idleAdvs.length === 0) {
+      processInvasionDefeat(territory, '💥 敵襲！據點無人駐守，物資遭到嚴重洗劫！');
+    } else if (totalPower >= enemyPower) {
       import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => MilestoneSystem.trigger('first_invasion_repelled'));
-      showInvasionReport('🛡️ 防禦成功', '盜賊試圖夜襲營地，但看見堅固的木柵欄後知難而退了！\n\n領地未受任何損失。', false);
-      territory.invasionCooldown = Random.int(15, 25); // B3: 防禦成功後重置 CD
+      const goldLoot = Random.int(10, 50);
+      const prestigeReward = Math.max(10, Math.round(enemyPower / 10));
+      territory.gold += goldLoot;
+      territory.prestige += prestigeReward;
+      showInvasionReport(
+        '⚔️ 擊退敵襲',
+        `留守傭兵在防禦設施支援下擊退敵軍！\n\n敵軍戰力：${enemyPower}\n戰利品：${goldLoot} 金幣、${prestigeReward} 聲望`,
+        false
+      );
+      territory.invasionCooldown = nextCooldown();
     } else {
-      // 戰鬥判定
-      const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
-      let totalPower = idleAdvs.reduce((sum, a) => sum + a.power, 0);
-      const enemyPower = Math.min(300, Random.int(10, 30 + GameState.currentYear * 15)); 
-      
-      if (idleAdvs.length === 0) {
-        processInvasionDefeat(territory, '💥 敵襲！據點無人駐守，物資遭到嚴重洗劫！');
-      } else if (totalPower >= enemyPower) {
-        import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => MilestoneSystem.trigger('first_invasion_repelled'));
-        const goldLoot = Random.int(10, 50);
-        territory.gold += goldLoot;
-        showInvasionReport('⚔️ 擊退敵襲', `留守的傭兵成功擊退了來犯的敵人！\n\n戰利品：獲得 ${goldLoot} 金幣`, false);
-        territory.invasionCooldown = Random.int(15, 25); // B3: 擊退後重置較長 CD
-      } else {
-        idleAdvs.forEach(a => {
-          a.currentState = AdventurerState.RESTING;
-          a.restingDaysLeft = 3; // 受重傷休息 3 天
-        });
-        processInvasionDefeat(territory, '💀 敵襲！留守傭兵不敵對手，據點遭到洗劫！\n\n（所有留守傭兵受重傷，需休養 3 天無法行動）');
-      }
+      idleAdvs.forEach(a => {
+        a.currentState = AdventurerState.RESTING;
+        a.restingDaysLeft = 3;
+      });
+      processInvasionDefeat(
+        territory,
+        `💀 敵襲！我方戰力 ${totalPower} 不敵敵軍 ${enemyPower}，據點遭到洗劫！\n\n（所有留守傭兵受重傷，需休養 3 天）`
+      );
     }
   }
 }

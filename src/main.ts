@@ -1,5 +1,5 @@
 import { ToastManager } from './ui/ToastManager';
-import { initGameState } from './core/GameState';
+import { GameState, initGameState } from './core/GameState';
 import { initLogger } from './utils/Logger';
 import { UIManager } from './ui/UIManager';
 import { CombatUIManager } from './ui/CombatUIManager';
@@ -15,6 +15,7 @@ import { initFacilityController } from './ui/FacilityController';
 import { initActionController } from './ui/ActionController';
 import { initRecruitController } from './ui/RecruitController';
 import { initCheatController } from './ui/CheatController';
+import { initExplorationController, refreshExplorationUI } from './ui/ExplorationController';
 
 import { initStreetScroller } from './ui/SceneController';
 
@@ -51,7 +52,17 @@ export function rebindGlobalUIEvents() {
   EventBus.getInstance().subscribe(GameEventType.MISSIONS_CHANGED, () => {
     renderMap();
     UIManager.updateUI();
+    refreshExplorationUI();
   });
+  EventBus.getInstance().subscribe(GameEventType.ROAD_CHANGED, ({ reason, targetNodeId }) => {
+    renderMap();
+    refreshExplorationUI();
+    if (reason === 'COMPLETED') {
+      const target = GameState.mapSystem?.getNodeById(targetNodeId);
+      ToastManager.show(`通往 ${target?.name ?? '目的地'} 的道路已完工。`, 'success');
+    }
+  });
+  refreshExplorationUI();
   CombatUIManager.init();
 }
 
@@ -69,4 +80,5 @@ initFacilityController();
 initActionController();
 initRecruitController();
 initCheatController();
+initExplorationController();
 initStreetScroller();

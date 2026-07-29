@@ -1,7 +1,7 @@
 import { Adventurer } from '../models/Adventurer';
 import { DispatchTask, EnemyFeature, TaskType, TradePhase, normalizeTradeTask } from '../models/DispatchTask';
 import { Territory } from '../models/Territory';
-import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig, TradeTreaty } from '../models/types';
+import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig, TradeTreaty, MapNode } from '../models/types';
 import { EquipmentGenerator } from './EquipmentGenerator';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
@@ -10,6 +10,7 @@ import { CombatHistoryRecord } from '../models/Combat';
 import { TRADE_GOODS } from './MarketSystem';
 import { CombatSystem } from './CombatSystem';
 import { Random } from '../core/Random';
+import { getDifficultyModifiers } from '../data/BalanceData';
 
 /**
  * 代表正在執行中的任務
@@ -117,16 +118,17 @@ export class DispatchSystem {
    * 發薪日結算 (每 7 天觸發)
    */
   public resolvePayday(): void {
+    const upkeepMultiplier = getDifficultyModifiers(GameState.worldGeneration?.difficulty).upkeep;
     // 7天份的人口維護費
-    const populationUpkeep = Math.floor(this.territory.population * 0.5); 
+    const populationUpkeep = Math.floor(this.territory.population * 0.5 * upkeepMultiplier);
     
     // 計算所有傭兵的薪水 (7天份)
     let adventurerWages = 0;
     GameState.adventurers.forEach(adv => {
       if (adv.office) {
-        adventurerWages += Math.floor(getOfficeConfig(adv.office).salary * 7 / 30);
+        adventurerWages += Math.floor(getOfficeConfig(adv.office).salary * 7 / 30 * upkeepMultiplier);
       } else {
-        adventurerWages += 7; // 基礎薪資: 每天 1 金
+        adventurerWages += Math.ceil(7 * upkeepMultiplier);
       }
     });
     
@@ -196,6 +198,11 @@ export class DispatchSystem {
       return;
     }
 
+    const playerBase = mapSystem.getNodes().find(node => node.isPlayerBase);
+    const legOriginNode = currentLegIndex === 0
+      ? playerBase
+      : mapSystem.getNodeById(itinerary[currentLegIndex - 1]);
+
     let advNames = adventurers.map(a => a.name).join(', ');
     console.log(`📍 [商隊抵達] 傭兵小隊 (${advNames}) 抵達中途站：${currentNode.name}`);
 
@@ -218,7 +225,7 @@ export class DispatchSystem {
     // 商路安全度判定
     if (!currentNode.isScouted) {
       // 兩地沒有全開視野 (即目標據點未偵查)，有 20% 機率遭遇盜匪襲擊
-      if (Random.next() < 0.20) {
+      if (Random.next() < this.getAmbushChance(legOriginNode, currentNode)) {
         console.log(`⚠️ [商路襲擊] 由於通往 ${currentNode.name} 的路途視野未明，商隊遭遇了盜匪襲擊！`);
         let totalPower = 0;
         adventurers.forEach(a => totalPower += a.getEffectiveAttributes().str + a.getEffectiveAttributes().agi);
@@ -238,6 +245,10 @@ export class DispatchSystem {
       }
     }
 
+    const tradeModifiers = playerBase && GameState.roadSystem
+      ? GameState.roadSystem.getTradeModifiers(playerBase, currentNode)
+      : { hasRoad: false, buyPriceMultiplier: 1, sellPriceMultiplier: 1 };
+
     if (task.tradeInstructions && task.caravanCargo && task.caravanGold !== undefined) {
       const instruction = task.tradeInstructions.find(i => i.nodeId === currentNodeId);
       if (instruction && currentNode.marketData) {
@@ -256,7 +267,10 @@ export class DispatchSystem {
              if (amountToSell > 0) {
                  const marketItem = currentNode.marketData.goods.find(g => g.goodId === sellGoodId);
                  if (marketItem) {
-                     const sellPrice = Math.max(1, Math.floor(marketItem.sellPrice * (1 + totalNegotiation)));
+                     const sellPrice = Math.max(
+                       1,
+                       Math.floor(marketItem.sellPrice * (1 + totalNegotiation) * tradeModifiers.sellPriceMultiplier)
+                     );
                      const goldGained = sellPrice * amountToSell;
                      task.caravanGold! += goldGained;
                      task.caravanCargo![sellGoodId] = 0;
@@ -272,7 +286,10 @@ export class DispatchSystem {
          for (const buyItem of instruction.buy) {
              const marketItem = currentNode.marketData.goods.find(g => g.goodId === buyItem.goodId);
              if (marketItem && marketItem.stock > 0) {
-                 const buyPrice = Math.max(1, Math.floor(marketItem.buyPrice * (1 - totalNegotiation)));
+                 const buyPrice = Math.max(
+                   1,
+                   Math.floor(marketItem.buyPrice * (1 - totalNegotiation) * tradeModifiers.buyPriceMultiplier)
+                 );
                  const affordableAmount = Math.floor(task.caravanGold / buyPrice);
                  const capacityLeft = totalCapacity - totalCargoWeight;
                  const buyAmount = Math.min(buyItem.maxAmount, marketItem.stock, affordableAmount, capacityLeft);
@@ -303,8 +320,7 @@ export class DispatchSystem {
       const playerNode = mapSystem.getNodes().find(n => n.isPlayerBase);
       let returnDays = 3;
       if (playerNode) {
-        const dist = Math.sqrt(Math.pow(currentNode.x - playerNode.x, 2) + Math.pow(currentNode.y - playerNode.y, 2));
-        returnDays = Math.max(1, Math.ceil(dist / 15));
+        returnDays = this.getTravelDays(currentNode, playerNode);
       }
       
       mission.remainingDays = returnDays + weatherPenalty;
@@ -315,8 +331,7 @@ export class DispatchSystem {
       const nextNodeId = itinerary[task.currentLegIndex];
       const nextNode = mapSystem.getNodeById(nextNodeId);
       if (nextNode) {
-         const dist = Math.sqrt(Math.pow(currentNode.x - nextNode.x, 2) + Math.pow(currentNode.y - nextNode.y, 2));
-         mission.remainingDays = Math.max(1, Math.ceil(dist / 15)) + weatherPenalty;
+         mission.remainingDays = this.getTravelDays(currentNode, nextNode) + weatherPenalty;
          console.log(`🐎 [商隊出發] 商隊前往下一站 ${nextNode.name}，預計需要 ${mission.remainingDays} 天。`);
       } else {
          mission.remainingDays = 1;
@@ -340,7 +355,11 @@ export class DispatchSystem {
            const lastNodeId = itinerary[itinerary.length - 1];
            const lastNode = mapSystem.getNodeById(lastNodeId);
            if (lastNode && !lastNode.isScouted) {
-             if (Random.next() < 0.20) {
+             const playerBase = mapSystem.getNodes().find(node => node.isPlayerBase);
+             const returnAmbushChance = playerBase
+               ? this.getAmbushChance(lastNode, playerBase)
+               : 0.2;
+             if (Random.next() < returnAmbushChance) {
                console.log(`⚠️ [商路襲擊] 由於通往 ${lastNode.name} 的路途視野未明，商隊在返程時遭遇了盜匪襲擊！`);
                let totalPower = 0;
                adventurers.forEach(a => totalPower += a.getEffectiveAttributes().str + a.getEffectiveAttributes().agi);
@@ -607,6 +626,18 @@ export class DispatchSystem {
       };
     });
     this.publishMissionChange('LOADED');
+  }
+
+  private getTravelDays(origin: MapNode, target: MapNode): number {
+    if (GameState.roadSystem) {
+      return GameState.roadSystem.getTravelDays(origin, target).adjustedDays;
+    }
+    return Math.max(1, Math.ceil(Math.hypot(target.x - origin.x, target.y - origin.y) / 15));
+  }
+
+  private getAmbushChance(origin: MapNode | undefined, target: MapNode): number {
+    if (!origin || !GameState.roadSystem) return 0.2;
+    return GameState.roadSystem.getAmbushChance(origin, target);
   }
 
   private publishMissionChange(

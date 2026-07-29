@@ -1178,6 +1178,16 @@
           </div>
         </div>
 
+        <div id="exploration-control" class="glass-panel" style="position: absolute; top: 20px; left: 20px; padding: 14px; width: 250px; z-index: 110;">
+          <button id="btn-toggle-exploration" class="action-btn" style="width: 100%;">🧭 派遣斥候</button>
+          <div id="exploration-status" style="margin-top: 10px; color: #cbd5e1; font-size: 0.88em; line-height: 1.5;">
+            從已知區域邊界選擇探索目標。
+          </div>
+          <div id="world-progress-status" aria-live="polite" style="margin-top: 9px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,0.15); color: #94a3b8; font-size: 0.78em; line-height: 1.5;">
+            已發現據點 1｜完成道路 0
+          </div>
+        </div>
+
         <div id="startup-banner" style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: none; justify-content: center; align-items: center; gap: 20px; z-index: 150; pointer-events: none; background: transparent;">
           <h2 style="color: #eab308; margin: 0; font-size: 1.6em; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">你要從哪裡開始你的旅程？</h2>
           <p style="color: #cbd5e1; margin: 0; font-size: 1.1em; text-shadow: 0 1px 2px rgba(0,0,0,0.9);">請點擊地圖上的任意節點</p>
@@ -1582,6 +1592,7 @@
       
       <!-- 考量未來擴充：改用 Flex 排版，並預留下方 315px 空間避開史詩按鈕 -->
       <div id="nd-action-container" style="padding: 20px; border-top: 1px solid rgba(139, 69, 19, 0.5); display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 315px;">
+         <button id="btn-build-road" class="action-btn" style="flex: 1 1 120px; padding: 15px; display: none; background: linear-gradient(135deg, #92400e, #78350f); border-color: #d97706;">🛤️ 建造道路</button>
          <button id="nd-btn-market" class="action-btn" style="flex: 1 1 120px; padding: 15px; display: none; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981;">⚖️ 查看市場</button>
          <button id="btn-nd-action" class="action-btn" style="flex: 1 1 120px; padding: 15px;">進行操作</button>
       </div>
@@ -1715,27 +1726,36 @@
     </div>
   </div>
 
-  <!-- 節點選擇彈出視窗 (開新局時用) -->
-  <div class="modal-overlay" id="modal-node-select">
-    <div class="modal-content" style="width: 500px;">
-      <h2 id="node-select-name" style="color: #eab308; margin-top: 0;">節點名稱</h2>
-      <div style="color: #94a3b8; font-size: 0.9em; margin-bottom: 15px;" id="node-select-terrain">📍 地形與特徵</div>
-      <p id="node-select-desc" style="line-height: 1.6; margin-bottom: 20px;">環境介紹文字...</p>
-      
-      <div id="node-select-faction-box" class="glass-panel" style="padding: 15px; margin-bottom: 20px; display: none;">
-        <h3 id="node-select-faction-name" style="margin-top: 0; color: #fff;">王國名稱</h3>
-        <p id="node-select-faction-desc" style="color: #cbd5e1; font-size: 0.9em; margin: 0; line-height: 1.5;">王國氛圍與個性介紹</p>
+  <!-- Roguelike 新旅程設定 -->
+  <div class="modal-overlay" id="modal-new-game">
+    <div class="modal-content" style="width: min(620px, 92vw);">
+      <h2 style="color: #eab308; margin-top: 0; text-align: center;">🧭 建立新旅程</h2>
+      <p style="color: #94a3b8; line-height: 1.6; text-align: center;">
+        難度決定開局據點與資源；世界種子決定玩家、勢力與聚落的位置。
+      </p>
+
+      <div id="new-game-difficulty-list" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px 0;"></div>
+
+      <div id="new-game-difficulty-detail" class="glass-panel" style="padding: 15px; margin-bottom: 18px; background: rgba(0,0,0,0.4);">
+        <strong id="new-game-difficulty-title" style="color: #3b82f6;">普通</strong>
+        <p id="new-game-difficulty-desc" style="color: #cbd5e1; line-height: 1.5; margin: 8px 0;"></p>
+        <div id="new-game-resources" style="color: #fbbf24; font-size: 0.9em;"></div>
       </div>
 
-      <div id="node-select-difficulty-box" class="glass-panel" style="padding: 15px; margin-bottom: 20px; background: rgba(0,0,0,0.4);">
-        <span style="font-weight: bold; color: #cbd5e1;">開局難易度：</span>
-        <span id="node-select-difficulty-level" style="font-weight: bold; color: #eab308;">簡單</span>
-        <p id="node-select-difficulty-desc" style="color: #94a3b8; font-size: 0.85em; margin: 5px 0 0 0; line-height: 1.5;">起始資金與資源說明</p>
+      <label for="new-game-seed" style="display: block; color: #cbd5e1; font-weight: bold; margin-bottom: 6px;">世界種子</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+        <input id="new-game-seed" type="text" maxlength="64" autocomplete="off"
+          style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid rgba(234,179,8,0.4); background: rgba(0,0,0,0.55); color: #fff;"
+          aria-describedby="new-game-seed-help">
+        <button id="btn-randomize-seed" class="action-btn" type="button" style="width: auto; padding: 8px 14px;">🎲 隨機</button>
       </div>
+      <p id="new-game-seed-help" style="color: #64748b; font-size: 0.8em; margin-top: -12px;">
+        相同種子會重現相同的玩家位置與世界據點配置。
+      </p>
 
-      <div style="display: flex; gap: 10px;">
-        <button id="btn-confirm-node" class="action-btn" style="flex: 1; padding: 10px; font-weight: bold;">🏕️ 就決定是這裡了！</button>
-        <button id="btn-close-node-select" class="action-btn" style="background: rgba(255,255,255,0.1); padding: 10px;">再看看</button>
+      <div style="display: flex; gap: 10px; margin-top: 18px;">
+        <button id="btn-confirm-new-game" class="action-btn" style="flex: 1; padding: 12px; font-weight: bold;">⚔️ 開始旅程</button>
+        <button id="btn-close-new-game" class="action-btn" style="width: auto; background: rgba(255,255,255,0.1); padding: 12px 18px;">返回</button>
       </div>
     </div>
   </div>

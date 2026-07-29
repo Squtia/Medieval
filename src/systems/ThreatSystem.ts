@@ -2,6 +2,7 @@ import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { GameState } from '../core/GameState';
 import { Random } from '../core/Random';
+import { getDifficultyModifiers } from '../data/BalanceData';
 
 export class ThreatSystem {
   constructor() {
@@ -32,7 +33,8 @@ export class ThreatSystem {
         });
         
         // 重置倒數
-        threat.daysRemaining = Random.int(15, 25);
+        const intervalMultiplier = getDifficultyModifiers(GameState.worldGeneration?.difficulty).threatInterval;
+        threat.daysRemaining = Math.max(5, Math.round(Random.int(15, 25) * intervalMultiplier));
         threat.warningIssued = false;
         threat.prepared = false;
       }

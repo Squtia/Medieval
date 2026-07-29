@@ -6,6 +6,7 @@ import { renderBaseBuildings } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
 import { positionFloatingElement } from './FloatingPosition';
+import { PROSPERITY_THRESHOLDS } from '../data/BalanceData';
 
 class UIManagerClass {
   // 頂部資源列
@@ -449,55 +450,19 @@ class UIManagerClass {
       (GameState.myTerritory.currentCountryId ? GameState.mapSystem.getNodeById(GameState.myTerritory.currentCountryId) : null);
     if (!playerNode) return;
 
-    const PROSPERITY_THRESHOLDS: Record<number, number> = {
-      [NodeLevel.WILDERNESS]: 0,
-      [NodeLevel.CAMP]: 20,
-      [NodeLevel.VILLAGE]: 150,
-      [NodeLevel.TOWN]: 1000,
-      [NodeLevel.CAPITAL]: 5000
-    };
     const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
     const levelIcons = ['🏚️', '🏕️', '🏡', '🏘️', '🏰'];
-
-    const effectiveProsperity = playerNode.prosperity + GameState.myTerritory.population;
-    let computedLevel = NodeLevel.WILDERNESS;
-    // 首都的嚴格條件：除了繁榮度 5000 外，還需要擁有其他附庸據點
     const vassalNodesCount = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
-    
-    if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.CAPITAL] && vassalNodesCount > 0) computedLevel = NodeLevel.CAPITAL;
-    else if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.TOWN]) computedLevel = NodeLevel.TOWN;
-    else if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.VILLAGE]) computedLevel = NodeLevel.VILLAGE;
-    else if (effectiveProsperity >= PROSPERITY_THRESHOLDS[NodeLevel.CAMP]) computedLevel = NodeLevel.CAMP;
-    
-    if (playerNode.nodeLevel !== computedLevel) {
-      const isUpgrade = computedLevel > playerNode.nodeLevel;
-      playerNode.nodeLevel = computedLevel;
-      const newName = levelNames[playerNode.nodeLevel] || '新階段';
-      if (isUpgrade) {
-        console.log(`[系統] 🎉 恭喜！「${playerNode.name}」規模擴張為【${newName}】！`);
-        if ((window as any).toastManager) {
-          (window as any).toastManager.show(`🎉 據點擴張！「${playerNode.name}」已成為【${newName}】！`, 'success');
-        }
-      } else {
-        console.log(`[系統] ⚠️ 警告！「${playerNode.name}」因人口流失或繁榮度下降，退化為【${newName}】！`);
-        if ((window as any).toastManager) {
-          (window as any).toastManager.show(`⚠️ 據點衰退！「${playerNode.name}」已退化為【${newName}】！`, 'warning');
-        }
-      }
-    }
-
-    const current = effectiveProsperity;
+    const current = playerNode.prosperity;
     let nextThreshold = current;
     if (playerNode.nodeLevel < NodeLevel.CAPITAL) {
-        nextThreshold = PROSPERITY_THRESHOLDS[playerNode.nodeLevel + 1] ?? 20;
-        // 如果卡在首都條件
-        if (playerNode.nodeLevel === NodeLevel.TOWN && current >= PROSPERITY_THRESHOLDS[NodeLevel.CAPITAL]) {
-             nextThreshold = current; // 顯示已滿，但未達成其他條件
-        }
+      nextThreshold = PROSPERITY_THRESHOLDS[playerNode.nodeLevel + 1 as NodeLevel] ?? 40;
     }
 
     const levelLabelText = `${levelIcons[playerNode.nodeLevel] || '🏕️'} ${levelNames[playerNode.nodeLevel] || '據點'}`;
-    const nextLevelName = levelNames[playerNode.nodeLevel + 1] || '';
+    const nextLevelName = playerNode.nodeLevel === NodeLevel.TOWN && vassalNodesCount === 0
+      ? `${levelNames[NodeLevel.CAPITAL]}（需附庸）`
+      : levelNames[playerNode.nodeLevel + 1] || '';
 
     this.updateProsperityBar(current, nextThreshold, levelLabelText, nextLevelName);
   }
@@ -524,7 +489,9 @@ class UIManagerClass {
 
     const diff = nextThreshold - current;
     if (nextLabel) {
-      if (diff > 0) {
+      if (diff <= 0 && nextLevelName?.includes('需附庸')) {
+        nextLabel.textContent = '繁榮度已達標；取得至少一個附庸據點後可升為首都';
+      } else if (diff > 0) {
         const targetStr = nextLevelName ? `至 ${nextLevelName} ` : '';
         nextLabel.textContent = `距升級${targetStr}還差 ${diff} 點繁榮度`;
       } else {
@@ -554,11 +521,7 @@ export const UIManager = new UIManagerClass();
 import('../core/EventBus').then(({ EventBus }) => {
   import('../core/GameEvents').then(({ GameEventType }) => {
     EventBus.getInstance().subscribe(GameEventType.PROSPERITY_CHANGED, (payload) => {
-      UIManager.updateProsperityBar(
-        payload.current,
-        payload.nextThreshold,
-        payload.levelName
-      );
+      UIManager.refreshProsperityBar();
     });
   });
 });

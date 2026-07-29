@@ -8,6 +8,10 @@ import { Adventurer } from '../models/Adventurer';
 import { NameGenerator } from '../systems/NameGenerator';
 import { DataStore } from '../systems/DataStore';
 import { enterScene, returnToMap } from './SceneController';
+import {
+  getCombatPrestigeReward,
+  getDifficultyModifiers
+} from '../data/BalanceData';
 
 export function initActionController(): void {
   // 野外討伐
@@ -16,7 +20,9 @@ export function initActionController(): void {
     if (!node) return;
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
-    const task = new DispatchTask(`掃蕩${node.name}`, TaskType.COMBAT, 0, 20, 200, 20, 100, randomFeature);
+    const difficulty = Math.round(20 * getDifficultyModifiers(GameState.worldGeneration?.difficulty).enemyStrength);
+    const prestige = getCombatPrestigeReward(difficulty, false, node.nodeLevel);
+    const task = new DispatchTask(`掃蕩${node.name}`, TaskType.COMBAT, 0, difficulty, 200, prestige, 100, randomFeature);
     GameState.system.dispatchAdventurers(GameState.adventurers, task);
     
     let featureMsg = '';
@@ -57,9 +63,16 @@ export function initActionController(): void {
       ToastManager.show(`本回合已探索過周邊（上限：${territory.maxExplorationsPerDay}次），請推進回合後再試！`);
       return;
     }
+    const modifiers = getDifficultyModifiers(GameState.worldGeneration?.difficulty);
+    const foodCost = 5;
+    if (territory.food < foodCost) {
+      ToastManager.show(`探索需要 ${foodCost} 糧食作為補給。`);
+      return;
+    }
     
     territory.exploredToday++;
     territory.exploreCount = (territory.exploreCount || 0) + 1;
+    territory.food -= foodCost;
     
 
     
@@ -70,21 +83,25 @@ export function initActionController(): void {
     let foundRefugees = 0;
     const currentNode = GameState.mapSystem.getNodes().find(n => n.id === territory.currentCountryId);
     const currentProsperity = currentNode ? currentNode.prosperity : 0;
-    const maxRefugeeChance = 0.30;
-    const penalty = Math.min(0.25, (currentProsperity / 500) * 0.25);
-    const findRefugeeChance = Math.max(0.05, maxRefugeeChance - penalty);
+    const maxRefugeeChance = 0.10 * modifiers.refugeeChance;
+    const penalty = Math.min(0.08, (currentProsperity / 500) * 0.08);
+    const findRefugeeChance = Math.max(0.02, maxRefugeeChance - penalty);
 
-    if (Random.next() < findRefugeeChance) {
-      foundRefugees = Random.int(1, 3);
+    if (territory.refugeeDiscoveryCooldownDays <= 0 && Random.next() < findRefugeeChance) {
+      foundRefugees = Random.int(1, 2);
       territory.population += foundRefugees;
       territory.workers['UNASSIGNED'] += foundRefugees;
+      territory.refugeeDiscoveryCooldownDays = 10;
     }
 
     // 3. 結算獎勵
-    let msg = '🗺️ [探索] 領主親自巡視周邊，獲得了 20 金幣與少量物資！';
-    territory.addGold(20);
-    territory.wood += 2;
-    territory.stone += 1;
+    const goldReward = Math.max(1, Math.round(Random.int(8, 15) * modifiers.explorationReward));
+    const woodReward = Math.round(Random.int(0, 2) * modifiers.explorationReward);
+    const stoneReward = Math.round(Random.int(0, 1) * modifiers.explorationReward);
+    let msg = `🗺️ [探索] 領主巡視周邊，消耗 ${foodCost} 糧食，獲得 ${goldReward} 金幣、${woodReward} 木材與 ${stoneReward} 石材。`;
+    territory.addGold(goldReward);
+    territory.wood += woodReward;
+    territory.stone += stoneReward;
 
     // 4. 新增：動態探索周邊節點 (30% 機率)
     let spawnedNode = null;
@@ -96,7 +113,7 @@ export function initActionController(): void {
     }
     
     if (foundRefugees > 0) {
-      msg = `🗺️ [探索] 領主巡視周邊，獲得了 20 金幣與物資，並在廢棄營地救出了 ${foundRefugees} 名流民，已加入領地閒置人力！`;
+      msg += ` 並在廢棄營地救出了 ${foundRefugees} 名流民，已加入領地閒置人力！`;
       ToastManager.show(`荒野探索：救出了 ${foundRefugees} 名流民！`);
     }
 

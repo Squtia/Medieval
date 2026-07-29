@@ -21,6 +21,12 @@ import { closeNodeDetailPanel } from './ModalController';
 
 let selectedAdventurersForCaravan: Set<string> = new Set();
 
+function getTravelTiming(origin: MapNode, target: MapNode) {
+  if (GameState.roadSystem) return GameState.roadSystem.getTravelDays(origin, target);
+  const baseDays = Math.max(1, Math.ceil(Math.hypot(target.x - origin.x, target.y - origin.y) / 15));
+  return { baseDays, adjustedDays: baseDays, hasRoad: false };
+}
+
 export function openTradePlanner(plannedRouteNodeIds: string[]) {
   const modal = document.getElementById('modal-trade-planner')!;
   const container = document.getElementById('trade-planner-nodes')!;
@@ -52,7 +58,11 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
         if (goodId && amount > 0) {
           const marketGood = node.marketData?.goods.find(g => g.goodId === goodId);
           if (marketGood) {
-            totalCost += marketGood.buyPrice * amount;
+            const playerNode = mapSystem.getNodes().find(candidate => candidate.isPlayerBase);
+            const modifier = playerNode && GameState.roadSystem
+              ? GameState.roadSystem.getTradeModifiers(playerNode, node).buyPriceMultiplier
+              : 1;
+            totalCost += Math.max(1, Math.floor(marketGood.buyPrice * modifier)) * amount;
           }
           totalWeight += amount;
         }
@@ -89,27 +99,37 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
 
     // 計算預期天數
     let totalDays = 0;
+    let baseTotalDays = 0;
+    let roadLegs = 0;
     const playerNode = mapSystem.getNodes().find(n => n.isPlayerBase);
     if (playerNode && routeNodes.length > 0) {
       // 1. 本鎮 -> 站1
-      const dist0 = Math.sqrt(Math.pow(playerNode.x - routeNodes[0].x, 2) + Math.pow(playerNode.y - routeNodes[0].y, 2));
-      totalDays += Math.max(1, Math.ceil(dist0 / 15));
+      const firstTiming = getTravelTiming(playerNode, routeNodes[0]);
+      totalDays += firstTiming.adjustedDays;
+      baseTotalDays += firstTiming.baseDays;
+      if (firstTiming.hasRoad) roadLegs += 1;
 
       // 2. 各站間
       for (let i = 0; i < routeNodes.length - 1; i++) {
-        const dist = Math.sqrt(Math.pow(routeNodes[i].x - routeNodes[i+1].x, 2) + Math.pow(routeNodes[i].y - routeNodes[i+1].y, 2));
-        totalDays += Math.max(1, Math.ceil(dist / 15));
+        const timing = getTravelTiming(routeNodes[i], routeNodes[i + 1]);
+        totalDays += timing.adjustedDays;
+        baseTotalDays += timing.baseDays;
+        if (timing.hasRoad) roadLegs += 1;
       }
 
       // 3. 最後一站 -> 本鎮
       const lastNode = routeNodes[routeNodes.length - 1];
-      const distLast = Math.sqrt(Math.pow(lastNode.x - playerNode.x, 2) + Math.pow(lastNode.y - playerNode.y, 2));
-      totalDays += Math.max(1, Math.ceil(distLast / 15));
+      const returnTiming = getTravelTiming(lastNode, playerNode);
+      totalDays += returnTiming.adjustedDays;
+      baseTotalDays += returnTiming.baseDays;
+      if (returnTiming.hasRoad) roadLegs += 1;
     }
 
     const daysText = document.getElementById('trade-planner-expected-days')!;
     if (daysText) {
-      daysText.textContent = `預計旅途天數: ${totalDays} 天 (返程依距離計)`;
+      daysText.textContent = roadLegs > 0
+        ? `預計總旅程：${totalDays} 天（道路節省 ${baseTotalDays - totalDays} 天，${roadLegs} 段受益）`
+        : `預計總旅程：${totalDays} 天（含返程）`;
     }
   };
 
@@ -247,8 +267,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     const playerNode = mapSystem.getNodes().find(n => n.isPlayerBase);
     if (playerNode && routeNodes.length > 0) {
       const firstNode = routeNodes[0];
-      const dist = Math.sqrt(Math.pow(playerNode.x - firstNode.x, 2) + Math.pow(playerNode.y - firstNode.y, 2));
-      firstLegDays = Math.max(1, Math.ceil(dist / 15));
+      firstLegDays = getTravelTiming(playerNode, firstNode).adjustedDays;
     }
 
     const taskName = `商隊路線 (${routeNodes.map(n => n.name).join(' ➔ ')})`;

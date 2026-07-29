@@ -65,6 +65,8 @@ export class DispatchTask {
 
   // 探索任務：目標節點 ID
   public targetNodeId?: string;
+  public baseRequiredDays?: number;
+  public roadBenefitApplied?: boolean;
 
   // 討伐任務專用
   public subjugationMode?: SubjugationMode;

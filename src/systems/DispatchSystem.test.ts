@@ -7,9 +7,13 @@ import { DispatchTask, EnemyFeature, TaskType, TradePhase } from '../models/Disp
 import { Territory } from '../models/Territory';
 import { DataStore } from './DataStore';
 import { DispatchSystem } from './DispatchSystem';
+import { RoadSystem } from './RoadSystem';
 
 describe('trade mission lifecycle', () => {
-  beforeEach(() => EventBus.getInstance().clearAll());
+  beforeEach(() => {
+    EventBus.getInstance().clearAll();
+    GameState.roadSystem = new RoadSystem();
+  });
 
   it('advances through outbound legs and completes only after returning home', () => {
     const territory = new Territory('測試領地', 'home');
@@ -46,5 +50,71 @@ describe('trade mission lifecycle', () => {
     system.updateDays(2);
     expect(system.getActiveMissionsCount()).toBe(0);
     expect(changes).toEqual(['DISPATCHED', 'PROGRESSED', 'PROGRESSED', 'COMPLETED']);
+  });
+
+  it('uses completed roads for outbound and return travel time', () => {
+    const territory = new Territory('道路測試領', 'home');
+    const adventurer = new Adventurer(
+      'a1',
+      '道路測試者',
+      DataStore.JobDB.WARRIOR,
+      DataStore.TraitDB.BRAVE
+    );
+    const nodes = [
+      { id: 'home', name: '本據點', x: 0, y: 0, isPlayerBase: true, currentWeather: 'CLEAR' },
+      {
+        id: 'town',
+        name: '遠方城鎮',
+        x: 45,
+        y: 0,
+        isPlayerBase: false,
+        isScouted: true,
+        currentWeather: 'CLEAR',
+        marketData: {
+          goods: [{ goodId: 'grain', buyPrice: 100, sellPrice: 100, stock: 10 }]
+        }
+      }
+    ];
+    GameState.mapSystem = {
+      getNodeById: (id: string) => nodes.find(node => node.id === id),
+      getNodes: () => nodes
+    } as any;
+    GameState.roadSystem = new RoadSystem({
+      roads: [{
+        id: 'road_1',
+        originNodeId: 'home',
+        targetNodeId: 'town',
+        lengthPixels: 720,
+        completedDay: 1
+      }],
+      projects: [],
+      nextRoadId: 2
+    });
+
+    const timing = GameState.roadSystem.getTravelDays(nodes[0] as any, nodes[1] as any);
+    expect(timing).toEqual({ baseDays: 3, adjustedDays: 2, hasRoad: true });
+
+    const system = new DispatchSystem(territory);
+    const task = new DispatchTask('道路商隊', TaskType.TRADE, timing.adjustedDays, 0, 0, 0, 0);
+    task.tradeItineraryNodeIds = ['town'];
+    task.tradeInstructions = [{
+      nodeId: 'town',
+      buy: [{ goodId: 'grain', maxAmount: 1 }],
+      sell: []
+    }];
+    task.caravanCargo = {};
+    task.caravanGold = 100;
+    task.initialCaravanGold = 100;
+
+    system.dispatchAdventurers([adventurer], task);
+    system.updateDays(2);
+    expect(task.tradePhase).toBe(TradePhase.RETURNING);
+    expect(system.getActiveMissions()[0].remainingDays).toBe(2);
+    const negotiationBonus = adventurer.getTradeStats().negotiationBonus;
+    const roadBuyPrice = Math.max(1, Math.floor(100 * (1 - negotiationBonus) * 0.95));
+    expect(task.caravanGold).toBe(100 - roadBuyPrice);
+    expect(task.caravanCargo?.grain).toBe(1);
+    system.updateDays(2);
+    expect(system.getActiveMissionsCount()).toBe(0);
   });
 });

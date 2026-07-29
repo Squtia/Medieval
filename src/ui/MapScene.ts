@@ -12,11 +12,23 @@ interface CombatBeacon {
 
 export class MapScene extends Phaser.Scene {
   private routeGraphics!: Phaser.GameObjects.Graphics;
+  private roadGraphics!: Phaser.GameObjects.Graphics;
+  private fogTexture!: Phaser.Textures.CanvasTexture;
+  private fogImage!: Phaser.GameObjects.Image;
+  private fogCellCanvas: HTMLCanvasElement | null = null;
+  private explorationRangeTexture!: Phaser.Textures.CanvasTexture;
+  private explorationRangeImage!: Phaser.GameObjects.Image;
+  private explorationRangeCellCanvas: HTMLCanvasElement | null = null;
+  private explorationGraphics!: Phaser.GameObjects.Graphics;
   private nodeContainers: Map<string, Phaser.GameObjects.Container> = new Map();
   private caravans: Phaser.GameObjects.Text[] = [];
   private caravanTweens: Phaser.Tweens.Tween[] = [];
   private combatBeacons: Map<string, CombatBeacon> = new Map();
   private readonly resizeHandler = () => this.updateCameraZoomAndLimits();
+  private readonly explorationSelectionHandler = (event: Event) => {
+    const detail = (event as CustomEvent<{ active?: boolean }>).detail;
+    this.renderExplorationTargetRange(Boolean(detail?.active));
+  };
   
   private clickStartX = 0;
   private clickStartY = 0;
@@ -54,6 +66,35 @@ export class MapScene extends Phaser.Scene {
 
     // 2. 設置線條繪製 Graphics
     this.routeGraphics = this.add.graphics();
+    this.routeGraphics.setDepth(1);
+
+    this.roadGraphics = this.add.graphics();
+    this.roadGraphics.setDepth(2);
+    this.renderRoadNetwork();
+
+    // 永久探索黑幕：位於背景與已發現節點之間。
+    const existingFogTexture = this.textures.get('map-exploration-fog');
+    this.fogTexture = existingFogTexture instanceof Phaser.Textures.CanvasTexture
+      ? existingFogTexture
+      : this.textures.createCanvas('map-exploration-fog', width, height)!;
+    this.fogImage = this.add.image(0, 0, 'map-exploration-fog')
+      .setOrigin(0)
+      .setDepth(5);
+    this.renderFog();
+
+    const existingRangeTexture = this.textures.get('map-exploration-target-range');
+    this.explorationRangeTexture = existingRangeTexture instanceof Phaser.Textures.CanvasTexture
+      ? existingRangeTexture
+      : this.textures.createCanvas('map-exploration-target-range', width, height)!;
+    this.explorationRangeImage = this.add.image(0, 0, 'map-exploration-target-range')
+      .setOrigin(0)
+      .setDepth(6)
+      .setVisible(false);
+
+    this.explorationGraphics = this.add.graphics();
+    this.explorationGraphics.setDepth(7);
+    this.renderExplorationExpedition();
+    document.addEventListener('exploration-selection-changed', this.explorationSelectionHandler);
 
     // 3. 繪製節點與互動
     this.rebuildNodes();
@@ -63,7 +104,11 @@ export class MapScene extends Phaser.Scene {
     
     // 初始化相機縮放限制與居中
     this.updateCameraZoomAndLimits();
-    this.cameras.main.centerOn(800, 450);
+    const playerBase = GameState.mapSystem?.getNodes().find(node => node.isPlayerBase);
+    this.cameras.main.centerOn(
+      playerBase ? (playerBase.x / 100) * width : 800,
+      playerBase ? (playerBase.y / 100) * height : 450
+    );
 
     // 監聽視窗變更，自動調整
     this.scale.on('resize', this.resizeHandler);
@@ -72,6 +117,8 @@ export class MapScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (pointer.leftButtonDown()) {
         this.isDragging = true;
+        this.clickStartX = pointer.x;
+        this.clickStartY = pointer.y;
         this.dragStartX = this.cameras.main.scrollX;
         this.dragStartY = this.cameras.main.scrollY;
       }
@@ -85,8 +132,25 @@ export class MapScene extends Phaser.Scene {
       }
     });
 
-    this.input.on('pointerup', () => {
+    this.input.on('pointerup', (
+      pointer: Phaser.Input.Pointer,
+      currentlyOver: Phaser.GameObjects.GameObject[]
+    ) => {
+      const clickDistance = Phaser.Math.Distance.Between(
+        this.clickStartX,
+        this.clickStartY,
+        pointer.x,
+        pointer.y
+      );
       this.isDragging = false;
+      if (clickDistance < 5 && currentlyOver.length === 0) {
+        document.dispatchEvent(new CustomEvent('phaser-map-clicked', {
+          detail: {
+            x: (pointer.worldX / 1600) * 100,
+            y: (pointer.worldY / 900) * 100
+          }
+        }));
+      }
     });
 
     // 設定滾輪縮放，依據當前視窗動態計算限制
@@ -117,6 +181,7 @@ export class MapScene extends Phaser.Scene {
     this.caravanTweens.forEach(tween => tween.remove());
     this.caravanTweens = [];
     this.hideTooltip();
+    document.removeEventListener('exploration-selection-changed', this.explorationSelectionHandler);
     this.scale.off('resize', this.resizeHandler);
     this.input.removeAllListeners();
   }
@@ -128,6 +193,230 @@ export class MapScene extends Phaser.Scene {
     }
   }
 
+  public renderFog() {
+    if (!this.fogTexture) return;
+    const exploration = GameState.explorationSystem;
+    if (!exploration) return;
+
+    const data = exploration.getData();
+    const fogContext = this.fogTexture.getContext();
+    fogContext.clearRect(0, 0, 1600, 900);
+    fogContext.fillStyle = 'rgba(3, 5, 9, 0.98)';
+    fogContext.fillRect(0, 0, 1600, 900);
+
+    if (!this.fogCellCanvas) this.fogCellCanvas = document.createElement('canvas');
+    this.fogCellCanvas.width = data.width;
+    this.fogCellCanvas.height = data.height;
+    const cellContext = this.fogCellCanvas.getContext('2d');
+    if (!cellContext) return;
+    cellContext.clearRect(0, 0, data.width, data.height);
+    cellContext.fillStyle = '#ffffff';
+
+    for (let row = 0; row < data.height; row += 1) {
+      for (let column = 0; column < data.width; column += 1) {
+        if (exploration.isCellRevealed(column, row)) cellContext.fillRect(column, row, 1, 1);
+      }
+    }
+
+    // Upscale the persistent grid as one mask, then feather it. This preserves
+    // save compatibility while removing the visible square-cell boundary.
+    fogContext.save();
+    fogContext.globalCompositeOperation = 'destination-out';
+    fogContext.imageSmoothingEnabled = true;
+    fogContext.filter = 'blur(18px)';
+    fogContext.drawImage(this.fogCellCanvas, 0, 0, 1600, 900);
+    fogContext.restore();
+    this.fogTexture.refresh();
+  }
+
+  public renderExplorationExpedition() {
+    if (!this.explorationGraphics) return;
+    this.explorationGraphics.clear();
+    const expedition = GameState.explorationSystem?.getActiveExpedition();
+    if (!expedition) return;
+
+    const startX = (expedition.startX / 100) * 1600;
+    const startY = (expedition.startY / 100) * 900;
+    const targetX = (expedition.targetX / 100) * 1600;
+    const targetY = (expedition.targetY / 100) * 900;
+    const currentX = (expedition.currentX / 100) * 1600;
+    const currentY = (expedition.currentY / 100) * 900;
+
+    this.explorationGraphics.lineStyle(2, 0xf8fafc, 0.42);
+    const distance = Phaser.Math.Distance.Between(startX, startY, targetX, targetY);
+    const dashCount = Math.max(1, Math.ceil(distance / 24));
+    for (let index = 0; index < dashCount; index += 2) {
+      const from = index / dashCount;
+      const to = Math.min(1, (index + 1) / dashCount);
+      this.explorationGraphics.lineBetween(
+        Phaser.Math.Linear(startX, targetX, from),
+        Phaser.Math.Linear(startY, targetY, from),
+        Phaser.Math.Linear(startX, targetX, to),
+        Phaser.Math.Linear(startY, targetY, to)
+      );
+    }
+
+    this.explorationGraphics.lineStyle(4, 0xf59e0b, 0.9);
+    this.explorationGraphics.lineBetween(startX, startY, currentX, currentY);
+    this.explorationGraphics.fillStyle(0xfbbf24, 1);
+    this.explorationGraphics.fillCircle(currentX, currentY, 7);
+    this.explorationGraphics.lineStyle(2, 0xfef3c7, 0.9);
+    this.explorationGraphics.strokeCircle(currentX, currentY, 11);
+    this.explorationGraphics.lineStyle(2, 0x38bdf8, 0.9);
+    this.explorationGraphics.strokeCircle(targetX, targetY, 9);
+  }
+
+  public renderExplorationTargetRange(active: boolean) {
+    if (!this.explorationRangeTexture || !this.explorationRangeImage) return;
+    const exploration = GameState.explorationSystem;
+    const origin = GameState.mapSystem?.getNodes().find(node => node.isPlayerBase);
+    const rangeContext = this.explorationRangeTexture.getContext();
+    rangeContext.clearRect(0, 0, 1600, 900);
+
+    if (!active || !exploration || !origin || exploration.getActiveExpedition()) {
+      this.explorationRangeTexture.refresh();
+      this.explorationRangeImage.setVisible(false);
+      return;
+    }
+
+    const preview = exploration.getTargetPreview(origin);
+    if (!this.explorationRangeCellCanvas) {
+      this.explorationRangeCellCanvas = document.createElement('canvas');
+    }
+    this.explorationRangeCellCanvas.width = preview.width;
+    this.explorationRangeCellCanvas.height = preview.height;
+    const cellContext = this.explorationRangeCellCanvas.getContext('2d');
+    if (!cellContext) return;
+    cellContext.clearRect(0, 0, preview.width, preview.height);
+    cellContext.fillStyle = '#2dd4bf';
+    preview.cells.forEach((selectable, index) => {
+      if (!selectable) return;
+      cellContext.fillRect(index % preview.width, Math.floor(index / preview.width), 1, 1);
+    });
+
+    // A soft translucent band makes the reachable frontier readable without
+    // covering terrain details. The dashed edge marks the actual click limit.
+    rangeContext.save();
+    rangeContext.imageSmoothingEnabled = true;
+    rangeContext.globalAlpha = 0.38;
+    rangeContext.filter = 'blur(12px)';
+    rangeContext.drawImage(this.explorationRangeCellCanvas, 0, 0, 1600, 900);
+    rangeContext.restore();
+
+    rangeContext.save();
+    rangeContext.imageSmoothingEnabled = true;
+    rangeContext.globalAlpha = 0.16;
+    rangeContext.drawImage(this.explorationRangeCellCanvas, 0, 0, 1600, 900);
+    rangeContext.restore();
+
+    const cellWidth = 1600 / preview.width;
+    const cellHeight = 900 / preview.height;
+    const isSelectable = (column: number, row: number) =>
+      column >= 0 &&
+      row >= 0 &&
+      column < preview.width &&
+      row < preview.height &&
+      preview.cells[row * preview.width + column] === 1;
+    rangeContext.save();
+    rangeContext.beginPath();
+    rangeContext.strokeStyle = 'rgba(153, 246, 228, 0.88)';
+    rangeContext.lineWidth = 2;
+    rangeContext.lineCap = 'round';
+    rangeContext.lineJoin = 'round';
+    rangeContext.setLineDash([9, 8]);
+    for (let row = 0; row < preview.height; row += 1) {
+      for (let column = 0; column < preview.width; column += 1) {
+        if (!isSelectable(column, row)) continue;
+        const left = column * cellWidth;
+        const top = row * cellHeight;
+        const right = left + cellWidth;
+        const bottom = top + cellHeight;
+        if (!isSelectable(column, row - 1)) {
+          rangeContext.moveTo(left, top);
+          rangeContext.lineTo(right, top);
+        }
+        if (!isSelectable(column + 1, row)) {
+          rangeContext.moveTo(right, top);
+          rangeContext.lineTo(right, bottom);
+        }
+        if (!isSelectable(column, row + 1)) {
+          rangeContext.moveTo(right, bottom);
+          rangeContext.lineTo(left, bottom);
+        }
+        if (!isSelectable(column - 1, row)) {
+          rangeContext.moveTo(left, bottom);
+          rangeContext.lineTo(left, top);
+        }
+      }
+    }
+    rangeContext.stroke();
+    rangeContext.restore();
+
+    this.explorationRangeTexture.refresh();
+    this.explorationRangeImage.setVisible(true);
+  }
+
+  public renderRoadNetwork() {
+    if (!this.roadGraphics) return;
+    this.roadGraphics.clear();
+    if (!GameState.roadSystem || !GameState.mapSystem) return;
+
+    const drawConnection = (
+      originNodeId: string,
+      targetNodeId: string,
+      color: number,
+      width: number,
+      alpha: number,
+      progress = 1
+    ) => {
+      const origin = GameState.mapSystem.getNodeById(originNodeId);
+      const target = GameState.mapSystem.getNodeById(targetNodeId);
+      if (!origin || !target) return;
+      const startX = (origin.x / 100) * 1600;
+      const startY = (origin.y / 100) * 900;
+      const endX = Phaser.Math.Linear(startX, (target.x / 100) * 1600, progress);
+      const endY = Phaser.Math.Linear(startY, (target.y / 100) * 900, progress);
+      this.roadGraphics.lineStyle(width, color, alpha);
+      this.roadGraphics.lineBetween(startX, startY, endX, endY);
+    };
+
+    GameState.roadSystem.getRoads().forEach(road => {
+      drawConnection(road.originNodeId, road.targetNodeId, 0x78350f, 8, 0.9);
+      drawConnection(road.originNodeId, road.targetNodeId, 0xd6a85f, 3, 0.95);
+    });
+
+    const project = GameState.roadSystem.getActiveProject();
+    if (!project) return;
+    const origin = GameState.mapSystem.getNodeById(project.originNodeId);
+    const target = GameState.mapSystem.getNodeById(project.targetNodeId);
+    if (!origin || !target) return;
+    const startX = (origin.x / 100) * 1600;
+    const startY = (origin.y / 100) * 900;
+    const targetX = (target.x / 100) * 1600;
+    const targetY = (target.y / 100) * 900;
+    const distance = Phaser.Math.Distance.Between(startX, startY, targetX, targetY);
+    const dashCount = Math.max(1, Math.ceil(distance / 20));
+    this.roadGraphics.lineStyle(3, 0x94a3b8, 0.7);
+    for (let index = 0; index < dashCount; index += 2) {
+      const from = index / dashCount;
+      const to = Math.min(1, (index + 1) / dashCount);
+      this.roadGraphics.lineBetween(
+        Phaser.Math.Linear(startX, targetX, from),
+        Phaser.Math.Linear(startY, targetY, from),
+        Phaser.Math.Linear(startX, targetX, to),
+        Phaser.Math.Linear(startY, targetY, to)
+      );
+    }
+    drawConnection(
+      project.originNodeId,
+      project.targetNodeId,
+      0xf59e0b,
+      6,
+      0.95,
+      project.elapsedDays / project.totalDays
+    );
+  }
+
   // 重新繪製所有城鎮節點
   rebuildNodes() {
     this.nodeContainers.forEach(c => c.destroy());
@@ -136,7 +425,7 @@ export class MapScene extends Phaser.Scene {
     const nodes = GameState.mapSystem?.getNodes() || [];
     nodes.forEach(node => {
       // 隱藏中後期的未解鎖據點
-      if (node.isHidden) return;
+      if (node.isHidden || (!node.isPlayerBase && !node.isDiscovered)) return;
 
       const px = (node.x / 100) * 1600;
       const py = (node.y / 100) * 900;
@@ -155,21 +444,40 @@ export class MapScene extends Phaser.Scene {
 
       // 繪製 Isometric 3/4 俯視角地圖節點圖案
       const textureKey = getNodeTextureKey(node);
-      const iconSize = node.isDynamic ? 25 : 35;
+      const iconSize = node.isPlayerBase ? 42 : node.isDynamic ? 25 : 35;
       const iconSprite = this.add.image(0, -10, textureKey).setDisplaySize(iconSize, iconSize);
 
       // 繪製名字標籤 (移除黑框，改為純文字加發光陰影)
       const labelText = this.add.text(0, 12, node.name, {
-        fontSize: '11px',
-        color: '#fef08a',
+        fontSize: node.isPlayerBase ? '14px' : '11px',
+        color: node.isPlayerBase ? '#ffd84d' : '#fef08a',
         fontFamily: 'Cinzel, sans-serif',
         fontStyle: 'bold'
       }).setOrigin(0.5);
 
-      labelText.setStroke('#000000', 4);
-      labelText.setShadow(0, 4, '#000000', 4, true, true);
+      labelText.setStroke('#000000', node.isPlayerBase ? 6 : 4);
+      labelText.setShadow(0, 4, node.isPlayerBase ? '#7c2d12' : '#000000', node.isPlayerBase ? 8 : 4, true, true);
 
-      const elements: any[] = [iconSprite, labelText];
+      const elements: any[] = [];
+      if (node.isPlayerBase) {
+        const outerRing = this.add.ellipse(0, -7, 76, 38, 0xfbbf24, 0.1)
+          .setStrokeStyle(3, 0xfbbf24, 0.95);
+        const innerRing = this.add.ellipse(0, -7, 58, 28, 0xfef3c7, 0.05)
+          .setStrokeStyle(1, 0xfef3c7, 0.72);
+        const homeBadge = this.add.text(0, -50, '◆ 我的據點 ◆', {
+          fontSize: '11px',
+          color: '#fff7c2',
+          backgroundColor: '#713f12',
+          fontFamily: 'Cinzel, sans-serif',
+          fontStyle: 'bold',
+          padding: { x: 7, y: 3 }
+        }).setOrigin(0.5);
+        homeBadge.setStroke('#1c0a00', 2);
+        homeBadge.setShadow(0, 3, '#000000', 4, true, true);
+        elements.push(outerRing, innerRing, iconSprite, homeBadge, labelText);
+      } else {
+        elements.push(iconSprite, labelText);
+      }
       
       if (node.siegeData) {
         const siegeIcon = this.add.text(0, -35, '⚔️', { fontSize: '18px' }).setOrigin(0.5);

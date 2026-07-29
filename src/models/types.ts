@@ -60,11 +60,11 @@ export enum OfficeType {
 export const TITLE_CONFIG: TitleConfig[] = [
   { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
   { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, taxBonusPer10Pop: 1, reqPrestige: 500, reqPopulation: 0, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
-  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, taxBonusPer10Pop: 2, reqPrestige: 2000, reqPopulation: 0, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, taxBonusPer10Pop: 3, reqPrestige: 5000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, taxBonusPer10Pop: 4, reqPrestige: 12000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, taxBonusPer10Pop: 5, reqPrestige: 25000, reqPopulation: 1500, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, taxBonusPer10Pop: 6, reqPrestige: 60000, reqPopulation: 5000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } }
+  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, taxBonusPer10Pop: 2, reqPrestige: 1500, reqPopulation: 50, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, taxBonusPer10Pop: 3, reqPrestige: 4000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, taxBonusPer10Pop: 4, reqPrestige: 9000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, taxBonusPer10Pop: 5, reqPrestige: 18000, reqPopulation: 1500, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, taxBonusPer10Pop: 6, reqPrestige: 35000, reqPopulation: 5000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } }
 ];
 
 export function getTitleConfig(title: NobleTitle): TitleConfig {
@@ -181,8 +181,10 @@ export interface MapNode {
   population: number;         // 人口數量
   prosperity: number;         // 繁榮度
   nodeLevel: NodeLevel;       // 根據繁榮度動態計算的階段
+  minimumNodeLevel?: NodeLevel; // 開局或特殊規則保證的最低據點階段
   ownerFactionId: string | null; // 當前佔領該節點的派系 ID（若無則為 null）
   isPlayerBase: boolean;      // 標記這是否為玩家當前的所在地
+  isDiscovered?: boolean;     // 玩家是否已永久發現此據點
   isCapital?: boolean;        // 標記這是否為玩家冊封的首都
   terrain: TerrainType;       // 地形類型
   feature: NodeFeature;       // 節點特性

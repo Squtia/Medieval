@@ -14,7 +14,7 @@ export class MonsterSystem {
    */
   public generateEncounter(terrain: TerrainType, baseDifficulty: number): import('../models/types').MonsterInstance[] {
     // 1. 過濾出符合地形的魔物
-    const validMonsters = this.monsters.filter(m => m.terrains.includes(terrain));
+    const validMonsters = this.monsters.filter(m => m.terrains.includes(terrain) && !m.isBoss);
     let selectedBaseMonster: MonsterData;
     
     if (validMonsters.length === 0) {
@@ -30,8 +30,8 @@ export class MonsterSystem {
     }
     
     // 2. 實例化魔物並動態分配數值
-    // 單一魔物戰力 = 節點難度 * 強度係數 * 10
-    const powerScore = Math.max(10, baseDifficulty * selectedBaseMonster.powerTier * 10);
+    // 單體與數量共用同一個總評分預算，避免遭遇強度呈二次成長。
+    const powerScore = Math.max(10, baseDifficulty * selectedBaseMonster.powerTier * 6);
     
     // 根據種族分配數值 (HP 佔比較大，攻擊防禦閃避則按比例)
     let hpRatio = 0.5;
@@ -64,11 +64,8 @@ export class MonsterSystem {
        calculatedPowerScore: powerScore
     };
     
-    // 3. 根據 baseDifficulty 決定怪物數量 (總戰力不要超過難度的 3~5 倍)
-    // 這裡我們簡化為 1~5 隻，強怪少，弱怪多
-    let count = Math.max(1, Math.floor(baseDifficulty / (selectedBaseMonster.powerTier * 5))); 
-    if (count > 5) count = 5;
-    if (selectedBaseMonster.isBoss) count = 1; // Boss 通常只有一隻
+    const targetEncounterScore = Math.max(10, baseDifficulty * 12);
+    const count = Math.max(1, Math.min(5, Math.round(targetEncounterScore / powerScore)));
     
     const encounter: import('../models/types').MonsterInstance[] = [];
     for (let i = 0; i < count; i++) {
