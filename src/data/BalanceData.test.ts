@@ -21,6 +21,7 @@ describe('balance configuration', () => {
   });
 
   it('requires a vassal for capital and respects guaranteed starting levels', () => {
+    expect(calculateNodeLevel({ prosperity: 121 }, false)).toBe(NodeLevel.CAMP);
     expect(calculateNodeLevel({ prosperity: 4999 }, true)).toBe(NodeLevel.TOWN);
     expect(calculateNodeLevel({ prosperity: 5000 }, false)).toBe(NodeLevel.TOWN);
     expect(calculateNodeLevel({ prosperity: 5000 }, true)).toBe(NodeLevel.CAPITAL);

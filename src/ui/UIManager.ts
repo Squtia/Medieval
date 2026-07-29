@@ -6,7 +6,8 @@ import { renderBaseBuildings } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
 import { positionFloatingElement } from './FloatingPosition';
-import { PROSPERITY_THRESHOLDS } from '../data/BalanceData';
+import { PROSPERITY_THRESHOLDS, calculateNodeLevel } from '../data/BalanceData';
+import { ToastManager } from './ToastManager';
 
 class UIManagerClass {
   // 頂部資源列
@@ -453,6 +454,47 @@ class UIManagerClass {
     const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
     const levelIcons = ['🏚️', '🏕️', '🏡', '🏘️', '🏰'];
     const vassalNodesCount = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
+    const previousLevel = playerNode.nodeLevel;
+    const computedLevel = calculateNodeLevel(playerNode, vassalNodesCount > 0);
+
+    // Prosperity can change outside the monthly map simulation (events, milestones,
+    // cheats, etc.). Reconcile the tier whenever the UI refreshes so the stored
+    // node level cannot lag behind the value shown by the prosperity bar.
+    if (computedLevel !== previousLevel) {
+      playerNode.nodeLevel = computedLevel;
+      playerNode.isCapital = computedLevel === NodeLevel.CAPITAL;
+
+      const newLevelName = levelNames[computedLevel] || '新階段';
+      const isUpgrade = computedLevel > previousLevel;
+      if (isUpgrade) {
+        console.log(`[系統] 🎉 恭喜！「${playerNode.name}」規模擴張為【${newLevelName}】！`);
+        ToastManager.show(`🎉 據點擴張！「${playerNode.name}」已成為【${newLevelName}】！`, 'success');
+      } else {
+        console.log(`[系統] ⚠️ 警告！「${playerNode.name}」因繁榮度下降，退化為【${newLevelName}】！`);
+        ToastManager.show(`⚠️ 據點衰退！「${playerNode.name}」已退化為【${newLevelName}】！`, 'warning');
+      }
+
+      // Building availability is tier-dependent, so refresh it after the tier
+      // has been reconciled rather than waiting for the next full UI update.
+      renderBaseBuildings();
+
+      if (GameState.currentViewNode?.id === playerNode.id) {
+        const sceneState = document.getElementById('scene-country-state');
+        if (sceneState) {
+          sceneState.textContent = `規模：${newLevelName} | ${playerNode.description}`;
+        }
+
+        const streetBackground = document.getElementById('street-parallax-bg') as HTMLDivElement | null;
+        if (streetBackground) {
+          streetBackground.style.backgroundImage = computedLevel >= NodeLevel.TOWN
+            ? `url('./bg_street_prosperous_1784087131344.png')`
+            : computedLevel >= NodeLevel.CAMP
+              ? `url('./bg_street_village_1784087142427.png')`
+              : `url('./bg_street_ruins_1784087152568.png')`;
+        }
+      }
+    }
+
     const current = playerNode.prosperity;
     let nextThreshold = current;
     if (playerNode.nodeLevel < NodeLevel.CAPITAL) {
