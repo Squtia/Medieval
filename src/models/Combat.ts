@@ -20,7 +20,9 @@ export interface CombatParticipant {
   id: string;
   name: string;
   isPlayer: boolean;
-  row: FormationRow;
+  row: string;
+  gridR?: number;
+  gridC?: number;
   maxHp: number;
   currentHp: number;
   stats: CombatStats; // hp, mp, atk, def, hit, evade
@@ -73,8 +75,10 @@ export interface CombatParticipantState {
   id: string;
   name: string;
   isPlayer: boolean;
-  row: FormationRow;
+  row: string;
   maxHp: number;
+  gridR?: number;
+  gridC?: number;
 }
 
 export interface CombatReport {

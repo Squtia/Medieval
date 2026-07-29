@@ -2,7 +2,7 @@ import { Adventurer } from '../models/Adventurer';
 import { Territory } from '../models/Territory';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
-import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature, getTitleConfig } from '../models/types';
+import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature, getTitleConfig, FormationPreset } from '../models/types';
 import { DataStore } from '../systems/DataStore';
 import { NameGenerator } from '../systems/NameGenerator';
 import { INITIAL_FACTIONS } from '../data/FactionData';
@@ -59,6 +59,8 @@ export const GameState = {
   worldGeneration: null as WorldGenerationMeta | null,
   explorationSystem: null as unknown as ExplorationSystem,
   roadSystem: null as unknown as RoadSystem,
+  unlockedFormations: ['DEFAULT'] as string[],
+  formationPresets: [] as FormationPreset[]
 };
 
 export function initGameState(options: NewGameOptions = {
@@ -72,7 +74,6 @@ export function initGameState(options: NewGameOptions = {
   GameState.myTerritory.title = difficultyConfig.startingTitle;
   GameState.myTerritory.prestige = getTitleConfig(difficultyConfig.startingTitle).reqPrestige;
   GameState.myTerritory.gold = startingResources.gold;
-  GameState.myTerritory.population = startingResources.population;
   GameState.myTerritory.food = startingResources.food;
   GameState.myTerritory.wood = startingResources.wood;
   GameState.myTerritory.stone = startingResources.stone;
@@ -117,6 +118,8 @@ export function initGameState(options: NewGameOptions = {
   GameState.lastDailySummary = null;
   GameState.milestones = [];
   GameState.pendingMilestones = [];
+  GameState.unlockedFormations = ['DEFAULT'];
+  GameState.formationPresets = [];
   
   // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
   EventBus.getInstance().clearAll();

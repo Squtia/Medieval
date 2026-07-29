@@ -177,10 +177,7 @@ export class SaveManager {
       if (t.forgeLevel === undefined) t.forgeLevel = 0;
       if (t.exploreCount === undefined) t.exploreCount = 0;
       if (t.hasRecruitedFromFirstExplorations === undefined) t.hasRecruitedFromFirstExplorations = false;
-      if (t.refugeeDiscoveryCooldownDays === undefined) t.refugeeDiscoveryCooldownDays = 0;
-      
-      // 同步舊存檔的總人口與閒置人力落差
-      t.syncPopulation();
+      // 由於 population 已改為動態 Getter，不再需要同步閒置人力落差
       
       GameState.myTerritory = t;
 

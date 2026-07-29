@@ -115,19 +115,33 @@ export class CombatUIManager {
     
     const icon = state.isPlayer ? '🦸' : '👺';
     
-    // 設定前後排與圖示
-    // 玩家 (rtl)：grid-column: 1 是靠近中央(前排)，2 是遠離中央(後排)
-    // 敵軍 (ltr)：grid-column: 1 是靠近中央(前排)，2 是遠離中央(後排)
     let gridColumn = 1;
+    let gridRow = 1;
+
     if (state.isPlayer) {
-      gridColumn = state.row === FormationRow.FRONT ? 1 : 2;
+      if (state.gridR !== undefined && state.gridC !== undefined) {
+         gridColumn = 3 - state.gridR; // r=0(Front) -> col=3, r=1(Mid) -> col=2, r=2(Back) -> col=1
+         gridRow = state.gridC + 1;    // c=0(Top) -> row=1, c=1(Mid) -> row=2, c=2(Bottom) -> row=3
+      } else {
+         gridColumn = state.row === 'FRONT' ? 3 : 1;
+      }
     } else {
-      gridColumn = state.row === FormationRow.FRONT ? 1 : 2;
+      if (state.gridR !== undefined && state.gridC !== undefined) {
+         gridColumn = state.gridR + 1; // r=0(Front) -> col=1, r=1(Mid) -> col=2, r=2(Back) -> col=3
+         gridRow = state.gridC + 1;
+      } else {
+         gridColumn = state.row === 'FRONT' ? 1 : 3;
+      }
     }
     div.style.gridColumn = gridColumn.toString();
+    div.style.gridRow = gridRow.toString();
+
+    let rowLabel = '前排';
+    if (state.row === 'BACK') rowLabel = '後排';
+    else if (state.row === 'MIDDLE') rowLabel = '中排';
 
     div.innerHTML = `
-      <div style="font-size: 0.9em; font-weight: bold;">${icon} ${state.name} <span style="font-size: 0.7em; color: #94a3b8;">${state.row === FormationRow.FRONT ? '前排' : '後排'}</span></div>
+      <div style="font-size: 0.9em; font-weight: bold;">${icon} ${state.name} <span style="font-size: 0.7em; color: #94a3b8;">${rowLabel}</span></div>
       <div class="combat-hp-bg">
         <div id="hp-fill-${state.id}" class="combat-hp-fill" style="width: 100%;"></div>
       </div>

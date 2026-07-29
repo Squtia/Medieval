@@ -87,47 +87,9 @@ export function enterScene(node: MapNode) {
       const btnEnterHall = document.getElementById('btn-enter-hall')!;
       
       btnEnterBase.style.display = isMyHome ? 'block' : 'none';
-      if (btnEnterTavern) {
-        btnEnterTavern.style.display = (isMyHome && (myTerritory.tavernLevel || 0) > 0) ? 'block' : 'none';
-        const label = btnEnterTavern.querySelector('.building-label');
-        if (label && myTerritory.tavernLevel > 0) {
-          const info = getDynamicFacilityName('tavern', myTerritory.tavernLevel);
-          label.textContent = `${info.icon} ${info.name}`;
-        }
-      }
-      if (btnEnterWeaponShop) {
-        btnEnterWeaponShop.style.display = (isMyHome && (myTerritory.weaponShopLevel || 0) > 0) ? 'block' : 'none';
-        const label = btnEnterWeaponShop.querySelector('.building-label');
-        if (label && myTerritory.weaponShopLevel > 0) {
-          const info = getDynamicFacilityName('weapon', myTerritory.weaponShopLevel);
-          label.textContent = `${info.icon} ${info.name}`;
-        }
-      }
-      if (btnEnterArmorShop) {
-        btnEnterArmorShop.style.display = (isMyHome && (myTerritory.armorShopLevel || 0) > 0) ? 'block' : 'none';
-        const label = btnEnterArmorShop.querySelector('.building-label');
-        if (label && myTerritory.armorShopLevel > 0) {
-          const info = getDynamicFacilityName('armor', myTerritory.armorShopLevel);
-          label.textContent = `${info.icon} ${info.name}`;
-        }
-      }
-      if (btnEnterForge) {
-        btnEnterForge.style.display = (isMyHome && (myTerritory.forgeLevel || 0) > 0) ? 'block' : 'none';
-        const label = btnEnterForge.querySelector('.building-label');
-        if (label && myTerritory.forgeLevel > 0) {
-          const info = getDynamicFacilityName('forge', myTerritory.forgeLevel);
-          label.textContent = `${info.icon} ${info.name}`;
-        }
-      }
-      if (btnEnterDefense) {
-        btnEnterDefense.style.display = (isMyHome && (myTerritory.defenseLevel || 0) > 0) ? 'block' : 'none';
-        const label = btnEnterDefense.querySelector('.building-label');
-        if (label && myTerritory.defenseLevel > 0) {
-          const info = getDynamicFacilityName('defense', myTerritory.defenseLevel);
-          label.textContent = `${info.icon} ${info.name}`;
-        }
-      }
       btnMigrate.style.display = isMyHome ? 'none' : 'block';
+      updateStreetBuildingsVisibility(node, isMyHome, myTerritory);
+      
       
       btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
       
@@ -317,6 +279,9 @@ export function renderBaseBuildings() {
     
     listEl.appendChild(card);
   });
+  
+  // 同步更新街道上的建築按鈕顯示狀態
+  updateStreetBuildingsVisibility(node, node.isPlayerBase, territory);
 }
 
 /**
@@ -396,4 +361,53 @@ export function initStreetScroller(): void {
   (window as any).__updateStreetScrollArrows = updateArrows;
 
   setTimeout(updateArrows, 100);
+}
+
+export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean, myTerritory: any) {
+  const btnEnterTavern = document.getElementById('btn-enter-tavern');
+  const btnEnterWeaponShop = document.getElementById('btn-enter-weapon-shop');
+  const btnEnterArmorShop = document.getElementById('btn-enter-armor-shop');
+  const btnEnterForge = document.getElementById('btn-enter-forge');
+  const btnEnterDefense = document.getElementById('btn-enter-defense');
+
+  if (btnEnterTavern) {
+    btnEnterTavern.style.display = (isMyHome && (myTerritory.tavernLevel || 0) > 0) ? 'block' : 'none';
+    const label = btnEnterTavern.querySelector('.building-label');
+    if (label && myTerritory.tavernLevel > 0) {
+      const info = getDynamicFacilityName('tavern', myTerritory.tavernLevel);
+      label.textContent = `${info.icon} ${info.name}`;
+    }
+  }
+  if (btnEnterWeaponShop) {
+    btnEnterWeaponShop.style.display = (isMyHome && (myTerritory.weaponShopLevel || 0) > 0) ? 'block' : 'none';
+    const label = btnEnterWeaponShop.querySelector('.building-label');
+    if (label && myTerritory.weaponShopLevel > 0) {
+      const info = getDynamicFacilityName('weapon', myTerritory.weaponShopLevel);
+      label.textContent = `${info.icon} ${info.name}`;
+    }
+  }
+  if (btnEnterArmorShop) {
+    btnEnterArmorShop.style.display = (isMyHome && (myTerritory.armorShopLevel || 0) > 0) ? 'block' : 'none';
+    const label = btnEnterArmorShop.querySelector('.building-label');
+    if (label && myTerritory.armorShopLevel > 0) {
+      const info = getDynamicFacilityName('armor', myTerritory.armorShopLevel);
+      label.textContent = `${info.icon} ${info.name}`;
+    }
+  }
+  if (btnEnterForge) {
+    btnEnterForge.style.display = (isMyHome && (myTerritory.forgeLevel || 0) > 0) ? 'block' : 'none';
+    const label = btnEnterForge.querySelector('.building-label');
+    if (label && myTerritory.forgeLevel > 0) {
+      const info = getDynamicFacilityName('forge', myTerritory.forgeLevel);
+      label.textContent = `${info.icon} ${info.name}`;
+    }
+  }
+  if (btnEnterDefense) {
+    btnEnterDefense.style.display = (isMyHome && (myTerritory.defenseLevel || 0) > 0) ? 'block' : 'none';
+    const label = btnEnterDefense.querySelector('.building-label');
+    if (label && myTerritory.defenseLevel > 0) {
+      const info = getDynamicFacilityName('defense', myTerritory.defenseLevel);
+      label.textContent = `${info.icon} ${info.name}`;
+    }
+  }
 }

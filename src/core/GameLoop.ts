@@ -288,7 +288,14 @@ function processInvasionDefeat(territory: any, baseMsg: string) {
   
   territory.wood -= lostWood;
   territory.food -= lostFood;
-  territory.population = Math.max(1, territory.population - lostPop);
+  const actualLostPop = territory.removeWorkers(lostPop, true);
+  
+  if (actualLostPop > 0) {
+    EventBus.getInstance().publish({
+      type: GameEventType.POPULATION_CHANGED,
+      payload: { delta: -actualLostPop, currentPopulation: territory.population, reason: 'INVASION_DEFEAT' }
+    });
+  }
   
   // 戰敗進入 7 日絕對保護期
   territory.invasionCooldown = 7;

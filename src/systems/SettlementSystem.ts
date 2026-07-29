@@ -14,8 +14,11 @@ export class SettlementSystem {
       this.resolveDailyResources();
     });
 
-    // 監聽勞工分配，即時更新治安度
+    // 監聽勞工分配與人口變動，即時更新治安度
     eventBus.subscribe(GameEventType.WORKER_ASSIGNED, () => {
+      this.updateSecurity();
+    });
+    eventBus.subscribe(GameEventType.POPULATION_CHANGED, () => {
       this.updateSecurity();
     });
 
@@ -133,25 +136,9 @@ export class SettlementSystem {
       if (starved > 0 && territory.population > 0) {
         // 最多只能餓死現有人口
         const actualStarved = Math.min(starved, territory.population);
-        territory.population -= actualStarved;
-        territory.prestige = Math.max(0, territory.prestige - actualStarved * 2);
-        
-        // 隨機裁減工人（BUG-03: 加入安全退出護段，防止所有工人為 0 時無限迴圈）
-        let removed = 0;
-        const jobKeys = [WorkerJob.UNASSIGNED, WorkerJob.FARMER, WorkerJob.WOODCUTTER, WorkerJob.MINER, WorkerJob.INFANTRY, WorkerJob.CAVALRY, WorkerJob.ARCHER];
-        let safetyCounter = 0;
-        while (removed < actualStarved && safetyCounter < 1000) {
-          safetyCounter++;
-          // 安全退出：若所有職業工人均為 0，直接結束
-          const hasWorkers = jobKeys.some(j => territory.workers[j] > 0);
-          if (!hasWorkers) break;
-
-          const randJob = Random.pick(jobKeys);
-          if (territory.workers[randJob] > 0) {
-            territory.workers[randJob]--;
-            removed++;
-          }
-        }
+        // 使用安全的統一裁減邏輯 (飢荒優先扣除閒置人力)
+        const actualRemoved = territory.removeWorkers(actualStarved, true);
+        territory.prestige = Math.max(0, territory.prestige - actualRemoved * 2);
 
         EventBus.getInstance().publish({
           type: GameEventType.POPULATION_STARVED,
@@ -170,8 +157,11 @@ export class SettlementSystem {
       if (Random.next() < (expectedBirths - births)) births++;
       
       if (births > 0) {
-        territory.population += births;
         territory.workers[WorkerJob.UNASSIGNED] = (territory.workers[WorkerJob.UNASSIGNED] || 0) + births;
+        EventBus.getInstance().publish({
+          type: GameEventType.POPULATION_CHANGED,
+          payload: { delta: births, currentPopulation: territory.population, reason: 'BIRTH' }
+        });
         console.log(`[SettlementSystem] 🍼 領地迎來了 ${births} 名新生兒。`);
       }
 
@@ -185,28 +175,14 @@ export class SettlementSystem {
       
       deaths = Math.min(deaths, territory.population);
       if (deaths > 0) {
-        territory.population -= deaths;
-        let deathsLeft = deaths;
-        if (territory.workers[WorkerJob.UNASSIGNED] >= deathsLeft) {
-          territory.workers[WorkerJob.UNASSIGNED] -= deathsLeft;
-          deathsLeft = 0;
-        } else {
-          deathsLeft -= (territory.workers[WorkerJob.UNASSIGNED] || 0);
-          territory.workers[WorkerJob.UNASSIGNED] = 0;
+        const actualDeaths = territory.removeWorkers(deaths, true);
+        if (actualDeaths > 0) {
+          EventBus.getInstance().publish({
+            type: GameEventType.POPULATION_CHANGED,
+            payload: { delta: -actualDeaths, currentPopulation: territory.population, reason: 'DEATH' }
+          });
+          console.log(`[SettlementSystem] 💀 ${actualDeaths} 名領民因年邁或染病而過世了。`);
         }
-        
-        while (deathsLeft > 0) {
-          const jobKeys = Object.keys(territory.workers).filter(k => k !== WorkerJob.UNASSIGNED) as WorkerJob[];
-          const hasWorkers = jobKeys.some(k => territory.workers[k] > 0);
-          if (!hasWorkers) break;
-
-          const randJob = Random.pick(jobKeys);
-          if (territory.workers[randJob] > 0) {
-            territory.workers[randJob]--;
-            deathsLeft--;
-          }
-        }
-        console.log(`[SettlementSystem] 💀 ${deaths} 名領民因年邁或染病而過世了。`);
       }
       
       // 4.3 外移 (Emigration)
@@ -219,28 +195,14 @@ export class SettlementSystem {
         
         emigrants = Math.min(emigrants, territory.population);
         if (emigrants > 0) {
-          territory.population -= emigrants;
-          let emiLeft = emigrants;
-          if (territory.workers[WorkerJob.UNASSIGNED] >= emiLeft) {
-            territory.workers[WorkerJob.UNASSIGNED] -= emiLeft;
-            emiLeft = 0;
-          } else {
-            emiLeft -= (territory.workers[WorkerJob.UNASSIGNED] || 0);
-            territory.workers[WorkerJob.UNASSIGNED] = 0;
+          const actualEmigrants = territory.removeWorkers(emigrants, true);
+          if (actualEmigrants > 0) {
+            EventBus.getInstance().publish({
+              type: GameEventType.POPULATION_CHANGED,
+              payload: { delta: -actualEmigrants, currentPopulation: territory.population, reason: 'EMIGRATION' }
+            });
+            console.log(`[SettlementSystem] 🚶 由於治安惡化，${actualEmigrants} 名領民對領主失去信心，打包離開了領地。`);
           }
-          
-          while (emiLeft > 0) {
-            const jobKeys = Object.keys(territory.workers).filter(k => k !== WorkerJob.UNASSIGNED) as WorkerJob[];
-            const hasWorkers = jobKeys.some(k => territory.workers[k] > 0);
-            if (!hasWorkers) break;
-
-            const randJob = Random.pick(jobKeys);
-            if (territory.workers[randJob] > 0) {
-              territory.workers[randJob]--;
-              emiLeft--;
-            }
-          }
-          console.log(`[SettlementSystem] 🚶 由於治安惡化，${emigrants} 名領民對領主失去信心，打包離開了領地。`);
         }
       }
       
@@ -253,8 +215,11 @@ export class SettlementSystem {
           const bonusPop = Math.floor(territory.prestige / 1000);
           const newComers = Random.int(1, 3 + bonusPop);
           
-          territory.population += newComers;
           territory.workers[WorkerJob.UNASSIGNED] = (territory.workers[WorkerJob.UNASSIGNED] || 0) + newComers;
+          EventBus.getInstance().publish({
+            type: GameEventType.POPULATION_CHANGED,
+            payload: { delta: newComers, currentPopulation: territory.population, reason: 'IMMIGRATION' }
+          });
           console.log(`[SettlementSystem] 🏕️ 領地繁榮且治安良好！流民被您的聲望吸引而來，人口增加 ${newComers} 人。`);
         }
       }

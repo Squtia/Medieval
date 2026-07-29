@@ -22,6 +22,101 @@ import {
   getCombatPrestigeReward,
   getDifficultyModifiers
 } from '../data/BalanceData';
+import { FormationDB } from '../systems/FormationDB';
+
+function initPresetEvents() {
+  if (presetEventsInitialized) return;
+  presetEventsInitialized = true;
+
+  const presetBtns = document.querySelectorAll('.btn-preset');
+  const saveBtn = document.getElementById('btn-save-preset');
+
+  function updatePresetButtonUI() {
+    presetBtns.forEach(btn => {
+      const idx = parseInt((btn as HTMLElement).dataset.preset || '0');
+      if (idx === currentSelectedPresetIndex) {
+        (btn as HTMLElement).style.background = 'rgba(234, 179, 8, 0.4)';
+        (btn as HTMLElement).style.borderColor = '#eab308';
+        (btn as HTMLElement).style.color = '#fff';
+      } else {
+        (btn as HTMLElement).style.background = 'rgba(255,255,255,0.1)';
+        (btn as HTMLElement).style.borderColor = 'transparent';
+        (btn as HTMLElement).style.color = '#d4c4a8';
+      }
+    });
+  }
+
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt((e.target as HTMLElement).dataset.preset || '0');
+      currentSelectedPresetIndex = idx;
+      updatePresetButtonUI();
+      
+      const preset = GameState.formationPresets ? GameState.formationPresets[idx] : null;
+      if (preset && preset.gridMap) {
+        currentFormationId = preset.formationId || 'DEFAULT';
+        currentGridMap = {};
+        selectedAdventurersForDispatch.clear();
+        
+        let missingNames: string[] = [];
+        
+        for (const [slot, advId] of Object.entries(preset.gridMap)) {
+          const adv = GameState.adventurers.find(a => a.id === advId);
+          if (adv) {
+            if (adv.currentState === AdventurerState.IDLE) {
+              if (selectedAdventurersForDispatch.size < 5) {
+                currentGridMap[slot] = advId;
+                selectedAdventurersForDispatch.add(advId);
+              }
+            } else {
+              missingNames.push(adv.name);
+            }
+          }
+        }
+        
+        renderDispatchTeamRoster();
+        renderDispatchAdvList();
+        
+        if (missingNames.length > 0) {
+          ToastManager.show(`隊伍讀取不完整：${missingNames.join(', ')} 正在執行其他任務或休養中。`);
+        } else {
+          ToastManager.show(`已讀取隊伍 ${idx + 1}`);
+        }
+      } else {
+        ToastManager.show(`隊伍 ${idx + 1} 尚未儲存任何配置`);
+      }
+    });
+  });
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      if (!GameState.formationPresets) {
+        GameState.formationPresets = [];
+      }
+      
+      // Ensure the array has enough elements
+      while (GameState.formationPresets.length <= currentSelectedPresetIndex) {
+        GameState.formationPresets.push({
+          id: `preset_${GameState.formationPresets.length}`,
+          name: `隊伍 ${GameState.formationPresets.length + 1}`,
+          formationId: 'DEFAULT',
+          gridMap: {}
+        });
+      }
+      
+      GameState.formationPresets[currentSelectedPresetIndex] = {
+        id: `preset_${currentSelectedPresetIndex}`,
+        name: `隊伍 ${currentSelectedPresetIndex + 1}`,
+        formationId: currentFormationId,
+        gridMap: { ...currentGridMap }
+      };
+      
+      ToastManager.show(`已將當前配置儲存至隊伍 ${currentSelectedPresetIndex + 1}`);
+    });
+  }
+  
+  updatePresetButtonUI();
+}
 
 export async function openWarehouse(isForgeMode: boolean) {
   const { openWarehouse: impl } = await import('./ShopController');
@@ -107,17 +202,26 @@ export function renderPartyUpperSection() {
   if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${adv.job.name}`;
   if (traitNameEl) traitNameEl.textContent = adv.trait.name;
 
-  // 更新半身像正下方的 HP / MP 能量條
   const stats = adv.getCombatStats();
   const hpTextEl = document.getElementById('party-bar-hp-text');
   const hpFillEl = document.getElementById('party-bar-hp-fill');
   const mpTextEl = document.getElementById('party-bar-mp-text');
   const mpFillEl = document.getElementById('party-bar-mp-fill');
+  const xpFillEl = document.getElementById('party-bar-xp-fill');
+  const xpTextEl = document.getElementById('party-bar-xp-text');
   
   if (hpTextEl) hpTextEl.textContent = `${stats.hp} / ${stats.hp}`;
   if (hpFillEl) hpFillEl.style.width = '100%';
   if (mpTextEl) mpTextEl.textContent = `${stats.mp} / ${stats.mp}`;
   if (mpFillEl) mpFillEl.style.width = '100%';
+  if (xpFillEl) {
+    const isMax = adv.level >= 10;
+    const xpPercent = isMax ? 100 : Math.min(100, Math.max(0, (adv.xp / adv.getRequiredXP()) * 100));
+    xpFillEl.style.width = `${xpPercent}%`;
+    if (xpTextEl) {
+      xpTextEl.textContent = isMax ? 'MAX' : `${Math.floor(adv.xp)} / ${adv.getRequiredXP()}`;
+    }
+  }
 
   if (statusBadgeEl) {
     if (adv.currentState === AdventurerState.RESTING) {
@@ -529,6 +633,12 @@ let pendingDispatchTask: DispatchTask | null = null;
 let pendingDispatchNode: MapNode | null = null;
 let selectedAdventurersForDispatch: Set<string> = new Set();
 let selectedTroopsForDispatch: Record<string, number> = {};
+let currentFormationId: string = 'DEFAULT';
+let currentGridMap: Record<string, string> = {};
+let dragDraggedAdvId: string | null = null;
+let dragSourceSlot: string | null = null;
+let currentSelectedPresetIndex: number = 0;
+let presetEventsInitialized: boolean = false;
 
 export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'war' | 'diplomacy') {
   const modal = document.getElementById('modal-dispatch-setup')!;
@@ -539,6 +649,10 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
   pendingDispatchNode = node;
   selectedAdventurersForDispatch.clear();
   selectedTroopsForDispatch = {};
+  currentFormationId = 'DEFAULT';
+  currentGridMap = {};
+  dragDraggedAdvId = null;
+  dragSourceSlot = null;
   // 根據 NodeLevel 或自訂難度決定難度
   const difficultyModifiers = getDifficultyModifiers(GameState.worldGeneration?.difficulty);
   const rawBaseDiff = node.baseDifficulty !== undefined ? node.baseDifficulty : (node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10);
@@ -610,7 +724,9 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
     }
   }
 
-  renderDispatchAdvList();
+    renderDispatchAdvList();
+  renderDispatchTeamRoster();
+  initPresetEvents();
 
   // 更新確認按鈕事件
   const btnConfirm = document.getElementById('btn-confirm-dispatch')!;
@@ -666,6 +782,10 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
           }
         }
       }
+      
+      pendingDispatchTask.formationId = currentFormationId;
+      pendingDispatchTask.gridMap = { ...currentGridMap };
+      
       GameState.system.dispatchAdventurers(team, pendingDispatchTask);
       modal.classList.remove('active');
     }
@@ -701,112 +821,228 @@ export function openEventModal(event: any) {
 }
 
 function renderDispatchTeamRoster() {
-  const container = document.getElementById('dispatch-team-roster')!;
+  const container = document.getElementById('dispatch-team-grid');
   if (!container) return;
   container.innerHTML = '';
   
-  const selectedAdvs = GameState.adventurers.filter(a => selectedAdventurersForDispatch.has(a.id));
+  // Render Formation Selector
+  const select = document.getElementById('dispatch-formation-select') as HTMLSelectElement;
+  if (select) {
+    select.innerHTML = '';
+    GameState.unlockedFormations.forEach(fid => {
+      const form = FormationDB.getFormation(fid);
+      const option = document.createElement('option');
+      option.value = fid;
+      option.textContent = `${form.icon} ${form.name}`;
+      if (fid === currentFormationId) option.selected = true;
+      select.appendChild(option);
+    });
+    
+    if (!select.dataset.bound) {
+      select.dataset.bound = 'true';
+      select.addEventListener('change', (e) => {
+        currentFormationId = (e.target as HTMLSelectElement).value;
+        renderDispatchTeamRoster();
+      });
+    }
+  }
   
-  for (let i = 0; i < 5; i++) {
-    const adv = selectedAdvs[i];
-    const slot = document.createElement('div');
-    slot.style.position = 'relative';
-
-    if (adv) {
-      // 有傭兵時使用 adventurer-card class，讓 CSS 主導尺寸
-      slot.className = 'adventurer-card';
-      slot.style.borderStyle = 'solid';
-      slot.style.borderColor = '#3b82f6';
+  const descEl = document.getElementById('dispatch-formation-desc');
+  const activeFormation = FormationDB.getFormation(currentFormationId);
+  if (descEl) {
+    descEl.textContent = activeFormation.description;
+  }
+  
+  const isFormationActive = FormationDB.isFormationActive(currentGridMap, currentFormationId);
+  
+  for (let vr = 0; vr < 3; vr++) {
+    for (let vc = 0; vc < 3; vc++) {
+      const r = 2 - vc;
+      const c = vr;
+      const slotId = `${r}_${c}`;
+      const advId = currentGridMap[slotId];
+      const adv = advId ? GameState.adventurers.find(a => a.id === advId) : null;
       
-      const isFront = adv.formationRow === 'FRONT' || (adv.formationRow as any) === 0;
-      const rowText = isFront ? '前排' : '後排';
-      const rowBg = isFront ? '#1d4ed8' : '#9333ea';
+      const isRequired = activeFormation.requiredSlots.some(s => s.row === r && s.col === c);
       
-      // 修復：直接在 innerHTML 生成時加入 data-role="row-toggle"，避免 setTimeout 異步導致同步查詢找不到元素
-      slot.innerHTML = renderAdventurerCard(adv, {
-        showDismissBtn: true,
-        dismissId: adv.id,
-        bottomLabel: rowText,
-        bottomLabelBg: rowBg,
-        bottomLabelRole: 'row-toggle'
-      });
+      const slot = document.createElement('div');
+      slot.className = 'grid-slot';
+      slot.style.width = '95px';
+      slot.style.height = '110px';
+      slot.style.border = '2px dashed ' + (isRequired ? (isFormationActive ? '#10b981' : '#eab308') : 'rgba(255,255,255,0.2)');
+      slot.style.borderRadius = '6px';
+      slot.style.background = 'rgba(0,0,0,0.4)';
+      slot.style.position = 'relative';
+      slot.style.display = 'flex';
+      slot.style.alignItems = 'center';
+      slot.style.justifyContent = 'center';
       
-      const displayClass = (adv as any).currentClass || adv.job.name;
-      const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>狀態：🟢 出戰配置中<br/>戰力：${adv.power}`;
-
-      slot.addEventListener('mouseenter', () => {
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) {
-          tEl.innerHTML = tooltipHtml;
-          tEl.style.opacity = '1';
-        }
-      });
-
-      slot.addEventListener('mousemove', (e) => {
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) {
-          positionFloatingElement(tEl, e.clientX, e.clientY);
-        }
-      });
-
-      slot.addEventListener('mouseleave', () => {
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) {
-          tEl.style.opacity = '0';
-        }
-      });
+      const label = document.createElement('div');
+      label.textContent = r === 0 ? '前排' : r === 1 ? '中排' : '後排';
+      label.style.position = 'absolute';
+      label.style.bottom = '-20px';
+      label.style.color = '#94a3b8';
+      label.style.fontSize = '0.7em';
+      label.style.whiteSpace = 'nowrap';
+      slot.appendChild(label);
       
-      // 修復：同步查詢 data-role 屬性，不再依賴 setTimeout 異步加上的 class
-      const toggleBtn = slot.querySelector('[data-role="row-toggle"]') as HTMLElement | null;
-      if (toggleBtn) {
-        toggleBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          adv.formationRow = isFront ? ('BACK' as any) : ('FRONT' as any);
-          renderDispatchTeamRoster();
+      slot.dataset.slotId = slotId;
+      slot.addEventListener('dragover', (e) => { e.preventDefault(); });
+      slot.addEventListener('drop', (e) => handleDropOnGrid(e, slotId));
+      
+      if (adv) {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'adventurer-card';
+        cardDiv.style.transform = 'scale(0.85)';
+        cardDiv.style.transformOrigin = 'center';
+        cardDiv.style.pointerEvents = 'auto'; 
+        cardDiv.draggable = true;
+        
+        cardDiv.innerHTML = renderAdventurerCard(adv, {
+          showDismissBtn: true,
+          dismissId: adv.id
         });
-      }
-      
-      const removeBtn = slot.querySelector('button');
-      if (removeBtn) {
-        removeBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
+        
+        const displayClass = (adv as any).currentClass || adv.job.name;
+        const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>戰力：${adv.power}`;
+        
+        cardDiv.addEventListener('mouseenter', () => {
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) { tEl.innerHTML = tooltipHtml; tEl.style.opacity = '1'; }
+        });
+        cardDiv.addEventListener('mousemove', (e) => {
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) positionFloatingElement(tEl, e.clientX, e.clientY);
+        });
+        cardDiv.addEventListener('mouseleave', () => {
           const tEl = document.getElementById('adv-tooltip');
           if (tEl) tEl.style.opacity = '0';
-          selectedAdventurersForDispatch.delete(adv.id);
+        });
+        
+        cardDiv.addEventListener('dragstart', (e) => {
+          dragDraggedAdvId = adv.id;
+          dragSourceSlot = slotId;
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) tEl.style.opacity = '0';
+        });
+        
+        const removeBtn = cardDiv.querySelector('button');
+        if (removeBtn) {
+          removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            delete currentGridMap[slotId];
+            selectedAdventurersForDispatch.delete(adv.id);
+            const tEl = document.getElementById('adv-tooltip');
+            if (tEl) tEl.style.opacity = '0';
+            renderDispatchTeamRoster();
+            renderDispatchAdvList();
+          });
+        }
+        
+        slot.appendChild(cardDiv);
+      } else if (isRequired) {
+         const reqLabel = document.createElement('div');
+         reqLabel.textContent = '📍';
+         reqLabel.style.fontSize = '1.5em';
+         reqLabel.style.opacity = '0.5';
+         slot.appendChild(reqLabel);
+      }
+      
+      container.appendChild(slot);
+    }
+  }
+  
+  const btnSave = document.getElementById('btn-save-preset');
+  if (btnSave && !btnSave.dataset.bound) {
+    btnSave.dataset.bound = 'true';
+    btnSave.addEventListener('click', () => {
+      if (Object.keys(currentGridMap).length === 0) {
+        ToastManager.show('隊伍為空，無法儲存！');
+        return;
+      }
+      if (GameState.formationPresets.length >= 5) {
+        GameState.formationPresets.shift(); 
+      }
+      GameState.formationPresets.push({
+        id: 'preset_' + Date.now(),
+        name: `隊伍 ${GameState.formationPresets.length + 1}`,
+        formationId: currentFormationId,
+        gridMap: { ...currentGridMap }
+      });
+      ToastManager.show('隊伍配置已儲存！');
+      renderDispatchTeamRoster();
+    });
+  }
+  
+  const presetBtns = document.querySelectorAll('.btn-preset');
+  presetBtns.forEach((btn, index) => {
+    const el = btn as HTMLElement;
+    if (GameState.formationPresets[index]) {
+      el.style.background = 'rgba(59,130,246,0.3)';
+      el.style.color = '#fff';
+      if (!el.dataset.bound) {
+        el.dataset.bound = 'true';
+        el.addEventListener('click', () => {
+          const preset = GameState.formationPresets[index];
+          currentFormationId = preset.formationId;
+          currentGridMap = { ...preset.gridMap };
+          selectedAdventurersForDispatch.clear();
+          Object.values(currentGridMap).forEach(id => selectedAdventurersForDispatch.add(id as string));
           renderDispatchTeamRoster();
           renderDispatchAdvList();
         });
       }
-      
     } else {
-      // 空位：手動設定尺寸和外觀
-      slot.style.width = '90px';
-      slot.style.height = '100px';
-      slot.style.background = 'rgba(0,0,0,0.5)';
-      slot.style.border = '1px dashed rgba(255,255,255,0.2)';
-      slot.style.borderRadius = '6px';
-      slot.style.display = 'flex';
-      slot.style.flexDirection = 'column';
-      slot.style.alignItems = 'center';
-      slot.style.justifyContent = 'center';
-      slot.innerHTML = renderAdventurerCard(null, { isEmpty: true });
+      el.style.background = 'rgba(255,255,255,0.1)';
+      el.style.color = '#94a3b8';
     }
-    
-    container.appendChild(slot);
-  }
-  
+  });
+
   updateDispatchPowerPreview();
 }
 
+function handleDropOnGrid(e: DragEvent, targetSlotId: string) {
+  e.preventDefault();
+  if (!dragDraggedAdvId) return;
+  
+  if (dragSourceSlot && dragSourceSlot !== 'pool') {
+    const existingAdvInTarget = currentGridMap[targetSlotId];
+    if (existingAdvInTarget) {
+      currentGridMap[dragSourceSlot] = existingAdvInTarget;
+    } else {
+      delete currentGridMap[dragSourceSlot];
+    }
+  } else {
+    const existingAdvInTarget = currentGridMap[targetSlotId];
+    if (!existingAdvInTarget && selectedAdventurersForDispatch.size >= 5) {
+      ToastManager.show('隊伍最多只能派出 5 名傭兵！');
+      dragDraggedAdvId = null;
+      dragSourceSlot = null;
+      return;
+    }
+    if (existingAdvInTarget) {
+      selectedAdventurersForDispatch.delete(existingAdvInTarget);
+    }
+    selectedAdventurersForDispatch.add(dragDraggedAdvId);
+  }
+  
+  currentGridMap[targetSlotId] = dragDraggedAdvId;
+  dragDraggedAdvId = null;
+  dragSourceSlot = null;
+  
+  renderDispatchTeamRoster();
+  renderDispatchAdvList();
+}
+
 function renderDispatchAdvList() {
-  const container = document.getElementById('dispatch-adv-list')!;
+  const container = document.getElementById('dispatch-adv-list');
+  if (!container) return;
   container.innerHTML = '';
   
   const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
   
   if (idleAdvs.length === 0) {
     container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1 / -1;">目前沒有閒置的冒險者可以派遣。</p>';
-    renderDispatchTeamRoster();
     return;
   }
 
@@ -818,34 +1054,32 @@ function renderDispatchAdvList() {
       card.style.borderColor = '#3b82f6';
       card.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
       card.style.opacity = '0.5';
+    } else {
+      card.draggable = true;
+      card.addEventListener('dragstart', (e) => {
+        dragDraggedAdvId = adv.id;
+        dragSourceSlot = 'pool';
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) tEl.style.opacity = '0';
+      });
     }
     
-    const displayClass = (adv as any).currentClass || adv.job.name;
-
     card.innerHTML = renderAdventurerCard(adv);
-
-    const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>狀態：🟢 閒置<br/>戰力：${adv.power}`;
-
+    
+    const displayClass = (adv as any).currentClass || adv.job.name;
+    const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>戰力：${adv.power}`;
+    
     card.addEventListener('mouseenter', () => {
       const tEl = document.getElementById('adv-tooltip');
-      if (tEl) {
-        tEl.innerHTML = tooltipHtml;
-        tEl.style.opacity = '1';
-      }
+      if (tEl) { tEl.innerHTML = tooltipHtml; tEl.style.opacity = '1'; }
     });
-
     card.addEventListener('mousemove', (e) => {
       const tEl = document.getElementById('adv-tooltip');
-      if (tEl) {
-        positionFloatingElement(tEl, e.clientX, e.clientY);
-      }
+      if (tEl) positionFloatingElement(tEl, e.clientX, e.clientY);
     });
-
     card.addEventListener('mouseleave', () => {
       const tEl = document.getElementById('adv-tooltip');
-      if (tEl) {
-        tEl.style.opacity = '0';
-      }
+      if (tEl) tEl.style.opacity = '0';
     });
 
     card.addEventListener('click', () => {
@@ -853,13 +1087,28 @@ function renderDispatchAdvList() {
       if (tEl) tEl.style.opacity = '0';
       
       if (isSelected) {
+        for (const [key, val] of Object.entries(currentGridMap)) {
+          if (val === adv.id) delete currentGridMap[key];
+        }
         selectedAdventurersForDispatch.delete(adv.id);
       } else {
         if (selectedAdventurersForDispatch.size >= 5) {
           ToastManager.show('隊伍最多只能派出 5 名傭兵！');
           return;
         }
-        selectedAdventurersForDispatch.add(adv.id);
+        let found = false;
+        for (let r=0; r<3; r++) {
+          for (let c=0; c<3; c++) {
+            const key = `${r}_${c}`;
+            if (!currentGridMap[key]) {
+              currentGridMap[key] = adv.id;
+              selectedAdventurersForDispatch.add(adv.id);
+              found = true;
+              break;
+            }
+          }
+          if (found) break;
+        }
       }
       renderDispatchAdvList();
       renderDispatchTeamRoster();
@@ -867,8 +1116,6 @@ function renderDispatchAdvList() {
 
     container.appendChild(card);
   });
-  
-  renderDispatchTeamRoster();
 }
 
 export async function openTradePlanner(plannedRouteNodeIds: string[]) {

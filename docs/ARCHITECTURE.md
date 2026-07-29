@@ -133,6 +133,9 @@
 │   ├── models/              # 核心資料模型 (Data Models, 純粹的資料)
 │   │   ├── Adventurer.ts    # 英雄資料與隨機品質/屬性
 │   │   ├── Territory.ts     # 領地資料、工作分配與建造設施等級 (Tavern/WeaponShop/ArmorShop/Forge)
+│   │   ├── Exploration.ts   # 探索進度與視野迷霧資料
+│   │   ├── Road.ts          # 道路網路資料
+│   │   ├── WorldGeneration.ts # 世界生成參數與資料
 │   │   └── ...
 │   ├── systems/             # 系統邏輯引擎 (負責監聽與發布事件)
 │   │   ├── SettlementSystem.ts # 據點與內政系統
@@ -141,7 +144,12 @@
 │   │   ├── ThreatSystem.ts     # 生存壓力與災難系統
 │   │   ├── DispatchSystem.ts   # 派遣與任務系統
 │   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張
+│   │   ├── ExplorationSystem.ts# 地圖探索與視野解鎖系統
+│   │   ├── RoadSystem.ts       # 路網建立與維護系統
 │   │   └── DataStore.ts        # 靜態資料庫 (含 1~3 階裝備與價格 DB)
+│   ├── data/                # 靜態與平衡性資料
+│   │   ├── BalanceData.ts   # 全域平衡性常數配置
+│   │   └── DifficultyData.ts# 遊戲難度設定與補正參數
 │   ├── ui/                  # DOM UI、Phaser Scene、呈現資料與獨立 UI Controllers
 │   │   ├── PhaserManager.ts       # [Lazy Chunk] Phaser 引擎初始化與地圖繪製隔離模組
 │   │   ├── ShopController.ts      # [Lazy Chunk] 武器店、防具店與倉庫介面控制
@@ -151,6 +159,7 @@
 │   │   ├── GameFlowController.ts  # 遊戲流程控制、日誌與選單
 │   │   ├── FacilityController.ts  # 建築設施進出、工作分配
 │   │   ├── ActionController.ts    # 探索、討伐、進貢與據點遷移
+│   │   ├── ExplorationController.ts# 地圖探索介面與操作控制
 │   │   ├── CheatController.ts     # 開發環境測試密技
 │   │   └── ...
 │   └── main.ts              # 組合根：系統初始化、事件轉接與 Controller 初始化
@@ -238,3 +247,9 @@
 - **AI 派系性格與關係 (AI Factions)**：AI 派系具備不同的性格 (`FactionPersonality`)，並會隨著 `MapDynamicsSystem` 每日/每月動態隨機改變與其他派系及玩家的好感度。關係過低會導致自動宣戰 (`atWarWith`)。
 - **動態攻城戰 (Dynamic Sieges)**：AI 發動擴張時，若目標為敵對勢力據點，將改為發起「攻城戰 (`siegeData`)」。攻城戰需耗時數天，每日於 `simulateDailyMapDynamics` 中倒數。倒數結束後，若為玩家據點，則扣除繁榮度並警告；若是 AI 據點則轉移擁有權。
 - **獨立 UI 模組**：外交面板透過 `DiplomacyController.ts` 獨立實作，支援贈禮、求和、宣戰等指令。透過右下角 Command Crest Hub 開啟，將複雜的外交操作封裝並透過 `EventBus` 與核心系統互動。
+
+## 戰鬥與陣型系統 (Combat & Formation System)
+
+- **3x3 戰術網格 (Tactical Grid)**：打破傳統 RPG 的單純前後排，實作了前、中、後排三層深度的 3x3 網格。索敵邏輯會嚴格依照 `FRONT -> MIDDLE -> BACK` 的順序進行。
+- **形狀匹配判定 (Shape Matching)**：`FormationDB` 獨立負責陣型定義與加成邏輯。判定機制不是單純檢核「有無該陣型」，而是檢查玩家目前的網格佈署 (`gridMap`) 是否滿足了該陣型定義的「核心需求位置 (`requiredSlots`)」。這允許陣型具有高度的彈性，就算陣型只需要 3 人，剩下的 2 名傭兵仍可自由佈署於其他空位而不破壞陣型。
+- **預設隊伍無縫整合 (Presets Integration)**：`GameState` 全域維護 `formationPresets` 陣列，讓玩家在前端 UI (`ModalController`) 透過 Drag & Drop 組建完美的戰術佈局後，能將其快照並一鍵還原，將繁瑣的微操轉化為戰略籌碼。

@@ -16,6 +16,16 @@ export enum FormationRow {
 }
 
 /**
+ * 玩家儲存的預設陣型與隊伍配置
+ */
+export interface FormationPreset {
+  id: string;
+  name: string;
+  formationId: string; // 對應 FormationDB 的 ID
+  gridMap: Record<string, string>; // key: 'row_col', value: adventurerId
+}
+
+/**
  * 貴族的爵位系統
  * 隨著聲望與皇家好感度提升可以晉升
  */

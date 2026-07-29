@@ -3,6 +3,7 @@ import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEf
 import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig } from '../models/types';
 import { Random } from '../core/Random';
 import { SKILLS, TargetType } from '../models/Skill';
+import { FormationDB } from '../systems/FormationDB';
 
 export class CombatSystem {
   public static simulateCombat(
@@ -12,11 +13,16 @@ export class CombatSystem {
     terrain?: TerrainType, 
     totalWaves: number = 1,
     troopAssignments?: Record<string, { type: string, count: number }>,
-    enemyLineup?: import('../models/types').MonsterInstance[]
+    enemyLineup?: import('../models/types').MonsterInstance[],
+    formationId?: string,
+    gridMap?: Record<string, string>
   ): CombatReport {
     const events: CombatEvent[] = [];
     const playerTeam: CombatParticipant[] = [];
     
+        const formationActive = formationId && gridMap ? FormationDB.isFormationActive(gridMap, formationId) : false;
+    const formationConfig = formationId ? FormationDB.getFormation(formationId) : FormationDB.getFormation('DEFAULT');
+
     // 1. 初始化我方 (僅初始化一次，狀態延續)
     attackerIds.forEach((id: string) => {
       const adv = GameState.adventurers.find(a => a.id === id);
@@ -54,11 +60,59 @@ export class CombatSystem {
           skills.push(weapon.grantedSkill);
         }
 
+        
+        // Grid setup
+        let gridR = 0;
+        let gridC = 0;
+        let gridRow: string = FormationRow.FRONT;
+        let hasGrid = false;
+        let r_c = '';
+        if (gridMap && Object.keys(gridMap).length > 0) {
+          for (const [key, val] of Object.entries(gridMap)) {
+            if (val === id) {
+              r_c = key;
+              gridR = parseInt(key.split('_')[0], 10);
+              gridC = parseInt(key.split('_')[1], 10);
+              gridRow = gridR === 0 ? FormationRow.FRONT : (gridR === 1 ? 'MIDDLE' : FormationRow.BACK);
+              hasGrid = true;
+              break;
+            }
+          }
+        } else {
+           gridRow = adv.formationRow || FormationRow.FRONT;
+        }
+
+        // Apply formation buffs if active
+        if (formationActive && hasGrid) {
+          const r = gridR;
+          const c = gridC;
+          
+          formationConfig.buffRules.forEach(rule => {
+            let applies = false;
+            if (rule.target === 'ALL') applies = true;
+            else if (rule.target === 'FRONT_ROW' && r === 0) applies = true;
+            else if (rule.target === 'MIDDLE_ROW' && r === 1) applies = true;
+            else if (rule.target === 'BACK_ROW' && r === 2) applies = true;
+            else if (rule.target === 'REQUIRED_SLOTS') {
+               applies = formationConfig.requiredSlots.some(s => s.row === r && s.col === c);
+            }
+            
+            if (applies) {
+               if (rule.stats.atk) stats.atk = Math.floor(stats.atk * rule.stats.atk);
+               if (rule.stats.def) stats.def = Math.floor(stats.def * rule.stats.def);
+               if (rule.stats.evade) stats.evade = Math.floor(stats.evade * rule.stats.evade);
+               if (rule.stats.hit) stats.hit = Math.floor(stats.hit * rule.stats.hit);
+            }
+          });
+        }
+
         playerTeam.push({
           id: adv.id,
           name: adv.name,
           isPlayer: true,
-          row: adv.formationRow || FormationRow.FRONT,
+          row: gridRow,
+          gridR: hasGrid ? gridR : undefined,
+          gridC: hasGrid ? gridC : undefined,
           maxHp: stats.hp,
           currentHp: stats.hp,
           stats: { ...stats },
@@ -79,6 +133,8 @@ export class CombatSystem {
       name: p.name,
       isPlayer: p.isPlayer,
       row: p.row,
+      gridR: p.gridR,
+      gridC: p.gridC,
       maxHp: p.maxHp
     }));
 
@@ -101,16 +157,21 @@ export class CombatSystem {
         let eDef = lineupMonster ? lineupMonster.defense : (currentWaveDiff * 2);
         let eEvade = lineupMonster ? lineupMonster.evade : (currentWaveDiff * 1.5);
         const eAtk = lineupMonster ? lineupMonster.damage : (10 + currentWaveDiff * 2);
-        const eName = lineupMonster ? `${lineupMonster.name} ${i + 1}` : `怪物 ${i + 1}`;
 
         if (enemyFeature === 'HIGH_DEF' && !lineupMonster) eDef *= 2;
         if (enemyFeature === 'HIGH_EVADE' && !lineupMonster) eEvade *= 2;
 
+        const isFront = Random.next() > 0.5;
+        const eGridR = isFront ? 0 : 2; // Simple random placement
+        const eGridC = Random.int(0, 2);
+        
         enemyTeam.push({
-          id: `enemy_w${wave}_${i}`,
-          name: eName,
+          id: `enemy_${wave}_${i}`,
+          name: lineupMonster ? lineupMonster.name : `野外魔物 ${String.fromCharCode(65 + i)}`,
           isPlayer: false,
-          row: Random.next() > 0.5 ? FormationRow.FRONT : FormationRow.BACK,
+          row: isFront ? FormationRow.FRONT : FormationRow.BACK,
+          gridR: eGridR,
+          gridC: eGridC,
           maxHp: eHp,
           currentHp: eHp,
           stats: { hp: eHp, mp: 0, atk: eAtk, def: eDef, hit: 20 + currentWaveDiff, evade: eEvade },
@@ -121,7 +182,15 @@ export class CombatSystem {
       events.push({ 
         type: CombatEventType.WAVE_START, 
         wave, 
-        enemies: enemyTeam.map(e => ({ id: e.id, name: e.name, isPlayer: e.isPlayer, row: e.row, maxHp: e.maxHp })),
+        enemies: enemyTeam.map(e => ({
+          id: e.id,
+          name: e.name,
+          isPlayer: e.isPlayer,
+          row: e.row,
+          gridR: e.gridR,
+          gridC: e.gridC,
+          maxHp: e.maxHp
+        })),
         text: `--- 第 ${wave} 波戰鬥開始！遭遇了 ${enemyCount} 名敵人。 ---` 
       });
 

@@ -18,7 +18,12 @@ export class Territory {
   public iron: number;      // 鐵礦 (高級資源)
   
   // === 勞動力與人口 ===
-  public population: number; // 總人口數
+  public get population(): number {
+    return Object.values(this.workers).reduce((sum, count) => sum + (count || 0), 0);
+  }
+  public set population(val: number) {
+    // 虛擬 Setter，僅供 SaveManager 反序列化時相容，避免報錯
+  }
   public workers: Record<string, number>; // 分配的勞動力狀態
   
   public prestige: number;  // 聲望，用於解鎖進階玩法或晉升爵位
@@ -74,7 +79,6 @@ export class Territory {
     this.wood = 0;
     this.stone = 0;
     this.iron = 0;
-    this.population = 10; // 初始 10 個人口
     this.workers = {
       'UNASSIGNED': 10,
       'FARMER': 0,
@@ -312,11 +316,44 @@ export class Territory {
   }
 
   /**
-   * 同步總人口與各項工作人口的總和
-   * 以修復讀檔或數據異常時造成的總人口與閒置人力落差
+   * 安全裁減勞工與人口
+   * @param amount 要扣減的數量
+   * @param prioritizeUnassigned 是否優先扣除閒置人力
+   * @returns 實際扣減的人數
    */
-  public syncPopulation(): void {
-    const totalWorkers = Object.values(this.workers).reduce((sum, count) => sum + (count || 0), 0);
-    this.population = totalWorkers;
+  public removeWorkers(amount: number, prioritizeUnassigned: boolean = true): number {
+    if (amount <= 0) return 0;
+    
+    let leftToRemove = amount;
+    
+    if (prioritizeUnassigned) {
+      if (this.workers['UNASSIGNED'] >= leftToRemove) {
+        this.workers['UNASSIGNED'] -= leftToRemove;
+        leftToRemove = 0;
+      } else {
+        leftToRemove -= (this.workers['UNASSIGNED'] || 0);
+        this.workers['UNASSIGNED'] = 0;
+      }
+    }
+    
+    let safetyCounter = 0;
+    while (leftToRemove > 0 && safetyCounter < 1000) {
+      safetyCounter++;
+      const jobKeys = Object.keys(this.workers);
+      // 如果優先扣除 UNASSIGNED，隨機階段就排除它
+      const validKeys = prioritizeUnassigned ? jobKeys.filter(k => k !== 'UNASSIGNED') : jobKeys;
+      
+      const hasWorkers = validKeys.some(k => this.workers[k] > 0);
+      if (!hasWorkers) break;
+
+      const randIndex = Math.floor(Math.random() * validKeys.length);
+      const randJob = validKeys[randIndex];
+      if (this.workers[randJob] > 0) {
+        this.workers[randJob]--;
+        leftToRemove--;
+      }
+    }
+    
+    return amount - leftToRemove;
   }
 }

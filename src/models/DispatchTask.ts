@@ -46,6 +46,10 @@ export class DispatchTask {
   public troopAssignments?: Record<string, { type: string, count: number }>; // 每個參戰傭兵分配的兵種與數量
   public enemyLineup?: MonsterInstance[]; // 具體的敵方魔物陣容
   
+  // 陣型系統資料
+  public formationId?: string; // 選用的陣型 ID
+  public gridMap?: Record<string, string>; // 戰術板配置 (key: 'row_col', value: advId)
+  
   // 商隊特有資料 (舊版單點跑商留存相容)
   public tradeTargetNodeId?: string;
   public tradeBuyList?: { goodId: string; amount: number; maxPrice: number }[];
@@ -120,5 +124,14 @@ export function normalizeTradeTask(task: DispatchTask): DispatchTask {
   // 舊欄位保留供既有存檔與外部資料相容，但不再拿來表示回程。
   task.tradeRouteNodeIds = [...itinerary];
   task.currentRouteIndex = task.currentLegIndex;
+
+  // 確保舊存檔讀取時有預設陣型
+  if (!task.formationId) {
+    task.formationId = 'DEFAULT';
+  }
+  if (!task.gridMap) {
+    task.gridMap = {};
+  }
+  
   return task;
 }

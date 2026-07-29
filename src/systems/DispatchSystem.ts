@@ -465,7 +465,9 @@ export class DispatchSystem {
       undefined, // terrain 暫時缺省
       waveCount,
       task.troopAssignments,
-      task.enemyLineup
+      task.enemyLineup,
+      task.formationId,
+      task.gridMap
     );
     
     const isSuccess = finalReport.isVictory;

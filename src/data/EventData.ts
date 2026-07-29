@@ -1,6 +1,8 @@
 import { GameState } from '../core/GameState';
 import { FactionType } from '../models/types';
 import { Random } from '../core/Random';
+import { EventBus } from '../core/EventBus';
+import { GameEventType } from '../core/GameEvents';
 
 export interface EventOption {
   text: string;
@@ -188,8 +190,12 @@ export const GAME_EVENTS: GameEvent[] = [
           if (baseNode) {
             const actualAdded = 50;
             baseNode.population += actualAdded;
-            GameState.myTerritory.population += actualAdded;
             GameState.myTerritory.workers['UNASSIGNED'] = (GameState.myTerritory.workers['UNASSIGNED'] || 0) + actualAdded;
+            
+            EventBus.getInstance().publish({
+              type: GameEventType.POPULATION_CHANGED,
+              payload: { delta: actualAdded, currentPopulation: GameState.myTerritory.population, reason: 'REFUGEES' }
+            });
           }
           const oak = GameState.mapSystem.getFactions().find(f => f.id === 'f_oakhaven');
           if (oak) oak.playerFavor += 20;

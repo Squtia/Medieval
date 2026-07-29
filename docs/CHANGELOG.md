@@ -1,3 +1,47 @@
+# 遊戲更新日誌 (Changelog)
+
+## [2026-07-29] 人口與治安度的單一真相來源重構 (Single Source of Truth)
+
+- **[Refactor] 總人口動態化** (`Territory.ts`, `SaveManager.ts`, `GameState.ts`)
+  - 修正了「總人口」與「工作人口」脫鉤的嚴重 Bug。
+  - 將 `population` 欄位改為動態 Getter，確保其永遠精確反映各項 `workers` 數值加總。
+  - 實裝統一的 `removeWorkers()` 方法，於扣減人口時安全處理閒置與各職業人力。
+- **[Fix] 各系統人口扣減同步化** (`GameLoop.ts`, `SettlementSystem.ts`, `EventData.ts`)
+  - 將遭遇戰敗 (`processInvasionDefeat`)、飢荒、疾病、外移等事件中，原本硬扣/硬加 `population` 的邏輯，改為使用 `removeWorkers()` 或直接操作 `workers.UNASSIGNED`。
+- **[Feature] 治安度即時更新機制** (`GameEvents.ts`, `SettlementSystem.ts`)
+  - 新增 `POPULATION_CHANGED` 事件。
+  - 將「治安度 (Security)」的計算綁定至該事件，解決因突發事件導致人口增減時，治安度未即時更新造成的顯示延遲或邏輯錯誤。
+
+## [2026-07-29] 3x3 戰術板陣型系統實裝
+
+- **[Feature] 戰術陣型與加成系統** (`FormationDB.ts`)
+  - 新增 `FormationDB.ts` 定義了多種陣型（如：盾牆陣、鋒矢陣、十字陣、新月陣）與對應的形狀觸發條件。
+  - 當傭兵站在正確的要求位置（Requirement Slots）時，會在戰鬥時觸發高額的屬性加成（攻擊、防禦、閃避、命中）。
+- **[UI] 互動式 3x3 戰術網格與拖曳操作** (`index.html`, `ModalController.ts`)
+  - 將原本單調的 5 人橫列替換為 3x3 的戰鬥網格（前、中、後排）。
+  - 導入 HTML5 原生 Drag & Drop API，玩家現在可以直接拖曳傭兵卡片進入網格，或在網格內互相拖曳換位。
+  - 選擇特定陣型時，網格上會顯示「📍」符號提示該陣型必須放人的關鍵位置，若放置正確則顯示發光綠色邊框回饋。
+- **[Feature] 預設隊伍儲存與讀取 (Presets)** (`GameState.ts`, `ModalController.ts`)
+  - 於戰術板下方新增 5 組預設隊伍按鈕。玩家可以將常用的 5 人小隊配置與陣型選擇「儲存」起來。
+  - 點擊對應按鈕即可「一鍵套用」先前的完美排陣，減少重複操作負擔。
+- **[Combat] 戰鬥引擎三排深度升級** (`CombatSystem.ts`, `DispatchTask.ts`)
+  - `CombatSystem.ts` 現已支援陣型屬性加成與前、中、後排三層深度。
+  - 敵方近戰攻擊會嚴格依照前排 ➡️ 中排 ➡️ 後排的順序進行索敵，提供更寫實的坦補打戰略佈局。
+## [2026-07-29] 遊戲平衡性架構大變動與探索系統重構
+
+- **[Feature] 探索與道路系統重構** (`ExplorationSystem.ts`, `RoadSystem.ts`, `MapGenerator.ts`)
+  - 大幅翻新地圖生成機制與節點探索邏輯，實裝了 `ExplorationSystem` 來專門處理未知的地圖探索與視野迷霧。
+  - 實裝 `RoadSystem` 負責處理據點之間的道路連接與生成，強化了世界地圖的結構性與連結。
+  - 將地圖生成與動態管理模組分離，提供更豐富的世界生成細節 (`WorldGeneration`)。
+- **[Feature] 難度與平衡性抽離** (`BalanceData.ts`, `DifficultyData.ts`)
+  - 將散落於各系統的平衡常數抽離至 `BalanceData` 與 `DifficultyData` 中集中管理，方便未來的數值調整。
+  - 對整體遊戲節奏進行了大規模平衡性微調。
+- **[Refactor] 核心狀態與存檔擴充** (`GameState.ts`, `SaveManager.ts`, `GameLoop.ts`)
+  - 擴充 `GameState` 以支援新的地圖探索進度與道路網路狀態。
+  - 升級 `SaveManager` 確保新舊存檔的相容與資料結構的完整保存。
+- **[UI] 探索與地圖視覺升級** (`MapScene.ts`, `ExplorationController.ts`)
+  - 配合新的探索系統，實裝了對應的 UI 控制器 (`ExplorationController`) 與地圖渲染邏輯 (`MapScene`)。
+
 ## [2026-07-26] 修正傭兵永久退休無效的錯誤與防止誤觸重新設計
 
 - **[Fix] 傭兵退休後正確移出隊伍** (`ModalController.ts`)

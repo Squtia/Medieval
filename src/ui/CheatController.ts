@@ -2,6 +2,8 @@ import { GameState } from '../core/GameState';
 import { UIManager } from './UIManager';
 import { ToastManager } from './ToastManager';
 import { renderBaseBuildings } from './SceneController';
+import { EventBus } from '../core/EventBus';
+import { GameEventType } from '../core/GameEvents';
 
 export function initCheatController(): void {
   if (!(import.meta as any).env?.DEV) return;
@@ -47,7 +49,10 @@ export function initCheatController(): void {
         GameState.myTerritory.workers['INFANTRY'] = (GameState.myTerritory.workers['INFANTRY'] || 0) + v;
         GameState.myTerritory.workers['CAVALRY'] = (GameState.myTerritory.workers['CAVALRY'] || 0) + v;
         GameState.myTerritory.workers['ARCHER'] = (GameState.myTerritory.workers['ARCHER'] || 0) + v;
-        GameState.myTerritory.syncPopulation();
+        EventBus.getInstance().publish({
+          type: GameEventType.POPULATION_CHANGED,
+          payload: { delta: v * 3, currentPopulation: GameState.myTerritory.population, reason: 'CHEAT' }
+        });
     }}
   };
 
