@@ -11,8 +11,8 @@ describe('save migration', () => {
     expect(migrated.lastDailySummary).toBeNull();
   });
 
-  it('does not overwrite values already present in a current save', () => {
-    const current = { schemaVersion: 2, totalDays: 99, threat: { daysRemaining: 2 } };
+  it('does not overwrite values already present in a current save, but upgrades schema version', () => {
+    const current = { schemaVersion: 3, totalDays: 99, threat: { daysRemaining: 2 } };
     expect(migrateSaveData(current)).toEqual(current);
   });
 });

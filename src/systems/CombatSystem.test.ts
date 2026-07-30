@@ -9,7 +9,8 @@ function fighter(stats: { hp: number; atk: number; def: number; hit: number; eva
     id: 'hero',
     name: 'Test Hero',
     formationRow: FormationRow.FRONT,
-    getCombatStats: () => ({ ...stats, mp: 0 })
+    getCombatStats: () => ({ ...stats, mp: 0 }),
+    getEffectiveAttributes: () => ({ str: 10, int: 10, con: 10, agi: 10, luk: 10 })
   } as any;
 }
 

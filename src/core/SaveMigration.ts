@@ -1,6 +1,6 @@
 import { calendarToTotalDays } from './Calendar';
 
-export const CURRENT_SAVE_SCHEMA_VERSION = 2;
+export const CURRENT_SAVE_SCHEMA_VERSION = 3;
 
 export function migrateSaveData(raw: any): any {
   const data = { ...raw };
@@ -20,8 +20,18 @@ export function migrateSaveData(raw: any): any {
       prepared: false
     };
     data.lastDailySummary = data.lastDailySummary || null;
-    data.schemaVersion = CURRENT_SAVE_SCHEMA_VERSION;
+  }
+  
+  if (version < 3) {
+    if (data.adventurers && Array.isArray(data.adventurers)) {
+      data.adventurers.forEach((adv: any) => {
+        if (adv.isAdvanced === undefined) {
+          adv.isAdvanced = false;
+        }
+      });
+    }
   }
 
+  data.schemaVersion = CURRENT_SAVE_SCHEMA_VERSION;
   return data;
 }

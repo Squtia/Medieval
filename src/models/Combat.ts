@@ -1,4 +1,4 @@
-import { CombatStats, FormationRow, TerrainType } from './types';
+import { CombatStats, FormationRow, TerrainType, Attributes } from './types';
 
 export enum StatusEffectType {
   BLEED = 'BLEED',
@@ -7,7 +7,9 @@ export enum StatusEffectType {
   TAUNT = 'TAUNT',
   FEAR = 'FEAR',
   ARMOR_BREAK = 'ARMOR_BREAK', // 破甲
-  SHOCK = 'SHOCK' // 感電
+  SHOCK = 'SHOCK', // 感電
+  REGEN_HP = 'REGEN_HP', // 生命恢復
+  REGEN_MP = 'REGEN_MP'  // 魔力恢復
 }
 
 export interface StatusEffect {
@@ -26,6 +28,7 @@ export interface CombatParticipant {
   maxHp: number;
   currentHp: number;
   stats: CombatStats; // hp, mp, atk, def, hit, evade
+  attributes?: Attributes; // str, int, con, agi, luk (供新版計算使用)
   statusEffects: StatusEffect[];
   // Phase 4: Army Shield System
   shieldType?: string;      // 攜帶的兵種 (例如: 'INFANTRY', 'CAVALRY', 'ARCHER')
@@ -36,6 +39,7 @@ export interface CombatParticipant {
   baseClass?: string;
   weaponType?: string;
   skills?: string[]; // 可使用的技能 ID 列表
+  isAdvanced?: boolean; // 轉職開關狀態
 }
 
 export enum CombatEventType {
@@ -47,6 +51,7 @@ export enum CombatEventType {
   SKILL_CAST = 'SKILL_CAST', // 施放技能
   STATUS_APPLY = 'STATUS_APPLY',
   STATUS_DAMAGE = 'STATUS_DAMAGE',
+  HEAL = 'HEAL',
   SHIELD_DAMAGE = 'SHIELD_DAMAGE', // 護盾受到傷害
   SHIELD_BREAK = 'SHIELD_BREAK',   // 護盾破裂
   DEATH = 'DEATH',

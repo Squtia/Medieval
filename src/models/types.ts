@@ -1,3 +1,9 @@
+export enum DamageType {
+  PHYSICAL = 'PHYSICAL',
+  MAGICAL = 'MAGICAL',
+  CHAOS = 'CHAOS'
+}
+
 /**
  * 傭兵當前的狀態
  */

@@ -1,8 +1,8 @@
 import { GameState } from '../core/GameState';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect } from '../models/Combat';
-import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig } from '../models/types';
+import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType } from '../models/types';
 import { Random } from '../core/Random';
-import { SKILLS, TargetType } from '../models/Skill';
+import { SKILLS, TargetType, calculateSkillDamage } from '../models/Skill';
 import { FormationDB } from '../systems/FormationDB';
 
 export class CombatSystem {
@@ -43,15 +43,17 @@ export class CombatSystem {
         
         let skills: string[] = [];
         const jobName = adv.job?.name || '';
+        const isAdv = adv.isAdvanced && adv.level >= 10;
+        
         if (jobName.includes('戰士')) {
           skills.push('FIGHTER_HEAVY_STRIKE', 'FIGHTER_ARMOR_BREAK');
-          if (weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
-          if (weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
+          if (isAdv && weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
+          if (isAdv && weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
         }
         if (jobName.includes('法師')) {
           skills.push('MAGE_ARCANE_MISSILES', 'MAGE_STATIC_FIELD');
-          if (weaponType === 'STAFF') skills.push('STAFF_METEOR');
-          if (weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
+          if (isAdv && weaponType === 'STAFF') skills.push('STAFF_METEOR');
+          if (isAdv && weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
         }
         
         // [註記] 裝備附加技能檢定：將裝備附帶的額外技能加入可用技能庫
@@ -122,7 +124,9 @@ export class CombatSystem {
           shieldCurrentHp: troop?.count ? troop.count * 10 : 0,
           baseClass: adv.job?.name || '戰士',
           weaponType: weaponType,
-          skills: skills
+          skills: skills,
+          isAdvanced: adv.isAdvanced && adv.level >= 10,
+          attributes: adv.getEffectiveAttributes()
         });
       }
     });
@@ -222,17 +226,22 @@ export class CombatSystem {
         const enemies = actor.isPlayer ? enemyTeam.filter(e => e.currentHp > 0) : playerTeam.filter(p => p.currentHp > 0);
         if (enemies.length === 0) break;
 
-        // 近戰基礎邏輯：只能攻擊前排，除非前排死光
-        let validTargets = enemies;
+        const allies = actor.isPlayer ? playerTeam : enemyTeam;
         const frontEnemies = enemies.filter(e => e.row === FormationRow.FRONT);
-        if (frontEnemies.length > 0) {
-          validTargets = frontEnemies;
+
+        let validTargets = enemies;
+        const tauntedEnemies = enemies.filter(e => e.statusEffects.some(s => s.type === StatusEffectType.TAUNT));
+        
+        if (tauntedEnemies.length > 0) {
+          validTargets = tauntedEnemies;
+        } else {
+          // 近戰基礎邏輯：只能攻擊前排，除非前排死光
+          if (frontEnemies.length > 0) {
+            validTargets = frontEnemies;
+          }
         }
 
-        let target = validTargets.find(e => e.statusEffects.some(s => s.type === StatusEffectType.TAUNT));
-        if (!target) {
-          target = Random.pick(validTargets);
-        }
+        let target = Random.pick(validTargets);
 
         // 選擇技能 (若有技能且 MP 足夠，這裡簡化為隨機挑選可施放的最高花費技能)
         let selectedSkill = null;
@@ -256,6 +265,12 @@ export class CombatSystem {
           let skillTargets = [target];
           if (selectedSkill.targetType === TargetType.FRONT_ENEMIES) skillTargets = frontEnemies.length > 0 ? frontEnemies : validTargets;
           if (selectedSkill.targetType === TargetType.ALL_ENEMIES) skillTargets = enemies;
+          if (selectedSkill.targetType === TargetType.ALL_ALLIES) skillTargets = allies;
+          if (selectedSkill.targetType === TargetType.ALLY_LOWEST_HP) {
+            const aliveAllies = allies.filter(a => a.currentHp > 0).sort((a, b) => (a.currentHp / a.maxHp) - (b.currentHp / b.maxHp));
+            skillTargets = [aliveAllies[0]];
+          }
+          if (selectedSkill.targetType === TargetType.SELF) skillTargets = [actor];
           
           events.push({
             type: CombatEventType.SKILL_CAST,
@@ -263,11 +278,11 @@ export class CombatSystem {
             text: `${actor.name} 消耗了 ${selectedSkill.mpCost} MP 施放【${selectedSkill.name}】！`
           });
           
-          const skillEvents = selectedSkill.execute(actor, skillTargets, enemies);
+          const skillEvents = selectedSkill.execute(actor, skillTargets, enemies, allies);
           events.push(...skillEvents);
           
           // 死靈法師被動：靈魂虹吸 (技能吸血)
-          if (actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
+          if (actor.isAdvanced && actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
              const totalSkillDmg = skillEvents.reduce((sum, e) => sum + (e.damage || 0), 0);
              if (totalSkillDmg > 0) {
                const heal = Math.floor(totalSkillDmg * 0.2);
@@ -283,7 +298,7 @@ export class CombatSystem {
         }
 
         let hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
-        if (actor.weaponType === 'STAFF') hitChance = 1.0; // 法杖被動：必定命中
+        if (actor.isAdvanced && actor.weaponType === 'STAFF') hitChance = 1.0; // 法杖被動：必定命中
         if (Random.next() > hitChance) {
           events.push({
             type: CombatEventType.MISS,
@@ -294,22 +309,30 @@ export class CombatSystem {
           continue;
         }
 
-        const critChance = 0.05 + (actor.stats.hit / 500);
-        const isCrit = Random.next() < critChance;
-        let baseDamage = actor.stats.atk;
-        if (isCrit) baseDamage *= 1.5;
+        let finalDamage = 0;
+        let isCrit = false;
 
-        let effectiveDef = target.stats.def;
-        if (target.statusEffects.some(s => s.type === StatusEffectType.ARMOR_BREAK)) {
-          effectiveDef *= 0.8;
+        if (actor.isAdvanced && actor.weaponType === 'HAMMER') {
+           const phys = calculateSkillDamage(actor, target, actor.stats.atk * 0.4, DamageType.PHYSICAL);
+           const mag = calculateSkillDamage(actor, target, actor.stats.atk * 0.6, DamageType.MAGICAL);
+           finalDamage = phys.damage + mag.damage;
+           isCrit = phys.isCrit || mag.isCrit;
+        } else if (actor.isAdvanced && actor.weaponType === 'DUAL_SWORDS') {
+           const phys = calculateSkillDamage(actor, target, actor.stats.atk * 0.5, DamageType.PHYSICAL);
+           const mag = calculateSkillDamage(actor, target, actor.stats.atk * 0.5, DamageType.MAGICAL);
+           finalDamage = phys.damage + mag.damage;
+           isCrit = phys.isCrit || mag.isCrit;
+        } else {
+           let dType = DamageType.PHYSICAL;
+           if (['STAFF', 'HOLY_BOOK'].includes(actor.weaponType || '')) {
+             dType = DamageType.MAGICAL;
+           } else if (['SCYTHE', 'MAGIC_RING', 'MAGIC_BOW'].includes(actor.weaponType || '')) {
+             dType = DamageType.CHAOS;
+           }
+           const result = calculateSkillDamage(actor, target, actor.stats.atk, dType);
+           finalDamage = result.damage;
+           isCrit = result.isCrit;
         }
-        if (actor.weaponType === 'GREATSWORD') {
-          effectiveDef *= 0.85;
-        }
-
-        const dmgReduction = effectiveDef / (effectiveDef + 50);
-        let finalDamage = Math.max(1, Math.floor(baseDamage * (1 - dmgReduction)));
-        finalDamage = Math.floor(finalDamage * (0.9 + Random.next() * 0.2));
 
         // -- Phase 4: Shield Interceptor --
         let multiplier = 1;
@@ -345,7 +368,7 @@ export class CombatSystem {
         if (hpDamage > 0) {
           // -- 法坦被動：苦痛分擔 (死靈法師) --
           if (target.isPlayer) {
-            const necromancers = playerTeam.filter(p => p.weaponType === 'SCYTHE' && p.currentHp > 0 && p.id !== target.id);
+            const necromancers = playerTeam.filter(p => p.isAdvanced && p.weaponType === 'SCYTHE' && p.currentHp > 0 && p.id !== target.id);
             if (necromancers.length > 0) {
               const necro = necromancers[0]; // 優先由第一位死靈法師分擔
               const absorbAmount = Math.floor(hpDamage * 0.5);
@@ -376,7 +399,7 @@ export class CombatSystem {
           });
           
           // 死靈法師被動：靈魂虹吸 (普攻吸血)
-          if (actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
+          if (actor.isAdvanced && actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
             const heal = Math.floor(hpDamage * 0.2);
             actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);
             events.push({
@@ -480,6 +503,14 @@ export class CombatSystem {
         const dmg = effect.value || 5;
         actor.currentHp -= dmg;
         events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因中毒受到 ${dmg} 點傷害。`});
+      } else if (effect.type === StatusEffectType.REGEN_HP) {
+        const heal = effect.value || 10;
+        actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);
+        events.push({ type: CombatEventType.HEAL, targetName: actor.name, damage: heal, targetHp: actor.currentHp, text: `${actor.name} 受益於生命恢復，回復了 ${heal} 點 HP。`});
+      } else if (effect.type === StatusEffectType.REGEN_MP) {
+        const healMp = effect.value || 5;
+        actor.stats.mp = Math.min(200, actor.stats.mp + healMp);
+        events.push({ type: CombatEventType.HEAL, targetName: actor.name, text: `${actor.name} 受益於魔力恢復，回復了 ${healMp} 點 MP。`});
       }
 
       if (actor.currentHp <= 0) {

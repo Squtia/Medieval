@@ -22,6 +22,7 @@ export class Adventurer {
   public dispatchEndTime: number | null;
   // OPT-02: RESTING 狀態剩餘天數
   public restingDaysLeft: number;
+  public isAdvanced: boolean;
 
   // 戰鬥陣位
   public formationRow: FormationRow;
@@ -117,6 +118,7 @@ export class Adventurer {
     this.currentState = AdventurerState.IDLE;
     this.dispatchEndTime = null;
     this.restingDaysLeft = 0;
+    this.isAdvanced = false;
     this.formationRow = FormationRow.FRONT;
     this.office = null;
     this.stationedNodeId = null;
@@ -136,25 +138,33 @@ export class Adventurer {
    */
   public get currentClass(): string {
     const baseClass = this.job.name;
+    // 未達 10 等或未開啟轉職開關，皆維持基礎職業
+    if (!this.isAdvanced || this.level < 10) return baseClass;
+
     const weapon = this.equipment[EquipmentSlot.WEAPON];
     const wt = weapon?.weaponType;
     
     switch (baseClass) {
       case '戰士':
         if (wt === WeaponType.DUAL_SWORDS) return '魔劍士';
-        return baseClass; // 巨劍預設
+        if (wt === WeaponType.GREATSWORD) return '狂戰士';
+        return baseClass;
       case '騎士':
         if (wt === WeaponType.RUNE_SHIELD) return '符文騎士';
-        return baseClass; // 劍盾預設
+        if (wt === WeaponType.SWORD_AND_SHIELD) return '聖騎士';
+        return baseClass;
       case '法師':
         if (wt === WeaponType.SCYTHE) return '死靈法師';
-        return baseClass; // 法杖預設
+        if (wt === WeaponType.STAFF) return '大魔導士';
+        return baseClass;
       case '盜賊':
         if (wt === WeaponType.MAGIC_RING) return '詭術師';
-        return baseClass; // 雙匕首預設
+        if (wt === WeaponType.DAGGERS) return '暗殺者';
+        return baseClass;
       case '祈禱者':
         if (wt === WeaponType.HAMMER) return '異端拷問者';
-        return baseClass; // 聖典預設
+        if (wt === WeaponType.HOLY_BOOK) return '大主教';
+        return baseClass;
       case '弓箭手':
         if (wt === WeaponType.MAGIC_BOW) return '精靈使';
         if (wt === WeaponType.BOW) return '神射手';
@@ -267,11 +277,11 @@ export class Adventurer {
   public getCombatStats(): CombatStats {
     const attr = this.getEffectiveAttributes();
     
-    // 基礎公式
+    // 基礎公式重構
     const baseHp = attr.con * 10;
     const baseMp = attr.int * 5;
-    const baseAtk = attr.str * 2; // 預設使用力量作為攻擊力基底
-    const baseDef = attr.con * 1;
+    const baseAtk = attr.str + attr.int; // 改為混合基底
+    const baseDef = attr.con + Math.floor((attr.str + attr.int) * 0.5); // 防禦也依賴三屬性
     const baseHit = attr.agi * 2 + attr.luk;
     const baseEvade = attr.agi * 1 + attr.luk;
 
