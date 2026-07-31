@@ -15,7 +15,8 @@ export enum StatusEffectType {
 export interface StatusEffect {
   type: StatusEffectType;
   duration: number; // 剩餘回合數
-  value?: number; // 例如每回合扣血量或層數
+  value?: number; // 例如每回合扣血量
+  stacks?: number; // 疊加層數 (例如中毒)
 }
 
 export interface CombatParticipant {
@@ -40,6 +41,7 @@ export interface CombatParticipant {
   weaponType?: string;
   skills?: string[]; // 可使用的技能 ID 列表
   isAdvanced?: boolean; // 轉職開關狀態
+  cooldowns?: Record<string, number>; // 技能 CD 狀態
 }
 
 export enum CombatEventType {
@@ -106,4 +108,36 @@ export interface CombatHistoryRecord {
   day: number; // 發生天數
   nodeName: string; // 發生地點
   report: CombatReport;
+}
+
+export function tryApplyStatus(
+  target: CombatParticipant,
+  effect: StatusEffect,
+  actorName?: string,
+  skillName?: string,
+  customApplyText?: string
+): CombatEvent {
+  let resistChance = 0;
+  if (target.attributes) {
+    resistChance = ((target.attributes.con || 0) + (target.attributes.spr || 0)) * 0.01;
+  }
+  
+  if (Math.random() < resistChance) {
+    return {
+      type: CombatEventType.MISS,
+      targetId: target.id,
+      targetName: target.name,
+      text: `${target.name} 抵抗了負面狀態！`
+    };
+  } else {
+    target.statusEffects.push(effect);
+    return {
+      type: CombatEventType.STATUS_APPLY,
+      targetId: target.id,
+      targetName: target.name,
+      statusType: effect.type,
+      skillName: skillName,
+      text: customApplyText || `${target.name} 被附加了狀態！`
+    };
+  }
 }

@@ -279,7 +279,7 @@ export class Adventurer {
     
     // 基礎公式重構
     const baseHp = attr.con * 10;
-    const baseMp = attr.int * 5;
+    const baseMp = attr.spr * 5; // MP 改綁定 SPR
     const baseAtk = attr.str + attr.int; // 改為混合基底
     const baseDef = attr.con + Math.floor((attr.str + attr.int) * 0.5); // 防禦也依賴三屬性
     const baseHit = attr.agi * 2 + attr.luk;

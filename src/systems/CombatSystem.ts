@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect } from '../models/Combat';
+import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect, tryApplyStatus } from '../models/Combat';
 import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType } from '../models/types';
 import { Random } from '../core/Random';
 import { SKILLS, TargetType, calculateSkillDamage } from '../models/Skill';
@@ -54,6 +54,29 @@ export class CombatSystem {
           skills.push('MAGE_ARCANE_MISSILES', 'MAGE_STATIC_FIELD');
           if (isAdv && weaponType === 'STAFF') skills.push('STAFF_METEOR');
           if (isAdv && weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
+        }
+        if (jobName.includes('弓箭手')) {
+          skills.push('ARCHER_PIERCING_SHOT', 'ARCHER_AIMED_SHOT');
+          if (isAdv && weaponType === 'BOW') skills.push('SNIPER_FATAL_SNIPE');
+          if (isAdv && weaponType === 'MAGIC_BOW') skills.push('SPIRIT_ARCHER_SPIRIT_CHAIN');
+        }
+        if (jobName.includes('盜賊')) {
+          skills.push('THIEF_SURPRISE_ATTACK', 'THIEF_POISON_BLADE');
+          if (isAdv && weaponType === 'DAGGERS') {
+            skills.push('ASSASSIN_SHADOW_ASSASSINATION');
+            stats.evade += 9999; // 先發制人：獲得巨額隱藏閃避值保證優先行動
+          }
+          if (isAdv && weaponType === 'MAGIC_RING') skills.push('TRICKSTER_TRICK_MAGIC');
+        }
+        if (jobName.includes('騎士')) {
+          skills.push('KNIGHT_SHIELD_BASH', 'KNIGHT_TAUNT');
+          if (isAdv && (weaponType === 'SWORD_AND_SHIELD' || weaponType === 'SWORD' || !weaponType)) skills.push('KNIGHT_PALADIN_AEGIS');
+          if (isAdv && weaponType === 'RUNE_SHIELD') skills.push('KNIGHT_RUNE_REFLECTION');
+        }
+        if (jobName.includes('祈禱者')) {
+          skills.push('PRAYER_HEAL', 'PRAYER_HOLY_LIGHT');
+          if (isAdv && (weaponType === 'HOLY_BOOK' || weaponType === 'TOME' || !weaponType)) skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
+          if (isAdv && weaponType === 'HAMMER') skills.push('PRAYER_INQUISITOR_JUDGMENT');
         }
         
         // [註記] 裝備附加技能檢定：將裝備附帶的額外技能加入可用技能庫
@@ -179,6 +202,16 @@ export class CombatSystem {
           maxHp: eHp,
           currentHp: eHp,
           stats: { hp: eHp, mp: 0, atk: eAtk, def: eDef, hit: 20 + currentWaveDiff, evade: eEvade },
+          attributes: { 
+            con: 5 + currentWaveDiff, 
+            spr: 5 + currentWaveDiff, 
+            str: 10 + currentWaveDiff, 
+            agi: 10 + currentWaveDiff, 
+            int: 10 + currentWaveDiff, 
+            luk: 10 + currentWaveDiff, 
+            charm: 1, 
+            command: 1 
+          },
           statusEffects: []
         });
       }
@@ -217,6 +250,29 @@ export class CombatSystem {
         CombatSystem.processStatusEffects(actor, events);
         if (actor.currentHp <= 0) continue;
 
+        // 減少冷卻時間
+        if (actor.cooldowns) {
+          for (const skillId in actor.cooldowns) {
+            if (actor.cooldowns[skillId] > 0) actor.cooldowns[skillId]--;
+          }
+        }
+
+        // Per-turn HP and MP regeneration
+        if (actor.attributes) {
+          const hpRegen = Math.max(1, Math.floor((actor.attributes.con || 0) * 0.5));
+          const mpRegen = Math.max(1, Math.floor((actor.attributes.spr || 0) * 0.5));
+          
+          if (actor.currentHp < actor.maxHp) {
+            actor.currentHp = Math.min(actor.maxHp, actor.currentHp + hpRegen);
+            events.push({ type: CombatEventType.HEAL, targetName: actor.name, damage: hpRegen, targetHp: actor.currentHp, targetMaxHp: actor.maxHp, text: `${actor.name} 恢復了 ${hpRegen} 點 HP。` });
+          }
+          if (actor.stats.mp !== undefined) {
+             // We don't have maxMp tracked universally in stats, let's assume 200 for now or whatever current is if it's over 200
+             actor.stats.mp = Math.min(actor.stats.mp > 200 ? actor.stats.mp : 200, actor.stats.mp + mpRegen);
+             events.push({ type: CombatEventType.HEAL, targetName: actor.name, text: `${actor.name} 恢復了 ${mpRegen} 點 MP。` });
+          }
+        }
+
         const isStunned = actor.statusEffects.some(s => s.type === StatusEffectType.STUN);
         if (isStunned) {
           events.push({ type: CombatEventType.MISS, actorName: actor.name, text: `${actor.name} 處於暈眩狀態，無法行動！` });
@@ -243,17 +299,44 @@ export class CombatSystem {
 
         let target = Random.pick(validTargets);
 
-        // 選擇技能 (若有技能且 MP 足夠，這裡簡化為隨機挑選可施放的最高花費技能)
+        // 選擇技能 (Smart Casting AI)
         let selectedSkill = null;
+        let skillTargets = [target]; // 最終確定的目標
+
         if (actor.skills && actor.skills.length > 0) {
           const availableSkills = actor.skills
             .map(id => SKILLS[id])
-            .filter(s => s && actor.stats.mp >= s.mpCost);
+            .filter(s => s && actor.stats.mp >= s.mpCost && !(actor.cooldowns && actor.cooldowns[s.id] > 0));
           
           if (availableSkills.length > 0) {
-            // 挑選 MP 消耗最高的大招，或是隨機
-            availableSkills.sort((a, b) => b.mpCost - a.mpCost);
-            selectedSkill = availableSkills[0];
+            let bestWeight = -1;
+            for (const s of availableSkills) {
+              // 解析該技能的潛在目標
+              let tempTargets = [target];
+              if (s.targetType === TargetType.FRONT_ENEMIES) tempTargets = frontEnemies.length > 0 ? frontEnemies : validTargets;
+              else if (s.targetType === TargetType.ALL_ENEMIES) tempTargets = enemies;
+              else if (s.targetType === TargetType.ALL_ALLIES) tempTargets = allies;
+              else if (s.targetType === TargetType.ALLY_LOWEST_HP) {
+                const aliveAllies = allies.filter(a => a.currentHp > 0).sort((a, b) => (a.currentHp / a.maxHp) - (b.currentHp / b.maxHp));
+                tempTargets = [aliveAllies[0]];
+              }
+              else if (s.targetType === TargetType.SELF) tempTargets = [actor];
+              else if (s.targetType === TargetType.BACK_ENEMY) {
+                const backEnemies = enemies.filter(e => e.row === FormationRow.BACK);
+                tempTargets = backEnemies.length > 0 ? [Random.pick(backEnemies)] : [target];
+              }
+              else if (s.targetType === TargetType.COLUMN) {
+                tempTargets = target.gridC !== undefined ? enemies.filter(e => e.gridC === target.gridC) : [target];
+              }
+
+              // 計算 AI 權重
+              const weight = s.aiWeight ? s.aiWeight(actor, tempTargets, enemies, allies) : s.mpCost;
+              if (weight > 0 && weight > bestWeight) {
+                bestWeight = weight;
+                selectedSkill = s;
+                skillTargets = tempTargets;
+              }
+            }
           }
         }
 
@@ -261,16 +344,11 @@ export class CombatSystem {
           // 施放技能
           actor.stats.mp -= selectedSkill.mpCost;
           
-          // 根據 TargetType 決定目標
-          let skillTargets = [target];
-          if (selectedSkill.targetType === TargetType.FRONT_ENEMIES) skillTargets = frontEnemies.length > 0 ? frontEnemies : validTargets;
-          if (selectedSkill.targetType === TargetType.ALL_ENEMIES) skillTargets = enemies;
-          if (selectedSkill.targetType === TargetType.ALL_ALLIES) skillTargets = allies;
-          if (selectedSkill.targetType === TargetType.ALLY_LOWEST_HP) {
-            const aliveAllies = allies.filter(a => a.currentHp > 0).sort((a, b) => (a.currentHp / a.maxHp) - (b.currentHp / b.maxHp));
-            skillTargets = [aliveAllies[0]];
+          // 進入 CD
+          if (selectedSkill.cooldown) {
+            if (!actor.cooldowns) actor.cooldowns = {};
+            actor.cooldowns[selectedSkill.id] = selectedSkill.cooldown;
           }
-          if (selectedSkill.targetType === TargetType.SELF) skillTargets = [actor];
           
           events.push({
             type: CombatEventType.SKILL_CAST,
@@ -299,6 +377,9 @@ export class CombatSystem {
 
         let hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
         if (actor.isAdvanced && actor.weaponType === 'STAFF') hitChance = 1.0; // 法杖被動：必定命中
+        if (target.isAdvanced && target.weaponType === 'MAGIC_RING' && target.statusEffects.some(s => s.type === StatusEffectType.TAUNT)) {
+          hitChance = 0.0; // 詭術師被動：帶有嘲諷時 100% 閃避
+        }
         if (Random.next() > hitChance) {
           events.push({
             type: CombatEventType.MISS,
@@ -329,7 +410,11 @@ export class CombatSystem {
            } else if (['SCYTHE', 'MAGIC_RING', 'MAGIC_BOW'].includes(actor.weaponType || '')) {
              dType = DamageType.CHAOS;
            }
-           const result = calculateSkillDamage(actor, target, actor.stats.atk, dType);
+           let atkPower = actor.stats.atk;
+           if (actor.isAdvanced && actor.weaponType === 'DAGGERS' && (target.currentHp / target.maxHp) >= 0.7) {
+             atkPower *= 1.3; // 暗殺者被動：普攻對健康目標增傷
+           }
+           const result = calculateSkillDamage(actor, target, atkPower, dType);
            finalDamage = result.damage;
            isCrit = result.isCrit;
         }
@@ -412,11 +497,9 @@ export class CombatSystem {
 
         if (target.currentHp > 0) {
            if (actor.isPlayer && Random.next() < 0.15) {
-             target.statusEffects.push({ type: StatusEffectType.BLEED, duration: 3 });
-             events.push({ type: CombatEventType.STATUS_APPLY, targetId: target.id, targetName: target.name, statusType: StatusEffectType.BLEED, text: `${target.name} 陷入流血狀態！` });
+             events.push(tryApplyStatus(target, { type: StatusEffectType.BLEED, duration: 3 }, actor.name, undefined, `${target.name} 陷入流血狀態！`));
            } else if (!actor.isPlayer && Random.next() < 0.1) {
-             target.statusEffects.push({ type: StatusEffectType.POISON, duration: 2, value: 5 });
-             events.push({ type: CombatEventType.STATUS_APPLY, targetId: target.id, targetName: target.name, statusType: StatusEffectType.POISON, text: `${target.name} 陷入中毒狀態！` });
+             events.push(tryApplyStatus(target, { type: StatusEffectType.POISON, duration: 2, value: 5 }, actor.name, undefined, `${target.name} 陷入中毒狀態！`));
            }
         }
 
