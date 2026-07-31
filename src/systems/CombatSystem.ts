@@ -70,12 +70,12 @@ export class CombatSystem {
         }
         if (jobName.includes('騎士')) {
           skills.push('KNIGHT_SHIELD_BASH', 'KNIGHT_TAUNT');
-          if (isAdv && (weaponType === 'SWORD_AND_SHIELD' || weaponType === 'SWORD' || !weaponType)) skills.push('KNIGHT_PALADIN_AEGIS');
+          if (isAdv && (weaponType === 'SWORD_AND_SHIELD' || !weaponType)) skills.push('KNIGHT_PALADIN_AEGIS');
           if (isAdv && weaponType === 'RUNE_SHIELD') skills.push('KNIGHT_RUNE_REFLECTION');
         }
         if (jobName.includes('祈禱者')) {
           skills.push('PRAYER_HEAL', 'PRAYER_HOLY_LIGHT');
-          if (isAdv && (weaponType === 'HOLY_BOOK' || weaponType === 'TOME' || !weaponType)) skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
+          if (isAdv && (weaponType === 'HOLY_BOOK' || !weaponType)) skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
           if (isAdv && weaponType === 'HAMMER') skills.push('PRAYER_INQUISITOR_JUDGMENT');
         }
         
