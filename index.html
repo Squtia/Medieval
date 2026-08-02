@@ -156,7 +156,12 @@
     #view-base { background: url('./assets/study_desk.png') center/cover; }
     #view-hall { background: url('./bg-parchment.png') center/cover; }
     #view-camp { background: url('./bg-parchment.png') center/cover; }
-    #view-forge { background: url('./bg-parchment.png') center/cover; }
+    #view-forge {
+      background: url('./assets/forge_workshop_bg.png') center/cover;
+      padding: 25px 40px;
+      box-sizing: border-box;
+      z-index: 50;
+    }
 
     /* === 國家場景視圖 (Street & Dashboard) === */
     #scene-view {
@@ -444,7 +449,7 @@
     .side-panel-left {
       position: fixed;
       top: 60px;
-      left: -460px;
+      left: -1500px;
       max-height: 625px;
       width: 440px;
       z-index: 900;
@@ -656,6 +661,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding-bottom: 2px;
     }
     .adventurer-card .adv-name {
       position: absolute;
@@ -896,8 +902,10 @@
       position: fixed;
       top: 50%; left: 50%;
       transform: translate(-50%, -50%);
-      width: 800px;
-      height: 600px;
+      width: 860px;
+      height: 640px;
+      max-width: 96vw;
+      max-height: 92vh;
       background: rgba(20, 20, 20, 0.95);
       border: 2px solid #8b4513;
       border-radius: 8px;
@@ -910,22 +918,24 @@
     #combat-modal.active { display: flex; }
     
     .combat-stage {
-      flex: 2; /* 佔 2/3 */
-      padding: 20px;
+      flex: 0 0 300px; /* 固定高度，避免擠壓 */
+      padding: 12px 16px;
       border-bottom: 2px solid #8b4513;
       display: flex;
       justify-content: space-between;
       align-items: stretch;
       background: linear-gradient(to bottom, #1e293b, #0f172a);
       position: relative;
+      overflow: hidden;
     }
     .combat-team { 
       flex: 1; 
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: repeat(3, 1fr);
-      gap: 10px;
-      align-items: center;
+      gap: 5px;
+      align-items: stretch;
+      overflow: hidden;
     }
     .combat-team.player-team {
       /* 玩家在左，前排在最右 */
@@ -934,10 +944,12 @@
       /* 敵軍在右，前排在最左 */
     }
     
-    .combat-participant { display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; position: relative; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px solid #333; }
-    .combat-hp-bg { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; border: 1px solid #000; }
+    .combat-participant { display: flex; flex-direction: column; gap: 2px; position: relative; padding: 5px 6px; background: rgba(0,0,0,0.4); border-radius: 6px; border: 1px solid #333; overflow: hidden; min-height: 0; }
+    .combat-hp-bg { width: 100%; height: 7px; background: #333; border-radius: 4px; overflow: hidden; border: 1px solid #000; flex-shrink: 0; }
     .combat-hp-fill { height: 100%; background: #22c55e; transition: width 0.3s ease-out, background-color 0.3s ease; }
     .combat-hp-fill.low { background: #ef4444; }
+    .combat-mp-bg { width: 100%; height: 5px; background: #0f172a; border-radius: 2px; overflow: hidden; border: 1px solid #000; margin-top: 1px; flex-shrink: 0; }
+    .combat-mp-fill { height: 100%; background: #38bdf8; transition: width 0.3s ease-out; }
     
     .combat-log-area {
       flex: 1; /* 佔 1/3 */
@@ -1013,9 +1025,63 @@
       justify-content: center; align-items: center; z-index: 10;
     }
     .combat-result-overlay.active { display: flex; }
+
+    /* 討伐模式選擇卡片樣式 */
+    .dispatch-mode-card:hover {
+      background: rgba(255,255,255,0.08) !important;
+      transform: translateY(-1px);
+    }
+    .dispatch-mode-card.selected-single {
+      border-color: #64748b !important;
+      background: rgba(100,116,139,0.2) !important;
+    }
+    .dispatch-mode-card.selected-progress {
+      border-color: #f59e0b !important;
+      background: rgba(245,158,11,0.15) !important;
+      box-shadow: 0 0 10px rgba(245,158,11,0.3);
+    }
+
+    /* 探索按鈕已使用狀態 */
+    #btn-explore:disabled,
+    #btn-explore.explored-today {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.6);
+    }
   </style>
 </head>
 <body>
+  <!-- 討伐模式選擇的全域JS函式 -->
+  <script>
+    function selectDispatchMode(mode) {
+      var radioSingle = document.getElementById('radio-single');
+      var radioProgress = document.getElementById('radio-progress');
+      if (radioSingle) radioSingle.checked = (mode === 'SINGLE');
+      if (radioProgress) radioProgress.checked = (mode === 'PROGRESS');
+
+      var cardSingle = document.getElementById('dispatch-mode-card-single');
+      var cardProgress = document.getElementById('dispatch-mode-card-progress');
+      if (cardSingle) {
+        cardSingle.classList.remove('selected-single', 'selected-progress');
+        if (mode === 'SINGLE') cardSingle.classList.add('selected-single');
+      }
+      if (cardProgress) {
+        cardProgress.classList.remove('selected-single', 'selected-progress');
+        if (mode === 'PROGRESS') cardProgress.classList.add('selected-progress');
+      }
+
+      var hint = document.getElementById('subjugation-mode-hint');
+      if (hint) {
+        if (mode === 'SINGLE') {
+          hint.innerHTML = '💡 【單次討伐】(1波)：討伐成功後獲得基礎戰利品，據點保留在地圖上供重複練級刷資源。';
+          hint.style.color = '#94a3b8';
+        } else {
+          hint.innerHTML = '🔥 【連續平定】(3波)：連續交戰 3 波，全勝後據點從地圖消失，獲得 3.5 倍獎勵並必定獲得 1 件裝備！';
+          hint.style.color = '#fbbf24';
+        }
+      }
+    }
+  </script>
   <div id="transition-overlay"></div>
   <div id="map-tooltip"></div>
   <div id="adv-tooltip"></div>
@@ -1301,58 +1367,70 @@
       <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🏰 領主書房 (Base)</h2>
       <div style="display: flex; gap: 20px; flex: 1; align-items: stretch; min-height: 550px;">
         <!-- 勞動力分配面板 -->
-        <div class="glass-panel" style="flex: 1.5; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: rgba(0,0,0,0.6); overflow-y: auto;">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">📜 領地工作分配</h3>
+        <div class="glass-panel" style="flex: 1.5; padding: 14px 18px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.6); overflow: hidden;">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px; margin: 0;">📜 領地工作分配</h3>
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 1.1em; color: #cbd5e1;">閒置人力 (消耗糧食但不生產)</span>
-            <span id="ui-unassigned-workers" style="font-size: 1.5em; font-weight: bold; color: #fff;">0</span>
+            <span style="font-size: 1.0em; color: #cbd5e1;">閒置人力 (消耗糧食但不生產)</span>
+            <span id="ui-unassigned-workers" style="font-size: 1.3em; font-weight: bold; color: #fff;">0</span>
           </div>
           
           <!-- 農夫 -->
-          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap;">🌾 農夫</div>
-              <span style="font-size: 1.1em; font-weight: bold; color: #eab308;"><span id="ui-worker-FARMER">0</span> 人</span>
+              <div style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">🌾 農夫</div>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-FARMER">0</span> 人</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
               <input type="range" class="worker-slider" data-job="FARMER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
-              <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+              <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 2px 8px; font-size: 1.0em;">+</button>
             </div>
-            <div style="font-size: 0.85em; color: #94a3b8;">每人產出 3 糧食/天</div>
+            <div style="font-size: 0.8em; color: #94a3b8;">每人產出 3 糧食/天</div>
           </div>
  
           <!-- 伐木工 -->
-          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap;">🪓 伐木工</div>
-              <span style="font-size: 1.1em; font-weight: bold; color: #eab308;"><span id="ui-worker-WOODCUTTER">0</span> 人</span>
+              <div style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">🪓 伐木工</div>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-WOODCUTTER">0</span> 人</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
               <input type="range" class="worker-slider" data-job="WOODCUTTER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
-              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+              <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="1" style="padding: 2px 8px; font-size: 1.0em;">+</button>
             </div>
-            <div style="font-size: 0.85em; color: #94a3b8;">每人產出 2 木材/天</div>
+            <div style="font-size: 0.8em; color: #94a3b8;">每人產出 2 木材/天</div>
           </div>
  
           <!-- 礦工 -->
-          <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap;">⛏️ 礦工</div>
-              <span style="font-size: 1.1em; font-weight: bold; color: #eab308;"><span id="ui-worker-MINER">0</span> 人</span>
+              <div style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">⛏️ 礦工</div>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-MINER">0</span> 人</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
-              <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+              <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
               <input type="range" class="worker-slider" data-job="MINER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
-              <button class="action-btn btn-assign" data-job="MINER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+              <button class="action-btn btn-assign" data-job="MINER" data-amount="1" style="padding: 2px 8px; font-size: 1.0em;">+</button>
             </div>
-            <div style="font-size: 0.85em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
+            <div style="font-size: 0.8em; color: #94a3b8;">每人產出 1 石材/天 (低機率得鐵)</div>
           </div>
           
-          <!-- 軍事單位已移至謁見廳 -->
+          <!-- 哨所 / 衛兵 (依據點等級動態切換) -->
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div id="ui-worker-job-label-INFANTRY" style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">🏰 哨所</div>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-INFANTRY">0</span> 人</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
+              <input type="range" class="worker-slider" data-job="INFANTRY" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="1" style="padding: 2px 8px; font-size: 1.0em;">+</button>
+            </div>
+            <div id="ui-worker-job-desc-INFANTRY" style="font-size: 0.8em; color: #94a3b8;">維持治安，提升敵意掠奪抵禦成功率</div>
+          </div>
           
-          <div id="ui-net-production" style="margin-top: 5px; font-size: 0.95em; text-align: center;">
+          <div id="ui-net-production" style="margin-top: 2px; font-size: 0.9em; text-align: center;">
             <!-- JS 更新淨產量 -->
           </div>
         </div>
@@ -1509,15 +1587,28 @@
       </div>
     </div>
 
-    <!-- 獨立建築：鍛造屋 -->
+    <!-- 獨立建築：鍛造屋 (100% 滿版全螢幕 Layout，完全對齊領主書房與截圖二，無對話框包裹) -->
     <div id="view-forge" class="facility-view">
-      <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
-      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">⚒️ 鍛造屋 (Forge)</h2>
-      <div style="display: flex; gap: 20px; flex: 1;">
-        <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px;">
-          <p style="color: #cbd5e1; font-size: 1.2em;">您可以在這裡呼叫裝備清單，進行高溫鍛造強化您的武裝！</p>
-          <button id="btn-forge-warehouse" class="action-btn" style="font-size: 1.5em; padding: 20px 40px;">🔥 開啟強化火爐 (選擇倉庫裝備)</button>
-        </div>
+      
+      <!-- 頂部列：返回按鈕與標題 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 8px;">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">🔙 返回街道</button>
+        <h2 style="margin: 0; font-size: 2.2em; color: #eab308; text-shadow: 0 3px 6px rgba(0,0,0,0.9); font-family: Georgia, serif;">⚒️ 領地鍛造屋 <span style="font-size:0.5em; color:#cbd5e1; font-weight:normal;">(當前等級: <span id="ui-forge-lvl">1</span>)</span></h2>
+        <div style="width: 100px;"></div> <!-- 佔位對齊 -->
+      </div>
+
+      <!-- 5 大頁籤列 -->
+      <div id="forge-tabs-bar" style="display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 4px;">
+        <button id="btn-forge-tab-enhance" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(234,179,8,0.25); border: 1px solid rgba(234,179,8,0.5); color: #fbbf24;">🔨 裝備強化</button>
+        <button id="btn-forge-tab-craft" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">⚒️ 裝備鍛造</button>
+        <button id="btn-forge-tab-reforge" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; display: none;">♨️ 裝備重鑄</button>
+        <button id="btn-forge-tab-enchant" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">💎 元素加工附魔</button>
+        <button id="btn-forge-tab-mats" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">🧲 素材與背包</button>
+      </div>
+
+      <!-- 中央雙欄工作區 (半透明玻璃面板滿鋪，透出背景火爐) -->
+      <div id="forge-workspace" style="display: flex; gap: 15px; flex: 1; min-height: 0; overflow: hidden;">
+        <!-- JS 動態渲染左右雙欄面板 -->
       </div>
     </div>
 
@@ -1685,44 +1776,102 @@
     </div>
   </div>
 
-  <!-- 倉庫與強化 Modal -->
+  <!-- 倉庫與鍛造 Modal -->
   <div id="modal-warehouse" class="modal-overlay">
-    <div class="glass-panel modal-content" style="width: 800px; display: flex; flex-direction: column;">
+    <div class="glass-panel modal-content" style="width: min(880px, 94vw); display: flex; flex-direction: column; background: rgba(26, 22, 20, 0.95); border: 1px solid rgba(217, 119, 6, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
       <button class="close-btn" id="btn-close-warehouse">×</button>
-      <h2 style="text-align: center; margin-bottom: 15px;">📦 領地倉庫與鍛造</h2>
+      <h2 id="warehouse-modal-title" style="text-align: center; color: #eab308; margin-bottom: 12px; font-family: Georgia, serif; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">🔨 領地鐵匠鋪與倉庫</h2>
       
-      <!-- 頁籤按鈕 -->
-      <div class="warehouse-tabs" style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-        <button id="tab-warehouse-equip" class="action-btn" style="flex: 1; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);">🛡️ 裝備與鍛造</button>
-        <button id="tab-warehouse-goods" class="action-btn" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">📦 交易品物資</button>
+      <!-- 6 大頁籤按鈕 (卡片風與簡潔按鈕組) -->
+      <div class="warehouse-tabs" style="display: flex; gap: 6px; margin-bottom: 15px; border-bottom: 1px solid rgba(217,119,6,0.25); padding-bottom: 10px; flex-wrap: wrap;">
+        <button id="tab-warehouse-equip" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); color: #fbbf24;">🛡️ 裝備強化</button>
+        <button id="tab-warehouse-craft" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">⚒️ 裝備鍛造</button>
+        <button id="tab-warehouse-reforge" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">♨️ 裝備重鑄</button>
+        <button id="tab-warehouse-enchant" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">💎 元素附魔</button>
+        <button id="tab-warehouse-mats" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">🧲 素材附魔石</button>
+        <button id="tab-warehouse-goods" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">📦 交易品物資</button>
       </div>
 
-      <!-- 裝備分頁 -->
-      <div id="warehouse-equip-panel" style="display: block; max-height: 450px; overflow-y: auto; padding-right: 5px;">
-        <div id="warehouse-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+      <!-- 1. 裝備強化分頁 -->
+      <div id="warehouse-equip-panel" style="display: block; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
           <!-- JS 渲染裝備卡片 -->
         </div>
       </div>
 
-      <!-- 交易品分頁 -->
-      <div id="warehouse-goods-panel" style="display: none; max-height: 450px; overflow-y: auto; padding-right: 5px;">
-        <div id="warehouse-goods-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
-          <!-- JS 渲染交易品卡片 -->
+      <!-- 2. 裝備鍛造分頁 -->
+      <div id="warehouse-craft-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-craft-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <!-- JS 渲染鍛造配方卡片 -->
+        </div>
+      </div>
+
+      <!-- 3. 裝備重鑄分頁 -->
+      <div id="warehouse-reforge-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-reforge-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <!-- JS 渲染重鑄配方卡片 -->
+        </div>
+      </div>
+
+      <!-- 4. 元素附魔分頁 -->
+      <div id="warehouse-enchant-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-enchant-container">
+          <!-- JS 渲染附魔控制面板 -->
+        </div>
+      </div>
+
+      <!-- 5. 素材與附魔石分頁 (緊湊型小卡片排版) -->
+      <div id="warehouse-mats-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-mats-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px;">
+          <!-- JS 渲染精簡素材卡片 -->
+        </div>
+      </div>
+
+      <!-- 6. 交易品物資分頁 (緊湊型小卡片排版) -->
+      <div id="warehouse-goods-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-goods-grid">
+          <!-- JS 渲染交易品內容 -->
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 裝備選擇 Modal (用於穿裝備) -->
-  <div id="modal-equip-select" class="modal-overlay">
-    <div class="glass-panel modal-content" style="width: 500px;">
-      <button class="close-btn" id="btn-close-equip-select">×</button>
-      <h2 style="text-align: center;">🛡️ 選擇裝備</h2>
-      <div id="equip-select-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
-        <!-- JS 渲染可選裝備 -->
+  <!-- 自宅獨立總倉庫 Modal -->
+  <div id="modal-base-warehouse" class="modal-overlay">
+    <div class="glass-panel modal-content" style="width: min(880px, 94vw); display: flex; flex-direction: column; background: rgba(26, 22, 20, 0.95); border: 1px solid rgba(217, 119, 6, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+      <button class="close-btn" id="btn-close-base-warehouse">×</button>
+      <h2 style="text-align: center; color: #eab308; margin-bottom: 12px; font-family: Georgia, serif; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">📦 領主總倉庫</h2>
+      
+      <!-- 3 大專屬儲藏分頁按鈕 -->
+      <div style="display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid rgba(217,119,6,0.25); padding-bottom: 10px;">
+        <button id="tab-base-warehouse-equip" class="action-btn" style="flex: 1; padding: 10px; font-size: 0.9em; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); color: #fbbf24;">🛡️ 儲備裝備</button>
+        <button id="tab-base-warehouse-mats" class="action-btn" style="flex: 1; padding: 10px; font-size: 0.9em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">🧲 素材與附魔石</button>
+        <button id="tab-base-warehouse-goods" class="action-btn" style="flex: 1; padding: 10px; font-size: 0.9em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">📦 交易品物資</button>
+      </div>
+
+      <!-- 1. 儲備裝備分頁 (85px 正方形網格) -->
+      <div id="panel-base-warehouse-equip" style="display: block; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="grid-base-warehouse-equip" style="display: grid; grid-template-columns: repeat(auto-fill, 85px); gap: 10px; justify-content: start;">
+          <!-- JS 渲染 85px 正方形裝備方格 -->
+        </div>
+      </div>
+
+      <!-- 2. 素材與附魔石分頁 (85px 正方形網格) -->
+      <div id="panel-base-warehouse-mats" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="grid-base-warehouse-mats" style="display: grid; grid-template-columns: repeat(auto-fill, 85px); gap: 10px; justify-content: start;">
+          <!-- JS 渲染 85px 正方形素材方格 -->
+        </div>
+      </div>
+
+      <!-- 3. 交易品物資分頁 (85px 正方形網格) -->
+      <div id="panel-base-warehouse-goods" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="grid-base-warehouse-goods" style="display: grid; grid-template-columns: repeat(auto-fill, 85px); gap: 10px; justify-content: start;">
+          <!-- JS 渲染 85px 正方形物資方格 -->
+        </div>
       </div>
     </div>
   </div>
+
 
   <!-- Roguelike 新旅程設定 -->
   <div class="modal-overlay" id="modal-new-game">
@@ -1795,16 +1944,24 @@
 
           <!-- Options & Confirm attached to the bottom of the left column -->
           <div id="dispatch-subjugation-options" style="display: none; margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; flex-shrink: 0;">
-            <div style="color: #cbd5e1; margin-bottom: 8px; font-weight: bold; font-size: 0.95em;">⚔️ 討伐模式：</div>
-            <div style="display: flex; gap: 10px;">
-              <label style="flex: 1; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #e2e8f0; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 6px; transition: background 0.2s; font-size: 0.85em;">
-                <input type="radio" name="subjugation-mode" value="SINGLE" checked>
-                <span>單次 <span style="color:#94a3b8; font-size:0.85em;">(1波)</span></span>
-              </label>
-              <label style="flex: 1; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #e2e8f0; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 6px; transition: background 0.2s; font-size: 0.85em;">
-                <input type="radio" name="subjugation-mode" value="PROGRESS">
-                <span>連續 <span style="color:#fbbf24; font-size:0.85em;">(3波)</span></span>
-              </label>
+            <div style="color: #cbd5e1; margin-bottom: 10px; font-weight: bold; font-size: 0.95em;">⚔️ 討伐模式：</div>
+            <!-- 隱藏的 radio input，由卡片 JS 控制 -->
+            <input type="radio" name="subjugation-mode" value="SINGLE" id="radio-single" style="display:none">
+            <input type="radio" name="subjugation-mode" value="PROGRESS" id="radio-progress" style="display:none">
+            <div style="display: flex; gap: 8px;">
+              <div id="dispatch-mode-card-single" class="dispatch-mode-card" onclick="selectDispatchMode('SINGLE')" style="flex:1; cursor:pointer; border-radius:8px; border:2px solid rgba(100,116,139,0.4); background:rgba(255,255,255,0.03); padding:10px 8px; text-align:center; transition:all 0.2s;">
+                <div style="font-size:1.4em; margin-bottom:3px;">⚔️</div>
+                <div style="font-weight:bold; color:#e2e8f0; font-size:0.9em;">單次討伐</div>
+                <div style="color:#94a3b8; font-size:0.75em; margin-top:3px;">(1波)</div>
+              </div>
+              <div id="dispatch-mode-card-progress" class="dispatch-mode-card" onclick="selectDispatchMode('PROGRESS')" style="flex:1; cursor:pointer; border-radius:8px; border:2px solid rgba(100,116,139,0.4); background:rgba(255,255,255,0.03); padding:10px 8px; text-align:center; transition:all 0.2s;">
+                <div style="font-size:1.4em; margin-bottom:3px;">🔥</div>
+                <div style="font-weight:bold; color:#fbbf24; font-size:0.9em;">連續討伐</div>
+                <div style="color:#94a3b8; font-size:0.75em; margin-top:3px;">(3波)</div>
+              </div>
+            </div>
+            <div id="subjugation-mode-hint" style="margin-top: 8px; font-size: 0.8em; color: #94a3b8; line-height: 1.4; padding: 4px 6px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+              ↑ 請選擇討伐模式
             </div>
           </div>
           
@@ -1936,77 +2093,100 @@
     </div>
   </div>
 
-  <!-- 傭兵小隊/傭兵資訊 左側面板 (二分法與常駐立繪) -->
-  <div class="side-panel-left glass-panel" id="modal-party-list">
-
-    <button class="close-btn" id="btn-close-party-list">×</button>
-    <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 傭兵小隊</h2>
+  <!-- 傭兵小隊/傭兵資訊 左側面板 (展開式) -->
+  <div class="side-panel-left glass-panel" id="modal-party-list" style="width: auto; max-width: 1300px; flex-direction: row; gap: 0; padding: 0; overflow: visible; background: url('./bg-parchment.png') left top / 1920px 1080px no-repeat;">
     
-    <!-- 上半部 (2/3)：詳細資訊區 + 左側常駐立繪 + 右側頁籤 -->
-    <div id="party-upper-section" style="display: flex; height: 230px; gap: 8px; background: rgba(0,0,0,0.35); border-radius: 8px; padding: 6px; border: 1px solid rgba(255,255,255,0.08); position: relative; margin-bottom: 6px;">
-      <!-- 1. 左側常駐立繪卡 (~130px) -->
-      <div id="party-portrait-card" style="width: 130px; display: flex; flex-direction: column; align-items: center; background: rgba(15, 23, 42, 0.6); border-radius: 6px; padding: 5px; border: 1px solid rgba(234, 179, 8, 0.3); flex-shrink: 0; position: relative; justify-content: space-between;">
-        <div id="party-portrait-img-wrapper" style="width: 100%; height: 100px; border-radius: 6px; overflow: hidden; background: linear-gradient(180deg, #1e293b, #0f172a); display: flex; justify-content: center; align-items: center; font-size: 3em; position: relative; border: 1px solid rgba(255,255,255,0.1);">
-          <span id="party-portrait-avatar">🦸</span>
-        </div>
-        
-        <!-- ❤️/💧 HP/MP 能量條區塊 (移至半身像正下方) -->
-        <div id="party-portrait-bars" style="width: 100%; display: flex; flex-direction: column; gap: 3px; margin: 3px 0;">
-          <div style="display: flex; align-items: center; gap: 3px; font-size: 0.68em;">
-            <span style="color: #ef4444; font-weight: bold; width: 18px; text-align: right;">HP</span>
-            <div style="flex: 1; height: 12px; background: rgba(0,0,0,0.6); border-radius: 4px; border: 1px solid rgba(239,68,68,0.5); overflow: hidden; position: relative;">
-              <div id="party-bar-hp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #b91c1c, #ef4444); border-radius: 4px; transition: width 0.3s ease;"></div>
-              <span id="party-bar-hp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #000;">0 / 0</span>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 3px; font-size: 0.68em;">
-            <span style="color: #3b82f6; font-weight: bold; width: 18px; text-align: right;">MP</span>
-            <div style="flex: 1; height: 12px; background: rgba(0,0,0,0.6); border-radius: 4px; border: 1px solid rgba(59,130,246,0.5); overflow: hidden; position: relative;">
-              <div id="party-bar-mp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #1d4ed8, #3b82f6); border-radius: 4px; transition: width 0.3s ease;"></div>
-              <span id="party-bar-mp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #000;">0 / 0</span>
-            </div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 3px; font-size: 0.60em; margin-top: 1px;">
-            <span style="color: #cbd5e1; font-weight: bold; width: 18px; text-align: right;">EXP</span>
-            <div style="flex: 1; height: 10px; background: rgba(0,0,0,0.6); border-radius: 4px; border: 1px solid rgba(234,179,8,0.5); overflow: hidden; position: relative;">
-              <div id="party-bar-xp-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #ca8a04, #facc15); border-radius: 4px; transition: width 0.3s ease;"></div>
-              <span id="party-bar-xp-text" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 0.95em; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 3px #000;">0 / 0</span>
-            </div>
-          </div>
-        </div>
-
-        <div id="party-portrait-info" style="width: 100%; text-align: center;">
-          <div id="party-job-trait" style="font-size: 0.78em; color: #f1f5f9; font-weight: bold;">Lv.1 戰士</div>
-          <div id="party-trait-name" style="font-size: 0.72em; color: #94a3b8; margin-top: 1px;">勇敢</div>
-          <div id="party-status-badge" style="font-size: 0.72em; margin-top: 2px; padding: 1px 4px; border-radius: 4px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3);">🟢 閒置</div>
-        </div>
+    <!-- 左半部：傭兵列表 (常駐顯示) -->
+    <div id="party-roster-pane" style="width: 440px; padding: 12px 14px; display: flex; flex-direction: column; flex-shrink: 0; max-height: 625px; position: relative;">
+      <button class="close-btn" id="btn-close-party-list">×</button>
+      <h2 style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">👥 傭兵小隊</h2>
+      
+      <div style="font-size: 0.8em; color: #94a3b8; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span>選擇成員以查看詳細資訊：</span>
+        <span id="party-count-tag" style="color: #eab308;">0 人</span>
       </div>
-
-      <!-- 2. 中間動態資訊頁 (~240px) -->
-      <div id="party-tab-viewport" style="flex: 1; overflow-y: auto; padding-right: 2px;">
-        <!-- JS 動態寫入 📊 屬點 或 ⚔️ 武具 頁面 -->
-      </div>
-
-      <!-- 3. 右側頁籤切換列 (~45px) -->
-      <div class="party-tab-bar" style="display: flex; flex-direction: column; gap: 6px; width: 45px; flex-shrink: 0;">
-        <button id="tab-btn-stats" class="party-tab-btn active" data-tab="stats" title="屬性與配點" style="padding: 10px 0; border: 1px solid rgba(234,179,8,0.4); background: rgba(234,179,8,0.2); color: #eab308; border-radius: 6px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <span>📊</span>
-          <span style="font-size: 0.75em; writing-mode: vertical-lr;">屬點</span>
-        </button>
-        <button id="tab-btn-equip" class="party-tab-btn" data-tab="equip" title="裝備與陣位" style="padding: 10px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 6px; cursor: pointer; font-size: 0.85em; display: flex; flex-direction: column; align-items: center; gap: 4px;">
-          <span>⚔️</span>
-          <span style="font-size: 0.75em; writing-mode: vertical-lr;">武具</span>
-        </button>
+      
+      <div id="party-modal-container" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 2px; overflow-y: auto; align-content: flex-start; justify-content: center; flex: 1;">
+        <!-- JS 動態生成傭兵卡片 -->
       </div>
     </div>
 
-    <!-- 下半部 (1/3)：傭兵卡片選單列表 (5x3 Grid 無卷軸) -->
-    <div style="font-size: 0.8em; color: #94a3b8; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-      <span>👥 選擇成員 (點擊切換)：</span>
-      <span id="party-count-tag" style="color: #eab308;">0 人</span>
+    <!-- 右半部：詳細資訊 (點擊後展開) -->
+    <div id="party-details-pane" style="width: 440px; padding: 12px 14px; border-left: 1px solid rgba(234,179,8,0.3); display: none; flex-direction: column; flex-shrink: 0; position: relative; background: rgba(0,0,0,0.4); max-height: 625px;">
+      <button class="close-btn" id="btn-close-party-details" style="right: 14px; top: 12px;">×</button>
+      <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 名字</h2>
+      
+      <!-- 詳細資訊內容：包含頭像、屬性與裝備 -->
+      <div id="party-upper-section" style="display: flex; flex-direction: column; flex: 1; gap: 8px; position: relative;">
+        <!-- 頂部：常駐立繪卡與基本資訊 -->
+        <div style="display: flex; gap: 10px; background: rgba(15, 23, 42, 0.6); border-radius: 6px; padding: 6px 8px; border: 1px solid rgba(234, 179, 8, 0.3); flex-shrink: 0;">
+          <div id="party-portrait-card" style="display:none;"></div> <!-- 保留舊ID相容 -->
+          <div id="party-portrait-img-wrapper" style="position: relative; width: 82px; height: 82px; border-radius: 6px; overflow: hidden; background: linear-gradient(180deg, #1e293b, #0f172a); display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);">
+            <span style="font-size: 3.2em; position: absolute;">🦸</span>
+          </div>
+          
+          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div id="party-job-trait" style="font-size: 0.88em; color: #f1f5f9; font-weight: bold; line-height: 1.2;">Lv.1 戰士</div>
+                <div id="party-trait-name" style="font-size: 0.78em; color: #94a3b8; margin-top: 1px;">勇敢</div>
+              </div>
+              <div id="party-status-badge" style="font-size: 0.72em; padding: 1px 5px; border-radius: 4px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); flex-shrink: 0;">🟢 閒置</div>
+            </div>
+            
+            <div id="party-portrait-bars" style="width: 100%; display: flex; flex-direction: column; gap: 3px; margin-top: 3px;">
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 0.68em;">
+                <span style="color: #f87171; font-weight: bold; width: 22px; text-align: right;">HP</span>
+                <div style="flex: 1; height: 11px; background: rgba(15, 23, 42, 0.8); border-radius: 3px; border: 1px solid rgba(220, 38, 38, 0.4); position: relative; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);">
+                  <div id="party-bar-hp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #7f1d1d, #dc2626); border-radius: 2px; transition: width 0.3s;"></div>
+                  <span id="party-bar-hp-text" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 4px #000; font-size: 0.95em;">0 / 0</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 0.68em;">
+                <span style="color: #60a5fa; font-weight: bold; width: 22px; text-align: right;">MP</span>
+                <div style="flex: 1; height: 11px; background: rgba(15, 23, 42, 0.8); border-radius: 3px; border: 1px solid rgba(37, 99, 235, 0.4); position: relative; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);">
+                  <div id="party-bar-mp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #1e3a8a, #2563eb); border-radius: 2px; transition: width 0.3s;"></div>
+                  <span id="party-bar-mp-text" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 4px #000; font-size: 0.95em;">0 / 0</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 0.68em;">
+                <span style="color: #facc15; font-weight: bold; width: 22px; text-align: right;">EXP</span>
+                <div style="flex: 1; height: 9px; background: rgba(15, 23, 42, 0.8); border-radius: 3px; border: 1px solid rgba(217, 119, 6, 0.4); position: relative; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);">
+                  <div id="party-bar-xp-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #78350f, #d97706); border-radius: 2px; transition: width 0.3s;"></div>
+                  <span id="party-bar-xp-text" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 4px #000; font-size: 0.9em;">0 / 0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 頁籤切換 -->
+        <div class="party-tab-bar" style="display: flex; gap: 6px; margin-top: 2px; flex-shrink: 0;">
+          <button id="tab-btn-stats" class="party-tab-btn active" data-tab="stats" style="flex: 1; padding: 4px 0; border: 1px solid rgba(234,179,8,0.4); background: rgba(234,179,8,0.2); color: #eab308; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
+            <span>📊</span><span>屬性配置</span>
+          </button>
+          <button id="tab-btn-equip" class="party-tab-btn" data-tab="equip" style="flex: 1; padding: 4px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
+            <span>⚔️</span><span>武裝配備</span>
+          </button>
+          <button id="tab-btn-skills" class="party-tab-btn" data-tab="skills" style="flex: 1; padding: 4px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
+            <span>✨</span><span>技能戰術</span>
+          </button>
+        </div>
+
+        <!-- 下半部動態資訊頁 (屬性與裝備) -->
+        <div id="party-tab-viewport" style="flex: 1; overflow-y: hidden; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+          <!-- JS 動態寫入 -->
+        </div>
+      </div>
     </div>
-    <div id="party-modal-container" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 2px; overflow: hidden; justify-content: center;">
-      <!-- JS 動態生成傭兵卡片 -->
+
+    <!-- 裝備選擇 第三欄 (點擊裝備槽後向右展開) -->
+    <div id="party-equip-select-pane" style="width: 320px; padding: 12px 14px; border-left: 1px solid rgba(234,179,8,0.3); display: none; flex-direction: column; flex-shrink: 0; position: relative; background: rgba(0,0,0,0.5); max-height: 625px;">
+      <button class="close-btn" id="btn-close-equip-select-pane" style="right: 14px; top: 12px;">×</button>
+      <h2 style="text-align: center; color: #eab308; margin: 0 0 8px 0; font-size: 1.05em; font-family: 'Cinzel', serif;">🛡️ 選擇裝備</h2>
+      <div id="equip-select-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px; flex: 1; overflow-y: auto; padding-right: 4px;">
+        <!-- JS 渲染可選裝備 -->
+      </div>
     </div>
   </div>
 

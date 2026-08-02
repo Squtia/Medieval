@@ -43,86 +43,88 @@ export function renderCampTraining() {
 }
 
 export function enterScene(node: MapNode) {
-  UIManager.playTransition(() => {
-    GameState.currentViewNode = node;
+  GameState.currentViewNode = node;
+  
+  const mapView = document.getElementById('map-view')!;
+  const sceneView = document.getElementById('scene-view')!;
+  const wildernessView = document.getElementById('wilderness-view')!;
+  const uiLocation = document.getElementById('ui-location')!;
+  
+  mapView.classList.remove('active');
+  uiLocation.textContent = node.name;
+
+  const nodeDetailPanel = document.getElementById('node-detail-panel');
+  if (nodeDetailPanel) {
+    nodeDetailPanel.style.display = 'none';
+  }
+
+  if (node.nodeLevel > NodeLevel.WILDERNESS || node.isPlayerBase) {
+    sceneView.classList.add('active');
+    document.getElementById('scene-country-name')!.textContent = node.name;
+    const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
+    document.getElementById('scene-country-state')!.textContent = `規模：${levelNames[node.nodeLevel]} | ${node.description}`;
     
-    const mapView = document.getElementById('map-view')!;
-    const sceneView = document.getElementById('scene-view')!;
-    const wildernessView = document.getElementById('wilderness-view')!;
-    const uiLocation = document.getElementById('ui-location')!;
-    
-    mapView.classList.remove('active');
-    uiLocation.textContent = node.name;
-
-    const nodeDetailPanel = document.getElementById('node-detail-panel');
-    if (nodeDetailPanel) {
-      nodeDetailPanel.style.display = 'none';
-    }
-
-    if (node.nodeLevel > NodeLevel.WILDERNESS || node.isPlayerBase) {
-      sceneView.classList.add('active');
-      document.getElementById('scene-country-name')!.textContent = node.name;
-      const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
-      document.getElementById('scene-country-state')!.textContent = `規模：${levelNames[node.nodeLevel]} | ${node.description}`;
-      
-      const streetParallaxBg = document.getElementById('street-parallax-bg')!;
-      if (node.nodeLevel >= NodeLevel.TOWN) {
-        streetParallaxBg.style.backgroundImage = `url('./bg_street_prosperous_1784087131344.png')`;
-      } else if (node.nodeLevel >= NodeLevel.CAMP) {
-        streetParallaxBg.style.backgroundImage = `url('./bg_street_village_1784087142427.png')`;
-      } else {
-        streetParallaxBg.style.backgroundImage = `url('./bg_street_ruins_1784087152568.png')`;
-      }
-      
-      const isMyHome = node.isPlayerBase;
-      const myTerritory = GameState.myTerritory;
-
-      const btnEnterBase = document.getElementById('btn-enter-base')!;
-      const btnEnterTavern = document.getElementById('btn-enter-tavern');
-      const btnEnterWeaponShop = document.getElementById('btn-enter-weapon-shop');
-      const btnEnterArmorShop = document.getElementById('btn-enter-armor-shop');
-      const btnEnterForge = document.getElementById('btn-enter-forge');
-      const btnEnterDefense = document.getElementById('btn-enter-defense');
-      const btnMigrate = document.getElementById('btn-migrate')!;
-      const btnEnterHall = document.getElementById('btn-enter-hall')!;
-      
-      btnEnterBase.style.display = isMyHome ? 'block' : 'none';
-      btnMigrate.style.display = isMyHome ? 'none' : 'block';
-      updateStreetBuildingsVisibility(node, isMyHome, myTerritory);
-      
-      
-      btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
-      
-      setTimeout(() => {
-        if ((window as any).__updateStreetScrollArrows) {
-          (window as any).__updateStreetScrollArrows();
-        }
-      }, 100);
+    const streetParallaxBg = document.getElementById('street-parallax-bg')!;
+    if (node.nodeLevel >= NodeLevel.TOWN) {
+      streetParallaxBg.style.backgroundImage = `url('./bg_street_prosperous_1784087131344.png')`;
+    } else if (node.nodeLevel >= NodeLevel.CAMP) {
+      streetParallaxBg.style.backgroundImage = `url('./bg_street_village_1784087142427.png')`;
     } else {
-      wildernessView.classList.add('active');
-      document.getElementById('wild-name')!.textContent = node.name;
-      document.getElementById('wild-desc')!.textContent = node.description;
-      
-      const btnFoundSettlement = document.getElementById('btn-found-settlement')!;
-      btnFoundSettlement.style.display = (node.ownerFactionId === null && !node.isPlayerBase) ? 'block' : 'none';
+      streetParallaxBg.style.backgroundImage = `url('./bg_street_ruins_1784087152568.png')`;
     }
     
-    UIManager.updateUI();
-  });
+    const isMyHome = node.isPlayerBase;
+    const myTerritory = GameState.myTerritory;
+
+    const btnEnterBase = document.getElementById('btn-enter-base')!;
+    const btnEnterTavern = document.getElementById('btn-enter-tavern');
+    const btnEnterWeaponShop = document.getElementById('btn-enter-weapon-shop');
+    const btnEnterArmorShop = document.getElementById('btn-enter-armor-shop');
+    const btnEnterForge = document.getElementById('btn-enter-forge');
+    const btnEnterDefense = document.getElementById('btn-enter-defense');
+    const btnMigrate = document.getElementById('btn-migrate')!;
+    const btnEnterHall = document.getElementById('btn-enter-hall')!;
+    
+    btnEnterBase.style.display = isMyHome ? 'block' : 'none';
+    btnMigrate.style.display = isMyHome ? 'none' : 'block';
+    updateStreetBuildingsVisibility(node, isMyHome, myTerritory);
+    
+    
+    btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
+    
+    setTimeout(() => {
+      if ((window as any).__updateStreetScrollArrows) {
+        (window as any).__updateStreetScrollArrows();
+      }
+    }, 100);
+  } else {
+    wildernessView.classList.add('active');
+    document.getElementById('wild-name')!.textContent = node.name;
+    document.getElementById('wild-desc')!.textContent = node.description;
+    
+    const btnFoundSettlement = document.getElementById('btn-found-settlement')!;
+    btnFoundSettlement.style.display = (node.ownerFactionId === null && !node.isPlayerBase) ? 'block' : 'none';
+  }
+  
+  UIManager.updateUI();
+}
+
+/** 帶黑屏轉場動畫的 enterScene，供事件監聽器直接呼叫（非 playTransition callback 內）使用 */
+export function enterSceneWithTransition(node: MapNode) {
+  UIManager.playTransition(() => enterScene(node));
 }
 
 export function returnToMap() {
   UIManager.playTransition(() => {
     GameState.currentViewNode = null;
     // 強制關閉所有建築視圖，避免切換場景後殘留
-    document.getElementById('view-base')!.classList.remove('active');
-    document.getElementById('view-hall')!.classList.remove('active');
-    document.getElementById('view-camp')!.classList.remove('active');
-    document.getElementById('view-forge')!.classList.remove('active');
-    document.getElementById('view-weapon-shop')!.classList.remove('active');
-    document.getElementById('view-armor-shop')!.classList.remove('active');
-    document.getElementById('scene-view')!.classList.remove('active');
-    document.getElementById('wilderness-view')!.classList.remove('active');
+    ['view-base', 'view-hall', 'view-camp', 'view-forge', 'view-weapon-shop', 'view-armor-shop', 'scene-view', 'wilderness-view'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove('active');
+        // CSS .facility-view { display:none } 確保隱藏，不需 inline style
+      }
+    });
     
     // 返回地圖後，重新顯示 map-view
     document.getElementById('map-view')!.classList.add('active');
@@ -182,10 +184,10 @@ export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'fo
     if (level === 3) return { name: '防具鋪', desc: '提供堅固鎖子甲與制式防具的店舖', icon: '🛡️' };
     return { name: '皇家防具庫', desc: '提供最頂尖護甲的軍事設施', icon: '🛡️' };
   } else if (type === 'forge') {
-    if (level === 1) return { name: '簡陋火窯', desc: '最粗糙的火窯，只能做最基礎的修補與強化', icon: '🔥' };
-    if (level === 2) return { name: '簡易熔爐', desc: '勉強能熔煉鐵礦石的小型熔爐', icon: '🧱' };
-    if (level === 3) return { name: '鐵匠鋪', desc: '擁有專業鐵砧與高溫熔爐的鐵匠工作坊', icon: '⚒️' };
-    return { name: '工坊鍛造屋', desc: '能鍛造出傳說神兵的頂級工坊', icon: '⚒️' };
+    if (level === 1) return { name: '初級鍛造屋', desc: '最基礎的高溫火窯與鐵砧，提供裝備強化與基礎合成', icon: '⚒️' };
+    if (level === 2) return { name: '進階鍛造屋', desc: '擁有精良熔爐與淬火池，支援高階裝備鍛造與元素附魔', icon: '⚒️' };
+    if (level === 3) return { name: '皇家鍛造屋', desc: '擁有專業鐵砧與高溫熔爐，支援 T4 專屬神兵裝備重鑄', icon: '⚒️' };
+    return { name: '頂級鍛造屋', desc: '機能齊全的頂級鍛造工坊', icon: '⚒️' };
   } else { // defense
     if (level === 1) return { name: '木柵欄', desc: '用削尖的圓木圍成，能抵禦野獸與零星流寇', icon: '🪵' };
     if (level === 2) return { name: '拒馬與壕溝', desc: '強化的營地防禦，能有效阻擋強盜集團', icon: '🚧' };

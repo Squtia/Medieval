@@ -8,6 +8,7 @@ import {
   calculateNodeLevel,
   getMonthlyProsperityGain
 } from '../data/BalanceData';
+import { monsterSystem } from './MonsterSystem';
 
 export class MapDynamicsSystem {
   private mapNodes: MapNode[];
@@ -527,28 +528,8 @@ export class MapDynamicsSystem {
     node.isScouted = true;
     node.scoutExpiryDate = currentDay + 30; // 情報有效期限 30 天
 
-    // 產生模擬情報資料 (scoutData)
-    let danger = '安全';
-    let treasure = '無';
-    let garrison = 0;
-
-    if (node.feature === NodeFeature.MONSTER_NEST) {
-      danger = '極度危險';
-      treasure = '史詩寶藏';
-    } else if (node.feature === NodeFeature.SUBJUGATION) {
-      danger = '中等危險';
-      treasure = '稀有素材';
-    } else if (node.ownerFactionId && !node.isPlayerBase) {
-      danger = '未知軍勢';
-      treasure = '豐富物資';
-      garrison = node.prosperity * 2 + 500;
-    }
-
-    node.scoutData = {
-      dangerLevel: danger,
-      treasureTier: treasure,
-      garrisonPower: garrison > 0 ? garrison : undefined
-    };
+    // 呼叫 monsterSystem 生成並持久化精確敵軍隊伍與情報 (保證與討伐遭遇 100% 一致)
+    monsterSystem.generateNodeEncounter(node);
 
     console.log(`[系統] 👁️ 斥候已傳回「${node.name}」的最新情報！(有效期限 30 天)`);
   }
@@ -680,6 +661,13 @@ export class MapDynamicsSystem {
   }
 
   /**
+   * 移除地圖上的動態探索據點 (平定完畢時呼叫)
+   */
+  public removeDynamicNode(nodeId: string): void {
+    this.mapNodes = this.mapNodes.filter(n => n.id !== nodeId);
+  }
+
+  /**
    * 生成隨機動態周邊節點
    */
   public spawnDynamicNode(baseNode: MapNode, radius: number = 10): MapNode | null {
@@ -689,12 +677,22 @@ export class MapDynamicsSystem {
       return null; // 超過上限，不生成
     }
 
-    // 隨機在 baseNode 周圍找一個不會與現有節點重疊的座標
+    // 隨機在 baseNode 周圍找一個位於「已揭開迷霧」範圍內且不與現有節點重疊的座標
     let newX = baseNode.x;
     let newY = baseNode.y;
     let validPos = false;
     let attempts = 0;
-    while (!validPos && attempts < 20) {
+
+    // 取得探索迷霧系統物件，以驗證該座標是否已解鎖/已揭開
+    let explorationSystem: any = null;
+    try {
+      const gs = (window as any).GameState;
+      if (gs && gs.explorationSystem) {
+        explorationSystem = gs.explorationSystem;
+      }
+    } catch (e) {}
+
+    while (!validPos && attempts < 50) {
       const offsetX = Random.int(-radius, radius);
       const offsetY = Random.int(-radius, radius);
       // 避免太近
@@ -704,6 +702,14 @@ export class MapDynamicsSystem {
       }
       newX = Math.max(2, Math.min(98, baseNode.x + offsetX));
       newY = Math.max(2, Math.min(98, baseNode.y + offsetY));
+
+      // 若有迷霧系統，必須限制生成在「已揭開迷霧」的範圍內
+      if (explorationSystem && typeof explorationSystem.isPointRevealed === 'function') {
+        if (!explorationSystem.isPointRevealed(newX, newY)) {
+          attempts++;
+          continue;
+        }
+      }
 
       // 檢查是否太靠近其他節點
       let tooClose = false;
@@ -767,6 +773,7 @@ export class MapDynamicsSystem {
       terrain: terrain,
       feature: feature,
       isHidden: false,
+      isDiscovered: true, // 標記為已發現，確保地圖 UI 與 Phaser 正確渲染
       isDynamic: true,
       baseDifficulty: dynamicDiff,
       isScouted: false,

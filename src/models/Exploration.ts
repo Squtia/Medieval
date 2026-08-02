@@ -20,12 +20,19 @@ export interface ExplorationExpedition {
   elapsedDays: number;
   visionRadius: number;
   status: 'ACTIVE' | 'COMPLETED';
+  isExpedited?: boolean;
 }
 
 export interface ExplorationTargetCheck {
   valid: boolean;
   reason?: string;
   requiredDays?: number;
+  goldCost?: number;
+  foodCost?: number;
+  isLongDistance?: boolean;
+  expeditedDays?: number;
+  expeditedGoldCost?: number;
+  expeditedFoodCost?: number;
 }
 
 export interface ExplorationTargetPreview {

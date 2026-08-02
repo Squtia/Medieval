@@ -52,6 +52,65 @@ describe('RoadSystem', () => {
       sellPriceMultiplier: 1.1
     });
   });
+
+  it('correctly handles network connectivity and smart node branching', () => {
+    const roads = new RoadSystem();
+    const origin: MapNode = {
+      id: 'base',
+      x: 45,
+      y: 50,
+      isPlayerBase: true,
+      isDiscovered: true,
+      ownerFactionId: 'player'
+    } as any;
+
+    const nodeA: MapNode = {
+      id: 'node_a',
+      x: 55,
+      y: 50,
+      isPlayerBase: false,
+      isDiscovered: true,
+      ownerFactionId: 'neutral'
+    } as any;
+
+    const nodeB: MapNode = {
+      id: 'node_b',
+      x: 65,
+      y: 50,
+      isPlayerBase: false,
+      isDiscovered: true,
+      ownerFactionId: 'neutral'
+    } as any;
+
+    const exploration = new ExplorationSystem();
+    exploration.revealCorridor(40, 50, 70, 50, 100);
+
+    // 建造 base -> nodeA
+    const projA = roads.startConstruction(origin, nodeA, exploration, [origin, nodeA, nodeB]);
+    expect(projA.startNodeId).toBe('base');
+    
+    // 快速完成工程 A
+    while (roads.getActiveProject()) {
+      roads.advanceDay(1);
+    }
+
+    expect(roads.hasNetworkConnection('base', 'node_a')).toBe(true);
+
+    // 建造延伸工程到 nodeB，應自動判定從 nodeA 延伸
+    const checkB = roads.checkTarget(origin, nodeB, exploration, [origin, nodeA, nodeB]);
+    expect(checkB.valid).toBe(true);
+    expect(checkB.startNodeId).toBe('node_a');
+
+    const projB = roads.startConstruction(origin, nodeB, exploration, [origin, nodeA, nodeB]);
+    expect(projB.startNodeId).toBe('node_a');
+
+    while (roads.getActiveProject()) {
+      roads.advanceDay(2);
+    }
+
+    expect(roads.hasNetworkConnection('base', 'node_b')).toBe(true);
+    expect(roads.getTravelDays(origin, nodeB).hasRoad).toBe(true);
+  });
 });
 
 function findLegalRoad(): {

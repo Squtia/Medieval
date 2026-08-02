@@ -1,6 +1,6 @@
 /**
  * ShopController.ts
- * 負責武器店、防具店與倉庫介面的渲染與互動邏輯。
+ * 負責武器店、防具店、領地鍛造屋 (100% 滿版全螢幕 Layout、傭兵小隊 3 欄網格、PATK/MATK 屬性與指標跟隨懸浮 Tooltip) 與倉庫介面的渲染與互動邏輯。
  * 從 ModalController.ts 拆分出來作為 Lazy Chunk，降低首屏 bundle 體積。
  */
 
@@ -10,196 +10,965 @@ import { UIManager } from './UIManager';
 import { DataStore } from '../systems/DataStore';
 import { EquipmentGenerator } from '../systems/EquipmentGenerator';
 import { EnhancementSystem } from '../systems/EnhancementSystem';
-import { EquipmentSlot } from '../models/types';
+import { EquipmentSlot, ElementType, Equipment, CombatStats } from '../models/types';
 import { TRADE_GOODS } from '../systems/MarketSystem';
+import { positionFloatingElement } from './FloatingPosition';
+import materialsJson from '../data/materials.json';
 
 export function openWarehouse(isForgeMode: boolean) {
-  const modalWarehouse = document.getElementById('modal-warehouse')!;
-  const warehouseGrid = document.getElementById('warehouse-grid')!;
-  
-  // 頁籤與面板
-  const tabEquip = document.getElementById('tab-warehouse-equip')!;
-  const tabGoods = document.getElementById('tab-warehouse-goods')!;
-  const equipPanel = document.getElementById('warehouse-equip-panel')!;
-  const goodsPanel = document.getElementById('warehouse-goods-panel')!;
-
-  tabEquip.onclick = () => {
-    equipPanel.style.display = 'block';
-    goodsPanel.style.display = 'none';
-    tabEquip.style.background = 'rgba(255,255,255,0.15)';
-    tabEquip.style.borderColor = 'rgba(255,255,255,0.2)';
-    tabGoods.style.background = 'rgba(255,255,255,0.05)';
-    tabGoods.style.borderColor = 'rgba(255,255,255,0.1)';
-  };
-
-  tabGoods.onclick = () => {
-    equipPanel.style.display = 'none';
-    goodsPanel.style.display = 'block';
-    tabEquip.style.background = 'rgba(255,255,255,0.05)';
-    tabEquip.style.borderColor = 'rgba(255,255,255,0.1)';
-    tabGoods.style.background = 'rgba(255,255,255,0.15)';
-    tabGoods.style.borderColor = 'rgba(255,255,255,0.2)';
-    renderWarehouseGoods();
-  };
-
-  // 預設切換回裝備 panel
-  equipPanel.style.display = 'block';
-  goodsPanel.style.display = 'none';
-  tabEquip.style.background = 'rgba(255,255,255,0.15)';
-  tabEquip.style.borderColor = 'rgba(255,255,255,0.2)';
-  tabGoods.style.background = 'rgba(255,255,255,0.05)';
-  tabGoods.style.borderColor = 'rgba(255,255,255,0.1)';
-
-  warehouseGrid.innerHTML = '';
-  const myTerritory = GameState.myTerritory;
-  
-  if (myTerritory.warehouse.length === 0) {
-    warehouseGrid.innerHTML = '<p style="color:#94a3b8; grid-column: span 2; text-align: center;">倉庫目前空空如也。</p>';
+  if (isForgeMode) {
+    const viewForge = document.getElementById('view-forge');
+    if (viewForge) {
+      viewForge.style.display = 'flex';
+      renderForgeView();
+    }
   } else {
-    myTerritory.warehouse.forEach(eq => {
-      const card = document.createElement('div');
-      card.className = 'glass-panel';
-      card.style.padding = '15px';
-      card.style.display = 'flex';
-      card.style.gap = '15px';
-      
-      const statsStr = Object.entries(eq.combatEffects || {}).map(([k, v]) => `${k.toUpperCase()}+${v}`).join(', ');
-      const attrStr = Object.entries(eq.effects || {}).map(([k, v]) => `${k.toUpperCase()}+${v}`).join(', ');
-      
-      const enhanceCost = EnhancementSystem.getEnhancementCost(eq.enhancementLevel || 0);
-      const successRate = EnhancementSystem.getSuccessRate(eq.enhancementLevel || 0);
-      const lvlStr = eq.enhancementLevel ? ` +${eq.enhancementLevel}` : '';
-
-      let actionBtnHtml = '';
-      if (isForgeMode) {
-        actionBtnHtml = `
-          <div style="margin-top: 10px;">
-            <button class="action-btn btn-enhance" style="padding: 5px 10px; font-size: 0.85em;" data-uuid="${eq.uuid}">
-              🔨 強化 (花費 ${enhanceCost} | 機率 ${successRate}%)
-            </button>
-          </div>
-        `;
-      }
-
-      card.innerHTML = `
-        <div style="font-size:3em;">${eq.icon || '🛡️'}</div>
-        <div style="flex:1;">
-          <strong style="color:#eab308; font-size:1.1em;">${eq.name}${lvlStr}</strong><br/>
-          <span style="font-size:0.8em; color:#94a3b8;">${statsStr} | ${attrStr}</span>
-          ${actionBtnHtml}
-        </div>
-      `;
-      warehouseGrid.appendChild(card);
-    });
-
-    if (isForgeMode) {
-      const enhanceBtns = warehouseGrid.querySelectorAll('.btn-enhance');
-      enhanceBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const uuid = (e.currentTarget as HTMLElement).getAttribute('data-uuid')!;
-          const eq = myTerritory.warehouse.find(x => x.uuid === uuid);
-          if (eq) {
-            const result = EnhancementSystem.enhance(myTerritory, eq);
-            console.log(`[系統] ${result}`);
-            UIManager.updateUI();
-            openWarehouse(true); 
-          }
-        });
-      });
+    const modalWarehouse = document.getElementById('modal-warehouse');
+    if (modalWarehouse) {
+      modalWarehouse.classList.add('active');
     }
   }
-  
-  modalWarehouse.classList.add('active');
 }
 
-export function renderWarehouseGoods() {
-  const goodsContainer = document.getElementById('warehouse-goods-panel')!;
-  const myTerritory = GameState.myTerritory;
-  
-  goodsContainer.innerHTML = '';
-  
-  const inventory = myTerritory.tradeInventory || {};
-  const goodIds = Object.keys(inventory).filter(id => inventory[id] > 0);
-  
-  if (goodIds.length === 0) {
-    goodsContainer.innerHTML = '<p style="color:#94a3b8; text-align: center; padding: 20px;">跑商倉庫目前沒有貨物。派遣商隊後貨物會存放在這裡。</p>';
+// === 輔助懸浮 Tooltip 綁定器 (跟隨滑鼠移動) ===
+
+function attachTooltip(element: HTMLElement, getHtml: () => string) {
+  element.addEventListener('mouseenter', (e) => {
+    const tEl = document.getElementById('adv-tooltip');
+    if (tEl) {
+      tEl.innerHTML = getHtml();
+      tEl.style.opacity = '1';
+      positionFloatingElement(tEl, e.clientX, e.clientY);
+    }
+  });
+  element.addEventListener('mousemove', (e) => {
+    const tEl = document.getElementById('adv-tooltip');
+    if (tEl) {
+      positionFloatingElement(tEl, e.clientX, e.clientY);
+    }
+  });
+  element.addEventListener('mouseleave', () => {
+    const tEl = document.getElementById('adv-tooltip');
+    if (tEl) {
+      tEl.style.opacity = '0';
+    }
+  });
+  element.addEventListener('click', () => {
+    const tEl = document.getElementById('adv-tooltip');
+    if (tEl) {
+      tEl.style.opacity = '0';
+    }
+  });
+}
+
+export function renderEquipIcon(eq: any, sizePx: number = 38): string {
+  if (eq.slot === EquipmentSlot.WEAPON || !eq.slot || eq.weaponType) {
+    return `<img src="./assets/weapon_icon.png" style="width:${sizePx}px; height:${sizePx}px; object-fit:contain; mix-blend-mode:multiply; filter:contrast(1.1) drop-shadow(0 2px 5px rgba(0,0,0,0.85));" />`;
+  }
+  return `<div style="font-size:1.6em;">${eq.icon || '🛡️'}</div>`;
+}
+
+function getEquipTooltipHtml(eq: any): string {
+  const name = eq.name || '未知裝備';
+  const lvl = eq.enhancementLevel ? ` +${eq.enhancementLevel}` : '';
+  const tier = eq.tier ? ` (T${eq.tier})` : '';
+  const jobs = eq.allowedJobs ? eq.allowedJobs.join('/') : '通用';
+  const elemBadge = getElementBadge(eq.element);
+  const statsStr = formatStatsTags(eq.combatEffects || eq.baseCombatEffects, eq.effects || eq.baseEffects);
+  const iconHtml = renderEquipIcon(eq, 28);
+
+  return `
+    <div style="padding:10px 12px; max-width:260px; line-height:1.4;">
+      <div style="font-weight:bold; color:#eab308; font-size:1.05em; border-bottom:1px solid rgba(217,119,6,0.3); padding-bottom:4px; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+        ${iconHtml} <span>${name}${lvl}${tier}</span>
+      </div>
+      <div style="font-size:0.82em; color:#94a3b8; margin-bottom:4px;">
+        屬性：${elemBadge} | 職業：${jobs}
+      </div>
+      <div style="font-size:0.85em; color:#cbd5e1; margin-top:6px; background:rgba(0,0,0,0.4); padding:6px; border-radius:4px;">
+        <strong>戰鬥效果：</strong><br/>${statsStr}
+      </div>
+    </div>
+  `;
+}
+
+// === 鍛造屋主視圖全功能實作 (對齊領主書房與傭兵小隊 3 欄網格) ===
+
+export function renderForgeView() {
+  const territory = GameState.myTerritory;
+  const forgeLevel = territory.forgeLevel || 0;
+
+  // 更新等級
+  const uiForgeLvl = document.getElementById('ui-forge-lvl');
+  if (uiForgeLvl) uiForgeLvl.textContent = forgeLevel.toString();
+
+  // 5 大頁籤按鈕
+  const btnEnhance = document.getElementById('btn-forge-tab-enhance')!;
+  const btnCraft = document.getElementById('btn-forge-tab-craft')!;
+  const btnReforge = document.getElementById('btn-forge-tab-reforge')!;
+  const btnEnchant = document.getElementById('btn-forge-tab-enchant')!;
+  const btnMats = document.getElementById('btn-forge-tab-mats')!;
+
+  // 裝備重鑄在 forgeLevel >= 3 時才解鎖顯示
+  if (btnReforge) {
+    btnReforge.style.display = forgeLevel >= 3 ? 'block' : 'none';
+  }
+
+  const tabs = [
+    { btn: btnEnhance, render: () => renderForgeEnhanceMode() },
+    { btn: btnCraft, render: () => renderForgeCraftMode() },
+    { btn: btnReforge, render: () => renderForgeReforgeMode() },
+    { btn: btnEnchant, render: () => renderForgeEnchantMode() },
+    { btn: btnMats, render: () => renderForgeMatsMode() }
+  ];
+
+  const setActiveTab = (activeIndex: number) => {
+    // 切換頁籤時關閉隱藏舊的 tooltip
+    const tEl = document.getElementById('adv-tooltip');
+    if (tEl) tEl.style.opacity = '0';
+
+    tabs.forEach((t, idx) => {
+      if (!t.btn) return;
+      if (idx === activeIndex) {
+        t.btn.style.background = 'rgba(234, 179, 8, 0.25)';
+        t.btn.style.borderColor = 'rgba(234, 179, 8, 0.5)';
+        t.btn.style.color = '#fbbf24';
+        t.render();
+      } else {
+        t.btn.style.background = 'rgba(0, 0, 0, 0.4)';
+        t.btn.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+        t.btn.style.color = '#94a3b8';
+      }
+    });
+  };
+
+  tabs.forEach((t, idx) => {
+    if (t.btn) {
+      t.btn.onclick = () => setActiveTab(idx);
+    }
+  });
+
+  // 預設第 0 個頁籤 (裝備強化)
+  setActiveTab(0);
+}
+
+/**
+ * 格式化雙攻雙防與衍生屬性標籤 (依據 ATTRIBUTE_SYSTEM.md 規範)
+ */
+function formatStatsTags(cb?: Partial<CombatStats>, eff?: any): string {
+  const parts: string[] = [];
+  if (!cb) cb = {};
+  if (!eff) eff = {};
+
+  if (cb.patk) parts.push(`<span style="color:#ef4444; font-weight:bold;">⚔️物攻+${cb.patk}</span>`);
+  if (cb.matk) parts.push(`<span style="color:#3b82f6; font-weight:bold;">🔮魔攻+${cb.matk}</span>`);
+  if (cb.pdef) parts.push(`<span style="color:#10b981; font-weight:bold;">🛡️物防+${cb.pdef}</span>`);
+  if (cb.mdef) parts.push(`<span style="color:#8b5cf6; font-weight:bold;">✨魔防+${cb.mdef}</span>`);
+  if (cb.hit) parts.push(`<span style="color:#f59e0b;">🎯命中+${cb.hit}</span>`);
+  if (cb.evade) parts.push(`<span style="color:#06b6d4;">🌀閃避+${cb.evade}</span>`);
+  if (cb.hp) parts.push(`<span style="color:#ec4899;">❤️HP+${cb.hp}</span>`);
+  if (cb.mp) parts.push(`<span style="color:#6366f1;">💧MP+${cb.mp}</span>`);
+  if (cb.critRate) parts.push(`<span style="color:#f97316;">💥爆擊+${cb.critRate}%</span>`);
+
+  for (const [k, v] of Object.entries(eff)) {
+    if (v) parts.push(`<span style="color:#e2e8f0;">${k.toUpperCase()}+${v}</span>`);
+  }
+
+  return parts.join(' | ') || '無加成';
+}
+
+function getElementBadge(elem?: ElementType): string {
+  switch (elem) {
+    case ElementType.FIRE: return '<span style="color:#ef4444; font-weight:bold;">🔥 火</span>';
+    case ElementType.ICE: return '<span style="color:#38bdf8; font-weight:bold;">❄️ 冰</span>';
+    case ElementType.LIGHTNING: return '<span style="color:#eab308; font-weight:bold;">⚡ 雷</span>';
+    case ElementType.HOLY: return '<span style="color:#fef08a; font-weight:bold;">☀️ 光</span>';
+    case ElementType.DARK: return '<span style="color:#a855f7; font-weight:bold;">🌙 暗</span>';
+    default: return '<span style="color:#64748b;">無</span>';
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 1. 裝備強化模式 (對齊圖一傭兵小隊 3 欄網格選單 + 指標跟隨懸浮 Tooltip + 右欄工坊)
+// ----------------------------------------------------------------------------
+
+function renderForgeEnhanceMode() {
+  const territory = GameState.myTerritory;
+  const workspace = document.getElementById('forge-workspace')!;
+  workspace.innerHTML = '';
+
+  if (!territory.warehouse || territory.warehouse.length === 0) {
+    workspace.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:50px 0;">倉庫內目前沒有任何裝備可供強化。</p>';
     return;
   }
-  
-  // 總資產提示
-  let totalAssetValue = 0;
-  const rows: string[] = [];
-  
-  for (const goodId of goodIds) {
-    const amount = inventory[goodId];
-    const goodDef = TRADE_GOODS.find(g => g.id === goodId);
-    if (!goodDef || amount <= 0) continue;
-    
-    const sellPrice = Math.floor(goodDef.basePrice * 0.8); // 本地收購折扣 80%
-    const totalValue = sellPrice * amount;
-    totalAssetValue += totalValue;
-    
-    rows.push(`
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 8px;">
-        <div>
-          <strong style="color: #e2e8f0;">${goodDef.icon || '📦'} ${goodDef.name}</strong>
-          <span style="color: #94a3b8; margin-left: 10px;">x ${amount}</span><br/>
-          <span style="font-size: 0.8em; color: #94a3b8;">本地售價：${sellPrice} 金/件（原價 ${goodDef.basePrice}）</span>
+
+  let selectedUuid = territory.warehouse[0].uuid;
+
+  // 雙欄 Container
+  const splitContainer = document.createElement('div');
+  splitContainer.style.display = 'flex';
+  splitContainer.style.gap = '15px';
+  splitContainer.style.flex = '1';
+  splitContainer.style.minHeight = '0';
+
+  // 左欄：傭兵小隊風格【3 欄正方形/直向卡片網格 Layout】 (寬度 420px，半透明玻璃質感)
+  const leftPanel = document.createElement('div');
+  leftPanel.style.width = '420px';
+  leftPanel.style.display = 'flex';
+  leftPanel.style.flexDirection = 'column';
+  leftPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  leftPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  leftPanel.style.borderRadius = '8px';
+  leftPanel.style.padding = '12px';
+
+  const leftTitle = document.createElement('h4');
+  leftTitle.style.margin = '0 0 10px 0';
+  leftTitle.style.color = '#fbbf24';
+  leftTitle.style.borderBottom = '1px solid rgba(217, 119, 6, 0.2)';
+  leftTitle.style.paddingBottom = '6px';
+  leftTitle.textContent = '🛡️ 選擇倉庫裝備';
+  leftPanel.appendChild(leftTitle);
+
+  // 5 欄精簡正方形卡片網格 (5 Columns Grid)
+  const leftGrid = document.createElement('div');
+  leftGrid.style.flex = '1';
+  leftGrid.style.overflowY = 'auto';
+  leftGrid.style.overflowX = 'hidden';
+  leftGrid.style.display = 'grid';
+  leftGrid.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
+  leftGrid.style.gap = '6px';
+  leftGrid.style.paddingRight = '2px';
+  leftGrid.style.alignContent = 'flex-start';
+  leftPanel.appendChild(leftGrid);
+
+  // 右欄：高溫強化火爐對比區 (半透明玻璃質感)
+  const rightPanel = document.createElement('div');
+  rightPanel.style.flex = '1';
+  rightPanel.style.display = 'flex';
+  rightPanel.style.flexDirection = 'column';
+  rightPanel.style.justifyContent = 'space-between';
+  rightPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  rightPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  rightPanel.style.borderRadius = '8px';
+  rightPanel.style.padding = '18px';
+
+  const renderLeftGrid = () => {
+    leftGrid.innerHTML = '';
+    territory.warehouse.forEach(eq => {
+      const isSel = eq.uuid === selectedUuid;
+      const card = document.createElement('div');
+      card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
+      card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
+      card.style.borderRadius = '6px';
+      card.style.padding = '5px 4px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.alignItems = 'center';
+      card.style.textAlign = 'center';
+      card.style.justifyContent = 'space-between';
+      card.style.cursor = 'pointer';
+      card.style.height = '85px';
+      card.style.minWidth = '0';
+      card.style.boxSizing = 'border-box';
+      card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
+
+      card.innerHTML = `
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2px;">
+          ${renderEquipIcon(eq, 42)}
         </div>
-        <div style="text-align: right;">
-          <div style="color: #fbbf24; font-weight: bold; margin-bottom: 5px;">≈ ${totalValue} 金</div>
-          <button class="action-btn btn-sell-good" data-id="${goodId}" data-price="${sellPrice}" style="padding: 4px 12px; font-size: 0.85em;">💰 全部出售</button>
+        <div style="display:flex; justify-content:space-between; width:100%; font-size:0.68em; border-top:1px solid rgba(255,255,255,0.12); padding-top:2px; margin-top:2px;">
+          <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
+          <span style="color:#fbbf24; font-size:0.85em; padding:0 2px; background:rgba(217,119,6,0.25); border-radius:2px;">T${eq.tier || 1}</span>
+        </div>
+      `;
+
+      // 綁定跟隨指標的懸浮 Tooltip！
+      attachTooltip(card, () => getEquipTooltipHtml(eq));
+
+      card.onclick = () => {
+        selectedUuid = eq.uuid;
+        renderLeftGrid();
+        renderRightPanel();
+      };
+
+      leftGrid.appendChild(card);
+    });
+  };
+
+  const renderRightPanel = () => {
+    rightPanel.innerHTML = '';
+    const eq = territory.warehouse.find(x => x.uuid === selectedUuid) || territory.warehouse[0];
+    const curLvl = eq.enhancementLevel || 0;
+    const cost = EnhancementSystem.getEnhancementCost(curLvl);
+    const rate = EnhancementSystem.getSuccessRate(curLvl);
+    const goldEnough = territory.gold >= cost;
+
+    // 算計強化後的屬性預覽 (明確顯示 PATK, MATK, PDEF, MDEF 變動綠字)
+    const baseCb = eq.baseCombatEffects || eq.combatEffects || {};
+    const nextMult = 1 + (0.10 * (curLvl + 1));
+    
+    const previews: string[] = [];
+    for (const key of ['patk', 'matk', 'pdef', 'mdef', 'hit', 'evade', 'hp', 'mp']) {
+      const k = key as keyof CombatStats;
+      const baseVal = baseCb[k];
+      if (typeof baseVal === 'number' && baseVal > 0) {
+        const curVal = eq.combatEffects?.[k] || baseVal;
+        const nextVal = Math.round(baseVal * nextMult);
+        const diff = nextVal - curVal;
+        const labelText = k === 'patk' ? '⚔️ 物理攻擊 (PATK)' : (k === 'matk' ? '🔮 魔法攻擊 (MATK)' : (k === 'pdef' ? '🛡️ 物理防禦 (PDEF)' : (k === 'mdef' ? '✨ 魔法防禦 (MDEF)' : (k === 'hit' ? '🎯 命中 (HIT)' : (k === 'evade' ? '🌀 閃避 (EVD)' : k.toUpperCase())))));
+        previews.push(`
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(0,0,0,0.5); border-radius:6px; border:1px solid rgba(217,119,6,0.2);">
+            <span style="color:#cbd5e1; font-weight:bold; font-size:0.9em;">${labelText}</span>
+            <div>
+              <span style="color:#fff; font-weight:bold; font-size:1em;">${curVal}</span> ➔ 
+              <span style="color:#22c55e; font-weight:bold; font-size:1.05em;">${nextVal}</span> 
+              <span style="color:#22c55e; font-size:0.82em; margin-left:4px;">(+${diff})</span>
+            </div>
+          </div>
+        `);
+      }
+    }
+
+    rightPanel.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <!-- 上方選中裝備卡片 -->
+        <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
+          <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(eq, 64)}</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="margin:0; color:#eab308; font-size:1.35em;">${eq.name} <span style="color:#38bdf8;">+${curLvl}</span> ➔ <span style="color:#22c55e;">+${curLvl + 1}</span></h3>
+              <span style="padding:2px 7px; background:rgba(217,119,6,0.25); border-radius:4px; color:#fbbf24; font-weight:bold; font-size:0.85em;">T${eq.tier || 1}</span>
+            </div>
+            <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">
+              ${getElementBadge(eq.element)} | 職業限制：${eq.allowedJobs ? eq.allowedJobs.join('/') : '無限制'}
+            </div>
+            <div style="font-size:0.85em; margin-top:6px;">
+              現有戰鬥屬性：${formatStatsTags(eq.combatEffects, eq.effects)}
+            </div>
+          </div>
+        </div>
+
+        <!-- 中間強化對比預覽 -->
+        <div style="background:rgba(25, 20, 16, 0.8); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.2);">
+          <h4 style="margin-top:0; color:#fbbf24; font-size:0.95em; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:6px;">📈 強化提升屬性對比 (PATK, MATK, PDEF, MDEF)</h4>
+          <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;">
+            ${previews.length > 0 ? previews.join('') : '<p style="color:#94a3b8; margin:0;">基礎無戰鬥屬性提升。</p>'}
+          </div>
         </div>
       </div>
-    `);
+
+      <!-- 下方金幣與強化按鈕 -->
+      <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px; text-align:center;">
+        <div style="display:flex; justify-content:space-between; font-size:0.9em; color:#cbd5e1; margin-bottom:10px; padding:0 20px;">
+          <span>消耗：<strong style="color:${goldEnough ? '#22c55e' : '#ef4444'};">${territory.gold}</strong> / <strong style="color:#fbbf24;">${cost} 金幣</strong></span>
+          <span>成功機率：<strong style="color:${rate >= 80 ? '#22c55e' : '#f59e0b'};">${rate}%</strong></span>
+        </div>
+        <button id="btn-exec-enhance-furnace" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:${goldEnough ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.1)'}; color:${goldEnough ? '#fff' : '#64748b'};" ${goldEnough ? '' : 'disabled'}>
+          🔨 執行強化
+        </button>
+      </div>
+    `;
+
+    rightPanel.querySelector('#btn-exec-enhance-furnace')?.addEventListener('click', () => {
+      const res = EnhancementSystem.enhance(territory, eq);
+      ToastManager.show(res, res.includes('成功') ? 'success' : 'error');
+      UIManager.updateUI();
+      renderLeftGrid();
+      renderRightPanel();
+    });
+  };
+
+  renderLeftGrid();
+  renderRightPanel();
+
+  splitContainer.appendChild(leftPanel);
+  splitContainer.appendChild(rightPanel);
+  workspace.appendChild(splitContainer);
+}
+
+// ----------------------------------------------------------------------------
+// 2. 裝備鍛造 & 3. 裝備重鑄模式 (100% 完全對齊截圖一排版 + 標籤精密過濾)
+// ----------------------------------------------------------------------------
+
+function renderForgeCraftMode() {
+  renderRecipeFurnaceView(false);
+}
+
+function renderForgeReforgeMode() {
+  renderRecipeFurnaceView(true);
+}
+
+function renderRecipeFurnaceView(isReforgeMode: boolean) {
+  const territory = GameState.myTerritory;
+  const workspace = document.getElementById('forge-workspace')!;
+  workspace.innerHTML = '';
+
+  // 標籤精密過濾：重鑄模式下，只有帶有變異標籤 (isVariant) 且玩家持有對應重鑄書的配方，或一般非變異重鑄配方才允許顯示！
+  let recipes = DataStore.CraftingRecipeDB.filter((r: any) => isReforgeMode ? !!r.baseEquipmentId : !r.baseEquipmentId);
+
+  if (isReforgeMode) {
+    recipes = recipes.filter((r: any) => {
+      const isVar = r.isVariant || (r.name && r.name.includes('專用'));
+      if (!isVar) return true; // 一般非變異重鑄項目顯示
+      // 變異職業專用重鑄項目：必須持對應重鑄書道具 (requireTomeId/tome_...) 才顯示！
+      const tomeId = r.requireTomeId || `tome_${r.targetEquipmentId}`;
+      const hasReforgeTome = getMaterialCount(territory, tomeId) > 0 || getMaterialCount(territory, 'mat_reforge_scroll') > 0;
+      return hasReforgeTome;
+    });
   }
-  
-  goodsContainer.innerHTML = `
-    <div style="color: #94a3b8; font-size: 0.85em; margin-bottom: 12px; padding: 8px; background: rgba(251,191,36,0.1); border-radius: 6px; border-left: 3px solid #fbbf24;">
-      💰 貨物總資產估值：<strong style="color: #fbbf24;">${totalAssetValue} 金幣</strong>（按本地收購價 80% 計算）
-    </div>
-    ${rows.join('')}
-    <button class="action-btn btn-sell-all-goods" style="width: 100%; margin-top: 10px; background: linear-gradient(135deg, #059669, #065f46);">
-      🏪 一鍵全部出售（獲得 ${totalAssetValue} 金幣）
-    </button>
-  `;
-  
-  // 綁定單項出售
-  goodsContainer.querySelectorAll('.btn-sell-good').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const goodId = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
-      const price = parseInt((e.currentTarget as HTMLElement).getAttribute('data-price')!);
-      const amount = myTerritory.tradeInventory[goodId] || 0;
-      const revenue = price * amount;
-      myTerritory.addGold(revenue);
-      myTerritory.tradeInventory[goodId] = 0;
-      console.log(`💰 [跑商收益] 出售了 ${amount} 件貨物，獲得 ${revenue} 金幣！`);
-      UIManager.updateUI();
-      renderWarehouseGoods();
-    });
-  });
-  
-  // 綁定一鍵全部出售
-  const btnSellAll = goodsContainer.querySelector('.btn-sell-all-goods');
-  if (btnSellAll) {
-    btnSellAll.addEventListener('click', () => {
-      let total = 0;
-      for (const goodId of Object.keys(myTerritory.tradeInventory)) {
-        const amount = myTerritory.tradeInventory[goodId] || 0;
-        const goodDef = TRADE_GOODS.find(g => g.id === goodId);
-        if (!goodDef || amount <= 0) continue;
-        const sellPrice = Math.floor(goodDef.basePrice * 0.8);
-        total += sellPrice * amount;
-        myTerritory.tradeInventory[goodId] = 0;
+
+  if (recipes.length === 0) {
+    workspace.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:50px 0;">${isReforgeMode ? '目前沒有獲得重鑄書圖紙，未解鎖變異重鑄配方。' : '目前沒有可鍛造配方。'}</p>`;
+    return;
+  }
+
+  let selectedRecipeId = recipes[0].id;
+
+  // 雙欄 Container
+  const splitContainer = document.createElement('div');
+  splitContainer.style.display = 'flex';
+  splitContainer.style.gap = '15px';
+  splitContainer.style.flex = '1';
+  splitContainer.style.minHeight = '0';
+
+  // 左欄：可合成/重鑄列表 (寬度 340px，半透明玻璃質感)
+  const leftPanel = document.createElement('div');
+  leftPanel.style.width = '340px';
+  leftPanel.style.display = 'flex';
+  leftPanel.style.flexDirection = 'column';
+  leftPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  leftPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  leftPanel.style.borderRadius = '8px';
+  leftPanel.style.padding = '12px';
+
+  const leftTitle = document.createElement('h4');
+  leftTitle.style.margin = '0 0 10px 0';
+  leftTitle.style.color = '#fbbf24';
+  leftTitle.style.borderBottom = '1px solid rgba(217, 119, 6, 0.2)';
+  leftTitle.style.paddingBottom = '6px';
+  leftTitle.textContent = isReforgeMode ? '♨️ 可重鑄列表' : '⚒️ 可合成鍛造列表';
+  leftPanel.appendChild(leftTitle);
+
+  const leftList = document.createElement('div');
+  leftList.style.flex = '1';
+  leftList.style.overflowY = 'auto';
+  leftList.style.display = 'flex';
+  leftList.style.flexDirection = 'column';
+  leftList.style.gap = '8px';
+  leftList.style.paddingRight = '2px';
+  leftPanel.appendChild(leftList);
+
+  // 右欄：合成/重鑄火爐區 (100% 完全對齊截圖一參考圖)
+  const rightPanel = document.createElement('div');
+  rightPanel.style.flex = '1';
+  rightPanel.style.display = 'flex';
+  rightPanel.style.flexDirection = 'column';
+  rightPanel.style.justifyContent = 'space-between';
+  rightPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  rightPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  rightPanel.style.borderRadius = '8px';
+  rightPanel.style.padding = '18px';
+
+  const renderLeftList = () => {
+    leftList.innerHTML = '';
+    recipes.forEach(r => {
+      const card = document.createElement('div');
+      const targetTpl = DataStore.getEquipmentTemplate(r.targetEquipmentId);
+      const isSel = r.id === selectedRecipeId;
+
+      card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.75)';
+      card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
+      card.style.borderRadius = '8px';
+      card.style.padding = '10px 12px';
+      card.style.display = 'flex';
+      card.style.alignItems = 'center';
+      card.style.gap = '10px';
+      card.style.cursor = 'pointer';
+
+      card.innerHTML = `
+        <div style="font-size:2em;">${targetTpl?.icon || '⚔️'}</div>
+        <div style="flex:1; overflow:hidden;">
+          <strong style="color:${isSel ? '#fbbf24' : '#e2e8f0'}; font-size:0.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${r.name}</strong>
+          <span style="font-size:0.78em; color:#94a3b8;">${r.goldCost} 金幣</span>
+        </div>
+      `;
+
+      if (targetTpl) {
+        attachTooltip(card, () => getEquipTooltipHtml(targetTpl));
       }
-      myTerritory.addGold(total);
-      console.log(`💰 [跑商收益] 一鍵出售全部貨物，獲得 ${total} 金幣！`);
-      UIManager.updateUI();
-      renderWarehouseGoods();
+
+      card.onclick = () => {
+        selectedRecipeId = r.id;
+        renderLeftList();
+        renderRightPanel();
+      };
+
+      leftList.appendChild(card);
     });
+  };
+
+  const renderRightPanel = () => {
+    rightPanel.innerHTML = '';
+    const recipe = recipes.find(r => r.id === selectedRecipeId) || recipes[0];
+    const targetTemplate = DataStore.getEquipmentTemplate(recipe.targetEquipmentId);
+    if (!targetTemplate) return;
+
+    // 檢查前置裝備
+    const baseTemplate = recipe.baseEquipmentId ? DataStore.getEquipmentTemplate(recipe.baseEquipmentId) : null;
+    const baseEquipInWarehouse = recipe.baseEquipmentId ? territory.warehouse.find(eq => eq.id === recipe.baseEquipmentId) : null;
+    const hasBaseEquip = !recipe.baseEquipmentId || !!baseEquipInWarehouse;
+
+    let canCraft = hasBaseEquip;
+    const matCardsHtml: string[] = [];
+
+    // 前置裝備框體 (完全對齊截圖一：64px x 64px 框體 + 數字)
+    if (baseTemplate) {
+      matCardsHtml.push(`
+        <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px; cursor:pointer;">
+          <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${hasBaseEquip ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:2.2em; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
+            ${baseTemplate.icon || '🗡️'}
+          </div>
+          <div style="font-size:0.78em; color:#e2e8f0; margin-top:4px; font-weight:bold; text-align:center; height:28px; overflow:hidden;">${baseTemplate.name}</div>
+          <div style="font-size:0.82em; color:${hasBaseEquip ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasBaseEquip ? '1/1' : '0/1'}</div>
+        </div>
+      `);
+    }
+
+    // 材料框體 (完全對齊截圖一：64px x 64px 框體 + 數字)
+    for (const [matId, reqAmount] of Object.entries(recipe.requiredMaterials || {})) {
+      const matDef = materialsJson.find(m => m.id === matId);
+      const name = matDef ? matDef.name : matId;
+      const icon = matDef ? matDef.icon : '🧲';
+      const hasCount = getMaterialCount(territory, matId);
+      const isEnough = hasCount >= (reqAmount as number);
+      if (!isEnough) canCraft = false;
+
+      matCardsHtml.push(`
+        <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px; cursor:pointer;">
+          <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${isEnough ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:2.2em; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
+            ${icon}
+          </div>
+          <div style="font-size:0.78em; color:#e2e8f0; margin-top:4px; font-weight:bold; text-align:center; height:28px; overflow:hidden;">${name}</div>
+          <div style="font-size:0.82em; color:${isEnough ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasCount}/${reqAmount}</div>
+        </div>
+      `);
+    }
+
+    const goldEnough = territory.gold >= recipe.goldCost;
+    if (!goldEnough) canCraft = false;
+
+    rightPanel.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <!-- 頂部產出裝備卡片 (完全對齊截圖一) -->
+        <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
+          <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(targetTemplate, 64)}</div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 style="margin:0; color:#eab308; font-size:1.4em;">${targetTemplate.name}</h3>
+              <span style="padding:2px 7px; background:rgba(217,119,6,0.25); border-radius:4px; color:#fbbf24; font-weight:bold; font-size:0.85em;">T${targetTemplate.tier || 1}</span>
+            </div>
+            <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">
+              ${getElementBadge(targetTemplate.element)} | 職業限制：${targetTemplate.allowedJobs ? targetTemplate.allowedJobs.join('/') : '無限制'}
+            </div>
+            <div style="font-size:0.85em; margin-top:6px;">
+              基礎效果：${formatStatsTags(targetTemplate.baseCombatEffects, targetTemplate.baseEffects)}
+            </div>
+          </div>
+        </div>
+
+        <!-- 中間所需的材料與前置裝備 (完全 100% 對齊截圖一) -->
+        <div style="background:rgba(25, 20, 16, 0.8); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.2);">
+          <h4 style="margin-top:0; color:#fbbf24; font-size:0.95em; margin-bottom:12px; text-align:center; letter-spacing:1px;">═══ 所需材料與前置裝備 ═══</h4>
+          <div style="display:flex; gap:16px; justify-content:center; overflow-x:auto; padding:6px 0;">
+            ${matCardsHtml.join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- 下方金幣與按鈕 (完全 100% 對齊截圖一) -->
+      <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px; text-align:center;">
+        <div style="font-size:0.95em; color:#cbd5e1; margin-bottom:10px;">
+          消耗：<span style="color:${goldEnough ? '#22c55e' : '#ef4444'}; font-weight:bold;">${territory.gold}</span> / <span style="color:#fbbf24; font-weight:bold;">${recipe.goldCost} 金幣</span>
+        </div>
+        <button id="btn-exec-recipe-craft-furnace" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:${canCraft ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.1)'}; color:${canCraft ? '#fff' : '#64748b'};" ${canCraft ? '' : 'disabled'}>
+          ${isReforgeMode ? '重鑄' : '合成'}
+        </button>
+      </div>
+    `;
+
+    // 綁定前置裝備與材料框體懸浮 Tooltip
+    if (baseTemplate) {
+      const firstBox = rightPanel.querySelector('.mat-slot-box');
+      if (firstBox) attachTooltip(firstBox as HTMLElement, () => getEquipTooltipHtml(baseTemplate));
+    }
+
+    rightPanel.querySelector('#btn-exec-recipe-craft-furnace')?.addEventListener('click', () => {
+      if (recipe.baseEquipmentId) {
+        const baseIndex = territory.warehouse.findIndex(eq => eq.id === recipe.baseEquipmentId);
+        if (baseIndex === -1) return;
+        territory.warehouse.splice(baseIndex, 1);
+      }
+
+      for (const [matId, reqAmount] of Object.entries(recipe.requiredMaterials || {})) {
+        consumeMaterial(territory, matId, reqAmount as number);
+      }
+      territory.gold -= recipe.goldCost;
+
+      const newEq = EquipmentGenerator.generate(recipe.targetEquipmentId);
+      if (newEq) {
+        territory.warehouse.push(newEq);
+        ToastManager.show(`✨ ${isReforgeMode ? '重鑄' : '合成'}成功！獲得【${newEq.name}】！`, 'success');
+        UIManager.updateUI();
+        renderLeftList();
+        renderRightPanel();
+      }
+    });
+  };
+
+  renderLeftList();
+  renderRightPanel();
+
+  splitContainer.appendChild(leftPanel);
+  splitContainer.appendChild(rightPanel);
+  workspace.appendChild(splitContainer);
+}
+
+// ----------------------------------------------------------------------------
+// 4. 元素加工與附魔模式 (左欄 3 欄傭兵網格卡片 + 右欄 5 大元素石對齊圖三)
+// ----------------------------------------------------------------------------
+
+function renderForgeEnchantMode() {
+  const territory = GameState.myTerritory;
+  const workspace = document.getElementById('forge-workspace')!;
+  workspace.innerHTML = '';
+
+  if (!territory.warehouse || territory.warehouse.length === 0) {
+    workspace.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:50px 0;">倉庫內沒有可附魔的裝備。</p>';
+    return;
+  }
+
+  const elemStones = [
+    { matId: 'mat_element_fire', element: ElementType.FIRE, name: '熾炎附魔石', icon: '🔥', color: '#ef4444' },
+    { matId: 'mat_element_ice', element: ElementType.ICE, name: '霜冰附魔石', icon: '❄️', color: '#38bdf8' },
+    { matId: 'mat_element_lightning', element: ElementType.LIGHTNING, name: '疾雷附魔石', icon: '⚡', color: '#eab308' },
+    { matId: 'mat_element_holy', element: ElementType.HOLY, name: '聖光附魔石', icon: '☀️', color: '#fef08a' },
+    { matId: 'mat_element_dark', element: ElementType.DARK, name: '暗影附魔石', icon: '🌙', color: '#a855f7' }
+  ];
+
+  let selectedUuid = territory.warehouse[0].uuid;
+  let selectedStoneMatId = elemStones[0].matId;
+
+  // 雙欄 Container
+  const splitContainer = document.createElement('div');
+  splitContainer.style.display = 'flex';
+  splitContainer.style.gap = '15px';
+  splitContainer.style.flex = '1';
+  splitContainer.style.minHeight = '0';
+
+  // 左欄：傭兵網格選裝備 (寬度 420px，3 欄卡片網格，半透明玻璃質感)
+  const leftPanel = document.createElement('div');
+  leftPanel.style.width = '420px';
+  leftPanel.style.display = 'flex';
+  leftPanel.style.flexDirection = 'column';
+  leftPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  leftPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  leftPanel.style.borderRadius = '8px';
+  leftPanel.style.padding = '12px';
+
+  const leftTitle = document.createElement('h4');
+  leftTitle.style.margin = '0 0 10px 0';
+  leftTitle.style.color = '#fbbf24';
+  leftTitle.style.borderBottom = '1px solid rgba(217, 119, 6, 0.2)';
+  leftTitle.style.paddingBottom = '6px';
+  leftTitle.textContent = '🛡️ 選擇欲附魔裝備';
+  leftPanel.appendChild(leftTitle);
+
+  const leftGrid = document.createElement('div');
+  leftGrid.style.flex = '1';
+  leftGrid.style.overflowY = 'auto';
+  leftGrid.style.overflowX = 'hidden';
+  leftGrid.style.display = 'grid';
+  leftGrid.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
+  leftGrid.style.gap = '6px';
+  leftGrid.style.paddingRight = '2px';
+  leftGrid.style.alignContent = 'flex-start';
+  leftPanel.appendChild(leftGrid);
+
+  // 右欄：圖三附魔台 (半透明玻璃質感)
+  const rightPanel = document.createElement('div');
+  rightPanel.style.flex = '1';
+  rightPanel.style.display = 'flex';
+  rightPanel.style.flexDirection = 'column';
+  rightPanel.style.justifyContent = 'space-between';
+  rightPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  rightPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  rightPanel.style.borderRadius = '8px';
+  rightPanel.style.padding = '18px';
+
+  const renderLeftGrid = () => {
+    leftGrid.innerHTML = '';
+    territory.warehouse.forEach(eq => {
+      const isSel = eq.uuid === selectedUuid;
+      const card = document.createElement('div');
+      card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
+      card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
+      card.style.borderRadius = '6px';
+      card.style.padding = '5px 4px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.alignItems = 'center';
+      card.style.textAlign = 'center';
+      card.style.justifyContent = 'space-between';
+      card.style.cursor = 'pointer';
+      card.style.height = '85px';
+      card.style.minWidth = '0';
+      card.style.boxSizing = 'border-box';
+      card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
+
+      card.innerHTML = `
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2px;">
+          ${renderEquipIcon(eq, 42)}
+        </div>
+        <div style="display:flex; justify-content:space-between; width:100%; font-size:0.68em; border-top:1px solid rgba(255,255,255,0.12); padding-top:2px; margin-top:2px;">
+          <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
+          <span style="font-size:0.85em;">${getElementBadge(eq.element)}</span>
+        </div>
+      `;
+
+      // 綁定懸浮 Tooltip！
+      attachTooltip(card, () => getEquipTooltipHtml(eq));
+
+      card.onclick = () => {
+        selectedUuid = eq.uuid;
+        renderLeftGrid();
+        renderRightPanel();
+      };
+
+      leftGrid.appendChild(card);
+    });
+  };
+
+  const renderRightPanel = () => {
+    rightPanel.innerHTML = '';
+    const eq = territory.warehouse.find(x => x.uuid === selectedUuid) || territory.warehouse[0];
+    const selStone = elemStones.find(s => s.matId === selectedStoneMatId) || elemStones[0];
+    const stoneCount = getMaterialCount(territory, selStone.matId);
+
+    const stoneCardsHtml = elemStones.map(stone => {
+      const count = getMaterialCount(territory, stone.matId);
+      const isSel = stone.matId === selectedStoneMatId;
+      return `
+        <div class="stone-opt-box-altar" data-id="${stone.matId}" style="background:${isSel ? 'rgba(234,179,8,0.25)' : 'rgba(35, 28, 22, 0.85)'}; border:2px solid ${isSel ? '#eab308' : 'rgba(217,119,6,0.3)'}; border-radius:8px; padding:12px; display:flex; flex-direction:column; align-items:center; text-align:center; cursor:pointer; width:110px;">
+          <div style="font-size:2.4em;">${stone.icon}</div>
+          <div style="font-size:0.85em; color:${stone.color}; font-weight:bold; margin-top:4px;">${stone.name}</div>
+          <div style="font-size:0.78em; color:${count > 0 ? '#22c55e' : '#ef4444'}; margin-top:4px; font-weight:bold;">擁有 x${count}</div>
+        </div>
+      `;
+    }).join('');
+
+    rightPanel.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <!-- 頂部選中裝備卡片 -->
+        <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
+          <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(eq, 64)}</div>
+          <div style="flex:1;">
+            <h3 style="margin:0; color:#eab308; font-size:1.35em;">${eq.name}</h3>
+            <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">
+              當前元素：${getElementBadge(eq.element)}
+            </div>
+            <div style="font-size:0.85em; margin-top:6px;">
+              屬性效果：${formatStatsTags(eq.combatEffects, eq.effects)}
+            </div>
+          </div>
+        </div>
+
+        <!-- 中間 5 大元素石框體對齊圖三 -->
+        <div style="background:rgba(25, 20, 16, 0.8); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.2);">
+          <h4 style="margin-top:0; color:#fbbf24; font-size:0.95em; margin-bottom:12px; text-align:center;">💎 選擇背包中的元素附魔石 (點擊卡片選取)</h4>
+          <div style="display:flex; gap:14px; justify-content:center; overflow-x:auto; padding:4px 0;">
+            ${stoneCardsHtml}
+          </div>
+        </div>
+      </div>
+
+      <!-- 下方按鈕 -->
+      <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px; text-align:center;">
+        <div style="font-size:0.9em; color:#cbd5e1; margin-bottom:10px;">
+          注入 <strong style="color:${selStone.color};">${selStone.name} (${selStone.icon})</strong> 覆蓋注入元素
+        </div>
+        <button id="btn-exec-enchant-furnace" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:${stoneCount > 0 ? 'linear-gradient(135deg, #7c3aed, #5b21b6)' : 'rgba(255,255,255,0.1)'}; color:${stoneCount > 0 ? '#fff' : '#64748b'};" ${stoneCount > 0 ? '' : 'disabled'}>
+          注入元素
+        </button>
+      </div>
+    `;
+
+    rightPanel.querySelectorAll('.stone-opt-box-altar').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        selectedStoneMatId = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
+        renderRightPanel();
+      });
+    });
+
+    rightPanel.querySelector('#btn-exec-enchant-furnace')?.addEventListener('click', () => {
+      if (stoneCount <= 0) return;
+      consumeMaterial(territory, selStone.matId, 1);
+      eq.element = selStone.element;
+      ToastManager.show(`✨ 附魔成功！【${eq.name}】已成功注入 ${selStone.name} (${selStone.icon})！`, 'success');
+      UIManager.updateUI();
+      renderLeftGrid();
+      renderRightPanel();
+    });
+  };
+
+  renderLeftGrid();
+  renderRightPanel();
+
+  splitContainer.appendChild(leftPanel);
+  splitContainer.appendChild(rightPanel);
+  workspace.appendChild(splitContainer);
+}
+
+// ----------------------------------------------------------------------------
+// 5. 素材與背包模式 (半透明雙欄 Layout)
+// ----------------------------------------------------------------------------
+
+function renderForgeMatsMode() {
+  const territory = GameState.myTerritory;
+  const workspace = document.getElementById('forge-workspace')!;
+  workspace.innerHTML = '';
+
+  const splitContainer = document.createElement('div');
+  splitContainer.style.display = 'flex';
+  splitContainer.style.gap = '15px';
+  splitContainer.style.flex = '1';
+  splitContainer.style.minHeight = '0';
+
+  // 左側素材 (50%)
+  const leftPanel = document.createElement('div');
+  leftPanel.style.flex = '1';
+  leftPanel.style.display = 'flex';
+  leftPanel.style.flexDirection = 'column';
+  leftPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  leftPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  leftPanel.style.borderRadius = '8px';
+  leftPanel.style.padding = '12px';
+
+  leftPanel.innerHTML = '<h4 style="margin:0 0 10px 0; color:#fbbf24; border-bottom:1px solid rgba(217,119,6,0.2); padding-bottom:6px;">🧲 鍛造素材與附魔石</h4>';
+
+  const leftList = document.createElement('div');
+  leftList.style.flex = '1';
+  leftList.style.overflowY = 'auto';
+  leftList.style.display = 'flex';
+  leftList.style.flexDirection = 'column';
+  leftList.style.gap = '6px';
+
+  const matsMap = territory.materials || {};
+  const matKeys = Object.keys(matsMap).filter(k => matsMap[k] > 0);
+
+  if (matKeys.length === 0) {
+    leftList.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:30px 0;">目前無素材。</p>';
+  } else {
+    matKeys.forEach(matId => {
+      const amount = matsMap[matId];
+      const matDef = materialsJson.find(m => m.id === matId);
+      const name = matDef ? matDef.name : matId;
+      const icon = matDef ? matDef.icon : '🧲';
+
+      const card = document.createElement('div');
+      card.style.background = 'rgba(30, 24, 20, 0.75)';
+      card.style.border = '1px solid rgba(217, 119, 6, 0.25)';
+      card.style.borderRadius = '6px';
+      card.style.padding = '6px 10px';
+      card.style.display = 'flex';
+      card.style.alignItems = 'center';
+      card.style.justifyContent = 'space-between';
+
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.4em;">${icon}</span>
+          <span style="color:#e2e8f0; font-size:0.85em;">${name}</span>
+        </div>
+        <span style="color:#22c55e; font-weight:bold; font-size:0.85em;">x${amount}</span>
+      `;
+      leftList.appendChild(card);
+    });
+  }
+  leftPanel.appendChild(leftList);
+
+  // 右側交易品 (50%)
+  const rightPanel = document.createElement('div');
+  rightPanel.style.flex = '1';
+  rightPanel.style.display = 'flex';
+  rightPanel.style.flexDirection = 'column';
+  rightPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+  rightPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
+  rightPanel.style.borderRadius = '8px';
+  rightPanel.style.padding = '12px';
+
+  rightPanel.innerHTML = '<h4 style="margin:0 0 10px 0; color:#fbbf24; border-bottom:1px solid rgba(217,119,6,0.2); padding-bottom:6px;">📦 領地地區交易品貨物</h4>';
+
+  const rightList = document.createElement('div');
+  rightList.style.flex = '1';
+  rightList.style.overflowY = 'auto';
+  rightList.style.display = 'flex';
+  rightList.style.flexDirection = 'column';
+  rightList.style.gap = '6px';
+
+  const inventory = territory.tradeInventory || {};
+  const goodIds = Object.keys(inventory).filter(id => inventory[id] > 0);
+
+  if (goodIds.length === 0) {
+    rightList.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:30px 0;">跑商倉庫無貨物。</p>';
+  } else {
+    goodIds.forEach(goodId => {
+      const amount = inventory[goodId];
+      const goodDef = TRADE_GOODS.find(g => g.id === goodId);
+      if (!goodDef || amount <= 0) return;
+      const sellPrice = Math.floor(goodDef.basePrice * 0.8);
+
+      const card = document.createElement('div');
+      card.style.background = 'rgba(30, 24, 20, 0.75)';
+      card.style.border = '1px solid rgba(217, 119, 6, 0.25)';
+      card.style.borderRadius = '6px';
+      card.style.padding = '6px 10px';
+      card.style.display = 'flex';
+      card.style.justifyContent = 'space-between';
+      card.style.alignItems = 'center';
+
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.4em;">${goodDef.icon || '📦'}</span>
+          <div>
+            <span style="color:#e2e8f0; font-size:0.85em; font-weight:bold;">${goodDef.name}</span>
+            <span style="color:#22c55e; font-size:0.8em; margin-left:6px;">x${amount}</span>
+          </div>
+        </div>
+        <span style="color:#fbbf24; font-size:0.82em; font-weight:bold;">≈ ${sellPrice * amount} 金</span>
+      `;
+      rightList.appendChild(card);
+    });
+  }
+  rightPanel.appendChild(rightList);
+
+  splitContainer.appendChild(leftPanel);
+  splitContainer.appendChild(rightPanel);
+  workspace.appendChild(splitContainer);
+}
+
+// 輔助材料管理
+function getMaterialCount(territory: any, matId: string): number {
+  if (!territory.materials) return 0;
+  return territory.materials[matId] || 0;
+}
+
+function consumeMaterial(territory: any, matId: string, count: number): void {
+  if (!territory.materials) return;
+  if (territory.materials[matId]) {
+    territory.materials[matId] = Math.max(0, territory.materials[matId] - count);
   }
 }
 
+// 保留商店渲染
 export function renderWeaponShop() {
   const shopList = document.getElementById('weapon-shop-list');
   const shopLvlEl = document.getElementById('ui-weapon-shop-lvl');
@@ -221,29 +990,12 @@ export function renderWeaponShop() {
   }
   shopList.style.display = 'grid';
 
-  const allowedItemLevels: number[] = [];
-  if (lvl >= 1) allowedItemLevels.push(10);
-  if (lvl >= 2) allowedItemLevels.push(25);
-  if (lvl >= 3) allowedItemLevels.push(50);
-
   const allTemplates = Object.values(DataStore.EquipmentDB);
-  const weapons = allTemplates.filter(t => t.slot === EquipmentSlot.WEAPON && allowedItemLevels.includes(t.itemLevel));
+  const weapons = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && t.slot === EquipmentSlot.WEAPON && (t.tier === undefined || t.tier <= 2));
 
   weapons.forEach(wpn => {
     const price = DataStore.EquipmentPriceDB[wpn.id] || 0;
     const canBuy = territory.gold >= price;
-    
-    let reqs = '';
-    for (const [k, v] of Object.entries(wpn.baseRequirements)) {
-      reqs += `${k.toUpperCase()}:${v} `;
-    }
-    let effs = '';
-    for (const [k, v] of Object.entries(wpn.baseEffects)) {
-      effs += `${k.toUpperCase()}:+${v} `;
-    }
-    for (const [k, v] of Object.entries(wpn.baseCombatEffects)) {
-      effs += `${k.toUpperCase()}:+${v} `;
-    }
 
     const card = document.createElement('div');
     card.className = 'glass-panel';
@@ -251,38 +1003,49 @@ export function renderWeaponShop() {
     card.style.display = 'flex';
     card.style.flexDirection = 'column';
     card.style.justifyContent = 'space-between';
-    card.style.background = 'rgba(0,0,0,0.4)';
-    card.style.borderRadius = '8px';
-    card.style.border = '1px solid rgba(255,255,255,0.05)';
 
     card.innerHTML = `
-      <div style="display: flex; flex-direction: column; height: 100%;">
-        <div style="font-size: 1.8em; margin-bottom: 5px; text-align: center;">${wpn.icon || '⚔️'}</div>
-        <div style="font-weight: bold; font-size: 1.1em; text-align: center; color: #fff; margin-bottom: 5px;">${wpn.name}</div>
-        <div style="font-size: 0.8em; color: #f87171; margin-bottom: 5px; text-align: center;">需求: ${reqs || '無'}</div>
-        <div style="font-size: 0.8em; color: #34d399; line-height: 1.4; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;">加成: ${effs}</div>
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            ${renderEquipIcon(wpn, 28)}
+            <strong style="color: #eab308; font-size: 1.1em;">${wpn.name}</strong>
+          </div>
+          <span style="font-size:0.8em; color:#94a3b8;">${wpn.weaponType || '武器'}</span>
+        </div>
+        <div style="font-size: 0.85em; color: #cbd5e1; margin-bottom: 6px;">
+          限制：${wpn.allowedJobs ? wpn.allowedJobs.join('/') : '無限制'}
+        </div>
+        <div style="font-size: 0.85em; color: #34d399; margin-bottom: 12px;">
+          效果：${formatStatsTags(wpn.baseCombatEffects, wpn.baseEffects)}
+        </div>
       </div>
-      <button class="action-btn btn-buy-wpn" style="margin-top:15px; font-size: 0.9em; width:100%; background: ${canBuy ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.05)'};" ${canBuy ? '' : 'disabled'}>
-        💰 購買 (${price} 金幣)
-      </button>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+        <span style="color: #fbbf24; font-weight: bold;">💰 ${price} 金幣</span>
+        <button class="action-btn btn-buy-weapon" data-id="${wpn.id}" data-price="${price}" style="padding: 4px 12px; font-size: 0.85em;" ${canBuy ? '' : 'disabled'}>
+          ${canBuy ? '購買' : '金幣不足'}
+        </button>
+      </div>
     `;
+    shopList.appendChild(card);
+  });
 
-    const buyBtn = card.querySelector('.btn-buy-wpn') as HTMLButtonElement;
-    buyBtn.onclick = () => {
+  shopList.querySelectorAll('.btn-buy-weapon').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
+      const price = parseInt((e.currentTarget as HTMLElement).getAttribute('data-price')!);
+
       if (territory.gold >= price) {
         territory.gold -= price;
-        const eq = EquipmentGenerator.generate(wpn.id);
-        if (eq) {
-          territory.addEquipmentToWarehouse(eq);
-          console.log(`[武器店] 💰 購買了【${wpn.name}】並放入了您的倉庫！`);
-          ToastManager.show(`成功購買【${wpn.name}】！`);
-          renderWeaponShop();
+        const newEq = EquipmentGenerator.generate(id);
+        if (newEq) {
+          territory.warehouse.push(newEq);
+          ToastManager.show(`🛒 購買成功！【${newEq.name}】已放入領地倉庫。`, 'success');
           UIManager.updateUI();
+          renderWeaponShop();
         }
       }
-    };
-
-    shopList.appendChild(card);
+    });
   });
 }
 
@@ -307,29 +1070,12 @@ export function renderArmorShop() {
   }
   shopList.style.display = 'grid';
 
-  const allowedItemLevels: number[] = [];
-  if (lvl >= 1) { allowedItemLevels.push(8); allowedItemLevels.push(10); }
-  if (lvl >= 2) { allowedItemLevels.push(22); allowedItemLevels.push(25); }
-  if (lvl >= 3) { allowedItemLevels.push(45); allowedItemLevels.push(50); }
-
   const allTemplates = Object.values(DataStore.EquipmentDB);
-  const armors = allTemplates.filter(t => t.slot === EquipmentSlot.ARMOR && allowedItemLevels.includes(t.itemLevel));
+  const armors = allTemplates.filter(t => t.slot === EquipmentSlot.ARMOR && (t.tier === undefined || t.tier <= 2));
 
   armors.forEach(arm => {
     const price = DataStore.EquipmentPriceDB[arm.id] || 0;
     const canBuy = territory.gold >= price;
-    
-    let reqs = '';
-    for (const [k, v] of Object.entries(arm.baseRequirements)) {
-      reqs += `${k.toUpperCase()}:${v} `;
-    }
-    let effs = '';
-    for (const [k, v] of Object.entries(arm.baseEffects)) {
-      effs += `${k.toUpperCase()}:+${v} `;
-    }
-    for (const [k, v] of Object.entries(arm.baseCombatEffects)) {
-      effs += `${k.toUpperCase()}:+${v} `;
-    }
 
     const card = document.createElement('div');
     card.className = 'glass-panel';
@@ -337,40 +1083,270 @@ export function renderArmorShop() {
     card.style.display = 'flex';
     card.style.flexDirection = 'column';
     card.style.justifyContent = 'space-between';
-    card.style.background = 'rgba(0,0,0,0.4)';
-    card.style.borderRadius = '8px';
-    card.style.border = '1px solid rgba(255,255,255,0.05)';
 
     card.innerHTML = `
-      <div style="display: flex; flex-direction: column; height: 100%;">
-        <div style="font-size: 1.8em; margin-bottom: 5px; text-align: center;">${arm.icon || '🛡️'}</div>
-        <div style="font-weight: bold; font-size: 1.1em; text-align: center; color: #fff; margin-bottom: 5px;">${arm.name}</div>
-        <div style="font-size: 0.8em; color: #f87171; margin-bottom: 5px; text-align: center;">需求: ${reqs || '無'}</div>
-        <div style="font-size: 0.8em; color: #34d399; line-height: 1.4; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; flex: 1; display: flex; align-items: center; justify-content: center; text-align: center;">加成: ${effs}</div>
+      <div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color: #eab308; font-size: 1.1em;">${arm.name}</strong>
+          <span style="font-size:0.8em; color:#94a3b8;">${arm.armorType || '防具'}</span>
+        </div>
+        <div style="font-size: 0.85em; color: #cbd5e1; margin-bottom: 6px;">
+          限制：${arm.allowedJobs ? arm.allowedJobs.join('/') : '無限制'}
+        </div>
+        <div style="font-size: 0.85em; color: #34d399; margin-bottom: 12px;">
+          效果：${formatStatsTags(arm.baseCombatEffects, arm.baseEffects)}
+        </div>
       </div>
-      <button class="action-btn btn-buy-arm" style="margin-top:15px; font-size: 0.9em; width:100%; background: ${canBuy ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.05)'};" ${canBuy ? '' : 'disabled'}>
-        💰 購買 (${price} 金幣)
-      </button>
+      <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+        <span style="color: #fbbf24; font-weight: bold;">💰 ${price} 金幣</span>
+        <button class="action-btn btn-buy-armor" data-id="${arm.id}" data-price="${price}" style="padding: 4px 12px; font-size: 0.85em;" ${canBuy ? '' : 'disabled'}>
+          ${canBuy ? '購買' : '金幣不足'}
+        </button>
+      </div>
     `;
+    shopList.appendChild(card);
+  });
 
-    const buyBtn = card.querySelector('.btn-buy-arm') as HTMLButtonElement;
-    buyBtn.onclick = () => {
+  shopList.querySelectorAll('.btn-buy-armor').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = (e.currentTarget as HTMLElement).getAttribute('data-id')!;
+      const price = parseInt((e.currentTarget as HTMLElement).getAttribute('data-price')!);
+
       if (territory.gold >= price) {
         territory.gold -= price;
-        const eq = EquipmentGenerator.generate(arm.id);
-        if (eq) {
-          territory.addEquipmentToWarehouse(eq);
-          console.log(`[防具店] 💰 購買了【${arm.name}】並放入了您的倉庫！`);
-          ToastManager.show(`成功購買【${arm.name}】！`);
-          renderArmorShop();
+        const newEq = EquipmentGenerator.generate(id);
+        if (newEq) {
+          territory.warehouse.push(newEq);
+          ToastManager.show(`🛒 購買成功！【${newEq.name}】已放入領地倉庫。`, 'success');
           UIManager.updateUI();
+          renderArmorShop();
         }
       }
-    };
-
-    shopList.appendChild(card);
+    });
   });
 }
 
-(window as any).renderWeaponShop = renderWeaponShop;
-(window as any).renderArmorShop = renderArmorShop;
+// === 自宅獨立總倉庫 (Home Base Warehouse) 功能與 5 欄正方形網格實作 ===
+
+export function openHomeWarehouse() {
+  const modal = document.getElementById('modal-base-warehouse');
+  if (!modal) return;
+  modal.classList.add('active');
+
+  const btnClose = document.getElementById('btn-close-base-warehouse');
+  if (btnClose) {
+    btnClose.onclick = () => modal.classList.remove('active');
+  }
+
+  const tabEquip = document.getElementById('tab-base-warehouse-equip');
+  const tabMats = document.getElementById('tab-base-warehouse-mats');
+  const tabGoods = document.getElementById('tab-base-warehouse-goods');
+
+  const panelEquip = document.getElementById('panel-base-warehouse-equip');
+  const panelMats = document.getElementById('panel-base-warehouse-mats');
+  const panelGoods = document.getElementById('panel-base-warehouse-goods');
+
+  const setActiveTab = (activeTab: HTMLElement, activePanel: HTMLElement) => {
+    [tabEquip, tabMats, tabGoods].forEach(t => {
+      if (t) {
+        t.style.background = 'rgba(0,0,0,0.3)';
+        t.style.border = '1px solid rgba(255,255,255,0.1)';
+        t.style.color = '#94a3b8';
+      }
+    });
+    [panelEquip, panelMats, panelGoods].forEach(p => {
+      if (p) p.style.display = 'none';
+    });
+
+    if (activeTab) {
+      activeTab.style.background = 'rgba(234,179,8,0.2)';
+      activeTab.style.border = '1px solid rgba(234,179,8,0.4)';
+      activeTab.style.color = '#fbbf24';
+    }
+    if (activePanel) {
+      activePanel.style.display = 'block';
+    }
+  };
+
+  if (tabEquip) {
+    tabEquip.onclick = () => {
+      setActiveTab(tabEquip, panelEquip!);
+      renderHomeWarehouseEquip();
+    };
+  }
+  if (tabMats) {
+    tabMats.onclick = () => {
+      setActiveTab(tabMats, panelMats!);
+      renderHomeWarehouseMats();
+    };
+  }
+  if (tabGoods) {
+    tabGoods.onclick = () => {
+      setActiveTab(tabGoods, panelGoods!);
+      renderHomeWarehouseGoods();
+    };
+  }
+
+  if (tabEquip && panelEquip) {
+    setActiveTab(tabEquip, panelEquip);
+    renderHomeWarehouseEquip();
+  }
+}
+
+function renderHomeWarehouseEquip() {
+  const grid = document.getElementById('grid-base-warehouse-equip');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const warehouse = GameState.myTerritory.warehouse;
+  if (warehouse.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:30px;">倉庫內暫無儲備裝備</div>';
+    return;
+  }
+
+  warehouse.forEach(eq => {
+    const card = document.createElement('div');
+    card.style.background = 'rgba(30, 24, 20, 0.8)';
+    card.style.border = '1.5px solid rgba(217, 119, 6, 0.3)';
+    card.style.borderRadius = '6px';
+    card.style.padding = '5px 4px';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.alignItems = 'center';
+    card.style.textAlign = 'center';
+    card.style.justifyContent = 'space-between';
+    card.style.cursor = 'pointer';
+    card.style.width = '85px';
+    card.style.height = '85px';
+    card.style.aspectRatio = '1 / 1';
+    card.style.flexShrink = '0';
+    card.style.boxSizing = 'border-box';
+
+    const iconHtml = renderEquipIcon(eq, 42);
+    const enhancementText = eq.enhancementLevel ? `+${eq.enhancementLevel}` : '+0';
+    const tierText = `T${eq.tier || 1}`;
+
+    card.innerHTML = `
+      <div style="flex:1; display:flex; align-items:center; justify-content:center;">${iconHtml}</div>
+      <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
+        <span style="color:#38bdf8; font-weight:bold;">${enhancementText}</span>
+        <span style="color:#fbbf24; background:rgba(0,0,0,0.5); padding:1px 4px; border-radius:3px; border:1px solid rgba(251,191,36,0.3);">${tierText}</span>
+      </div>
+    `;
+
+    attachTooltip(card, () => getEquipTooltipHtml(eq));
+    grid.appendChild(card);
+  });
+}
+
+function renderHomeWarehouseMats() {
+  const grid = document.getElementById('grid-base-warehouse-mats');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const materials = GameState.myTerritory.materials;
+  const matKeys = Object.keys(materials).filter(k => (materials[k] || 0) > 0);
+
+  if (matKeys.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:30px;">倉庫內暫無素材與附魔石</div>';
+    return;
+  }
+
+  matKeys.forEach(matId => {
+    const count = materials[matId] || 0;
+    const matDef = (materialsJson as Record<string, any>)[matId] || { name: matId, icon: '🧲', description: '強化/附魔素材' };
+
+    const card = document.createElement('div');
+    card.style.background = 'rgba(30, 24, 20, 0.8)';
+    card.style.border = '1.5px solid rgba(217, 119, 6, 0.3)';
+    card.style.borderRadius = '6px';
+    card.style.padding = '5px 4px';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.alignItems = 'center';
+    card.style.textAlign = 'center';
+    card.style.justifyContent = 'space-between';
+    card.style.cursor = 'pointer';
+    card.style.width = '85px';
+    card.style.height = '85px';
+    card.style.aspectRatio = '1 / 1';
+    card.style.flexShrink = '0';
+    card.style.boxSizing = 'border-box';
+
+    card.innerHTML = `
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; font-size:1.8em;">${matDef.icon || '🧲'}</div>
+      <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
+        <span style="color:#e2e8f0; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45px;">${matDef.name}</span>
+        <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
+      </div>
+    `;
+
+    attachTooltip(card, () => `
+      <div style="padding:8px; max-width:200px;">
+        <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px;">
+          ${matDef.icon || '🧲'} ${matDef.name}
+        </div>
+        <div style="font-size:0.8em; color:#cbd5e1;">${matDef.description || '鍛造與附魔必備物資'}</div>
+        <div style="font-size:0.8em; color:#e2e8f0; margin-top:4px;">擁有數量：${count}</div>
+      </div>
+    `);
+    grid.appendChild(card);
+  });
+}
+
+function renderHomeWarehouseGoods() {
+  const grid = document.getElementById('grid-base-warehouse-goods');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  const inventory = GameState.myTerritory.tradeInventory;
+  const goodKeys = Object.keys(inventory).filter(k => (inventory[k] || 0) > 0);
+
+  if (goodKeys.length === 0) {
+    grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:30px;">倉庫內暫無交易品物資</div>';
+    return;
+  }
+
+  goodKeys.forEach(goodId => {
+    const count = inventory[goodId] || 0;
+    const goodRef = TRADE_GOODS.find(g => g.id === goodId);
+    const name = goodRef ? goodRef.name : goodId;
+    const icon = goodRef ? (goodRef.icon || '📦') : '📦';
+
+    const card = document.createElement('div');
+    card.style.background = 'rgba(30, 24, 20, 0.8)';
+    card.style.border = '1.5px solid rgba(217, 119, 6, 0.3)';
+    card.style.borderRadius = '6px';
+    card.style.padding = '5px 4px';
+    card.style.display = 'flex';
+    card.style.flexDirection = 'column';
+    card.style.alignItems = 'center';
+    card.style.textAlign = 'center';
+    card.style.justifyContent = 'space-between';
+    card.style.cursor = 'pointer';
+    card.style.width = '85px';
+    card.style.height = '85px';
+    card.style.aspectRatio = '1 / 1';
+    card.style.flexShrink = '0';
+    card.style.boxSizing = 'border-box';
+
+    card.innerHTML = `
+      <div style="flex:1; display:flex; align-items:center; justify-content:center; font-size:1.8em;">${icon}</div>
+      <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
+        <span style="color:#e2e8f0; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45px;">${name}</span>
+        <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
+      </div>
+    `;
+
+    attachTooltip(card, () => `
+      <div style="padding:8px; max-width:200px;">
+        <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px;">
+          ${icon} ${name}
+        </div>
+        <div style="font-size:0.8em; color:#cbd5e1;">用於城鎮商隊貿易與物資輸送</div>
+        <div style="font-size:0.8em; color:#e2e8f0; margin-top:4px;">庫存數量：${count} 單位</div>
+      </div>
+    `);
+    grid.appendChild(card);
+  });
+}

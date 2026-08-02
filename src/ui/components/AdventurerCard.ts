@@ -17,7 +17,7 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
     if (options.emptyLabel) {
       return `
         <div class="adv-avatar-wrapper"><span style="color:#64748b; font-size: 14px; margin-bottom: 5px;">空位</span></div>
-        <div style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px; font-size: 0.7em; white-space: nowrap; border: 1px solid rgba(255,255,255,0.3); color: #94a3b8; z-index: 5;">
+        <div style="position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.1); padding: 1px 7px; border-radius: 10px; font-size: 0.68em; white-space: nowrap; border: 1px solid rgba(255,255,255,0.3); color: #94a3b8; z-index: 5;">
           ${options.emptyLabel}
         </div>
       `;
@@ -29,12 +29,14 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
   if (!adv) return '';
 
   const displayClass = (adv as any).currentClass || adv.job.name;
-  const avatarIndex = adv.avatarIndex ?? 0;
+  const nameHash = adv.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const avatarIndex = adv.avatarIndex ?? (nameHash % 24);
+  adv.avatarIndex = avatarIndex; // save back so it persists next time
   
   // 計算 Spritesheet 背景偏移
-  // 5x5: X = (index % 5) * 25%, Y = floor(index / 5) * 25%
-  const bgX = (avatarIndex % 5) * 25;
-  const bgY = Math.floor(avatarIndex / 5) * 25;
+  // 6x4: X = (index % 6) * 20%, Y = floor(index / 6) * 33.3333%
+  const bgX = (avatarIndex % 6) * 20;
+  const bgY = Math.floor(avatarIndex / 6) * 33.3333;
 
   let extraStatsHtml = '';
   if (options.extraStats) {
@@ -51,23 +53,49 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
     const bg = options.bottomLabelBg || '#b45309';
     const roleAttr = options.bottomLabelRole ? ` data-role="${options.bottomLabelRole}"` : '';
     bottomLabelHtml = `
-      <div${roleAttr} style="position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%); background: ${bg}; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; white-space: nowrap; border: 1px solid #fff; color: #fff; z-index: 5; cursor: ${options.bottomLabelRole ? 'pointer' : 'default'};">
+      <div${roleAttr} style="position: absolute; bottom: -13px; left: 50%; transform: translateX(-50%); background: ${bg}; padding: 1px 7px; border-radius: 10px; font-size: 0.68em; white-space: nowrap; border: 1px solid #fff; color: #fff; z-index: 5; box-shadow: 0 2px 4px rgba(0,0,0,0.5); cursor: ${options.bottomLabelRole ? 'pointer' : 'default'};">
         ${options.bottomLabel}
       </div>
     `;
   }
 
+  // 極簡狀態標記 (最左上角 top: 4px, left: 4px，純微型綠/紅發光圓點)
   let cornerLabelHtml = '';
   if (options.cornerLabel) {
-    cornerLabelHtml = `
-      <div style="position: absolute; top: -5px; right: -5px; background: #3b82f6; color: white; font-size: 0.7em; padding: 2px 5px; border-radius: 5px; box-shadow: 0 0 5px rgba(0,0,0,0.5); z-index: 5;">
-        ${options.cornerLabel}
+    const isSelectedLabel = options.cornerLabel.includes('✓');
+    if (isSelectedLabel) {
+      cornerLabelHtml = `
+        <div style="position: absolute; top: 2px; left: 4px; z-index: 6; background: #3b82f6; color: white; font-size: 0.6em; padding: 0 4px; border-radius: 4px;">
+          ✓
+        </div>
+      `;
+    } else {
+      const isIdle = options.cornerLabel.includes('閒置') || options.cornerLabel.includes('IDLE');
+      const hasCrown = options.cornerLabel.includes('👑');
+      const dotColor = isIdle ? '#22c55e' : '#ef4444';
+      const dotShadow = isIdle ? '0 0 4px #22c55e' : '0 0 4px #ef4444';
+
+      cornerLabelHtml = `
+        <div title="${options.cornerLabel}" style="position: absolute; top: 4px; left: 4px; z-index: 6; display: flex; align-items: center; gap: 2px; pointer-events: auto;">
+          ${hasCrown ? '<span style="font-size: 8px; line-height: 1;">👑</span>' : ''}
+          <span style="display: inline-block; width: 6px; height: 6px; background-color: ${dotColor}; border-radius: 50%; box-shadow: ${dotShadow}; border: 1px solid rgba(255,255,255,0.7);"></span>
+        </div>
+      `;
+    }
+  }
+
+  // 極簡未分配屬性點提示 (最右上角 top: 3px, right: 4px，純微型燈泡圖示)
+  let statPointBadgeHtml = '';
+  if (adv.unspentStatPoints && adv.unspentStatPoints > 0) {
+    statPointBadgeHtml = `
+      <div title="尚有 ${adv.unspentStatPoints} 點屬性點可分配" style="position: absolute; top: 3px; right: 4px; font-size: 9px; line-height: 1; z-index: 6; pointer-events: none; filter: drop-shadow(0 0 3px #f59e0b);">
+        💡
       </div>
     `;
   }
 
-  // 預設頭像背景樣式
-  const spriteStyle = `width: 100%; height: 100%; background-image: url('assets/avatars_5x5.png'); background-size: 500% 500%; background-position: ${bgX}% ${bgY}%;`;
+  // 預設頭像背景樣式 (6x4 英雄頭像庫，使用 auto 400% 保持 1:1 正方形不拉伸)
+  const spriteStyle = `width: 100%; height: 100%; background-image: url('assets/avatars_6x4.jpg'); background-size: auto 400%; background-position: ${bgX}% ${bgY}%;`;
 
   const qualityColor = adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1';
 
@@ -85,5 +113,6 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
     ${dismissBtnHtml}
     ${bottomLabelHtml}
     ${cornerLabelHtml}
+    ${statPointBadgeHtml}
   `;
 }

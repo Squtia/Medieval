@@ -1,4 +1,4 @@
-import { Equipment } from '../models/types';
+import { Equipment, CombatStats } from '../models/types';
 import { Territory } from '../models/Territory';
 import { Random } from '../core/Random';
 
@@ -20,6 +20,33 @@ export class EnhancementSystem {
     if (currentLevel <= 2) return 100;
     if (currentLevel <= 5) return 80;
     return 40;
+  }
+
+  /**
+   * 確保裝備儲存原始基底屬性並套用特定強化等級的戰鬥屬性
+   */
+  public static applyEnhancementLevel(eq: Equipment, targetLevel: number): void {
+    eq.enhancementLevel = targetLevel;
+
+    // 確保擁有原始基底屬性紀錄 (只會記錄一次，不會被強化累積污染)
+    if (!eq.baseCombatEffects) {
+      eq.baseCombatEffects = JSON.parse(JSON.stringify(eq.combatEffects || {}));
+    }
+
+    if (!eq.combatEffects) {
+      eq.combatEffects = {};
+    }
+
+    const base = eq.baseCombatEffects!;
+    const mult = 1 + (0.10 * targetLevel); // 每級絕對增加 10% 原始基底
+
+    for (const key in base) {
+      const k = key as keyof CombatStats;
+      const baseVal = base[k];
+      if (typeof baseVal === 'number') {
+        eq.combatEffects[k] = Math.round(baseVal * mult);
+      }
+    }
   }
 
   /**
@@ -48,27 +75,18 @@ export class EnhancementSystem {
     const isSuccess = roll <= successRate;
 
     if (isSuccess) {
-      eq.enhancementLevel = currentLevel + 1;
-      
-      // 強化成功，基礎戰鬥數值提升 (假設每級提升 10%)
-      if (eq.combatEffects) {
-        for (const key in eq.combatEffects) {
-          const statKey = key as keyof typeof eq.combatEffects;
-          if (eq.combatEffects[statKey]) {
-            eq.combatEffects[statKey]! += Math.ceil(eq.combatEffects[statKey]! * 0.1);
-          }
-        }
-      }
-
+      this.applyEnhancementLevel(eq, currentLevel + 1);
       return `✨ 強化成功！【${eq.name}】提升至 +${eq.enhancementLevel}！ (花費 ${cost} 金幣)`;
     } else {
       // 強化失敗
       let penaltyMsg = '';
       if (currentLevel >= 6) {
-        eq.enhancementLevel = currentLevel - 1;
+        this.applyEnhancementLevel(eq, currentLevel - 1);
         penaltyMsg = `並且受到懲罰退階至 +${eq.enhancementLevel}！`;
+      } else {
+        this.applyEnhancementLevel(eq, currentLevel);
       }
-      return `💥 強化失敗！【${eq.name}】維持 +${currentLevel}。${penaltyMsg} (花費 ${cost} 金幣)`;
+      return `💥 強化失敗！【${eq.name}】維持 +${eq.enhancementLevel}。${penaltyMsg} (花費 ${cost} 金幣)`;
     }
   }
 }

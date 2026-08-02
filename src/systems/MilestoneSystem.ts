@@ -25,9 +25,8 @@ const MILESTONES: MilestoneDef[] = [
       return (w['FARMER'] || 0) + (w['WOODCUTTER'] || 0) + (w['MINER'] || 0) > 0;
     },
     reward: () => {
-      const node = getPlayerNode();
-      if (node) node.prosperity += 10;
-      console.log('[里程碑] ⭐ 首次分配工人！繁榮度 +10');
+      GameState.myTerritory.addGold(50);
+      console.log('[里程碑] ⭐ 首次分配工人！金幣 +50');
       import('../ui/UIManager').then(({ UIManager }) => UIManager.updateUI());
     }
   },
@@ -57,10 +56,8 @@ const MILESTONES: MilestoneDef[] = [
     label: '👥 社群開始成形！人口突破 15 人，大家的笑聲讓這裡更有生氣了。',
     check: () => GameState.myTerritory.population >= 15,
     reward: () => {
-      GameState.myTerritory.addGold(50);
-      const node = getPlayerNode();
-      if (node) node.prosperity += 15;
-      console.log('[里程碑] 👥 人口達 15 人！金幣 +50，繁榮度 +15');
+      GameState.myTerritory.addGold(100);
+      console.log('[里程碑] 👥 人口達 15 人！金幣 +100');
       import('../ui/UIManager').then(({ UIManager }) => UIManager.updateUI());
     }
   },
@@ -84,9 +81,8 @@ const MILESTONES: MilestoneDef[] = [
               t.getBuildingLevel('forge')) > 0;
     },
     reward: () => {
-      const node = getPlayerNode();
-      if (node) node.prosperity += 20;
-      console.log('[里程碑] 🏗️ 第一棟建築！繁榮度 +20');
+      GameState.myTerritory.addGold(100);
+      console.log('[里程碑] 🏗️ 第一棟建築！金幣 +100');
       import('../ui/UIManager').then(({ UIManager }) => UIManager.updateUI());
     }
   },

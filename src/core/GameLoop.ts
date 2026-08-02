@@ -1,6 +1,6 @@
 import { GameState } from './GameState';
 import { SaveManager } from './SaveManager';
-import { AdventurerState } from '../models/types';
+import { AdventurerState, WorkerJob } from '../models/types';
 
 import { EventSystem } from '../systems/EventSystem';
 import { MarketSystem } from '../systems/MarketSystem';
@@ -90,8 +90,8 @@ export function advanceDay() {
   // 1. 推進派遣系統 (以天數為基礎)
   GameState.system.updateDays(1);
 
-  const explorationProgress = GameState.explorationSystem?.advanceDay(GameState.mapSystem.getNodes());
-  if (explorationProgress) {
+  const explorationResults = GameState.explorationSystem?.advanceDay(GameState.mapSystem.getNodes()) ?? [];
+  for (const explorationProgress of explorationResults) {
     explorationProgress.discoveredNodeIds.forEach(nodeId => {
       EventBus.getInstance().publish({
         type: GameEventType.NODE_EXPLORED,
@@ -193,7 +193,16 @@ function handleRandomInvasion() {
   if (territory.invasionCooldown <= 0) {
     const defenseLevel = territory.defenseLevel || 0;
     const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
-    const totalPower = idleAdvs.reduce((sum, a) => sum + a.power, 0);
+    const advPower = idleAdvs.reduce((sum, a) => sum + a.power, 0);
+
+    // 哨所/衛兵戰力計算
+    const workers = territory.workers || {};
+    const watchtowerTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
+    const security = (territory.security === null || territory.security === undefined) ? 100 : territory.security;
+    const watchtowerPower = Math.round(watchtowerTroops * 15 * (1 + security / 100));
+
+    const totalDefensePower = advPower + watchtowerPower;
+
     const topThreePower = [...GameState.adventurers]
       .sort((left, right) => right.power - left.power)
       .slice(0, 3)
@@ -210,85 +219,120 @@ function handleRandomInvasion() {
       Math.round(baseEnemyPower * difficulty.enemyStrength * randomFactor * (1 - defenseReduction))
     );
 
-    if (idleAdvs.length === 0) {
-      processInvasionDefeat(territory, '💥 敵襲！據點無人駐守，物資遭到嚴重洗劫！');
-    } else if (totalPower >= enemyPower) {
+    if (idleAdvs.length === 0 && watchtowerTroops === 0) {
+      // 據點完全空虛（無傭兵且無哨所守衛）
+      processInvasionDefeat(territory, '💥 敵襲！據點無人駐守，物資遭到嚴重洗劫！', 0);
+    } else if (totalDefensePower >= enemyPower) {
+      // 哨所與留守傭兵成功擊退敵襲
       import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => MilestoneSystem.trigger('first_invasion_repelled'));
       const goldLoot = Random.int(10, 50);
       const prestigeReward = Math.max(10, Math.round(enemyPower / 10));
       territory.gold += goldLoot;
       territory.prestige += prestigeReward;
+      
+      let defenderDesc = '留守傭兵在防禦設施支援下擊退敵軍！';
+      if (watchtowerTroops > 0 && idleAdvs.length > 0) {
+        defenderDesc = `哨所守衛與留守傭兵聯手擊退敵軍！(我方戰力: ${totalDefensePower})`;
+      } else if (watchtowerTroops > 0) {
+        defenderDesc = `🏰 哨所守衛及時反擊，成功抵禦敵軍！(哨所戰力: ${watchtowerPower})`;
+      }
+
       showInvasionReport(
         '⚔️ 擊退敵襲',
-        `留守傭兵在防禦設施支援下擊退敵軍！\n\n敵軍戰力：${enemyPower}\n戰利品：${goldLoot} 金幣、${prestigeReward} 聲望`,
+        `${defenderDesc}\n\n敵軍戰力：${enemyPower}\n戰利品：${goldLoot} 金幣、${prestigeReward} 聲望`,
         false
       );
       territory.invasionCooldown = nextCooldown();
     } else {
+      // 戰力不敵，但哨所守衛與留守傭兵進行抵抗，獲得減傷
       idleAdvs.forEach(a => {
         a.currentState = AdventurerState.RESTING;
         a.restingDaysLeft = 3;
       });
-      processInvasionDefeat(
-        territory,
-        `💀 敵襲！我方戰力 ${totalPower} 不敵敵軍 ${enemyPower}，據點遭到洗劫！\n\n（所有留守傭兵受重傷，需休養 3 天）`
-      );
+
+      // 計算哨所涵蓋減傷率 (最高 80% 減傷)
+      const mitigationRatio = Math.min(0.8, (security / 100) * 0.6 + (watchtowerTroops > 0 ? 0.2 : 0));
+      
+      let defeatMsg = `💀 敵襲！我方戰力 ${totalDefensePower} 不敵敵軍 ${enemyPower}。`;
+      if (idleAdvs.length > 0) {
+        defeatMsg += '\n（所有留守傭兵受重傷，需休養 3 天）';
+      }
+      if (watchtowerTroops > 0 || security > 0) {
+        defeatMsg += `\n🛡️ 哨所守衛誓死抵抗，成功保護了大部分物資！（洗劫損失降低 ${Math.round(mitigationRatio * 100)}%）`;
+      }
+
+      processInvasionDefeat(territory, defeatMsg, mitigationRatio);
     }
   }
 }
 
 function showInvasionReport(title: string, message: string, isError: boolean) {
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed';
-  overlay.style.top = '0'; overlay.style.left = '0';
-  overlay.style.width = '100vw'; overlay.style.height = '100vh';
-  overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
-  overlay.style.display = 'flex';
-  overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
-  overlay.style.zIndex = '99999';
+  const showFn = () => {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0'; overlay.style.left = '0';
+    overlay.style.width = '100vw'; overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center'; overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '99999';
 
-  const modal = document.createElement('div');
-  modal.className = 'glass-panel';
-  modal.style.padding = '40px';
-  modal.style.maxWidth = '500px';
-  modal.style.textAlign = 'center';
-  modal.style.border = isError ? '2px solid #ef4444' : '2px solid #22c55e';
-  
-  const titleEl = document.createElement('h2');
-  titleEl.innerText = title;
-  titleEl.style.color = isError ? '#ef4444' : '#22c55e';
-  titleEl.style.fontSize = '2em';
-  titleEl.style.marginTop = '0';
+    const modal = document.createElement('div');
+    modal.className = 'glass-panel';
+    modal.style.padding = '40px';
+    modal.style.maxWidth = '500px';
+    modal.style.textAlign = 'center';
+    modal.style.border = isError ? '2px solid #ef4444' : '2px solid #22c55e';
+    
+    const titleEl = document.createElement('h2');
+    titleEl.innerText = title;
+    titleEl.style.color = isError ? '#ef4444' : '#22c55e';
+    titleEl.style.fontSize = '2em';
+    titleEl.style.marginTop = '0';
 
-  const msgEl = document.createElement('p');
-  msgEl.innerText = message;
-  msgEl.style.fontSize = '1.2em';
-  msgEl.style.whiteSpace = 'pre-wrap';
-  msgEl.style.lineHeight = '1.6';
-  msgEl.style.color = '#cbd5e1';
-  msgEl.style.margin = '30px 0';
+    const msgEl = document.createElement('p');
+    msgEl.innerText = message;
+    msgEl.style.fontSize = '1.2em';
+    msgEl.style.whiteSpace = 'pre-wrap';
+    msgEl.style.lineHeight = '1.6';
+    msgEl.style.color = '#cbd5e1';
+    msgEl.style.margin = '30px 0';
 
-  const btn = document.createElement('button');
-  btn.className = 'action-btn';
-  btn.innerText = '確認並結算';
-  btn.style.fontSize = '1.2em';
-  btn.onclick = () => document.body.removeChild(overlay);
+    const btn = document.createElement('button');
+    btn.className = 'action-btn';
+    btn.innerText = '確認並結算';
+    btn.style.fontSize = '1.2em';
+    btn.onclick = () => document.body.removeChild(overlay);
 
-  modal.appendChild(titleEl);
-  modal.appendChild(msgEl);
-  modal.appendChild(btn);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
+    modal.appendChild(titleEl);
+    modal.appendChild(msgEl);
+    modal.appendChild(btn);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  };
+
+  // 若正在進行每日結算轉場，加入事件佇列等確認後顯示
+  if ((window as any).isAdvancingDay) {
+    if (!(window as any).eventQueue) (window as any).eventQueue = [];
+    (window as any).eventQueue.push(showFn);
+  } else {
+    showFn();
+  }
 }
 
-function processInvasionDefeat(territory: any, baseMsg: string) {
-  const lostWood = Math.floor(territory.wood * 0.2);
-  const lostFood = Math.floor(territory.food * 0.2);
-  const lostPop = Random.int(1, 3);
+function processInvasionDefeat(territory: any, baseMsg: string, mitigationRatio: number = 0) {
+  const lossMultiplier = Math.max(0.2, 1 - mitigationRatio);
+  const rawLostWood = Math.floor(territory.wood * 0.2);
+  const rawLostFood = Math.floor(territory.food * 0.2);
+  const rawLostPop = Random.int(1, 3);
+
+  const lostWood = Math.floor(rawLostWood * lossMultiplier);
+  const lostFood = Math.floor(rawLostFood * lossMultiplier);
+  const lostPop = Math.max(0, Math.floor(rawLostPop * lossMultiplier));
   
   territory.wood -= lostWood;
   territory.food -= lostFood;
-  const actualLostPop = territory.removeWorkers(lostPop, true);
+  const actualLostPop = lostPop > 0 ? territory.removeWorkers(lostPop, true) : 0;
   
   if (actualLostPop > 0) {
     EventBus.getInstance().publish({
@@ -300,7 +344,7 @@ function processInvasionDefeat(territory: any, baseMsg: string) {
   // 戰敗進入 7 日絕對保護期
   territory.invasionCooldown = 7;
   
-  const reportMsg = `${baseMsg}\n\n損失統計：\n🪵 木材 -${lostWood}\n🍞 糧食 -${lostFood}\n👥 人口 -${lostPop}\n\n(據點進入 7 天破敗保護期，期間不會再次遭遇侵略)`;
-  showInvasionReport('慘遭洗劫', reportMsg, true);
+  const reportMsg = `${baseMsg}\n\n損失統計：\n🪵 木材 -${lostWood}\n🍞 糧食 -${lostFood}\n👥 人口 -${actualLostPop}\n\n(據點進入 7 天破敗保護期，期間不會再次遭遇侵略)`;
+  showInvasionReport(mitigationRatio > 0 ? '⚔️ 哨所抵抗（遭強敵突破）' : '慘遭洗劫', reportMsg, true);
 }
 

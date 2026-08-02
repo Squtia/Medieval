@@ -1,5 +1,398 @@
 # 遊戲更新日誌 (Changelog)
 
+## [2026-08-02] 傭兵頭像卡片新增「未分配屬性點提示」與「狀態標籤遮擋修正」
+
+### UI / UX 改進
+
+- **[UI/Adventurer] 傭兵頭像卡片極簡圖示左右位置交換 (`AdventurerCard.ts`)**
+  - 將 **微型發光綠/紅狀態圓點**（🟢/🔴）移至 **最左上角 (`top: 4px, left: 4px`)**。
+  - 將 **微型純小燈泡屬性點圖示**（`💡`）移至 **最右上角 (`top: 3px, right: 4px`)**。
+
+## [2026-08-02] 領主自宅新增「哨所/衛兵」人力分配滑桿與敵意掠奪抵禦機制
+
+### Feature / UI 改進
+
+- **[UI/Base] 領主自宅新增哨所/衛兵工作滑桿與無捲軸版面優化 (`index.html`, `UIManager.ts`)**
+  - 在「領主自宅 (Base)」的領地工作分配面板中直接放回守護人力滑桿 (`INFANTRY`)，使平民/村莊階段玩家無須封爵或進入謁見廳即可自由分配守守護人力。
+  - **動態名稱**：據點等級為荒野/營地/村莊 (`CAMP`, `VILLAGE`) 時，名稱顯示為 **「🏰 哨所」**；城鎮/王都 (`TOWN`, `CAPITAL`) 以上顯示為 **「⚔️ 衛兵」**。
+  - **無捲軸 UI**：調整工作面板內距 (padding) 與元素間距 (gap)，讓 4 項工作滑桿（農夫、伐木工、礦工、哨所/衛兵）能在不產生垂直捲軸/滾動條的情況下緊湊呈現。
+
+- **[System/Defense] 哨所/衛兵連動敵襲戰力與敗退減傷機制 (`GameLoop.ts`, `SettlementSystem.ts`)**
+  - 將哨所守衛 (`INFANTRY / CAVALRY / ARCHER`) 人數與治安加成正式納入據點敵襲戰力中，配置哨所守衛即絕不觸發「無人駐守」判定。
+  - 新增**敗退洗劫減傷**：當敵襲戰力過高不敵時，哨所守衛將進行誓死抵抗，依據治安與守備覆蓋率減免 **50% ~ 80% 的物資與人口洗劫損失**，結算彈窗顯示專屬【⚔️ 哨所抵抗（遭強敵突破）】與減傷備註。
+
+## [2026-08-02] UI 五項優化：戰鬥舞台、探索按鈕、裝備Tooltip、討伐模式選擇、入侵事件時序
+
+### Bug Fix / UI 改進
+
+- **[UI/Combat] 戰鬥重播怪物卡片超出視窗修正 (`index.html`, `CombatUIManager.ts`)**
+  - `combat-stage` 從 `flex: 2` 改為 `flex: 0 0 300px` 固定高度，加上 `overflow: hidden`
+  - 調整 `.combat-team` 的 `gap` 從 10px 到 5px，align-items 改為 `stretch`
+  - 每個卡片 (`combat-participant`) 縮減 padding、字型、頭像尺寸 (46px→34px)，適應緊湊佈局
+  - Modal 尺寸擴大至 860×640px，增加 `max-width: 96vw` 響應式保護
+
+- **[UI/Action] 探索周邊按鈕回合限制灰化 (`UIManager.ts`, `index.html`)**
+  - `UIManager.updateUI()` 末尾新增：當 `exploredToday >= maxExplorationsPerDay` 時，`btn-explore` 自動 `disabled`
+  - 加入 CSS 樣式 `.explored-today` 搭配 `opacity: 0.45; cursor: not-allowed; filter: grayscale(0.6)` 視覺反饋
+  - 按鈕 `title` 屬性顯示提示文字
+
+- **[UI/Equipment] 裝備懸浮 Tooltip 屬性名稱修正，顯示全部屬性 (`ModalController.ts`)**
+  - 新增共用函式 `buildEquipStatsHtml(eq)`：正確使用 `patk/pdef/mdef/matk/hp/hit/evade` 等實際資料鍵名
+  - Tooltip 分為「戰鬥效果」（物攻、魔攻、物防、魔防、HP、命中、閃避）和「屬性加成」（STR/AGI/CON/INT/SPR/LUK）兩段
+  - 修正裝備槽位面板（`equip` tab）和裝備選擇清單（`party-equip-select-pane`）兩處 Tooltip
+
+- **[UI/Dispatch] 討伐模式選擇改為 Card 式 UI，取消預設選項 (`index.html`)**
+  - 隱藏 radio input，改為兩個視覺 Card（單次討伐 ⚔️ / 連續討伐 🔥）
+  - 選中效果：單次選中後卡片藍灰色邊框，連續選中後金色邊框+發光效果
+  - 全域函式 `selectDispatchMode('SINGLE'|'PROGRESS')` 同步 radio 值、卡片樣式、說明文字
+  - 預設不選任何模式，玩家必須主動選擇
+
+- **[Fix/Event] 入侵事件結果在每日結算確認後才顯示 (`GameLoop.ts`)**
+  - `showInvasionReport` 改為：若 `isAdvancingDay` 為 true，將顯示函式推入 `eventQueue`
+  - 玩家確認每日結算 modal 後，轉場結束時才依序彈出入侵結果通知
+  - 防止入侵彈窗在結算 modal 下方同時出現的 UI 衝突
+
+## [2026-08-02] 提升連續平定(3波)討伐獎勵：高風險高報酬機制 (`ModalController.ts`, `DispatchSystem.ts`)
+
+- **[Balance/Subjugation] 波次討伐獎勵大幅強化 (`ModalController.ts`)**
+  - **3.5倍收益**：當玩家於討伐面板選擇「連續平定 (PROGRESS)」模式時，成功後獲得的金幣與聲望獎勵由原來的單倍大幅提升為 **3.5 倍**。
+  - **UI 預估即時更新**：切換模式時，討伐面板左下角的「預期 💰／✨」會即時更新。
+- **[Feature/Loot] 裝備保底掉落機制 (`DispatchSystem.ts`)**
+  - **必掉裝備**：在結算「連續平定 (PROGRESS)」討伐任務時，不再依賴機率，而是**必定掉落 1 件**符合該次挑戰難度的隨機裝備，強化高難度挑戰的誘因。
+
+## [2026-08-02] 戰鬥每回合恢復削弱、頭頂浮動提示與重播頭像升級 (`CombatSystem.ts`, `CombatUIManager.ts`, `ATTRIBUTE_SYSTEM.md`) (New!)
+
+- **[Balance/Combat] 削弱每回合自動恢復公式 (`CombatSystem.ts`, `ATTRIBUTE_SYSTEM.md`)**
+  - **HP 恢復**：由 `CON * 0.5` 削弱為 `CON * 0.2`。
+  - **MP 恢復**：由 `SPR * 0.5` 削弱為 `SPR * 0.2`。
+  - **效果**：大幅降低 20 回合超時平手率，戰鬥節奏回歸快節奏與戰術打擊感。
+- **[UI/Combat] 浮動文字頭頂提示與對話框洗版優化 (`CombatUIManager.ts`)**
+  - **日誌乾淨化**：例行性每回合恢復不再寫入下方文字對話框（`logArea`），還給玩家乾淨的傷害與技能記錄。
+  - **頭頂浮動文字**：恢復時在角色頭頂跳出 🟢 `+N HP` 綠字與 🔵 `+N MP` 藍字動畫。
+- **[UI/Combat] 戰鬥重播渲染水藍色 MP 條、46px 大頭像與精緻名字 (`CombatUIManager.ts`, `index.html`)**
+  - **MP 能量條**：在綠色 HP 條下方渲染水藍色 MP 條 (`.combat-mp-fill`)，於技能施放與 MP 恢復時同步即時平滑充能/消耗動畫。
+  - **頭像框加大**：頭像框由 32px 放大至 `46px × 46px` (正方形 1:1 無拉伸邊框)，魔物 Icon 放大至 `1.8em`。
+  - **名字字體縮小**：名字縮小至 `0.72em`，讓版面呈現黃金比例的工整質感。
+
+## [2026-08-02] 修復傭兵卡片頭像垂直拉伸變形漏洞
+
+- **[Fix/UI] 修復英雄卡牌頭像比例拉伸缺陷 (`AdventurerCard.ts`, `ModalController.ts`)**
+  - **修復**：將精靈圖 CSS 樣式從 `background-size: 600% 400%` 升級為 `background-size: auto 400%`。
+  - **效果**：使 6x4 英雄頭像庫的小圖置於長方形卡牌容器中時，保持完美的 1:1 正方形比例並以 `cover` 方式自然置中覆蓋，徹底消除英雄五官垂直拉長變形的缺陷，還原原圖高顏值神韻。
+
+## [2026-08-02] 打造獨立自宅總倉庫 Modal 與標準 5 欄正方形物品網格
+
+- **[Feature/UI] 獨立自宅總倉庫 (`#modal-base-warehouse`)**
+  - **功能拆分**：將自宅「檢視倉庫」從鐵匠鋪打鐵介面完全獨立拆分，打造專屬於自宅套房的 `📦 領主總倉庫`。
+  - **分頁結構**：提供 `🛡️ 儲備裝備`、`🧲 素材與附魔石`、`📦 交易品物資` 3 大專屬儲藏分頁。
+- **[UI/Layout] 修復自宅總倉庫物品方格比例 (100% 還原 85px x 85px 正方形)**
+  - 修正彈窗寬度均分導致卡片被橫向拉伸成 165px 寬扁平矩形的視覺缺陷。
+  - 將網格改為 `repeat(auto-fill, 85px)`，並強制限制卡片長寬為 `width: 85px; height: 85px; aspect-ratio: 1/1`，完美還原參考圖中緊湊正方形小方格的精緻品質。
+
+## [2026-08-02] 修復存讀檔里程碑遺漏導致重複刷新領取獎勵 Bug
+
+- **[Fix/Save] 修復 `GameState.milestones` 存讀檔遺漏漏洞 (`SaveManager.ts`)**
+  - **修復**：`SaveManager.saveGame` 現已將 `milestones` 與 `pendingMilestones` 寫入 JSON 存檔中，並在 `loadGame` 時正確還原。
+  - **解決問題**：徹底解決每次讀檔進入遊戲後，系統誤判所有已達成里程碑為「首次達成」並重複刷新領取金幣與聲望獎勵的漏洞。
+
+## [2026-08-02] 實裝單次與多波次討伐據點消失條件與 UI 動態提示
+
+- **[Feature/Dispatch] 單次與多波次討伐機制明確分立與消失條件 (`DispatchSystem.ts`, `MapDynamicsSystem.ts`)**
+  - **單次討伐 (1波)**：討伐成功後獲得金幣、聲望與戰利品，據點**保留在地圖上**供玩家重複練級與刷資源。
+  - **連續平定 (3波)**：傭兵小隊連續戰勝 3 波敵軍全勝後，據點被判定徹底平定，**從地圖上平定消失**，並發放首殺高額獎勵。
+- **[UI/Dispatch] 派遣介面新增動態說明提示 (`index.html`, `ModalController.ts`)**
+  - 在討伐隊伍編制彈窗中新增 `#subjugation-mode-hint` 動態說明容器。
+  - 切換【單次 (1波)】與【連續 (3波)】單選鈕時，即時更新相對應的據點消失與獎勵提示，為玩家提供清晰明確的遊戲預期。
+
+## [2026-08-02] 移除武器錯誤混沌普攻並還原對應傷害屬性
+
+- **[Fix/Combat] 修復武器普攻傷害類型漏洞 (`CombatSystem.ts`)**
+  - **修復**：移除舊代碼誤將 `SCYTHE` (戰鐮), `MAGIC_RING` (魔法戒指), `MAGIC_BOW` (魔法弓) 普攻判定為 `CHAOS` 混沌傷害的漏洞。
+  - **還原屬性**：
+    - `SCYTHE` (戰鐮 / 死靈法師) 與 `MAGIC_RING` (魔法戒指 / 詭術師) 普攻還原為 **魔法傷害 (`DamageType.MAGICAL`)**。
+    - `MAGIC_BOW` (魔法弓 / 精靈使) 普攻還原為 **物理傷害 (`DamageType.PHYSICAL`)**。
+    - 全面還原 [CLASS_SYSTEM.md](file:///i:/gameproject/Medieval/docs/CLASS_SYSTEM.md) 設計，混沌傷害僅在專屬技能觸發。
+
+## [2026-08-02] 全局戰鬥平衡重構、屬性二次雙重加算 Bug 修復與怪物 PDEF/MDEF 獨立
+
+- **[Fix/Combat] 修復傷害計算中的「屬性二次雙重乘算 (Double Dipping)」Bug (`Skill.ts`)**
+  - **修復**：移除 `calculateSkillDamage` 中對 `STR`/`INT` 的 `atkMultiplier` 二次乘算。面板 `PATK` 與 `MATK` 已經包含了屬性點數加算，移除二次乘以 $(1 + \frac{\text{屬性}}{100})$ 避免玩家傷害暴走與對怪物的雙標不對等問題。
+- **[Refactor/Monster] 怪物數據結構新增獨立 `pdef` (物防) 與 `mdef` (魔防) 欄位 (`types.ts`, `MonsterSystem.ts`, `CombatSystem.ts`)**
+  - **物魔雙防獨立**：在 `MonsterInstance` 中將原本單一的 `defense` 拆分為 `pdef` 與 `mdef`，配合 4 大種族（亡靈高物魔雙防、魔物高物防低魔防、人類均衡、龍族史詩高防）分配防禦。
+  - **雙防穿透體驗**：魔劍士與異端拷問官的「混合傷害」現能真實發揮打穿高物防怪弱點的戰術價值。
+- **[Balance/Monster] 重構怪物攻防與血量轉化倍率 (`MonsterSystem.ts`)**
+  - 取消舊有的 `/2` 削弱限制，使怪物的護甲具備 15%~30% 的實質護甲減傷，且血量支撐隊伍 2~4 回合的拉鋸戰，解決 86 戰力怪物被一刀秒殺的失衡問題。
+- **[UI/Power] 校正冒險者綜合戰力評估演算法 (`Adventurer.ts`)**
+  - 將裝備提供的 `PATK`, `MATK`, `PDEF`, `MDEF`, `HP` 加成計入 `getPower()` 戰術折算，使穿著裝備的傭兵戰力精準反映其實際實力，為玩家提供可靠的勝算參考。
+
+## [2026-08-02] 修復讀取存檔時鍛造屋等級遭誤覆寫 Bug
+
+- **[Fix/Save] 修復讀取存檔時未建造鍛造屋自動升為 1 級的 Bug (`SaveManager.ts`, `ShopController.ts`)**
+  - **根本原因**：`SaveManager.ts` 在還原存檔時使用 `if (!t.forgeLevel)` 判定舊存檔相容，當存檔中 `forgeLevel` 為 0 級時（未建造），`!0` 評估為 `true`，導致讀檔時強制將 0 級覆寫為 1 級。
+  - **修復方案**：將 `SaveManager.ts` 的條件改為精確的 `if (t.forgeLevel === undefined) t.forgeLevel = 0;`，並將 `ShopController.ts` 中的預設層級改為 `0`，確保新遊戲存檔再讀檔後鍛造屋不會無故開啟。
+
+## [2026-08-02] 修復駐軍戰力浮點數與討伐建議戰力精準連動
+
+- **[Fix/Combat] 修復駐軍戰力浮點數取整問題 (`MonsterSystem.ts`, `ModalController.ts`)**
+  - 使用 `Math.round()` 對敵軍總戰力 (`garrisonPower`) 進行取整，修復偵查情報顯示 `86.39999999999999` 等浮點數連環 9 贅字的 Bug，全介面統一展示乾淨整數戰力（如 `86`）。
+- **[Fix/Dispatch] 修復討伐派遣「建議戰力」與據點真實駐軍戰力連動 (`ModalController.ts`)**
+  - 將討伐派遣彈窗中的 `minPowerRequired`（建議戰力）修正為優先取用並對齊據點偵查後的真實駐軍戰力 (`garrisonPower`)。
+  - 修復過去死板公式算出的建議戰力（如 39）與據點真實戰力（如 86）嚴重脫節、誤導玩家派遣慘敗的問題。
+
+## [2026-08-02] 冒險者頭像框等比放大與 24 款英雄頭像圖集實裝
+
+- **[UI/Avatar] 冒險者詳細面板頭像框等比放大 (`index.html`, `ModalController.ts`)**
+  - 將冒險者詳細資訊面板中的左上頭像框尺寸從 `64px × 64px` 等比放大至 `82px × 82px`，完美貼合右側【等級/稱號/HP/MP/EXP 狀態條】的總高度，徹底消除頭像下方的空白留白。
+- **[Assets/UI] 實裝 24 款魔獸/奇幻英雄頭像圖集 (`avatars_6x4.jpg`, `ModalController.ts`, `AdventurerCard.ts`)**
+  - 匯入並裁切 6×4 英雄頭像圖集 (`public/assets/avatars_6x4.jpg`)，涵蓋 24 位經典奇幻/魔獸英雄角色。
+  - 更新頭像渲染樣式 `background-size: 600% 400%`，搭配 `nameHash % 24` 自動分派與持久化，讓冒險者詳細面板、酒館招募、小隊編制與官職卡片全數套用高質感英雄頭像！
+
+## [2026-08-02] 修復自宅探索動態討伐據點生成與可見性
+
+- **[Fix/MapDynamics] 修復自宅探索討伐據點不可見 Bug 並限制生成於已揭開迷霧區域 (`MapDynamicsSystem.ts`)**
+  - **修復據點可見性**：在 `spawnDynamicNode()` 生成動態討伐據點時，補上 `isDiscovered: true` 屬性標記，解決地圖過濾器將其隱形判定、導致玩家地圖上看不到也點不到該據點的 Bug。
+  - **限定已揭開迷霧區域**：在座標搜尋迴圈加入 `explorationSystem.isPointRevealed(newX, newY)` 檢定，確保自宅探索生成的討伐/練功據點 100% 只會落在玩家領地近距離（極限距離 $\le 10$）且**已揭開迷霧**的視野區域內。
+  - **保護預設據點**：保留地圖預設靜態據點於斥候遠征探索機制，自宅探索專注於周邊近距離練功/討伐據點生成。
+
+## [2026-08-02] 里程碑獎勵去除繁榮度與鍛造屋初始等級調整
+
+- **[MilestoneSystem] 里程碑獎勵去除繁榮度，全面改為金幣獎勵 (`MilestoneSystem.ts`)**
+  - 移除「首次分配工人」、「人口達 15 人」、「第一棟建築完成」獎勵中的繁榮度（Prosperity）數值，改為發放 50 ~ 100 金幣獎勵，避免早期城鎮繁榮度成長速度過快與打亂晉升節奏。
+- **[Territory] 鍛造屋初始等級調整為 Lv0 (`Territory.ts`)**
+  - 將玩家領地 `this.forgeLevel` 初始值由 `1` 修正為 `0`。玩家開局不會再免費獲得鍛造屋，必須在領地自宅花費資源建造後方可解鎖與使用，同時解決高難度開局誤觸第一棟建築里程碑的問題。
+
+## [2026-08-02] 修復：儲存並退出後畫面空白問題
+
+- **[Bugfix] 退出遊戲後主選單空白 (`UIManager.ts`, `GameFlowController.ts`, `main.ts`)**
+  - **根本原因①**：`clearAllUIOverlays()` 的選擇器 `.view` 同時匹配到 `#main-menu-view`，導致其 `style.display` 被強制設為 `none`（inline style 優先權高於 CSS class），使主選單在 `active` class 被加回後仍然不可見。
+  - **修復①**：將選擇器改為 `.view:not(#main-menu-view)`，排除主選單，確保其 display 不受 overlay 清理邏輯影響。
+  - **根本原因②**：退出後沒有重新呼叫 `renderSaveSlots()`，即使畫面顯示正常，存檔列表也不會更新。
+  - **修復②**：`initGameFlowController` 接收 `rebindUIEvents` 參數，退出時在顯示主選單後立即呼叫 `renderSaveSlots(rebindUIEvents)` 重新渲染最新存檔。
+
+- **[Bugfix] 讀取存檔後場景畫面空白 (`SceneController.ts`, `MainMenuController.ts`)**
+  - **根本原因①（主因）**：退出時 `clearAllUIOverlays()` 以 `style.display = 'none'` 強制隱藏所有 `.view` 元素（包含 `scene-view`、`wilderness-view`、`map-view`）。這些 inline style 在 DOM 中持續殘留。讀檔後呼叫 `classList.add('active')` 雖然加上了 CSS class，但 inline style 的優先權更高，導致畫面仍然空白。
+  - **根本原因②（加速劑）**：`enterScene()` 原本自帶 `UIManager.playTransition()` 包裝，而讀檔流程已在 `playTransition` callback 內呼叫 `enterScene`，造成 transition 雙重嵌套，加重了顯示失敗的機率。
+  - **修復①**：在所有 `classList.add('active')` 後加上 `style.display = ''`，清除殘留的 inline style，讓 CSS class 優先權正確生效（`SceneController.ts` 的 `sceneView`、`wildernessView`、`mapViewEl`、`facilityView`；`MainMenuController.ts` 的 `mapView`）。
+  - **修復②**：`enterScene()` 改為不帶 transition 的純場景切換，新增 `enterSceneWithTransition()` 供需要黑屏轉場的直接呼叫方（`GameFlowController`、`MapController`、`ActionController`、`ModalController`）使用。
+
+- **[Refactor] 統一視圖顯示控制架構，建立規範文件 (`UIManager.ts`, `SceneController.ts`, `MainMenuController.ts`, `FacilityController.ts`, `index.html`, `docs/UI_DISPLAY_CONVENTION.md`)**
+  - **問題根源**：歷史上為解決「退出時介面殘留」問題，多次在 `clearAllUIOverlays()` 和 `returnToMap()` 加入 `style.display = 'none'`，形成與 CSS class 互相衝突的雙重控制機制。
+  - **重構內容**：徹底移除所有 `.view` / `.facility-view` 的 inline `style.display` 操作（共涉及 5 個檔案），改為純 CSS class 控制。CSS 已定義 `.view { display:none }` / `.view.active { display:flex }`，只需 `classList.add/remove('active')` 即可正確控制顯示。
+  - **HTML 整理**：`#view-forge` 的大量 inline style 移至 CSS `#view-forge {}` 規則中，HTML 元素只保留 `class="facility-view"`。
+  - **新增規範文件**：建立 [`docs/UI_DISPLAY_CONVENTION.md`](file:///i:/gameproject/Medieval/docs/UI_DISPLAY_CONVENTION.md)，說明正確做法、禁止事項、元素分類表、transition 嵌套規範，以及 Bug 案例記錄，供接手開發者遵循。
+
+## [2026-08-02] 鍛造屋 100% 滿版無對話框、傭兵小隊 3 欄卡片網格與標籤精密過濾實作 (New!)
+
+- **[Fix/UI] 徹底移除 index.html 中殘留的 forge-window-container 容器 (`index.html`)**
+  - 從 HTML 結構中徹底刪除 `#forge-window-container` 彈出對話框外殼，使鍛造屋視圖 (`#view-forge`) 與領主書房 (`#view-base`) 保持 100% 完全一致的全螢幕滿版場面，不再有任何四周黑框與對話框夾邊！
+- **[UI/Assets] 全遊戲預覽面板與武器商店圖示全面統一 (`ShopController.ts`)**
+  - 將鍛造屋右側「裝備強化」、「裝備鍛造/重鑄」、「元素加工」三大預覽面板以及「領地武器店」商品卡片全數改為導用 `renderEquipIcon` 渲染寶劍 PNG 圖示。
+  - 徹底消滅所有遺留的文字 Emoji，全專案達到 100% 完全視覺對齊！
+- **[Data/Forge] 變異配方標籤化 (isVariant & requireTomeId) 與精密隱藏過濾**
+  - 在 `CraftingRecipes.json` 中為所有變異職業重鑄配方打上 `"isVariant": true` 與 `"requireTomeId"` 標籤。
+  - 在 `ShopController.ts` 中實作標籤過濾：未取得重鑄書圖紙的變異職業配方，**100% 隱藏不予顯示**。全數更名為「裝備重鑄」與「重鑄」（徹底去除神兵字眼）。
+
+- **[UI/Forge] 滿版半透明雙欄 Layout (`index.html`, `ShopController.ts`)**
+  - 採用全螢幕滿版場面，襯托 `forge_workshop_bg.png` 背景圖。
+  - 左欄與右欄採用**半透明黑褐色玻璃質感 (`background: rgba(18, 14, 11, 0.72)`)**，自然透出後方高溫火爐背景（100% 對齊用戶截圖一與截圖二）。
+- **[UI/Forge] 裝備強化【傭兵小隊選裝備卡片 + PATK/MATK 顯示】(`ShopController.ts`)**
+  - 左欄採用「傭兵小隊選擇隊員」卡片框體呈現倉庫裝備，明確標示 `⚔️ 物攻 (PATK)`、`🔮 魔攻 (MATK)`、`🛡️ 物防 (PDEF)` 與 `✨ 魔防 (MDEF)`。
+  - 點擊卡片高亮邊框並即時更新右欄升級預覽（綠字對比）與 `🔨 執行強化` 按鈕。
+- **[UI/Forge] 裝備鍛造 & 裝備重鑄【100% 對齊截圖一】(`ShopController.ts`)**
+  - 左欄提供配方列表；右欄上方顯示目標產出裝備卡片、中間 `═══ 所需材料與前置裝備 ═══` 橫向一排正方形框體 (`64px x 64px` + `0/5` 數量)、下方消耗金幣與中央大號 `合成` / `重鑄` 按鈕。
+  - **措辭與過濾規範**：全數使用「裝備重鑄」與「重鑄」（**徹底刪除『神兵』或『專屬神兵』字眼**）；若未取得重鑄書/圖紙，自動隱藏該重鑄項目。
+- **[UI/Forge] 元素加工附魔【傭兵小隊選裝備 + 5 大元素石 (對齊圖三)】(`ShopController.ts`)**
+  - 左欄採用傭兵卡片選擇倉庫裝備，右欄顯示 5 大元素石正方形框體 (🔥熾炎石、❄️霜冰石、⚡疾雷石、☀️聖光石、🌙暗影石) 與 `注入元素` 按鈕。
+
+- **[UI/Forge] 960px x 640px 居中精緻 RPG 視窗 (`index.html`, `ShopController.ts`)**
+  - 捨棄滿版極端拉伸，將鍛造屋重構為經典居中固定比例 RPG 視窗 (960px x 640px)，配合古樸暗木紋與精緻金屬邊框，呈現最佳視覺比例。
+- **[UI/Forge] 裝備強化【傭兵小隊網格卡片框體 (Grid Cards)】(`ShopController.ts`)**
+  - 完全對齊傭兵小隊介面，採用 3 欄網格卡片框體呈現倉庫裝備，每一張卡片獨立展現圖示、名稱、`+現有等級`、階級 T1~T4、雙攻雙防屬性、成功率與強化按鈕。
+- **[UI/Forge] 裝備鍛造 & 裝備重鑄【左側選單 + 右側合成火爐 (對齊圖二)】(`ShopController.ts`)**
+  - 修復左側配方條列點擊切換 Bug，點擊任意配方即時更新右側工坊。
+  - 右側完全對齊參考圖二：上方目標神兵卡片、中間**所需材料與前置裝備正方形框體 (`64px x 64px` + `1/1`, `0/8` 數字)**、下方金幣花費與中央大號 `合成` / `重鑄` 按鈕。
+  - **變異職業重鑄過濾**：若玩家尚未獲得對應變異職業重鑄書/圖紙，自動隱藏該變異重鑄項目，僅展示一般職業重鑄。
+- **[UI/Forge] 元素加工附魔【網格選裝備 + 5 大元素石 (對齊圖三)】(`ShopController.ts`)**
+  - 上方採用卡片框體選擇倉庫裝備，下方完全對齊參考圖三：橫向一排 5 大元素石卡片框體 (🔥熾炎石、❄️霜冰石、⚡疾雷石、☀️聖光石、🌙暗影石) 並標示擁有數量，按下 `💎 注入元素附魔` 執行加工。
+
+- **[Fix/UI] 徹底修復鍛造屋無法點擊進入 Bug (`index.html`, `FacilityController.ts`)**
+  - 清除 `#view-forge` 容器 HTML 標籤上的殘留行內樣式 `display: none;`（該行內屬性權重要於 CSS `.active` 類別規則，導致點擊建築時無法呈獻視圖）。
+  - 在 `FacilityController.ts` 中的 `enterFacility` 函式顯式強制寫入 `el.style.display = 'flex'`，並在退出時設定 `display = 'none'`，徹底防止任何樣式衝突。
+- **[Fix/System] 修復鍛造屋建築初始化等級問題 (`Territory.ts`, `SaveManager.ts`)**
+  - 將玩家領地 `Territory` 預設的 `forgeLevel` 初始化為 `1`（原為 0），確保創建新遊戲與讀取舊存檔時，領地街道上的 **鍛造屋 (Forge Workshop)** 均能直接解鎖並進入。
+- **[UI/Forge] 設施名稱全數統一更名為「鍛造屋」 (`SceneController.ts`, `index.html`, `ShopController.ts`)**
+  - 全數將過往稱呼「鐵匠鋪」順手重構修正為符合現代奇幻 RPG 風格的 **「鍛造屋 (Forge Workshop)」** 系列（初級鍛造屋、進階鍛造屋、皇家鍛造屋、頂級鍛造屋）。
+- **[UI/Forge] 專屬鍛造屋背景圖 (`forge_workshop_bg.png`, `index.html`)**
+  - 生成並導入專屬黑暗中世紀鍛造屋背景圖 (`forge_workshop_bg.png`)，包含高溫火爐、赤熱鐵砧與飛濺火花。
+  - 重構 `#view-forge` CSS 與 HTML，全面捨棄彈窗（Modal），進入鍛造屋直接呈獻滿版工坊。
+- **[UI/Forge] 左右雙面板 (Left-Right Split Layout) 交互對齊 (`ShopController.ts`, `FacilityController.ts`)**
+  - **左側選單 (35% 寬度)**：以傭兵/裝備卡片框體方式呈現裝備與配方清單（垂直滾動點選）。
+  - **右側主工坊 (65% 寬度)**：
+    - 🔨 **【裝備強化】**：顯示選中裝備大圖標、`+現有` ➔ `+預覽` 數值變動（綠字對比）、費用率與大型 `🔨 執行高溫強化` 按鈕（對齊參考圖一）。
+    - ⚒️ **【裝備鍛造】 & ♨️ 【裝備重鑄】**：上方產出目標大卡片、中間**橫向一排所需材料與前置裝備獨立卡片框體**（紅綠字標明已有/所需）、下方費用與大型 `⚒️ 合成` / `♨️ 重鑄` 按鈕（對齊參考圖二）。
+    - 💎 **【元素附魔】**：上選中裝備、中 5 大元素石卡片框體（熾炎石、霜冰石、疾雷石、聖光石、暗影石）、下 `💎 注入元素` 按鈕（對齊參考圖三，完全捨棄選單下拉框）。
+    - 🧲 **【素材與背包】**：緊湊型小卡片與交易品資產估算排版。
+- **[System/Forge] 裝備重鑄等級解鎖機制 (`ShopController.ts`)**
+  - ♨️ **【裝備重鑄】** 頁籤僅在 **鐵匠鋪等級 >= 3 (`forgeLevel >= 3`)** 時才會解鎖顯示。
+
+- **[System/Enhancement] 裝備強化絕對絕對計算法與 Bug 根治 (`EnhancementSystem.ts`, `types.ts`, `EquipmentGenerator.ts`)**
+  - 新增 `baseCombatEffects` 原始基底屬性固定備份。
+  - 強化屬性改為絕對值公式計算：`combatEffects = baseCombatEffect * (1 + 0.1 * level)`。
+  - 徹底修復強化降階失敗時屬性未扣除導致數值暴增至 ATK +2830 / EVADE +1554 的重大 Bug。
+- **[Data/Equipment] 裝備數據庫全數對齊物魔雙軌 (PATK, MATK, PDEF, MDEF) (`EquipmentTemplates.json`)**
+  - 武器依類別精確配置 `patk` 與 `matk`。
+  - 防具全數統一提供 `pdef` 與 `mdef` (布甲高魔防/低物防、重鎧高物防/低魔防、皮甲雙防均衡)。
+- **[Data/Materials] 5 大元素附魔石數據庫 (`materials.json`)**
+  - 新增 5 大元素附魔石：`mat_element_fire` (熾炎石 🔥)、`mat_element_ice` (霜冰石 ❄️)、`mat_element_lightning` (疾雷石 ⚡)、`mat_element_holy` (聖光石 ☀️)、`mat_element_dark` (暗影石 🌙)。
+- **[UI/Forge] 鍛造屋 4 大分頁與全卡片框體排版 (`ShopController.ts`, `index.html`)**
+  - 完全採用與自宅/傭兵小隊同風格的古樸深色木紋羊皮紙卡片框體設計。
+  - 實作 4 大鍛造屋分頁：
+    - 🔨 **【裝備強化】**：展示裝備卡片、雙攻雙防數值標籤與 `🔨 強化` 按鈕。
+    - ⚒️ **【裝備鍛造】**：展示基礎與進階裝備直接製作配方、素材需求與合成按鈕。
+    - ♨️ **【裝備重鑄】**：獨立分頁！展示 12 大職業 T4 專屬重鑄配方（檢查前置 T3 裝備 + 素材 + 金幣）。
+    - 💎 **【元素加工附魔】**：可自由選擇裝備並消耗元素附魔石，注入並覆蓋 5 大元素屬性。
+  - 實作 3 大倉庫分類獨立分頁 (裝備、素材與附魔石、交易品)，其中素材與交易品採用緊湊型小卡片與數量 Stack 標籤排版。
+
+## [2026-08-02] 物魔雙軌屬性重構與 3 欄戰鬥屬性面板即時連動實作
+
+- **[Model/Types] 物魔雙軌屬性模型擴充 (`types.ts`, `Adventurer.ts`)**
+  - 將派生戰鬥屬性重構為物魔雙軌：`patk` (物理攻擊力 = STR * 2), `matk` (魔法攻擊力 = INT * 2), `pdef` (物理防禦力 = CON + ⌊STR * 0.5⌋), `mdef` (魔法防禦力 = CON + ⌊SPR * 0.5⌋)。
+  - 新增 `critRate` (爆擊率 %) 與 `critDmg` (爆擊傷害 %)，支援神射手/戰弓等特化被動。
+- **[Combat/Skill] 技能與普攻算式精確對齊 (`Skill.ts`, `CombatSystem.ts`, `CLASS_SYSTEM.md`)**
+  - `calculateSkillDamage()` 自動依 `DamageType.PHYSICAL` 取用 `patk`/`pdef`，依 `DamageType.MAGICAL` 取用 `matk`/`mdef`。
+  - **混傷與混沌技能數值精態微調**：
+    - 死靈法師【死神收割】：下修為 `200% CHAOS`（原 250%），兼顧基礎法術火力與無視防禦連鎖斬殺。
+    - 符文騎士【符文反制】：下修為 `120% CHAOS`（原 150%），彌補騎士基礎技能弱勢並保留扎實全體反制。
+    - 魔劍士【幻影連擊】：調整為單擊 `55% PATK + 55% MATK`（4 連打），展現物魔對等雙修特色。
+    - 異端拷問官【終焉審判】：移除過往算式中多乘的 `3.0` 盲目倍率，還原為單次打擊 `70% PATK + 30% MATK` 兼具全隊 HP/MP 回復。
+- **[UI/Panel] 傭兵頁面 Layout 重構與即時加點預覽 (`ModalController.ts`)**
+  - 調整頁面動線：基礎屬性加點區置於上方，整合 `✨ 可用點數` 與配點按鈕；戰鬥屬性區置於下方。
+  - 戰鬥屬性採用 3 欄 Grid 排版 (`grid-template-columns: 1fr 1fr 1fr;`)，涵蓋全 11 項派生戰鬥數值。
+  - 點擊 `+` / `-` 配點時，頂部綜合戰力與下方全套戰鬥屬性即時動態運算並呈獻綠字 `(+X)` 變動預覽。
+
+## [2026-08-01] 裝備數據庫、T4/T5 鍛造重鑄、商店限制與法杖/魔法弓元素技能實作
+
+- **[Data/Equipment] 12 大官方職業武器與三類防具 T1~T4 數據庫 (`EquipmentTemplates.json`)**
+  - 完全對齊 `CLASS_SYSTEM.md` 的 12 種職業官方武器與布/皮/鎧防具。
+  - T1~T3 一般武器常態討伐掉落；武器店與防具店僅販售 T1 與 T2 裝備。
+  - 變異職業武器（雙劍、戰鐮、魔法弓、符文盾、魔法戒指、戰鎚）T1~T3 完全不存在，僅能在鍛造所透過 **T3 一般基礎武器 + 特殊素材** 重鑄打造為 T4 變異武器。
+- **[System/Forge] 鍛造所重鑄與製作配方庫 (`CraftingRecipes.json`)**
+  - 支援 T4 重鑄與 T5 獨特功能裝備製作。
+- **[System/Skill] 法杖雙元素目標屬性轉變與魔法弓 6 大元素必殺技 (`Skill.ts`)**
+  - 法杖第一元素（火/雷/冰）為 140% ATK 單體傷害；第二元素（火/雷/冰）為 20% ATK 傷害並**強制將目標元素屬性轉變為火/雷/冰**。
+  - 精靈使魔法弓依據附魔元素切換為【風精靈之舞】、【火精靈之怒】、【冰精靈之刺】、【雷精靈之殤】、【聖靈之光】與【暗靈之凝】。
+
+## [2026-08-01] 敵陣營系統、40種怪物名單與元素相剋機制實作 (New!)
+
+- **[Data/Monsters] 48 種基礎怪物資料庫與 DRAGON 一般怪物 (`src/data/monsters.json`)**
+  - 擴充並重構至 48 種非 Boss 基礎怪物模板，涵蓋全 8 種地形。
+  - 包含 **10 種 `DRAGON` 種族一般怪物**（毒蜥、蜥蜴王、雙足幼龍、飛龍、巨角蜥、骨龍獸、幼九頭蛇、熔岩蜥、迅雷飛龍、沼澤毒龍），在遭遇抽取時具備較低出現率 (權重 0.25x)，且少部分（如毒蜥、巨角蜥、骨龍獸、沼澤毒龍）相容 `UNDEAD` 質變標籤（如 `[不死的]毒蜥`、`[黑暗的][不死的]骨龍獸`）。
+- **[System/Naming] 種族質變與元素動態前綴組合 (`MonsterSystem.ts`)**
+  - 實作前綴組合邏輯：`[元素前綴][種族質變前綴][基礎名稱]`。
+  - 單一允許 `UNDEAD` 怪物不加種族前綴（如 `骷髏`），多相容標籤抽到 `UNDEAD` 冠上 `[不死的]`（如 `[不死的]哥布林`）。
+  - 元素前綴支援 `[火焰的]`、`[冰冷的]`、`[雷電的]`、`[聖光的]`、`[黑暗的]`（如 `[黑暗的][不死的]哥布林`、`[火焰的]骷髏`）。
+- **[Combat/Elements] 精確元素相剋運算與算式 (`Skill.ts`, `CombatSystem.ts`)**
+  - 實作 `getElementalMultiplier()`：
+    - 三元相剋：冰 ➔ 火 ➔ 雷 ➔ 冰（順剋 1.25x，逆剋 0.75x）。
+    - 光暗互剋 1.5x；光/暗對火冰雷分別為 1.05x / 1.10x（不逆剋）；火對無屬性 1.05x（不逆剋）。
+  - 玩家端透過武器/裝備附帶元素 (`weapon.element`) 與敵人元素於 `calculateSkillDamage()` 自動運算。
+- **[System/Scouting] 討伐據點單向隔離與 100% 精確偵查一致性 (`MonsterSystem.ts`, `MapDynamicsSystem.ts`, `ModalController.ts`)**
+  - 生靈據點嚴格排除 `UNDEAD`；亡靈據點以 `UNDEAD` 為主體 (70%+) 並允許混入 `HUMAN` / `MONSTER`。
+  - 偵查時將敵軍隊伍與情報持久化於 `node.scoutData.garrisonEncounter`，保證偵查顯示、討伐彈窗與戰鬥遭遇敵軍 100% 精確一致。
+- **[Docs] 建立未來系統擴充與設計藍圖文件** (`docs/FUTURE_DESIGN.md`)
+  - 新增 `docs/FUTURE_DESIGN.md`，作為專案未來 7 大核心系統（陣營敵方單位、裝備數據庫、碎片化敘事、酒館系統、GAMBIT AI、爵位天賦、內政深化）的權威規範文件，並關聯標註專案現有代碼檔案引用鏈。
+
+## [2026-08-01] 迷霧探索機制重構：冒險者手動挑選、金幣糧食成本與長途急行選項實作
+
+- **[System/Exploration] 迷霧探險隊上限與多隊支援** (`ExplorationSystem.ts`, `Exploration.ts`, `GameLoop.ts`)
+  - 重構 `ExplorationSystem`，改為支援多個 `ACTIVE` 探險隊伍並加入 `maxExpeditions` 容量架構（預設 1 隊），可經由天賦/爵位/建築動態擴充。
+  - 將迷霧視野揭開半徑由原本的 `55` 像素縮小至精緻的 **`35` 像素**，讓大地圖迷霧推進更具層次感。
+  - 將每日天數推進 `advanceDay` 重構為走查全體探索隊伍陣列，確保多隊探索狀態同步與結算。
+- **[Economy/Costs] 動態金幣與領地糧食探索成本** (`ExplorationSystem.ts`, `ExplorationController.ts`)
+  - 實裝探險成本計算公式：`基礎(100金+20糧) + 天數 × (30金+15糧)`。出發時精確自領地資源庫扣除 `gold` 與 `food`，資源不足時予以阻擋。
+- **[UI/Fix] 跨存檔切換探索選取狀態與地圖圖層清理，保護主選單靜態彈窗** (`ExplorationController.ts`, `UIManager.ts`)
+  - 新增 `resetExplorationControllerState()` 導出函式，強制關閉 `isSelectingTarget = false` 並發送 `exploration-selection-changed` 事件通知 Phaser 地圖擦除綠色虛線邊界圖層。
+  - 在 `UIManager.clearAllUIOverlays()` 整合重置清理，保護主選單 `#modal-load-game` / `#modal-new-game` 等靜態 DOM 元素不被誤刪，並精準銷毀動態 `#modal-exploration-dispatch` 彈窗。徹底解決切換存檔殘留與退出後無法進遊戲的 Bug。
+- **[Tests] 單元測試與型別修正** (`ExplorationSystem.test.ts`, `RoadSystem.ts`)
+  - 更新 `ExplorationSystem.test.ts` 以相容陣列回傳值，修復 `RoadSystem.ts` 邊界型別，36 項單元測試 100% 綠燈通過。
+
+## [2026-08-01] 自然蜿蜒道路網絡與智慧自動分岔延伸系統實作
+
+- **[System/Road] 智慧道路分岔與延伸網絡 (Smart Road Branching & Extension)** (`Road.ts`, `RoadSystem.ts`)
+  - 重構 `RoadSystem` 道路建造與連通邏輯。當玩家建造新道路時，系統自動進行方向與距離判定：
+    - **據點延伸 (Node Extension)**：若目標據點與現有道路網上的既有據點順路，自動選擇從該據點延伸（如 `黃金渡口 ➔ 赤砂城 ➔ 燼風前哨`），徹底修復之前因大波浪碰撞誤判退回導致的超長越過據點直連線 Bug。
+    - **中途 Y型分岔 (Mid-road Curve Branching)**：若目標據點離既有主幹道路線段中段近，自動優先計算曲線投影點作為分岔點，建立自然蜿蜒的 Y型/T型三叉路口。
+  - **圖連通性 (Graph BFS)**：實裝 `hasNetworkConnection()` 廣度優先搜尋，全網連通即享道路加速與貿易減免效益。工期與長度僅計算「新增延伸段」長度。
+- **[UI/Render] 顯著自然山路波浪弧度演算法 (35~65px Noticeable Organic Curve)** (`MapScene.ts`, `RoadSystem.ts`)
+  - 提升彎曲擺幅至 **35 ~ 65 像素 MAX**，搭配手繪微幅波浪（`getSmoothCurvePoint`），解決先前 16px 擺幅在長距離下視覺看起來像直線的問題。
+  - **細緻化瘦身**：將道路線條總寬從粗重向量感的 `8px` 大幅縮減為細緻的 **`4px` 外底邊與 `2px` 內徑**。
+  - **自然羊皮紙配色**：採用古樸暖深褐色 (`0x4a2c11` / alpha 0.65) 與羊皮泥土棕 (`0xa37b42` / alpha 0.85)，線條帶半透明感自然融入大地圖背景。
+- **[Tests] 單元測試與存檔向下相容** (`RoadSystem.test.ts`)
+  - 補齊圖連通性與智慧分岔邏輯單元測試，全套 36 項單元測試 100% 綠燈通過。
+
+## [2026-07-31] CHEAT 測試武器補齊與裝備限制職業標籤機制實作
+
+- **[Fix] 修正退出遊戲回主選單未徹底清理多欄抽屜與子彈窗之 Bug** (`index.html`, `UIManager.ts`, `GameFlowController.ts`)
+  - 將 `.side-panel-left` 的預設隱藏定位 `left` 從 `-460px` 擴大修正為 `-1500px`，解決當傭兵小隊展開第 2 欄 (屬性詳細) 與第 3 欄 (裝備選擇) 時總寬達 1200px、導致收回時剩餘 740px 依然殘留在主選單畫面上的 Bug。
+  - 在 `UIManager` 實裝 `clearAllUIOverlays()` 徹底清理函式，並於「退出遊戲」及關閉抽屜時調用，完整關閉與重置所有 `side-panel-left/right`、`modal-overlay`、`party-details-pane`、`party-equip-select-pane` 與浮動 `adv-tooltip`。
+
+- **[UI/UX] 傭兵小卡片底部官職/職缺標籤排版往下修正** (`AdventurerCard.ts`, `index.html`)
+  - 將 `AdventurerCard.ts` 中底部橢圓膠囊標籤（如「城主」、「扈從」、「空位」）的定位 `bottom` 從 `-8px` 向下微調至 `-13px`，精緻化 padding 與外陰影。
+  - 同時為卡片底欄資訊區塊 `.adv-card-info` 加入 `padding-bottom: 2px`，徹底解決標籤向上向上疊加遮擋「`Lv.XX 職業`」等級與職業名稱的問題。
+
+- **[Fix] 修正未裝備對應武器即解鎖終極必殺技與被動之 Bug** (`Skill.ts`, `CombatSystem.ts`)
+  - 移除 `Skill.ts` (技能選單與被動展示) 及 `CombatSystem.ts` (戰鬥技能發放) 中原本存在的空手備用邏輯 (`|| !wpnType` / `|| !weaponType`)。
+  - 嚴格落實轉職武器綁定機制：滿等傭兵 (Lv.10 + `isAdvanced`) 必須實際穿戴專屬進階武器 (如祈禱者裝備聖典、騎士裝備劍盾、盜賊裝備雙匕首) 方可轉職並解鎖該進階職業之終極必殺技與被動天賦；未裝備武器時維持基礎職業與 2 招基礎技能。
+- **[System/Cheat] 全套 12 種 CHEAT 測試武器補齊** (`CheatController.ts`)
+  - 將原本 `testwpn` 密技僅包含的 4 種武器擴充為對應全職業轉職路線的 12 種滿等測試武器。
+  - 新增武器包含：滿等巨劍、滿等雙劍、滿等劍盾、滿等符文盾、滿等法杖、滿等戰鐮、滿等戰弓、滿等魔法弓、滿等雙匕首、滿等魔法戒指、滿等聖典與滿等戰鎚。
+- **[System/Equipment] 裝備限制職業標籤機制** (`types.ts`, `Adventurer.ts`, `EquipmentGenerator.ts`, `DataStore.ts`)
+  - 在 `Equipment` 與 `EquipmentTemplate` 介面擴充 `allowedJobs?: string[]` 選填屬性。
+  - 在 `Adventurer.canEquip()` 中加入限制職業匹配檢定，若傭兵基礎職業不符合，正確阻擋穿戴並提供「職業不符 (限 戰士)」之錯誤提示。
+  - 在 `EquipmentGenerator` 生成實體裝備時，正確將模板的 `weaponType` 與 `allowedJobs` 拷貝傳遞至裝備實體中。
+  - 為 `DataStore.EquipmentDB` 現有的 1~3 階正規武器補齊相應的 `allowedJobs` 限制標籤與 `weaponType`。
+- **[UI/UX] 裝備選單限制職業標籤與不符提示** (`ModalController.ts`)
+  - 在裝備浮動 Tooltip (`#adv-tooltip`) 中新增顯眼的 `🏷️ 限制職業: XXX` 標籤。
+  - 在換裝選擇清單中，若傭兵職業不符，裝備卡片顯示半透明遮罩與 `職業不符` 提示，點擊時跳出 Toast 警告提示並阻擋裝備。
+
+## [2026-07-31] 傭兵小隊、角色屬性與裝備選擇面板 UI 全面美化與零跑位結構重構
+
+- **[UI/UX] 隱藏未學習技能** (`ModalController.ts`)
+  - 調整技能戰術頁面 (`✨ 技能戰術`) 的渲染邏輯，過濾並隱藏未學習/鎖定的主動技能卡片，僅展示傭兵目前實質已學會並可施放的技能與被動，使畫面更為俐落乾淨。
+- **[Fix] 技能戰術頁籤事件綁定修正** (`GameFlowController.ts`)
+  - 修復 `GameFlowController.ts` 中未對新頁籤 `#tab-btn-skills` 綁定 `click` 事件導致頁籤無法點擊切換的 Bug。
+- **[UI/UX] 技能與被動總覽頁籤 (`✨ 技能戰術`) 與 Gambit 戰術預留** (`index.html`, `ModalController.ts`, `Skill.ts`)
+  - 於傭兵詳情頁擴充第 3 個頁籤 `✨ 技能戰術`，分類展示已學習的主動技能（金邊卡片、MP/CD 標記）、未解鎖/未學習技能（`🔒 未學習` 低調鎖定卡片）以及職業被動天賦。
+  - 技能卡片掛載跟隨指標 Tooltip (`#adv-tooltip`)，懸浮即刻展示技能效果說明與目標索敵機制。
+  - 頁面下方預留專屬 Gambit 戰術卡槽容器 (`#gambit-strategy-container`) 與 If-Then 條件條，為未來的自訂自動戰鬥邏輯與策略優先級做足無縫擴充佈局。
+  - 將 `#modal-party-list` 容器的背景定位改為固定錨定 (`left top / 1920px 1080px no-repeat`)。
+  - 徹底解決依序展開第 2 欄與第 3 欄時，因為容器寬度改變導致背景羊皮紙圖案被迫重新拉伸變形、滑動跳動的問題。現在展開新欄位時，背景圖案 100% 絕對靜止固定。
+- **[UI/UX] 屬性配置全固定零跑位排版 (Fixed Zero-Jitter Layout)** (`ModalController.ts`, `index.html`)
+  - 將「可用點數」併入戰力 Banner 同橫排（左側 `⚔️ 戰力：66` | 右側 `✨ 可用點數：X`），省去原單獨一整排底框佔用空間。
+  - 將底部的「確認分配」與「重設」按鈕全固定留置，未加點時呈現低調禁用樣式 (`disabled / opacity: 0.35`)，點擊 `+` 加點瞬間激活，**實現動態加點過程全元素位置寫死固定、零彈跳與零跑位**。
+  - 調整頭像容器高度至 `66px`，與右側等級職業文字及 HP/MP/EXP 進度條高度 1:1 滿鋪平齊，徹底解決頭像下方殘留黑色空隙的問題。
+- **[UI/UX] 90px 三欄裝備卡片 (3-Column Grid) 與 1:1 傭兵卡片對齊** (`ModalController.ts`)
+  - 將裝備選擇卡片尺寸與網格嚴格寫死為 `width: 90px; height: 100px;`（`repeat(3, 90px)`），完全 1:1 對齊左側傭兵卡片 (`adventurer-card`) 的寬度與視覺比例，徹底杜絕寬大笨重感。
+- **[UI/UX] 低調質感血量/魔力/經驗條美化** (`index.html`)
+  - 將原本亮原色進度條升級為深邃低調金屬漸層（緋紅 HP / 海藍 MP / 琥珀 EXP）與凹槽內陰影軌道。
+  - 加上雙重內襯文字陰影 (`text-shadow`)，確保高對比度與清澈易讀性。
+
+## [2026-07-31] 傭兵小隊介面 (Party UI) 大規模翻新與雙欄擴充
+
+- **[UI/UX] 雙倍寬度動態展開面板** (`index.html`, `GameFlowController.ts`, `ModalController.ts`)
+  - 將傭兵小隊介面 (`#modal-party-list`) 從單欄改為雙欄式動態展開。
+  - 打開介面時，預設僅顯示「左側：成員列表」，寬度維持約 440px。
+  - 點擊任一傭兵卡片後，會自動向右展開「右側：詳細資訊」面板，使整體介面變為兩倍寬，可同時瀏覽列表與詳細狀態。
+  - 新增專屬的「❌ 關閉資訊」按鈕，可單獨收起右側詳細資訊面板。
+- **[UI/UX] 屬性配置頁籤優化** (`ModalController.ts`)
+  - 修正頂端標題的職業名稱，現在只顯示名字。職業資訊移至屬性頁面內。
+  - 將「六維屬性」正名為「基礎屬性」，並獨立出「領袖屬性」。
+  - 全面優化配點區塊的 Grid 排版，修正過去按 `+/-` 會導致排版擠壓並產生垂直捲動軸的 Bug。
+- **[UI/UX] 方框式武裝配備卡片與跟隨式 Tooltip** (`ModalController.ts`)
+  - 捨棄原本的長條狀裝備顯示，改為 3 個正方形網格卡片（武器、防具、飾品）。
+  - 將雜亂的裝備資訊收納至隱藏資料中，卡片上僅顯示「圖示、名稱、強化等級」。
+  - 實作跟隨滑鼠指標 (`mousemove`) 移動的獨立裝備 Tooltip (`#adv-tooltip`)，懸浮時才顯示所有詳細的裝備數值加成與說明。
+
 ## [2026-07-31] 智能施法大腦 (Smart AI) 與 5v5 團隊平衡模擬測試
 
 - **[Feature] 大招冷卻機制 (Cooldowns)** (`Combat.ts`, `Skill.ts`, `CombatSystem.ts`)

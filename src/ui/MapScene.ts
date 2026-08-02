@@ -361,60 +361,105 @@ export class MapScene extends Phaser.Scene {
     this.roadGraphics.clear();
     if (!GameState.roadSystem || !GameState.mapSystem) return;
 
-    const drawConnection = (
-      originNodeId: string,
-      targetNodeId: string,
+    const nodes = GameState.mapSystem.getNodes();
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+    const drawCurve = (
+      startPx: { x: number; y: number },
+      targetPx: { x: number; y: number },
+      roadId: string,
       color: number,
       width: number,
       alpha: number,
       progress = 1
     ) => {
-      const origin = GameState.mapSystem.getNodeById(originNodeId);
-      const target = GameState.mapSystem.getNodeById(targetNodeId);
-      if (!origin || !target) return;
-      const startX = (origin.x / 100) * 1600;
-      const startY = (origin.y / 100) * 900;
-      const endX = Phaser.Math.Linear(startX, (target.x / 100) * 1600, progress);
-      const endY = Phaser.Math.Linear(startY, (target.y / 100) * 900, progress);
+      const steps = Math.max(16, Math.ceil(progress * 30));
+      let prevPt = startPx;
+
       this.roadGraphics.lineStyle(width, color, alpha);
-      this.roadGraphics.lineBetween(startX, startY, endX, endY);
+      this.roadGraphics.beginPath();
+      this.roadGraphics.moveTo(prevPt.x, prevPt.y);
+
+      for (let i = 1; i <= steps; i++) {
+        const t = (i / steps) * progress;
+        const pt = GameState.roadSystem.getSmoothCurvePoint(startPx, targetPx, roadId, t);
+        this.roadGraphics.lineTo(pt.x, pt.y);
+      }
+      this.roadGraphics.strokePath();
     };
 
+    const getRoadEndpoints = (road: any) => {
+      const targetNode = nodeMap.get(road.targetNodeId);
+      if (!targetNode) return null;
+      const targetPx = GameState.roadSystem.nodeToPixel(targetNode);
+
+      let startPx: { x: number; y: number } | null = null;
+      let isBranch = false;
+
+      if (road.startNodeId && nodeMap.has(road.startNodeId)) {
+        startPx = GameState.roadSystem.nodeToPixel(nodeMap.get(road.startNodeId)!);
+      } else if (road.parentRoadId) {
+        const parent = GameState.roadSystem.getRoads().find(r => r.id === road.parentRoadId);
+        if (parent) {
+          startPx = GameState.roadSystem.getPointOnRoadConnection(parent, road.branchRatio ?? 0.5, nodeMap);
+          isBranch = true;
+        }
+      }
+
+      if (!startPx) {
+        const originNode = nodeMap.get(road.originNodeId);
+        if (!originNode) return null;
+        startPx = GameState.roadSystem.nodeToPixel(originNode);
+      }
+
+      return { startPx, targetPx, roadId: road.id, isBranch };
+    };
+
+    // 1. 繪製已完成道路 (細緻 4px/2px 羊皮泥土棕配色)
     GameState.roadSystem.getRoads().forEach(road => {
-      drawConnection(road.originNodeId, road.targetNodeId, 0x78350f, 8, 0.9);
-      drawConnection(road.originNodeId, road.targetNodeId, 0xd6a85f, 3, 0.95);
+      const endpoints = getRoadEndpoints(road);
+      if (!endpoints) return;
+      const { startPx, targetPx, roadId, isBranch } = endpoints;
+
+      // 外底邊緣 (暖深褐色 4px, 透明度 0.65)
+      drawCurve(startPx, targetPx, roadId, 0x4a2c11, 4, 0.65, 1);
+      // 內層路面 (古樸羊皮泥土黃棕 2px, 透明度 0.85)
+      drawCurve(startPx, targetPx, roadId, 0xa37b42, 2, 0.85, 1);
+
+      // 若為中途分岔點，繪製微幅點狀融合點
+      if (isBranch) {
+        this.roadGraphics.fillStyle(0x4a2c11, 0.65);
+        this.roadGraphics.fillCircle(startPx.x, startPx.y, 3);
+        this.roadGraphics.fillStyle(0xa37b42, 0.85);
+        this.roadGraphics.fillCircle(startPx.x, startPx.y, 1.5);
+      }
     });
 
+    // 2. 繪製施工中道路
     const project = GameState.roadSystem.getActiveProject();
-    if (!project) return;
-    const origin = GameState.mapSystem.getNodeById(project.originNodeId);
-    const target = GameState.mapSystem.getNodeById(project.targetNodeId);
-    if (!origin || !target) return;
-    const startX = (origin.x / 100) * 1600;
-    const startY = (origin.y / 100) * 900;
-    const targetX = (target.x / 100) * 1600;
-    const targetY = (target.y / 100) * 900;
-    const distance = Phaser.Math.Distance.Between(startX, startY, targetX, targetY);
-    const dashCount = Math.max(1, Math.ceil(distance / 20));
-    this.roadGraphics.lineStyle(3, 0x94a3b8, 0.7);
-    for (let index = 0; index < dashCount; index += 2) {
-      const from = index / dashCount;
-      const to = Math.min(1, (index + 1) / dashCount);
-      this.roadGraphics.lineBetween(
-        Phaser.Math.Linear(startX, targetX, from),
-        Phaser.Math.Linear(startY, targetY, from),
-        Phaser.Math.Linear(startX, targetX, to),
-        Phaser.Math.Linear(startY, targetY, to)
-      );
+    if (project) {
+      const endpoints = getRoadEndpoints(project);
+      if (endpoints) {
+        const { startPx, targetPx, roadId } = endpoints;
+        const progress = project.elapsedDays / project.totalDays;
+
+        // 底層虛線全段標示 (細緻 2px 灰藍)
+        const dashSteps = 20;
+        this.roadGraphics.lineStyle(2, 0x94a3b8, 0.6);
+        for (let i = 0; i < dashSteps; i += 2) {
+          const tFrom = i / dashSteps;
+          const tTo = (i + 1) / dashSteps;
+          const p1 = GameState.roadSystem.getSmoothCurvePoint(startPx, targetPx, roadId, tFrom);
+          const p2 = GameState.roadSystem.getSmoothCurvePoint(startPx, targetPx, roadId, tTo);
+          this.roadGraphics.lineBetween(p1.x, p1.y, p2.x, p2.y);
+        }
+
+        // 已施工進度琥珀金色亮線
+        if (progress > 0) {
+          drawCurve(startPx, targetPx, roadId, 0xd97706, 3, 0.85, progress);
+        }
+      }
     }
-    drawConnection(
-      project.originNodeId,
-      project.targetNodeId,
-      0xf59e0b,
-      6,
-      0.95,
-      project.elapsedDays / project.totalDays
-    );
   }
 
   // 重新繪製所有城鎮節點

@@ -1,5 +1,5 @@
 import { Adventurer } from '../models/Adventurer';
-import { DispatchTask, EnemyFeature, TaskType, TradePhase, normalizeTradeTask } from '../models/DispatchTask';
+import { DispatchTask, EnemyFeature, TaskType, TradePhase, normalizeTradeTask, SubjugationMode } from '../models/DispatchTask';
 import { Territory } from '../models/Territory';
 import { AdventurerState, NobleTitle, NodeFeature, getOfficeConfig, TradeTreaty, MapNode } from '../models/types';
 import { EquipmentGenerator } from './EquipmentGenerator';
@@ -516,7 +516,7 @@ export class DispatchSystem {
       this.territory.prestige += gainedPrestige;
       
       let dropMsg = '';
-      if (Random.next() * 100 <= task.baseDifficulty) {
+      if (task.subjugationMode === 'PROGRESS' || Random.next() * 100 <= task.baseDifficulty) {
         const maxLevel = Math.max(5, Math.floor(task.baseDifficulty / 2));
         const droppedEq = EquipmentGenerator.dropRandomEquipment(maxLevel);
         if (droppedEq) {
@@ -527,13 +527,21 @@ export class DispatchSystem {
 
       console.log(`✅ [任務完成] 傭兵小隊 (${advNames}) 成功討伐「${task.name}」！${battleLog} 帶回 ${task.expectedGold} 金幣與 ${gainedPrestige} 聲望${expBonusStr}。${dropMsg}`);
 
-      // 如果是攻城任務，則佔領該據點
-      if (task.isWar && task.targetNodeId && GameState.mapSystem) {
+      // 如果是攻城任務，則佔領該據點；如果是多波次平定任務，則徹底清除動態據點
+      if (task.targetNodeId && GameState.mapSystem) {
         const node = GameState.mapSystem.getNodeById(task.targetNodeId);
         if (node) {
-          node.ownerFactionId = 'player';
-          node.governorId = undefined; // 剛佔領尚未指派代官
-          console.log(`🏰 [開疆闢土] 您成功佔領了「${node.name}」！現在您可以指派代官來管理該領地了。`);
+          if (task.isWar) {
+            node.ownerFactionId = 'player';
+            node.governorId = undefined; // 剛佔領尚未指派代官
+            console.log(`🏰 [開疆闢土] 您成功佔領了「${node.name}」！現在您可以指派代官來管理該領地了。`);
+          } else if (node.isDynamic && task.subjugationMode === SubjugationMode.PROGRESS) {
+            // 多波次平定全勝：將動態據點從地圖上徹底移除
+            GameState.mapSystem.removeDynamicNode(node.id);
+            console.log(`🧹 [據點平定] 傭兵小隊成功清空 3 波敵軍，徹底平定了「${node.name}」，該據點已從地圖上消失！`);
+          } else if (node.isDynamic) {
+            console.log(`⚔️ [單次練功] 傭兵小隊完成了「${node.name}」的單次討伐，獲得戰利品，「${node.name}」依然保留在地圖上。`);
+          }
         }
       }
 

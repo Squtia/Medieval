@@ -1,6 +1,6 @@
 import { GameState } from '../core/GameState';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect, tryApplyStatus } from '../models/Combat';
-import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType } from '../models/types';
+import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType, ElementType } from '../models/types';
 import { Random } from '../core/Random';
 import { SKILLS, TargetType, calculateSkillDamage } from '../models/Skill';
 import { FormationDB } from '../systems/FormationDB';
@@ -33,8 +33,12 @@ export class CombatSystem {
         if (adv.office) {
           const cfg = getOfficeConfig(adv.office);
           if (cfg && cfg.combatBonusPct) {
-            stats.atk = Math.floor(stats.atk * (1 + cfg.combatBonusPct));
-            stats.def = Math.floor(stats.def * (1 + cfg.combatBonusPct));
+            stats.patk = Math.floor(stats.patk * (1 + cfg.combatBonusPct));
+            stats.matk = Math.floor(stats.matk * (1 + cfg.combatBonusPct));
+            stats.pdef = Math.floor(stats.pdef * (1 + cfg.combatBonusPct));
+            stats.mdef = Math.floor(stats.mdef * (1 + cfg.combatBonusPct));
+            stats.atk = Math.max(stats.patk, stats.matk);
+            stats.def = stats.pdef;
           }
         }
         const troop = troopAssignments?.[id];
@@ -70,12 +74,12 @@ export class CombatSystem {
         }
         if (jobName.includes('騎士')) {
           skills.push('KNIGHT_SHIELD_BASH', 'KNIGHT_TAUNT');
-          if (isAdv && (weaponType === 'SWORD_AND_SHIELD' || !weaponType)) skills.push('KNIGHT_PALADIN_AEGIS');
+          if (isAdv && weaponType === 'SWORD_AND_SHIELD') skills.push('KNIGHT_PALADIN_AEGIS');
           if (isAdv && weaponType === 'RUNE_SHIELD') skills.push('KNIGHT_RUNE_REFLECTION');
         }
         if (jobName.includes('祈禱者')) {
           skills.push('PRAYER_HEAL', 'PRAYER_HOLY_LIGHT');
-          if (isAdv && (weaponType === 'HOLY_BOOK' || !weaponType)) skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
+          if (isAdv && weaponType === 'HOLY_BOOK') skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
           if (isAdv && weaponType === 'HAMMER') skills.push('PRAYER_INQUISITOR_JUDGMENT');
         }
         
@@ -147,6 +151,7 @@ export class CombatSystem {
           shieldCurrentHp: troop?.count ? troop.count * 10 : 0,
           baseClass: adv.job?.name || '戰士',
           weaponType: weaponType,
+          element: weapon?.element || ElementType.NONE,
           skills: skills,
           isAdvanced: adv.isAdvanced && adv.level >= 10,
           attributes: adv.getEffectiveAttributes()
@@ -155,15 +160,22 @@ export class CombatSystem {
     });
 
     // 記錄玩家初始狀態供 UI 繪製，敵方則在 WAVE_START 動態處理
-    const initialStates = [...playerTeam].map(p => ({
-      id: p.id,
-      name: p.name,
-      isPlayer: p.isPlayer,
-      row: p.row,
-      gridR: p.gridR,
-      gridC: p.gridC,
-      maxHp: p.maxHp
-    }));
+    const initialStates = [...playerTeam].map(p => {
+      const adv = GameState.adventurers.find(a => a.id === p.id);
+      const maxMp = p.attributes?.spr ? p.attributes.spr * 5 : (p.stats.mp || 100);
+      return {
+        id: p.id,
+        name: p.name,
+        isPlayer: p.isPlayer,
+        row: p.row,
+        gridR: p.gridR,
+        gridC: p.gridC,
+        maxHp: p.maxHp,
+        maxMp: maxMp,
+        currentMp: p.stats.mp ?? maxMp,
+        avatarIndex: adv?.avatarIndex ?? 0
+      };
+    });
 
     let isVictory = false;
     let allWavesCleared = true;
@@ -171,21 +183,27 @@ export class CombatSystem {
     for (let wave = 1; wave <= totalWaves; wave++) {
       const enemyTeam: CombatParticipant[] = [];
       const currentWaveDiff = taskDifficulty + (wave - 1) * 5;
-      const enemyCount = Random.int(1, 3);
+      const enemyCount = (enemyLineup && enemyLineup.length > 0) ? enemyLineup.length : Random.int(1, 3);
       
       for (let i = 0; i < enemyCount; i++) {
-        // 若有具體敵方名單，從中依序取用（若不夠則重複取用最後一隻）
+        // 若有具體敵方名單，從中依序取用
         let lineupMonster = undefined;
         if (enemyLineup && enemyLineup.length > 0) {
            lineupMonster = enemyLineup[Math.min(i, enemyLineup.length - 1)];
         }
         
         const eHp = lineupMonster ? lineupMonster.hp : (50 + currentWaveDiff * 5);
-        let eDef = lineupMonster ? lineupMonster.defense : (currentWaveDiff * 2);
+        let ePdef = lineupMonster ? (lineupMonster.pdef || lineupMonster.defense) : (currentWaveDiff * 2);
+        let eMdef = lineupMonster ? (lineupMonster.mdef || lineupMonster.defense) : (currentWaveDiff * 2);
+        let eDef = ePdef;
         let eEvade = lineupMonster ? lineupMonster.evade : (currentWaveDiff * 1.5);
         const eAtk = lineupMonster ? lineupMonster.damage : (10 + currentWaveDiff * 2);
 
-        if (enemyFeature === 'HIGH_DEF' && !lineupMonster) eDef *= 2;
+        if (enemyFeature === 'HIGH_DEF' && !lineupMonster) {
+          ePdef *= 2;
+          eMdef *= 2;
+          eDef *= 2;
+        }
         if (enemyFeature === 'HIGH_EVADE' && !lineupMonster) eEvade *= 2;
 
         const isFront = Random.next() > 0.5;
@@ -201,7 +219,8 @@ export class CombatSystem {
           gridC: eGridC,
           maxHp: eHp,
           currentHp: eHp,
-          stats: { hp: eHp, mp: 0, atk: eAtk, def: eDef, hit: 20 + currentWaveDiff, evade: eEvade },
+          element: lineupMonster?.element || ElementType.NONE,
+          stats: { hp: eHp, mp: 50 + currentWaveDiff * 5, patk: eAtk, matk: eAtk, pdef: ePdef, mdef: eMdef, hit: 20 + currentWaveDiff, evade: eEvade, critRate: 5, critDmg: 150, atk: eAtk, def: eDef },
           attributes: { 
             con: 5 + currentWaveDiff, 
             spr: 5 + currentWaveDiff, 
@@ -226,7 +245,9 @@ export class CombatSystem {
           row: e.row,
           gridR: e.gridR,
           gridC: e.gridC,
-          maxHp: e.maxHp
+          maxHp: e.maxHp,
+          maxMp: e.stats.mp || 50,
+          currentMp: e.stats.mp || 50
         })),
         text: `--- 第 ${wave} 波戰鬥開始！遭遇了 ${enemyCount} 名敵人。 ---` 
       });
@@ -257,19 +278,38 @@ export class CombatSystem {
           }
         }
 
-        // Per-turn HP and MP regeneration
+        // Per-turn HP and MP regeneration (削弱為 CON/SPR * 0.2，並標記為 isQuietRegen 避開對話框洗版)
         if (actor.attributes) {
-          const hpRegen = Math.max(1, Math.floor((actor.attributes.con || 0) * 0.5));
-          const mpRegen = Math.max(1, Math.floor((actor.attributes.spr || 0) * 0.5));
+          const hpRegen = Math.max(1, Math.floor((actor.attributes.con || 0) * 0.2));
+          const mpRegen = Math.max(1, Math.floor((actor.attributes.spr || 0) * 0.2));
           
           if (actor.currentHp < actor.maxHp) {
             actor.currentHp = Math.min(actor.maxHp, actor.currentHp + hpRegen);
-            events.push({ type: CombatEventType.HEAL, targetName: actor.name, damage: hpRegen, targetHp: actor.currentHp, targetMaxHp: actor.maxHp, text: `${actor.name} 恢復了 ${hpRegen} 點 HP。` });
+            events.push({
+              type: CombatEventType.HEAL,
+              actorId: actor.id,
+              targetId: actor.id,
+              targetName: actor.name,
+              damage: hpRegen,
+              targetHp: actor.currentHp,
+              targetMaxHp: actor.maxHp,
+              isQuietRegen: true,
+              healType: 'HP',
+              text: `${actor.name} 恢復了 ${hpRegen} 點 HP。`
+            });
           }
           if (actor.stats.mp !== undefined) {
-             // We don't have maxMp tracked universally in stats, let's assume 200 for now or whatever current is if it's over 200
              actor.stats.mp = Math.min(actor.stats.mp > 200 ? actor.stats.mp : 200, actor.stats.mp + mpRegen);
-             events.push({ type: CombatEventType.HEAL, targetName: actor.name, text: `${actor.name} 恢復了 ${mpRegen} 點 MP。` });
+             events.push({
+               type: CombatEventType.HEAL,
+               actorId: actor.id,
+               targetId: actor.id,
+               targetName: actor.name,
+               damage: mpRegen,
+               isQuietRegen: true,
+               healType: 'MP',
+               text: `${actor.name} 恢復了 ${mpRegen} 點 MP。`
+             });
           }
         }
 
@@ -350,9 +390,13 @@ export class CombatSystem {
             actor.cooldowns[selectedSkill.id] = selectedSkill.cooldown;
           }
           
+          const actorMaxMp = actor.attributes?.spr ? actor.attributes.spr * 5 : 100;
           events.push({
             type: CombatEventType.SKILL_CAST,
             actorId: actor.id, actorName: actor.name,
+            targetId: actor.id,
+            targetMp: actor.stats.mp,
+            targetMaxMp: actorMaxMp,
             text: `${actor.name} 消耗了 ${selectedSkill.mpCost} MP 施放【${selectedSkill.name}】！`
           });
           
@@ -394,23 +438,24 @@ export class CombatSystem {
         let isCrit = false;
 
         if (actor.isAdvanced && actor.weaponType === 'HAMMER') {
-           const phys = calculateSkillDamage(actor, target, actor.stats.atk * 0.4, DamageType.PHYSICAL);
-           const mag = calculateSkillDamage(actor, target, actor.stats.atk * 0.6, DamageType.MAGICAL);
+           const phys = calculateSkillDamage(actor, target, (actor.stats.patk || actor.stats.atk) * 0.4, DamageType.PHYSICAL);
+           const mag = calculateSkillDamage(actor, target, (actor.stats.matk || actor.stats.atk) * 0.6, DamageType.MAGICAL);
            finalDamage = phys.damage + mag.damage;
            isCrit = phys.isCrit || mag.isCrit;
         } else if (actor.isAdvanced && actor.weaponType === 'DUAL_SWORDS') {
-           const phys = calculateSkillDamage(actor, target, actor.stats.atk * 0.5, DamageType.PHYSICAL);
-           const mag = calculateSkillDamage(actor, target, actor.stats.atk * 0.5, DamageType.MAGICAL);
+           const phys = calculateSkillDamage(actor, target, (actor.stats.patk || actor.stats.atk) * 0.5, DamageType.PHYSICAL);
+           const mag = calculateSkillDamage(actor, target, (actor.stats.matk || actor.stats.atk) * 0.5, DamageType.MAGICAL);
            finalDamage = phys.damage + mag.damage;
            isCrit = phys.isCrit || mag.isCrit;
         } else {
            let dType = DamageType.PHYSICAL;
-           if (['STAFF', 'HOLY_BOOK'].includes(actor.weaponType || '')) {
+           if (['STAFF', 'HOLY_BOOK', 'SCYTHE', 'MAGIC_RING'].includes(actor.weaponType || '')) {
              dType = DamageType.MAGICAL;
-           } else if (['SCYTHE', 'MAGIC_RING', 'MAGIC_BOW'].includes(actor.weaponType || '')) {
-             dType = DamageType.CHAOS;
            }
-           let atkPower = actor.stats.atk;
+           let atkPower = dType === DamageType.MAGICAL 
+             ? (actor.stats.matk || actor.stats.atk) 
+             : (actor.stats.patk || actor.stats.atk);
+
            if (actor.isAdvanced && actor.weaponType === 'DAGGERS' && (target.currentHp / target.maxHp) >= 0.7) {
              atkPower *= 1.3; // 暗殺者被動：普攻對健康目標增傷
            }

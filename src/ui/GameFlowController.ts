@@ -4,12 +4,14 @@ import { ToastManager } from './ToastManager';
 import { UIManager } from './UIManager';
 import { advanceDay, startGameLoop, stopGameLoop } from '../core/GameLoop';
 import { enterScene, returnToMap } from './SceneController';
+import { enterSceneWithTransition } from './SceneController';
 import { positionFloatingElement } from './FloatingPosition';
 import { setPartyTab } from './ModalController';
 import { showDailySummaryModal } from './DailySummaryModal';
 import { DiplomacyController } from './DiplomacyController';
+import { renderSaveSlots } from './MainMenuController';
 
-export function initGameFlowController(): void {
+export function initGameFlowController(rebindUIEvents: () => void): void {
   // 三個側邊抽屜面板的輔助取得函式（提前宣告供互斥邏輯共用）
   const partyModal = () => document.getElementById('modal-party-list');
   const combatHistoryPanel = () => document.getElementById('combat-history-panel');
@@ -22,6 +24,10 @@ export function initGameFlowController(): void {
   const tabBtnEquip = document.getElementById('tab-btn-equip');
   if (tabBtnEquip) {
     tabBtnEquip.addEventListener('click', () => setPartyTab('equip'));
+  }
+  const tabBtnSkills = document.getElementById('tab-btn-skills');
+  if (tabBtnSkills) {
+    tabBtnSkills.addEventListener('click', () => setPartyTab('skills'));
   }
 
   
@@ -73,20 +79,15 @@ export function initGameFlowController(): void {
       stopGameLoop();
 
       UIManager.playTransition(() => {
-        // 黑幕完全覆蓋後才切換視圖，避免存檔彈窗與主選單瞬間跳接。
-        document.querySelectorAll('.view, .facility-view, .modal-overlay, .side-panel-left, .side-panel-right').forEach(v => v.classList.remove('active'));
-
-        const topBar = document.getElementById('top-bar');
-        if (topBar) topBar.style.display = 'none';
-
-        const sharedRightPanel = document.getElementById('shared-right-panel');
-        if (sharedRightPanel) sharedRightPanel.style.display = 'none';
-
-        const commandCrest = document.getElementById('command-crest-container');
-        if (commandCrest) commandCrest.style.display = 'none';
+        // 黑幕完全覆蓋後才切換視圖，徹底清理隱藏全遊戲視圖、Modal與子面板
+        UIManager.clearAllUIOverlays();
 
         const mainMenu = document.getElementById('main-menu-view');
-        if (mainMenu) mainMenu.classList.add('active');
+        if (mainMenu) {
+          mainMenu.classList.add('active');
+          // 重新渲染存檔欄位，確保退出後看到最新的存檔資訊
+          renderSaveSlots(rebindUIEvents);
+        }
       });
     });
   }
@@ -99,7 +100,7 @@ export function initGameFlowController(): void {
         if (GameState.myTerritory.currentCountryId) {
           const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
           if (baseNode) {
-            enterScene(baseNode);
+            enterSceneWithTransition(baseNode);
           }
         } else {
           ToastManager.show('您尚未建立據點！');
@@ -123,9 +124,17 @@ export function initGameFlowController(): void {
         DiplomacyController.close();
         combatHistoryPanel()?.classList.remove('active');
         modal.classList.add('active');
+        const detailsPane = document.getElementById('party-details-pane');
+        if (detailsPane) detailsPane.style.display = 'none'; // 每次打開預設只顯示列表
+        const equipSelectPane = document.getElementById('party-equip-select-pane');
+        if (equipSelectPane) equipSelectPane.style.display = 'none';
         UIManager.updateUI();
       } else {
         modal.classList.remove('active');
+        const detailsPane = document.getElementById('party-details-pane');
+        if (detailsPane) detailsPane.style.display = 'none';
+        const equipSelectPane = document.getElementById('party-equip-select-pane');
+        if (equipSelectPane) equipSelectPane.style.display = 'none';
       }
     });
   }
@@ -148,6 +157,28 @@ export function initGameFlowController(): void {
   if (btnClosePartyList) {
     btnClosePartyList.addEventListener('click', () => {
       partyModal()?.classList.remove('active');
+      const detailsPane = document.getElementById('party-details-pane');
+      if (detailsPane) detailsPane.style.display = 'none';
+      const equipSelectPane = document.getElementById('party-equip-select-pane');
+      if (equipSelectPane) equipSelectPane.style.display = 'none';
+    });
+  }
+
+  const btnClosePartyDetails = document.getElementById('btn-close-party-details');
+  if (btnClosePartyDetails) {
+    btnClosePartyDetails.addEventListener('click', () => {
+      const detailsPane = document.getElementById('party-details-pane');
+      if (detailsPane) detailsPane.style.display = 'none';
+      const equipSelectPane = document.getElementById('party-equip-select-pane');
+      if (equipSelectPane) equipSelectPane.style.display = 'none';
+    });
+  }
+
+  const btnCloseEquipSelectPane = document.getElementById('btn-close-equip-select-pane');
+  if (btnCloseEquipSelectPane) {
+    btnCloseEquipSelectPane.addEventListener('click', () => {
+      const equipSelectPane = document.getElementById('party-equip-select-pane');
+      if (equipSelectPane) equipSelectPane.style.display = 'none';
     });
   }
 
@@ -197,7 +228,7 @@ export function initGameFlowController(): void {
       const isMapViewActive = document.getElementById('map-view')?.classList.contains('active');
       if (isMapViewActive && GameState.myTerritory.currentCountryId) {
         const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
-        if (baseNode) enterScene(baseNode);
+        if (baseNode) enterSceneWithTransition(baseNode);
       } else if (!isMapViewActive) {
         returnToMap();
       }

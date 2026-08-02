@@ -27,6 +27,9 @@ if (logContainer) {
 
 // 2. 全域 UI 事件訂閱
 export function rebindGlobalUIEvents() {
+  EventBus.getInstance().subscribe(GameEventType.DAY_PASSED, () => {
+    ToastManager.clearAll();
+  });
   EventBus.getInstance().subscribe(GameEventType.RESOURCE_CHANGED, () => {
     UIManager.updateUI();
   });
@@ -75,7 +78,7 @@ initMapInteraction();
 
 // 5. 初始化各個 UI Controller
 initMainMenuController(rebindGlobalUIEvents);
-initGameFlowController();
+initGameFlowController(rebindGlobalUIEvents);
 initFacilityController();
 initActionController();
 initRecruitController();

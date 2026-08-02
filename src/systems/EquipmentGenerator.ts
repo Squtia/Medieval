@@ -20,20 +20,25 @@ export class EquipmentGenerator {
       id: template.id,
       name: template.name,
       slot: template.slot,
+      weaponType: template.weaponType,
+      allowedJobs: template.allowedJobs ? [...template.allowedJobs] : undefined,
       icon: template.icon,
       enhancementLevel: 0,
       requirements: { ...template.baseRequirements },
       effects: { ...template.baseEffects },
-      combatEffects: { ...template.baseCombatEffects }
+      combatEffects: { ...template.baseCombatEffects },
+      element: template.element,
+      armorType: template.armorType,
+      tier: template.tier,
+      isVariant: template.isVariant,
+      grantedSkill: template.grantedSkill
     };
 
-    // 根據 ItemLevel 計算隨機點數 (假設 1 ItemLevel = 1~2 點基礎屬性 or 5~10點HP/MP 等)
-    // 這裡我們將 ItemLevel 分配到隨機池中的屬性
+    // 根據 ItemLevel 計算隨機點數
     if (template.randomPool) {
       const pool = template.randomPool;
       let remainingPoints = template.itemLevel;
 
-      // 隨機分配點數邏輯
       while (remainingPoints > 0) {
         const alloc = Math.min(remainingPoints, Random.int(1, 3));
         remainingPoints -= alloc;
@@ -42,7 +47,6 @@ export class EquipmentGenerator {
         
         if (isCombatStat && pool.combatStats) {
           const stat = Random.pick(pool.combatStats);
-          // 針對不同戰鬥屬性，分配的倍率不同 (例如 HP/MP 倍率較高)
           let multiplier = 1;
           if (stat === 'hp' || stat === 'mp') multiplier = 5;
           
@@ -56,6 +60,9 @@ export class EquipmentGenerator {
       }
     }
 
+    // 複製備份基底數值
+    eq.baseCombatEffects = JSON.parse(JSON.stringify(eq.combatEffects || {}));
+
     return eq;
   }
 
@@ -65,10 +72,9 @@ export class EquipmentGenerator {
    */
   public static dropRandomEquipment(maxItemLevel: number): Equipment | null {
     const allTemplates = Object.values(DataStore.EquipmentDB);
-    const validTemplates = allTemplates.filter(t => t.itemLevel <= maxItemLevel);
-    
+    const validTemplates = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && (t.tier === undefined || t.tier <= 3) && !t.isVariant && t.itemLevel <= maxItemLevel);
     if (validTemplates.length === 0) return null;
-    
+
     const selectedTemplate = Random.pick(validTemplates);
     return this.generate(selectedTemplate.id);
   }

@@ -80,13 +80,15 @@ describe('ExplorationSystem', () => {
       y: targetY,
       isDiscovered: false
     } as MapNode;
-    let progress = restored.advanceDay([origin, hiddenNode]);
-    while (progress && !progress.completed) {
-      progress = restored.advanceDay([origin, hiddenNode]);
+    let progressResults = restored.advanceDay([origin, hiddenNode]);
+    let lastProgress = progressResults[0];
+    while (lastProgress && !lastProgress.completed) {
+      progressResults = restored.advanceDay([origin, hiddenNode]);
+      lastProgress = progressResults[0];
     }
 
-    expect(progress?.completed).toBe(true);
-    expect(progress?.discoveredNodeIds).toContain('hidden_node');
+    expect(lastProgress?.completed).toBe(true);
+    expect(lastProgress?.discoveredNodeIds).toContain('hidden_node');
     expect(hiddenNode.isDiscovered).toBe(true);
     expect(restored.isPointRevealed(targetX, targetY)).toBe(true);
     expect(restored.getActiveExpedition()).toBeNull();

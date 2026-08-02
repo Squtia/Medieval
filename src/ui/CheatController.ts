@@ -67,14 +67,23 @@ export function initCheatController(): void {
         ToastManager.show(`✨ 旗下所有傭兵已提升至 10 等滿等！`);
     }},
     'testwpn': { name: '測試轉職武器', noPrompt: true, setter: () => {
+        const now = Date.now();
         const testWeapons = [
-          { uuid: 'test_wpn_gs_' + Date.now(), id: 'test_greatsword', name: '[測試] 滿等巨劍', slot: 'WEAPON', icon: '⚔️', enhancementLevel: 0, weaponType: 'GREATSWORD', requirements: { str: 5 }, effects: {}, combatEffects: { atk: 15 } },
-          { uuid: 'test_wpn_ds_' + Date.now(), id: 'test_dualswords', name: '[測試] 滿等雙劍', slot: 'WEAPON', icon: '⚔️', enhancementLevel: 0, weaponType: 'DUAL_SWORDS', requirements: { int: 5 }, effects: {}, combatEffects: { atk: 12, evade: 5 } },
-          { uuid: 'test_wpn_st_' + Date.now(), id: 'test_staff', name: '[測試] 滿等法杖', slot: 'WEAPON', icon: '🪄', enhancementLevel: 0, weaponType: 'STAFF', requirements: { int: 5 }, effects: {}, combatEffects: { atk: 5, hit: 10 } },
-          { uuid: 'test_wpn_sc_' + Date.now(), id: 'test_scythe', name: '[測試] 滿等戰鐮', slot: 'WEAPON', icon: '🪓', enhancementLevel: 0, weaponType: 'SCYTHE', requirements: { str: 3, int: 3 }, effects: {}, combatEffects: { atk: 18 } }
+          { uuid: 'test_wpn_gs_' + now, id: 'test_greatsword', name: '[測試] 滿等巨劍', slot: 'WEAPON', icon: '⚔️', enhancementLevel: 0, weaponType: 'GREATSWORD', allowedJobs: ['戰士'], requirements: { str: 5 }, effects: { str: 5 }, combatEffects: { patk: 15 } },
+          { uuid: 'test_wpn_ds_' + now, id: 'test_dualswords', name: '[測試] 滿等雙劍', slot: 'WEAPON', icon: '⚔️', enhancementLevel: 0, weaponType: 'DUAL_SWORDS', allowedJobs: ['戰士'], requirements: { str: 3, int: 3 }, effects: { int: 5 }, combatEffects: { patk: 12, matk: 8, evade: 5 } },
+          { uuid: 'test_wpn_ss_' + now, id: 'test_swordshield', name: '[測試] 滿等劍盾', slot: 'WEAPON', icon: '🛡️', enhancementLevel: 0, weaponType: 'SWORD_AND_SHIELD', allowedJobs: ['騎士'], requirements: { con: 5 }, effects: { con: 5 }, combatEffects: { patk: 10, pdef: 10 } },
+          { uuid: 'test_wpn_rs_' + now, id: 'test_runeshield', name: '[測試] 滿等符文盾', slot: 'WEAPON', icon: '🛡️', enhancementLevel: 0, weaponType: 'RUNE_SHIELD', allowedJobs: ['騎士'], requirements: { spr: 5 }, effects: { spr: 5 }, combatEffects: { patk: 8, pdef: 12, mdef: 10 } },
+          { uuid: 'test_wpn_st_' + now, id: 'test_staff', name: '[測試] 滿等法杖', slot: 'WEAPON', icon: '🪄', enhancementLevel: 0, weaponType: 'STAFF', allowedJobs: ['法師'], requirements: { int: 5 }, effects: { int: 5 }, combatEffects: { matk: 15, hit: 10 } },
+          { uuid: 'test_wpn_sc_' + now, id: 'test_scythe', name: '[測試] 滿等戰鐮', slot: 'WEAPON', icon: '🪓', enhancementLevel: 0, weaponType: 'SCYTHE', allowedJobs: ['法師'], requirements: { int: 3, con: 3 }, effects: { con: 3, int: 3 }, combatEffects: { patk: 10, matk: 18 } },
+          { uuid: 'test_wpn_bw_' + now, id: 'test_bow', name: '[測試] 滿等戰弓', slot: 'WEAPON', icon: '🏹', enhancementLevel: 0, weaponType: 'BOW', allowedJobs: ['弓箭手'], requirements: { agi: 5 }, effects: { agi: 5 }, combatEffects: { patk: 16, hit: 15 } },
+          { uuid: 'test_wpn_mb_' + now, id: 'test_magicbow', name: '[測試] 滿等魔法弓', slot: 'WEAPON', icon: '🏹', enhancementLevel: 0, weaponType: 'MAGIC_BOW', allowedJobs: ['弓箭手'], requirements: { agi: 3, luk: 3 }, effects: { luk: 5 }, combatEffects: { patk: 12, matk: 10, hit: 10 } },
+          { uuid: 'test_wpn_dg_' + now, id: 'test_daggers', name: '[測試] 滿等雙匕首', slot: 'WEAPON', icon: '🔪', enhancementLevel: 0, weaponType: 'DAGGERS', allowedJobs: ['盜賊'], requirements: { agi: 5 }, effects: { agi: 5 }, combatEffects: { patk: 14, evade: 8 } },
+          { uuid: 'test_wpn_mr_' + now, id: 'test_magicring', name: '[測試] 滿等魔法戒指', slot: 'WEAPON', icon: '💍', enhancementLevel: 0, weaponType: 'MAGIC_RING', allowedJobs: ['盜賊'], requirements: { agi: 3, luk: 3 }, effects: { luk: 5 }, combatEffects: { patk: 10, matk: 12, evade: 12 } },
+          { uuid: 'test_wpn_hb_' + now, id: 'test_holybook', name: '[測試] 滿等聖典', slot: 'WEAPON', icon: '📖', enhancementLevel: 0, weaponType: 'HOLY_BOOK', allowedJobs: ['祈禱者'], requirements: { spr: 5 }, effects: { spr: 5 }, combatEffects: { matk: 14, mp: 30 } },
+          { uuid: 'test_wpn_hm_' + now, id: 'test_hammer', name: '[測試] 滿等戰鎚', slot: 'WEAPON', icon: '🔨', enhancementLevel: 0, weaponType: 'HAMMER', allowedJobs: ['祈禱者'], requirements: { str: 3, spr: 3 }, effects: { str: 3, spr: 3 }, combatEffects: { patk: 15, pdef: 5, mdef: 5 } }
         ];
         testWeapons.forEach(w => GameState.myTerritory.addEquipmentToWarehouse(w as any));
-        ToastManager.show(`✨ 已將全套測試轉職武器放入倉庫！`);
+        ToastManager.show(`✨ 已將全套 12 種測試轉職武器放入倉庫！`);
     }},
     'advanc': { name: '解鎖滿等轉職', noPrompt: true, setter: () => {
         let count = 0;

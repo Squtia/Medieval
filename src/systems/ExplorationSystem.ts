@@ -31,6 +31,10 @@ export class ExplorationSystem {
     };
   }
 
+  public revealAllCells(): void {
+    this.data.cells.fill(1);
+  }
+
   public getData(): ExplorationMapData {
     return {
       width: this.data.width,
@@ -41,12 +45,29 @@ export class ExplorationSystem {
     };
   }
 
+  private maxExpeditions: number = 1;
+
+  public getMaxExpeditions(): number {
+    return this.maxExpeditions;
+  }
+
+  public setMaxExpeditions(val: number): void {
+    this.maxExpeditions = Math.max(1, val);
+  }
+
+  public getActiveExpeditions(): ExplorationExpedition[] {
+    return this.data.expeditions?.filter(expedition => expedition.status === 'ACTIVE') ?? [];
+  }
+
   public getActiveExpedition(): ExplorationExpedition | null {
-    return this.data.expeditions?.find(expedition => expedition.status === 'ACTIVE') ?? null;
+    const active = this.getActiveExpeditions();
+    return active.length > 0 ? active[0] : null;
   }
 
   public checkTarget(origin: MapNode, targetX: number, targetY: number): ExplorationTargetCheck {
-    if (this.getActiveExpedition()) return { valid: false, reason: '目前已有一支斥候隊正在探索。' };
+    if (this.getActiveExpeditions().length >= this.maxExpeditions) {
+      return { valid: false, reason: `已達同時探索隊伍上限 (${this.maxExpeditions} 隊)。` };
+    }
     if (this.isPointRevealed(targetX, targetY)) return { valid: false, reason: '請選擇黑幕邊緣的未知區域。' };
     if (!MapMaskData.getTerrainAt(targetX, targetY)) return { valid: false, reason: '目標位於海域或不可通行地形。' };
     if (this.distanceToRevealedArea(targetX, targetY) > 70) {
@@ -57,7 +78,32 @@ export class ExplorationSystem {
     }
 
     const distance = this.pixelDistance(origin.x, origin.y, targetX, targetY);
-    return { valid: true, requiredDays: Math.max(1, Math.ceil(distance / 240)) };
+    const requiredDays = Math.max(1, Math.ceil(distance / 240));
+
+    const goldCost = 100 + (requiredDays - 1) * 30;
+    const foodCost = 20 + (requiredDays - 1) * 15;
+
+    const isLongDistance = requiredDays > 6;
+    let expeditedDays: number | undefined;
+    let expeditedGoldCost: number | undefined;
+    let expeditedFoodCost: number | undefined;
+
+    if (isLongDistance) {
+      expeditedDays = Math.max(3, Math.floor(requiredDays * 0.6));
+      expeditedGoldCost = Math.round(goldCost * 1.8);
+      expeditedFoodCost = Math.round(foodCost * 1.8);
+    }
+
+    return {
+      valid: true,
+      requiredDays,
+      goldCost,
+      foodCost,
+      isLongDistance,
+      expeditedDays,
+      expeditedGoldCost,
+      expeditedFoodCost
+    };
   }
 
   public getTargetPreview(origin: MapNode): ExplorationTargetPreview {
@@ -74,9 +120,18 @@ export class ExplorationSystem {
     return { width: this.data.width, height: this.data.height, cells };
   }
 
-  public startExpedition(origin: MapNode, explorerId: string, targetX: number, targetY: number): ExplorationExpedition {
+  public startExpedition(
+    origin: MapNode,
+    explorerId: string,
+    targetX: number,
+    targetY: number,
+    isExpedited: boolean = false
+  ): ExplorationExpedition {
     const check = this.checkTarget(origin, targetX, targetY);
     if (!check.valid || !check.requiredDays) throw new Error(check.reason ?? 'Invalid exploration target.');
+
+    const totalDays = (isExpedited && check.expeditedDays) ? check.expeditedDays : check.requiredDays;
+
     const expedition: ExplorationExpedition = {
       id: `explore_${this.data.nextExpeditionId ?? 1}`,
       originNodeId: origin.id,
@@ -87,13 +142,14 @@ export class ExplorationSystem {
       targetY,
       currentX: origin.x,
       currentY: origin.y,
-      totalDays: check.requiredDays,
+      totalDays,
       elapsedDays: 0,
-      visionRadius: 55,
-      status: 'ACTIVE'
+      visionRadius: 35,
+      status: 'ACTIVE',
+      isExpedited
     };
     this.data.nextExpeditionId = (this.data.nextExpeditionId ?? 1) + 1;
-    this.data.expeditions = [...(this.data.expeditions ?? []).slice(-9), expedition];
+    this.data.expeditions = [...(this.data.expeditions ?? []).slice(-19), expedition];
     return expedition;
   }
 
@@ -101,21 +157,36 @@ export class ExplorationSystem {
     expedition: ExplorationExpedition;
     discoveredNodeIds: string[];
     completed: boolean;
-  } | null {
-    const expedition = this.getActiveExpedition();
-    if (!expedition) return null;
+  }[] {
+    const activeExpeditions = this.getActiveExpeditions();
+    if (activeExpeditions.length === 0) return [];
 
-    const previousX = expedition.currentX;
-    const previousY = expedition.currentY;
-    expedition.elapsedDays = Math.min(expedition.totalDays, expedition.elapsedDays + 1);
-    const progress = expedition.elapsedDays / expedition.totalDays;
-    expedition.currentX = expedition.startX + (expedition.targetX - expedition.startX) * progress;
-    expedition.currentY = expedition.startY + (expedition.targetY - expedition.startY) * progress;
-    this.revealCorridor(previousX, previousY, expedition.currentX, expedition.currentY, expedition.visionRadius);
-    const discoveredNodeIds = this.discoverRevealedNodes(nodes);
-    const completed = expedition.elapsedDays >= expedition.totalDays;
-    if (completed) expedition.status = 'COMPLETED';
-    return { expedition: { ...expedition }, discoveredNodeIds, completed };
+    const results: {
+      expedition: ExplorationExpedition;
+      discoveredNodeIds: string[];
+      completed: boolean;
+    }[] = [];
+
+    for (const expedition of activeExpeditions) {
+      const previousX = expedition.currentX;
+      const previousY = expedition.currentY;
+      expedition.elapsedDays = Math.min(expedition.totalDays, expedition.elapsedDays + 1);
+      const progress = expedition.elapsedDays / expedition.totalDays;
+      expedition.currentX = expedition.startX + (expedition.targetX - expedition.startX) * progress;
+      expedition.currentY = expedition.startY + (expedition.targetY - expedition.startY) * progress;
+      this.revealCorridor(previousX, previousY, expedition.currentX, expedition.currentY, expedition.visionRadius);
+      const discoveredNodeIds = this.discoverRevealedNodes(nodes);
+      const completed = expedition.elapsedDays >= expedition.totalDays;
+      if (completed) expedition.status = 'COMPLETED';
+
+      results.push({
+        expedition: { ...expedition },
+        discoveredNodeIds,
+        completed
+      });
+    }
+
+    return results;
   }
 
   public isCellRevealed(column: number, row: number): boolean {

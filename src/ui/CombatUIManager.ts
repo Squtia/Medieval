@@ -113,7 +113,16 @@ export class CombatUIManager {
     div.className = 'combat-participant';
     div.id = `combat-p-${state.id}`;
     
-    const icon = state.isPlayer ? '🦸' : '👺';
+    let avatarHtml = '<span style="font-size: 1.4em;">👺</span>';
+    if (state.isPlayer) {
+      if (state.avatarIndex !== undefined) {
+        const bgX = (state.avatarIndex % 6) * 20;
+        const bgY = Math.floor(state.avatarIndex / 6) * 33.3333;
+        avatarHtml = `<div style="width: 34px; height: 34px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(234, 179, 8, 0.7); flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.5); background-image: url('assets/avatars_6x4.jpg'); background-size: auto 400%; background-position: ${bgX}% ${bgY}%;"></div>`;
+      } else {
+        avatarHtml = '<span style="font-size: 1.4em;">🦸</span>';
+      }
+    }
     
     let gridColumn = 1;
     let gridRow = 1;
@@ -140,10 +149,22 @@ export class CombatUIManager {
     if (state.row === 'BACK') rowLabel = '後排';
     else if (state.row === 'MIDDLE') rowLabel = '中排';
 
+    const maxMp = state.maxMp || 100;
+    const curMp = state.currentMp !== undefined ? state.currentMp : maxMp;
+    const mpPct = Math.max(0, Math.min(100, (curMp / maxMp) * 100));
+
     div.innerHTML = `
-      <div style="font-size: 0.9em; font-weight: bold;">${icon} ${state.name} <span style="font-size: 0.7em; color: #94a3b8;">${rowLabel}</span></div>
+      <div style="display: flex; align-items: center; gap: 4px; ${state.isPlayer ? '' : 'flex-direction: row-reverse;'} flex-shrink: 0; min-height: 0;">
+        ${avatarHtml}
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 0.62em; font-weight: bold; color: ${state.isPlayer ? '#fbbf24' : '#f87171'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${state.name} <span style="font-size: 0.85em; color: #94a3b8;">${rowLabel}</span></div>
+        </div>
+      </div>
       <div class="combat-hp-bg">
         <div id="hp-fill-${state.id}" class="combat-hp-fill" style="width: 100%;"></div>
+      </div>
+      <div class="combat-mp-bg">
+        <div id="mp-fill-${state.id}" class="combat-mp-fill" style="width: ${mpPct}%;"></div>
       </div>
     `;
     
@@ -170,39 +191,41 @@ export class CombatUIManager {
   }
 
   private static renderEvent(event: CombatEvent) {
-    // 渲染文字
-    const logEl = document.createElement('div');
-    logEl.className = 'combat-log-entry';
-    logEl.textContent = event.text;
-    
-    if (event.type === CombatEventType.WAVE_START) {
-      logEl.style.color = '#eab308';
-      logEl.style.fontWeight = 'bold';
-      logEl.style.textAlign = 'center';
-      logEl.style.margin = '15px 0';
+    // 例行每回合恢復，不寫入文字對話框洗版
+    if (!event.isQuietRegen) {
+      const logEl = document.createElement('div');
+      logEl.className = 'combat-log-entry';
+      logEl.textContent = event.text;
       
-      // 生成該波次敵人
-      this.enemyTeamContainer.innerHTML = '';
-      if (event.enemies) {
-        event.enemies.forEach(e => {
-          this.hpMap[e.id] = e.maxHp;
-          this.createHpBar(e);
-        });
+      if (event.type === CombatEventType.WAVE_START) {
+        logEl.style.color = '#eab308';
+        logEl.style.fontWeight = 'bold';
+        logEl.style.textAlign = 'center';
+        logEl.style.margin = '15px 0';
+        
+        // 生成該波次敵人
+        this.enemyTeamContainer.innerHTML = '';
+        if (event.enemies) {
+          event.enemies.forEach(e => {
+            this.hpMap[e.id] = e.maxHp;
+            this.createHpBar(e);
+          });
+        }
+      } else if (event.type === CombatEventType.CRIT) {
+        logEl.classList.add('log-crit');
+        this.modal.classList.add('shake');
+        setTimeout(() => this.modal.classList.remove('shake'), 400);
+      } else if (event.type === CombatEventType.MISS) {
+        logEl.classList.add('log-miss');
+      } else if (event.type === CombatEventType.STATUS_APPLY) {
+        logEl.classList.add('log-status');
+      } else if (event.type === CombatEventType.DEATH) {
+        logEl.classList.add('log-death');
       }
-    } else if (event.type === CombatEventType.CRIT) {
-      logEl.classList.add('log-crit');
-      this.modal.classList.add('shake');
-      setTimeout(() => this.modal.classList.remove('shake'), 400);
-    } else if (event.type === CombatEventType.MISS) {
-      logEl.classList.add('log-miss');
-    } else if (event.type === CombatEventType.STATUS_APPLY) {
-      logEl.classList.add('log-status');
-    } else if (event.type === CombatEventType.DEATH) {
-      logEl.classList.add('log-death');
+      
+      this.logArea.appendChild(logEl);
+      this.logArea.scrollTop = this.logArea.scrollHeight;
     }
-    
-    this.logArea.appendChild(logEl);
-    this.logArea.scrollTop = this.logArea.scrollHeight;
     
     // 更新血量與動畫
     if (event.targetHp !== undefined && event.targetId !== undefined && event.targetMaxHp !== undefined) {
@@ -212,6 +235,33 @@ export class CombatUIManager {
         const pct = Math.max(0, (event.targetHp / event.targetMaxHp) * 100);
         fillEl.style.width = `${pct}%`;
         if (pct < 30) fillEl.classList.add('low');
+      }
+    }
+
+    // 更新 MP 能量條與動畫
+    if (event.targetMp !== undefined && event.targetId !== undefined && event.targetMaxMp !== undefined) {
+      const mpFillEl = document.getElementById(`mp-fill-${event.targetId}`);
+      if (mpFillEl) {
+        const mpPct = Math.max(0, Math.min(100, (event.targetMp / event.targetMaxMp) * 100));
+        mpFillEl.style.width = `${mpPct}%`;
+      }
+    }
+
+    // 觸發恢復浮動綠字/藍字 (頭頂動態)
+    if (event.type === CombatEventType.HEAL && (event.targetId || event.actorId) && event.damage) {
+      const targetId = event.targetId || event.actorId;
+      const targetEl = document.getElementById(`combat-p-${targetId}`);
+      if (targetEl) {
+        const isMp = event.healType === 'MP';
+        const floatEl = document.createElement('div');
+        floatEl.className = 'floating-dmg';
+        floatEl.style.color = isMp ? '#38bdf8' : '#4ade80';
+        floatEl.style.textShadow = '0 0 5px rgba(0,0,0,0.9)';
+        floatEl.style.fontSize = '1.1em';
+        floatEl.style.fontWeight = 'bold';
+        floatEl.textContent = `+${event.damage} ${isMp ? 'MP' : 'HP'}`;
+        targetEl.appendChild(floatEl);
+        setTimeout(() => { if (floatEl.parentNode) floatEl.remove(); }, 1000);
       }
     }
 

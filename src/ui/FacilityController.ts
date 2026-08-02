@@ -9,7 +9,10 @@ export function initFacilityController(): void {
   // 點擊建築物效果
   const enterFacility = (viewId: string) => {
     const el = document.getElementById(viewId);
-    if (el) el.classList.add('active');
+    if (el) {
+      // CSS .facility-view.active { display:flex } 已定義顯示，只需操作 class
+      el.classList.add('active');
+    }
     UIManager.updateUI();
   };
 
@@ -53,17 +56,19 @@ export function initFacilityController(): void {
     renderArmorShop();
   });
 
-  document.getElementById('btn-enter-forge')?.addEventListener('click', () => enterFacility('view-forge'));
+  document.getElementById('btn-enter-forge')?.addEventListener('click', async () => {
+    enterFacility('view-forge');
+    const { renderForgeView } = await import('./ShopController');
+    renderForgeView();
+  });
 
   // 退出建築按鈕
   document.querySelectorAll('.btn-exit-facility').forEach(btn => {
     btn.addEventListener('click', () => {
-      document.getElementById('view-base')?.classList.remove('active');
-      document.getElementById('view-hall')?.classList.remove('active');
-      document.getElementById('view-camp')?.classList.remove('active');
-      document.getElementById('view-forge')?.classList.remove('active');
-      document.getElementById('view-weapon-shop')?.classList.remove('active');
-      document.getElementById('view-armor-shop')?.classList.remove('active');
+      // CSS .facility-view { display:none } 確保隱藏，只需移除 active class
+      document.querySelectorAll('.facility-view').forEach(view => {
+        view.classList.remove('active');
+      });
       UIManager.updateUI();
     });
   });
@@ -108,8 +113,8 @@ export function initFacilityController(): void {
 
   // 倉庫與代辦事件
   document.getElementById('btn-base-warehouse')?.addEventListener('click', async () => {
-    const { openWarehouse } = await import('./ShopController');
-    openWarehouse(false);
+    const { openHomeWarehouse } = await import('./ShopController');
+    openHomeWarehouse();
   });
   document.getElementById('btn-todo-list')?.addEventListener('click', () => openTodoModal());
   document.getElementById('btn-forge-warehouse')?.addEventListener('click', async () => {

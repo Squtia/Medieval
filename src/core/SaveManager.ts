@@ -143,7 +143,9 @@ export class SaveManager {
       lastDailySummary: GameState.lastDailySummary,
       worldGeneration: GameState.worldGeneration,
       exploration: GameState.explorationSystem?.getData(),
-      roads: GameState.roadSystem?.getData()
+      roads: GameState.roadSystem?.getData(),
+      milestones: GameState.milestones || [],
+      pendingMilestones: GameState.pendingMilestones || []
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
@@ -241,6 +243,8 @@ export class SaveManager {
       GameState.threat = { name: '凜冬寒流', severity: 5, daysRemaining: 10, warningIssued: false, prepared: false, ...(data.threat || {}) };
       GameState.lastDailySummary = data.lastDailySummary || null;
       GameState.worldGeneration = data.worldGeneration || null;
+      GameState.milestones = Array.isArray(data.milestones) ? data.milestones : [];
+      GameState.pendingMilestones = Array.isArray(data.pendingMilestones) ? data.pendingMilestones : [];
 
       // 還原 currentViewNode
       if (t.currentCountryId) {

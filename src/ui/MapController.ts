@@ -1,7 +1,7 @@
 import { ToastManager } from './ToastManager';
 import { GameState } from '../core/GameState';
 import { TerrainType, MapNode, getMaxCaravansLimit } from '../models/types';
-import { enterScene } from './SceneController';
+import { enterSceneWithTransition } from './SceneController';
 import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
 import { TaskType } from '../models/DispatchTask';
 import { getTerrainEmoji } from './MapPresentation';
@@ -58,7 +58,7 @@ function handlePhaserNodeClick(node: MapNode) {
   } else {
     document.dispatchEvent(new CustomEvent('cancel-exploration-selection'));
     if (node.isPlayerBase) {
-      enterScene(node);
+      enterSceneWithTransition(node);
     } else {
       openNodeDetailPanel(node);
     }

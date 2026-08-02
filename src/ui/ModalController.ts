@@ -1,4 +1,5 @@
 import { positionFloatingElement } from './FloatingPosition';
+import { renderEquipIcon } from './ShopController';
 import { ToastManager } from './ToastManager';
 import { Adventurer } from '../models/Adventurer';
 import { EquipmentSlot, MapNode, NodeLevel, NodeFeature, AdventurerState, getMaxCaravansLimit, FactionChampion } from '../models/types';
@@ -7,8 +8,63 @@ import { renderAdventurerCard } from './components/AdventurerCard';
 import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { UIManager } from './UIManager';
 import { DataStore } from '../systems/DataStore';
+
+/** 共用工具：產生裝備屬性的 Tooltip HTML，格式對齊圖三樣式 */
+function buildEquipStatsHtml(eq: any): string {
+  const effects = eq.effects || {};
+  const combatEffects = eq.combatEffects || {};
+  const allStats = { ...effects, ...combatEffects } as Record<string, number>;
+
+  // 張数：辨識斀屬性對應 label 與顏色
+  const combatStatMeta: Record<string, { label: string; color: string; icon: string }> = {
+    patk:  { label: '物攻', color: '#f59e0b', icon: '🗡️' },
+    pdef:  { label: '物防', color: '#ef4444', icon: '🛡️' },
+    matk:  { label: '魔攻', color: '#a78bfa', icon: '✨' },
+    mdef:  { label: '魔防', color: '#60a5fa', icon: '🗡️' },
+    hp:    { label: 'HP', color: '#f87171', icon: '❤️' },
+    hit:   { label: '命中', color: '#3b82f6', icon: '🎯' },
+    evade: { label: '閃避', color: '#3b82f6', icon: '💨' },
+    spd:   { label: '速度', color: '#3b82f6', icon: '⚡' },
+    crit:  { label: '暴擊率', color: '#eab308', icon: '🔥' },
+  };
+  const attrStatMeta: Record<string, { label: string; color: string }> = {
+    str:   { label: '力量 (STR)', color: '#22c55e' },
+    agi:   { label: '敏捷 (AGI)', color: '#22c55e' },
+    con:   { label: '體質 (CON)', color: '#22c55e' },
+    int:   { label: '智慧 (INT)', color: '#22c55e' },
+    spr:   { label: '精神 (SPR)', color: '#22c55e' },
+    luk:   { label: '幸運 (LUK)', color: '#22c55e' },
+    charm: { label: '魅力 (CHA)', color: '#22c55e' },
+    command: { label: '統御 (CMD)', color: '#22c55e' },
+  };
+
+  let combatHtml = '';
+  let attrHtml = '';
+
+  for (const [key, val] of Object.entries(allStats)) {
+    if (!val) continue;
+    const v = val as number;
+    if (combatStatMeta[key]) {
+      const m = combatStatMeta[key];
+      combatHtml += `<div style="display:flex; justify-content:space-between; width:100%; gap:8px;"><span style="color:#94a3b8;">${m.icon} ${m.label}</span><span style="color:${m.color}; font-weight:bold;">+${v}</span></div>`;
+    } else if (attrStatMeta[key]) {
+      const m = attrStatMeta[key];
+      attrHtml += `<div style="display:flex; justify-content:space-between; width:100%; gap:8px;"><span style="color:#94a3b8;">&#9670; ${m.label}</span><span style="color:${m.color}; font-weight:bold;">+${v}</span></div>`;
+    }
+  }
+
+  let result = '';
+  if (combatHtml) {
+    result += `<div style="color:#fbbf24; font-size:0.8em; font-weight:bold; margin-top:6px; margin-bottom:3px; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;">戰鬥效果：</div>${combatHtml}`;
+  }
+  if (attrHtml) {
+    result += `<div style="color:#4ade80; font-size:0.8em; font-weight:bold; margin-top:6px; margin-bottom:3px; border-top:1px solid rgba(255,255,255,0.1); padding-top:5px;">屬性加成：</div>${attrHtml}`;
+  }
+  if (!result) result = '<div style="color:#64748b; font-size:0.85em;">無額外屬性</div>';
+  return result;
+}
 import { EquipmentGenerator } from '../systems/EquipmentGenerator';
-import { DispatchTask, EnemyFeature, TaskType, TradeInstruction, TradePhase } from '../models/DispatchTask';
+import { DispatchTask, EnemyFeature, TaskType, TradeInstruction, TradePhase, SubjugationMode } from '../models/DispatchTask';
 import { monsterSystem } from '../systems/MonsterSystem';
 import { GAME_EVENTS } from '../data/EventData';
 import { startRoutePlanning } from './MapController';
@@ -23,6 +79,7 @@ import {
   getDifficultyModifiers
 } from '../data/BalanceData';
 import { FormationDB } from '../systems/FormationDB';
+import { getAdventurerSkillInfo, getAdventurerPassiveInfo } from '../models/Skill';
 
 function initPresetEvents() {
   if (presetEventsInitialized) return;
@@ -35,8 +92,8 @@ function initPresetEvents() {
     presetBtns.forEach(btn => {
       const idx = parseInt((btn as HTMLElement).dataset.preset || '0');
       if (idx === currentSelectedPresetIndex) {
-        (btn as HTMLElement).style.background = 'rgba(234, 179, 8, 0.4)';
-        (btn as HTMLElement).style.borderColor = '#eab308';
+        (btn as HTMLElement).style.background = 'rgba(59,130,246,0.5)';
+        (btn as HTMLElement).style.borderColor = '#3b82f6';
         (btn as HTMLElement).style.color = '#fff';
       } else {
         (btn as HTMLElement).style.background = 'rgba(255,255,255,0.1)';
@@ -124,7 +181,7 @@ export async function openWarehouse(isForgeMode: boolean) {
 }
 
 let currentPartyAdv: Adventurer | null = null;
-let currentPartyTab: 'stats' | 'equip' = 'stats';
+let currentPartyTab: 'stats' | 'equip' | 'skills' = 'stats';
 let tempAllocations: Record<string, number> = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
 
 export function getSelectedPartyAdventurer(): Adventurer | null {
@@ -139,33 +196,36 @@ export function selectPartyAdventurer(adv: Adventurer | null) {
   renderPartyUpperSection();
 }
 
-export function setPartyTab(tab: 'stats' | 'equip') {
+export function setPartyTab(tab: 'stats' | 'equip' | 'skills') {
   currentPartyTab = tab;
   const btnStats = document.getElementById('tab-btn-stats');
   const btnEquip = document.getElementById('tab-btn-equip');
-  if (btnStats && btnEquip) {
-    if (tab === 'stats') {
-      btnStats.className = 'party-tab-btn active';
-      btnStats.style.border = '1px solid rgba(234,179,8,0.4)';
-      btnStats.style.background = 'rgba(234,179,8,0.2)';
-      btnStats.style.color = '#eab308';
-      
-      btnEquip.className = 'party-tab-btn';
-      btnEquip.style.border = '1px solid rgba(255,255,255,0.1)';
-      btnEquip.style.background = 'rgba(255,255,255,0.05)';
-      btnEquip.style.color = '#94a3b8';
-    } else {
-      btnEquip.className = 'party-tab-btn active';
-      btnEquip.style.border = '1px solid rgba(234,179,8,0.4)';
-      btnEquip.style.background = 'rgba(234,179,8,0.2)';
-      btnEquip.style.color = '#eab308';
+  const btnSkills = document.getElementById('tab-btn-skills');
 
-      btnStats.className = 'party-tab-btn';
-      btnStats.style.border = '1px solid rgba(255,255,255,0.1)';
-      btnStats.style.background = 'rgba(255,255,255,0.05)';
-      btnStats.style.color = '#94a3b8';
-    }
-  }
+  const inactiveStyle = (btn: HTMLElement | null) => {
+    if (!btn) return;
+    btn.className = 'party-tab-btn';
+    btn.style.border = '1px solid rgba(255,255,255,0.1)';
+    btn.style.background = 'rgba(255,255,255,0.05)';
+    btn.style.color = '#94a3b8';
+  };
+
+  const activeStyle = (btn: HTMLElement | null) => {
+    if (!btn) return;
+    btn.className = 'party-tab-btn active';
+    btn.style.border = '1px solid rgba(234,179,8,0.4)';
+    btn.style.background = 'rgba(234,179,8,0.2)';
+    btn.style.color = '#eab308';
+  };
+
+  inactiveStyle(btnStats);
+  inactiveStyle(btnEquip);
+  inactiveStyle(btnSkills);
+
+  if (tab === 'stats') activeStyle(btnStats);
+  else if (tab === 'equip') activeStyle(btnEquip);
+  else if (tab === 'skills') activeStyle(btnSkills);
+
   renderPartyUpperSection();
 }
 
@@ -189,17 +249,29 @@ export function renderPartyUpperSection() {
 
   // 1. 更新頂部動態冒險者姓名標題
   if (titleEl) {
-    titleEl.textContent = `🛡️ ${adv.name} (Lv.${adv.level} ${adv.job.name})`;
+    titleEl.textContent = `🛡️ ${adv.name}`;
   }
 
-  // 2. 更新左側常駐立繪卡
-  const avatarEl = document.getElementById('party-portrait-avatar');
+  // 2. 更新左側常駐立繪卡與基本資訊
+  const avatarWrapper = document.getElementById('party-portrait-img-wrapper');
   const jobTraitEl = document.getElementById('party-job-trait');
   const traitNameEl = document.getElementById('party-trait-name');
   const statusBadgeEl = document.getElementById('party-status-badge');
+  const displayClass = (adv as any).currentClass || adv.job.name;
 
-  if (avatarEl) avatarEl.textContent = '🦸';
-  if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${adv.job.name}`;
+  if (avatarWrapper) {
+    const nameHash = adv.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const avatarIndex = adv.avatarIndex ?? (nameHash % 24);
+    adv.avatarIndex = avatarIndex;
+
+    const bgX = (avatarIndex % 6) * 20;
+    const bgY = Math.floor(avatarIndex / 6) * 33.3333;
+    avatarWrapper.innerHTML = `
+      <span style="font-size: 3.2em; position: absolute;">🦸</span>
+      <div style="width: 100%; height: 100%; position: absolute; inset: 0; background-image: url('assets/avatars_6x4.jpg'); background-size: auto 400%; background-position: ${bgX}% ${bgY}%;"></div>
+    `;
+  }
+  if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${displayClass}`;
   if (traitNameEl) traitNameEl.textContent = adv.trait.name;
 
   const stats = adv.getCombatStats();
@@ -252,61 +324,91 @@ export function renderPartyUpperSection() {
     const sumAllocated = tempAllocations.str + tempAllocations.agi + tempAllocations.con + tempAllocations.int + tempAllocations.spr + tempAllocations.luk;
     const tempUnspent = adv.unspentStatPoints - sumAllocated;
     
-    const unspentBanner = (adv.unspentStatPoints > 0 || sumAllocated > 0)
-      ? `<div style="text-align: center; color: #eab308; font-weight: bold; font-size: 0.8em; margin-bottom: 4px; background: rgba(234,179,8,0.15); padding: 2px; border-radius: 4px;">可用點數：${tempUnspent}</div>` 
-      : '';
+    const baseStats = adv.getCombatStats();
+    const previewStats = adv.getCombatStats(undefined, tempAllocations);
+    const baseAttr = adv.getEffectiveAttributes();
+    const previewAttr = adv.getEffectiveAttributes(undefined, tempAllocations);
+    const currentPower = adv.getPower();
+    const previewPower = adv.getPower(tempAllocations);
+
+    const formatStat = (currVal: number, prevVal: number, isPercent = false, prefix = '') => {
+      const diff = prevVal - currVal;
+      if (diff > 0) {
+        return `${prefix}${prevVal}${isPercent ? '%' : ''} <span style="color:#22c55e; font-weight:bold; font-size:0.85em;">(+${diff})</span>`;
+      }
+      return `${prefix}${currVal}${isPercent ? '%' : ''}`;
+    };
 
     const getStatRow = (label: string, key: 'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', val: number) => {
       const tempVal = tempAllocations[key] || 0;
+      const btnStyle = "width: 20px; height: 20px; line-height: 16px; text-align: center; border-radius: 4px; cursor: pointer; border: 1px solid; font-weight: bold; font-size: 0.8em;";
       const plusBtn = tempUnspent > 0 
-        ? `<button class="btn-temp-plus" data-stat="${key}" style="margin-left:4px; padding:0 4px; font-size:0.75em; cursor:pointer; background:rgba(34,197,94,0.3); border:1px solid #22c55e; color:#fff; border-radius:3px;">+</button>` 
-        : '';
+        ? `<button class="btn-temp-plus" data-stat="${key}" style="${btnStyle} background:rgba(34,197,94,0.3); border-color:#22c55e; color:#fff;">+</button>` 
+        : `<div style="width: 20px;"></div>`;
       const minusBtn = tempVal > 0 
-        ? `<button class="btn-temp-minus" data-stat="${key}" style="margin-left:2px; padding:0 4px; font-size:0.75em; cursor:pointer; background:rgba(239,68,68,0.3); border:1px solid #ef4444; color:#fff; border-radius:3px;">-</button>` 
-        : '';
-      const greenStr = tempVal > 0 ? `<span style="color:#22c55e; font-size:0.8em; font-weight:bold;">(+${tempVal})</span>` : '';
-      return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.78em; background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px;"><span style="color:#94a3b8;">${label}</span><span style="font-weight:bold; color:#f1f5f9;">${val + tempVal}${greenStr}${plusBtn}${minusBtn}</span></div>`;
+        ? `<button class="btn-temp-minus" data-stat="${key}" style="${btnStyle} background:rgba(239,68,68,0.3); border-color:#ef4444; color:#fff;">-</button>` 
+        : `<div style="width: 20px;"></div>`;
+      const greenStr = tempVal > 0 ? `<span style="color:#22c55e; font-weight:bold; width: 28px; text-align: left; padding-left: 2px;">(+${tempVal})</span>` : `<span style="width: 28px;"></span>`;
+      return `
+        <div style="display:flex; align-items:center; font-size:0.78em; background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px;">
+          <span style="flex:1; color:#94a3b8; white-space:nowrap; overflow:hidden;">${label}</span>
+          <span style="font-weight:bold; color:#f1f5f9; width: 20px; text-align: right; flex-shrink:0;">${val + tempVal}</span>
+          ${greenStr}
+          <div style="display: flex; gap: 4px; margin-left: 4px; flex-shrink:0;">${minusBtn}${plusBtn}</div>
+        </div>`;
     };
 
-    let confirmBtnsHtml = '';
-    if (sumAllocated > 0) {
-      confirmBtnsHtml = `
-        <div style="display: flex; gap: 8px; margin-top: 6px;">
-          <button id="btn-confirm-stats" class="action-btn" style="flex:1; background:linear-gradient(135deg, #059669, #047857); padding:3px 0; font-size:0.78em; font-weight:bold;">確認分配</button>
-          <button id="btn-reset-stats" class="action-btn" style="flex:1; background:rgba(255,255,255,0.1); padding:3px 0; font-size:0.78em;">重設</button>
-        </div>
-      `;
-    }
+    const confirmBtnsHtml = `
+      <div style="display: flex; gap: 6px; margin-top: 6px; flex-shrink: 0;">
+        <button id="btn-confirm-stats" class="action-btn" ${sumAllocated > 0 ? '' : 'disabled'} style="flex:1; ${sumAllocated > 0 ? 'background:linear-gradient(135deg, #059669, #047857); color:#fff; cursor:pointer;' : 'background:rgba(255,255,255,0.05); color:#64748b; border-color:rgba(255,255,255,0.1); opacity:0.35; cursor:not-allowed;'} padding:5px 0; font-size:0.8em; font-weight:bold; transition:all 0.2s;">確認分配</button>
+        <button id="btn-reset-stats" class="action-btn" ${sumAllocated > 0 ? '' : 'disabled'} style="flex:1; ${sumAllocated > 0 ? 'background:rgba(255,255,255,0.1); color:#ebdcb6; cursor:pointer;' : 'background:rgba(255,255,255,0.05); color:#64748b; border-color:rgba(255,255,255,0.1); opacity:0.35; cursor:not-allowed;'} padding:5px 0; font-size:0.8em; transition:all 0.2s;">重設</button>
+      </div>
+    `;
 
     viewport.innerHTML = `
-      ${unspentBanner}
-      <div style="font-size: 0.78em; margin-bottom: 4px; background: rgba(234,179,8,0.12); padding: 4px 6px; border-radius: 4px; border: 1px solid rgba(234,179,8,0.2); display: flex; justify-content: space-between; align-items: center;">
-        <span>⚔️ 戰力：<b style="color:#eab308; font-size: 1.05em;">${adv.power}</b></span>
+      <div style="font-size: 0.8em; margin-bottom: 4px; background: rgba(234,179,8,0.12); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(234,179,8,0.2); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+        <span>⚔️ 綜合戰力：<b style="color:#eab308; font-size: 1.05em;">${previewPower > currentPower ? `${previewPower} <span style="color:#22c55e; font-size:0.85em;">(+${previewPower - currentPower})</span>` : currentPower}</b></span>
+        <span>✨ 可用點數：<b style="color:#facc15; font-size: 1.05em;">${tempUnspent}</b></span>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
-        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">物攻 (ATK)</span><span style="color:#eab308; font-weight:bold;">${stats.atk}</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">防禦 (DEF)</span><span style="color:#eab308; font-weight:bold;">${stats.def}</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">命中 (HIT)</span><span style="color:#3b82f6;">${stats.hit}</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:0.75em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">閃避 (EVD)</span><span style="color:#3b82f6;">${stats.evade}</span></div>
-      </div>
-
-      <div style="font-size:0.75em; color:#e2e8f0; font-weight:bold; margin: 4px 0 2px 0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:2px;">六維屬性：</div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px;">
-        ${getStatRow('STR 力量', 'str', attr.str)}
-        ${getStatRow('AGI 敏捷', 'agi', attr.agi)}
-        ${getStatRow('CON 體質', 'con', attr.con)}
-        ${getStatRow('INT 智慧', 'int', attr.int)}
-        ${getStatRow('SPR 精神', 'spr', attr.spr)}
-        ${getStatRow('LUK 幸運', 'luk', attr.luk)}
-      </div>
-
-      <div style="display: flex; gap: 8px; font-size:0.72em; margin-top:4px; background:rgba(255,255,255,0.02); padding:2px 5px; border-radius:3px;">
-        <span style="color:#94a3b8;">魅力 (CHM): <b style="color:#f472b6;">${attr.charm}</b></span>
-        <span style="color:#94a3b8;">統帥 (CMD): <b style="color:#60a5fa;">${attr.command}</b></span>
+      <div style="font-size:0.8em; color:#eab308; font-weight:bold; margin: 4px 0 2px 0; border-bottom:1px solid rgba(234,179,8,0.3); padding-bottom:2px; flex-shrink: 0;">基礎屬性：</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; flex-shrink: 0;">
+        ${getStatRow('STR 力量', 'str', baseAttr.str)}
+        ${getStatRow('AGI 敏捷', 'agi', baseAttr.agi)}
+        ${getStatRow('CON 體質', 'con', baseAttr.con)}
+        ${getStatRow('INT 智慧', 'int', baseAttr.int)}
+        ${getStatRow('SPR 精神', 'spr', baseAttr.spr)}
+        ${getStatRow('LUK 幸運', 'luk', baseAttr.luk)}
+        <div style="display:flex; align-items:center; font-size:0.78em; background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px;">
+          <span style="flex:1; color:#94a3b8; white-space:nowrap; overflow:hidden;">CHM 魅力</span>
+          <span style="font-weight:bold; color:#f472b6; width: 20px; text-align: right; flex-shrink:0;">${baseAttr.charm || 0}</span>
+          <span style="width: 28px;"></span>
+          <div style="display: flex; gap: 4px; margin-left: 4px; flex-shrink:0;"><div style="width: 44px;"></div></div>
+        </div>
+        <div style="display:flex; align-items:center; font-size:0.78em; background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px;">
+          <span style="flex:1; color:#94a3b8; white-space:nowrap; overflow:hidden;">CMD 統帥</span>
+          <span style="font-weight:bold; color:#60a5fa; width: 20px; text-align: right; flex-shrink:0;">${baseAttr.command || 0}</span>
+          <span style="width: 28px;"></span>
+          <div style="display: flex; gap: 4px; margin-left: 4px; flex-shrink:0;"><div style="width: 44px;"></div></div>
+        </div>
       </div>
 
       ${confirmBtnsHtml}
+
+      <div style="font-size:0.8em; color:#eab308; font-weight:bold; margin: 6px 0 2px 0; border-bottom:1px solid rgba(234,179,8,0.3); padding-bottom:2px; flex-shrink: 0;">戰鬥屬性：</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 4px; flex-shrink: 0;">
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">物攻 (PATK)</span><span style="color:#eab308; font-weight:bold;">${formatStat(baseStats.patk, previewStats.patk)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">魔攻 (MATK)</span><span style="color:#a855f7; font-weight:bold;">${formatStat(baseStats.matk, previewStats.matk)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">物防 (PDEF)</span><span style="color:#eab308; font-weight:bold;">${formatStat(baseStats.pdef, previewStats.pdef)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">魔防 (MDEF)</span><span style="color:#a855f7; font-weight:bold;">${formatStat(baseStats.mdef, previewStats.mdef)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">命中 (HIT)</span><span style="color:#3b82f6;">${formatStat(baseStats.hit, previewStats.hit)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">閃避 (EVD)</span><span style="color:#3b82f6;">${formatStat(baseStats.evade, previewStats.evade)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">爆擊率</span><span style="color:#f97316; font-weight:bold;">${formatStat(baseStats.critRate, previewStats.critRate, true)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">爆擊傷害</span><span style="color:#f97316; font-weight:bold;">${formatStat(baseStats.critDmg, previewStats.critDmg, true)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">狀態抗性</span><span style="color:#f43f5e; font-weight:bold;">${formatStat((baseAttr.con || 0) + (baseAttr.spr || 0), (previewAttr.con || 0) + (previewAttr.spr || 0), true)}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px;"><span style="color:#94a3b8;">HP回復</span><span style="color:#22c55e; font-weight:bold;">${formatStat(Math.floor((baseAttr.con || 0) * 0.5), Math.floor((previewAttr.con || 0) * 0.5), false, '+')}</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.72em; background:rgba(255,255,255,0.03); padding:2px 5px; border-radius:3px; grid-column: span 2;"><span style="color:#94a3b8;">MP回復</span><span style="color:#3b82f6; font-weight:bold;">${formatStat(Math.floor((baseAttr.spr || 0) * 0.5), Math.floor((previewAttr.spr || 0) * 0.5), false, '+')}</span></div>
+      </div>
     `;
 
     viewport.querySelectorAll('.btn-temp-plus').forEach(btn => {
@@ -357,26 +459,44 @@ export function renderPartyUpperSection() {
       { key: EquipmentSlot.ACCESSORY, name: '飾品', icon: '💍' }
     ];
 
-    let equipRowsHtml = '';
+    let equipRowsHtml = '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">';
     slots.forEach(s => {
       const eq = adv.equipment[s.key];
       if (eq) {
-        const lvlStr = eq.enhancementLevel ? `+${eq.enhancementLevel}` : '';
+        const lvlStr = eq.enhancementLevel ? `<div style="color:#3b82f6; font-size:0.9em; font-weight:bold;">+${eq.enhancementLevel}</div>` : '';
+        const statsHtml = buildEquipStatsHtml(eq);
+
+        const iconHtml = renderEquipIcon(eq, 36);
+        const jobMeta = eq.allowedJobs && eq.allowedJobs.length > 0
+          ? `<div style="color:#94a3b8; font-size:0.8em; margin-bottom:4px;">職業：${eq.allowedJobs.join('/')}</div>`
+          : '';
+        const tooltipHtml = `
+          <div style="font-size: 1.05em; color: #eab308; border-bottom: 1px solid rgba(234,179,8,0.3); padding-bottom: 4px; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+            ${iconHtml} <b>${eq.name}</b> ${eq.enhancementLevel ? `<span style="color:#3b82f6;">+${eq.enhancementLevel}</span>` : ''}
+          </div>
+          ${jobMeta}
+          <div style="font-size: 0.88em; display: flex; flex-direction: column; gap: 2px;">
+            ${statsHtml}
+          </div>
+        `;
         equipRowsHtml += `
-          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:3px 6px; border-radius:4px; font-size:0.78em; margin-bottom:3px;">
-            <span>${eq.icon || s.icon} <b>${eq.name} ${lvlStr}</b></span>
-            <button class="action-btn btn-party-unequip" data-slot="${s.key}" style="padding:1px 5px; font-size:0.75em; background:rgba(239,68,68,0.3); border-color:#ef4444; color:#fff;">卸下</button>
+          <div class="equip-card-square tooltip-eq-trigger" data-slot="${s.key}" data-html-tip="${encodeURIComponent(tooltipHtml)}" style="position:relative; background:rgba(15,23,42,0.6); border:1px solid rgba(234,179,8,0.3); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 5px; cursor:pointer;">
+            <div style="flex:1; display:flex; align-items:center; justify-content:center;">${iconHtml}</div>
+            <div style="font-size:0.78em; font-weight:bold; color:#f1f5f9; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; padding:0 2px;">${eq.name}</div>
+            ${lvlStr}
           </div>
         `;
       } else {
         equipRowsHtml += `
-          <div class="btn-party-equip" data-slot="${s.key}" style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.15); padding:3px 6px; border-radius:4px; font-size:0.78em; margin-bottom:3px; cursor:pointer;">
-            <span style="color:#64748b;">${s.icon} ${s.name} (空位)</span>
-            <span style="color:#3b82f6; font-size:0.8em;">+ 裝備</span>
+          <div class="equip-card-square" data-slot="${s.key}" style="background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.15); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 5px; cursor:pointer; color:#64748b; font-size:0.85em; text-align:center; transition: background 0.2s;">
+            <div style="font-size:1.8em; margin-bottom:6px; opacity:0.5;">${s.icon}</div>
+            <div>${s.name}</div>
+            <div style="color:#3b82f6; margin-top:4px; font-size:0.9em; font-weight:bold;">+ 裝備</div>
           </div>
         `;
       }
     });
+    equipRowsHtml += '</div>';
 
     const canRetire = adv.trait.name !== '誓約守衛';
     const retireBtnHtml = canRetire ? `
@@ -394,28 +514,41 @@ export function renderPartyUpperSection() {
     ` : `<span style="font-size: 0.72em; color: #64748b; font-style: italic;">誓約守衛不可退休</span>`;
 
     viewport.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-        <span style="font-size:0.78em; color:#eab308; font-weight:bold;">裝備槽位：</span>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:0.85em; color:#eab308; font-weight:bold;">裝備槽位：</span>
         ${retireBtnHtml}
       </div>
       ${equipRowsHtml}
     `;
 
-    viewport.querySelectorAll('.btn-party-unequip').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const slotKey = (e.currentTarget as HTMLElement).getAttribute('data-slot') as EquipmentSlot;
-        const eq = adv.equipment[slotKey];
-        if (eq) {
-          adv.unequip(slotKey);
-          GameState.myTerritory.addEquipmentToWarehouse(eq);
-          renderPartyUpperSection();
-          UIManager.updateUI();
+    // 處理裝備 Tooltip
+    viewport.querySelectorAll('.tooltip-eq-trigger').forEach(card => {
+      card.addEventListener('mouseenter', (e) => {
+        const raw = (e.currentTarget as HTMLElement).getAttribute('data-html-tip');
+        if (!raw) return;
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.innerHTML = decodeURIComponent(raw);
+          tEl.style.opacity = '1';
         }
+      });
+      card.addEventListener('mousemove', (e: Event) => {
+        const mouseEv = e as MouseEvent;
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          positionFloatingElement(tEl, mouseEv.clientX, mouseEv.clientY);
+        }
+      });
+      card.addEventListener('mouseleave', () => {
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) tEl.style.opacity = '0';
       });
     });
 
-    viewport.querySelectorAll('.btn-party-equip').forEach(btn => {
+    viewport.querySelectorAll('.equip-card-square').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) tEl.style.opacity = '0';
         const slotKey = (e.currentTarget as HTMLElement).getAttribute('data-slot') as EquipmentSlot;
         openEquipSelect(adv, slotKey);
       });
@@ -458,6 +591,116 @@ export function renderPartyUpperSection() {
         }
       });
     }
+  } else if (currentPartyTab === 'skills') {
+    const skillsList = getAdventurerSkillInfo(adv);
+    const passivesList = getAdventurerPassiveInfo(adv);
+
+    let skillsCardsHtml = '';
+    const learnedSkills = skillsList.filter(item => item.isLearned);
+    if (learnedSkills.length === 0) {
+      skillsCardsHtml = '<div style="font-size:0.75em; color:#94a3b8; grid-column: span 2;">目前尚無已學習的主動技能</div>';
+    } else {
+      learnedSkills.forEach(item => {
+        const { skill } = item;
+        const tooltipHtml = `
+          <div style="font-size: 1.05em; color: #eab308; border-bottom: 1px solid rgba(234,179,8,0.3); padding-bottom: 4px; margin-bottom: 4px;">
+            ✨ <b>${skill.name}</b>
+          </div>
+          <div style="font-size: 0.85em; color: #cbd5e1; margin-bottom: 4px;">
+            ${skill.description}
+          </div>
+          <div style="font-size: 0.8em; color: #94a3b8; display:flex; gap:10px;">
+            <span>耗魔: <b style="color:#3b82f6;">${skill.mpCost} MP</b></span>
+            <span>冷卻: <b style="color:#f59e0b;">${skill.cooldown || 0} 回合</b></span>
+          </div>
+        `;
+        const encodedTip = encodeURIComponent(tooltipHtml);
+
+        skillsCardsHtml += `
+          <div class="skill-card tooltip-eq-trigger" data-html-tip="${encodedTip}" style="background: rgba(15,23,42,0.7); border: 1px solid rgba(234,179,8,0.3); border-radius: 5px; padding: 6px 8px; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+            <div style="font-size: 0.82em; font-weight: bold; color: #fef08a; display: flex; justify-content: space-between; align-items: center;">
+              <span>${skill.name}</span>
+              <span style="font-size: 0.72em; color: #60a5fa; background: rgba(59,130,246,0.15); padding: 1px 4px; border-radius: 3px;">${skill.mpCost} MP</span>
+            </div>
+            <div style="font-size: 0.72em; color: #94a3b8; margin-top: 4px; display: flex; justify-content: space-between;">
+              <span>${item.category === 'ADVANCED' ? '⭐ 終極招' : '⚔️ 基礎'}</span>
+              <span>CD: ${skill.cooldown || 0}t</span>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    let passivesHtml = '';
+    passivesList.forEach(pas => {
+      passivesHtml += `
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; padding: 4px 8px; font-size: 0.78em;">
+          <div style="color: #fbbf24; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+            <span>${pas.icon}</span><span>${pas.name}</span>
+          </div>
+          <div style="color: #cbd5e1; font-size: 0.9em; margin-top: 2px;">${pas.description}</div>
+        </div>
+      `;
+    });
+
+    viewport.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow-y: auto; padding-right: 2px;">
+        <div style="font-size:0.8em; color:#eab308; font-weight:bold; border-bottom:1px solid rgba(234,179,8,0.3); padding-bottom:2px; flex-shrink: 0;">⚔️ 主動技能：</div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; flex-shrink: 0;">
+          ${skillsCardsHtml}
+        </div>
+
+        <div style="font-size:0.8em; color:#eab308; font-weight:bold; margin-top: 4px; border-bottom:1px solid rgba(234,179,8,0.3); padding-bottom:2px; flex-shrink: 0;">🛡️ 職業天賦與被動：</div>
+        <div style="display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;">
+          ${passivesHtml || '<div style="font-size:0.75em; color:#94a3b8;">暫無額外被動效果</div>'}
+        </div>
+
+        <!-- Gambit 戰術策略預留卡槽 -->
+        <div id="gambit-strategy-container" style="margin-top: 6px; background: rgba(15,23,42,0.6); border: 1px dashed rgba(234,179,8,0.4); border-radius: 6px; padding: 6px 8px; flex-shrink: 0;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+            <span style="font-size:0.78em; color:#facc15; font-weight:bold;">🎯 Gambit 戰術策略 (預留 Slot)</span>
+            <span style="font-size:0.68em; color:#94a3b8; background:rgba(255,255,255,0.05); padding:1px 4px; border-radius:3px;">智慧 AI 動態評估</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:3px;">
+            <div style="font-size:0.72em; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:3px 6px; border-radius:4px; color:#cbd5e1; display:flex; justify-content:space-between; align-items:center;">
+              <span>[戰術 1] If 隊友 HP < 40% ➔ 優先施放防禦/治療</span>
+              <span style="color:#64748b; font-size:0.9em;">🔒 擴充槽</span>
+            </div>
+            <div style="font-size:0.72em; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:3px 6px; border-radius:4px; color:#cbd5e1; display:flex; justify-content:space-between; align-items:center;">
+              <span>[戰術 2] If 敵方有後排 ➔ 優先遠程/貫穿斬殺</span>
+              <span style="color:#64748b; font-size:0.9em;">🔒 擴充槽</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // 綁定技能 Tooltip 事件
+    viewport.querySelectorAll('.tooltip-eq-trigger').forEach(card => {
+      card.addEventListener('mouseenter', (e) => {
+        const raw = (e.currentTarget as HTMLElement).getAttribute('data-html-tip');
+        if (!raw) return;
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.innerHTML = decodeURIComponent(raw);
+          tEl.style.opacity = '1';
+        }
+      });
+      card.addEventListener('mousemove', (e: Event) => {
+        const mouseEvent = e as MouseEvent;
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.style.left = `${mouseEvent.clientX + 15}px`;
+          tEl.style.top = `${mouseEvent.clientY + 15}px`;
+        }
+      });
+      card.addEventListener('mouseleave', () => {
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.style.opacity = '0';
+        }
+      });
+    });
   }
 }
 
@@ -470,55 +713,161 @@ export function openAdvDetail(adv: Adventurer) {
 }
 
 export function openEquipSelect(adv: Adventurer, slotKey: EquipmentSlot) {
-  const modalEquipSelect = document.getElementById('modal-equip-select')!;
+  const equipSelectPane = document.getElementById('party-equip-select-pane');
   const equipSelectList = document.getElementById('equip-select-list')!;
   const myTerritory = GameState.myTerritory;
+  
+  if (!equipSelectPane || !equipSelectList) return;
 
   equipSelectList.innerHTML = '';
+  
+  const gridContainer = document.createElement('div');
+  gridContainer.style.display = 'grid';
+  gridContainer.style.gridTemplateColumns = 'repeat(3, 90px)';
+  gridContainer.style.gap = '8px';
+  gridContainer.style.justifyContent = 'center';
+  equipSelectList.appendChild(gridContainer);
+
   const availableEqs = myTerritory.warehouse.filter(e => e.slot === slotKey);
 
+  // 若當前有裝備，提供「卸下」選項
+  const currentEq = adv.equipment[slotKey];
+  if (currentEq) {
+    const unequipCard = document.createElement('div');
+    unequipCard.className = 'equip-card-square';
+    unequipCard.style.position = 'relative';
+    unequipCard.style.width = '90px';
+    unequipCard.style.height = '100px';
+    unequipCard.style.background = 'rgba(239, 68, 68, 0.12)';
+    unequipCard.style.border = '1px solid rgba(239, 68, 68, 0.4)';
+    unequipCard.style.borderRadius = '6px';
+    unequipCard.style.display = 'flex';
+    unequipCard.style.flexDirection = 'column';
+    unequipCard.style.alignItems = 'center';
+    unequipCard.style.justifyContent = 'center';
+    unequipCard.style.padding = '6px 4px';
+    unequipCard.style.cursor = 'pointer';
+    unequipCard.style.transition = 'all 0.2s';
+    unequipCard.innerHTML = `
+      <div style="font-size:1.6em; margin-bottom:2px;">⛔</div>
+      <strong style="color:#f87171; font-size:0.78em;">卸下裝備</strong>
+    `;
+    unequipCard.addEventListener('click', () => {
+      adv.unequip(slotKey);
+      GameState.myTerritory.addEquipmentToWarehouse(currentEq);
+      equipSelectPane.style.display = 'none';
+      renderPartyUpperSection();
+      UIManager.updateUI();
+    });
+    gridContainer.appendChild(unequipCard);
+  }
+
   if (availableEqs.length === 0) {
-    equipSelectList.innerHTML = `<p style="text-align:center; color:#94a3b8;">倉庫中沒有符合條件的裝備。</p>`;
+    equipSelectList.insertAdjacentHTML('beforeend', `<p style="text-align:center; color:#94a3b8; grid-column: span 3; margin-top: 20px; font-size: 0.85em;">倉庫中沒有符合條件的裝備。</p>`);
   } else {
     availableEqs.forEach(eq => {
-      const card = document.createElement('div');
-      card.className = 'glass-panel';
-      card.style.padding = '10px';
-      card.style.display = 'flex';
-      card.style.justifyContent = 'space-between';
-      card.style.alignItems = 'center';
+      const isJobAllowed = !eq.allowedJobs || eq.allowedJobs.length === 0 || eq.allowedJobs.includes(adv.job.name);
       
-      const statsStr = Object.entries(eq.combatEffects || {}).map(([k, v]) => `${k.toUpperCase()}+${v}`).join(', ');
-      const lvlStr = eq.enhancementLevel ? `+${eq.enhancementLevel}` : '';
+      const card = document.createElement('div');
+      card.className = 'equip-card-square tooltip-eq-trigger';
+      card.style.position = 'relative';
+      card.style.width = '90px';
+      card.style.height = '100px';
+      card.style.background = isJobAllowed ? 'rgba(15,23,42,0.7)' : 'rgba(30,27,75,0.4)';
+      card.style.border = isJobAllowed ? '1px solid rgba(234,179,8,0.3)' : '1px solid rgba(239,68,68,0.4)';
+      card.style.borderRadius = '6px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.alignItems = 'center';
+      card.style.justifyContent = 'center';
+      card.style.padding = '6px 4px';
+      card.style.cursor = isJobAllowed ? 'pointer' : 'not-allowed';
+      card.style.opacity = isJobAllowed ? '1' : '0.65';
+      card.style.transition = 'all 0.2s';
 
-      card.innerHTML = `
-        <div style="display:flex; align-items:center; gap:10px;">
-          <span style="font-size:2em;">${eq.icon || '🛡️'}</span>
-          <div>
-            <strong style="color:#e2e8f0;">${eq.name} ${lvlStr}</strong><br/>
-            <span style="font-size:0.8em; color:#94a3b8;">${statsStr}</span>
-          </div>
+      const statsHtml = buildEquipStatsHtml(eq);
+      const jobTagHtml = eq.allowedJobs && eq.allowedJobs.length > 0 
+        ? `<div style="color:#f59e0b; font-size:0.82em; margin-top:2px; font-weight:bold;">🏷️ 限制職業: ${eq.allowedJobs.join('/')}</div>` 
+        : '';
+      const iconHtml = renderEquipIcon(eq, 38);
+      const tooltipHtml = `
+        <div style="font-size: 1.05em; color: #eab308; border-bottom: 1px solid rgba(234,179,8,0.3); padding-bottom: 4px; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+          ${iconHtml} <b>${eq.name}</b> ${eq.enhancementLevel ? `<span style="color:#3b82f6;">+${eq.enhancementLevel}</span>` : ''}
         </div>
-        <button class="action-btn" style="padding:5px 15px; font-size:0.9em;">裝備</button>
+        ${jobTagHtml}
+        <div style="font-size: 0.85em; display: flex; flex-direction: column; gap: 2px; margin-top: 4px;">
+          ${statsHtml}
+        </div>
       `;
 
-      card.querySelector('button')!.addEventListener('click', () => {
+      card.setAttribute('data-html-tip', encodeURIComponent(tooltipHtml));
+
+      const lvlStr = eq.enhancementLevel ? `<div style="color:#3b82f6; font-size:0.75em; font-weight:bold;">+${eq.enhancementLevel}</div>` : '';
+      const jobDisallowedBadge = !isJobAllowed ? `<div style="color:#ef4444; font-size:0.68em; font-weight:bold; margin-top:1px;">職業不符</div>` : '';
+
+      card.innerHTML = `
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2px;">
+          ${iconHtml}
+        </div>
+        <div style="display:flex; justify-content:space-between; width:100%; border-top:1px solid rgba(255,255,255,0.12); padding-top:2px; margin-top:2px;">
+          ${jobDisallowedBadge || lvlStr || '<div style="font-size:0.7em; color:#94a3b8;">可裝備</div>'}
+        </div>
+      `;
+
+      // 綁定 Tooltip
+      card.addEventListener('mouseenter', (e) => {
+        const raw = (e.currentTarget as HTMLElement).getAttribute('data-html-tip');
+        if (!raw) return;
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.innerHTML = decodeURIComponent(raw);
+          tEl.style.opacity = '1';
+        }
+      });
+      card.addEventListener('mousemove', (e: Event) => {
+        const mouseEv = e as MouseEvent;
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) {
+          tEl.style.left = mouseEv.clientX + 10 + 'px';
+          tEl.style.top = mouseEv.clientY + 10 + 'px';
+        }
+      });
+      card.addEventListener('mouseleave', () => {
+        const tEl = document.getElementById('adv-tooltip');
+        if (tEl) tEl.style.opacity = '0';
+      });
+
+      card.addEventListener('click', () => {
         try {
+          const tEl = document.getElementById('adv-tooltip');
+          if (tEl) tEl.style.opacity = '0'; // hide tooltip on click
+
+          const [canEquipOk, reasons] = adv.canEquip(eq);
+          if (!canEquipOk) {
+            ToastManager.show(`⚠️ 無法裝備：${reasons.join(', ')}`);
+            return;
+          }
+
+          if (currentEq) {
+             adv.unequip(slotKey);
+             myTerritory.addEquipmentToWarehouse(currentEq);
+          }
           adv.equip(eq);
           myTerritory.removeEquipmentFromWarehouse(eq.uuid!);
           console.log(`[系統] ${adv.name} 裝備了 ${eq.name}！`);
-          modalEquipSelect.classList.remove('active');
+          equipSelectPane.style.display = 'none';
           openAdvDetail(adv);
           UIManager.updateUI();
         } catch (e: any) {
-          ToastManager.show(e.message); 
+          // ToastManager may be undefined, use console
+          console.error(e.message); 
         }
       });
-      equipSelectList.appendChild(card);
+      gridContainer.appendChild(card);
     });
   }
 
-  modalEquipSelect.classList.add('active');
+  equipSelectPane.style.display = 'flex';
 }
 
 // === Radial Menu 與派遣系統 ===
@@ -564,7 +913,7 @@ export function openRadialMenu(node: MapNode, targetEl: HTMLElement) {
       buttons.push({ icon: '⛺', text: '在此建立據點', action: () => {
         if (GameState.mapSystem.foundSettlement(node.id, GameState.myTerritory)) {
           closeRadialMenu();
-          import('./SceneController').then(m => m.enterScene(node));
+          import('./SceneController').then(m => m.enterSceneWithTransition(node));
         }
       }});
     }
@@ -688,19 +1037,29 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
     
-    // 透過魔物系統產出實際的怪物陣容
-    const enemyLineup = monsterSystem.generateEncounter(node.terrain, baseDiff);
+    // 確保偵查資訊與討伐敵軍 100% 一致：優先取用 node.scoutData 已持久化的 garrisonEncounter
+    const enemyLineup = (node.scoutData && node.scoutData.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0)
+      ? node.scoutData.garrisonEncounter
+      : monsterSystem.generateNodeEncounter(node);
     
+    // 計算與四捨五入駐軍真實戰力，建議戰力 100% 對齊真實駐軍
+    const rawGarrisonPower = (node.scoutData && node.scoutData.garrisonPower !== undefined)
+      ? node.scoutData.garrisonPower
+      : (enemyLineup ? enemyLineup.reduce((sum, m) => sum + m.calculatedPowerScore, 0) : 0);
+    const subjugationMinPower = rawGarrisonPower > 0 ? Math.round(rawGarrisonPower) : minPower;
+
     // 討伐任務需要較長天數 (預設 4 天)
     const prestigeReward = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
-    pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, minPower, randomFeature);
+    pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, subjugationMinPower, randomFeature);
     pendingDispatchTask.targetNodeId = node.id;
     pendingDispatchTask.enemyLineup = enemyLineup;
     
     let fStr = '';
     if (enemyLineup && enemyLineup.length > 0) {
-      const monsterInstance = enemyLineup[0] as any; // Cast to access calculatedPowerScore easily
-      fStr = `\n情報回報：營地周圍預估有 ${enemyLineup.length} 隻【${enemyLineup[0].name}】(單體戰力評估：${monsterInstance.calculatedPowerScore ? Math.round(monsterInstance.calculatedPowerScore) : '未知'})`;
+      const monsterNames = enemyLineup.map(m => m.name).join('、');
+      const elemStr = node.scoutData?.mainElements && node.scoutData.mainElements.length > 0 ? ` [威脅元素: ${node.scoutData.mainElements.join('/')}]` : '';
+      const affixStr = node.scoutData?.affix ? ` [據點詞綴: ${node.scoutData.affix}]` : '';
+      fStr = `\n情報回報：據點駐守 ${enemyLineup.length} 隻【${monsterNames}】${elemStr}${affixStr}`;
     } else {
       if (randomFeature === EnemyFeature.HIGH_DEF) fStr = '（高防禦敵人：建議高攻擊與多波續戰能力）';
       if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
@@ -709,6 +1068,44 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
   }
 
   reqPowerEl.textContent = `🎯 建議戰力：${pendingDispatchTask.minPowerRequired}`;
+  
+  // 討伐模式切換與動態提示說明
+  const modeRadios = document.querySelectorAll('input[name="subjugation-mode"]');
+  const hintEl = document.getElementById('subjugation-mode-hint');
+  
+  const updateSubjugationHint = () => {
+    const selectedMode = (document.querySelector('input[name="subjugation-mode"]:checked') as HTMLInputElement)?.value;
+    if (pendingDispatchTask && actionType !== 'diplomacy') {
+      const baseGold = 100 + node.nodeLevel * 50;
+      const basePrestige = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
+      if (selectedMode === 'PROGRESS') {
+        pendingDispatchTask.subjugationMode = SubjugationMode.PROGRESS;
+        pendingDispatchTask.totalWaves = 3;
+        pendingDispatchTask.expectedGold = Math.floor(baseGold * 3.5);
+        pendingDispatchTask.expectedPrestige = Math.floor(basePrestige * 3.5);
+        if (hintEl) {
+          hintEl.innerHTML = '🔥 <span style="color:#fbbf24; font-weight:bold;">【連續平定】(3波)</span>：連續交戰 3 波敵軍，成功全勝後據點將徹底平定並<span style="color:#ef4444; font-weight:bold;">【從地圖消失】</span>，獲得 <span style="color:#fbbf24;">3.5 倍</span> 基礎獎勵，並<span style="color:#a855f7; font-weight:bold;">必定獲得 1 件對應難度裝備</span>！';
+        }
+      } else {
+        pendingDispatchTask.subjugationMode = SubjugationMode.SINGLE;
+        pendingDispatchTask.totalWaves = 1;
+        pendingDispatchTask.expectedGold = baseGold;
+        pendingDispatchTask.expectedPrestige = basePrestige;
+        if (hintEl) {
+          hintEl.innerHTML = '💡 <span style="color:#38bdf8; font-weight:bold;">【單次討伐】(1波)</span>：討伐成功後獲得基礎戰利品，據點<span style="color:#4ade80; font-weight:bold;">【保留在地圖上】</span>供重複練級刷資源。';
+        }
+      }
+    }
+  };
+
+  modeRadios.forEach(radio => {
+    radio.removeEventListener('change', updateSubjugationHint);
+    radio.addEventListener('change', () => {
+      updateSubjugationHint();
+      renderDispatchTeamRoster();
+    });
+  });
+  updateSubjugationHint();
   
   const playerBase = GameState.mapSystem.getNodes().find(candidate => candidate.isPlayerBase);
   if (playerBase && GameState.roadSystem && pendingDispatchTask) {
@@ -724,7 +1121,7 @@ export function openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'wa
     }
   }
 
-    renderDispatchAdvList();
+  renderDispatchAdvList();
   renderDispatchTeamRoster();
   initPresetEvents();
 
@@ -810,9 +1207,27 @@ export function openEventModal(event: any) {
     btn.className = 'action-btn';
     btn.textContent = opt.text;
     btn.addEventListener('click', () => {
+      // 攔截 console.log 來獲取事件執行的結果文字
+      const oldLog = console.log;
+      let resultMsg = '';
+      console.log = (...args) => {
+        resultMsg += args.join(' ') + '\n';
+        oldLog(...args); // 依然輸出給原本的 logger
+      };
+      
       opt.onSelect();
+      console.log = oldLog; // 恢復
+      
       UIManager.updateUI();
       modal.classList.remove('active');
+      
+      // 將事件結果用 Toast 彈出，讓玩家知道得失 (傳入 0 表示持續顯示於該回合，玩家可點擊關閉)
+      if (resultMsg.trim()) {
+        import('./ToastManager').then(({ ToastManager }) => {
+          const cleanMsg = resultMsg.replace(/\[.*?\]/g, '').trim(); // 移除標籤
+          ToastManager.show(cleanMsg, 'info', 0);
+        });
+      }
     });
     optionsContainer.appendChild(btn);
   });
@@ -1292,9 +1707,16 @@ export function openNodeDetailPanel(node: MapNode) {
       document.getElementById('nd-treasure')!.textContent = node.scoutData.treasureTier;
       
       const garrisonBox = document.getElementById('nd-garrison-box')!;
-      if (node.scoutData.garrisonPower !== undefined) {
+      if (node.scoutData.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0) {
         garrisonBox.style.display = 'block';
-        document.getElementById('nd-garrison')!.textContent = node.scoutData.garrisonPower.toString();
+        const names = node.scoutData.garrisonEncounter.map(m => m.name).join('、');
+        const elemInfo = node.scoutData.mainElements && node.scoutData.mainElements.length > 0 ? ` | ⚡元素: ${node.scoutData.mainElements.join('/')}` : '';
+        const affixInfo = node.scoutData.affix ? ` | ☠️詞綴: ${node.scoutData.affix}` : '';
+        const roundedPower = Math.round(node.scoutData.garrisonPower || 0);
+        document.getElementById('nd-garrison')!.textContent = `【${names}】(戰力:${roundedPower})${elemInfo}${affixInfo}`;
+      } else if (node.scoutData.garrisonPower !== undefined) {
+        garrisonBox.style.display = 'block';
+        document.getElementById('nd-garrison')!.textContent = Math.round(node.scoutData.garrisonPower).toString();
       } else {
         garrisonBox.style.display = 'none';
       }

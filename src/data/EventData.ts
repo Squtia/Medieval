@@ -32,9 +32,9 @@ export const GAME_EVENTS: GameEvent[] = [
     },
     options: [
       {
-        text: '屈服並繳納物資 (金幣 -500，好感度 +10)',
+        text: '屈服並繳納物資 (金幣 -200，好感度 +10)',
         onSelect: () => {
-          GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold - 500);
+          GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold - 200);
           const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_valerius');
           if (val) val.playerFavor += 10;
           console.log('📉 你無奈地交出了物資，瓦萊里烏斯軍隊滿意地離去。');
@@ -123,12 +123,12 @@ export const GAME_EVENTS: GameEvent[] = [
     },
     options: [
       {
-        text: '資助祭典 (金幣 -300，繁榮度 +50)',
+        text: '資助祭典 (金幣 -100，繁榮度 +5)',
         onSelect: () => {
-          GameState.myTerritory.gold -= 300;
+          GameState.myTerritory.gold -= 100;
           const baseNode = GameState.mapSystem.getNodes().find(n => n.isPlayerBase) ||
-                           GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
-          if (baseNode) baseNode.prosperity += 50;
+            GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
+          if (baseNode) baseNode.prosperity += 5;
           console.log('🎉 祭典非常成功，領地充滿了歡聲笑語！');
           import('../ui/UIManager').then(({ UIManager }) => UIManager.updateUI());
         }
@@ -182,31 +182,31 @@ export const GAME_EVENTS: GameEvent[] = [
     },
     options: [
       {
-        text: '收容難民 (金幣 -200，人口 +50，橡木谷好感度 +20)',
+        text: '收容難民 (金幣 -200，人口 +5，橡木谷好感度 +10)',
         onSelect: () => {
           GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold - 200);
           const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
           // A2 Bug 修復：人口增加需受 NodeLevel 人口上限約束，且必須同步 workers.UNASSIGNED
           if (baseNode) {
-            const actualAdded = 50;
+            const actualAdded = 5;
             baseNode.population += actualAdded;
             GameState.myTerritory.workers['UNASSIGNED'] = (GameState.myTerritory.workers['UNASSIGNED'] || 0) + actualAdded;
-            
+
             EventBus.getInstance().publish({
               type: GameEventType.POPULATION_CHANGED,
               payload: { delta: actualAdded, currentPopulation: GameState.myTerritory.population, reason: 'REFUGEES' }
             });
           }
           const oak = GameState.mapSystem.getFactions().find(f => f.id === 'f_oakhaven');
-          if (oak) oak.playerFavor += 20;
+          if (oak) oak.playerFavor += 10;
           console.log('🤝 你慷慨地收留了難民，橡木谷家族對你表示深深的感激。');
         }
       },
       {
-        text: '拒絕收容 (橡木谷好感度 -20)',
+        text: '拒絕收容 (橡木谷好感度 -10)',
         onSelect: () => {
           const oak = GameState.mapSystem.getFactions().find(f => f.id === 'f_oakhaven');
-          if (oak) oak.playerFavor -= 20;
+          if (oak) oak.playerFavor -= 10;
           console.log('🚫 難民們在絕望中離開了你的領地。');
         }
       }

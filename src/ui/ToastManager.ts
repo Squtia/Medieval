@@ -19,6 +19,11 @@ export class ToastManager {
     document.body.appendChild(this.container);
   }
 
+  public static clearAll() {
+    if (!this.container) return;
+    this.container.innerHTML = '';
+  }
+
   public static show(msg: string, type: ToastType = 'info', durationMs: number = 3000) {
     if (!this.container) this.init();
 
@@ -26,7 +31,7 @@ export class ToastManager {
     toast.className = `toast toast-${type}`;
     
     let icon = 'ℹ️';
-    let bgColor = 'rgba(15, 23, 42, 0.9)';
+    let bgColor = 'rgba(15, 23, 42, 0.95)';
     let borderColor = '#3b82f6';
     
     if (type === 'success') {
@@ -54,9 +59,20 @@ export class ToastManager {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(-20px)';
     toast.style.transition = 'all 0.3s ease';
+    toast.style.pointerEvents = 'auto';
+    toast.style.cursor = 'pointer';
 
-    toast.innerHTML = `<span style="font-size: 1.2em;">${icon}</span><span>${msg}</span>`;
+    toast.innerHTML = `<span style="font-size: 1.2em;">${icon}</span><span style="flex:1;">${msg}</span><span style="opacity:0.5; font-size:0.8em; margin-left:8px;">(點擊關閉)</span>`;
     
+    // Click to dismiss
+    toast.addEventListener('click', () => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(-20px)';
+      toast.addEventListener('transitionend', () => {
+        if (toast.parentElement) toast.remove();
+      });
+    });
+
     this.container!.appendChild(toast);
 
     // Fade in
@@ -65,15 +81,17 @@ export class ToastManager {
       toast.style.transform = 'translateY(0)';
     });
 
-    // Remove after duration
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(-20px)';
-      toast.addEventListener('transitionend', () => {
-        if (toast.parentElement) {
-          toast.remove();
-        }
-      });
-    }, durationMs);
+    // Remove after duration if durationMs > 0
+    if (durationMs > 0) {
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-20px)';
+        toast.addEventListener('transitionend', () => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        });
+      }, durationMs);
+    }
   }
 }

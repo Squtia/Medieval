@@ -32,6 +32,7 @@ export class Territory {
   public warehouse: Equipment[]; // 領地的裝備倉庫
   public retiredStaff: Adventurer[]; // 退休的冒險者名單
   public tradeInventory: Record<string, number>; // 交易品庫存 (物品ID -> 數量)
+  public materials: Record<string, number>;      // 鍛造素材與附魔石庫存 (物品ID -> 數量)
 
   // 內政與外交屬性
   public taxRate: number;         // 稅率 (預設 1.0)
@@ -92,12 +93,13 @@ export class Territory {
     this.warehouse = [];           // 初始化空倉庫
     this.retiredStaff = [];        // 初始化退休名單
     this.tradeInventory = {};      // 初始化交易品庫存
+    this.materials = {};           // 初始化鍛造素材與附魔石庫存
     
     // 初始化建築等級與探索保底
     this.tavernLevel = 0;
     this.weaponShopLevel = 0;
     this.armorShopLevel = 0;
-    this.forgeLevel = 0;
+    this.forgeLevel = 0; // 預設等級 0（未建造）
     this.defenseLevel = 0;
     this.exploreCount = 0;
     this.hasRecruitedFromFirstExplorations = false;

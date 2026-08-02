@@ -25,12 +25,45 @@ export class SettlementSystem {
     // 監聽災難威脅抵達
     eventBus.subscribe(GameEventType.THREAT_ARRIVED, (payload) => {
       const territory = GameState.myTerritory;
-      const effectiveSeverity = GameState.threat.prepared ? Math.ceil(payload.severity / 2) : payload.severity;
-      const foodLost = Math.min(territory.food, effectiveSeverity * 4);
-      territory.food -= foodLost;
-      territory.prestige = Math.max(0, territory.prestige - effectiveSeverity);
-      console.log(`[SettlementSystem] 警告！據點遭受了 ${payload.threatName} 的襲擊！(嚴重度: ${payload.severity})`);
-      console.log(`[內政] ❄️ 災害造成糧食 -${foodLost}、聲望 -${effectiveSeverity}${GameState.threat.prepared ? '（防災準備已降低損失）' : ''}。`);
+      const threatName = payload.threatName || '';
+      // 判定是否為天災（如暴風雪、旱災、蝗災、瘟疫）
+      const isNaturalDisaster = /雪|旱|災|蝗|疫|震/i.test(threatName);
+
+      let effectiveSeverity = payload.severity;
+
+      if (isNaturalDisaster) {
+        // 天災：哨所無法抵擋，僅靠防災準備折半
+        effectiveSeverity = GameState.threat.prepared ? Math.ceil(payload.severity / 2) : payload.severity;
+        const foodLost = Math.min(territory.food, effectiveSeverity * 4);
+        territory.food -= foodLost;
+        territory.prestige = Math.max(0, territory.prestige - effectiveSeverity);
+        console.log(`[SettlementSystem] ❄️ 天災「${threatName}」襲來！(嚴重度: ${payload.severity})。造成糧食 -${foodLost}、聲望 -${effectiveSeverity}${GameState.threat.prepared ? '（防災準備已降低損失）' : ''}。`);
+      } else {
+        // 敵意入侵/掠奪事件：連動哨所/衛兵防衛成功率
+        const security = (territory.security === null || territory.security === undefined) ? 100 : territory.security;
+        const totalTroops = (territory.workers[WorkerJob.INFANTRY] || 0) + (territory.workers[WorkerJob.CAVALRY] || 0) + (territory.workers[WorkerJob.ARCHER] || 0);
+
+        if (security >= 80 || totalTroops > 0) {
+          // 哨所/衛兵防衛成功
+          const defenseDiscount = Math.min(1.0, (security / 100) * 0.8 + (totalTroops > 0 ? 0.2 : 0));
+          effectiveSeverity = Math.floor(payload.severity * (1 - defenseDiscount));
+          const foodLost = Math.min(territory.food, effectiveSeverity * 2);
+          territory.food -= foodLost;
+          territory.prestige = Math.max(0, territory.prestige - effectiveSeverity);
+
+          if (effectiveSeverity === 0) {
+            console.log(`[SettlementSystem] 🛡️ 哨所與衛兵防衛嚴密！成功擊退了入侵的「${threatName}」，據點未受任何損失！`);
+          } else {
+            console.log(`[SettlementSystem] ⚔️ 哨所守衛及時反擊「${threatName}」！大幅降低入侵損失（糧食 -${foodLost}、聲望 -${effectiveSeverity}）。`);
+          }
+        } else {
+          // 無哨所守軍且治安崩潰：掠奪完全成功
+          const foodLost = Math.min(territory.food, effectiveSeverity * 4);
+          territory.food -= foodLost;
+          territory.prestige = Math.max(0, territory.prestige - effectiveSeverity);
+          console.log(`[SettlementSystem] ⚠️ 哨所空虛且治安低落！據點遭受「${threatName}」掠奪，損失慘重（糧食 -${foodLost}、聲望 -${effectiveSeverity}）。`);
+        }
+      }
     });
   }
 

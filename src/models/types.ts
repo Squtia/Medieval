@@ -4,6 +4,23 @@ export enum DamageType {
   CHAOS = 'CHAOS'
 }
 
+export enum ElementType {
+  NONE = 'NONE',
+  FIRE = 'FIRE',
+  ICE = 'ICE',
+  LIGHTNING = 'LIGHTNING',
+  HOLY = 'HOLY',
+  DARK = 'DARK'
+}
+
+export enum StrongholdAffix {
+  MIASMA = 'MIASMA',             // 死靈瘴氣 (恢復-50%)
+  VOLCANIC_HEAT = 'VOLCANIC_HEAT', // 酷熱熔岩 (回合扣血)
+  BLIZZARD = 'BLIZZARD',         // 極寒暴風雪 (敏捷-15%, 遠程命中-10%)
+  FORTIFIED = 'FORTIFIED',       // 要塞堅壁 (防禦+20%)
+  BERSERK_AURA = 'BERSERK_AURA'  // 狂暴氣場 (傷害+25%, 暴擊+15%)
+}
+
 /**
  * 傭兵當前的狀態
  */
@@ -244,6 +261,10 @@ export interface NodeScoutData {
   dangerLevel: string;
   treasureTier: string;
   garrisonPower?: number;
+  garrisonEncounter?: MonsterInstance[]; // 儲存偵查生成的精確敵軍隊伍 (保證偵查結果與戰鬥 100% 一致)
+  mainRaces?: MonsterRace[];              // 偵查情報：主體種族
+  mainElements?: ElementType[];          // 偵查情報：主要元素威脅
+  affix?: StrongholdAffix;               // 據點環境詞綴
 }
 
 export interface TradeGood {
@@ -253,6 +274,16 @@ export interface TradeGood {
   basePrice: number;
   type: 'FOOD' | 'MATERIAL' | 'LUXURY' | 'SPECIALTY';
   icon?: string;
+}
+
+export interface MaterialItem {
+  id: string;
+  name: string;
+  icon: string;
+  category: 'TRADE_GOOD' | 'CRAFTING_MATERIAL';
+  tier: number;
+  description: string;
+  basePrice: number;
 }
 
 export interface NodeMarketData {
@@ -391,12 +422,18 @@ export interface Attributes {
  * 戰鬥派生屬性
  */
 export interface CombatStats {
-  hp: number;      // 生命值
-  mp: number;      // 魔力值
-  atk: number;     // 物理/魔法攻擊力
-  def: number;     // 防禦力
-  hit: number;     // 命中率
-  evade: number;   // 閃避率
+  hp: number;        // 生命值
+  mp: number;        // 魔力值
+  patk: number;      // 物理攻擊力
+  matk: number;      // 魔法攻擊力
+  pdef: number;      // 物理防禦力
+  mdef: number;      // 魔法防禦力
+  hit: number;       // 命中率
+  evade: number;     // 閃避率
+  critRate: number;  // 爆擊率 (%)
+  critDmg: number;   // 爆擊傷害 (%)
+  atk: number;       // 攻擊力 (為 patk 或 matk 較高者)
+  def: number;       // 防禦力 (為 pdef)
 }
 
 /**
@@ -456,12 +493,19 @@ export interface Equipment {
   name: string;
   slot: EquipmentSlot;
   weaponType?: WeaponType;              // 武器專屬標籤，影響動態職業
+  allowedJobs?: string[];               // 限制裝備的職業列表 (例如 ['戰士'])
   requirements: Partial<Attributes>;    // 穿戴條件 (例如 { str: 40 })
   effects: Partial<Attributes>;         // 裝備提供的基礎屬性加成 (例如 { int: 10 })
   combatEffects?: Partial<CombatStats>; // 直接給予的戰鬥數值加成 (例如加HP、攻擊力)
+  baseCombatEffects?: Partial<CombatStats>; // 原始固定基底戰鬥數值 (用於強化時準確還原/計算)
   grantedSkill?: string;                // 裝備附帶的額外技能 ID
   enhancementLevel?: number;            // 強化等級 (預設0)
   icon?: string;                        // 裝備圖示佔位符(emoji)
+  element?: ElementType;                // 裝備附帶的元素屬性
+  secondaryElement?: ElementType;       // 法杖專用第二元素
+  armorType?: 'CLOTH' | 'LEATHER' | 'HEAVY'; // 防具類別
+  tier?: number;                        // 裝備階級 (1~5)
+  isVariant?: boolean;                  // 是否為變異職業專用裝備
 }
 
 /**
@@ -473,12 +517,17 @@ export interface EquipmentTemplate {
   name: string;               // 裝備名稱
   slot: EquipmentSlot;        // 裝備部位
   weaponType?: WeaponType;    // 武器專屬標籤
+  armorType?: 'CLOTH' | 'LEATHER' | 'HEAVY'; // 防具類別
+  tier?: number;              // 裝備階級 (1~5)
+  isVariant?: boolean;        // 是否為變異職業專用裝備
+  allowedJobs?: string[];     // 限制裝備的職業列表
   icon?: string;              // 裝備圖示
   itemLevel: number;          // 裝備等級 (影響隨機屬性的數值大小)
   baseRequirements: Partial<Attributes>;   // 基礎穿戴條件
   baseEffects: Partial<Attributes>;        // 固定屬性加成
   baseCombatEffects: Partial<CombatStats>; // 固定戰鬥數值 (例如武器的基礎攻擊力固定)
   grantedSkill?: string;                   // 裝備附帶的額外技能 ID (未來預留給法杖/戰鐮等)
+  element?: ElementType;                   // 裝備附帶的元素屬性
   // 決定在生成時，會隨機抽取哪些額外屬性進行加成
   randomPool?: {
     attributes?: (keyof Attributes)[];
@@ -497,26 +546,33 @@ export enum MonsterRace {
 }
 
 /**
- * 魔物資料結構
+ * 魔物原型資料結構
  */
 export interface MonsterData {
   id: string;
-  name: string;
-  race: MonsterRace;
-  terrains: TerrainType[];
-  powerTier: number;
-  isBoss?: boolean;
+  name: string;                         // 基礎名稱 (例如 哥布林、骷髏)
+  race: MonsterRace;                    // 預設/主要種族
+  compatibleRaces: MonsterRace[];       // 允許冠上的種族標籤 (例如 ['MONSTER', 'UNDEAD'])
+  terrains: TerrainType[];              // 出沒地形
+  powerTier: number;                    // 基礎戰力係數
+  defaultElement?: ElementType;         // 預設元素
+  isBoss?: boolean;                     // 是否為 Boss
 }
 
 /**
- * 戰鬥用實體魔物資料 (帶有具體數值)
+ * 戰鬥用實體魔物資料 (帶有具體數值與質變/元素前綴)
  */
 export interface MonsterInstance extends MonsterData {
   hp: number;
+  maxHp?: number;
   damage: number;
-  defense: number;
+  defense: number;                       // 基礎/通用防禦 (相容性)
+  pdef?: number;                         // 物理防禦
+  mdef?: number;                         // 魔法防禦
   evade: number;
   calculatedPowerScore: number;
+  element: ElementType;                 // 戰鬥實體的最終元素
+  appliedRaceTag: MonsterRace;          // 實體抽到的最終種族標籤
 }
 
 

@@ -40,6 +40,57 @@ export interface Skill {
   execute: (caster: CombatParticipant, targets: CombatParticipant[], allEnemies: CombatParticipant[], allAllies?: CombatParticipant[]) => CombatEvent[];
 }
 
+// 元素相剋運算函式
+export function getElementalMultiplier(atkElement?: import('./types').ElementType, defElement?: import('./types').ElementType): number {
+  const ElementType = {
+    NONE: 'NONE', FIRE: 'FIRE', ICE: 'ICE', LIGHTNING: 'LIGHTNING', HOLY: 'HOLY', DARK: 'DARK'
+  };
+  const atk = atkElement || 'NONE';
+  const def = defElement || 'NONE';
+
+  if (atk === def) return 1.0;
+
+  // 1. 三元相剋 (冰 ➔ 火 ➔ 雷 ➔ 冰)
+  if (atk === ElementType.ICE && def === ElementType.FIRE) return 1.25;
+  if (atk === ElementType.FIRE && def === ElementType.ICE) return 0.75;
+
+  if (atk === ElementType.FIRE && def === ElementType.LIGHTNING) return 1.25;
+  if (atk === ElementType.LIGHTNING && def === ElementType.FIRE) return 0.75;
+
+  if (atk === ElementType.LIGHTNING && def === ElementType.ICE) return 1.25;
+  if (atk === ElementType.ICE && def === ElementType.LIGHTNING) return 0.75;
+
+  // 2. 光與暗互剋 (1.5x)
+  if ((atk === ElementType.HOLY && def === ElementType.DARK) || (atk === ElementType.DARK && def === ElementType.HOLY)) {
+    return 1.5;
+  }
+
+  // 3. 光對火/冰/雷 (1.05x 不逆剋)
+  if (atk === ElementType.HOLY && (def === ElementType.FIRE || def === ElementType.ICE || def === ElementType.LIGHTNING)) {
+    return 1.05;
+  }
+
+  // 4. 暗對火/冰/雷 (1.10x 不逆剋)
+  if (atk === ElementType.DARK && (def === ElementType.FIRE || def === ElementType.ICE || def === ElementType.LIGHTNING)) {
+    return 1.10;
+  }
+
+  // 5. 火對無屬性 (1.05x 不逆剋)
+  if (atk === ElementType.FIRE && def === ElementType.NONE) {
+    return 1.05;
+  }
+
+  return 1.0;
+}
+
+export function getPatk(caster: CombatParticipant): number {
+  return caster.stats.patk ?? caster.stats.atk ?? 0;
+}
+
+export function getMatk(caster: CombatParticipant): number {
+  return caster.stats.matk ?? caster.stats.atk ?? 0;
+}
+
 // 通用的傷害計算與防禦減免函式 (給技能使用)
 export function calculateSkillDamage(
   caster: CombatParticipant, 
@@ -59,24 +110,8 @@ export function calculateSkillDamage(
   
   const isCrit = forcedCrit || (Random.next() < critChance);
   
-  // 1. 根據傷害屬性附加攻防方屬性倍率
-  let atkMultiplier = 1.0;
-  let defMultiplier = 1.0;
-  
-  if (damageType === DamageType.PHYSICAL) {
-    atkMultiplier += (caster.attributes?.str || 0) / 100;
-    defMultiplier += (target.attributes?.str || 0) / 100;
-  } else if (damageType === DamageType.MAGICAL) {
-    atkMultiplier += (caster.attributes?.int || 0) / 100;
-    defMultiplier += (target.attributes?.int || 0) / 100;
-  } else if (damageType === DamageType.CHAOS) {
-    const cAvg = ((caster.attributes?.str || 0) + (caster.attributes?.int || 0)) / 2;
-    const tAvg = ((target.attributes?.str || 0) + (target.attributes?.int || 0)) / 2;
-    atkMultiplier += cAvg / 100;
-    defMultiplier += tAvg / 100;
-  }
-
-  let finalBase = baseDmg * atkMultiplier;
+  // 1. 面板基礎傷害 (以 PATK/MATK 面板數值為唯一基準，避免雙重屬性二次乘算 Bug)
+  let finalBase = baseDmg;
   
   let critMult = 1.5;
   if (caster.isAdvanced && caster.weaponType === 'BOW') {
@@ -85,7 +120,15 @@ export function calculateSkillDamage(
   
   if (isCrit) finalBase *= critMult;
 
-  let effectiveDef = target.stats.def * defMultiplier;
+  // 區分物理防禦 (pdef) 與魔法防禦 (mdef)
+  let baseTargetDef = target.stats.pdef ?? target.stats.def ?? 0;
+  if (damageType === DamageType.MAGICAL) {
+    baseTargetDef = target.stats.mdef ?? target.stats.def ?? 0;
+  } else if (damageType === DamageType.CHAOS) {
+    baseTargetDef = Math.floor(((target.stats.pdef ?? target.stats.def ?? 0) + (target.stats.mdef ?? target.stats.def ?? 0)) / 2);
+  }
+
+  let effectiveDef = baseTargetDef;
   
   // 2. 狀態與被動防禦減免
   // 若目標處於破甲，減少 20%
@@ -114,6 +157,10 @@ export function calculateSkillDamage(
     if (damageType === DamageType.PHYSICAL) finalDamage *= 0.9;
   }
 
+  // 5. 元素相剋運算 (根據施放者/武器與目標元素)
+  const elemMult = getElementalMultiplier(caster.element, target.element);
+  finalDamage = Math.max(1, Math.floor(finalDamage * elemMult));
+
   finalDamage = Math.floor(finalDamage * (0.9 + Random.next() * 0.2));
 
   return { damage: finalDamage, isCrit };
@@ -135,12 +182,12 @@ export const SKILLS: Record<string, Skill> = {
       let isCrit = false;
 
       if (isHybrid) {
-        const phys = calculateSkillDamage(caster, target, caster.stats.atk * 0.65, DamageType.PHYSICAL); // 130% 的 50%
-        const mag = calculateSkillDamage(caster, target, caster.stats.atk * 0.65, DamageType.MAGICAL);
+        const phys = calculateSkillDamage(caster, target, getPatk(caster) * 0.65, DamageType.PHYSICAL); // 130% 的 50%
+        const mag = calculateSkillDamage(caster, target, getMatk(caster) * 0.65, DamageType.MAGICAL);
         damage = phys.damage + mag.damage;
         isCrit = phys.isCrit || mag.isCrit;
       } else {
-        const result = calculateSkillDamage(caster, target, caster.stats.atk * 1.3, DamageType.PHYSICAL);
+        const result = calculateSkillDamage(caster, target, getPatk(caster) * 1.3, DamageType.PHYSICAL);
         damage = result.damage;
         isCrit = result.isCrit;
       }
@@ -174,12 +221,12 @@ export const SKILLS: Record<string, Skill> = {
       let isCrit = false;
 
       if (isHybrid) {
-        const phys = calculateSkillDamage(caster, target, caster.stats.atk * 0.5, DamageType.PHYSICAL); // 100% 的 50%
-        const mag = calculateSkillDamage(caster, target, caster.stats.atk * 0.5, DamageType.MAGICAL);
+        const phys = calculateSkillDamage(caster, target, getPatk(caster) * 0.5, DamageType.PHYSICAL); // 100% 的 50%
+        const mag = calculateSkillDamage(caster, target, getMatk(caster) * 0.5, DamageType.MAGICAL);
         damage = phys.damage + mag.damage;
         isCrit = phys.isCrit || mag.isCrit;
       } else {
-        const result = calculateSkillDamage(caster, target, caster.stats.atk * 1.0, DamageType.PHYSICAL);
+        const result = calculateSkillDamage(caster, target, getPatk(caster) * 1.0, DamageType.PHYSICAL);
         damage = result.damage;
         isCrit = result.isCrit;
       }
@@ -221,7 +268,7 @@ export const SKILLS: Record<string, Skill> = {
       targets.forEach(target => {
         const isArmorBroken = target.statusEffects.some(s => s.type === StatusEffectType.ARMOR_BREAK);
         const multiplier = isArmorBroken ? 2.5 : 1.8;
-        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * multiplier, DamageType.PHYSICAL);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getPatk(caster) * multiplier, DamageType.PHYSICAL);
         target.currentHp = Math.max(0, target.currentHp - damage);
         events.push({
           type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -241,7 +288,7 @@ export const SKILLS: Record<string, Skill> = {
     name: '幻影連擊',
     mpCost: 30,
     targetType: TargetType.SINGLE_ENEMY,
-    description: '消耗 30 MP。對單體連續攻擊 4 次，每次造成 30% 物理與 70% 魔法的混合傷害。',
+    description: '消耗 30 MP。對單體連續攻擊 4 次，每次造成 55% 物理與 55% 魔法的混合傷害。',
     cooldown: 2,
     aiWeight: () => 120,
     execute: (caster, targets) => {
@@ -251,8 +298,8 @@ export const SKILLS: Record<string, Skill> = {
 
       for (let i = 0; i < 4; i++) {
         if (target.currentHp <= 0) break;
-        const phys = calculateSkillDamage(caster, target, caster.stats.atk * 0.3, DamageType.PHYSICAL);
-        const mag = calculateSkillDamage(caster, target, caster.stats.atk * 0.7, DamageType.MAGICAL);
+        const phys = calculateSkillDamage(caster, target, getPatk(caster) * 0.55, DamageType.PHYSICAL);
+        const mag = calculateSkillDamage(caster, target, getMatk(caster) * 0.55, DamageType.MAGICAL);
         const damage = phys.damage + mag.damage;
         const isCrit = phys.isCrit || mag.isCrit;
         
@@ -289,7 +336,7 @@ export const SKILLS: Record<string, Skill> = {
         if (currentAlive.length === 0) break;
         
         const target = Random.pick(currentAlive);
-        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * 0.6, DamageType.MAGICAL);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.6, DamageType.MAGICAL);
         target.currentHp = Math.max(0, target.currentHp - damage);
         totalDamage += damage;
         events.push({
@@ -337,7 +384,7 @@ export const SKILLS: Record<string, Skill> = {
         // 大魔導士被動增傷：每 10 點 Max MP 增加 1% 傷害倍率
         const mpBonus = (caster.stats.mp / 10) * 0.01;
         const multiplier = 1.5 + mpBonus;
-        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * multiplier, DamageType.MAGICAL);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * multiplier, DamageType.MAGICAL);
         target.currentHp = Math.max(0, target.currentHp - damage);
         events.push({
           type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -357,7 +404,7 @@ export const SKILLS: Record<string, Skill> = {
     name: '死神收割',
     mpCost: 30,
     targetType: TargetType.SINGLE_ENEMY,
-    description: '消耗 30 MP。對單體造成 250% 傷害，若擊殺目標，則立刻無消耗對血量最低的敵人再次施放。',
+    description: '消耗 30 MP。對單體造成 200% 無視防禦的混沌傷害，若擊殺目標，則立刻無消耗對血量最低的敵人再次施放。',
     cooldown: 2,
     aiWeight: (caster, targets) => {
       const hpRatio = targets[0].currentHp / targets[0].maxHp;
@@ -369,7 +416,8 @@ export const SKILLS: Record<string, Skill> = {
       
       let chainCount = 0;
       while (currentTarget && currentTarget.currentHp > 0 && chainCount < 5) { // 設上限防死迴圈
-        const { damage, isCrit } = calculateSkillDamage(caster, currentTarget, caster.stats.atk * 2.5, DamageType.CHAOS);
+        const chaosAtk = (getPatk(caster) + getMatk(caster)) / 2;
+        const { damage, isCrit } = calculateSkillDamage(caster, currentTarget, chaosAtk * 2.0, DamageType.CHAOS);
         currentTarget.currentHp = Math.max(0, currentTarget.currentHp - damage);
         
         events.push({
@@ -422,7 +470,7 @@ export const SKILLS: Record<string, Skill> = {
     execute: (caster, targets) => {
       const target = targets[0];
       const events: CombatEvent[] = [];
-      const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * 1.2, DamageType.PHYSICAL);
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getPatk(caster) * 1.2, DamageType.PHYSICAL);
       target.currentHp = Math.max(0, target.currentHp - damage);
       
       events.push({
@@ -500,13 +548,14 @@ export const SKILLS: Record<string, Skill> = {
     name: '符文反制',
     mpCost: 40,
     targetType: TargetType.ALL_ENEMIES,
-    description: '消耗 40 MP。對全體敵人造成無視防禦的混沌傷害，並為全體隊友附加 2 回合生命恢復。',
+    description: '消耗 40 MP。對全體敵人造成 120% 無視防禦的混沌傷害，並為全體隊友附加 2 回合生命恢復。',
     cooldown: 2,
     aiWeight: () => 150,
     execute: (caster, targets, allEnemies, allies) => {
       const events: CombatEvent[] = [];
       targets.forEach(target => {
-        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * 1.5, DamageType.CHAOS);
+        const chaosAtk = (getPatk(caster) + getMatk(caster)) / 2;
+        const { damage, isCrit } = calculateSkillDamage(caster, target, chaosAtk * 1.2, DamageType.CHAOS);
         target.currentHp = Math.max(0, target.currentHp - damage);
         events.push({
           type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -548,7 +597,7 @@ export const SKILLS: Record<string, Skill> = {
     },
     execute: (caster, targets) => {
       const target = targets[0];
-      let baseHeal = (caster.attributes?.int || caster.stats.atk) * 2.0;
+      let baseHeal = (caster.attributes?.int || getMatk(caster)) * 2.0;
       if (caster.isAdvanced && caster.weaponType === 'HOLY_BOOK') {
         baseHeal *= 1.3;
       }
@@ -577,12 +626,12 @@ export const SKILLS: Record<string, Skill> = {
       let isTotalCrit = false;
 
       if (caster.isAdvanced && caster.weaponType === 'HAMMER') {
-         const phys = calculateSkillDamage(caster, target, caster.stats.atk * 1.5 * 0.4, DamageType.PHYSICAL);
-         const mag = calculateSkillDamage(caster, target, caster.stats.atk * 1.5 * 0.6, DamageType.MAGICAL);
+         const phys = calculateSkillDamage(caster, target, getPatk(caster) * 1.5 * 0.4, DamageType.PHYSICAL);
+         const mag = calculateSkillDamage(caster, target, getMatk(caster) * 1.5 * 0.6, DamageType.MAGICAL);
          totalDamage = phys.damage + mag.damage;
          isTotalCrit = phys.isCrit || mag.isCrit;
       } else {
-         const result = calculateSkillDamage(caster, target, caster.stats.atk * 1.5, DamageType.MAGICAL);
+         const result = calculateSkillDamage(caster, target, getMatk(caster) * 1.5, DamageType.MAGICAL);
          totalDamage = result.damage;
          isTotalCrit = result.isCrit;
       }
@@ -615,7 +664,7 @@ export const SKILLS: Record<string, Skill> = {
     },
     execute: (caster, targets) => {
       const events: CombatEvent[] = [];
-      let baseHeal = (caster.attributes?.int || caster.stats.atk) * 1.5;
+      let baseHeal = (caster.attributes?.int || getMatk(caster)) * 1.5;
       baseHeal *= 1.3; 
       targets.forEach(target => {
         const heal = Math.floor(baseHeal * (0.9 + Random.next() * 0.2));
@@ -645,8 +694,8 @@ export const SKILLS: Record<string, Skill> = {
       const target = targets[0];
       const events: CombatEvent[] = [];
       
-      const phys = calculateSkillDamage(caster, target, caster.stats.atk * 3.0 * 0.7, DamageType.PHYSICAL);
-      const mag = calculateSkillDamage(caster, target, caster.stats.atk * 3.0 * 0.3, DamageType.MAGICAL);
+      const phys = calculateSkillDamage(caster, target, getPatk(caster) * 0.7, DamageType.PHYSICAL);
+      const mag = calculateSkillDamage(caster, target, getMatk(caster) * 0.3, DamageType.MAGICAL);
       const totalDamage = phys.damage + mag.damage;
       const isTotalCrit = phys.isCrit || mag.isCrit;
       
@@ -691,10 +740,10 @@ export const SKILLS: Record<string, Skill> = {
     execute: (caster, targets, allEnemies) => {
       const events: CombatEvent[] = [];
       for (const target of targets) {
-        let baseDmg = caster.stats.atk * 0.9;
+        let baseDmg = getPatk(caster) * 0.9;
         if (caster.isAdvanced && caster.weaponType === 'MAGIC_BOW') {
           const phys = calculateSkillDamage(caster, target, baseDmg, DamageType.PHYSICAL);
-          const mag = calculateSkillDamage(caster, target, caster.stats.atk * 0.15, DamageType.MAGICAL, phys.isCrit);
+          const mag = calculateSkillDamage(caster, target, getMatk(caster) * 0.15, DamageType.MAGICAL, phys.isCrit);
           const totalDmg = phys.damage + mag.damage;
           target.currentHp = Math.max(0, target.currentHp - totalDmg);
           events.push({
@@ -732,10 +781,10 @@ export const SKILLS: Record<string, Skill> = {
     execute: (caster, targets, allEnemies) => {
       const target = targets[0];
       const events: CombatEvent[] = [];
-      let baseDmg = caster.stats.atk * 1.5;
+      let baseDmg = getPatk(caster) * 1.5;
       if (caster.isAdvanced && caster.weaponType === 'MAGIC_BOW') {
         const phys = calculateSkillDamage(caster, target, baseDmg, DamageType.PHYSICAL);
-        const mag = calculateSkillDamage(caster, target, caster.stats.atk * 0.15, DamageType.MAGICAL, phys.isCrit);
+        const mag = calculateSkillDamage(caster, target, getMatk(caster) * 0.15, DamageType.MAGICAL, phys.isCrit);
         const totalDmg = phys.damage + mag.damage;
         target.currentHp = Math.max(0, target.currentHp - totalDmg);
         events.push({
@@ -771,7 +820,7 @@ export const SKILLS: Record<string, Skill> = {
     execute: (caster, targets, allEnemies) => {
       const target = targets[0];
       const events: CombatEvent[] = [];
-      const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * 2.0, DamageType.PHYSICAL);
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getPatk(caster) * 2.0, DamageType.PHYSICAL);
       target.currentHp = Math.max(0, target.currentHp - damage);
       events.push({
         type: CombatEventType.CRIT,
@@ -789,48 +838,195 @@ export const SKILLS: Record<string, Skill> = {
     name: '風精靈之舞',
     mpCost: 35,
     targetType: TargetType.SINGLE_ENEMY,
-    description: '消耗 35 MP。發動 80% 物理攻擊，若爆擊則發動 100% 魔法攻擊，最高連鎖 10 次。',
+    description: '消耗 35 MP。發動 80% 物理攻擊，若爆擊則發動 100% 魔法攻擊，最高連鎖 10 次。可隨魔法弓元素切換為火精靈之怒、冰精靈之刺、雷精靈之殤、聖靈之光或暗靈之凝。',
     cooldown: 2,
     aiWeight: () => 160,
     execute: (caster, targets, allEnemies) => {
       const target = targets[0];
       const events: CombatEvent[] = [];
       
+      const elem = caster.element || 'NONE';
+      let danceName = '風精靈之舞';
+      if (elem === 'FIRE') danceName = '火精靈之怒';
+      else if (elem === 'ICE') danceName = '冰精靈之刺';
+      else if (elem === 'LIGHTNING') danceName = '雷精靈之殤';
+      else if (elem === 'HOLY') danceName = '聖靈之光';
+      else if (elem === 'DARK') danceName = '暗靈之凝';
+
       let baseCrit = 0.05 + (caster.stats.hit / 500) + 0.25; // Base + Hit + Passive
       let currentCritChance = baseCrit;
       let chainCount = 0;
       let totalDmg = 0;
       
-      const phys = calculateSkillDamage(caster, target, caster.stats.atk * 0.8, DamageType.PHYSICAL, false, currentCritChance);
+      const phys = calculateSkillDamage(caster, target, getPatk(caster) * 0.8, DamageType.PHYSICAL, false, currentCritChance);
       totalDmg += phys.damage;
       target.currentHp = Math.max(0, target.currentHp - phys.damage);
       events.push({
         type: phys.isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
         actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
         damage: phys.damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
-        skillName: '風精靈之舞',
-        text: `${caster.name} 射出物理箭矢，對 ${target.name} 造成 ${phys.damage} 點傷害！`
+        skillName: danceName,
+        text: `${caster.name} 施展【${danceName}】，對 ${target.name} 造成 ${phys.damage} 點傷害！`
       });
       
       let isLastCrit = phys.isCrit;
+      const maxChain = elem === 'LIGHTNING' ? 12 : 10;
       
-      while (isLastCrit && chainCount < 10 && target.currentHp > 0) {
+      while (isLastCrit && chainCount < maxChain && target.currentHp > 0) {
         chainCount++;
         currentCritChance = Math.max(0.15, currentCritChance - 0.10);
-        const mag = calculateSkillDamage(caster, target, caster.stats.atk * 1.0, DamageType.MAGICAL, false, currentCritChance);
+        const mag = calculateSkillDamage(caster, target, getMatk(caster) * 1.0, DamageType.MAGICAL, false, currentCritChance);
         totalDmg += mag.damage;
         target.currentHp = Math.max(0, target.currentHp - mag.damage);
+        
         events.push({
           type: mag.isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
           actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
           damage: mag.damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
-          skillName: '風精靈之舞',
-          text: `精靈追擊 (${chainCount})！對 ${target.name} 造成 ${mag.damage} 點魔法傷害！`
+          skillName: danceName,
+          text: `${danceName}連鎖追擊 (${chainCount})！對 ${target.name} 造成 ${mag.damage} 點魔法傷害！`
         });
+
+        // 聖靈之光治療效果
+        if (elem === 'HOLY' && mag.isCrit) {
+          const healAmt = Math.floor(mag.damage * 0.3);
+          caster.currentHp = Math.min(caster.maxHp, caster.currentHp + healAmt);
+          events.push({
+            type: CombatEventType.HEAL,
+            actorName: caster.name, targetName: caster.name,
+            text: `【聖靈之光】回饋治療 ${caster.name} ${healAmt} 點生命！`
+          });
+        }
         isLastCrit = mag.isCrit;
       }
       
       return events;
+    }
+  },
+  // --- 法杖第一元素單體技能 (無額外功能，傷害倍率統一 140%) ---
+  'STAFF_FIREBALL': {
+    id: 'STAFF_FIREBALL',
+    name: '火球術',
+    mpCost: 15,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 15 MP。對單體目標造成 140% 火屬性魔法傷害。',
+    aiWeight: () => 100,
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 1.4, DamageType.MAGICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      return [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '火球術',
+        text: `${caster.name} 施放火球術打擊 ${target.name}，造成 ${damage} 點火屬性傷害！`
+      }];
+    }
+  },
+  'STAFF_LIGHTNING': {
+    id: 'STAFF_LIGHTNING',
+    name: '雷擊術',
+    mpCost: 15,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 15 MP。對單體目標造成 140% 雷屬性魔法傷害。',
+    aiWeight: () => 100,
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 1.4, DamageType.MAGICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      return [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '雷擊術',
+        text: `${caster.name} 施放雷擊術轟炸 ${target.name}，造成 ${damage} 點雷屬性傷害！`
+      }];
+    }
+  },
+  'STAFF_FROST_ARROW': {
+    id: 'STAFF_FROST_ARROW',
+    name: '冰霜箭',
+    mpCost: 15,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 15 MP。對單體目標造成 140% 冰屬性魔法傷害。',
+    aiWeight: () => 100,
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 1.4, DamageType.MAGICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      return [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '冰霜箭',
+        text: `${caster.name} 射出冰霜箭打擊 ${target.name}，造成 ${damage} 點冰屬性傷害！`
+      }];
+    }
+  },
+
+  // --- 法杖第二元素屬性轉變技能 (極低倍率 20%，強制將目標屬性轉變為該元素) ---
+  'STAFF_LIVING_COMBUSTION': {
+    id: 'STAFF_LIVING_COMBUSTION',
+    name: '生體點燃',
+    mpCost: 20,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 20 MP。對單體造成 20% 傷害，並強制將目標之元素屬性轉變為「火屬性」。',
+    aiWeight: (caster, targets) => (targets[0].element !== 'FIRE' ? 140 : 20),
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.2, DamageType.MAGICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      target.element = 'FIRE' as any;
+      return [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '生體點燃',
+        text: `${caster.name} 施放生體點燃，對 ${target.name} 造成 ${damage} 點傷害，並強行將其屬性轉變為 🔥【火】！`
+      }];
+    }
+  },
+  'STAFF_THUNDER_MARK': {
+    id: 'STAFF_THUNDER_MARK',
+    name: '雷霆印記',
+    mpCost: 20,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 20 MP。對單體造成 20% 傷害，並強制將目標之元素屬性轉變為「雷屬性」。',
+    aiWeight: (caster, targets) => (targets[0].element !== 'LIGHTNING' ? 140 : 20),
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.2, DamageType.MAGICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      target.element = 'LIGHTNING' as any;
+      return [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '雷霆印記',
+        text: `${caster.name} 施放雷霆印記，對 ${target.name} 造成 ${damage} 點傷害，並強行將其屬性轉變為 ⚡【雷】！`
+      }];
+    }
+  },
+  'STAFF_FROST_FREEZE': {
+    id: 'STAFF_FROST_FREEZE',
+    name: '冰凍凝結',
+    mpCost: 20,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 20 MP。對單體造成 20% 傷害，並強制將目標之元素屬性轉變為「冰屬性」。',
+    aiWeight: (caster, targets) => (targets[0].element !== 'ICE' ? 140 : 20),
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.2, DamageType.MAGICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      target.element = 'ICE' as any;
+      return [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '冰凍凝結',
+        text: `${caster.name} 施放冰凍凝結，對 ${target.name} 造成 ${damage} 點傷害，並強行將其屬性轉變為 ❄️【冰】！`
+      }];
     }
   },
   // --- 盜賊系基礎技能 ---
@@ -877,7 +1073,8 @@ export const SKILLS: Record<string, Skill> = {
           target.statusEffects = target.statusEffects.filter(s => s.type !== StatusEffectType.POISON);
         }
         
-        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * mult, DamageType.CHAOS);
+        const chaosAtk = (getPatk(caster) + getMatk(caster)) / 2;
+        const { damage, isCrit } = calculateSkillDamage(caster, target, chaosAtk * mult, DamageType.CHAOS);
         target.currentHp = Math.max(0, target.currentHp - damage);
         events.push({
           type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -887,7 +1084,7 @@ export const SKILLS: Record<string, Skill> = {
           text: `${caster.name} 突襲並引爆了毒素(共 ${poisonStacks} 層)，造成 ${damage} 點混沌傷害！`
         });
       } else {
-        const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * mult, DamageType.PHYSICAL);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getPatk(caster) * mult, DamageType.PHYSICAL);
         target.currentHp = Math.max(0, target.currentHp - damage);
         events.push({
           type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -922,7 +1119,7 @@ export const SKILLS: Record<string, Skill> = {
       const events: CombatEvent[] = [];
       const hpRatio = target.currentHp / target.maxHp;
       let dmgMult = 0.8;
-      let dmgType = DamageType.PHYSICAL;
+      let dmgType: DamageType = DamageType.PHYSICAL;
       let isTrickster = caster.isAdvanced && caster.weaponType === 'MAGIC_RING';
       let isAssassin = caster.isAdvanced && caster.weaponType === 'DAGGERS';
       
@@ -933,7 +1130,8 @@ export const SKILLS: Record<string, Skill> = {
         dmgMult *= 1.3;
       }
 
-      const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * dmgMult, dmgType);
+      const atkVal = dmgType === DamageType.CHAOS ? (getPatk(caster) + getMatk(caster)) / 2 : getPatk(caster);
+      const { damage, isCrit } = calculateSkillDamage(caster, target, atkVal * dmgMult, dmgType);
       target.currentHp = Math.max(0, target.currentHp - damage);
       events.push({
         type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -986,7 +1184,7 @@ export const SKILLS: Record<string, Skill> = {
       const events: CombatEvent[] = [];
       const isHealthy = (target.currentHp / target.maxHp) >= 0.7;
       
-      const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * 1.8, DamageType.PHYSICAL, isHealthy);
+      const { damage, isCrit } = calculateSkillDamage(caster, target, getPatk(caster) * 1.8, DamageType.PHYSICAL, isHealthy);
       target.currentHp = Math.max(0, target.currentHp - damage);
       events.push({
         type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -1022,7 +1220,8 @@ export const SKILLS: Record<string, Skill> = {
     execute: (caster, targets, allEnemies) => {
       const target = targets[0];
       const events: CombatEvent[] = [];
-      const { damage, isCrit } = calculateSkillDamage(caster, target, caster.stats.atk * 1.0, DamageType.CHAOS);
+      const chaosAtk = (getPatk(caster) + getMatk(caster)) / 2;
+      const { damage, isCrit } = calculateSkillDamage(caster, target, chaosAtk * 1.0, DamageType.CHAOS);
       target.currentHp = Math.max(0, target.currentHp - damage);
       events.push({
         type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
@@ -1045,3 +1244,157 @@ export const SKILLS: Record<string, Skill> = {
     }
   }
 };
+
+export interface SkillDisplayInfo {
+  skill: Skill;
+  isLearned: boolean;
+  lockReason?: string;
+  category: 'BASE' | 'ADVANCED' | 'EQUIPMENT';
+}
+
+export interface PassiveDisplayInfo {
+  name: string;
+  description: string;
+  icon: string;
+  isActive: boolean;
+}
+
+/**
+ * 獲取冒險者所有已知/可用的主動技能狀態列表 (含已學習與未學習鎖定項目)
+ */
+export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
+  const result: SkillDisplayInfo[] = [];
+  const jobName = adv.job?.name || adv.currentClass || '';
+  const weapon = adv.equipment?.WEAPON;
+  const wpnType = weapon?.weaponType;
+  const isAdvanced = !!adv.isAdvanced;
+
+  // 1. 基礎職業技能
+  if (jobName.includes('戰士') || jobName.includes('狂戰') || jobName.includes('魔劍')) {
+    if (SKILLS['FIGHTER_HEAVY_STRIKE']) result.push({ skill: SKILLS['FIGHTER_HEAVY_STRIKE'], isLearned: true, category: 'BASE' });
+    if (SKILLS['FIGHTER_ARMOR_BREAK']) result.push({ skill: SKILLS['FIGHTER_ARMOR_BREAK'], isLearned: true, category: 'BASE' });
+    if (SKILLS['GREATSWORD_WHIRLWIND']) {
+      const learned = isAdvanced && wpnType === 'GREATSWORD';
+      result.push({ skill: SKILLS['GREATSWORD_WHIRLWIND'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備巨劍' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+    if (SKILLS['MAGIC_SWORDSMAN_PHANTOM']) {
+      const learned = isAdvanced && wpnType === 'DUAL_SWORDS';
+      result.push({ skill: SKILLS['MAGIC_SWORDSMAN_PHANTOM'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備雙劍' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+  } else if (jobName.includes('法師') || jobName.includes('大魔導') || jobName.includes('死靈')) {
+    if (SKILLS['MAGE_ARCANE_MISSILES']) result.push({ skill: SKILLS['MAGE_ARCANE_MISSILES'], isLearned: true, category: 'BASE' });
+    if (SKILLS['MAGE_STATIC_FIELD']) result.push({ skill: SKILLS['MAGE_STATIC_FIELD'], isLearned: true, category: 'BASE' });
+    if (SKILLS['STAFF_METEOR']) {
+      const learned = isAdvanced && wpnType === 'STAFF';
+      result.push({ skill: SKILLS['STAFF_METEOR'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備法杖' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+    if (SKILLS['SCYTHE_SOUL_REAP']) {
+      const learned = isAdvanced && wpnType === 'SCYTHE';
+      result.push({ skill: SKILLS['SCYTHE_SOUL_REAP'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備戰鐮' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+  } else if (jobName.includes('弓箭手') || jobName.includes('神射手') || jobName.includes('精靈使')) {
+    if (SKILLS['ARCHER_PIERCING_SHOT']) result.push({ skill: SKILLS['ARCHER_PIERCING_SHOT'], isLearned: true, category: 'BASE' });
+    if (SKILLS['ARCHER_AIMED_SHOT']) result.push({ skill: SKILLS['ARCHER_AIMED_SHOT'], isLearned: true, category: 'BASE' });
+    if (SKILLS['SNIPER_FATAL_SNIPE']) {
+      const learned = isAdvanced && wpnType === 'BOW';
+      result.push({ skill: SKILLS['SNIPER_FATAL_SNIPE'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備長弓' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+    if (SKILLS['SPIRIT_ARCHER_SPIRIT_CHAIN']) {
+      const learned = isAdvanced && wpnType === 'MAGIC_BOW';
+      result.push({ skill: SKILLS['SPIRIT_ARCHER_SPIRIT_CHAIN'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備魔弓' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+  } else if (jobName.includes('盜賊') || jobName.includes('暗殺者') || jobName.includes('詭術師')) {
+    if (SKILLS['THIEF_SURPRISE_ATTACK']) result.push({ skill: SKILLS['THIEF_SURPRISE_ATTACK'], isLearned: true, category: 'BASE' });
+    if (SKILLS['THIEF_POISON_BLADE']) result.push({ skill: SKILLS['THIEF_POISON_BLADE'], isLearned: true, category: 'BASE' });
+    if (SKILLS['ASSASSIN_SHADOW_ASSASSINATION']) {
+      const learned = isAdvanced && (wpnType === 'DAGGERS' || wpnType === 'DAGGER');
+      result.push({ skill: SKILLS['ASSASSIN_SHADOW_ASSASSINATION'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備匕首' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+    if (SKILLS['TRICKSTER_TRICK_MAGIC']) {
+      const learned = isAdvanced && wpnType === 'MAGIC_RING';
+      result.push({ skill: SKILLS['TRICKSTER_TRICK_MAGIC'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備魔環' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+  } else if (jobName.includes('騎士') || jobName.includes('聖騎士') || jobName.includes('符文')) {
+    if (SKILLS['KNIGHT_SHIELD_BASH']) result.push({ skill: SKILLS['KNIGHT_SHIELD_BASH'], isLearned: true, category: 'BASE' });
+    if (SKILLS['KNIGHT_TAUNT']) result.push({ skill: SKILLS['KNIGHT_TAUNT'], isLearned: true, category: 'BASE' });
+    if (SKILLS['KNIGHT_PALADIN_AEGIS']) {
+      const learned = isAdvanced && wpnType === 'SWORD_AND_SHIELD';
+      result.push({ skill: SKILLS['KNIGHT_PALADIN_AEGIS'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備劍盾' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+    if (SKILLS['KNIGHT_RUNE_REFLECTION']) {
+      const learned = isAdvanced && wpnType === 'RUNE_SHIELD';
+      result.push({ skill: SKILLS['KNIGHT_RUNE_REFLECTION'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備符文盾' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+  } else if (jobName.includes('祈禱') || jobName.includes('主教') || jobName.includes('拷問')) {
+    if (SKILLS['PRAYER_HEAL']) result.push({ skill: SKILLS['PRAYER_HEAL'], isLearned: true, category: 'BASE' });
+    if (SKILLS['PRAYER_HOLY_LIGHT']) result.push({ skill: SKILLS['PRAYER_HOLY_LIGHT'], isLearned: true, category: 'BASE' });
+    if (SKILLS['PRAYER_ARCHBISHOP_MASS_HEAL']) {
+      const learned = isAdvanced && wpnType === 'HOLY_BOOK';
+      result.push({ skill: SKILLS['PRAYER_ARCHBISHOP_MASS_HEAL'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備聖典' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+    if (SKILLS['PRAYER_INQUISITOR_JUDGMENT']) {
+      const learned = isAdvanced && wpnType === 'HAMMER';
+      result.push({ skill: SKILLS['PRAYER_INQUISITOR_JUDGMENT'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備戰鎚' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
+    }
+  } else {
+    // 預設戰士基礎
+    if (SKILLS['FIGHTER_HEAVY_STRIKE']) result.push({ skill: SKILLS['FIGHTER_HEAVY_STRIKE'], isLearned: true, category: 'BASE' });
+    if (SKILLS['FIGHTER_ARMOR_BREAK']) result.push({ skill: SKILLS['FIGHTER_ARMOR_BREAK'], isLearned: true, category: 'BASE' });
+  }
+
+  // 2. 裝備帶有的特殊技能
+  if (weapon && weapon.grantedSkill && SKILLS[weapon.grantedSkill]) {
+    result.push({ skill: SKILLS[weapon.grantedSkill], isLearned: true, category: 'EQUIPMENT' });
+  }
+
+  return result;
+}
+
+/**
+ * 獲取冒險者當前的被動天賦清單
+ */
+export function getAdventurerPassiveInfo(adv: any): PassiveDisplayInfo[] {
+  const result: PassiveDisplayInfo[] = [];
+  const wpnType = adv.equipment?.WEAPON?.weaponType;
+  const isAdvanced = !!adv.isAdvanced;
+
+  if (adv.trait?.name) {
+    result.push({
+      name: `天賦：${adv.trait.name}`,
+      description: adv.trait.description || '個人專屬天賦性格。',
+      icon: '✨',
+      isActive: true
+    });
+  }
+
+  if (isAdvanced) {
+    if (wpnType === 'GREATSWORD') {
+      result.push({ name: '狂暴怒火', description: '進階狂戰士被動：攻擊無視目標 30% 物理防禦。', icon: '🩸', isActive: true });
+    } else if (wpnType === 'DUAL_SWORDS') {
+      result.push({ name: '雙修劍意', description: '變異魔劍士被動：基礎技能轉換為物魔 50/50 混傷。', icon: '⚔️', isActive: true });
+    } else if (wpnType === 'STAFF') {
+      result.push({ name: '法術真理', description: '進階大魔導士被動：所有法術與普攻無視閃避、必定命中。', icon: '🔮', isActive: true });
+    } else if (wpnType === 'SCYTHE') {
+      result.push({ name: '靈魂虹吸', description: '變異死靈法師被動：造成傷害的 20% 轉為自身 HP，並為隊友承受 50% 傷害。', icon: '💀', isActive: true });
+    } else if (wpnType === 'BOW') {
+      result.push({ name: '鷹眼之術', description: '進階神射手被動：爆擊率 +20%，爆擊倍率提升至 2.0x。', icon: '🦅', isActive: true });
+    } else if (wpnType === 'MAGIC_BOW') {
+      result.push({ name: '精靈庇護', description: '變異精靈使被動：爆擊率 +25%，攻擊額外附加 15% 魔法連鎖傷害。', icon: '🍃', isActive: true });
+    } else if (wpnType === 'DAGGERS' || wpnType === 'DAGGER') {
+      result.push({ name: '先發制人', description: '進階暗殺者被動：戰鬥首回合高額閃避，對健康目標增傷 50%。', icon: '🗡️', isActive: true });
+    } else if (wpnType === 'MAGIC_RING') {
+      result.push({ name: '幻影步伐', description: '變異詭術師被動：普攻轉混沌傷害，嘲諷狀態下 100% 迴避。', icon: '🃏', isActive: true });
+    } else if (wpnType === 'SWORD_AND_SHIELD') {
+      result.push({ name: '神聖鐵壁', description: '進階聖騎士被動：受到物理傷害 -30%，魔法傷害 -10%。', icon: '🛡️', isActive: true });
+    } else if (wpnType === 'RUNE_SHIELD') {
+      result.push({ name: '符文防禦', description: '變異符文騎士被動：受到魔法傷害 -30%，物理傷害 -10%。', icon: '🔯', isActive: true });
+    } else if (wpnType === 'HOLY_BOOK') {
+      result.push({ name: '神聖恩賜', description: '進階大主教被動：自身造成的所有治療效果提升 30%。', icon: '🕊️', isActive: true });
+    } else if (wpnType === 'HAMMER') {
+      result.push({ name: '雙重制裁', description: '變異拷問官被動：攻擊轉換為 40% 物理與 60% 魔法混傷。', icon: '🔨', isActive: true });
+    }
+  }
+
+  return result;
+}
+

@@ -239,9 +239,20 @@ export class Adventurer {
    * 包含：基礎屬性 + 裝備加成，最後再乘上性格百分比修正
    * @param excludeSlot (選填) 在計算時排除指定槽位的裝備，用於 canEquip 預判
    */
-  public getEffectiveAttributes(excludeSlot?: EquipmentSlot): Attributes {
+  public getEffectiveAttributes(excludeSlot?: EquipmentSlot, tempAllocations?: Partial<Attributes>): Attributes {
     // 1. 取得基礎屬性拷貝
     const effective: Attributes = { ...this.baseAttributes };
+
+    if (tempAllocations) {
+      effective.str += tempAllocations.str || 0;
+      effective.agi += tempAllocations.agi || 0;
+      effective.con += tempAllocations.con || 0;
+      effective.int += tempAllocations.int || 0;
+      effective.spr += tempAllocations.spr || 0;
+      effective.luk += tempAllocations.luk || 0;
+      effective.charm += tempAllocations.charm || 0;
+      effective.command += tempAllocations.command || 0;
+    }
 
     // 2. 疊加裝備提供的固定加成
     for (const slot of Object.values(EquipmentSlot)) {
@@ -272,40 +283,70 @@ export class Adventurer {
   }
 
   /**
-   * 計算並取得實際的戰鬥派生屬性
+   * 計算並取得實際的戰鬥派生屬性 (物魔雙軌制)
    */
-  public getCombatStats(): CombatStats {
-    const attr = this.getEffectiveAttributes();
+  public getCombatStats(excludeSlot?: EquipmentSlot, tempAllocations?: Partial<Attributes>): CombatStats {
+    const attr = this.getEffectiveAttributes(excludeSlot, tempAllocations);
     
-    // 基礎公式重構
+    // 物魔雙軌基礎公式重構
     const baseHp = attr.con * 10;
-    const baseMp = attr.spr * 5; // MP 改綁定 SPR
-    const baseAtk = attr.str + attr.int; // 改為混合基底
-    const baseDef = attr.con + Math.floor((attr.str + attr.int) * 0.5); // 防禦也依賴三屬性
+    const baseMp = attr.spr * 5;
+    const basePatk = attr.str * 2;
+    const baseMatk = attr.int * 2;
+    const basePdef = attr.con + Math.floor(attr.str * 0.5);
+    const baseMdef = attr.con + Math.floor(attr.spr * 0.5);
     const baseHit = attr.agi * 2 + attr.luk;
     const baseEvade = attr.agi * 1 + attr.luk;
+
+    const weapon = this.equipment[EquipmentSlot.WEAPON];
+    const weaponType = weapon?.weaponType;
+
+    let critChance = 0.05 + (baseHit / 500);
+    let critMult = 1.5;
+    if (this.isAdvanced && this.level >= 10) {
+      if (weaponType === WeaponType.BOW) {
+        critChance += 0.20;
+        critMult = 2.0;
+      } else if (weaponType === WeaponType.MAGIC_BOW) {
+        critChance += 0.25;
+      } else if (weaponType === WeaponType.DAGGERS) {
+        critChance += 0.10;
+      }
+    }
 
     const stats: CombatStats = {
       hp: baseHp,
       mp: baseMp,
-      atk: baseAtk,
-      def: baseDef,
+      patk: basePatk,
+      matk: baseMatk,
+      pdef: basePdef,
+      mdef: baseMdef,
       hit: baseHit,
-      evade: baseEvade
+      evade: baseEvade,
+      critRate: Math.round(critChance * 100),
+      critDmg: Math.round(critMult * 100),
+      atk: Math.max(basePatk, baseMatk),
+      def: basePdef
     };
 
     // 疊加裝備直接提供的戰鬥屬性加成 (combatEffects)
     for (const slot of Object.values(EquipmentSlot)) {
+      if (excludeSlot === slot) continue;
       const equip = this.equipment[slot as EquipmentSlot];
       if (equip && equip.combatEffects) {
         stats.hp += equip.combatEffects.hp || 0;
         stats.mp += equip.combatEffects.mp || 0;
-        stats.atk += equip.combatEffects.atk || 0;
-        stats.def += equip.combatEffects.def || 0;
+        stats.patk += equip.combatEffects.atk || 0;
+        stats.matk += equip.combatEffects.atk || 0;
+        stats.pdef += equip.combatEffects.def || 0;
+        stats.mdef += equip.combatEffects.def || 0;
         stats.hit += equip.combatEffects.hit || 0;
         stats.evade += equip.combatEffects.evade || 0;
       }
     }
+
+    stats.atk = Math.max(stats.patk, stats.matk);
+    stats.def = stats.pdef;
 
     return stats;
   }
@@ -319,6 +360,14 @@ export class Adventurer {
     // 取得「排除目前該槽位舊裝備後」的實際屬性
     const currentStats = this.getEffectiveAttributes(item.slot);
     const reasons: string[] = [];
+
+    // 職業限制檢定
+    if (item.allowedJobs && item.allowedJobs.length > 0) {
+      if (!item.allowedJobs.includes(this.job.name)) {
+        reasons.push(`職業不符 (限 ${item.allowedJobs.join('/')})`);
+      }
+    }
+
     const reqs = item.requirements;
 
     if (reqs.str && currentStats.str < reqs.str) reasons.push(`力量不足 (需 ${reqs.str}, 當前 ${currentStats.str})`);
@@ -359,12 +408,25 @@ export class Adventurer {
   }
 
   /**
-   * 為了與舊有派遣系統的 `power` (戰鬥力) 屬性相容
-   * 我們實作一個 getter，將六維屬性做最簡單的加總作為綜合戰力
+   * 綜合戰力 (反映八維屬性與裝備戰鬥實力，支援配點即時預覽)
    */
+  public getPower(tempAllocations?: Partial<Attributes>): number {
+    const eff = this.getEffectiveAttributes(undefined, tempAllocations);
+    const baseAttrPower = eff.str + eff.agi + eff.con + eff.int + eff.spr + eff.luk;
+    
+    // 折算戰術實力 (含裝備攻防與 HP 加成)
+    const combatStats = this.getCombatStats();
+    const equipPower = Math.floor(
+      (combatStats.patk + combatStats.matk) * 0.5 + 
+      (combatStats.pdef + combatStats.mdef) * 0.8 + 
+      (combatStats.hp) * 0.05
+    );
+
+    return baseAttrPower + equipPower;
+  }
+
   public get power(): number {
-    const eff = this.getEffectiveAttributes();
-    return eff.str + eff.agi + eff.con + eff.int + eff.spr + eff.luk;
+    return this.getPower();
   }
 
   /**

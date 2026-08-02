@@ -1,0 +1,153 @@
+[
+  {
+    "id": "recipe_iron_greatsword",
+    "name": "鐵大劍",
+    "targetEquipmentId": "wpn_iron_greatsword",
+    "requiredMaterials": { "tg_iron": 5, "tg_timber": 3 },
+    "goldCost": 150
+  },
+  {
+    "id": "recipe_wooden_staff",
+    "name": "木杖",
+    "targetEquipmentId": "wpn_wooden_staff",
+    "requiredMaterials": { "tg_timber": 5 },
+    "goldCost": 100
+  },
+  {
+    "id": "recipe_short_bow",
+    "name": "短弓",
+    "targetEquipmentId": "wpn_short_bow",
+    "requiredMaterials": { "tg_timber": 4, "tg_meat": 2 },
+    "goldCost": 120
+  },
+  {
+    "id": "recipe_cloth_robe_t1",
+    "name": "粗布長袍",
+    "targetEquipmentId": "arm_cloth_robe_t1",
+    "requiredMaterials": { "tg_wheat": 5 },
+    "goldCost": 100
+  },
+  {
+    "id": "recipe_leather_t1",
+    "name": "輕皮甲",
+    "targetEquipmentId": "arm_leather_t1",
+    "requiredMaterials": { "tg_meat": 4, "tg_timber": 2 },
+    "goldCost": 120
+  },
+  {
+    "id": "recipe_heavy_t1",
+    "name": "生鐵環甲",
+    "targetEquipmentId": "arm_heavy_t1",
+    "requiredMaterials": { "tg_iron": 6, "mat_iron_ingot": 2 },
+    "goldCost": 200
+  },
+
+  {
+    "id": "recipe_mithril_dual_swords",
+    "name": "秘銀重鑄雙劍 (魔劍士專用)",
+    "targetEquipmentId": "wpn_mithril_dual_swords",
+    "baseEquipmentId": "wpn_knight_greatsword",
+    "requiredMaterials": { "mat_iron_ingot": 10, "mat_magic_steel": 2 },
+    "goldCost": 1500,
+    "isVariant": true,
+    "requireTomeId": "tome_wpn_mithril_dual_swords"
+  },
+  {
+    "id": "recipe_reaper_scythe",
+    "name": "死靈收割戰鐮 (死靈法師專用)",
+    "targetEquipmentId": "wpn_reaper_scythe",
+    "baseEquipmentId": "wpn_elemental_staff",
+    "requiredMaterials": { "mat_magic_wood": 10, "mat_lich_ash": 2 },
+    "goldCost": 1500,
+    "isVariant": true,
+    "requireTomeId": "tome_wpn_reaper_scythe"
+  },
+  {
+    "id": "recipe_spirit_magic_bow",
+    "name": "精靈使魔法弓 (精靈使專用)",
+    "targetEquipmentId": "wpn_spirit_magic_bow",
+    "baseEquipmentId": "wpn_hunter_bow",
+    "requiredMaterials": { "mat_magic_wood": 10, "mat_spirit_crystal": 2 },
+    "goldCost": 1500,
+    "isVariant": true,
+    "requireTomeId": "tome_wpn_spirit_magic_bow"
+  },
+  {
+    "id": "recipe_rune_counter_shield",
+    "name": "破魔符文巨盾 (符文騎士專用)",
+    "targetEquipmentId": "wpn_rune_counter_shield",
+    "baseEquipmentId": "wpn_tower_shield_sword",
+    "requiredMaterials": { "mat_iron_ingot": 10, "mat_rune_metal": 2 },
+    "goldCost": 1500,
+    "isVariant": true,
+    "requireTomeId": "tome_wpn_rune_counter_shield"
+  },
+  {
+    "id": "recipe_trickster_ring",
+    "name": "詭術魔導戒 (詭術師專用)",
+    "targetEquipmentId": "wpn_trickster_ring",
+    "baseEquipmentId": "wpn_shadow_daggers",
+    "requiredMaterials": { "mat_gold_ingot": 5, "mat_phantom_gem": 2 },
+    "goldCost": 1500,
+    "isVariant": true,
+    "requireTomeId": "tome_wpn_trickster_ring"
+  },
+  {
+    "id": "recipe_holy_war_hammer",
+    "name": "破空聖鎚 (異端拷問官專用)",
+    "targetEquipmentId": "wpn_holy_war_hammer",
+    "baseEquipmentId": "wpn_archbishop_tome",
+    "requiredMaterials": { "mat_iron_ingot": 10, "mat_holy_steel": 2 },
+    "goldCost": 1500,
+    "isVariant": true,
+    "requireTomeId": "tome_wpn_holy_war_hammer"
+  },
+  {
+    "id": "recipe_meteoric_greatsword",
+    "name": "隕鐵巨劍",
+    "targetEquipmentId": "wpn_meteoric_greatsword",
+    "baseEquipmentId": "wpn_knight_greatsword",
+    "requiredMaterials": { "mat_iron_ingot": 12, "mat_meteoric_ore": 3 },
+    "goldCost": 1200
+  },
+  {
+    "id": "recipe_archmage_staff",
+    "name": "賢者法杖",
+    "targetEquipmentId": "wpn_archmage_staff",
+    "baseEquipmentId": "wpn_elemental_staff",
+    "requiredMaterials": { "mat_magic_wood": 12, "mat_mana_core": 3 },
+    "goldCost": 1200
+  },
+  {
+    "id": "recipe_composite_bow",
+    "name": "複合強弓",
+    "targetEquipmentId": "wpn_composite_bow",
+    "baseEquipmentId": "wpn_hunter_bow",
+    "requiredMaterials": { "mat_magic_wood": 10, "mat_hard_leather": 5 },
+    "goldCost": 1200
+  },
+  {
+    "id": "recipe_royal_paladin_sword",
+    "name": "皇家聖騎士劍盾",
+    "targetEquipmentId": "wpn_royal_paladin_sword",
+    "baseEquipmentId": "wpn_tower_shield_sword",
+    "requiredMaterials": { "mat_iron_ingot": 15, "mat_gold_ingot": 3 },
+    "goldCost": 1200
+  },
+  {
+    "id": "recipe_poison_fanged_daggers",
+    "name": "毒牙雙刃",
+    "targetEquipmentId": "wpn_poison_fanged_daggers",
+    "baseEquipmentId": "wpn_shadow_daggers",
+    "requiredMaterials": { "mat_iron_ingot": 8, "mat_venom_gland": 4 },
+    "goldCost": 1200
+  },
+  {
+    "id": "recipe_grace_tome",
+    "name": "恩典聖典",
+    "targetEquipmentId": "wpn_grace_tome",
+    "baseEquipmentId": "wpn_archbishop_tome",
+    "requiredMaterials": { "mat_parchment": 10, "mat_holy_water": 3 },
+    "goldCost": 1200
+  }
+]

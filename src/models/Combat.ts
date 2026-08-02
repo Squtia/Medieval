@@ -42,6 +42,7 @@ export interface CombatParticipant {
   skills?: string[]; // 可使用的技能 ID 列表
   isAdvanced?: boolean; // 轉職開關狀態
   cooldowns?: Record<string, number>; // 技能 CD 狀態
+  element?: import('./types').ElementType; // 單位/武器攜帶的元素
 }
 
 export enum CombatEventType {
@@ -69,6 +70,8 @@ export interface CombatEvent {
   damage?: number;
   targetHp?: number;
   targetMaxHp?: number;
+  targetMp?: number;
+  targetMaxMp?: number;
   shieldDamage?: number;
   shieldRemaining?: number;
   statusType?: StatusEffectType;
@@ -76,6 +79,8 @@ export interface CombatEvent {
   text: string;
   wave?: number; // 標示屬於哪一波
   enemies?: CombatParticipantState[]; // 在 WAVE_START 時，傳遞該波次新敵人的血條狀態
+  isQuietRegen?: boolean; // 例行每回合恢復，不輸出對話框文字
+  healType?: 'HP' | 'MP';
 }
 
 export interface CombatParticipantState {
@@ -84,8 +89,11 @@ export interface CombatParticipantState {
   isPlayer: boolean;
   row: string;
   maxHp: number;
+  maxMp?: number;
+  currentMp?: number;
   gridR?: number;
   gridC?: number;
+  avatarIndex?: number;
 }
 
 export interface CombatReport {

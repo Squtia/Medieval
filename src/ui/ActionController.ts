@@ -7,7 +7,7 @@ import { NodeLevel, getMaxRosterLimit } from '../models/types';
 import { Adventurer } from '../models/Adventurer';
 import { NameGenerator } from '../systems/NameGenerator';
 import { DataStore } from '../systems/DataStore';
-import { enterScene, returnToMap } from './SceneController';
+import { enterScene, returnToMap, enterSceneWithTransition } from './SceneController';
 import {
   getCombatPrestigeReward,
   getDifficultyModifiers
@@ -40,7 +40,7 @@ export function initActionController(): void {
       if (GameState.mapSystem.relocateBase(node.id, GameState.myTerritory)) {
         const btnMigrate = document.getElementById('btn-migrate');
         if (btnMigrate) btnMigrate.style.display = 'none';
-        enterScene(node);
+        enterSceneWithTransition(node);
         UIManager.updateUI();
       }
     }
@@ -51,7 +51,7 @@ export function initActionController(): void {
     if (node && node.nodeLevel === NodeLevel.WILDERNESS) {
       if (GameState.mapSystem.foundSettlement(node.id, GameState.myTerritory)) {
         returnToMap();
-        enterScene(node);
+        enterSceneWithTransition(node);
       }
     }
   });

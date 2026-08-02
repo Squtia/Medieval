@@ -178,6 +178,10 @@ async function main() {
           const y = origin.y + (Math.sin(angle) * distance / 900) * 100;
           if (system.checkTarget(origin, x, y).valid) {
             document.dispatchEvent(new CustomEvent('phaser-map-clicked', { detail: { x, y } }));
+            const firstCard = document.querySelector('#exp-cards-grid .adventurer-card');
+            if (firstCard) firstCard.click();
+            const btnConfirm = document.getElementById('exp-btn-confirm');
+            if (btnConfirm) btnConfirm.click();
             return { beforeCells, x, y };
           }
         }
@@ -200,14 +204,17 @@ async function main() {
       const candidates = gs.mapSystem.getNodes()
         .filter((node) => !node.isPlayerBase && node.ownerFactionId !== 'player')
         .sort((first, second) => {
-          const firstDistance = Math.hypot(first.x - origin.x, first.y - origin.y);
-          const secondDistance = Math.hypot(second.x - origin.x, second.y - origin.y);
-          return firstDistance - secondDistance;
+          const firstCheck = gs.roadSystem.checkTarget(origin, first, gs.explorationSystem, gs.mapSystem.getNodes());
+          const secondCheck = gs.roadSystem.checkTarget(origin, second, gs.explorationSystem, gs.mapSystem.getNodes());
+          const firstDays = firstCheck.valid ? (firstCheck.requiredDays ?? 999) : 999;
+          const secondDays = secondCheck.valid ? (secondCheck.requiredDays ?? 999) : 999;
+          return firstDays - secondDays;
         });
       for (const node of candidates) {
-        gs.explorationSystem.revealCorridor(origin.x, origin.y, node.x, node.y, 60);
+        gs.explorationSystem.revealAllCells();
         node.isDiscovered = true;
-        if (gs.roadSystem.checkTarget(origin, node, gs.explorationSystem).valid) {
+        const check = gs.roadSystem.checkTarget(origin, node, gs.explorationSystem, gs.mapSystem.getNodes());
+        if (check.valid) {
           document.dispatchEvent(new CustomEvent('phaser-node-clicked', { detail: { node } }));
           return { id: node.id, name: node.name };
         }

@@ -8,6 +8,7 @@ import { SaveManager } from '../core/SaveManager';
 import { positionFloatingElement } from './FloatingPosition';
 import { PROSPERITY_THRESHOLDS, calculateNodeLevel } from '../data/BalanceData';
 import { ToastManager } from './ToastManager';
+import { resetExplorationControllerState } from './ExplorationController';
 
 class UIManagerClass {
   // 頂部資源列
@@ -127,6 +128,16 @@ class UIManagerClass {
     if (this.uiWorkerInfantry) this.uiWorkerInfantry.textContent = (territory.workers['INFANTRY'] || 0).toString();
     if (this.uiWorkerCavalry) this.uiWorkerCavalry.textContent = (territory.workers['CAVALRY'] || 0).toString();
     if (this.uiWorkerArcher) this.uiWorkerArcher.textContent = (territory.workers['ARCHER'] || 0).toString();
+
+    // 動態更新哨所/衛兵卡片名稱
+    const currentNode = GameState.mapSystem?.getNodes().find(n => n.id === territory.currentCountryId);
+    const nodeLevel = currentNode?.nodeLevel ?? NodeLevel.VILLAGE;
+    const isWatchtowerPhase = (nodeLevel === NodeLevel.CAMP || nodeLevel === NodeLevel.VILLAGE || nodeLevel === NodeLevel.WILDERNESS);
+    
+    const labelElem = document.getElementById('ui-worker-job-label-INFANTRY');
+    const descElem = document.getElementById('ui-worker-job-desc-INFANTRY');
+    if (labelElem) labelElem.textContent = isWatchtowerPhase ? '🏰 哨所' : '⚔️ 衛兵';
+    if (descElem) descElem.textContent = isWatchtowerPhase ? '維持治安，提升敵意掠奪抵禦成功率' : '維持治安與都市防衛';
     
     // 同步滑桿 max 與當前數值 (防呆：最高為當前人數 + 閒置人數)
     const unassigned = territory.workers['UNASSIGNED'] || 0;
@@ -139,13 +150,17 @@ class UIManagerClass {
     
     if (this.uiNetProduction) {
       const foodProduced = (territory.workers['FARMER'] || 0) * 3;
+      const woodProduced = (territory.workers['WOODCUTTER'] || 0) * 2;
+      const stoneProduced = (territory.workers['MINER'] || 0) * 1;
+
       const totalPeople = territory.population + GameState.adventurers.length;
       let foodConsumed = totalPeople * 1;
       foodConsumed += (territory.workers['INFANTRY'] || 0) * 1;
       foodConsumed += (territory.workers['ARCHER'] || 0) * 1;
       foodConsumed += (territory.workers['CAVALRY'] || 0) * 2;
       const netFood = foodProduced - foodConsumed;
-      this.uiNetProduction.textContent = `預期糧食淨產量：${netFood > 0 ? '+' : ''}${netFood} /天`;
+      
+      this.uiNetProduction.innerHTML = `預期產量：🌾 ${netFood > 0 ? '+' : ''}${netFood} /天 ｜ 🪵 +${woodProduced} /天 ｜ 🪨 +${stoneProduced} /天`;
       this.uiNetProduction.style.color = netFood >= 0 ? '#10b981' : '#ef4444';
     }
   
@@ -297,6 +312,8 @@ class UIManagerClass {
         card.addEventListener('click', () => {
           const tEl = document.getElementById('adv-tooltip');
           if (tEl) tEl.style.opacity = '0';
+          const detailsPane = document.getElementById('party-details-pane');
+          if (detailsPane) detailsPane.style.display = 'flex';
           selectPartyAdventurer(adv);
           this.updateUI();
         });
@@ -423,6 +440,50 @@ class UIManagerClass {
 
     // 重新整理繁榮度進度條 UI
     this.refreshProsperityBar();
+
+    // 更新「探索周邊」按鈕狀態：本回合已使用則灰掉
+    const btnExplore = document.getElementById('btn-explore') as HTMLButtonElement | null;
+    if (btnExplore) {
+      const explored = territory.exploredToday >= territory.maxExplorationsPerDay;
+      btnExplore.disabled = explored;
+      if (explored) {
+        btnExplore.classList.add('explored-today');
+        btnExplore.title = `本回合已探索（上限：${territory.maxExplorationsPerDay} 次），請推進回合後再試！`;
+      } else {
+        btnExplore.classList.remove('explored-today');
+        btnExplore.title = '';
+      }
+    }
+  }
+
+  /**
+   * 徹底清理並隱藏遊戲中所有開啟的彈窗、抽屜面板與子視窗
+   */
+  clearAllUIOverlays(): void {
+    resetExplorationControllerState();
+    // 只操作 class，不碰 inline style —— CSS 已定義 .view { display:none } / .view.active { display:flex }
+    document.querySelectorAll('.view:not(#main-menu-view), .facility-view, .modal-overlay, .side-panel-left, .side-panel-right').forEach(v => {
+      v.classList.remove('active');
+    });
+    document.querySelectorAll('#modal-exploration-dispatch').forEach(v => v.remove());
+
+    const detailsPane = document.getElementById('party-details-pane');
+    if (detailsPane) detailsPane.style.display = 'none';
+
+    const equipSelectPane = document.getElementById('party-equip-select-pane');
+    if (equipSelectPane) equipSelectPane.style.display = 'none';
+
+    const advTooltip = document.getElementById('adv-tooltip');
+    if (advTooltip) advTooltip.style.opacity = '0';
+
+    const topBar = document.getElementById('top-bar');
+    if (topBar) topBar.style.display = 'none';
+
+    const sharedRightPanel = document.getElementById('shared-right-panel');
+    if (sharedRightPanel) sharedRightPanel.style.display = 'none';
+
+    const commandCrest = document.getElementById('command-crest-container');
+    if (commandCrest) commandCrest.style.display = 'none';
   }
 
   // 播放黑屏轉場動畫
