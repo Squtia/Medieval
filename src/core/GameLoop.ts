@@ -104,6 +104,9 @@ export function advanceDay() {
         adventurer => adventurer.id === explorationProgress.expedition.explorerId
       );
       if (explorer) explorer.currentState = AdventurerState.IDLE;
+      
+      // Phase 1: 探險隨機事件
+      EventSystem.triggerExplorationEvent();
     }
 
     EventBus.getInstance().publish({

@@ -1,4 +1,4 @@
-# 遊戲更新日誌 (Changelog)
+# 遊戲更新日誌 (Changelog)\n\n## [2026-08-05] UI 架構模組化與事件系統準備\n\n### Refactoring (UI)\n\n- **[UI/Modal] 徹底拆解 ModalController (Phase 4 完工)**\n  - 將原本高達上千行的 ModalController.ts 徹底解耦。\n  - 抽離 NodeDetailModalController、DispatchModalController、EventModalController、TodoModalController、CombatHistoryModalController、PrisonerModalController。\n  - 原有 ModalController.ts 全面改為輕量級的 Facade 入口 (動態載入對應模組)。\n\n### Systems\n\n- **[System/Event] 探險事件系統支援 (Phase 1 完工)**\n  - 新增 NarrativeData.ts 定義隨機文本池。\n  - 擴充 EventSystem.ts，支援透過 GAME_EVENT_TRIGGERED 派發動態事件，並無縫整合至剛抽離的 EventModalController 中。\n
 
 ## [2026-08-03] 建立世界觀敘事聖經與陣營設定計畫
 
@@ -1315,3 +1315,13 @@ ECHO �w�ҰʡC
 \n## [2026-07-24] 動態魔物強度與浮動數值系統實作\n- **移除靜態數值**：清除 monsters.json 寫死的血量與攻防，改用 powerTier 強度係數。\n- **難度浮動與隨機性**：隨機巢穴生成時，難度將介於 5 到玩家戰力 10% 之間，確保後期仍有機率遇到低難度虐菜局。\n- **種族特性分配**：戰鬥系統會將算出的總戰力依種族特性比例，自動轉換為血量、攻擊、防禦與閃避實體。\n\n## [2026-07-24] 動態巢穴難度算法修正 (Top-N 縮放)\n- **修正總戰力溢出問題**：修復了當閒置傭兵過多時，會導致隨機生成的巢穴難度無上限膨脹，使派遣的 5 人小隊無法通關的設計瑕疵。\n- **最強隊伍戰力對標**：現在生成高難度巢穴時，系統只會抓取玩家陣營中「戰力前 5 名」的冒險者進行加總運算 (	op5Power)，確保最高難度的怪物總戰力約落在玩家最強隊伍的 1.25 倍左右，保持挑戰性但不至於崩壞。\n
 ## [2026-07-26] 修正據點升降級與繁榮度補底衝突
 - **排除玩家據點**：修改 MapDynamicsSystem，在執行升降級檢定與繁榮度補底時排除玩家據點 (!node.isPlayerBase)，解決系統間門檻設定打架導致的繁榮度異常飆升 Bug。
+
+## [2026-08-05] Phase 4 UI Modals Extraction & Revert
+### Added/Changed
+- 成功將 ModalController.ts 內的各面板獨立拆分至 src/ui/modals/ (包含 DispatchModal, NodeDetailModal, PartyModal, EventModal, EquipModal, TodoModal, PrisonerModal, CombatHistoryModal 等)，並套用 Facade 動態載入模式。
+- 修正 NodeDetailModalController 中環狀按鈕的位置計算與顯示問題。
+- 修正 EventModalController 中選項按鈕的點擊與隱藏邏輯，避免事件文字顯示不全或無法點擊的問題。
+- 更新 docs/ARCHITECTURE.md 以反映最新的 modals/ 結構。
+
+### Reverted
+- 原本計畫將 ShopController.ts 中的鐵匠舖與倉庫功能拆分為 ForgeUIController.ts，由於程式碼依賴過深且行數過多，自動化腳本切分失敗導致語法錯誤。目前已透過 Git 還原 ShopController.ts，後續將改採手動拆分與即時編譯驗證的方式進行。

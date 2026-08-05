@@ -33,7 +33,7 @@ document.addEventListener('phaser-node-clicked', (e: any) => {
   handlePhaserNodeClick(node);
 });
 
-function handlePhaserNodeClick(node: MapNode) {
+function handlePhaserNodeClick(node: MapNode, clientX?: number, clientY?: number) {
   if (isRoutePlanningMode) {
     if (!plannedRouteNodeIds.includes(node.id) && plannedRouteNodeIds.length < 3) {
       if (plannedRouteNodeIds.length === 0) {

@@ -6,6 +6,7 @@ import { CombatUIManager } from './ui/CombatUIManager';
 import { renderMap, initMapInteraction } from './ui/MapController';
 import { openEventModal } from './ui/ModalController';
 import { GAME_EVENTS } from './data/EventData';
+import { EXPLORATION_EVENTS } from './data/NarrativeData';
 import { EventBus } from './core/EventBus';
 import { GameEventType } from './core/GameEvents';
 

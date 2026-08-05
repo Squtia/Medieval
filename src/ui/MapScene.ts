@@ -556,7 +556,10 @@ export class MapScene extends Phaser.Scene {
       iconSprite.on('pointerup', (pointer: Phaser.Input.Pointer) => {
         const dist = Phaser.Math.Distance.Between(this.clickStartX, this.clickStartY, pointer.x, pointer.y);
         if (dist < 5) {
-          this.handleNodeClick(node);
+          const e = pointer.event as any;
+          const clientX = e.clientX ?? (e.touches && e.touches.length > 0 ? e.touches[0].clientX : 0);
+          const clientY = e.clientY ?? (e.touches && e.touches.length > 0 ? e.touches[0].clientY : 0);
+          this.handleNodeClick(node, clientX, clientY);
         }
       });
 
@@ -740,8 +743,8 @@ export class MapScene extends Phaser.Scene {
     this.combatBeacons.clear();
   }
 
-  private handleNodeClick(node: MapNode) {
-    const event = new CustomEvent('phaser-node-clicked', { detail: { node } });
+  private handleNodeClick(node: MapNode, clientX?: number, clientY?: number) {
+    const event = new CustomEvent('phaser-node-clicked', { detail: { node, clientX, clientY } });
     document.dispatchEvent(event);
   }
 

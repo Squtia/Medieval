@@ -32,7 +32,7 @@ export interface GameEventPayloads {
   [GameEventType.WORKER_ASSIGNED]: { job: string; currentCount: number; unassignedCount: number };
   [GameEventType.POPULATION_STARVED]: { starvedAmount: number; currentPopulation: number };
   [GameEventType.THREAT_WARNING]: { threatName: string; daysRemaining: number; severity: number };
-  [GameEventType.GAME_EVENT_TRIGGERED]: { eventId: string };
+  [GameEventType.GAME_EVENT_TRIGGERED]: { eventId: string; isExploration?: boolean };
   [GameEventType.MISSIONS_CHANGED]: {
     reason: 'DISPATCHED' | 'PROGRESSED' | 'COMPLETED' | 'LOADED';
     missionType?: import('../models/DispatchTask').TaskType;

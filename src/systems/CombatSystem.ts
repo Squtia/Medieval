@@ -2,8 +2,11 @@ import { GameState } from '../core/GameState';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect, tryApplyStatus } from '../models/Combat';
 import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType, ElementType } from '../models/types';
 import { Random } from '../core/Random';
-import { SKILLS, TargetType, calculateSkillDamage } from '../models/Skill';
+import { TargetType } from '../models/Skill';
+import { SKILLS } from '../data/SkillData';
+import { calculateSkillDamage } from '../utils/CombatMath';
 import { FormationDB } from '../systems/FormationDB';
+import { PassiveManager } from './combat/PassiveManager';
 
 export class CombatSystem {
   public static simulateCombat(
@@ -68,7 +71,6 @@ export class CombatSystem {
           skills.push('THIEF_SURPRISE_ATTACK', 'THIEF_POISON_BLADE');
           if (isAdv && weaponType === 'DAGGERS') {
             skills.push('ASSASSIN_SHADOW_ASSASSINATION');
-            stats.evade += 9999; // 先發制人：獲得巨額隱藏閃避值保證優先行動
           }
           if (isAdv && weaponType === 'MAGIC_RING') skills.push('TRICKSTER_TRICK_MAGIC');
         }
@@ -154,8 +156,8 @@ export class CombatSystem {
           element: weapon?.element || ElementType.NONE,
           skills: skills,
           isAdvanced: adv.isAdvanced && adv.level >= 10,
-          attributes: adv.getEffectiveAttributes()
         });
+        PassiveManager.onCombatStart(playerTeam[playerTeam.length - 1]);
       }
     });
 
@@ -403,27 +405,14 @@ export class CombatSystem {
           const skillEvents = selectedSkill.execute(actor, skillTargets, enemies, allies);
           events.push(...skillEvents);
           
-          // 死靈法師被動：靈魂虹吸 (技能吸血)
-          if (actor.isAdvanced && actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
-             const totalSkillDmg = skillEvents.reduce((sum, e) => sum + (e.damage || 0), 0);
-             if (totalSkillDmg > 0) {
-               const heal = Math.floor(totalSkillDmg * 0.2);
-               actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);
-               events.push({
-                 type: CombatEventType.HIT,
-                 text: `${actor.name} 觸發【靈魂虹吸】，從造成的傷害中恢復了 ${heal} 點 HP！`
-               });
-             }
-          }
+          const totalSkillDmg = skillEvents.reduce((sum, e) => sum + (e.damage || 0), 0);
+          PassiveManager.onDamageDealt(actor, totalSkillDmg, events, 'SKILL');
           
           continue; // 技能施放完畢，跳過普攻階段
         }
 
-        let hitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
-        if (actor.isAdvanced && actor.weaponType === 'STAFF') hitChance = 1.0; // 法杖被動：必定命中
-        if (target.isAdvanced && target.weaponType === 'MAGIC_RING' && target.statusEffects.some(s => s.type === StatusEffectType.TAUNT)) {
-          hitChance = 0.0; // 詭術師被動：帶有嘲諷時 100% 閃避
-        }
+        let baseHitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
+        let hitChance = PassiveManager.getModifiedHitChance(actor, target, baseHitChance);
         if (Random.next() > hitChance) {
           events.push({
             type: CombatEventType.MISS,
@@ -434,35 +423,9 @@ export class CombatSystem {
           continue;
         }
 
-        let finalDamage = 0;
-        let isCrit = false;
-
-        if (actor.isAdvanced && actor.weaponType === 'HAMMER') {
-           const phys = calculateSkillDamage(actor, target, (actor.stats.patk || actor.stats.atk) * 0.4, DamageType.PHYSICAL);
-           const mag = calculateSkillDamage(actor, target, (actor.stats.matk || actor.stats.atk) * 0.6, DamageType.MAGICAL);
-           finalDamage = phys.damage + mag.damage;
-           isCrit = phys.isCrit || mag.isCrit;
-        } else if (actor.isAdvanced && actor.weaponType === 'DUAL_SWORDS') {
-           const phys = calculateSkillDamage(actor, target, (actor.stats.patk || actor.stats.atk) * 0.5, DamageType.PHYSICAL);
-           const mag = calculateSkillDamage(actor, target, (actor.stats.matk || actor.stats.atk) * 0.5, DamageType.MAGICAL);
-           finalDamage = phys.damage + mag.damage;
-           isCrit = phys.isCrit || mag.isCrit;
-        } else {
-           let dType = DamageType.PHYSICAL;
-           if (['STAFF', 'HOLY_BOOK', 'SCYTHE', 'MAGIC_RING'].includes(actor.weaponType || '')) {
-             dType = DamageType.MAGICAL;
-           }
-           let atkPower = dType === DamageType.MAGICAL 
-             ? (actor.stats.matk || actor.stats.atk) 
-             : (actor.stats.patk || actor.stats.atk);
-
-           if (actor.isAdvanced && actor.weaponType === 'DAGGERS' && (target.currentHp / target.maxHp) >= 0.7) {
-             atkPower *= 1.3; // 暗殺者被動：普攻對健康目標增傷
-           }
-           const result = calculateSkillDamage(actor, target, atkPower, dType);
-           finalDamage = result.damage;
-           isCrit = result.isCrit;
-        }
+        const result = PassiveManager.calculateBasicAttackDamage(actor, target);
+        let finalDamage = result.damage;
+        let isCrit = result.isCrit;
 
         // -- Phase 4: Shield Interceptor --
         let multiplier = 1;
@@ -496,26 +459,7 @@ export class CombatSystem {
         }
         
         if (hpDamage > 0) {
-          // -- 法坦被動：苦痛分擔 (死靈法師) --
-          if (target.isPlayer) {
-            const necromancers = playerTeam.filter(p => p.isAdvanced && p.weaponType === 'SCYTHE' && p.currentHp > 0 && p.id !== target.id);
-            if (necromancers.length > 0) {
-              const necro = necromancers[0]; // 優先由第一位死靈法師分擔
-              const absorbAmount = Math.floor(hpDamage * 0.5);
-              const necroDamage = Math.floor(absorbAmount * 0.4); // 反映 20% 原始傷害 (50% * 0.4 = 20%)
-              hpDamage -= absorbAmount;
-              
-              necro.currentHp -= necroDamage;
-              events.push({
-                type: CombatEventType.HIT,
-                text: `${necro.name} 觸發【靈魂虹吸-苦痛分擔】，為 ${target.name} 吸收了 ${absorbAmount} 點傷害，自身承受了 ${necroDamage} 點傷害！`
-              });
-              if (necro.currentHp <= 0) {
-                 necro.currentHp = 0;
-                 events.push({ type: CombatEventType.DEATH, targetName: necro.name, text: `${necro.name} 因分擔過多傷害而倒下！` });
-              }
-            }
-          }
+          hpDamage = PassiveManager.onAllyTakingDamage(target, hpDamage, playerTeam, events);
 
           target.currentHp -= hpDamage;
           events.push({
@@ -528,15 +472,7 @@ export class CombatSystem {
             text: `${actor.name} 攻擊了 ${target.name}，${isCrit ? '致命一擊！' : ''}對本體造成 ${hpDamage} 點傷害。`
           });
           
-          // 死靈法師被動：靈魂虹吸 (普攻吸血)
-          if (actor.isAdvanced && actor.weaponType === 'SCYTHE' && actor.currentHp > 0) {
-            const heal = Math.floor(hpDamage * 0.2);
-            actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);
-            events.push({
-              type: CombatEventType.HIT,
-              text: `${actor.name} 觸發【靈魂虹吸】，恢復了 ${heal} 點 HP！`
-            });
-          }
+          PassiveManager.onDamageDealt(actor, hpDamage, events, 'BASIC_ATTACK');
         }
         // -- End Shield Interceptor --
 

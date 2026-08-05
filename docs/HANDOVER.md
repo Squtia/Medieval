@@ -198,3 +198,11 @@
 3. **裝備鍛造與詞綴 (Crafting & Affixes)**：在鐵匠鋪實作裝備分解與合成，並加入隨機屬性詞綴。
 4. **領地建設 (Base Building)** (已實裝獨立設施建造與等級升級，後續可進一步擴充特殊產出加成與特殊功能建築)。
 5. **派系外交與好感度**：加入送禮、同盟或宣戰功能，讓大盤局勢更難以預測。
+
+## [2026-08-05] Phase 4 UI Modals Extraction & Revert
+### 已完成事項
+- 成功將 ModalController.ts 內的各面板獨立拆分至 src/ui/modals/ (包含 DispatchModal, NodeDetailModal, PartyModal, EventModal, EquipModal, TodoModal, PrisonerModal, CombatHistoryModal 等)，並套用 Facade 動態載入模式。
+- 修復了圓形選單、突發事件抉擇等 UI 顯示異常的 Bug。
+
+### 未完成與待處理事項
+- **ShopController.ts 重構**：原定將 ShopController.ts 中的鐵匠舖 (Forge) 與倉庫 (Warehouse) 功能拆分為 ForgeUIController.ts。但因為 ShopController.ts 檔案龐大且內部輔助函數互相依賴，自動化腳本切分失敗。目前已用 Git 撤銷該部分變更。**下一階段需要採用「手動複製貼上與編譯即時驗證」的方式，小心地抽離鐵匠鋪邏輯**，並確保輔助函數 (如 getElementBadge 等) 能夠正確匯出與共用。

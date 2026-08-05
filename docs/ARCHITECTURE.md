@@ -30,14 +30,32 @@
 │   │   ├── CombatSystem.ts     # 戰鬥與多波次模擬系統
 │   │   ├── ThreatSystem.ts     # 生存壓力與災難系統
 │   │   ├── DispatchSystem.ts   # 派遣與任務系統
-│   │   ├── RoadSystem.ts       # [核心] 道路樹狀網絡、智慧自然分岔 (Node/Curve Branching) 與圖連通度
+│   │   ├── RoadSystem.ts       # [核心] 道路樹狀網絡、智慧自然分岔與圖連通度
 │   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張
-│   │   ├── ExplorationSystem.ts# 地圖探索與視野解鎖系統 (支援多隊容量、急行與資源計算)
-│   │   └── DataStore.ts        # 靜態資料庫 (含 1~3 階裝備與價格 DB)
+│   │   ├── ExplorationSystem.ts# 地圖探索與視野解鎖系統
+│   │   ├── EventSystem.ts      # 隨機動態事件觸發與選項抉擇系統
+│   │   ├── MonsterSystem.ts    # 怪物原型、種族質變與能力生成
+│   │   ├── MarketSystem.ts     # 市場經濟與特產系統
+│   │   ├── MilestoneSystem.ts  # 里程碑進度與獎勵
+│   │   ├── EnhancementSystem.ts# 裝備鍛造與強化系統
+│   │   ├── EquipmentGenerator.ts# 裝備生成與隨機詞綴
+│   │   └── DataStore.ts        # 靜態資料庫總管
 │   ├── data/                # 靜態與平衡性資料
 │   │   ├── BalanceData.ts   # 全域平衡性常數配置
-│   │   └── DifficultyData.ts# 遊戲難度設定與補正參數
+│   │   ├── DifficultyData.ts# 遊戲難度設定與補正參數
+│   │   └── NarrativeData.ts # 敘事文本池與探險事件定義
 │   ├── ui/                  # DOM UI、Phaser Scene、呈現資料與獨立 UI Controllers
+│   │   ├── modals/                # [Phase 4] 獨立的彈窗面版控制器 (Facade 拆分)
+│   │   │   ├── DispatchModalController.ts  # 派遣/出征設定面板
+│   │   │   ├── NodeDetailModalController.ts# 節點詳細資訊與圓形選單
+│   │   │   ├── PartyModalController.ts     # 傭兵陣容與屬性詳細面板
+│   │   │   ├── EquipModalController.ts     # 裝備替換面板
+│   │   │   ├── EventModalController.ts     # 突發事件抉擇面板
+│   │   │   ├── TodoModalController.ts      # 待辦事項清單
+│   │   │   ├── PrisonerModalController.ts  # 戰後俘虜處置
+│   │   │   └── CombatHistoryModalController.ts # 戰鬥歷程紀錄
+│   │   ├── components/            # 共用 UI 元件
+│   │   │   └── AdventurerCard.ts  # 傭兵卡片渲染邏輯
 │   │   ├── PhaserManager.ts       # [Lazy Chunk] Phaser 引擎初始化與地圖繪製隔離模組
 │   │   ├── ShopController.ts      # [Lazy Chunk] 武器店、防具店與倉庫介面控制
 │   │   ├── TradeController.ts     # [Lazy Chunk] 跑商路線規劃與交易介面控制 (備註維護註記)
@@ -48,7 +66,8 @@
 │   │   ├── ActionController.ts    # 探索、討伐、進貢與據點遷移
 │   │   ├── ExplorationController.ts# 地圖探索介面與操作控制 (冒險者挑選與急行確認彈窗)
 │   │   ├── CheatController.ts     # 開發環境測試密技
-│   │   └── ...
+│   │   ├── MapScene.ts            # Phaser 場景，負責 Canvas 繪製與動畫
+│   │   └── ModalController.ts     # [Facade] 輕量化轉接路由，動態載入 modals/
 │   └── main.ts              # 組合根：系統初始化、事件轉接與 Controller 初始化
 ├── index.html               # 測試用網頁骨架
 └── package.json             # Vite 建置配置檔
