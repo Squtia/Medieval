@@ -206,3 +206,13 @@
 
 ### 未完成與待處理事項
 - **ShopController.ts 重構**：原定將 ShopController.ts 中的鐵匠舖 (Forge) 與倉庫 (Warehouse) 功能拆分為 ForgeUIController.ts。但因為 ShopController.ts 檔案龐大且內部輔助函數互相依賴，自動化腳本切分失敗。目前已用 Git 撤銷該部分變更。**下一階段需要採用「手動複製貼上與編譯即時驗證」的方式，小心地抽離鐵匠鋪邏輯**，並確保輔助函數 (如 getElementBadge 等) 能夠正確匯出與共用。
+
+## [2026-08-06] Phase 4 Forge UI Extraction & System Renaming
+### 已完成事項
+- 完全移除對自動化切分腳本的依賴，改以手動精確提取的方式，成功將鐵匠鋪 (Forge) 與倉庫 (Warehouse) 從 ShopController.ts 中剝離，建立 ForgeUIController.ts。
+- 順利將原有的 UI 輔助函式設為 export 並讓新控制器共用，解決了所有 TypeScript 型別依賴問題 (tsc 完全 0 Error)。
+- 解決 SettlementSystem 的命名衝突問題：將玩家內政系統更名為 TownManagementSystem.ts，地圖動態節點模擬更名為 MapNodeSystem.ts。
+- 徹底翻新 ARCHITECTURE.md，使文件樹狀圖與專案現有目錄完全一致，為未來的開發奠定良好基礎。
+
+### 未完成與待處理事項
+- Phase 4 (UI 徹底模組化重構) 已全數完成，後續無相關的 UI 重構遺留問題。

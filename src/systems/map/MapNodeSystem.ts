@@ -5,7 +5,7 @@ import { MapUtils } from './MapUtils';
 import { FactionSystem } from './FactionSystem';
 import { PROSPERITY_THRESHOLDS, calculateNodeLevel, getMonthlyProsperityGain } from '../../data/BalanceData';
 
-export class SettlementSystem {
+export class MapNodeSystem {
   public static simulateProsperity(mapNodes: MapNode[]): void {
     for (const node of mapNodes) {
       if (node.isPlayerBase) {

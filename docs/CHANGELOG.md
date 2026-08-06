@@ -1325,3 +1325,11 @@ ECHO �w�ҰʡC
 
 ### Reverted
 - 原本計畫將 ShopController.ts 中的鐵匠舖與倉庫功能拆分為 ForgeUIController.ts，由於程式碼依賴過深且行數過多，自動化腳本切分失敗導致語法錯誤。目前已透過 Git 還原 ShopController.ts，後續將改採手動拆分與即時編譯驗證的方式進行。
+
+## [2026-08-06] Phase 4 Forge UI Extraction & System Renaming
+### Changed
+- 透過手動提取方式成功將鐵匠鋪 (Forge) 與倉庫 (Warehouse) 相關的 UI 渲染邏輯從 ShopController.ts 拆分至獨立的 src/ui/components/ForgeUIController.ts。
+- ShopController.ts 已加入對應的 Facade 入口進行動態載入。
+- 為解決命名衝突，將原 src/systems/SettlementSystem.ts 更名為 TownManagementSystem.ts (負責玩家據點內政)。
+- 為解決命名衝突，將原 src/systems/map/SettlementSystem.ts 更名為 MapNodeSystem.ts (負責世界節點模擬)。
+- 全面更新 docs/ARCHITECTURE.md，補齊 map/ 與 combat/ 目錄下的新系統及 UI 重構產物，確保與現況 100% 同步。

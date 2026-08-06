@@ -7,7 +7,7 @@ import { DataStore } from '../systems/DataStore';
 import { NameGenerator } from '../systems/NameGenerator';
 import { INITIAL_FACTIONS } from '../data/FactionData';
 import { INITIAL_MAP_NODES } from '../data/MapData';
-import { SettlementSystem } from '../systems/SettlementSystem';
+import { TownManagementSystem } from '../systems/TownManagementSystem';
 import { HeroSystem } from '../systems/HeroSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { ThreatSystem } from '../systems/ThreatSystem';
@@ -125,7 +125,7 @@ export function initGameState(options: NewGameOptions = {
   EventBus.getInstance().clearAll();
 
   // 初始化 EventBus 關聯的新系統
-  new SettlementSystem();
+  new TownManagementSystem();
   new HeroSystem();
   new CombatSystem();
   new ThreatSystem();

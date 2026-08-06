@@ -4,7 +4,7 @@ import { Adventurer } from '../models/Adventurer';
 import { EventBus } from './EventBus';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
-import { SettlementSystem } from '../systems/SettlementSystem';
+import { TownManagementSystem } from '../systems/TownManagementSystem';
 import { HeroSystem } from '../systems/HeroSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { ThreatSystem } from '../systems/ThreatSystem';
@@ -209,7 +209,7 @@ export class SaveManager {
         const playerBase = GameState.mapSystem.getNodes().find(node => node.isPlayerBase);
         if (playerBase) GameState.explorationSystem.revealCircle(playerBase.x, playerBase.y, 90);
       }
-      new SettlementSystem();
+      new TownManagementSystem();
       new HeroSystem();
       new CombatSystem();
       new ThreatSystem();

@@ -5,7 +5,7 @@ import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig } from '../m
 import { Random } from '../core/Random';
 import { calculateNodeLevel, getDifficultyModifiers } from '../data/BalanceData';
 
-export class SettlementSystem {
+export class TownManagementSystem {
   constructor() {
     const eventBus = EventBus.getInstance();
     

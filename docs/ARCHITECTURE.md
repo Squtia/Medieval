@@ -25,13 +25,13 @@
 │   │   ├── Road.ts          # 道路網路資料
 │   │   └── ...
 │   ├── systems/             # 系統邏輯引擎 (負責監聽與發布事件)
-│   │   ├── SettlementSystem.ts # 據點與內政系統
+│   │   ├── TownManagementSystem.ts # 據點與內政系統
 │   │   ├── HeroSystem.ts       # 英雄養成與招募系統
-│   │   ├── CombatSystem.ts     # 戰鬥與多波次模擬系統
+│   │   ├── CombatSystem.ts     # 戰鬥與多波次模擬系統\n│   │   ├── combat/             # 戰鬥子系統\n│   │   │   └── PassiveManager.ts   # 戰鬥被動技能管理器
 │   │   ├── ThreatSystem.ts     # 生存壓力與災難系統
 │   │   ├── DispatchSystem.ts   # 派遣與任務系統
 │   │   ├── RoadSystem.ts       # [核心] 道路樹狀網絡、智慧自然分岔與圖連通度
-│   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張
+│   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張\n│   │   ├── map/                # 地圖動態子系統\n│   │   │   ├── FactionSystem.ts    # 派系關係與好感度系統\n│   │   │   ├── MapEventSystem.ts   # 地圖事件生成與觸發\n│   │   │   ├── MapNodeSystem.ts    # 世界地圖節點繁榮度與升降級模擬\n│   │   │   └── MapUtils.ts         # 地圖工具函數
 │   │   ├── ExplorationSystem.ts# 地圖探索與視野解鎖系統
 │   │   ├── EventSystem.ts      # 隨機動態事件觸發與選項抉擇系統
 │   │   ├── MonsterSystem.ts    # 怪物原型、種族質變與能力生成
@@ -43,7 +43,7 @@
 │   ├── data/                # 靜態與平衡性資料
 │   │   ├── BalanceData.ts   # 全域平衡性常數配置
 │   │   ├── DifficultyData.ts# 遊戲難度設定與補正參數
-│   │   └── NarrativeData.ts # 敘事文本池與探險事件定義
+│   │   ├── NarrativeData.ts # 敘事文本池與探險事件定義\n│   │   └── SkillData.ts     # 技能與特效資料庫
 │   ├── ui/                  # DOM UI、Phaser Scene、呈現資料與獨立 UI Controllers
 │   │   ├── modals/                # [Phase 4] 獨立的彈窗面版控制器 (Facade 拆分)
 │   │   │   ├── DispatchModalController.ts  # 派遣/出征設定面板
@@ -54,10 +54,10 @@
 │   │   │   ├── TodoModalController.ts      # 待辦事項清單
 │   │   │   ├── PrisonerModalController.ts  # 戰後俘虜處置
 │   │   │   └── CombatHistoryModalController.ts # 戰鬥歷程紀錄
-│   │   ├── components/            # 共用 UI 元件
+│   │   ├── components/            # 共用 UI 元件\n│   │   │   ├── ForgeUIController.ts# 鐵匠舖與倉庫獨立控制器
 │   │   │   └── AdventurerCard.ts  # 傭兵卡片渲染邏輯
 │   │   ├── PhaserManager.ts       # [Lazy Chunk] Phaser 引擎初始化與地圖繪製隔離模組
-│   │   ├── ShopController.ts      # [Lazy Chunk] 武器店、防具店與倉庫介面控制
+│   │   ├── ShopController.ts      # [Lazy Chunk] 武器店與防具店介面控制 (Facade)
 │   │   ├── TradeController.ts     # [Lazy Chunk] 跑商路線規劃與交易介面控制 (備註維護註記)
 │   │   ├── RecruitController.ts   # 傭兵酒館招募與動態卡片邏輯
 │   │   ├── MainMenuController.ts  # 主選單與存檔欄位渲染

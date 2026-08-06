@@ -5,7 +5,7 @@ import { Random } from '../core/Random';
 import { GameState } from '../core/GameState';
 
 import { FactionSystem } from './map/FactionSystem';
-import { SettlementSystem } from './map/SettlementSystem';
+import { MapNodeSystem } from './map/MapNodeSystem';
 import { MapEventSystem } from './map/MapEventSystem';
 import { MapUtils } from './map/MapUtils';
 
@@ -59,7 +59,7 @@ export class MapDynamicsSystem {
 
   public simulateMapDynamics(months: number): void {
     // 1. 繁榮度變化與升降級檢定
-    SettlementSystem.simulateProsperity(this.mapNodes);
+    MapNodeSystem.simulateProsperity(this.mapNodes);
 
     // 2. 派系互動
     this.processAIFactionsInteractions();
@@ -89,15 +89,15 @@ export class MapDynamicsSystem {
   }
 
   public investProsperity(nodeId: string, territory: Territory): boolean {
-    return SettlementSystem.investProsperity(nodeId, this.mapNodes, territory);
+    return MapNodeSystem.investProsperity(nodeId, this.mapNodes, territory);
   }
 
   public relocateBase(targetNodeId: string, territory: Territory): boolean {
-    return SettlementSystem.relocateBase(targetNodeId, this.mapNodes, territory);
+    return MapNodeSystem.relocateBase(targetNodeId, this.mapNodes, territory);
   }
 
   public foundSettlement(targetNodeId: string, territory: Territory): boolean {
-    return SettlementSystem.foundSettlement(targetNodeId, this.mapNodes, territory);
+    return MapNodeSystem.foundSettlement(targetNodeId, this.mapNodes, territory);
   }
 
   public scoutNode(nodeId: string, territory: Territory, currentDay: number): boolean {
