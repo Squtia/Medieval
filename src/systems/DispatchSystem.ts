@@ -9,6 +9,7 @@ import { GameState } from '../core/GameState';
 import { CombatHistoryRecord } from '../models/Combat';
 import { TRADE_GOODS } from './MarketSystem';
 import { CombatSystem } from './CombatSystem';
+import { ExplorationNarrativeEngine } from './ExplorationNarrativeEngine';
 import { Random } from '../core/Random';
 import { getDifficultyModifiers } from '../data/BalanceData';
 
@@ -456,144 +457,37 @@ export class DispatchSystem {
       return;
     }
 
-    const waveCount = task.subjugationMode === 'PROGRESS' ? (task.totalWaves || 3) : 1;
-    
-    const finalReport = CombatSystem.simulateCombat(
-      adventurers.map(a => a.id),
-      task.baseDifficulty,
-      task.enemyFeature,
-      undefined, // terrain 暫時缺省
-      waveCount,
-      task.troopAssignments,
-      task.enemyLineup,
-      task.formationId,
-      task.gridMap
-    );
-    
-    const isSuccess = finalReport.isVictory;
-    let battleLog = finalReport.battleLog;
-
-    // -- Phase 5: 結算兵力戰損與存活者回歸 --
-    if (task.isWar && task.troopAssignments) {
-      let totalLossMsg = '';
-      Object.entries(task.troopAssignments).forEach(([advId, t]) => {
-        const advName = GameState.adventurers.find(a => a.id === advId)?.name || advId;
-        const loss = finalReport.shieldLoss?.[advId]?.[t.type] || 0;
-        const survivors = Math.max(0, t.count - loss);
-        
-        const typeStr = t.type as import('../models/types').WorkerJob;
-        const typeName = typeStr === 'INFANTRY' ? '步兵' : typeStr === 'CAVALRY' ? '騎兵' : typeStr === 'ARCHER' ? '弓兵' : typeStr;
-        
-        // 存活部隊回歸領地
-        if (survivors > 0) {
-          this.territory.population += survivors;
-          this.territory.workers[typeStr] = (this.territory.workers[typeStr] || 0) + survivors;
-        }
-        
-        if (loss > 0) {
-          totalLossMsg += `${advName} 帶領的 ${typeName} 陣亡 ${loss} 人。`;
-        }
-      });
-      if (totalLossMsg) {
-        battleLog += ` [戰損] ${totalLossMsg}`;
-        finalReport.battleLog = battleLog;
+    // 敘事討伐引擎接管 COMBAT 邏輯
+    if (task.targetNodeId && GameState.mapSystem) {
+      const node = GameState.mapSystem.getNodeById(task.targetNodeId);
+      if (node) {
+        ExplorationNarrativeEngine.generateSubjugationLog(adventurers, node, task.baseDifficulty, task.enemyFeature || EnemyFeature.BALANCED);
       }
     }
 
-    if (isSuccess) {
-      this.territory.addGold(task.expectedGold);
-      const gainedPrestige = task.expectedPrestige;
-      let heroXpReward = Math.max(10, task.expectedPrestige * 2);
-      
-      let expBonusStr = '';
-      if (GameState.restedExpPool > 0) {
-         const bonus = Math.min(GameState.restedExpPool, heroXpReward);
-         GameState.restedExpPool -= bonus;
-         heroXpReward += bonus;
-         expBonusStr = ` (其中包含 💤${bonus} 點休息加成)`;
-      }
-
-      this.territory.prestige += gainedPrestige;
-      
-      let dropMsg = '';
-      if (task.subjugationMode === 'PROGRESS' || Random.next() * 100 <= task.baseDifficulty) {
-        const maxLevel = Math.max(5, Math.floor(task.baseDifficulty / 2));
-        const droppedEq = EquipmentGenerator.dropRandomEquipment(maxLevel);
-        if (droppedEq) {
-          this.territory.addEquipmentToWarehouse(droppedEq);
-          dropMsg = `並在戰利品中發現了【${droppedEq.name}】！`;
-        }
-      }
-
-      console.log(`✅ [任務完成] 傭兵小隊 (${advNames}) 成功討伐「${task.name}」！${battleLog} 帶回 ${task.expectedGold} 金幣與 ${gainedPrestige} 聲望${expBonusStr}。${dropMsg}`);
-
-      // 如果是攻城任務，則佔領該據點；如果是多波次平定任務，則徹底清除動態據點
-      if (task.targetNodeId && GameState.mapSystem) {
-        const node = GameState.mapSystem.getNodeById(task.targetNodeId);
-        if (node) {
-          if (task.isWar) {
-            node.ownerFactionId = 'player';
-            node.governorId = undefined; // 剛佔領尚未指派代官
-            console.log(`🏰 [開疆闢土] 您成功佔領了「${node.name}」！現在您可以指派代官來管理該領地了。`);
-          } else if (node.isDynamic && task.subjugationMode === SubjugationMode.PROGRESS) {
-            // 多波次平定全勝：將動態據點從地圖上徹底移除
-            GameState.mapSystem.removeDynamicNode(node.id);
-            console.log(`🧹 [據點平定] 傭兵小隊成功清空 3 波敵軍，徹底平定了「${node.name}」，該據點已從地圖上消失！`);
-          } else if (node.isDynamic) {
-            console.log(`⚔️ [單次練功] 傭兵小隊完成了「${node.name}」的單次討伐，獲得戰利品，「${node.name}」依然保留在地圖上。`);
-          }
-        }
-      }
-
-      finalReport.lootValue = gainedPrestige; // 將最終獎勵補入 report 供 UI 顯示
-      
-      const record: CombatHistoryRecord = {
-        id: `combat_${Date.now()}_${Random.int(0, 999)}`,
-        day: GameState.totalDays,
-        nodeName: task.name + (task.subjugationMode === 'PROGRESS' ? ' (進度討伐)' : ''),
-        report: finalReport
-      };
-      this.territory.addCombatRecord(record);
-      this.territory.cleanupCombatHistory(GameState.totalDays, 3);
-
-      EventBus.getInstance().publish({
-        type: GameEventType.COMBAT_FINISHED,
-        payload: { isVictory: true, participants: adventurers.map(a => a.id), lootValue: gainedPrestige, xpReward: heroXpReward, battleLog, report: finalReport }
-      });
-
-      // 勝利後立即設為閒置
-      for (const adv of adventurers) {
-        adv.currentState = AdventurerState.IDLE;
-        adv.dispatchEndTime = null;
-        adv.restingDaysLeft = 0;
-      }
-    } else {
-      console.log(`❌ [任務失敗] 傭兵小隊 (${advNames}) 討伐「${task.name}」失敗。${battleLog}`);
-
-      // OPT-02: 失敗後進入 RESTING，難度越高休息越久
-      const restDays = Math.max(1, Math.ceil(task.baseDifficulty / 20));
-      for (const adv of adventurers) {
-        adv.currentState = AdventurerState.RESTING;
-        adv.restingDaysLeft = restDays;
-        adv.dispatchEndTime = null;
-      }
-      finalReport.lootValue = 0;
-
-      const record: CombatHistoryRecord = {
-        id: `combat_${Date.now()}_${Random.int(0, 999)}`,
-        day: GameState.totalDays,
-        nodeName: task.name + (task.subjugationMode === 'PROGRESS' ? ' (進度討伐)' : ''),
-        report: finalReport
-      };
-      this.territory.addCombatRecord(record);
-      this.territory.cleanupCombatHistory(GameState.totalDays, 3);
-
-      EventBus.getInstance().publish({
-        type: GameEventType.COMBAT_FINISHED,
-        payload: { isVictory: false, participants: adventurers.map(a => a.id), lootValue: 0, battleLog, report: finalReport }
-      });
-      console.log(`🩹 [休養中] 小隊需要休養 ${restDays} 天才能再次出動。`);
+    // 解除派遣狀態
+    adventurers.forEach(a => {
+      a.currentState = AdventurerState.IDLE;
+      a.dispatchEndTime = null;
+      a.restingDaysLeft = 0;
+    });
+    
+    // 注意：ExplorationNarrativeEngine.generateSubjugationLog 內部已處理所有的獎勵與裝備掉落！
+    // 若是攻城戰，則保留攻城的額外邏輯
+    if (task.isWar && task.targetNodeId && GameState.mapSystem) {
+       const node = GameState.mapSystem.getNodeById(task.targetNodeId);
+       if (node) {
+          node.ownerFactionId = 'player';
+          node.governorId = undefined; 
+          console.log(`✅ [攻城勝利] 成功佔領了 ${node.name}！現在可以指派代官來管理該城鎮。`);
+       }
     }
+
+    // 通知任務列表更新
+    EventBus.getInstance().publish({
+      type: GameEventType.MISSIONS_CHANGED,
+      payload: { reason: 'COMPLETED', missionType: TaskType.COMBAT }
+    });
   }
 
   public getActiveMissionsCount(): number {

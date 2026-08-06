@@ -53,23 +53,4 @@ export class EventSystem {
     }
   }
 
-  /**
-   * 探險結束時有一定機率觸發隨機探險事件
-   */
-  public static triggerExplorationEvent(): void {
-    // 假設探險事件觸發機率為 30%
-    if (Random.next() < 0.3) {
-      import('../data/NarrativeData').then(m => {
-        const events = m.EXPLORATION_EVENTS.filter(evt => evt.condition());
-        if (events.length > 0) {
-          const chosenEvent = Random.pick(events);
-          // 探險事件屬於重要事件，直接跳窗抉擇
-          EventBus.getInstance().publish({
-            type: GameEventType.GAME_EVENT_TRIGGERED,
-            payload: { eventId: chosenEvent.id, isExploration: true }
-          });
-        }
-      });
-    }
-  }
 }

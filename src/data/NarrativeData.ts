@@ -1,105 +1,116 @@
-import { GameState } from '../core/GameState';
-import { EventOption, GameEvent } from './EventData';
 import { Random } from '../core/Random';
+import { GameState } from '../core/GameState';
 
-// 原本的荒野文本池保留
-export const WILDERNESS_NARRATIVES: string[] = [
-  '🌙 夜裡聽到遠方傳來隱約的狼嚎聲，哨兵握緊了手中的長矛。',
-  '🌤️ 春雨過後土地變得鬆軟，採集物資的隨從發現了一些野生漿果。',
-  '🔥 營火旁，傭兵們圍坐在一起談論著遠方繁榮城鎮的傳說。',
-  '🌿 斥候回報附近的樹林裡發現了廢棄的木棚，似乎曾有人在此避難。',
-  '🌕 月圓之夜，夜空的星光格外明亮，營地的守夜人員警戒無虞。',
-  '🦅 一隻巨鷹在據點上空盤旋許久，似乎在觀察這個新出現的聚落。',
-  '💨 陣陣涼風吹過荒野，帶起了些許塵土，工人们努力加快工作進度。',
-  '🪵 伐木工在林間發現了一株沉香木，空氣中瀰漫著淡淡的香氣。',
-  '🌧️ 連綿的大雨讓營地地面有些泥濘，但水井的水質變得非常清澈。',
-  '⚒️ 採礦時偶爾能聽見地底微小的迴響，礦工們充滿了對未知礦脈的期待。',
-  '🏕️ 營地邊緣開墾出了幾塊小菜園，嫩芽正破土而出。',
-  '📜 流浪的行腳商人路過據點外圍，向哨兵打聽了附近的道路狀況。',
-  '🌅 清晨的薄霧籠罩著據點，第一縷陽光穿透樹梢帶來了溫暖。',
-  '🛡️ 傭兵們在空地上進行日常演練，金屬碰撞聲讓據點顯得充滿生機。',
-  '🌾 哨兵回報周遭未發現威脅，今天是極為平靜的一天。'
-];
+export const NARRATIVE_POOLS = {
+  environments: [
+    "四周的樹木高聳入雲，幾乎遮蔽了天光。",
+    "空氣中瀰漫著濃霧，視線範圍十分有限。",
+    "腳下的泥土鬆軟，不時傳來踩碎枯枝的聲響。",
+    "陰冷的微風吹過，帶來一絲不安的氣息。",
+    "荒野的陽光十分刺眼，讓探索變得有些艱辛。"
+  ],
+  encounters: [
+    "突然一陣腥風撲鼻而來，怪物從暗處發起了伏擊！",
+    "前方傳來不尋常的騷動，沒多久他們就遭遇了敵人。",
+    "小隊在轉角處迎頭撞上了正在徘徊的怪物。",
+    "一聲尖嘯劃破天際，敵人氣勢洶洶地殺了出來。",
+    "正當眾人稍有鬆懈時，怪物突兀地出現在眼前。"
+  ],
+  rests: [
+    "結束戰鬥後，傭兵們靠著樹幹簡短休息了一下，便繼續出發探索。",
+    "小隊迅速清理了戰場，包紮傷口後再次踏上旅途。",
+    "在確認周圍安全後，隊長下令喝口水喘息，隨即帶隊前進。",
+    "戰鬥的硝煙散去，傭兵們稍作調整，繼續深入未知區域。",
+    "眾人席地而坐，吃了點乾糧恢復體力後，再次啟程。"
+  ],
+  returns: [
+    "帶著滿滿的收穫，小隊踏上了歸途。",
+    "看著天色漸暗，隊長決定見好就收，率隊返回據點。",
+    "經歷了一連串的遭遇，小隊帶著戰利品平安折返。",
+    "雖然疲憊，但眾人的臉上掛著勝利的微笑，緩步踏上歸途。",
+    "結束了這趟驚險的旅程，小隊順著原路返回營地。"
+  ]
+};
 
-export function getRandomNarrative(totalDays: number): string | null {
-  const pseudoRandom = Math.sin(totalDays * 12.9898) * 43758.5453;
-  const chance = pseudoRandom - Math.floor(pseudoRandom);
-  if (chance < 0.35) {
-    const index = Math.floor((chance / 0.35) * WILDERNESS_NARRATIVES.length);
-    return WILDERNESS_NARRATIVES[index];
-  }
-  return null;
+export interface TraitNarrativeBranch {
+  targetTraits: string[]; // 匹配的特質 (例如 ['SCHOLAR'], ['BRAVE'])
+  narrativeText: string;  // 不帶有系統標籤的故事敘述
+  onResolve: () => void;  // 給予獎勵或副作用
+  triggerCombat?: boolean; // 抉擇後是否觸發特殊戰鬥
 }
 
-// ==========================================
-// Phase 1: 探險隨機事件池 (文字抉擇事件)
-// ==========================================
+export interface ExplorationNarrativeEvent {
+  id: string;
+  introText: string; // 遭遇事件的開場敘述
+  branches: TraitNarrativeBranch[];
+  defaultBranch: TraitNarrativeBranch; // 沒有任何特質匹配時的預設行為
+}
 
-export const EXPLORATION_EVENTS: GameEvent[] = [
+export const EXPLORATION_EVENTS: ExplorationNarrativeEvent[] = [
   {
     id: 'exp_evt_ancient_stele',
-    title: '古老的石碑',
-    description: '在荒野探索時，你的部隊在廢墟中發現了一座刻滿古代符文的石碑。它散發著微弱的魔法波動。',
-    isImportant: true,
-    condition: () => true,
-    options: [
+    introText: '沒多久，他們在廢墟中發現了一座刻滿古文字的石碑。',
+    branches: [
       {
-        text: '仔細解讀 (獲得世界觀文本與 50 聲望)',
-        onSelect: () => {
+        targetTraits: ['SCHOLAR'],
+        narrativeText: '隊長走上前，仔細端詳並解讀了碑文，成功帶回了古陸歷史碎片。',
+        onResolve: () => {
           GameState.myTerritory.prestige += 50;
-          // 這裡未來可整合到圖鑑系統，目前先以 Toast 或日誌顯示
-          console.log('📜 你獲得了古陸歷史敘事文本：「在第一次大崩解前，天空曾是永恆的金色...」');
-          import('../ui/ToastManager').then(m => m.ToastManager.show('獲得古陸歷史碎片，聲望 +50'));
         }
       },
       {
-        text: '破壞石碑尋找寶物 (獲得金幣，但部隊有機率受傷)',
-        onSelect: () => {
-          if (Random.next() < 0.5) {
-            GameState.myTerritory.gold += 300;
-            import('../ui/ToastManager').then(m => m.ToastManager.show('成功找到隱藏的古代金幣！金幣 +300'));
-          } else {
-            // 這裡簡化為減少金幣或部隊受損的文字
-            GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold - 100);
-            import('../ui/ToastManager').then(m => m.ToastManager.show('⚠️ 石碑爆發出詛咒！你損失了 100 金幣用於治療部隊。'));
-          }
+        targetTraits: ['GREEDY'],
+        narrativeText: '隊長無視了碑文的警告，強行撬下碑石上鑲嵌的古老寶石。',
+        onResolve: () => {
+          GameState.myTerritory.gold += 300;
         }
       },
       {
-        text: '不理會，繼續前進',
-        onSelect: () => {
-          import('../ui/ToastManager').then(m => m.ToastManager.show('你選擇了謹慎行事，沒有理會石碑。'));
-        }
+        targetTraits: ['CAUTIOUS'],
+        narrativeText: '隊長察覺到石碑周圍隱約的魔法波動，為了安全起見，下令繞開了這座廢墟。',
+        onResolve: () => {}
       }
-    ]
+    ],
+    defaultBranch: {
+      targetTraits: [],
+      narrativeText: '小隊在石碑旁轉了幾圈，由於看不懂上面的文字，最終只能無功而返。',
+      onResolve: () => {}
+    }
   },
   {
     id: 'exp_evt_wounded_merchant',
-    title: '受傷的商人',
-    description: '部隊在行軍路上遇到了一名被強盜洗劫的受傷商人。他的貨車殘骸散落一地，他正痛苦地呻吟著。',
-    isImportant: true,
-    condition: () => true,
-    options: [
+    introText: '路途中，小隊發現一輛傾倒的貨車，一名滿身是血的商人正發出微弱的求救聲。',
+    branches: [
       {
-        text: '提供救援與物資 (消耗 50 金幣，獲得 20 聲望與潛在人脈)',
-        onSelect: () => {
-          if (GameState.myTerritory.gold >= 50) {
-            GameState.myTerritory.gold -= 50;
-            GameState.myTerritory.prestige += 20;
-            import('../ui/ToastManager').then(m => m.ToastManager.show('商人對你千恩萬謝，承諾未來一定會回報你。聲望 +20'));
-          } else {
-            import('../ui/ToastManager').then(m => m.ToastManager.show('金幣不足，無法提供足夠的救援。'));
-          }
+        targetTraits: ['GREEDY', 'LAZY'],
+        narrativeText: '隊長冷笑一聲，無視了商人的求救，直接下令洗劫貨車上殘存的貨物！商人突然撕下偽裝，原來這是盜賊的陷阱！',
+        triggerCombat: true,
+        onResolve: () => {
+          GameState.myTerritory.gold += 100;
         }
       },
       {
-        text: '趁火打劫 (獲得 100 金幣，聲望 -30)',
-        onSelect: () => {
-          GameState.myTerritory.gold += 100;
-          GameState.myTerritory.prestige = Math.max(0, GameState.myTerritory.prestige - 30);
-          import('../ui/ToastManager').then(m => m.ToastManager.show('你冷酷地奪走了他僅存的財物。金幣 +100，聲望 -30'));
+        targetTraits: ['LOYAL', 'GUARDIAN'],
+        narrativeText: '隊長毫不猶豫地拿出物資為商人包紮傷口。商人獲救後千恩萬謝，贈予了一些稀有物資作為回報。',
+        onResolve: () => {
+          if (GameState.myTerritory.gold >= 50) GameState.myTerritory.gold -= 50;
+          GameState.myTerritory.prestige += 30;
         }
       }
-    ]
+    ],
+    defaultBranch: {
+      targetTraits: [],
+      narrativeText: '小隊猶豫了片刻，最終還是分出了一點繃帶給商人，隨後便匆匆離開。',
+      onResolve: () => {
+        GameState.myTerritory.prestige += 5;
+      }
+    }
   }
 ];
+
+export function getRandomNarrativePool(poolName: keyof typeof NARRATIVE_POOLS): string {
+  const pool = NARRATIVE_POOLS[poolName];
+  return pool[Random.int(0, pool.length - 1)];
+}
+
+export function getRandomNarrative(totalDays: number): string | null { return null; }

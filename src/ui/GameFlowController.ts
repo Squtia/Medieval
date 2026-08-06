@@ -1,3 +1,4 @@
+import { AdventureLogModalController } from './modals/AdventureLogModalController';
 import { GameState } from '../core/GameState';
 import { SaveManager } from '../core/SaveManager';
 import { ToastManager } from './ToastManager';
@@ -43,7 +44,15 @@ export function initGameFlowController(rebindUIEvents: () => void): void {
   }
 
   // 開啟戰鬥紀錄按鈕（互斥：開啟時關閉其他兩個側邊面板）
-  const btnDockCombatHistory = document.getElementById('btn-dock-combat-history');
+  
+  const btnDockAdventureLog = document.getElementById('btn-adventure-log');
+  if (btnDockAdventureLog) {
+    btnDockAdventureLog.addEventListener('click', () => {
+      AdventureLogModalController.show();
+    });
+  }
+
+const btnDockCombatHistory = document.getElementById('btn-dock-combat-history');
   if (btnDockCombatHistory) {
     btnDockCombatHistory.addEventListener('click', () => {
       const combatPanel = document.getElementById('combat-history-panel');

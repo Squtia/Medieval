@@ -145,7 +145,8 @@ export class SaveManager {
       exploration: GameState.explorationSystem?.getData(),
       roads: GameState.roadSystem?.getData(),
       milestones: GameState.milestones || [],
-      pendingMilestones: GameState.pendingMilestones || []
+      pendingMilestones: GameState.pendingMilestones || [],
+      formationPresets: GameState.formationPresets || []
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
@@ -179,6 +180,7 @@ export class SaveManager {
       if (t.forgeLevel === undefined) t.forgeLevel = 0;
       if (t.exploreCount === undefined) t.exploreCount = 0;
       if (t.hasRecruitedFromFirstExplorations === undefined) t.hasRecruitedFromFirstExplorations = false;
+        if (!t.adventureLogs) t.adventureLogs = [];
       // 由於 population 已改為動態 Getter，不再需要同步閒置人力落差
       
       GameState.myTerritory = t;
@@ -245,6 +247,7 @@ export class SaveManager {
       GameState.worldGeneration = data.worldGeneration || null;
       GameState.milestones = Array.isArray(data.milestones) ? data.milestones : [];
       GameState.pendingMilestones = Array.isArray(data.pendingMilestones) ? data.pendingMilestones : [];
+      GameState.formationPresets = Array.isArray(data.formationPresets) ? data.formationPresets : [];
 
       // 還原 currentViewNode
       if (t.currentCountryId) {

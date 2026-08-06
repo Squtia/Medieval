@@ -451,6 +451,7 @@ export interface JobConfig {
  * 影響升級所需經驗值乘數，並以百分比修正最終屬性
  */
 export interface TraitConfig {
+  id?: string;
   name: string;
   xpModifier: number;          // 經驗值需求倍率 (例如 1.2 代表需要多 20% 經驗)
   statMultipliers: Partial<Attributes>; // 屬性百分比加成 (例如 { agi: 0.1 } 代表敏捷 +10%)

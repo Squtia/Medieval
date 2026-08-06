@@ -103,10 +103,11 @@ export function advanceDay() {
       const explorer = GameState.adventurers.find(
         adventurer => adventurer.id === explorationProgress.expedition.explorerId
       );
-      if (explorer) explorer.currentState = AdventurerState.IDLE;
-      
-      // Phase 1: 探險隨機事件
-      EventSystem.triggerExplorationEvent();
+      if (explorer) {
+        explorer.currentState = AdventurerState.IDLE;
+        
+        // 原先的探險日誌引擎呼叫已移至 DispatchSystem.ts 作為討伐日誌
+      }
     }
 
     EventBus.getInstance().publish({

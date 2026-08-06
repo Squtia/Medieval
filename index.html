@@ -994,6 +994,10 @@
       cursor: not-allowed;
       filter: grayscale(0.6);
     }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
+    }
   </style>
 </head>
 <body>
@@ -1887,7 +1891,7 @@
           </div>
 
           <!-- Options & Confirm attached to the bottom of the left column -->
-          <div id="dispatch-subjugation-options" style="display: none; margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; flex-shrink: 0;">
+          <div id="dispatch-subjugation-options" style="display: none !important; margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; flex-shrink: 0;">
             <div style="color: #cbd5e1; margin-bottom: 10px; font-weight: bold; font-size: 0.95em;">⚔️ 討伐模式：</div>
             <!-- 隱藏的 radio input，由卡片 JS 控制 -->
             <input type="radio" name="subjugation-mode" value="SINGLE" id="radio-single" style="display:none">
@@ -2140,6 +2144,7 @@
     <div id="floating-quick-dock">
       <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
       <button id="btn-dock-diplomacy" class="dock-btn" data-tip="外交與派系">📜</button>
+      <button id="btn-adventure-log" class="dock-btn" data-tip="探險日誌">📜</button>
       <button id="btn-dock-combat-history" class="dock-btn" data-tip="戰鬥紀錄">⚔️</button>
       <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>
     </div>

@@ -68,13 +68,13 @@ export class DataStore {
   // 性格庫 (TraitDB)
   // ============================
   public static readonly TraitDB: Record<string, TraitConfig> = {
-    LOYAL: { name: '忠誠', xpModifier: 1.0, statMultipliers: { con: 0.1 } },
-    SCHOLAR: { name: '學者', xpModifier: 1.2, statMultipliers: { int: 0.2 } },
-    BRAVE: { name: '勇敢', xpModifier: 0.9, statMultipliers: { str: 0.15 } },
-    AGILE: { name: '靈動', xpModifier: 1.0, statMultipliers: { agi: 0.15 } },
-    LUCKY: { name: '幸運兒', xpModifier: 1.0, statMultipliers: { luk: 0.3 } },
-    LAZY: { name: '懶惰', xpModifier: 1.5, statMultipliers: { str: -0.1, agi: -0.1 } },
-    GUARDIAN: { name: '誓約守衛', xpModifier: 0.8, statMultipliers: { con: 0.3, str: 0.2, command: 0.5 } }
+    LOYAL: { id: 'LOYAL', name: '忠誠', xpModifier: 1.0, statMultipliers: { con: 0.1 } },
+    SCHOLAR: { id: 'SCHOLAR', name: '學者', xpModifier: 1.2, statMultipliers: { int: 0.2 } },
+    BRAVE: { id: 'BRAVE', name: '勇敢', xpModifier: 0.9, statMultipliers: { str: 0.15 } },
+    AGILE: { id: 'AGILE', name: '靈動', xpModifier: 1.0, statMultipliers: { agi: 0.15 } },
+    LUCKY: { id: 'LUCKY', name: '幸運兒', xpModifier: 1.0, statMultipliers: { luk: 0.3 } },
+    LAZY: { id: 'LAZY', name: '懶惰', xpModifier: 1.5, statMultipliers: { str: -0.1, agi: -0.1 } },
+    GUARDIAN: { id: 'GUARDIAN', name: '誓約守衛', xpModifier: 0.8, statMultipliers: { con: 0.3, str: 0.2, command: 0.5 } }
   };
 
   /** 取得隨機性格 */

@@ -482,7 +482,7 @@ export class DispatchModalController {
     this.pendingDispatchTask = new DispatchTask(`外交使節前往${node.name}`, TaskType.DIPLOMACY, 3, 0, 50, 0, 30);
     this.pendingDispatchTask.targetNodeId = node.id;
   } else if (actionType === 'war') {
-    optionsContainer.style.display = 'block';
+    optionsContainer.style.display = 'none'; // Forced hidden for Narrative Engine
     title.innerHTML = '🛡️ 攻城隊伍編制';
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
@@ -496,7 +496,7 @@ export class DispatchModalController {
     if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
     desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   } else {
-    optionsContainer.style.display = 'block';
+    optionsContainer.style.display = 'none'; // Forced hidden for Narrative Engine
     title.innerHTML = '⚔️ 討伐隊伍編制';
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
@@ -538,7 +538,7 @@ export class DispatchModalController {
   const hintEl = document.getElementById('subjugation-mode-hint');
   
   const updateSubjugationHint = () => {
-    const selectedMode = (document.querySelector('input[name="subjugation-mode"]:checked') as HTMLInputElement)?.value;
+    const selectedMode: string = 'SINGLE';
     if (this.pendingDispatchTask && actionType !== 'diplomacy') {
       const baseGold = 100 + node.nodeLevel * 50;
       const basePrestige = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
@@ -609,11 +609,7 @@ export class DispatchModalController {
         return;
       }
       if (actionType === 'subjugation' || actionType === 'war') {
-        const selectedMode = (document.querySelector('input[name="subjugation-mode"]:checked') as HTMLInputElement)?.value as any;
-        this.pendingDispatchTask.subjugationMode = selectedMode;
-        if (selectedMode === 'PROGRESS') {
-           this.pendingDispatchTask.totalWaves = 3;
-        }
+        this.pendingDispatchTask.subjugationMode = SubjugationMode.SINGLE;
         
         // 驗證總派兵數是否超過領地庫存 (只有 WAR 模式才會帶兵)
         if (this.pendingDispatchTask.isWar) {

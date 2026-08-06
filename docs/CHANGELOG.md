@@ -1333,3 +1333,14 @@ ECHO �w�ҰʡC
 - 為解決命名衝突，將原 src/systems/SettlementSystem.ts 更名為 TownManagementSystem.ts (負責玩家據點內政)。
 - 為解決命名衝突，將原 src/systems/map/SettlementSystem.ts 更名為 MapNodeSystem.ts (負責世界節點模擬)。
 - 全面更新 docs/ARCHITECTURE.md，補齊 map/ 與 combat/ 目錄下的新系統及 UI 重構產物，確保與現況 100% 同步。
+
+## [2026-08-06] 討伐敘事引擎與介面優化
+### Fixed
+- 修復了因 `tsc` 編譯錯誤遺留 `.js` 檔案導致 Vite 載入模組失敗，造成畫面卡死的問題。
+- 修復了 `DispatchSystem.ts` 中討伐任務 (COMBAT) 的分流判斷，徹底移除舊版死板的戰報，並將討伐任務成功掛載至 `ExplorationNarrativeEngine.generateSubjugationLog`。現在戰鬥後探險日誌會正確生成純文字小說風格的戰報。
+- 修復討伐彈出視窗中的「連續討伐」標籤頁異常顯示問題。
+
+### Changed
+- 將【探險日誌】的介面從置中彈出視窗 (Modal) 重構成為從右側滑出的抽屜 (Drawer) 樣式。
+- 統一探險日誌的「關閉 (✖)」按鈕樣式與位置至螢幕右上角，優化操作體驗。
+- 為了讓探險日誌保持純粹的小說敘事體驗，移除了日誌內的裝備掉落圖示、經驗值提示等遊戲數據，僅保留純文字與【戰鬥紀錄】按鈕。

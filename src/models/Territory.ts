@@ -1,6 +1,7 @@
 import { Equipment, NobleTitle, WorkerJob, getNodeMaxFacilityLevel, NodeLevel } from './types';
 import { Adventurer } from './Adventurer';
 import { CombatHistoryRecord } from './Combat';
+import { AdventureLogEntry } from './AdventureLog';
 
 /**
  * 領地 (Territory) 模型
@@ -65,6 +66,9 @@ export class Territory {
   // 戰鬥歷史紀錄
   public combatHistory: CombatHistoryRecord[];
 
+  // 探險敘事日誌
+  public adventureLogs: AdventureLogEntry[];
+
   // 治安與侵略
   public security: number = 100;
   public invasionCooldown: number = 0;
@@ -113,7 +117,8 @@ export class Territory {
     this.eventPressure = 0;
     this.exploredToday = 0;
     this.maxExplorationsPerDay = 1; // 預設一回合只能探索一次
-    this.combatHistory = []; // 初始化歷史紀錄
+    this.combatHistory = [];
+    this.adventureLogs = []; // 初始化歷史紀錄
   }
 
   // ==========================================
@@ -311,6 +316,25 @@ export class Territory {
   /**
    * 清理超過天數的戰鬥紀錄
    */
+
+  /**
+   * 新增一筆探險日誌
+   */
+  public addAdventureLog(entry: AdventureLogEntry): void {
+    if (!this.adventureLogs) this.adventureLogs = [];
+    this.adventureLogs.unshift(entry); // 最新的放前面
+  }
+
+  /**
+   * 清理超過數量的探險日誌 (保留最新的 50 筆)
+   */
+  public cleanupAdventureLogs(maxCount: number = 50): void {
+    if (!this.adventureLogs) return;
+    if (this.adventureLogs.length > maxCount) {
+      this.adventureLogs = this.adventureLogs.slice(0, maxCount);
+    }
+  }
+
   public cleanupCombatHistory(currentDay: number, keepDays: number = 3): void {
     this.combatHistory = this.combatHistory.filter(record => {
       return (currentDay - record.day) <= keepDays;
