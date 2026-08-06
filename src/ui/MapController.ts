@@ -2,7 +2,7 @@ import { ToastManager } from './ToastManager';
 import { GameState } from '../core/GameState';
 import { TerrainType, MapNode, getMaxCaravansLimit } from '../models/types';
 import { enterSceneWithTransition } from './SceneController';
-import { openRadialMenu, closeRadialMenu, openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
+import { openNodeDetailPanel, closeNodeDetailPanel, openTradePlanner } from './ModalController';
 import { TaskType } from '../models/DispatchTask';
 import { getTerrainEmoji } from './MapPresentation';
 export { getTerrainEmoji, getNodeIcon } from './MapPresentation';

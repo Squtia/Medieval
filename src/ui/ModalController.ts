@@ -44,10 +44,6 @@ export function setPartyTab(tab: 'stats' | 'equip' | 'skills') { PartyModalContr
 export function renderPartyUpperSection() { PartyModalController.getInstance().renderPartyUpperSection(); }
 export function openAdvDetail(adv: Adventurer) { PartyModalController.getInstance().open(adv); }
 
-export function closeRadialMenu() { import("./modals/NodeDetailModalController").then(m => m.NodeDetailModalController.getInstance().closeRadialMenu()); }
-
-export function openRadialMenu(node: MapNode, clientX: number, clientY: number) { import("./modals/NodeDetailModalController").then(m => m.NodeDetailModalController.getInstance().openRadialMenu(node, clientX, clientY)); }
-
 let currentSelectedPresetIndex: number = 0;
 let presetEventsInitialized: boolean = false;
 
