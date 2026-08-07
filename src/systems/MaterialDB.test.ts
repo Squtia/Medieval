@@ -21,10 +21,14 @@ describe('Material & Crafting Recipe DB Integrity', () => {
     recipes.forEach(recipe => {
       expect(recipe.id).toBeDefined();
       expect(recipe.targetEquipmentId).toBeDefined();
-      
-      const targetEq = DataStore.getEquipmentTemplate(recipe.targetEquipmentId);
-      expect(targetEq).not.toBeNull();
-
+      if (recipe.isMaterialRecipe) {
+        const mat = DataStore.MaterialDB[recipe.targetEquipmentId];
+        expect(mat).toBeDefined();
+        expect(mat.id).toBe(recipe.targetEquipmentId);
+      } else {
+        const targetEq = DataStore.getEquipmentTemplate(recipe.targetEquipmentId);
+        expect(targetEq).not.toBeNull();
+      }
       if (recipe.baseEquipmentId) {
         const baseEq = DataStore.getEquipmentTemplate(recipe.baseEquipmentId);
         expect(baseEq).not.toBeNull();
