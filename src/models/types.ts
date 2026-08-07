@@ -141,10 +141,11 @@ export function getTaxBonusPer10Pop(title: NobleTitle): number {
  * 勞動力分配職業
  */
 export enum WorkerJob {
-  UNASSIGNED = 'UNASSIGNED', // 閒置 (仍會消耗糧食)
-  FARMER = 'FARMER',         // 農夫 (產出糧食)
+  UNASSIGNED = 'UNASSIGNED', // 未指派的難民
+  FARMER = 'FARMER',         // 農夫 (產出糧食、棉麻)
+  HUNTER = 'HUNTER',         // 獵人 (產出生皮、獸肉)
   WOODCUTTER = 'WOODCUTTER', // 伐木工 (產出木材)
-  MINER = 'MINER',           // 礦工 (產出石材與微量鐵礦)
+  MINER = 'MINER',           // 礦工 (產出石材與鐵礦)
   INFANTRY = 'INFANTRY',     // 步兵 (軍隊，消耗額外糧食)
   CAVALRY = 'CAVALRY',       // 騎兵 (軍隊，消耗額外糧食)
   ARCHER = 'ARCHER'          // 弓兵 (軍隊，消耗額外糧食)

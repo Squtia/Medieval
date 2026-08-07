@@ -1,4 +1,4 @@
-﻿  <!-- 戰鬥紀錄 左側抽屜面板 -->
+  <!-- 戰鬥紀錄 左側抽屜面板 -->
   <div class="side-panel-left glass-panel" id="combat-history-panel" style="border: 2px solid rgba(239,68,68,0.4); box-shadow: 0 0 20px rgba(239,68,68,0.1);">
     <button class="close-btn" id="btn-close-combat-history">×</button>
     <h2 style="text-align: left; color: #fca5a5; margin: 0 0 4px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">⚔️ 戰鬥紀錄</h2>
@@ -14,6 +14,24 @@
     <h2 style="text-align: left; color: #fef08a; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">📜 外交與派系</h2>
     <div id="diplomacy-list" style="flex: 1; overflow-y: auto; padding-right: 6px;">
       <!-- JS 動態渲染派系列表 -->
+    </div>
+  </div>
+
+  <!-- 全域倉庫 左側抽屜面板 -->
+  <div class="side-panel-left glass-panel" id="inventory-panel" style="width: 440px; border: 2px solid rgba(139,92,246,0.5); box-shadow: 0 0 20px rgba(139,92,246,0.15); display: flex; flex-direction: column;">
+    <button class="close-btn" id="btn-close-inventory">×</button>
+    <h2 style="text-align: left; color: #c4b5fd; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">📦 全域倉庫</h2>
+    
+    <!-- 分類標籤 -->
+    <div style="display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid rgba(139,92,246,0.3); padding-bottom: 8px;">
+      <button class="tab-btn active" data-tab="equip" style="flex: 1; font-size: 0.9em; padding: 6px; background: rgba(139,92,246,0.2); color: #ddd; border: 1px solid rgba(139,92,246,0.5); border-radius: 4px; cursor: pointer;">裝備</button>
+      <button class="tab-btn" data-tab="material" style="flex: 1; font-size: 0.9em; padding: 6px; background: transparent; color: #94a3b8; border: 1px solid transparent; border-radius: 4px; cursor: pointer;">素材</button>
+      <button class="tab-btn" data-tab="trade" style="flex: 1; font-size: 0.9em; padding: 6px; background: transparent; color: #94a3b8; border: 1px solid transparent; border-radius: 4px; cursor: pointer;">交易品</button>
+    </div>
+
+    <!-- 列表容器 -->
+    <div id="inventory-list-container" style="flex: 1; overflow-y: auto; padding-right: 6px; display: flex; flex-direction: column; gap: 8px;">
+      <!-- JS 動態渲染 -->
     </div>
   </div>
 
@@ -117,8 +135,11 @@
   <!-- 右下角史詩 Command Crest Hub (全域固定於右下角) -->
   <div id="command-crest-container" style="display: none;">
     <!-- 左側快捷按鈕列 -->
-    <div id="floating-quick-dock">
-      <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
+    <div id="floating-quick-dock" style="align-items: flex-end;">
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
+        <button id="btn-dock-inventory" class="dock-btn" data-tip="全域倉庫">📦</button>
+        <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
+      </div>
       <button id="btn-dock-diplomacy" class="dock-btn" data-tip="外交與派系">🤝</button>
       <button id="btn-adventure-log" class="dock-btn" data-tip="探險日誌">📜</button>
       <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>

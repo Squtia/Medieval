@@ -145,22 +145,31 @@ export function getElementBadge(elem?: ElementType): string {
 // 5. 素材與背包模式 (半透明雙欄 Layout)
 // ----------------------------------------------------------------------------
 
-
-
-// 輔助材料管理
 export function getMaterialCount(territory: any, matId: string): number {
+  if (matId === 'tg_iron') return territory.iron || 0;
+  if (matId === 'tg_timber') return territory.wood || 0;
+  if (matId === 'tg_stone') return territory.stone || 0;
+  if (matId === 'tg_hide' || matId === 'tg_cotton') return (territory.tradeInventory && territory.tradeInventory[matId]) || 0;
   if (!territory.materials) return 0;
   return territory.materials[matId] || 0;
 }
 
 export function consumeMaterial(territory: any, matId: string, count: number): void {
+  if (matId === 'tg_iron') { territory.iron = Math.max(0, (territory.iron || 0) - count); return; }
+  if (matId === 'tg_timber') { territory.wood = Math.max(0, (territory.wood || 0) - count); return; }
+  if (matId === 'tg_stone') { territory.stone = Math.max(0, (territory.stone || 0) - count); return; }
+  if (matId === 'tg_hide' || matId === 'tg_cotton') {
+    if (territory.tradeInventory && territory.tradeInventory[matId]) {
+      territory.tradeInventory[matId] = Math.max(0, territory.tradeInventory[matId] - count);
+    }
+    return;
+  }
   if (!territory.materials) return;
   if (territory.materials[matId]) {
     territory.materials[matId] = Math.max(0, territory.materials[matId] - count);
   }
 }
 
-// 保留商店渲染
 export function renderWeaponShop() {
   const shopList = document.getElementById('weapon-shop-list');
   const shopLvlEl = document.getElementById('ui-weapon-shop-lvl');

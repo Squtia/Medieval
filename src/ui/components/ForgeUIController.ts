@@ -47,21 +47,16 @@ export class ForgeUIController {
     // 5 大頁籤按鈕
     const btnEnhance = document.getElementById('btn-forge-tab-enhance')!;
     const btnCraft = document.getElementById('btn-forge-tab-craft')!;
-    const btnReforge = document.getElementById('btn-forge-tab-reforge')!;
     const btnEnchant = document.getElementById('btn-forge-tab-enchant')!;
-    const btnMats = document.getElementById('btn-forge-tab-mats')!;
-  
-    // 裝備重鑄在 forgeLevel >= 3 時才解鎖顯示
-    if (btnReforge) {
-      btnReforge.style.display = forgeLevel >= 3 ? 'block' : 'none';
-    }
+    const btnSmelt = document.getElementById('btn-forge-tab-smelt')!;
+    const btnDisassemble = document.getElementById('btn-forge-tab-disassemble')!;
   
     const tabs = [
       { btn: btnEnhance, render: () => this.renderForgeEnhanceMode() },
-      { btn: btnCraft, render: () => this.renderForgeCraftMode() },
-      { btn: btnReforge, render: () => this.renderForgeReforgeMode() },
+      { btn: btnCraft, render: () => this.renderForgeCraftMode() }, // Craft & Reforge combined
       { btn: btnEnchant, render: () => this.renderForgeEnchantMode() },
-      { btn: btnMats, render: () => this.renderForgeMatsMode() }
+      { btn: btnSmelt, render: () => this.renderForgeSmeltMode() },
+      { btn: btnDisassemble, render: () => this.renderForgeDisassembleMode() }
     ];
   
     const setActiveTab = (activeIndex: number) => {
@@ -288,39 +283,35 @@ export class ForgeUIController {
     workspace.appendChild(splitContainer);
   }
   
+
+  
   private renderForgeCraftMode() {
-    this.renderRecipeFurnaceView(false);
+    this.renderRecipeFurnaceView('craft');
   }
   
-  private renderForgeReforgeMode() {
-    this.renderRecipeFurnaceView(true);
+  private renderForgeSmeltMode() {
+    this.renderRecipeFurnaceView('smelt');
   }
   
-  private renderRecipeFurnaceView(isReforgeMode: boolean) {
+  private renderRecipeFurnaceView(mode: 'craft' | 'smelt') {
     const territory = GameState.myTerritory;
     const workspace = document.getElementById('forge-workspace')!;
     workspace.innerHTML = '';
   
-    // 標籤精密過濾：重鑄模式下，只有帶有變異標籤 (isVariant) 且玩家持有對應重鑄書的配方，或一般非變異重鑄配方才允許顯示！
-    let recipes = DataStore.CraftingRecipeDB.filter((r: any) => isReforgeMode ? !!r.baseEquipmentId : !r.baseEquipmentId);
-  
-    if (isReforgeMode) {
-      recipes = recipes.filter((r: any) => {
-        const isVar = r.isVariant || (r.name && r.name.includes('專用'));
-        if (!isVar) return true; // 一般非變異重鑄項目顯示
-        // 變異職業專用重鑄項目：必須持對應重鑄書道具 (requireTomeId/tome_...) 才顯示！
-        const tomeId = r.requireTomeId || `tome_${r.targetEquipmentId}`;
-        const hasReforgeTome = getMaterialCount(territory, tomeId) > 0 || getMaterialCount(territory, 'mat_reforge_scroll') > 0;
-        return hasReforgeTome;
-      });
+    const recipes = DataStore.CraftingRecipeDB.filter(r => r.isMaterialRecipe === (mode === 'smelt'));
+    let selectedRecipeId: string = recipes.length > 0 ? recipes[0].id : '';
+    let craftAmount = 1;
+    
+    if (mode !== 'smelt') {
+      // 裝備鍛造/重鑄配方 (排除素材冶煉)
+      // 若為需要前置裝備的重鑄配方，需進階過濾
+      // recipes 已在上面篩選過，這裡針對裝備類型進行邏輯驗證
     }
   
     if (recipes.length === 0) {
-      workspace.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:50px 0;">${isReforgeMode ? '目前沒有獲得重鑄書圖紙，未解鎖變異重鑄配方。' : '目前沒有可鍛造配方。'}</p>`;
+      workspace.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:50px 0;">目前沒有可用的配方。</p>`;
       return;
     }
-  
-    let selectedRecipeId = recipes[0].id;
   
     // 雙欄 Container
     const splitContainer = document.createElement('div');
@@ -344,7 +335,7 @@ export class ForgeUIController {
     leftTitle.style.color = '#fbbf24';
     leftTitle.style.borderBottom = '1px solid rgba(217, 119, 6, 0.2)';
     leftTitle.style.paddingBottom = '6px';
-    leftTitle.textContent = isReforgeMode ? '♨️ 可重鑄列表' : '⚒️ 可合成鍛造列表';
+    leftTitle.textContent = mode === 'smelt' ? '♨️ 冶煉列表' : '⚒️ 可鍛造/重鑄列表';
     leftPanel.appendChild(leftTitle);
   
     const leftList = document.createElement('div');
@@ -356,7 +347,7 @@ export class ForgeUIController {
     leftList.style.paddingRight = '2px';
     leftPanel.appendChild(leftList);
   
-    // 右欄：合成/重鑄火爐區 (100% 完全對齊截圖一參考圖)
+    // 右欄：合成/重鑄火爐區
     const rightPanel = document.createElement('div');
     rightPanel.style.flex = '1';
     rightPanel.style.display = 'flex';
@@ -371,7 +362,13 @@ export class ForgeUIController {
       leftList.innerHTML = '';
       recipes.forEach(r => {
         const card = document.createElement('div');
-        const targetTpl = DataStore.getEquipmentTemplate(r.targetEquipmentId);
+        const targetTpl = mode === 'smelt' 
+          ? null 
+          : DataStore.getEquipmentTemplate(r.targetEquipmentId);
+        const matTpl = mode === 'smelt' 
+          ? materialsJson.find(m => m.id === r.targetEquipmentId) 
+          : null;
+        
         const isSel = r.id === selectedRecipeId;
   
         card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.75)';
@@ -384,7 +381,7 @@ export class ForgeUIController {
         card.style.cursor = 'pointer';
   
         card.innerHTML = `
-          <div style="font-size:2em;">${targetTpl?.icon || '⚔️'}</div>
+          <div style="font-size:2em;">${mode === 'smelt' ? matTpl?.icon || '📦' : targetTpl?.icon || '⚔️'}</div>
           <div style="flex:1; overflow:hidden;">
             <strong style="color:${isSel ? '#fbbf24' : '#e2e8f0'}; font-size:0.95em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block;">${r.name}</strong>
             <span style="font-size:0.78em; color:#94a3b8;">${r.goldCost} 金幣</span>
@@ -397,6 +394,7 @@ export class ForgeUIController {
   
         card.onclick = () => {
           selectedRecipeId = r.id;
+          craftAmount = 1;
           renderLeftList();
           renderRightPanel();
         };
@@ -408,10 +406,32 @@ export class ForgeUIController {
     const renderRightPanel = () => {
       rightPanel.innerHTML = '';
       const recipe = recipes.find(r => r.id === selectedRecipeId) || recipes[0];
-      const targetTemplate = DataStore.getEquipmentTemplate(recipe.targetEquipmentId);
-      if (!targetTemplate) return;
+      
+      let targetTemplate: any = null;
+      let targetMat: any = null;
+      
+      if (mode === 'smelt') {
+        targetMat = materialsJson.find(m => m.id === recipe.targetEquipmentId);
+      } else {
+        targetTemplate = DataStore.getEquipmentTemplate(recipe.targetEquipmentId);
+      }
   
-      // 檢查前置裝備
+      let maxCraftable = 999;
+      if (recipe.goldCost > 0) {
+        maxCraftable = Math.min(maxCraftable, Math.floor(territory.gold / recipe.goldCost));
+      }
+      if (recipe.baseEquipmentId) {
+        maxCraftable = Math.min(maxCraftable, 1);
+      } else {
+        for (const [matId, reqAmount] of Object.entries(recipe.requiredMaterials || {})) {
+          const hasCount = getMaterialCount(territory, matId);
+          maxCraftable = Math.min(maxCraftable, Math.floor(hasCount / (reqAmount as number)));
+        }
+      }
+      if (maxCraftable <= 0) maxCraftable = 0;
+      if (craftAmount > maxCraftable && maxCraftable > 0) craftAmount = maxCraftable;
+      if (craftAmount < 1) craftAmount = 1;
+
       const baseTemplate = recipe.baseEquipmentId ? DataStore.getEquipmentTemplate(recipe.baseEquipmentId) : null;
       const baseEquipInWarehouse = recipe.baseEquipmentId ? territory.warehouse.find(eq => eq.id === recipe.baseEquipmentId) : null;
       const hasBaseEquip = !recipe.baseEquipmentId || !!baseEquipInWarehouse;
@@ -419,45 +439,64 @@ export class ForgeUIController {
       let canCraft = hasBaseEquip;
       const matCardsHtml: string[] = [];
   
-      // 前置裝備框體 (完全對齊截圖一：64px x 64px 框體 + 數字)
       if (baseTemplate) {
         matCardsHtml.push(`
-          <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px; cursor:pointer;">
+          <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px;">
             <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${hasBaseEquip ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:2.2em; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
               ${baseTemplate.icon || '🗡️'}
             </div>
             <div style="font-size:0.78em; color:#e2e8f0; margin-top:4px; font-weight:bold; text-align:center; height:28px; overflow:hidden;">${baseTemplate.name}</div>
-            <div style="font-size:0.82em; color:${hasBaseEquip ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasBaseEquip ? '1/1' : '0/1'}</div>
+            <div style="font-size:0.82em; color:${hasBaseEquip ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">1/1</div>
           </div>
         `);
       }
   
-      // 材料框體 (完全對齊截圖一：64px x 64px 框體 + 數字)
       for (const [matId, reqAmount] of Object.entries(recipe.requiredMaterials || {})) {
         const matDef = materialsJson.find(m => m.id === matId);
         const name = matDef ? matDef.name : matId;
         const icon = matDef ? matDef.icon : '🧲';
         const hasCount = getMaterialCount(territory, matId);
-        const isEnough = hasCount >= (reqAmount as number);
+        const totalReq = (reqAmount as number) * craftAmount;
+        const isEnough = hasCount >= totalReq;
         if (!isEnough) canCraft = false;
   
         matCardsHtml.push(`
-          <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px; cursor:pointer;">
+          <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px;">
             <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${isEnough ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:2.2em; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
               ${icon}
             </div>
             <div style="font-size:0.78em; color:#e2e8f0; margin-top:4px; font-weight:bold; text-align:center; height:28px; overflow:hidden;">${name}</div>
-            <div style="font-size:0.82em; color:${isEnough ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasCount}/${reqAmount}</div>
+            <div style="font-size:0.82em; color:${isEnough ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasCount}/${totalReq}</div>
           </div>
         `);
       }
   
-      const goldEnough = territory.gold >= recipe.goldCost;
+      const totalGoldCost = recipe.goldCost * craftAmount;
+      const goldEnough = territory.gold >= totalGoldCost;
       if (!goldEnough) canCraft = false;
+
+      const amountSelectorHtml = `
+        <div style="display:flex; justify-content:center; align-items:center; gap:8px; margin-bottom:12px;">
+          <button id="btn-amount-sub" style="width:30px; height:30px; background:rgba(0,0,0,0.5); border:1px solid #64748b; color:#fff; cursor:pointer; font-weight:bold; border-radius:4px;">-</button>
+          <input type="number" id="input-craft-amount" class="no-spinners" value="${craftAmount}" style="width:50px; height:30px; text-align:center; background:rgba(0,0,0,0.8); border:1px solid #fbbf24; color:#fff; font-weight:bold; border-radius:4px; outline:none;" ${maxCraftable <= 1 ? 'disabled' : ''}>
+          <button id="btn-amount-add" style="width:30px; height:30px; background:rgba(0,0,0,0.5); border:1px solid #64748b; color:#fff; cursor:pointer; font-weight:bold; border-radius:4px;">+</button>
+          <button id="btn-amount-max" style="padding:0 8px; height:30px; background:rgba(217,119,6,0.3); border:1px solid #d97706; color:#fbbf24; cursor:pointer; font-weight:bold; border-radius:4px; transition:all 0.2s;">MAX</button>
+        </div>
+      `;
   
-      rightPanel.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:16px;">
-          <!-- 頂部產出裝備卡片 (完全對齊截圖一) -->
+      let targetHtml = '';
+      if (mode === 'smelt' && targetMat) {
+        targetHtml = `
+          <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
+            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size: 3em;">${targetMat.icon}</div>
+            <div style="flex:1;">
+              <h3 style="margin:0; color:#eab308; font-size:1.4em;">${targetMat.name}</h3>
+              <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">${targetMat.description}</div>
+            </div>
+          </div>
+        `;
+      } else if (targetTemplate) {
+        targetHtml = `
           <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
             <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(targetTemplate, 64)}</div>
             <div style="flex:1;">
@@ -465,31 +504,28 @@ export class ForgeUIController {
                 <h3 style="margin:0; color:#eab308; font-size:1.4em;">${targetTemplate.name}</h3>
                 <span style="padding:2px 7px; background:rgba(217,119,6,0.25); border-radius:4px; color:#fbbf24; font-weight:bold; font-size:0.85em;">T${targetTemplate.tier || 1}</span>
               </div>
-              <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">
-                ${getElementBadge(targetTemplate.element)} | 職業限制：${targetTemplate.allowedJobs ? targetTemplate.allowedJobs.join('/') : '無限制'}
-              </div>
-              <div style="font-size:0.85em; margin-top:6px;">
-                基礎效果：${formatStatsTags(targetTemplate.baseCombatEffects, targetTemplate.baseEffects)}
-              </div>
+              <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">${getElementBadge(targetTemplate.element)} | 職業限制：${targetTemplate.allowedJobs ? targetTemplate.allowedJobs.join('/') : '無限制'}</div>
             </div>
           </div>
-  
-          <!-- 中間所需的材料與前置裝備 (完全 100% 對齊截圖一) -->
-          <div style="background:rgba(25, 20, 16, 0.8); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.2);">
+        `;
+      }
+      
+      rightPanel.innerHTML = `
+        <div style="flex:1;">
+          <h3 style="margin-top:0; color:#cbd5e1; font-size:1.1em; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:8px; margin-bottom:16px;">${mode === 'smelt' ? '🏭 冶煉素材' : '⚒️ 裝備鍛造'}</h3>
+          ${targetHtml}
+          <div style="background:rgba(25, 20, 16, 0.8); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.2); margin-top:16px;">
             <h4 style="margin-top:0; color:#fbbf24; font-size:0.95em; margin-bottom:12px; text-align:center; letter-spacing:1px;">═══ 所需材料與前置裝備 ═══</h4>
-            <div style="display:flex; gap:16px; justify-content:center; overflow-x:auto; padding:6px 0;">
-              ${matCardsHtml.join('')}
-            </div>
+            <div style="display:flex; gap:16px; justify-content:center; overflow-x:auto; padding:6px 0;">${matCardsHtml.join('')}</div>
           </div>
         </div>
-  
-        <!-- 下方金幣與按鈕 (完全 100% 對齊截圖一) -->
         <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px; text-align:center;">
+          ${amountSelectorHtml}
           <div style="font-size:0.95em; color:#cbd5e1; margin-bottom:10px;">
-            消耗：<span style="color:${goldEnough ? '#22c55e' : '#ef4444'}; font-weight:bold;">${territory.gold}</span> / <span style="color:#fbbf24; font-weight:bold;">${recipe.goldCost} 金幣</span>
+            消耗：<span style="color:${goldEnough ? '#22c55e' : '#ef4444'}; font-weight:bold;">${territory.gold}</span> / <span style="color:#fbbf24; font-weight:bold;">${totalGoldCost} 金幣</span>
           </div>
           <button id="btn-exec-recipe-craft-furnace" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:${canCraft ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.1)'}; color:${canCraft ? '#fff' : '#64748b'};" ${canCraft ? '' : 'disabled'}>
-            ${isReforgeMode ? '重鑄' : '合成'}
+            ${mode === 'smelt' ? `冶煉 x${craftAmount}` : (recipe.baseEquipmentId ? `重鑄` : `鍛造 x${craftAmount}`)}
           </button>
         </div>
       `;
@@ -500,6 +536,23 @@ export class ForgeUIController {
         if (firstBox) attachTooltip(firstBox as HTMLElement, () => getEquipTooltipHtml(baseTemplate));
       }
   
+      // 綁定數量選擇器事件
+      const btnSub = rightPanel.querySelector('#btn-amount-sub');
+      const btnAdd = rightPanel.querySelector('#btn-amount-add');
+      const btnMax = rightPanel.querySelector('#btn-amount-max');
+      const inputAmt = rightPanel.querySelector('#input-craft-amount') as HTMLInputElement;
+
+      if (btnSub) btnSub.addEventListener('click', () => { if (craftAmount > 1) { craftAmount--; renderRightPanel(); } });
+      if (btnAdd) btnAdd.addEventListener('click', () => { if (craftAmount < Math.max(1, maxCraftable)) { craftAmount++; renderRightPanel(); } });
+      if (btnMax) btnMax.addEventListener('click', () => { craftAmount = Math.max(1, maxCraftable); renderRightPanel(); });
+      if (inputAmt) inputAmt.addEventListener('change', (e) => {
+        let val = parseInt((e.target as HTMLInputElement).value) || 1;
+        if (val < 1) val = 1;
+        if (val > Math.max(1, maxCraftable)) val = Math.max(1, maxCraftable);
+        craftAmount = val;
+        renderRightPanel();
+      });
+
       rightPanel.querySelector('#btn-exec-recipe-craft-furnace')?.addEventListener('click', () => {
         if (recipe.baseEquipmentId) {
           const baseIndex = territory.warehouse.findIndex(eq => eq.id === recipe.baseEquipmentId);
@@ -508,18 +561,27 @@ export class ForgeUIController {
         }
   
         for (const [matId, reqAmount] of Object.entries(recipe.requiredMaterials || {})) {
-          consumeMaterial(territory, matId, reqAmount as number);
+          consumeMaterial(territory, matId, (reqAmount as number) * craftAmount);
         }
-        territory.gold -= recipe.goldCost;
+        territory.gold -= recipe.goldCost * craftAmount;
   
-        const newEq = EquipmentGenerator.generate(recipe.targetEquipmentId);
-        if (newEq) {
-          territory.warehouse.push(newEq);
-          ToastManager.show(`✨ ${isReforgeMode ? '重鑄' : '合成'}成功！獲得【${newEq.name}】！`, 'success');
-          UIManager.updateUI();
-          renderLeftList();
-          renderRightPanel();
+        if (mode === 'smelt') {
+          territory.materials[recipe.targetEquipmentId] = (territory.materials[recipe.targetEquipmentId] || 0) + craftAmount;
+          ToastManager.show(`✨ 冶煉成功！獲得【${targetMat?.name}】 x${craftAmount}！`, 'success');
+        } else {
+          for (let i = 0; i < craftAmount; i++) {
+            const newEq = EquipmentGenerator.generate(recipe.targetEquipmentId);
+            if (newEq) {
+              territory.warehouse.push(newEq);
+            }
+          }
+          ToastManager.show(`✨ ${recipe.baseEquipmentId ? '重鑄' : `鍛造 x${craftAmount}`}成功！獲得裝備！`, 'success');
         }
+        
+        craftAmount = 1; // 製作完成後數量重置為 1，避免下次材料不夠
+        UIManager.updateUI();
+        renderLeftList();
+        renderRightPanel();
       });
     };
   
@@ -722,20 +784,28 @@ export class ForgeUIController {
     workspace.appendChild(splitContainer);
   }
   
-  private renderForgeMatsMode() {
+  private renderForgeDisassembleMode() {
     const territory = GameState.myTerritory;
     const workspace = document.getElementById('forge-workspace')!;
     workspace.innerHTML = '';
   
+    if (!territory.warehouse || territory.warehouse.length === 0) {
+      workspace.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:50px 0;">倉庫內沒有可拆解的裝備。</p>';
+      return;
+    }
+  
+    let selectedUuid = territory.warehouse[0].uuid;
+  
+    // 雙欄 Container
     const splitContainer = document.createElement('div');
     splitContainer.style.display = 'flex';
     splitContainer.style.gap = '15px';
     splitContainer.style.flex = '1';
     splitContainer.style.minHeight = '0';
   
-    // 左側素材 (50%)
+    // 左欄：選擇欲拆解裝備
     const leftPanel = document.createElement('div');
-    leftPanel.style.flex = '1';
+    leftPanel.style.width = '420px';
     leftPanel.style.display = 'flex';
     leftPanel.style.flexDirection = 'column';
     leftPanel.style.background = 'rgba(18, 14, 11, 0.68)';
@@ -743,102 +813,200 @@ export class ForgeUIController {
     leftPanel.style.borderRadius = '8px';
     leftPanel.style.padding = '12px';
   
-    leftPanel.innerHTML = '<h4 style="margin:0 0 10px 0; color:#fbbf24; border-bottom:1px solid rgba(217,119,6,0.2); padding-bottom:6px;">🧲 鍛造素材與附魔石</h4>';
+    const leftTitle = document.createElement('h4');
+    leftTitle.style.margin = '0 0 10px 0';
+    leftTitle.style.color = '#fbbf24';
+    leftTitle.style.borderBottom = '1px solid rgba(217, 119, 6, 0.2)';
+    leftTitle.style.paddingBottom = '6px';
+    leftTitle.textContent = '♻️ 選擇欲拆解裝備';
+    leftPanel.appendChild(leftTitle);
   
-    const leftList = document.createElement('div');
-    leftList.style.flex = '1';
-    leftList.style.overflowY = 'auto';
-    leftList.style.display = 'flex';
-    leftList.style.flexDirection = 'column';
-    leftList.style.gap = '6px';
+    const leftGrid = document.createElement('div');
+    leftGrid.style.flex = '1';
+    leftGrid.style.overflowY = 'auto';
+    leftGrid.style.overflowX = 'hidden';
+    leftGrid.style.display = 'grid';
+    leftGrid.style.gridTemplateColumns = 'repeat(5, minmax(0, 1fr))';
+    leftGrid.style.gap = '6px';
+    leftGrid.style.paddingRight = '2px';
+    leftGrid.style.alignContent = 'flex-start';
+    leftPanel.appendChild(leftGrid);
   
-    const matsMap = territory.materials || {};
-    const matKeys = Object.keys(matsMap).filter(k => matsMap[k] > 0);
-  
-    if (matKeys.length === 0) {
-      leftList.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:30px 0;">目前無素材。</p>';
-    } else {
-      matKeys.forEach(matId => {
-        const amount = matsMap[matId];
-        const matDef = materialsJson.find(m => m.id === matId);
-        const name = matDef ? matDef.name : matId;
-        const icon = matDef ? matDef.icon : '🧲';
-  
-        const card = document.createElement('div');
-        card.style.background = 'rgba(30, 24, 20, 0.75)';
-        card.style.border = '1px solid rgba(217, 119, 6, 0.25)';
-        card.style.borderRadius = '6px';
-        card.style.padding = '6px 10px';
-        card.style.display = 'flex';
-        card.style.alignItems = 'center';
-        card.style.justifyContent = 'space-between';
-  
-        card.innerHTML = `
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.4em;">${icon}</span>
-            <span style="color:#e2e8f0; font-size:0.85em;">${name}</span>
-          </div>
-          <span style="color:#22c55e; font-weight:bold; font-size:0.85em;">x${amount}</span>
-        `;
-        leftList.appendChild(card);
-      });
-    }
-    leftPanel.appendChild(leftList);
-  
-    // 右側交易品 (50%)
+    // 右欄：拆解預覽區
     const rightPanel = document.createElement('div');
     rightPanel.style.flex = '1';
     rightPanel.style.display = 'flex';
     rightPanel.style.flexDirection = 'column';
+    rightPanel.style.justifyContent = 'space-between';
     rightPanel.style.background = 'rgba(18, 14, 11, 0.68)';
     rightPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
     rightPanel.style.borderRadius = '8px';
-    rightPanel.style.padding = '12px';
+    rightPanel.style.padding = '18px';
   
-    rightPanel.innerHTML = '<h4 style="margin:0 0 10px 0; color:#fbbf24; border-bottom:1px solid rgba(217,119,6,0.2); padding-bottom:6px;">📦 領地地區交易品貨物</h4>';
-  
-    const rightList = document.createElement('div');
-    rightList.style.flex = '1';
-    rightList.style.overflowY = 'auto';
-    rightList.style.display = 'flex';
-    rightList.style.flexDirection = 'column';
-    rightList.style.gap = '6px';
-  
-    const inventory = territory.tradeInventory || {};
-    const goodIds = Object.keys(inventory).filter(id => inventory[id] > 0);
-  
-    if (goodIds.length === 0) {
-      rightList.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:30px 0;">跑商倉庫無貨物。</p>';
-    } else {
-      goodIds.forEach(goodId => {
-        const amount = inventory[goodId];
-        const goodDef = TRADE_GOODS.find(g => g.id === goodId);
-        if (!goodDef || amount <= 0) return;
-        const sellPrice = Math.floor(goodDef.basePrice * 0.8);
-  
+    const renderLeftGrid = () => {
+      leftGrid.innerHTML = '';
+      territory.warehouse.forEach(eq => {
+        const isSel = eq.uuid === selectedUuid;
         const card = document.createElement('div');
-        card.style.background = 'rgba(30, 24, 20, 0.75)';
-        card.style.border = '1px solid rgba(217, 119, 6, 0.25)';
+        card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
+        card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
         card.style.borderRadius = '6px';
-        card.style.padding = '6px 10px';
+        card.style.padding = '5px 4px';
         card.style.display = 'flex';
-        card.style.justifyContent = 'space-between';
+        card.style.flexDirection = 'column';
         card.style.alignItems = 'center';
+        card.style.textAlign = 'center';
+        card.style.justifyContent = 'space-between';
+        card.style.cursor = 'pointer';
+        card.style.height = '85px';
+        card.style.minWidth = '0';
+        card.style.boxSizing = 'border-box';
+        card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
   
         card.innerHTML = `
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.4em;">${goodDef.icon || '📦'}</span>
+          <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2px;">
+            ${renderEquipIcon(eq, 42)}
+          </div>
+          <div style="display:flex; justify-content:space-between; width:100%; font-size:0.68em; border-top:1px solid rgba(255,255,255,0.12); padding-top:2px; margin-top:2px;">
+            <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
+            <span style="color:#fbbf24; font-size:0.85em; padding:0 2px; background:rgba(217,119,6,0.25); border-radius:2px;">T${eq.tier || 1}</span>
+          </div>
+        `;
+  
+        attachTooltip(card, () => getEquipTooltipHtml(eq));
+  
+        card.onclick = () => {
+          selectedUuid = eq.uuid;
+          renderLeftGrid();
+          renderRightPanel();
+        };
+  
+        leftGrid.appendChild(card);
+      });
+    };
+  
+    const renderRightPanel = () => {
+      rightPanel.innerHTML = '';
+      const selectedEq = territory.warehouse.find(eq => eq.uuid === selectedUuid);
+      if (!selectedEq) return;
+  
+      // 決定拆解獲得的材料
+      const slot = selectedEq.slot;
+      const wType = selectedEq.weaponType;
+      const tier = selectedEq.tier || 1;
+      
+      let returnMatId = 'mat_stone_brick';
+      let returnCount = 1;
+      
+      if (wType === 'GREATSWORD' || wType === 'DUAL_SWORDS' || wType === 'SWORD_AND_SHIELD' || wType === 'DAGGERS' || wType === 'HAMMER' || wType === 'SCYTHE' || selectedEq.armorType === 'HEAVY' || selectedEq.armorType === 'LEATHER') {
+        returnMatId = tier >= 2 ? 'mat_steel_ingot' : 'mat_iron_ingot';
+        returnCount = Math.max(1, Math.floor(tier * 1.5));
+      } else if (wType === 'BOW' || wType === 'MAGIC_BOW' || wType === 'RUNE_SHIELD') {
+        returnMatId = 'mat_wood_plank';
+        returnCount = Math.max(1, Math.floor(tier * 1.5));
+      } else if (wType === 'STAFF' || wType === 'HOLY_BOOK' || wType === 'MAGIC_RING' || selectedEq.armorType === 'CLOTH') {
+        returnMatId = 'mat_cloth';
+        returnCount = Math.max(1, Math.floor(tier * 1.5));
+      } else if (slot === 'ACCESSORY') {
+        returnMatId = 'mat_reforge_scroll';
+        returnCount = 1;
+      }
+      
+      // 如果裝備有強化等級，有機率返還鐵礦石/精鋼石
+      const enhanceRetMatId = selectedEq.enhancementLevel! >= 3 ? 'mat_element_fire' : 'mat_whetstone';
+      const enhanceRetCount = selectedEq.enhancementLevel! > 0 ? Math.ceil(selectedEq.enhancementLevel! / 2) : 0;
+  
+      const retMatDef = materialsJson.find(m => m.id === returnMatId);
+      const enhanceMatDef = materialsJson.find(m => m.id === enhanceRetMatId);
+  
+      let resultCards = `
+        <div style="background:rgba(0,0,0,0.6); border:1px solid #10b981; border-radius:8px; padding:12px; display:flex; align-items:center; gap:12px;">
+          <div style="font-size:2em; width:48px; height:48px; display:flex; justify-content:center; align-items:center;">${retMatDef?.icon || '📦'}</div>
+          <div>
+            <div style="font-weight:bold; color:#a7f3d0;">${retMatDef?.name || returnMatId}</div>
+            <div style="font-size:0.85em; color:#10b981;">x ${returnCount}</div>
+          </div>
+        </div>
+      `;
+      
+      if (enhanceRetCount > 0) {
+        resultCards += `
+          <div style="background:rgba(0,0,0,0.6); border:1px solid #10b981; border-radius:8px; padding:12px; display:flex; align-items:center; gap:12px;">
+            <div style="font-size:2em; width:48px; height:48px; display:flex; justify-content:center; align-items:center;">${enhanceMatDef?.icon || '📦'}</div>
             <div>
-              <span style="color:#e2e8f0; font-size:0.85em; font-weight:bold;">${goodDef.name}</span>
-              <span style="color:#22c55e; font-size:0.8em; margin-left:6px;">x${amount}</span>
+              <div style="font-weight:bold; color:#a7f3d0;">${enhanceMatDef?.name || enhanceRetMatId}</div>
+              <div style="font-size:0.85em; color:#10b981;">x ${enhanceRetCount}</div>
             </div>
           </div>
-          <span style="color:#fbbf24; font-size:0.82em; font-weight:bold;">≈ ${sellPrice * amount} 金</span>
         `;
-        rightList.appendChild(card);
+      }
+  
+      rightPanel.innerHTML = `
+        <div style="display:flex; flex-direction:column; gap:16px;">
+          <!-- 目標裝備 -->
+          <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
+            <div id="disassemble-source-icon" style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+              ${renderEquipIcon(selectedEq, 64)}
+            </div>
+            <div style="flex:1;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:#eab308; font-size:1.4em;">${selectedEq.name} <span style="color:#38bdf8;">+${selectedEq.enhancementLevel || 0}</span></h3>
+                <span style="padding:2px 7px; background:rgba(217,119,6,0.25); border-radius:4px; color:#fbbf24; font-weight:bold; font-size:0.85em;">T${selectedEq.tier || 1}</span>
+              </div>
+              <div style="font-size:0.85em; margin-top:6px; color:#94a3b8;">
+                裝備部位: ${selectedEq.slot}
+              </div>
+            </div>
+          </div>
+  
+          <!-- 拆解預期獲得 -->
+          <div style="background:rgba(25, 20, 16, 0.8); padding:16px; border-radius:8px; border:1px solid rgba(16,185,129,0.2);">
+            <h4 style="margin-top:0; color:#34d399; font-size:0.95em; margin-bottom:12px; text-align:center; letter-spacing:1px;">═══ 拆解獲得材料 ═══</h4>
+            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:12px;">
+              ${resultCards}
+            </div>
+          </div>
+        </div>
+  
+        <!-- 確認拆解按鈕 -->
+        <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px; text-align:center;">
+          <button id="btn-exec-disassemble" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:linear-gradient(135deg, #059669, #047857); color:#fff;">
+            ♻️ 確定拆解
+          </button>
+        </div>
+      `;
+  
+      attachTooltip(rightPanel.querySelector('#disassemble-source-icon') as HTMLElement, () => getEquipTooltipHtml(selectedEq));
+  
+      rightPanel.querySelector('#btn-exec-disassemble')?.addEventListener('click', () => {
+        const idx = territory.warehouse.findIndex(e => e.uuid === selectedEq.uuid);
+        if (idx !== -1) {
+          territory.warehouse.splice(idx, 1);
+          
+          territory.materials[returnMatId] = (territory.materials[returnMatId] || 0) + returnCount;
+          if (enhanceRetCount > 0) {
+            territory.materials[enhanceRetMatId] = (territory.materials[enhanceRetMatId] || 0) + enhanceRetCount;
+          }
+          
+          ToastManager.show(`♻️ 拆解成功！獲得素材。`, 'success');
+          
+          if (territory.warehouse.length > 0) {
+            selectedUuid = territory.warehouse[0].uuid;
+          }
+          
+          UIManager.updateUI();
+          renderLeftGrid();
+          if (territory.warehouse.length > 0) {
+            renderRightPanel();
+          } else {
+            rightPanel.innerHTML = '<p style="color:#94a3b8; text-align:center; padding:50px 0;">倉庫內沒有可拆解的裝備。</p>';
+          }
+        }
       });
-    }
-    rightPanel.appendChild(rightList);
+    };
+  
+    renderLeftGrid();
+    renderRightPanel();
   
     splitContainer.appendChild(leftPanel);
     splitContainer.appendChild(rightPanel);

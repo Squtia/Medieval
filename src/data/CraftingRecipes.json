@@ -3,42 +3,42 @@
     "id": "recipe_iron_greatsword",
     "name": "鐵大劍",
     "targetEquipmentId": "wpn_iron_greatsword",
-    "requiredMaterials": { "tg_iron": 5, "tg_timber": 3 },
+    "requiredMaterials": { "mat_iron_ingot": 3, "mat_wood_plank": 1 },
     "goldCost": 150
   },
   {
     "id": "recipe_wooden_staff",
     "name": "木杖",
     "targetEquipmentId": "wpn_wooden_staff",
-    "requiredMaterials": { "tg_timber": 5 },
+    "requiredMaterials": { "mat_wood_plank": 3 },
     "goldCost": 100
   },
   {
     "id": "recipe_short_bow",
     "name": "短弓",
     "targetEquipmentId": "wpn_short_bow",
-    "requiredMaterials": { "tg_timber": 4, "tg_meat": 2 },
+    "requiredMaterials": { "mat_wood_plank": 2, "mat_leather": 1 },
     "goldCost": 120
   },
   {
     "id": "recipe_cloth_robe_t1",
     "name": "粗布長袍",
     "targetEquipmentId": "arm_cloth_robe_t1",
-    "requiredMaterials": { "tg_wheat": 5 },
+    "requiredMaterials": { "mat_cloth": 3 },
     "goldCost": 100
   },
   {
     "id": "recipe_leather_t1",
     "name": "輕皮甲",
     "targetEquipmentId": "arm_leather_t1",
-    "requiredMaterials": { "tg_meat": 4, "tg_timber": 2 },
+    "requiredMaterials": { "mat_leather": 3, "mat_wood_plank": 1 },
     "goldCost": 120
   },
   {
     "id": "recipe_heavy_t1",
     "name": "生鐵環甲",
     "targetEquipmentId": "arm_heavy_t1",
-    "requiredMaterials": { "tg_iron": 6, "mat_iron_ingot": 2 },
+    "requiredMaterials": { "mat_iron_ingot": 4 },
     "goldCost": 200
   },
 
@@ -149,5 +149,78 @@
     "baseEquipmentId": "wpn_archbishop_tome",
     "requiredMaterials": { "mat_parchment": 10, "mat_holy_water": 3 },
     "goldCost": 1200
+  },
+
+  {
+    "id": "smelt_iron_ingot",
+    "name": "提煉鐵錠",
+    "targetEquipmentId": "mat_iron_ingot",
+    "requiredMaterials": { "tg_iron": 3 },
+    "goldCost": 5,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_steel_ingot",
+    "name": "提煉鋼錠",
+    "targetEquipmentId": "mat_steel_ingot",
+    "requiredMaterials": { "mat_iron_ingot": 2, "mat_whetstone": 1 },
+    "goldCost": 15,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_wood_plank",
+    "name": "製作木板",
+    "targetEquipmentId": "mat_wood_plank",
+    "requiredMaterials": { "tg_timber": 3 },
+    "goldCost": 5,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_leather",
+    "name": "鞣製皮革",
+    "targetEquipmentId": "mat_leather",
+    "requiredMaterials": { "tg_hide": 2 },
+    "goldCost": 5,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_hard_leather",
+    "name": "製作硬化皮革",
+    "targetEquipmentId": "mat_hard_leather",
+    "requiredMaterials": { "mat_leather": 2, "tg_iron": 1 },
+    "goldCost": 10,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_cloth",
+    "name": "編織粗布",
+    "targetEquipmentId": "mat_cloth",
+    "requiredMaterials": { "tg_cotton": 3 },
+    "goldCost": 5,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_silk",
+    "name": "精製絲綢",
+    "targetEquipmentId": "tg_silk",
+    "requiredMaterials": { "mat_cloth": 2 },
+    "goldCost": 25,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_whetstone",
+    "name": "打磨磨刀石",
+    "targetEquipmentId": "mat_whetstone",
+    "requiredMaterials": { "tg_stone": 2 },
+    "goldCost": 5,
+    "isMaterialRecipe": true
+  },
+  {
+    "id": "smelt_stone_brick",
+    "name": "切割石磚",
+    "targetEquipmentId": "mat_stone_brick",
+    "requiredMaterials": { "tg_stone": 3 },
+    "goldCost": 5,
+    "isMaterialRecipe": true
   }
 ]

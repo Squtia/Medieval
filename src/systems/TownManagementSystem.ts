@@ -116,7 +116,16 @@ export class TownManagementSystem {
     }
     
     // 1. 產出計算 (套用治安倍率)
-    const foodProduced = Math.floor(((workers[WorkerJob.FARMER] || 0) * 3) * productionMultiplier);
+    const farmerCount = workers[WorkerJob.FARMER] || 0;
+    const foodProduced = Math.floor((farmerCount * 3) * productionMultiplier);
+    
+    // 農夫有 30% 機率產出棉麻
+    let cottonProduced = 0;
+    for (let i = 0; i < farmerCount; i++) {
+      if (Random.next() < 0.3) cottonProduced++;
+    }
+    cottonProduced = Math.floor(cottonProduced * productionMultiplier);
+
     const woodProduced = Math.floor(((workers[WorkerJob.WOODCUTTER] || 0) * 2) * productionMultiplier);
     const stoneProduced = Math.floor(((workers[WorkerJob.MINER] || 0) * 1) * productionMultiplier);
     
@@ -130,6 +139,11 @@ export class TownManagementSystem {
     }
     // 鐵礦也套用倍率
     ironProduced = Math.floor(ironProduced * productionMultiplier);
+    
+    // 獵人產出生皮與獸肉
+    const hunterCount = workers[WorkerJob.HUNTER] || 0;
+    const hideProduced = Math.floor((hunterCount * 1) * productionMultiplier);
+    const meatProduced = Math.floor((hunterCount * 1) * productionMultiplier);
 
     // 2. 消耗計算 (總人口每人耗 1 糧，英雄每人耗 1 糧)
     const totalPeople = territory.population + GameState.adventurers.length;
@@ -140,11 +154,16 @@ export class TownManagementSystem {
     foodConsumed += (workers[WorkerJob.ARCHER] || 0) * 1;
     foodConsumed += (workers[WorkerJob.CAVALRY] || 0) * 2; // 騎兵連馬一起吃
 
-    // 3. 結算
+    // 3. 結算基礎資源
     territory.wood += woodProduced;
     territory.stone += stoneProduced;
     territory.iron += ironProduced;
     territory.food += foodProduced - foodConsumed;
+    
+    // 結算額外貿易品
+    if (cottonProduced > 0) territory.tradeInventory['tg_cotton'] = (territory.tradeInventory['tg_cotton'] || 0) + cottonProduced;
+    if (hideProduced > 0) territory.tradeInventory['tg_hide'] = (territory.tradeInventory['tg_hide'] || 0) + hideProduced;
+    if (meatProduced > 0) territory.tradeInventory['tg_meat'] = (territory.tradeInventory['tg_meat'] || 0) + meatProduced;
 
     // 每日統一日結稅收 (依據爵位與人口，並套用稅率與治安倍率)
     const baseTaxPer10 = 2 + getTaxBonusPer10Pop(territory.title);

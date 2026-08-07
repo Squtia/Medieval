@@ -9,6 +9,7 @@ import { positionFloatingElement } from './FloatingPosition';
 import { PROSPERITY_THRESHOLDS, calculateNodeLevel } from '../data/BalanceData';
 import { ToastManager } from './ToastManager';
 import { resetExplorationControllerState } from './ExplorationController';
+import { InventoryUIController } from './components/InventoryUIController';
 
 class UIManagerClass {
   // 頂部資源列 — 延遲到 reinitDOM() 時才初始化，避免 template 注入前取得 null
@@ -22,6 +23,8 @@ class UIManagerClass {
   uiWood: HTMLElement | null = null;
   uiStone: HTMLElement | null = null;
   uiIron: HTMLElement | null = null; // UI-02: 補加鐵礦顯示
+  uiHide: HTMLElement | null = null;
+  uiCotton: HTMLElement | null = null;
   uiSecurity: HTMLElement | null = null;
 
   // 勞動力分配UI
@@ -77,14 +80,11 @@ class UIManagerClass {
     this.uiWood                = document.getElementById('ui-wood');
     this.uiStone               = document.getElementById('ui-stone');
     this.uiIron                = document.getElementById('ui-iron');
+    this.uiHide                = document.getElementById('ui-hide');
+    this.uiCotton              = document.getElementById('ui-cotton');
     this.uiSecurity            = document.getElementById('ui-security');
     this.uiUnassignedWorkers   = document.getElementById('ui-unassigned-workers');
-    this.uiWorkerFarmer        = document.getElementById('ui-worker-FARMER');
-    this.uiWorkerWoodcutter    = document.getElementById('ui-worker-WOODCUTTER');
-    this.uiWorkerMiner         = document.getElementById('ui-worker-MINER');
-    this.uiWorkerInfantry      = document.getElementById('ui-worker-INFANTRY');
-    this.uiWorkerCavalry       = document.getElementById('ui-worker-CAVALRY');
-    this.uiWorkerArcher        = document.getElementById('ui-worker-ARCHER');
+
     this.uiNetProduction       = document.getElementById('ui-net-production');
     this.uiDate                = document.getElementById('ui-date');
     this.uiThreatDays          = document.getElementById('ui-threat-days');
@@ -110,6 +110,9 @@ class UIManagerClass {
     this.statusPlaytime        = document.getElementById('status-playtime');
     this.infoFactions          = document.getElementById('info-factions');
     this.infoNodes             = document.getElementById('info-nodes');
+    
+    // 初始化全域倉庫 UI
+    new InventoryUIController(this);
   }
 
 
@@ -123,7 +126,7 @@ class UIManagerClass {
     };
     const titleCN = nobleTitleChinese[territory.title] ?? territory.title;
     // UI-11: 移除重複賍値（原代碼第 59~60 行重複了兩次）
-    this.uiTitle.textContent = `爵位：${titleCN}`;
+    if (this.uiTitle) this.uiTitle.textContent = `爵位：${titleCN}`;
     if (this.uiGold) this.uiGold.textContent = territory.gold.toString();
     if (this.uiPrestige) this.uiPrestige.textContent = territory.prestige.toString();
     if (this.uiFavor) this.uiFavor.textContent = territory.royalFavor.toString();
@@ -134,6 +137,8 @@ class UIManagerClass {
     if (this.uiWood) this.uiWood.textContent = territory.wood.toString();
     if (this.uiStone) this.uiStone.textContent = territory.stone.toString();
     if (this.uiIron) this.uiIron.textContent = (territory.iron || 0).toString(); // UI-02
+    if (this.uiHide) this.uiHide.textContent = (territory.tradeInventory && territory.tradeInventory['tg_hide'] || 0).toString();
+    if (this.uiCotton) this.uiCotton.textContent = (territory.tradeInventory && territory.tradeInventory['tg_cotton'] || 0).toString();
     
     // UI-03: 更新治安度並套用顏色提示
     if (this.uiSecurity) {
@@ -170,12 +175,12 @@ class UIManagerClass {
 
     // 更新勞動力面板
     if (this.uiUnassignedWorkers) this.uiUnassignedWorkers.textContent = (territory.workers['UNASSIGNED'] || 0).toString();
-    if (this.uiWorkerFarmer) this.uiWorkerFarmer.textContent = (territory.workers['FARMER'] || 0).toString();
-    if (this.uiWorkerWoodcutter) this.uiWorkerWoodcutter.textContent = (territory.workers['WOODCUTTER'] || 0).toString();
-    if (this.uiWorkerMiner) this.uiWorkerMiner.textContent = (territory.workers['MINER'] || 0).toString();
-    if (this.uiWorkerInfantry) this.uiWorkerInfantry.textContent = (territory.workers['INFANTRY'] || 0).toString();
-    if (this.uiWorkerCavalry) this.uiWorkerCavalry.textContent = (territory.workers['CAVALRY'] || 0).toString();
-    if (this.uiWorkerArcher) this.uiWorkerArcher.textContent = (territory.workers['ARCHER'] || 0).toString();
+    document.querySelectorAll<HTMLElement>('.ui-worker-count').forEach(el => {
+      const job = el.getAttribute('data-job');
+      if (job) {
+        el.textContent = (territory.workers[job] || 0).toString();
+      }
+    });
 
     // 動態更新哨所/衛兵卡片名稱
     const currentNode = GameState.mapSystem?.getNodes().find(n => n.id === territory.currentCountryId);
@@ -200,6 +205,8 @@ class UIManagerClass {
       const foodProduced = (territory.workers['FARMER'] || 0) * 3;
       const woodProduced = (territory.workers['WOODCUTTER'] || 0) * 2;
       const stoneProduced = (territory.workers['MINER'] || 0) * 1;
+      const ironProduced = Math.floor((territory.workers['MINER'] || 0) * 0.2);
+      const hideProduced = (territory.workers['HUNTER'] || 0) * 1;
 
       const totalPeople = territory.population + GameState.adventurers.length;
       let foodConsumed = totalPeople * 1;
@@ -208,7 +215,11 @@ class UIManagerClass {
       foodConsumed += (territory.workers['CAVALRY'] || 0) * 2;
       const netFood = foodProduced - foodConsumed;
       
-      this.uiNetProduction.innerHTML = `預期產量：🌾 ${netFood > 0 ? '+' : ''}${netFood} /天 ｜ 🪵 +${woodProduced} /天 ｜ 🪨 +${stoneProduced} /天`;
+      let prodText = `預期產量：🍞糧食 ${netFood > 0 ? '+' : ''}${netFood}/天 ｜ 🌲木材 +${woodProduced}/天 ｜ 🧱石材 +${stoneProduced}/天`;
+      if (ironProduced > 0) prodText += ` ｜ 🔗鐵礦 +${ironProduced}/天`;
+      if (hideProduced > 0) prodText += ` ｜ 🦬生皮 +${hideProduced}/天`;
+
+      this.uiNetProduction.innerHTML = prodText;
       this.uiNetProduction.style.color = netFood >= 0 ? '#10b981' : '#ef4444';
     }
   
@@ -365,20 +376,22 @@ class UIManagerClass {
           selectPartyAdventurer(adv);
           this.updateUI();
         });
-        this.advContainer.appendChild(card);
+        if (this.advContainer) this.advContainer.appendChild(card);
         if (adv.currentState !== AdventurerState.IDLE) allIdle = false;
       });
     }
   
     const isAtHome = GameState.currentViewNode?.isPlayerBase === true;
-    this.btnEnterBase.disabled = !isAtHome;
-    this.btnExplore.disabled = !isAtHome;
-    this.btnFeast.disabled = territory.gold < 300;
+    if (this.btnEnterBase) this.btnEnterBase.disabled = !isAtHome;
+    if (this.btnExplore) this.btnExplore.disabled = !isAtHome;
+    if (this.btnFeast) this.btnFeast.disabled = territory.gold < 300;
     if (this.btnMigrate) this.btnMigrate.disabled = territory.gold < 1000;
-    this.btnFoundSettlement.disabled = territory.gold < 500;
+    if (this.btnFoundSettlement) this.btnFoundSettlement.disabled = territory.gold < 500;
   
-    this.btnWildQuest.disabled = !allIdle;
-    this.btnWildQuest.textContent = !allIdle ? '🚫 傭兵忙碌中' : '⚔️ 編制討伐小隊';
+    if (this.btnWildQuest) {
+      this.btnWildQuest.disabled = !allIdle;
+      this.btnWildQuest.textContent = !allIdle ? '🚫 傭兵忙碌中' : '⚔️ 編制討伐小隊';
+    }
     
     // 更新待辦事項徽章
     const todoBadge = document.getElementById('todo-badge');
@@ -404,29 +417,35 @@ class UIManagerClass {
       if (sceneDashboard) sceneDashboard.style.display = 'none';
       
       const isNodeDetailOpen = nodeDetailPanel && nodeDetailPanel.style.display === 'flex';
-      if (isNodeDetailOpen) {
-        this.mapInfoPanel.style.display = 'none';
-      } else {
-        this.mapInfoPanel.style.display = 'flex';
+      if (this.mapInfoPanel) {
+        if (isNodeDetailOpen) {
+          this.mapInfoPanel.style.display = 'none';
+        } else {
+          this.mapInfoPanel.style.display = 'flex';
+        }
       }
-      this.mapStatusPanel.style.display = 'block';
+      if (this.mapStatusPanel) this.mapStatusPanel.style.display = 'block';
 
       // 傭兵隊伍功能：在大陸地圖時隱藏按鈕並關閉面板
       const btnDockParty = document.getElementById('btn-dock-party');
+      const btnDockInventory = document.getElementById('btn-dock-inventory');
       const modalPartyList = document.getElementById('modal-party-list');
+      const inventoryPanel = document.getElementById('inventory-panel');
       if (btnDockParty) btnDockParty.style.display = 'none';
+      if (btnDockInventory) btnDockInventory.style.display = 'none';
       if (modalPartyList) modalPartyList.classList.remove('active');
+      if (inventoryPanel) inventoryPanel.classList.remove('active');
 
       // 狀態
       const baseNode = GameState.mapSystem?.getNodes().find(n => n.id === territory.currentCountryId);
-      this.statusLocation.textContent = baseNode ? baseNode.name : '無';
-      this.statusAdvCount.textContent = GameState.adventurers.length.toString();
+      if (this.statusLocation) this.statusLocation.textContent = baseNode ? baseNode.name : '無';
+      if (this.statusAdvCount) this.statusAdvCount.textContent = GameState.adventurers.length.toString();
       const currentPlayTime = GameState.playTime + (Date.now() - GameState.sessionStartTime);
-      this.statusPlaytime.textContent = SaveManager.formatPlayTime(currentPlayTime);
+      if (this.statusPlaytime) this.statusPlaytime.textContent = SaveManager.formatPlayTime(currentPlayTime);
 
       // 世界資訊
-      this.infoFactions.textContent = GameState.mapSystem?.getFactions().length.toString() || '0';
-      this.infoNodes.textContent = GameState.mapSystem?.getNodes().length.toString() || '0';
+      if (this.infoFactions) this.infoFactions.textContent = GameState.mapSystem?.getFactions().length.toString() || '0';
+      if (this.infoNodes) this.infoNodes.textContent = GameState.mapSystem?.getNodes().length.toString() || '0';
 
       // 重新繪製活躍商隊商路連線
       if (typeof (window as any).renderTradeRoutes === 'function') {
@@ -435,18 +454,20 @@ class UIManagerClass {
     } else if (document.getElementById('scene-view')?.classList.contains('active')) {
       if (sharedRightPanel) sharedRightPanel.style.display = 'flex';
       if (sceneDashboard) sceneDashboard.style.display = 'flex';
-      this.mapInfoPanel.style.display = 'none';
-      this.mapStatusPanel.style.display = 'none';
+      if (this.mapInfoPanel) this.mapInfoPanel.style.display = 'none';
+      if (this.mapStatusPanel) this.mapStatusPanel.style.display = 'none';
       if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
 
       // 在據點街道視圖時顯示傭兵隊伍按鈕
       const btnDockParty = document.getElementById('btn-dock-party');
+      const btnDockInventory = document.getElementById('btn-dock-inventory');
       if (btnDockParty) btnDockParty.style.display = 'flex';
+      if (btnDockInventory) btnDockInventory.style.display = 'flex';
     } else {
       if (sharedRightPanel) sharedRightPanel.style.display = 'none';
       if (sceneDashboard) sceneDashboard.style.display = 'none';
-      this.mapInfoPanel.style.display = 'none';
-      this.mapStatusPanel.style.display = 'none';
+      if (this.mapInfoPanel) this.mapInfoPanel.style.display = 'none';
+      if (this.mapStatusPanel) this.mapStatusPanel.style.display = 'none';
       if (nodeDetailPanel) nodeDetailPanel.style.display = 'none';
     }
 
@@ -508,7 +529,6 @@ class UIManagerClass {
    */
   clearAllUIOverlays(): void {
     resetExplorationControllerState();
-    // 只操作 class，不碰 inline style —— CSS 已定義 .view { display:none } / .view.active { display:flex }
     document.querySelectorAll('.view:not(#main-menu-view), .facility-view, .modal-overlay, .side-panel-left, .side-panel-right').forEach(v => {
       v.classList.remove('active');
     });
@@ -531,6 +551,10 @@ class UIManagerClass {
 
     const commandCrest = document.getElementById('command-crest-container');
     if (commandCrest) commandCrest.style.display = 'none';
+  }
+
+  closeAllLeftPanels(): void {
+    document.querySelectorAll('.side-panel-left').forEach(el => el.classList.remove('active'));
   }
 
   // 播放黑屏轉場動畫

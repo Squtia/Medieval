@@ -1,4 +1,4 @@
-﻿    <!-- 其他獨立視圖 -->
+    <!-- 其他獨立視圖 -->
     <!-- 設施視圖：自宅 -->
     <div id="view-base" class="facility-view">
       <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">⬅ 返回街道</button>
@@ -16,21 +16,35 @@
           <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">🌾 農夫</div>
-              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-FARMER">0</span> 人</span>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span class="ui-worker-count" data-job="FARMER">0</span> 人</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
               <input type="range" class="worker-slider" data-job="FARMER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
               <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 2px 8px; font-size: 1.0em;">+</button>
             </div>
-            <div style="font-size: 0.8em; color: #94a3b8;">每人產出 3 糧食/天</div>
+            <div style="font-size: 0.8em; color: #94a3b8;">每人產出 3 糧食/天 (有機率產出棉麻)</div>
+          </div>
+          
+          <!-- 獵人 -->
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">🏹 獵人</div>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span class="ui-worker-count" data-job="HUNTER">0</span> 人</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <button class="action-btn btn-assign" data-job="HUNTER" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
+              <input type="range" class="worker-slider" data-job="HUNTER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
+              <button class="action-btn btn-assign" data-job="HUNTER" data-amount="1" style="padding: 2px 8px; font-size: 1.0em;">+</button>
+            </div>
+            <div style="font-size: 0.8em; color: #94a3b8;">每人產出 1 生皮、1 獸肉/天</div>
           </div>
  
           <!-- 伐木工 -->
           <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">🪓 伐木工</div>
-              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-WOODCUTTER">0</span> 人</span>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span class="ui-worker-count" data-job="WOODCUTTER">0</span> 人</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
@@ -44,7 +58,7 @@
           <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">⛏️ 礦工</div>
-              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-MINER">0</span> 人</span>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span class="ui-worker-count" data-job="MINER">0</span> 人</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
@@ -58,7 +72,7 @@
           <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div id="ui-worker-job-label-INFANTRY" style="font-size: 1.0em; font-weight: bold; white-space: nowrap;">🏰 哨所</div>
-              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span id="ui-worker-INFANTRY">0</span> 人</span>
+              <span style="font-size: 1.0em; font-weight: bold; color: #eab308;"><span class="ui-worker-count" data-job="INFANTRY">0</span> 人</span>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 8px; font-size: 1.0em;">-</button>
@@ -130,7 +144,7 @@
             <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #fca5a5;">🛡️ 步兵部隊</div>
-                <span style="font-size: 1.1em; font-weight: bold; color: #fca5a5;"><span id="ui-worker-INFANTRY">0</span> 人</span>
+                <span style="font-size: 1.1em; font-weight: bold; color: #fca5a5;"><span class="ui-worker-count" data-job="INFANTRY">0</span> 人</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
@@ -144,7 +158,7 @@
             <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #6ee7b7;">🏹 弓兵部隊</div>
-                <span style="font-size: 1.1em; font-weight: bold; color: #6ee7b7;"><span id="ui-worker-ARCHER">0</span> 人</span>
+                <span style="font-size: 1.1em; font-weight: bold; color: #6ee7b7;"><span class="ui-worker-count" data-job="ARCHER">0</span> 人</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <button class="action-btn btn-assign" data-job="ARCHER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
@@ -158,7 +172,7 @@
             <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.3);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #c084fc;">🐎 騎兵部隊</div>
-                <span style="font-size: 1.1em; font-weight: bold; color: #c084fc;"><span id="ui-worker-CAVALRY">0</span> 人</span>
+                <span style="font-size: 1.1em; font-weight: bold; color: #c084fc;"><span class="ui-worker-count" data-job="CAVALRY">0</span> 人</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
                 <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
@@ -313,10 +327,10 @@
       <!-- 5 大頁籤列 -->
       <div id="forge-tabs-bar" style="display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 4px;">
         <button id="btn-forge-tab-enhance" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(234,179,8,0.25); border: 1px solid rgba(234,179,8,0.5); color: #fbbf24;">🔨 裝備強化</button>
-        <button id="btn-forge-tab-craft" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">⚒️ 裝備鍛造</button>
-        <button id="btn-forge-tab-reforge" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; display: none;">♨️ 裝備重鑄</button>
+        <button id="btn-forge-tab-craft" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">⚒️ 裝備鍛造/重鑄</button>
         <button id="btn-forge-tab-enchant" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">💎 元素加工附魔</button>
-        <button id="btn-forge-tab-mats" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">🧲 素材與背包</button>
+        <button id="btn-forge-tab-smelt" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">♨️ 素材冶煉</button>
+        <button id="btn-forge-tab-disassemble" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">♻️ 裝備拆解</button>
       </div>
 
       <!-- 中央雙欄工作區 (半透明玻璃面板滿鋪，透出背景火爐) -->

@@ -90,6 +90,7 @@ export class Territory {
     this.workers = {
       'UNASSIGNED': 10,
       'FARMER': 0,
+      'HUNTER': 0,
       'WOODCUTTER': 0,
       'MINER': 0
     };

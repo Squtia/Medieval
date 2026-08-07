@@ -82,6 +82,7 @@ export function initGameState(options: NewGameOptions = {
   GameState.myTerritory.workers = {
     UNASSIGNED: startingResources.population,
     FARMER: 0,
+    HUNTER: 0,
     WOODCUTTER: 0,
     MINER: 0
   };

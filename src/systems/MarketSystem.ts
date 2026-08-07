@@ -3,7 +3,9 @@ import { Random } from '../core/Random';
 
 export const TRADE_GOODS: TradeGood[] = [
   { id: 'tg_wheat', name: '小麥', description: '基礎糧食，平原多產。', basePrice: 10, type: 'FOOD', icon: '🌾' },
+  { id: 'tg_cotton', name: '棉麻', description: '紡織基礎原料，平原多產。', basePrice: 15, type: 'MATERIAL', icon: '🌿' },
   { id: 'tg_meat', name: '獸肉', description: '高營養食物，森林與荒野多產。', basePrice: 20, type: 'FOOD', icon: '🥩' },
+  { id: 'tg_hide', name: '生皮', description: '未加工的獸皮，森林狩獵特產。', basePrice: 18, type: 'MATERIAL', icon: '🦬' },
   { id: 'tg_timber', name: '木材', description: '基礎建材，森林特產。', basePrice: 15, type: 'MATERIAL', icon: '🌲' },
   { id: 'tg_stone', name: '石材', description: '進階建材，山地特產。', basePrice: 20, type: 'MATERIAL', icon: '🧱' },
   { id: 'tg_iron', name: '鐵礦石', description: '金屬材料，火山與雪山常見。', basePrice: 30, type: 'MATERIAL', icon: '⛓️' },
@@ -28,8 +30,8 @@ export class MarketSystem {
     
     // OPT-05: 地形特產必定出現，其餘隨機補充至 3~5 種
     const TERRAIN_SPECIALTY: Partial<Record<string, string[]>> = {
-      PLAINS:        ['tg_wheat'],
-      FOREST:        ['tg_timber', 'tg_meat'],
+      PLAINS:        ['tg_wheat', 'tg_cotton'],
+      FOREST:        ['tg_timber', 'tg_meat', 'tg_hide'],
       SNOW_MOUNTAIN: ['tg_ice_crystal', 'tg_stone'],
       VOLCANO:       ['tg_obsidian', 'tg_iron'],
       DESERT:        ['tg_spice']
@@ -55,9 +57,11 @@ export class MarketSystem {
       if (node.terrain === TerrainType.VOLCANO && good.id === 'tg_obsidian') multiplier = 0.5;
       if (node.terrain === TerrainType.FOREST && good.id === 'tg_timber') multiplier = 0.5;
       if (node.terrain === TerrainType.PLAINS && good.id === 'tg_wheat') multiplier = 0.5;
+      if (node.terrain === TerrainType.PLAINS && good.id === 'tg_cotton') multiplier = 0.6;
       if (node.terrain === TerrainType.SNOW_MOUNTAIN && good.id === 'tg_stone') multiplier = 0.5;
       if (node.terrain === TerrainType.VOLCANO && good.id === 'tg_iron') multiplier = 0.6;
       if (node.terrain === TerrainType.FOREST && good.id === 'tg_meat') multiplier = 0.6;
+      if (node.terrain === TerrainType.FOREST && good.id === 'tg_hide') multiplier = 0.6;
 
       const baseValue = good.basePrice * multiplier;
       const fluctuation = 0.8 + Random.next() * 0.4; // 0.8 ~ 1.2
