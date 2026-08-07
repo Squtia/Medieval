@@ -1,0 +1,117 @@
+﻿
+  <!-- 共用右側欄位 -->
+  <div id="shared-right-panel" class="empire-dashboard glass-panel" style="display: none;">
+    <!-- 世界地圖資訊內容 -->
+    <div id="map-info-panel" style="display: none; flex-direction: column; height: 100%;">
+      <div style="padding: 20px;">
+        <h3 style="margin-top: 0; color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">🌍 世界資訊</h3>
+        <div style="font-size: 0.9em; line-height: 1.8;">
+          <div><span style="color: #94a3b8;">派系總數：</span><span id="info-factions" style="color: #fff;">4</span></div>
+          <div><span style="color: #94a3b8;">已知節點：</span><span id="info-nodes" style="color: #fff;">30</span></div>
+        </div>
+      </div>
+      
+      <div style="flex: 1; display: flex; flex-direction: column; padding: 0 20px; min-height: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <h4 style="margin: 0; color: #94a3b8;">近期動態</h4>
+          <button id="btn-combat-history" class="action-btn" style="padding: 3px 8px; font-size: 0.8em; background: rgba(234, 179, 8, 0.2); border-color: rgba(234, 179, 8, 0.5); color: #eab308;">📜 戰鬥紀錄</button>
+        </div>
+        <div id="map-log-container" style="flex: 1; min-height: 100px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.5); padding: 10px; font-size: 0.8em; border-radius: 4px; display: flex; flex-direction: column; gap: 5px;"></div>
+      </div>
+
+      <!-- 系統功能按鈕已移至頂部資源列及地圖懸浮位置 -->
+    </div>
+
+    <!-- 節點詳細資訊面板 (情報迷霧系統) -->
+    <div id="node-detail-panel" style="display: none; flex-direction: column; height: 100%;">
+      <div class="dashboard-header" style="padding: 20px; border-bottom: 1px solid rgba(139, 69, 19, 0.5);">
+        <button id="btn-close-node-detail" class="action-btn" style="position: absolute; right: 20px; top: 20px; padding: 5px 10px; font-size: 0.8em;">✖ 關閉</button>
+        <h2 id="nd-name" style="margin-right: 80px; font-size: 1.8em; color: #eab308;">節點名稱</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+          <p id="nd-type" style="color: #94a3b8; font-size: 0.9em; margin: 0;">類型與規模</p>
+          <p id="nd-weather" style="color: #60a5fa; font-size: 0.9em; margin: 0; font-weight: bold;">☀️ 晴朗 (剩餘 2 天)</p>
+        </div>
+      </div>
+      <div style="padding: 20px; flex: 1; overflow-y: auto;">
+        <p id="nd-desc" style="line-height: 1.6; margin-bottom: 20px; color: #cbd5e1;">節點描述</p>
+        
+        <div id="nd-scout-info" style="background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px; border: 1px solid rgba(139, 69, 19, 0.5); display: none;">
+          <h4 style="color: #f59e0b; margin-top: 0; margin-bottom: 10px;">👁️ 詳細情報</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+            <div style="color: #94a3b8;">危險評級：<span id="nd-danger" style="color: #ef4444; font-weight: bold;">-</span></div>
+            <div style="color: #94a3b8;">寶藏預期：<span id="nd-treasure" style="color: #3b82f6; font-weight: bold;">-</span></div>
+            <div id="nd-garrison-box" style="color: #94a3b8; grid-column: 1 / -1; display: none;">駐軍戰力：<span id="nd-garrison" style="color: #fff; font-weight: bold;">-</span></div>
+          </div>
+          <div style="margin-top: 10px; font-size: 0.8em; color: #64748b; text-align: right;">情報到期日：<span id="nd-expiry">-</span></div>
+        </div>
+        
+        <div id="nd-unscouted-info" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; text-align: center; border: 1px dashed #64748b; margin-top: 15px;">
+          <h4 style="color: #94a3b8; margin: 0 0 10px 0;">迷霧壟罩</h4>
+          <p style="font-size: 0.85em; color: #64748b; margin-bottom: 15px;">此區域的詳細資訊未知，充滿風險。派遣斥候以獲取情報。</p>
+          <button id="btn-scout-node" class="action-btn" style="padding: 10px 20px;">👁️ 派遣斥候 (花費 100 金幣)</button>
+        </div>
+      </div>
+      
+      <!-- 玩家附庸地：代官系統 -->
+      <div id="nd-governor-box" style="padding: 15px 20px; border-top: 1px solid rgba(139, 69, 19, 0.5); display: none; background: rgba(5, 150, 105, 0.1);">
+         <h4 style="color: #10b981; margin: 0 0 10px 0;">👑 領地代官</h4>
+         <p style="font-size: 0.9em; color: #cbd5e1; margin-bottom: 10px;">目前代官：<span id="nd-governor-name" style="font-weight: bold; color: #fff;">無</span></p>
+         <div style="display: flex; gap: 10px;">
+           <select id="nd-governor-select" style="flex: 1; padding: 5px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #10b981; border-radius: 4px;">
+             <option value="">選擇閒置傭兵...</option>
+           </select>
+           <button id="btn-assign-governor" class="action-btn" style="padding: 5px 15px; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981;">指派</button>
+         </div>
+      </div>
+      
+      <!-- 考量未來擴充：改用 Flex 排版，並預留下方 315px 空間避開史詩按鈕 -->
+      <div id="nd-action-container" style="padding: 20px; border-top: 1px solid rgba(139, 69, 19, 0.5); display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 315px;">
+         <button id="btn-build-road" class="action-btn" style="flex: 1 1 120px; padding: 15px; display: none; background: linear-gradient(135deg, #92400e, #78350f); border-color: #d97706;">🛤️ 建造道路</button>
+         <button id="nd-btn-market" class="action-btn" style="flex: 1 1 120px; padding: 15px; display: none; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981;">⚖️ 查看市場</button>
+         <button id="btn-nd-action" class="action-btn" style="flex: 1 1 120px; padding: 15px;">進行操作</button>
+      </div>
+    </div>
+
+    <!-- 據點儀表板內容 -->
+    <div id="scene-dashboard-content" style="display: none; flex-direction: column; height: 100%;">
+      <div class="dashboard-header">
+        <button id="btn-migrate" class="action-btn" style="position: absolute; right: 120px; top: 20px; padding: 5px 10px; font-size: 0.8em; display: none;">📦 遷移據點</button>
+        <h2 id="scene-country-name" style="margin-right: 180px; font-size: 1.8em;">赤炎帝國</h2>
+        <p id="scene-country-state" style="color: #94a3b8; font-size: 0.9em; margin-top: 5px;">規模：首都 | 繁榮</p>
+        
+        <!-- 領主爵位與資源 -->
+        <div class="lord-status" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(139, 69, 19, 0.5);">
+           <div style="display: flex; justify-content: space-between; align-items: center;">
+             <h3 id="ui-dashboard-title" style="color: #f59e0b;">爵位：男爵</h3>
+             <div style="display: flex; gap: 15px; font-size: 0.95em;">
+               <span data-tip="金幣">💰 <span id="ui-dashboard-gold">0</span></span>
+               <span data-tip="聲望">👑 <span id="ui-dashboard-prestige">0</span></span>
+             </div>
+           </div>
+           <button id="btn-promote-title" class="action-btn" style="display:none; width:100%; margin-top:8px; padding:6px 10px; background: linear-gradient(135deg, #d97706, #b45309); border-color: #f59e0b; box-shadow: 0 0 10px #f59e0b80;">🎉 舉辦晉升大典</button>
+         </div>
+         <div id="daily-summary" class="daily-summary" aria-live="polite">
+           <strong>📊 今日摘要</strong>
+           <div id="daily-summary-content">尚未結束第一天。</div>
+           <button id="btn-prepare-threat" class="action-btn" style="display:none; margin-top:8px; padding:6px 10px; width:100%;">🛡️ 防災準備（20 木材）</button>
+         </div>
+      </div>
+
+      <div class="dashboard-bottom" style="flex: 1; height: auto; position: relative; min-height: 0;">
+        <div class="log-header">
+          <h3 style="margin: 0; font-size: 1.2em;">📜 帝國日誌</h3>
+          <div class="log-tabs" id="log-tabs">
+            <button class="log-tab active" data-filter="all">全部</button>
+            <button class="log-tab" data-filter="system">系統</button>
+            <button class="log-tab" data-filter="combat">戰鬥</button>
+            <button class="log-tab" data-filter="domestic">內政</button>
+          </div>
+        </div>
+        <div id="game-log" data-filter="all" style="background: rgba(0,0,0,0.3); border: 1px inset rgba(139,69,19,0.5); padding: 10px; border-radius: 4px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); margin-bottom: 270px;"></div>
+      </div>
+
+
+    </div>
+    </div>
+  </div>
+

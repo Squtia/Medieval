@@ -105,7 +105,12 @@ export class MonsterSystem {
       pdef,
       mdef,
       evade,
-      calculatedPowerScore: powerScore
+      calculatedPowerScore: powerScore,
+      
+      // 動態戰利品配置
+      goldReward: Math.floor(powerScore * 1.5),
+      expReward: Math.floor(powerScore * 1.2),
+      equipmentDropRate: baseMonster.lootConfig ? baseMonster.lootConfig.equipmentDropRate : Math.min(0.15, powerScore * 0.001) // 預設 0.1% * score, 上限 15%
     };
   }
 
@@ -133,7 +138,7 @@ export class MonsterSystem {
       if (livingMonsters.length > 0) validMonsters = livingMonsters;
     }
 
-    // 龍族 (DRAGON) 一般怪物具備較低出現機率 (權重 0.25 vs 1.0)
+    // 2. 決定隊長與總戰力額度
     let selectedBase = validMonsters[0];
     const weights = validMonsters.map(m => m.race === MonsterRace.DRAGON ? 0.25 : 1.0);
     const totalWeight = weights.reduce((a, b) => a + b, 0);
@@ -146,38 +151,59 @@ export class MonsterSystem {
       }
     }
 
-    // 2. 決定種族標籤 (遵守單向隔離)
-    let appliedRaceTag: MonsterRace = selectedBase.race;
-    if (isNecroticTheme) {
-      // 亡靈據點：70% 概率套用 UNDEAD (若怪性相容)
-      if (selectedBase.compatibleRaces.includes(MonsterRace.UNDEAD) && Random.next() < 0.7) {
-        appliedRaceTag = MonsterRace.UNDEAD;
-      }
-    } else {
-      // 生靈據點：若相容有多個，排除 UNDEAD
-      const livingRaces = selectedBase.compatibleRaces.filter(r => r !== MonsterRace.UNDEAD);
-      appliedRaceTag = livingRaces.length > 0 ? Random.pick(livingRaces) : MonsterRace.MONSTER;
-    }
-
-    // 3. 決定元素
-    let element = selectedBase.defaultElement || ElementType.NONE;
-    if (element === ElementType.NONE && Random.next() < 0.3) {
-      // 30% 機率為無屬性怪染上環境元素
-      const elements = [ElementType.FIRE, ElementType.ICE, ElementType.LIGHTNING, ElementType.HOLY, ElementType.DARK];
-      element = Random.pick(elements);
-    }
-
-    // 4. 建立基礎成員實體
-    const baseInstance = this.createMonsterInstance(selectedBase, appliedRaceTag, element, baseDifficulty);
-
-    // 5. 決定隊伍數量 (1~5 隻)
     const targetScore = Math.max(10, baseDifficulty * 12);
-    const count = Math.max(1, Math.min(5, Math.round(targetScore / baseInstance.calculatedPowerScore)));
-
+    let currentScore = 0;
     const encounter: MonsterInstance[] = [];
-    for (let i = 0; i < count; i++) {
-      // 允許小隊內部成員微幅變異元素或種族 (維持隊伍沉浸感)
-      encounter.push({ ...baseInstance });
+    
+    // 定義抽出種族與元素的輔助函式
+    const rollRaceAndElement = (monsterBase: MonsterData) => {
+      let appliedRaceTag: MonsterRace = monsterBase.race;
+      if (isNecroticTheme) {
+        // 亡靈據點：70% 概率套用 UNDEAD (若怪性相容)
+        if (monsterBase.compatibleRaces.includes(MonsterRace.UNDEAD) && Random.next() < 0.7) {
+          appliedRaceTag = MonsterRace.UNDEAD;
+        }
+      } else {
+        // 生靈據點：若相容有多個，排除 UNDEAD
+        const livingRaces = monsterBase.compatibleRaces.filter(r => r !== MonsterRace.UNDEAD);
+        appliedRaceTag = livingRaces.length > 0 ? Random.pick(livingRaces) : MonsterRace.MONSTER;
+      }
+
+      let element = monsterBase.defaultElement || ElementType.NONE;
+      // 初期防呆：難度越高越容易出現元素變異 (baseDiff 2.0 開始出現，上限 40%)
+      const elementMutationChance = Math.max(0, Math.min(0.4, (baseDifficulty - 1.5) * 0.15));
+      if (element === ElementType.NONE && Random.next() < elementMutationChance) {
+        const elements = [ElementType.FIRE, ElementType.ICE, ElementType.LIGHTNING, ElementType.HOLY, ElementType.DARK];
+        element = Random.pick(elements);
+      }
+      return { appliedRaceTag, element };
+    };
+
+    // 3. 優先加入隊長
+    const leaderTags = rollRaceAndElement(selectedBase);
+    const leaderInstance = this.createMonsterInstance(selectedBase, leaderTags.appliedRaceTag, leaderTags.element, baseDifficulty);
+    encounter.push(leaderInstance);
+    currentScore += leaderInstance.calculatedPowerScore;
+
+    // 4. 混編抽取剩餘隊員 (最多 5 隻)
+    while (currentScore < targetScore * 0.9 && encounter.length < 5) {
+      // 隨機抽取一個符合過濾條件的怪物
+      const mixWeights = validMonsters.map(m => m.race === MonsterRace.DRAGON ? 0.25 : 1.0);
+      const mixTotalWeight = mixWeights.reduce((a, b) => a + b, 0);
+      let mixRand = Random.next() * mixTotalWeight;
+      let mixedBase = validMonsters[0];
+      for (let i = 0; i < validMonsters.length; i++) {
+        mixRand -= mixWeights[i];
+        if (mixRand <= 0) {
+          mixedBase = validMonsters[i];
+          break;
+        }
+      }
+
+      const mixTags = rollRaceAndElement(mixedBase);
+      const mixInstance = this.createMonsterInstance(mixedBase, mixTags.appliedRaceTag, mixTags.element, baseDifficulty);
+      encounter.push(mixInstance);
+      currentScore += mixInstance.calculatedPowerScore;
     }
 
     return encounter;

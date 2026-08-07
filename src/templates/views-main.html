@@ -1,0 +1,142 @@
+<!-- 主選單視圖 -->
+    <div id="main-menu-view" class="view active" style="justify-content: center; align-items: center; flex-direction: column; gap: 40px; background: rgba(0,0,0,0.6);">
+      <h1 style="font-size: 4em; text-shadow: 0 4px 15px rgba(0,0,0,0.9); color: #eab308; letter-spacing: 5px; margin: 0;">中古世紀傭兵團</h1>
+      <p style="color: #cbd5e1; font-size: 1.2em; max-width: 600px; text-align: center; margin-top: -20px;">
+        在戰火紛飛的大陸上，建立屬於您的據點，招募英雄，成為傳奇領主。
+      </p>
+        <button id="btn-enter-journey" class="action-btn" style="padding: 15px; font-size: 1.2em; font-weight: bold;">⚔️ 進入旅程</button>
+    </div>
+    
+    <!-- 起始選擇視圖 (棄用，改用地圖選擇) -->
+
+    <!-- 世界地圖視圖 -->
+    <div id="map-view" class="view" style="flex-direction: row; height: 100%; width: 100%;">
+      
+      <!-- 左側：地圖主體區塊 -->
+      <div style="flex: 1; height: 100%; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+
+        <!-- 左下角：目前狀態 -->
+        <div id="map-status-panel" class="glass-panel" style="position: absolute; bottom: 20px; left: 20px; padding: 20px; width: 280px; display: none; z-index: 100;">
+          <h3 style="margin-top: 0; color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">🛡️ 傭兵團狀態</h3>
+          <div style="font-size: 0.9em; line-height: 1.8;">
+            <div><span style="color: #94a3b8;">所在據點：</span><span id="status-location" style="color: #fff;">-</span></div>
+            <div><span style="color: #94a3b8;">傭兵總數：</span><span id="status-adv-count" style="color: #fff;">0</span></div>
+            <div><span style="color: #94a3b8;">遊玩時間：</span><span id="status-playtime" style="color: #fff;">0分 0秒</span></div>
+          </div>
+        </div>
+
+        <div id="exploration-control" class="glass-panel" style="position: absolute; top: 20px; left: 20px; padding: 14px; width: 250px; z-index: 110;">
+          <button id="btn-toggle-exploration" class="action-btn" style="width: 100%;">🧭 派遣斥候</button>
+          <div id="exploration-status" style="margin-top: 10px; color: #cbd5e1; font-size: 0.88em; line-height: 1.5;">
+            從已知區域邊界選擇探索目標。
+          </div>
+          <div id="world-progress-status" aria-live="polite" style="margin-top: 9px; padding-top: 9px; border-top: 1px solid rgba(255,255,255,0.15); color: #94a3b8; font-size: 0.78em; line-height: 1.5;">
+            已發現據點 1｜完成道路 0
+          </div>
+        </div>
+
+        <div id="startup-banner" style="position: fixed; top: 0; left: 0; width: 100%; height: 60px; display: none; justify-content: center; align-items: center; gap: 20px; z-index: 150; pointer-events: none; background: transparent;">
+          <h2 style="color: #eab308; margin: 0; font-size: 1.6em; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.9);">你要從哪裡開始你的旅程？</h2>
+          <p style="color: #cbd5e1; margin: 0; font-size: 1.1em; text-shadow: 0 1px 2px rgba(0,0,0,0.9);">請點擊地圖上的任意節點</p>
+        </div>
+
+        <!-- 節點由 JS 動態生成 -->
+        <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 1;">
+          <div id="map-nodes-container" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);"></div>
+          <div id="map-accessible-node-list" class="visually-hidden-map-list" aria-label="世界地圖節點"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 野外據點視圖 (Wilderness) -->
+    <div id="wilderness-view" class="view" style="padding: 40px; justify-content: center; align-items: center; flex-direction: column;">
+      <div class="glass-panel scene-header" style="width: 400px; padding: 40px;">
+        <h2 id="wild-name">哥布林森林</h2>
+        <p id="wild-desc" style="color: #94a3b8; margin: 15px 0;">到處都是狡猾的哥布林。</p>
+        <button id="btn-wild-quest" class="action-btn" style="width: 100%; margin-bottom: 10px;">⚔️ 派遣小隊討伐 (5秒)</button>
+        <button id="btn-found-settlement" class="action-btn" style="width: 100%; margin-bottom: 10px; display: none;">🏕️ 在此建立營地據點 (花費 500 金幣)</button>
+        <button id="btn-wild-back" class="action-btn" style="width: 100%;">返回世界地圖</button>
+        <div style="margin-top: 15px; border-top: 1px dashed #64748b; padding-top: 15px;">
+          <button id="nd-btn-scout" class="action-btn" style="width: 100%; margin-bottom: 10px;">👁️ 派遣斥候 (100金)</button>
+          <button id="nd-btn-action" class="action-btn" style="width: 100%; margin-bottom: 10px;">⚔️ 討伐/探索</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 國家場景視圖 (街道 & 儀表板) -->
+    <div id="scene-view" class="view">
+      <!-- 左側：橫向動態街景 (100%) -->
+      <div class="street-scroller-container" style="width: 100%;">
+        <!-- 背景圖片會由 JS 根據繁榮度動態更換 -->
+        <div id="street-parallax-bg" class="street-parallax-bg" style="background-image: url('./bg_street_prosperous_1784087131344.png');"></div>
+
+        <!-- C3: 繁榮度進度條 -->
+        <div id="prosperity-bar-container" style="
+          position: absolute;
+          top: 12px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: min(480px, 90%);
+          background: rgba(0,0,0,0.65);
+          border: 1px solid rgba(139,69,19,0.6);
+          border-radius: 8px;
+          padding: 8px 14px;
+          z-index: 50;
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          backdrop-filter: blur(4px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82em;">
+            <span id="prosperity-level-label" style="color: #f59e0b; font-weight: bold; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">🏕️ 營地</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="prosperity-danger-badge" style="display: none; color: #ef4444; font-size: 0.85em; animation: pulse 2s infinite;">⚠️ 受周邊危險影響</span>
+              <span id="prosperity-value-label" style="color: #cbd5e1; font-size: 0.9em;">0 / 40</span>
+            </div>
+          </div>
+          <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 8px; overflow: hidden;">
+            <div id="prosperity-bar-fill" style="
+              height: 100%;
+              width: 0%;
+              background: linear-gradient(90deg, #d97706, #fbbf24);
+              border-radius: 4px;
+              transition: width 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+            "></div>
+          </div>
+          <div id="prosperity-next-label" style="font-size: 0.75em; color: #94a3b8; text-align: right;">距升級還差 40 點繁榮度</div>
+        </div>
+        
+        <!-- 街道滾動遮罩 -->
+        <div id="street-scroll-area" class="street-scroll-area">
+          <div style="min-height: 100%; min-width: max-content; display: flex; justify-content: flex-start; align-items: flex-end; gap: 30px; padding: 0 50px 50px 50px; box-sizing: border-box;" id="street-buildings-wrapper">
+            <div id="btn-enter-hall" class="street-building" style="background-image: url('./bld_hall_1784087169726.png'); width: 260px; height: 260px; display: none;">
+              <div class="building-label">👑 謁見廳</div>
+            </div>
+            <div id="btn-enter-base" class="street-building" style="background-image: url('./bld_base_1784087181104.png'); width: 250px; height: 250px;">
+               <div class="building-label">🏠 領主自宅</div>
+            </div>
+            <div id="btn-enter-tavern" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); width: 220px; height: 220px; display: none;">
+               <div class="building-label">🍻 傭兵酒館</div>
+            </div>
+            <div id="btn-enter-weapon-shop" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(90deg) brightness(0.8); width: 220px; height: 220px; display: none;">
+               <div class="building-label">⚔️ 武器店</div>
+            </div>
+            <div id="btn-enter-armor-shop" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(240deg) brightness(0.8); width: 220px; height: 220px; display: none;">
+               <div class="building-label">🛡️ 防具店</div>
+            </div>
+            <div id="btn-enter-defense" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: sepia(1) hue-rotate(-50deg) saturate(2); width: 220px; height: 220px; display: none; cursor: default;">
+               <div class="building-label">🪵 木柵欄</div>
+            </div>
+            <div id="btn-enter-forge" class="street-building" style="background-image: url('./bld_camp_1784087193131.png'); filter: hue-rotate(180deg) brightness(0.8); width: 220px; height: 220px; display: none;"> 
+               <div class="building-label">⚒️ 鍛造屋</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 街道左右捲動指示箭頭 -->
+        <button id="street-arrow-left" class="street-nav-arrow arrow-left" style="display: none;" title="向左捲動">◀</button>
+        <button id="street-arrow-right" class="street-nav-arrow arrow-right" style="display: none;" title="向右捲動">▶</button>
+      </div>
+    </div>

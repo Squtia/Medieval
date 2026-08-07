@@ -27,11 +27,11 @@ export interface GameEventPayloads {
   [GameEventType.NODE_EXPLORED]: { nodeId: string; explorerId: string };
   [GameEventType.COMBAT_REQUESTED]: { attackerIds: string[]; targetId: string; taskType?: string; taskDifficulty?: number; enemyFeature?: string };
   [GameEventType.COMBAT_FINISHED]: { isVictory: boolean; participants: string[]; lootValue: number; battleLog: string; xpReward?: number; report?: import('../models/Combat').CombatReport };
-  [GameEventType.THREAT_ARRIVED]: { threatName: string; severity: number };
+  [GameEventType.THREAT_ARRIVED]: { threatName: string; threatType: import('../models/types').ThreatType; severity: number };
   [GameEventType.RESOURCE_CHANGED]: { resourceType: string; amount: number; currentTotal: number };
   [GameEventType.WORKER_ASSIGNED]: { job: string; currentCount: number; unassignedCount: number };
   [GameEventType.POPULATION_STARVED]: { starvedAmount: number; currentPopulation: number };
-  [GameEventType.THREAT_WARNING]: { threatName: string; daysRemaining: number; severity: number };
+  [GameEventType.THREAT_WARNING]: { threatName: string; threatType: import('../models/types').ThreatType; daysRemaining: number; severity: number };
   [GameEventType.GAME_EVENT_TRIGGERED]: { eventId: string; isExploration?: boolean };
   [GameEventType.MISSIONS_CHANGED]: {
     reason: 'DISPATCHED' | 'PROGRESSED' | 'COMPLETED' | 'LOADED';

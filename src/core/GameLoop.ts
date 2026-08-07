@@ -1,9 +1,9 @@
 import { GameState } from './GameState';
 import { SaveManager } from './SaveManager';
 import { AdventurerState, WorkerJob } from '../models/types';
-
 import { EventSystem } from '../systems/EventSystem';
 import { MarketSystem } from '../systems/MarketSystem';
+import { TavernSystem } from '../systems/TavernSystem';
 import { EventBus } from './EventBus';
 import { GameEventType } from './GameEvents';
 import { ToastManager } from '../ui/ToastManager';
@@ -73,6 +73,9 @@ export function advanceDay() {
   
   // 每日更新市場 (MarketSystem 內部會控制 7 天更新一次物價)
   MarketSystem.updateMarkets(GameState.mapSystem.getNodes(), GameState.totalDays);
+  
+  // 每日更新酒館旅客
+  TavernSystem.updateTavernGuests(GameState.myTerritory);
   
   // 滿 30 天換月
   let monthEnded = false;
@@ -251,7 +254,7 @@ function handleRandomInvasion() {
       // 戰力不敵，但哨所守衛與留守傭兵進行抵抗，獲得減傷
       idleAdvs.forEach(a => {
         a.currentState = AdventurerState.RESTING;
-        a.restingDaysLeft = 3;
+        a.restingDaysLeft = 4; // 原本是 3，依需求加上一回合(天)恢復時間
       });
 
       // 計算哨所涵蓋減傷率 (最高 80% 減傷)
@@ -259,7 +262,7 @@ function handleRandomInvasion() {
       
       let defeatMsg = `💀 敵襲！我方戰力 ${totalDefensePower} 不敵敵軍 ${enemyPower}。`;
       if (idleAdvs.length > 0) {
-        defeatMsg += '\n（所有留守傭兵受重傷，需休養 3 天）';
+        defeatMsg += '\n（所有留守傭兵受重傷，需休養 4 天）';
       }
       if (watchtowerTroops > 0 || security > 0) {
         defeatMsg += `\n🛡️ 哨所守衛誓死抵抗，成功保護了大部分物資！（洗劫損失降低 ${Math.round(mitigationRatio * 100)}%）`;

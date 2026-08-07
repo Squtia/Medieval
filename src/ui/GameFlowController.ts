@@ -52,21 +52,7 @@ export function initGameFlowController(rebindUIEvents: () => void): void {
     });
   }
 
-const btnDockCombatHistory = document.getElementById('btn-dock-combat-history');
-  if (btnDockCombatHistory) {
-    btnDockCombatHistory.addEventListener('click', () => {
-      const combatPanel = document.getElementById('combat-history-panel');
-      if (!combatPanel) return;
-      if (combatPanel.classList.contains('active')) {
-        combatPanel.classList.remove('active');
-      } else {
-        // 關閉其他兩個面板
-        partyModal()?.classList.remove('active');
-        DiplomacyController.close();
-        import('./ModalController').then(m => m.openCombatHistory());
-      }
-    });
-  }
+
 
   // 手動儲存與退出
   const btnManualSave = document.getElementById('btn-manual-save');
@@ -258,10 +244,17 @@ const btnDockCombatHistory = document.getElementById('btn-dock-combat-history');
       // 直接顯示每日結算面板，此時不黑屏，等待玩家確認
       showDailySummaryModal(() => {
         // 玩家確認結算後，才播放轉場動畫進入下一天
-        UIManager.playTransition(() => {
+        UIManager.playTransition(async () => {
           (window as any).isAdvancingDay = false;
           UIManager.updateUI();
           
+          // 若玩家正處於酒館畫面，轉場揭開時強制重繪酒館畫面
+          const viewCamp = document.getElementById('view-camp');
+          if (viewCamp && viewCamp.classList.contains('active')) {
+            const { renderTavernView } = await import('./RecruitController');
+            renderTavernView();
+          }
+
           // 轉場結束後，依序釋放佇列中的事件彈窗
           const queue = (window as any).eventQueue || [];
           if (queue.length > 0) {

@@ -22,7 +22,7 @@ export function initFacilityController(): void {
     const { renderOfficeBoard } = await import('./OfficeController');
     renderOfficeBoard();
   });
-  document.getElementById('btn-enter-tavern')?.addEventListener('click', () => {
+  document.getElementById('btn-enter-tavern')?.addEventListener('click', async () => {
     enterFacility('view-camp');
     const lvl = GameState.myTerritory.getBuildingLevel('tavern');
     const viewCamp = document.getElementById('view-camp');
@@ -42,6 +42,8 @@ export function initFacilityController(): void {
         }
       }
     }
+    const { renderTavernView } = await import('./RecruitController');
+    renderTavernView();
   });
   
   document.getElementById('btn-enter-weapon-shop')?.addEventListener('click', async () => {

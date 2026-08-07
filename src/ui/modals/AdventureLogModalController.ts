@@ -109,5 +109,40 @@ export class AdventureLogModalController {
         contentContainer.appendChild(btnWrapper);
       }
     });
+
+    // 渲染獎勵面板
+    if (log.rewards) {
+      const rewardsPanel = document.createElement('div');
+      rewardsPanel.style.marginTop = '40px';
+      rewardsPanel.style.padding = '15px';
+      rewardsPanel.style.background = 'rgba(0,0,0,0.4)';
+      rewardsPanel.style.border = '1px solid rgba(251, 191, 36, 0.3)';
+      rewardsPanel.style.borderRadius = '8px';
+      
+      let html = `<div style="color: #fbbf24; font-size: 1.1rem; margin-bottom: 10px; border-bottom: 1px solid rgba(251, 191, 36, 0.2); padding-bottom: 5px;">🎁 戰利品與收益</div>`;
+      html += `<div style="display: flex; gap: 15px; flex-wrap: wrap;">`;
+      if (log.rewards.gold > 0) {
+        html += `<span style="color: #facc15;">💰 金幣 +${log.rewards.gold}</span>`;
+      }
+      if (log.rewards.exp > 0) {
+        html += `<span style="color: #4ade80;">✨ 經驗值 +${log.rewards.exp}</span>`;
+      }
+      if (log.rewards.prestige > 0) {
+        html += `<span style="color: #a855f7;">👑 聲望 +${log.rewards.prestige}</span>`;
+      }
+      html += `</div>`;
+
+      if (log.rewards.items && log.rewards.items.length > 0) {
+        html += `<div style="margin-top: 10px; color: #cbd5e1; font-size: 0.95rem;">`;
+        html += `獲得裝備：<br/>`;
+        log.rewards.items.forEach(item => {
+          html += `<span style="display: inline-block; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; margin-right: 5px; margin-top: 5px; color: #bae6fd;">🗡️ ${item}</span>`;
+        });
+        html += `</div>`;
+      }
+      
+      rewardsPanel.innerHTML = html;
+      contentContainer.appendChild(rewardsPanel);
+    }
   }
 }

@@ -65,6 +65,13 @@ export enum NobleTitle {
 /**
  * 爵位設定檔，包含各項特權與晉升條件
  */
+export enum ThreatType {
+  NATURAL_DISASTER = 'NATURAL_DISASTER',
+  MONSTER_INVASION = 'MONSTER_INVASION',
+  BANDIT_RAID = 'BANDIT_RAID',
+  DISEASE = 'DISEASE'
+}
+
 export interface TitleConfig {
   title: NobleTitle;
   titleCN: string;
@@ -341,6 +348,7 @@ export interface FactionChampionInstance extends FactionChampion {
   race: MonsterRace;          // 設為 HUMAN
 }
 
+
 export enum TradeTreaty {
   NONE = 'NONE',
   BASIC = 'BASIC',     // 基礎通商條約 (含關稅)
@@ -455,6 +463,8 @@ export interface TraitConfig {
   name: string;
   xpModifier: number;          // 經驗值需求倍率 (例如 1.2 代表需要多 20% 經驗)
   statMultipliers: Partial<Attributes>; // 屬性百分比加成 (例如 { agi: 0.1 } 代表敏捷 +10%)
+  recruitmentModifier?: number; // 招募價格浮動係數 (例: 1.15)
+  recruitDialogue?: string;     // 專屬招募台詞
 }
 
 /**
@@ -558,6 +568,11 @@ export interface MonsterData {
   powerTier: number;                    // 基礎戰力係數
   defaultElement?: ElementType;         // 預設元素
   isBoss?: boolean;                     // 是否為 Boss
+  lootConfig?: {
+    goldBase: number;
+    expBase: number;
+    equipmentDropRate: number;
+  };
 }
 
 /**
@@ -573,6 +588,9 @@ export interface MonsterInstance extends MonsterData {
   evade: number;
   calculatedPowerScore: number;
   element: ElementType;                 // 戰鬥實體的最終元素
+  goldReward?: number;
+  expReward?: number;
+  equipmentDropRate?: number;
   appliedRaceTag: MonsterRace;          // 實體抽到的最終種族標籤
 }
 

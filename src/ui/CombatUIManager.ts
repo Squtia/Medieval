@@ -4,18 +4,19 @@ import { CombatReport, CombatEvent, CombatEventType, CombatParticipantState } fr
 import { FormationRow, TerrainType } from '../models/types';
 
 export class CombatUIManager {
-  private static modal = document.getElementById('combat-modal')!;
-  private static playerTeamContainer = document.getElementById('combat-player-team')!;
-  private static enemyTeamContainer = document.getElementById('combat-enemy-team')!;
-  private static logArea = document.getElementById('combat-log-area')!;
-  private static btnSkip = document.getElementById('btn-combat-skip')!;
-  private static btnClose = document.getElementById('btn-combat-close')!;
-  private static resultOverlay = document.getElementById('combat-result-overlay')!;
-  private static resultTitle = document.getElementById('combat-result-title')!;
-  private static resultDesc = document.getElementById('combat-result-desc')!;
-  private static btnResultClose = document.getElementById('btn-combat-result-close')!;
-  private static btnSpeed1x = document.getElementById('btn-combat-speed-1x')!;
-  private static btnSpeed2x = document.getElementById('btn-combat-speed-2x')!;
+  // DOM 引用：延遲到 init() 時才初始化，避免 template 尚未注入時取得 null
+  private static modal: HTMLElement;
+  private static playerTeamContainer: HTMLElement;
+  private static enemyTeamContainer: HTMLElement;
+  private static logArea: HTMLElement;
+  private static btnSkip: HTMLElement;
+  private static btnClose: HTMLElement;
+  private static resultOverlay: HTMLElement;
+  private static resultTitle: HTMLElement;
+  private static resultDesc: HTMLElement;
+  private static btnResultClose: HTMLElement;
+  private static btnSpeed1x: HTMLElement;
+  private static btnSpeed2x: HTMLElement;
   
   private static currentReport: CombatReport | null = null;
   private static playInterval: number | null = null;
@@ -26,12 +27,19 @@ export class CombatUIManager {
   private static isInitialized = false;
 
   public static init() {
-    // 戰鬥結束後不再自動播放，改由玩家主動從戰鬥紀錄開啟
-    // EventBus.getInstance().subscribe(GameEventType.COMBAT_FINISHED, (payload) => {
-    //   if (payload.report) {
-    //      this.showCombat(payload.report);
-    //   }
-    // });
+    // 在 templates 注入完成後，init() 被呼叫時才查詢 DOM
+    this.modal               = document.getElementById('combat-modal')!;
+    this.playerTeamContainer = document.getElementById('combat-player-team')!;
+    this.enemyTeamContainer  = document.getElementById('combat-enemy-team')!;
+    this.logArea             = document.getElementById('combat-log-area')!;
+    this.btnSkip             = document.getElementById('btn-combat-skip')!;
+    this.btnClose            = document.getElementById('btn-combat-close')!;
+    this.resultOverlay       = document.getElementById('combat-result-overlay')!;
+    this.resultTitle         = document.getElementById('combat-result-title')!;
+    this.resultDesc          = document.getElementById('combat-result-desc')!;
+    this.btnResultClose      = document.getElementById('btn-combat-result-close')!;
+    this.btnSpeed1x          = document.getElementById('btn-combat-speed-1x')!;
+    this.btnSpeed2x          = document.getElementById('btn-combat-speed-2x')!;
 
     if (!this.isInitialized) {
       this.btnSkip.addEventListener('click', () => this.skipPlayback());
@@ -42,6 +50,7 @@ export class CombatUIManager {
       this.isInitialized = true;
     }
   }
+
 
   public static replayCombat(report: CombatReport) {
     this.showCombat(report);
@@ -328,10 +337,19 @@ export class CombatUIManager {
     if (this.currentReport?.isVictory) {
       resultEl.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
       resultEl.style.borderColor = '#22c55e';
+      let lootText = `<div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; font-weight: bold;">`;
+      if (this.currentReport.totalEarnedGold) lootText += `<span style="color: #fbbf24;">💰 ${this.currentReport.totalEarnedGold}</span>`;
+      if (this.currentReport.totalEarnedExp) lootText += `<span style="color: #38bdf8;">✨ ${this.currentReport.totalEarnedExp}</span>`;
+      if (this.currentReport.lootValue && !this.currentReport.totalEarnedGold) lootText += `<span style="color: #fbbf24;">👑 聲望：${this.currentReport.lootValue}</span>`; // fallback
+      lootText += `</div>`;
+      if (this.currentReport.droppedEquipment && this.currentReport.droppedEquipment.length > 0) {
+         lootText += `<div style="margin-top: 5px; color: #a78bfa; font-size: 0.9em;">🗡️ 獲得裝備：${this.currentReport.droppedEquipment.join(', ')}</div>`;
+      }
+
       resultEl.innerHTML = `
         <h3 style="color: #4ade80; margin: 0 0 10px 0; font-size: 1.5em;">✅ 戰鬥勝利！</h3>
         <p style="margin: 0;">${this.currentReport.battleLog}</p>
-        <p style="margin: 10px 0 0 0; font-weight: bold; color: #fbbf24;">獲得戰利品 / 聲望：${this.currentReport.lootValue}</p>
+        ${lootText}
       `;
     } else {
       resultEl.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';

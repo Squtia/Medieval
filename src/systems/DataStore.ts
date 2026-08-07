@@ -68,13 +68,14 @@ export class DataStore {
   // 性格庫 (TraitDB)
   // ============================
   public static readonly TraitDB: Record<string, TraitConfig> = {
-    LOYAL: { id: 'LOYAL', name: '忠誠', xpModifier: 1.0, statMultipliers: { con: 0.1 } },
-    SCHOLAR: { id: 'SCHOLAR', name: '學者', xpModifier: 1.2, statMultipliers: { int: 0.2 } },
-    BRAVE: { id: 'BRAVE', name: '勇敢', xpModifier: 0.9, statMultipliers: { str: 0.15 } },
-    AGILE: { id: 'AGILE', name: '靈動', xpModifier: 1.0, statMultipliers: { agi: 0.15 } },
-    LUCKY: { id: 'LUCKY', name: '幸運兒', xpModifier: 1.0, statMultipliers: { luk: 0.3 } },
-    LAZY: { id: 'LAZY', name: '懶惰', xpModifier: 1.5, statMultipliers: { str: -0.1, agi: -0.1 } },
-    GUARDIAN: { id: 'GUARDIAN', name: '誓約守衛', xpModifier: 0.8, statMultipliers: { con: 0.3, str: 0.2, command: 0.5 } }
+    LOYAL: { id: 'LOYAL', name: '忠誠', xpModifier: 1.0, statMultipliers: { con: 0.1 }, recruitmentModifier: 0.9, recruitDialogue: '能夠為您效勞是我的榮幸！' },
+    SCHOLAR: { id: 'SCHOLAR', name: '學者', xpModifier: 1.2, statMultipliers: { int: 0.2 }, recruitmentModifier: 1.0, recruitDialogue: '知識就是力量，希望能在此派上用場。' },
+    BRAVE: { id: 'BRAVE', name: '勇敢', xpModifier: 0.9, statMultipliers: { str: 0.15 }, recruitmentModifier: 1.0, recruitDialogue: '又有怪物要討伐了嗎？算我一個！' },
+    AGILE: { id: 'AGILE', name: '靈動', xpModifier: 1.0, statMultipliers: { agi: 0.15 }, recruitmentModifier: 1.0, recruitDialogue: '沒人能跟得上我的腳步！' },
+    LUCKY: { id: 'LUCKY', name: '幸運兒', xpModifier: 1.0, statMultipliers: { luk: 0.3 }, recruitmentModifier: 1.0, recruitDialogue: '跟著我，保證能撿到好東西！' },
+    LAZY: { id: 'LAZY', name: '懶惰', xpModifier: 1.5, statMultipliers: { str: -0.1, agi: -0.1 }, recruitmentModifier: 0.8, recruitDialogue: '哈啊...如果可以的話，我想在酒館裡多睡一下...' },
+    GUARDIAN: { id: 'GUARDIAN', name: '誓約守衛', xpModifier: 0.8, statMultipliers: { con: 0.3, str: 0.2, command: 0.5 }, recruitmentModifier: 0.9, recruitDialogue: '我的盾牌將會化為守護您的鐵壁。' },
+    GREEDY: { id: 'GREEDY', name: '貪婪', xpModifier: 1.0, statMultipliers: { luk: 0.1 }, recruitmentModifier: 1.2, recruitDialogue: '要我賣命可以，得加錢！' }
   };
 
   /** 取得隨機性格 */

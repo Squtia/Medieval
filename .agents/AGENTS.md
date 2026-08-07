@@ -29,3 +29,31 @@
   - 🗺️ 涉及未來系統擴充 ➔ **強制預讀 [docs/FUTURE_DESIGN.md](file:///i:/gameproject/Medieval/docs/FUTURE_DESIGN.md)**
   - ⚖️ 涉及平衡性數據 ➔ **強制預讀 [docs/BALANCE_TEST_REPORT.md](file:///i:/gameproject/Medieval/docs/BALANCE_TEST_REPORT.md)**
 - **自動對齊稽核**：所有提案、計畫或代碼變更，必須 100% ผ่าน這 5 大權威文件的交叉比對，確保完全符合專案原創規範後方可交由使用者審閱。
+
+## 6. HTML 檔案保護規則 (HTML File Protection Rules)
+
+### index.html 守則（架構拆分後適用）
+- **禁止**對 `index.html` 使用 `Overwrite: true` 整塊替換
+- `index.html` 僅為 ~38 行的骨架，任何 UI 元素都應修改對應的 template 檔案
+- 修改前必須先用 `view_file` 確認 `index.html` 目前內容，確認它仍是骨架
+
+### Template 檔案對應表
+| 要修改的 UI 區塊 | 對應檔案 |
+|---|---|
+| 全域 CSS 樣式 | `style.css` |
+| top-bar, overlay, tooltip | `src/templates/ui-chrome.html` |
+| 主選單、地圖、野外、街道視圖 | `src/templates/views-main.html` |
+| 書房、謁見廳、酒館、商店、鍛造屋 | `src/templates/views-facility.html` |
+| 右側共用面板 | `src/templates/views-right-panel.html` |
+| 戰鬥 Modal、貿易 Modal | `src/templates/modals-combat-trade.html` |
+| 倉庫/新遊戲/載入/派遣/俘虜/系統/事件/待辦 | `src/templates/modals-game.html` |
+| 左側抽屜面板、HUD、每日結算 | `src/templates/panels-hud.html` |
+
+### Git 操作守則
+- **禁止**在未確認 commit hash 與 diff 的情況下執行 `git reset` 或 `git checkout` 來恢復 HTML 檔案
+- 每次修改 template 前，建議先 `git add` 備份當前狀態
+
+### 精確編輯守則
+- 修改任何 template 或 `style.css` 時，必須先用 `view_file` 確認 `StartLine` / `EndLine`
+- 優先使用 `multi_replace_file_content` 精確替換，避免大範圍整塊替換
+- 每個 template 檔案 < 400 行；若超過此限制，應考慮繼續拆分

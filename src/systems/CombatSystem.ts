@@ -1,4 +1,5 @@
 import { GameState } from '../core/GameState';
+import { EquipmentGenerator } from './EquipmentGenerator';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEffectType, StatusEffect, tryApplyStatus } from '../models/Combat';
 import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType, ElementType } from '../models/types';
 import { Random } from '../core/Random';
@@ -18,7 +19,8 @@ export class CombatSystem {
     troopAssignments?: Record<string, { type: string, count: number }>,
     enemyLineup?: import('../models/types').MonsterInstance[],
     formationId?: string,
-    gridMap?: Record<string, string>
+    gridMap?: Record<string, string>,
+    initialHpMpOverride?: { hp: Record<string, number>, mp: Record<string, number> }
   ): CombatReport {
     const events: CombatEvent[] = [];
     const playerTeam: CombatParticipant[] = [];
@@ -137,6 +139,16 @@ export class CombatSystem {
           });
         }
 
+        const attributes = adv.getEffectiveAttributes();
+        const maxMpBase = attributes?.spr ? attributes.spr * 5 : (stats.mp || 100);
+        let currentHp = stats.hp;
+        let currentMp = maxMpBase;
+        
+        if (initialHpMpOverride) {
+           if (initialHpMpOverride.hp[adv.id] !== undefined) currentHp = initialHpMpOverride.hp[adv.id];
+           if (initialHpMpOverride.mp[adv.id] !== undefined) currentMp = initialHpMpOverride.mp[adv.id];
+        }
+
         playerTeam.push({
           id: adv.id,
           name: adv.name,
@@ -145,8 +157,9 @@ export class CombatSystem {
           gridR: hasGrid ? gridR : undefined,
           gridC: hasGrid ? gridC : undefined,
           maxHp: stats.hp,
-          currentHp: stats.hp,
-          stats: { ...stats },
+          currentHp: currentHp,
+          stats: { ...stats, mp: currentMp },
+          attributes: attributes,
           statusEffects: [],
           shieldType: troop?.type,
           shieldMaxHp: troop?.count ? troop.count * 10 : 0, 
@@ -181,6 +194,9 @@ export class CombatSystem {
 
     let isVictory = false;
     let allWavesCleared = true;
+    let totalEarnedGold = 0;
+    let totalEarnedExp = 0;
+    const droppedEquipment: string[] = [];
 
     for (let wave = 1; wave <= totalWaves; wave++) {
       const enemyTeam: CombatParticipant[] = [];
@@ -233,7 +249,10 @@ export class CombatSystem {
             charm: 1, 
             command: 1 
           },
-          statusEffects: []
+          statusEffects: [],
+          goldReward: lineupMonster?.goldReward,
+          expReward: lineupMonster?.expReward,
+          equipmentDropRate: lineupMonster?.equipmentDropRate
         });
       }
 
@@ -487,6 +506,18 @@ export class CombatSystem {
         if (target.currentHp <= 0) {
           target.currentHp = 0;
           events.push({ type: CombatEventType.DEATH, targetName: target.name, text: `${target.name} 倒下了！` });
+
+          if (!target.isPlayer) {
+            totalEarnedGold += target.goldReward || 0;
+            totalEarnedExp += target.expReward || 0;
+            if (target.equipmentDropRate && Random.next() < target.equipmentDropRate) {
+              const equip = EquipmentGenerator.dropRandomEquipment(Math.max(5, Math.floor(currentWaveDiff / 2)));
+              if (equip) {
+                GameState.myTerritory.addEquipmentToWarehouse(equip);
+                droppedEquipment.push(equip.name);
+              }
+            }
+          }
         }
       }
       turn++;
@@ -511,10 +542,12 @@ export class CombatSystem {
     events.push({ type: CombatEventType.END, text: battleLog });
 
     const playerHpMap: Record<string, number> = {};
+    const playerMpMap: Record<string, number> = {};
     const shieldLoss: Record<string, Record<string, number>> = {};
     
     playerTeam.forEach(p => {
       playerHpMap[p.id] = p.currentHp;
+      playerMpMap[p.id] = p.stats.mp || 0;
       if (p.shieldType && p.shieldMaxHp !== undefined && p.shieldCurrentHp !== undefined) {
         const lostHp = p.shieldMaxHp - p.shieldCurrentHp;
         const lostTroops = Math.ceil(lostHp / 10);
@@ -544,15 +577,19 @@ export class CombatSystem {
     return {
       isVictory,
       participants: playerTeam.map(p => p.id),
-      lootValue: 0, // 由 DispatchSystem 負責發獎勵
+      lootValue: Math.floor(Math.random() * 50) + 50,
       events,
       playerHpMap,
+      playerMpMap,
       battleLog,
       initialStates,
       mvpName,
       totalDamageDealt,
       terrain,
-      shieldLoss
+      shieldLoss,
+      totalEarnedGold,
+      totalEarnedExp,
+      droppedEquipment
     };
   }
 

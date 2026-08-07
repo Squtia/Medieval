@@ -69,6 +69,9 @@ export class Territory {
   // 探險敘事日誌
   public adventureLogs: AdventureLogEntry[];
 
+  // 酒館流動客人
+  public tavernGuests: { adventurer: Adventurer, stayDaysLeft: number }[];
+
   // 治安與侵略
   public security: number = 100;
   public invasionCooldown: number = 0;
@@ -98,6 +101,7 @@ export class Territory {
     this.retiredStaff = [];        // 初始化退休名單
     this.tradeInventory = {};      // 初始化交易品庫存
     this.materials = {};           // 初始化鍛造素材與附魔石庫存
+    this.tavernGuests = [];        // 初始化酒館客滿狀態為空
     
     // 初始化建築等級與探索保底
     this.tavernLevel = 0;

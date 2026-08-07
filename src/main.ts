@@ -6,7 +6,6 @@ import { CombatUIManager } from './ui/CombatUIManager';
 import { renderMap, initMapInteraction } from './ui/MapController';
 import { openEventModal } from './ui/ModalController';
 import { GAME_EVENTS } from './data/EventData';
-import { EXPLORATION_EVENTS } from './data/NarrativeData';
 import { EventBus } from './core/EventBus';
 import { GameEventType } from './core/GameEvents';
 
@@ -17,16 +16,10 @@ import { initActionController } from './ui/ActionController';
 import { initRecruitController } from './ui/RecruitController';
 import { initCheatController } from './ui/CheatController';
 import { initExplorationController, refreshExplorationUI } from './ui/ExplorationController';
-
 import { initStreetScroller } from './ui/SceneController';
+import { loadAllTemplates } from './ui/TemplateLoader';
 
-// 1. 初始化日誌攔截
-const logContainer = document.getElementById('game-log');
-if (logContainer) {
-  initLogger(logContainer);
-}
-
-// 2. 全域 UI 事件訂閱
+// 全域 UI 事件訂閱
 export function rebindGlobalUIEvents() {
   EventBus.getInstance().subscribe(GameEventType.DAY_PASSED, () => {
     ToastManager.clearAll();
@@ -70,19 +63,42 @@ export function rebindGlobalUIEvents() {
   CombatUIManager.init();
 }
 
-// 3. 初始化遊戲資料與全域事件監聽
-initGameState();
-rebindGlobalUIEvents();
+// ── 主入口：先載入所有 HTML template，再初始化遊戲 ──
+async function bootstrap() {
+  // 1. 載入所有 HTML 片段到 #template-root
+  await loadAllTemplates();
 
-// 4. 初始化地圖互動事件
-initMapInteraction();
+  // 2. 重新初始化 UIManager 的 DOM 引用（template 注入後才查詢）
+  UIManager.reinitDOM();
 
-// 5. 初始化各個 UI Controller
-initMainMenuController(rebindGlobalUIEvents);
-initGameFlowController(rebindGlobalUIEvents);
-initFacilityController();
-initActionController();
-initRecruitController();
-initCheatController();
-initExplorationController();
-initStreetScroller();
+  // 3. 初始化日誌攔截（DOM 已就緒後才能取得 #game-log）
+  const logContainer = document.getElementById('game-log');
+  if (logContainer) {
+    initLogger(logContainer);
+  }
+
+  // 4. 初始化遊戲資料與全域事件監聽
+  initGameState();
+  rebindGlobalUIEvents();
+
+  // 5. 初始化地圖互動事件
+  initMapInteraction();
+
+  // 6. 初始化各個 UI Controller
+  initMainMenuController(rebindGlobalUIEvents);
+  initGameFlowController(rebindGlobalUIEvents);
+  initFacilityController();
+  initActionController();
+  initRecruitController();
+  initCheatController();
+  initExplorationController();
+  initStreetScroller();
+}
+
+
+bootstrap().catch(err => {
+  console.error('[main] 遊戲啟動失敗：', err);
+  document.body.innerHTML = `<div style="color:red;padding:40px;font-size:1.2em;">
+    ⚠️ 遊戲初始化失敗，請重新整理頁面。<br><small>${err?.message ?? err}</small>
+  </div>`;
+});

@@ -43,6 +43,11 @@ export interface CombatParticipant {
   isAdvanced?: boolean; // 轉職開關狀態
   cooldowns?: Record<string, number>; // 技能 CD 狀態
   element?: import('./types').ElementType; // 單位/武器攜帶的元素
+
+  // 動態戰利品 (供怪獸使用)
+  goldReward?: number;
+  expReward?: number;
+  equipmentDropRate?: number;
 }
 
 export enum CombatEventType {
@@ -102,6 +107,7 @@ export interface CombatReport {
   lootValue: number;
   events: CombatEvent[];
   playerHpMap: Record<string, number>; // 紀錄戰鬥結束後我方剩餘血量
+  playerMpMap?: Record<string, number>; // 紀錄戰鬥結束後我方剩餘魔力
   battleLog: string; // 最終簡短結果
   initialStates: CombatParticipantState[];
   mvpName?: string; // MVP 名稱
@@ -109,6 +115,11 @@ export interface CombatReport {
   terrain?: TerrainType; // 發生戰鬥的地形
   waveIndex?: number; // 用於進度討伐時標記波次
   shieldLoss?: Record<string, Record<string, number>>; // 記錄每個參與者損失的各兵種數量 { participantId: { INFANTRY: 50 } }
+
+  // 累加戰利品
+  totalEarnedGold?: number;
+  totalEarnedExp?: number;
+  droppedEquipment?: string[]; // 裝備 ID 或名稱
 }
 
 export interface CombatHistoryRecord {

@@ -18,7 +18,7 @@ export class ThreatSystem {
         threat.warningIssued = true;
         eventBus.publish({
           type: GameEventType.THREAT_WARNING,
-          payload: { threatName: threat.name, daysRemaining: threat.daysRemaining, severity: threat.severity }
+          payload: { threatName: threat.name, threatType: threat.type as any, daysRemaining: threat.daysRemaining, severity: threat.severity }
         });
       }
 
@@ -28,6 +28,7 @@ export class ThreatSystem {
           type: GameEventType.THREAT_ARRIVED,
           payload: {
             threatName: threat.name,
+            threatType: threat.type as any,
             severity: threat.severity
           }
         });

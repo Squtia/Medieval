@@ -27,7 +27,7 @@ export class TownManagementSystem {
       const territory = GameState.myTerritory;
       const threatName = payload.threatName || '';
       // 判定是否為天災（如暴風雪、旱災、蝗災、瘟疫）
-      const isNaturalDisaster = /雪|旱|災|蝗|疫|震/i.test(threatName);
+      const isNaturalDisaster = payload.threatType === 'NATURAL_DISASTER';
 
       let effectiveSeverity = payload.severity;
 

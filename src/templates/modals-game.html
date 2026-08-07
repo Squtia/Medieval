@@ -1,0 +1,332 @@
+  <!-- 傭兵詳細狀態 Modal -->
+
+  <div id="modal-adv-detail" class="modal-overlay">
+    <div class="glass-panel modal-content">
+      <button class="close-btn" id="btn-close-adv-detail">×</button>
+      <h2 id="adv-detail-name">傭兵名稱</h2>
+      <p id="adv-detail-desc" style="color: #94a3b8; margin-top: 5px;">Lv.1 見習騎士 | 忠誠</p>
+      
+      <div class="adv-detail-layout">
+        <div class="adv-detail-left">
+          <div class="adv-detail-avatar" id="adv-detail-avatar">🦸</div>
+          <div style="font-size: 0.9em; color: #cbd5e1;">綜合戰力</div>
+          <div style="font-size: 1.5em; font-weight: bold; color: #eab308;" id="adv-detail-power">100</div>
+          <div style="margin-top: 30px; border-top: 1px solid rgba(220,38,38,0.3); padding-top: 15px; text-align: center;">
+            <span style="color:#ef4444; font-size:0.85em; display:block; margin-bottom:5px;">⚠️ 此操作不可撤回，裝備將自動卸下</span>
+            <button id="btn-retire-adv" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #ef4444; color: white; width: 100%;">👴 永久退休轉任</button>
+          </div>
+        </div>
+        <div class="adv-detail-right">
+          <!-- 戰鬥數值 -->
+          <div class="stats-grid" id="adv-detail-stats">
+            <!-- JS 渲染 -->
+          </div>
+        </div>
+      </div>
+      
+      <h3 style="margin-top: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">裝備欄位</h3>
+      <div class="equip-grid" id="adv-detail-equips">
+        <!-- JS 渲染 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 倉庫與鍛造 Modal -->
+  <div id="modal-warehouse" class="modal-overlay">
+    <div class="glass-panel modal-content" style="width: min(880px, 94vw); display: flex; flex-direction: column; background: rgba(26, 22, 20, 0.95); border: 1px solid rgba(217, 119, 6, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+      <button class="close-btn" id="btn-close-warehouse">×</button>
+      <h2 id="warehouse-modal-title" style="text-align: center; color: #eab308; margin-bottom: 12px; font-family: Georgia, serif; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">🔨 領地鐵匠鋪與倉庫</h2>
+      
+      <!-- 6 大頁籤按鈕 (卡片風與簡潔按鈕組) -->
+      <div class="warehouse-tabs" style="display: flex; gap: 6px; margin-bottom: 15px; border-bottom: 1px solid rgba(217,119,6,0.25); padding-bottom: 10px; flex-wrap: wrap;">
+        <button id="tab-warehouse-equip" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); color: #fbbf24;">🛡️ 裝備強化</button>
+        <button id="tab-warehouse-craft" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">⚒️ 裝備鍛造</button>
+        <button id="tab-warehouse-reforge" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">♨️ 裝備重鑄</button>
+        <button id="tab-warehouse-enchant" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">💎 元素附魔</button>
+        <button id="tab-warehouse-mats" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">🧲 素材附魔石</button>
+        <button id="tab-warehouse-goods" class="action-btn" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.88em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">📦 交易品物資</button>
+      </div>
+
+      <!-- 1. 裝備強化分頁 -->
+      <div id="warehouse-equip-panel" style="display: block; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <!-- JS 渲染裝備卡片 -->
+        </div>
+      </div>
+
+      <!-- 2. 裝備鍛造分頁 -->
+      <div id="warehouse-craft-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-craft-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <!-- JS 渲染鍛造配方卡片 -->
+        </div>
+      </div>
+
+      <!-- 3. 裝備重鑄分頁 -->
+      <div id="warehouse-reforge-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-reforge-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+          <!-- JS 渲染重鑄配方卡片 -->
+        </div>
+      </div>
+
+      <!-- 4. 元素附魔分頁 -->
+      <div id="warehouse-enchant-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-enchant-container">
+          <!-- JS 渲染附魔控制面板 -->
+        </div>
+      </div>
+
+      <!-- 5. 素材與附魔石分頁 (緊湊型小卡片排版) -->
+      <div id="warehouse-mats-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-mats-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px;">
+          <!-- JS 渲染精簡素材卡片 -->
+        </div>
+      </div>
+
+      <!-- 6. 交易品物資分頁 (緊湊型小卡片排版) -->
+      <div id="warehouse-goods-panel" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="warehouse-goods-grid">
+          <!-- JS 渲染交易品內容 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自宅獨立總倉庫 Modal -->
+  <div id="modal-base-warehouse" class="modal-overlay">
+    <div class="glass-panel modal-content" style="width: min(880px, 94vw); display: flex; flex-direction: column; background: rgba(26, 22, 20, 0.95); border: 1px solid rgba(217, 119, 6, 0.4); box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+      <button class="close-btn" id="btn-close-base-warehouse">×</button>
+      <h2 style="text-align: center; color: #eab308; margin-bottom: 12px; font-family: Georgia, serif; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">📦 領主總倉庫</h2>
+      
+      <!-- 3 大專屬儲藏分頁按鈕 -->
+      <div style="display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 1px solid rgba(217,119,6,0.25); padding-bottom: 10px;">
+        <button id="tab-base-warehouse-equip" class="action-btn" style="flex: 1; padding: 10px; font-size: 0.9em; background: rgba(234,179,8,0.2); border: 1px solid rgba(234,179,8,0.4); color: #fbbf24;">🛡️ 儲備裝備</button>
+        <button id="tab-base-warehouse-mats" class="action-btn" style="flex: 1; padding: 10px; font-size: 0.9em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">🧲 素材與附魔石</button>
+        <button id="tab-base-warehouse-goods" class="action-btn" style="flex: 1; padding: 10px; font-size: 0.9em; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">📦 交易品物資</button>
+      </div>
+
+      <!-- 1. 儲備裝備分頁 (85px 正方形網格) -->
+      <div id="panel-base-warehouse-equip" style="display: block; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="grid-base-warehouse-equip" style="display: grid; grid-template-columns: repeat(auto-fill, 85px); gap: 10px; justify-content: start;">
+          <!-- JS 渲染 85px 正方形裝備方格 -->
+        </div>
+      </div>
+
+      <!-- 2. 素材與附魔石分頁 (85px 正方形網格) -->
+      <div id="panel-base-warehouse-mats" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="grid-base-warehouse-mats" style="display: grid; grid-template-columns: repeat(auto-fill, 85px); gap: 10px; justify-content: start;">
+          <!-- JS 渲染 85px 正方形素材方格 -->
+        </div>
+      </div>
+
+      <!-- 3. 交易品物資分頁 (85px 正方形網格) -->
+      <div id="panel-base-warehouse-goods" style="display: none; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+        <div id="grid-base-warehouse-goods" style="display: grid; grid-template-columns: repeat(auto-fill, 85px); gap: 10px; justify-content: start;">
+          <!-- JS 渲染 85px 正方形物資方格 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Roguelike 新旅程設定 -->
+  <div class="modal-overlay" id="modal-new-game">
+    <div class="modal-content" style="width: min(620px, 92vw);">
+      <h2 style="color: #eab308; margin-top: 0; text-align: center;">🧭 建立新旅程</h2>
+      <p style="color: #94a3b8; line-height: 1.6; text-align: center;">
+        難度決定開局據點與資源；世界種子決定玩家、勢力與聚落的位置。
+      </p>
+
+      <div id="new-game-difficulty-list" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 20px 0;"></div>
+
+      <div id="new-game-difficulty-detail" class="glass-panel" style="padding: 15px; margin-bottom: 18px; background: rgba(0,0,0,0.4);">
+        <strong id="new-game-difficulty-title" style="color: #3b82f6;">普通</strong>
+        <p id="new-game-difficulty-desc" style="color: #cbd5e1; line-height: 1.5; margin: 8px 0;"></p>
+        <div id="new-game-resources" style="color: #fbbf24; font-size: 0.9em;"></div>
+      </div>
+
+      <label for="new-game-seed" style="display: block; color: #cbd5e1; font-weight: bold; margin-bottom: 6px;">世界種子</label>
+      <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+        <input id="new-game-seed" type="text" maxlength="64" autocomplete="off"
+          style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid rgba(234,179,8,0.4); background: rgba(0,0,0,0.55); color: #fff;"
+          aria-describedby="new-game-seed-help">
+        <button id="btn-randomize-seed" class="action-btn" type="button" style="width: auto; padding: 8px 14px;">🎲 隨機</button>
+      </div>
+      <p id="new-game-seed-help" style="color: #64748b; font-size: 0.8em; margin-top: -12px;">
+        相同種子會重現相同的玩家位置與世界據點配置。
+      </p>
+
+      <div style="display: flex; gap: 10px; margin-top: 18px;">
+        <button id="btn-confirm-new-game" class="action-btn" style="flex: 1; padding: 12px; font-weight: bold;">⚔️ 開始旅程</button>
+        <button id="btn-close-new-game" class="action-btn" style="width: auto; background: rgba(255,255,255,0.1); padding: 12px 18px;">返回</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 載入/選擇存檔彈出視窗 -->
+  <div class="modal-overlay" id="modal-load-game">
+    <div class="modal-content" style="width: 500px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 id="modal-save-title" style="margin: 0;">選擇旅程</h2>
+        <button id="btn-close-load-game" class="action-btn" style="padding: 5px 15px;">關閉</button>
+      </div>
+      <div id="save-slots-container" style="display: flex; flex-direction: column; gap: 15px;">
+        <!-- 存檔欄位將由 JS 動態生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 派遣隊伍編制 Modal -->
+  <div class="modal-overlay" id="modal-dispatch-setup">
+    <div class="glass-panel modal-content" style="width: 950px; max-width: 95vw; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 25px;">
+      <button class="close-btn" id="btn-close-dispatch-setup">×</button>
+      <div style="flex-shrink: 0;">
+        <h2 style="text-align: center; color: #eab308; margin-top: 0; margin-bottom: 5px;" id="dispatch-setup-title">⚔️ 隊伍編制</h2>
+        <p style="text-align: center; color: #94a3b8; margin-top: 0; margin-bottom: 15px;" id="dispatch-setup-desc">選擇要派出的傭兵</p>
+      </div>
+      
+      <div style="display: flex; gap: 20px; align-items: stretch; flex: 1; min-height: 0;">
+        <!-- Left Column: Mercenaries Pool & Action -->
+        <div style="flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 15px; border: 1px solid rgba(255,255,255,0.05); min-height: 0;">
+          <div style="color: #cbd5e1; margin-bottom: 12px; font-weight: bold; font-size: 1.1em; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+            <span>⚔️ 可選傭兵</span>
+            <span style="font-size: 0.8em; color: #94a3b8; font-weight: normal;">(將卡片拖曳至右側)</span>
+          </div>
+          
+          <!-- Only this part has scrollbar, it shrinks as needed -->
+          <div style="flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; align-content: flex-start; background: rgba(0,0,0,0.3); border-radius: 6px; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);" id="dispatch-adv-list">
+            <!-- JS 動態生成可派遣名單 -->
+          </div>
+
+          <!-- Options & Confirm attached to the bottom of the left column -->
+          <div id="dispatch-subjugation-options" style="display: none !important; margin-top: 15px; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; flex-shrink: 0;">
+            <div style="color: #cbd5e1; margin-bottom: 10px; font-weight: bold; font-size: 0.95em;">⚔️ 討伐模式：</div>
+            <!-- 隱藏的 radio input，由卡片 JS 控制 -->
+            <input type="radio" name="subjugation-mode" value="SINGLE" id="radio-single" style="display:none">
+            <input type="radio" name="subjugation-mode" value="PROGRESS" id="radio-progress" style="display:none">
+            <div style="display: flex; gap: 8px;">
+              <div id="dispatch-mode-card-single" class="dispatch-mode-card" onclick="selectDispatchMode('SINGLE')" style="flex:1; cursor:pointer; border-radius:8px; border:2px solid rgba(100,116,139,0.4); background:rgba(255,255,255,0.03); padding:10px 8px; text-align:center; transition:all 0.2s;">
+                <div style="font-size:1.4em; margin-bottom:3px;">⚔️</div>
+                <div style="font-weight:bold; color:#e2e8f0; font-size:0.9em;">單次討伐</div>
+                <div style="color:#94a3b8; font-size:0.75em; margin-top:3px;">(1波)</div>
+              </div>
+              <div id="dispatch-mode-card-progress" class="dispatch-mode-card" onclick="selectDispatchMode('PROGRESS')" style="flex:1; cursor:pointer; border-radius:8px; border:2px solid rgba(100,116,139,0.4); background:rgba(255,255,255,0.03); padding:10px 8px; text-align:center; transition:all 0.2s;">
+                <div style="font-size:1.4em; margin-bottom:3px;">🔥</div>
+                <div style="font-weight:bold; color:#fbbf24; font-size:0.9em;">連續討伐</div>
+                <div style="color:#94a3b8; font-size:0.75em; margin-top:3px;">(3波)</div>
+              </div>
+            </div>
+            <div id="subjugation-mode-hint" style="margin-top: 8px; font-size: 0.8em; color: #94a3b8; line-height: 1.4; padding: 4px 6px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+              ↑ 請選擇討伐模式
+            </div>
+          </div>
+          
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px;">
+              <div>
+                <div style="color: #94a3b8; font-size: 0.85em; margin-bottom: 2px;">預估隊伍總戰力</div>
+                <div id="dispatch-total-power" style="color: #eab308; font-size: 1.5em; font-weight: bold; line-height: 1;">0</div>
+              </div>
+              <div style="background: rgba(234, 179, 8, 0.15); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(234, 179, 8, 0.3);">
+                <span style="color: #fbbf24; font-size: 0.85em; font-weight: bold;" id="dispatch-req-power">🎯 目標：-</span>
+              </div>
+            </div>
+            <div id="dispatch-risk-preview" style="margin-bottom: 12px; color: #cbd5e1; font-size: 0.85em; min-height: 36px; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 4px; border-left: 3px solid #3b82f6;">風險與獎勵將在選擇隊伍後顯示。</div>
+            <button id="btn-confirm-dispatch" class="action-btn" style="width: 100%; padding: 12px; font-size: 1.1em; font-weight: bold; letter-spacing: 2px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">🚀 確認出發</button>
+          </div>
+        </div>
+
+        <!-- Right Column: Formation & Grid -->
+        <div style="flex: 1; display: flex; flex-direction: column; padding: 15px; background: rgba(0,0,0,0.4); border: 1px solid rgba(234,179,8,0.3); border-radius: 8px; position: relative; box-shadow: inset 0 0 30px rgba(0,0,0,0.8); min-height: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid rgba(234,179,8,0.2); padding-bottom: 10px; flex-shrink: 0;">
+            <div style="color: #eab308; font-weight: bold; font-size: 1.1em; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">🛡️ 出戰陣型與隊伍</div>
+            <select id="dispatch-formation-select" style="background: #1e293b; color: #ebdcb6; border: 1px solid #8b4513; padding: 4px 8px; border-radius: 4px; font-family: 'Inter', sans-serif; cursor: pointer; outline: none; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-weight: bold; font-size: 0.9em;">
+              <!-- JS 動態產生選項 -->
+            </select>
+          </div>
+          
+          <div id="dispatch-formation-desc" style="flex-shrink: 0; color: #e2e8f0; font-size: 0.85em; margin-bottom: 15px; text-align: center; min-height: 24px; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1);">
+            <!-- 陣型描述 -->
+          </div>
+          
+          <!-- 3x3 戰術板 (Centered) -->
+          <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative; min-height: 0; overflow-y: auto;">
+            <div id="dispatch-team-grid" style="display: grid; grid-template-columns: repeat(3, 90px); grid-template-rows: repeat(3, 105px); gap: 10px; justify-content: center; position: relative; z-index: 2; margin: auto;">
+              <!-- JS 動態生成 9 個格子 -->
+            </div>
+          </div>
+          
+          <!-- 預設隊伍按鈕區塊 -->
+          <div style="display: flex; gap: 8px; justify-content: center; margin-top: 15px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;" id="preset-buttons-container">
+            <button class="action-btn btn-preset" data-preset="0" style="padding: 4px 10px; font-size: 0.85em; background: rgba(255,255,255,0.1); border-radius: 4px;">隊伍 1</button>
+            <button class="action-btn btn-preset" data-preset="1" style="padding: 4px 10px; font-size: 0.85em; background: rgba(255,255,255,0.1); border-radius: 4px;">隊伍 2</button>
+            <button class="action-btn btn-preset" data-preset="2" style="padding: 4px 10px; font-size: 0.85em; background: rgba(255,255,255,0.1); border-radius: 4px;">隊伍 3</button>
+            <button class="action-btn btn-preset" data-preset="3" style="padding: 4px 10px; font-size: 0.85em; background: rgba(255,255,255,0.1); border-radius: 4px;">隊伍 4</button>
+            <button class="action-btn btn-preset" data-preset="4" style="padding: 4px 10px; font-size: 0.85em; background: rgba(255,255,255,0.1); border-radius: 4px;">隊伍 5</button>
+            <button id="btn-save-preset" class="action-btn" style="padding: 4px 10px; font-size: 0.85em; background: rgba(59,130,246,0.4); border-color: #3b82f6; border-radius: 4px; box-shadow: 0 0 10px rgba(59,130,246,0.3);">💾 儲存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 戰後俘虜處置 Modal -->
+  <div class="modal-overlay" id="modal-prisoner-action">
+    <div class="glass-panel modal-content" style="width: 520px; text-align: center;">
+      <h2 style="color: #fbbf24; margin-top: 0; font-family: 'Cinzel', serif;">⚔️ 戰後俘虜處置</h2>
+      <p style="color: #cbd5e1; font-size: 0.9em; margin-bottom: 15px;">在戰鬥中，您俘獲了敵方的武將大將：</p>
+      
+      <div id="prisoner-info-card" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(234,179,8,0.3); border-radius: 8px; padding: 15px; margin-bottom: 20px; text-align: left; display: flex; gap: 15px; align-items: center;">
+        <div id="prisoner-avatar" style="font-size: 3em; line-height: 1;">👑</div>
+        <div style="flex: 1;">
+          <div style="font-size: 1.2em; font-weight: bold; color: #fbbf24;" id="prisoner-name">武將姓名</div>
+          <div style="font-size: 0.85em; color: #94a3b8;" id="prisoner-title">【稱號】 派系名稱</div>
+          <div style="font-size: 0.85em; color: #e2e8f0; margin-top: 6px;" id="prisoner-desc">背景故事說明...</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+        <button id="btn-prisoner-recruit" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857); border-color: #10b981; padding: 12px;">🤝 招降加入</button>
+        <button id="btn-prisoner-ransom" class="action-btn" style="background: linear-gradient(135deg, #d97706, #b45309); border-color: #f59e0b; padding: 12px;">💰 索取贖金</button>
+        <button id="btn-prisoner-execute" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #ef4444; padding: 12px;">⚰️ 處決武將</button>
+        <button id="btn-prisoner-release" class="action-btn" style="background: rgba(255,255,255,0.1); border-color: #cbd5e1; padding: 12px;">🔓 釋放武將</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 系統選單 Modal -->
+  <div class="modal-overlay" id="modal-system-menu">
+    <div class="glass-panel modal-content" style="width: 320px; text-align: center; padding: 30px 20px; display: flex; flex-direction: column; gap: 15px; border-radius: 8px;">
+      <button class="close-btn" id="btn-close-system-menu">×</button>
+      <h2 style="color: #eab308; margin-top: 0; margin-bottom: 5px; font-family: 'Cinzel', serif;">📜 系統選單</h2>
+      <p style="color: #cbd5e1; font-size: 0.9em; margin-bottom: 10px;">請選擇您要執行的系統操作</p>
+      <button id="btn-manual-save" class="action-btn" style="width: 100%; padding: 12px 15px; background: linear-gradient(135deg, #059669, #047857); border-color: #10b981; color: white; display: block;">💾 儲存目前進度</button>
+      <button id="btn-exit-game" class="action-btn" style="width: 100%; padding: 12px 15px; background: linear-gradient(135deg, #b91c1c, #991b1b); border-color: #dc2626; color: white; display: block;">🚪 儲存並退出遊戲</button>
+      <button id="btn-cancel-system-menu" class="action-btn" style="width: 100%; padding: 10px 15px; background: rgba(255, 255, 255, 0.1); border-color: #cbd5e1; color: white; display: block;">❌ 關閉選單</button>
+    </div>
+  </div>
+  
+  <!-- 事件抉擇彈窗 -->
+  <div class="modal-overlay" id="modal-event">
+    <div class="glass-panel modal-content" style="width: 500px;">
+      <h2 id="event-title" style="color: #fbbf24; margin-top: 0; font-family: 'Cinzel', serif;">事件標題</h2>
+      <p id="event-desc" style="color: #e2e8f0; line-height: 1.6; margin-bottom: 20px;">事件描述...</p>
+      <div id="event-options" style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- 按鈕動態生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 待辦事項清單 Modal -->
+  <div class="modal-overlay" id="modal-todo">
+    <div class="glass-panel modal-content" style="width: 600px;">
+      <button class="close-btn" id="btn-close-todo">×</button>
+      <h2 style="text-align: center; color: #eab308; margin-top: 0;">📝 待辦事項</h2>
+      <p style="text-align: center; color: #94a3b8; margin-top: 5px;">領地內累積的日常事務與陳情，請在此處理。</p>
+      
+      <div id="todo-list-container" style="margin-top: 20px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
+        <!-- JS 動態生成待辦事項卡片 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 戰鬥紀錄 左側抽屜面板 -->

@@ -11,60 +11,108 @@ import { ToastManager } from './ToastManager';
 import { resetExplorationControllerState } from './ExplorationController';
 
 class UIManagerClass {
-  // 頂部資源列
-  uiLocation = document.getElementById('ui-location')!;
-  uiTitle = document.getElementById('ui-title')!;
-  uiGold = document.getElementById('ui-gold');
-  uiPrestige = document.getElementById('ui-prestige');
-  uiFavor = document.getElementById('ui-favor');
-  uiPopulation = document.getElementById('ui-population');
-  uiFood = document.getElementById('ui-food');
-  uiWood = document.getElementById('ui-wood');
-  uiStone = document.getElementById('ui-stone');
-  uiIron = document.getElementById('ui-iron'); // UI-02: 補加鐵礦顯示
-  uiSecurity = document.getElementById('ui-security');
+  // 頂部資源列 — 延遲到 reinitDOM() 時才初始化，避免 template 注入前取得 null
+  uiLocation: HTMLElement | null = null;
+  uiTitle: HTMLElement | null = null;
+  uiGold: HTMLElement | null = null;
+  uiPrestige: HTMLElement | null = null;
+  uiFavor: HTMLElement | null = null;
+  uiPopulation: HTMLElement | null = null;
+  uiFood: HTMLElement | null = null;
+  uiWood: HTMLElement | null = null;
+  uiStone: HTMLElement | null = null;
+  uiIron: HTMLElement | null = null; // UI-02: 補加鐵礦顯示
+  uiSecurity: HTMLElement | null = null;
 
   // 勞動力分配UI
-  uiUnassignedWorkers = document.getElementById('ui-unassigned-workers');
-  uiWorkerFarmer = document.getElementById('ui-worker-FARMER');
-  uiWorkerWoodcutter = document.getElementById('ui-worker-WOODCUTTER');
-  uiWorkerMiner = document.getElementById('ui-worker-MINER');
-  uiWorkerInfantry = document.getElementById('ui-worker-INFANTRY');
-  uiWorkerCavalry = document.getElementById('ui-worker-CAVALRY');
-  uiWorkerArcher = document.getElementById('ui-worker-ARCHER');
-  uiNetProduction = document.getElementById('ui-net-production');
-  uiDate = document.getElementById('ui-date');
-  uiThreatDays = document.getElementById('ui-threat-days');
-  dailySummaryContent = document.getElementById('daily-summary-content');
-  btnPrepareThreat = document.getElementById('btn-prepare-threat') as HTMLButtonElement;
+  uiUnassignedWorkers: HTMLElement | null = null;
+  uiWorkerFarmer: HTMLElement | null = null;
+  uiWorkerWoodcutter: HTMLElement | null = null;
+  uiWorkerMiner: HTMLElement | null = null;
+  uiWorkerInfantry: HTMLElement | null = null;
+  uiWorkerCavalry: HTMLElement | null = null;
+  uiWorkerArcher: HTMLElement | null = null;
+  uiNetProduction: HTMLElement | null = null;
+  uiDate: HTMLElement | null = null;
+  uiThreatDays: HTMLElement | null = null;
+  dailySummaryContent: HTMLElement | null = null;
+  btnPrepareThreat: HTMLButtonElement | null = null;
 
   // 儀表板與環境控制
-  uiDashboardTitle = document.getElementById('ui-dashboard-title');
-  uiDashboardGold = document.getElementById('ui-dashboard-gold');
-  uiDashboardPrestige = document.getElementById('ui-dashboard-prestige');
-  uiDashboardFavor = document.getElementById('ui-dashboard-favor');
-  uiTitleProgress = document.getElementById('ui-title-progress');
-  uiTitleText = document.getElementById('ui-title-text');
+  uiDashboardTitle: HTMLElement | null = null;
+  uiDashboardGold: HTMLElement | null = null;
+  uiDashboardPrestige: HTMLElement | null = null;
+  uiDashboardFavor: HTMLElement | null = null;
+  uiTitleProgress: HTMLElement | null = null;
+  uiTitleText: HTMLElement | null = null;
   
-    advContainer = (document.getElementById('party-modal-container') || document.getElementById('adventurer-container'))!;
+  advContainer: HTMLElement | null = null;
 
   // 國家按鈕
-  btnMigrate = document.getElementById('btn-migrate') as HTMLButtonElement;
-  btnExplore = document.getElementById('btn-explore') as HTMLButtonElement;
-  btnFeast = document.getElementById('btn-feast') as HTMLButtonElement;
-  btnRecruit = document.getElementById('btn-recruit') as HTMLButtonElement;
-  btnFoundSettlement = document.getElementById('btn-found-settlement') as HTMLButtonElement;
-  btnWildQuest = document.getElementById('btn-wild-quest') as HTMLButtonElement;
-  btnEnterBase = document.getElementById('btn-enter-base') as HTMLButtonElement;
+  btnMigrate: HTMLButtonElement | null = null;
+  btnExplore: HTMLButtonElement | null = null;
+  btnFeast: HTMLButtonElement | null = null;
+  btnFoundSettlement: HTMLButtonElement | null = null;
+  btnWildQuest: HTMLButtonElement | null = null;
+  btnEnterBase: HTMLButtonElement | null = null;
 
   // 地圖面板
-  mapInfoPanel = document.getElementById('map-info-panel')!;
-  mapStatusPanel = document.getElementById('map-status-panel')!;
-  statusLocation = document.getElementById('status-location')!;
-  statusAdvCount = document.getElementById('status-adv-count')!;
-  statusPlaytime = document.getElementById('status-playtime')!;
-  infoFactions = document.getElementById('info-factions')!;
-  infoNodes = document.getElementById('info-nodes')!;
+  mapInfoPanel: HTMLElement | null = null;
+  mapStatusPanel: HTMLElement | null = null;
+  statusLocation: HTMLElement | null = null;
+  statusAdvCount: HTMLElement | null = null;
+  statusPlaytime: HTMLElement | null = null;
+  infoFactions: HTMLElement | null = null;
+  infoNodes: HTMLElement | null = null;
+
+  /** 在所有 HTML template 注入完成後呼叫，重新綁定所有 DOM 引用 */
+  reinitDOM() {
+    this.uiLocation            = document.getElementById('ui-location');
+    this.uiTitle               = document.getElementById('ui-title');
+    this.uiGold                = document.getElementById('ui-gold');
+    this.uiPrestige            = document.getElementById('ui-prestige');
+    this.uiFavor               = document.getElementById('ui-favor');
+    this.uiPopulation          = document.getElementById('ui-population');
+    this.uiFood                = document.getElementById('ui-food');
+    this.uiWood                = document.getElementById('ui-wood');
+    this.uiStone               = document.getElementById('ui-stone');
+    this.uiIron                = document.getElementById('ui-iron');
+    this.uiSecurity            = document.getElementById('ui-security');
+    this.uiUnassignedWorkers   = document.getElementById('ui-unassigned-workers');
+    this.uiWorkerFarmer        = document.getElementById('ui-worker-FARMER');
+    this.uiWorkerWoodcutter    = document.getElementById('ui-worker-WOODCUTTER');
+    this.uiWorkerMiner         = document.getElementById('ui-worker-MINER');
+    this.uiWorkerInfantry      = document.getElementById('ui-worker-INFANTRY');
+    this.uiWorkerCavalry       = document.getElementById('ui-worker-CAVALRY');
+    this.uiWorkerArcher        = document.getElementById('ui-worker-ARCHER');
+    this.uiNetProduction       = document.getElementById('ui-net-production');
+    this.uiDate                = document.getElementById('ui-date');
+    this.uiThreatDays          = document.getElementById('ui-threat-days');
+    this.dailySummaryContent   = document.getElementById('daily-summary-content');
+    this.btnPrepareThreat      = document.getElementById('btn-prepare-threat') as HTMLButtonElement;
+    this.uiDashboardTitle      = document.getElementById('ui-dashboard-title');
+    this.uiDashboardGold       = document.getElementById('ui-dashboard-gold');
+    this.uiDashboardPrestige   = document.getElementById('ui-dashboard-prestige');
+    this.uiDashboardFavor      = document.getElementById('ui-dashboard-favor');
+    this.uiTitleProgress       = document.getElementById('ui-title-progress');
+    this.uiTitleText           = document.getElementById('ui-title-text');
+    this.advContainer          = (document.getElementById('party-modal-container') || document.getElementById('adventurer-container'));
+    this.btnMigrate            = document.getElementById('btn-migrate') as HTMLButtonElement;
+    this.btnExplore            = document.getElementById('btn-explore') as HTMLButtonElement;
+    this.btnFeast              = document.getElementById('btn-feast') as HTMLButtonElement;
+    this.btnFoundSettlement    = document.getElementById('btn-found-settlement') as HTMLButtonElement;
+    this.btnWildQuest          = document.getElementById('btn-wild-quest') as HTMLButtonElement;
+    this.btnEnterBase          = document.getElementById('btn-enter-base') as HTMLButtonElement;
+    this.mapInfoPanel          = document.getElementById('map-info-panel');
+    this.mapStatusPanel        = document.getElementById('map-status-panel');
+    this.statusLocation        = document.getElementById('status-location');
+    this.statusAdvCount        = document.getElementById('status-adv-count');
+    this.statusPlaytime        = document.getElementById('status-playtime');
+    this.infoFactions          = document.getElementById('info-factions');
+    this.infoNodes             = document.getElementById('info-nodes');
+  }
+
+
 
   updateUI() {
     const territory = GameState.myTerritory;
@@ -326,8 +374,7 @@ class UIManagerClass {
     this.btnEnterBase.disabled = !isAtHome;
     this.btnExplore.disabled = !isAtHome;
     this.btnFeast.disabled = territory.gold < 300;
-    this.btnRecruit.disabled = territory.gold < 500;
-    this.btnMigrate.disabled = territory.gold < 1000;
+    if (this.btnMigrate) this.btnMigrate.disabled = territory.gold < 1000;
     this.btnFoundSettlement.disabled = territory.gold < 500;
   
     this.btnWildQuest.disabled = !allIdle;

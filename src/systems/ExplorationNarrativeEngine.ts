@@ -1,7 +1,7 @@
 import { GameState } from '../core/GameState';
 import { Random } from '../core/Random';
 import { Adventurer } from '../models/Adventurer';
-import { AdventureLogEntry, AdventureLogSegment, SegmentType } from '../models/AdventureLog';
+import { AdventureLogEntry, AdventureLogSegment, SegmentType, AdventureLogRewards } from '../models/AdventureLog';
 import { EXPLORATION_EVENTS, getRandomNarrativePool } from '../data/NarrativeData';
 import { CombatSystem } from './CombatSystem';
 import { EnemyFeature, SubjugationMode, TaskType } from '../models/DispatchTask';
@@ -18,11 +18,11 @@ export class ExplorationNarrativeEngine {
    * 討伐敘事引擎入口
    * 專門處理節點討伐的敘事化日誌生成與底層戰鬥結算
    */
-  public static generateSubjugationLog(adventurers: Adventurer[], node: MapNode, baseDiff: number, enemyFeature: EnemyFeature): void {
+  public static generateSubjugationLog(adventurers: Adventurer[], node: MapNode, baseDiff: number, enemyFeature: EnemyFeature): boolean {
     const territory = GameState.myTerritory;
     const segments: AdventureLogSegment[] = [];
     
-    if (adventurers.length === 0) return;
+    if (adventurers.length === 0) return false;
     const leader = adventurers[0];
 
     // 1. 出發描述
@@ -33,52 +33,101 @@ export class ExplorationNarrativeEngine {
     ];
     segments.push({ type: 'TEXT', content: Random.pick(startTexts) });
 
-    // 2. 隨機事件 (過渡用，採用 EXPLORATION_EVENTS 庫)
-    if (EXPLORATION_EVENTS.length > 0 && Random.next() > 0.3) {
-      const event = Random.pick(EXPLORATION_EVENTS);
-      segments.push({ type: 'TEXT', content: event.introText });
+    let currentHpOverrides: Record<string, number> = {};
+    let currentMpOverrides: Record<string, number> = {};
+    
+    const maxSteps = Random.int(2, 3);
+    let overallVictory = true;
+    
+    let totalGold = 0;
+    let totalExp = 0;
+    let totalPrestige = 0;
+    let totalItems: string[] = [];
 
-      let matchedBranch = event.branches.find(b => 
-        b.targetTraits.some(t => leader.trait?.id === t)
-      );
+    // 2. 順序探索流 (節點推進)
+    for (let step = 1; step <= maxSteps; step++) {
+      // 30% 事件, 70% 戰鬥 (最後一步必定是戰鬥)
+      const isEvent = (step < maxSteps) && (Random.next() < 0.3);
       
-      if (!matchedBranch) {
-        matchedBranch = event.defaultBranch;
+      if (isEvent && EXPLORATION_EVENTS.length > 0) {
+        const event = Random.pick(EXPLORATION_EVENTS);
+        segments.push({ type: 'TEXT', content: event.introText });
+
+        let matchedBranch = event.branches.find(b => 
+          b.targetTraits.some(t => leader.trait?.id === t)
+        );
+        
+        if (!matchedBranch) {
+          matchedBranch = event.defaultBranch;
+        }
+
+        segments.push({ type: 'TEXT', content: matchedBranch.narrativeText });
+        matchedBranch.onResolve();
+      } else {
+        if (step === 1 && !isEvent) {
+          const encounterTexts = [
+            `剛進入目標區域，隊伍就遭到敵人的伏擊！`,
+            `路途不平靜，一隊魔物擋住了去路！`
+          ];
+          segments.push({ type: 'TEXT', content: Random.pick(encounterTexts) });
+        } else if (step === maxSteps) {
+          segments.push({ type: 'TEXT', content: `隊伍終於抵達了核心區域，與駐紮在此的主力部隊發生了激戰！` });
+        } else {
+          segments.push({ type: 'TEXT', content: `繼續推進時，又遭遇了另一波敵軍的阻撓。` });
+        }
+
+        const combatResult = this.runCombat(adventurers, node, baseDiff, enemyFeature, 1, currentHpOverrides, currentMpOverrides);
+        
+        if (combatResult && combatResult.combatId) {
+          segments.push({ type: 'COMBAT_LINK', content: combatResult.combatId });
+          
+          if (combatResult.rewards) {
+             totalGold += combatResult.rewards.gold;
+             totalExp += combatResult.rewards.exp;
+             totalPrestige += combatResult.rewards.prestige;
+             if (combatResult.rewards.items) {
+               totalItems.push(...combatResult.rewards.items);
+             }
+          }
+          
+          if (combatResult.playerHpMap) currentHpOverrides = combatResult.playerHpMap;
+          if (combatResult.playerMpMap) currentMpOverrides = combatResult.playerMpMap;
+          
+          if (!combatResult.isVictory) {
+             overallVictory = false;
+             segments.push({ type: 'TEXT', content: `隊伍傷亡慘重，${leader.name} 下令立刻撤退，討伐任務宣告失敗...` });
+             break; // 戰敗立即中斷
+          }
+        }
       }
-
-      segments.push({ type: 'TEXT', content: matchedBranch.narrativeText });
-      matchedBranch.onResolve();
     }
 
-    // 3. 抵達與遭遇描述
-    const encounterTexts = [
-      `經過跋涉，隊伍終於抵達了目標區域，並與駐紮在此的怪物發生了激戰！`,
-      `抵達 ${node.name} 後，敵人立刻發起了猛烈的攻勢！`,
-      `${leader.name} 揮舞著武器，一聲令下，隊伍與 ${node.name} 的敵軍展開了對決。`,
-    ];
-    segments.push({ type: 'TEXT', content: Random.pick(encounterTexts) });
-
-    // 4. 進行主戰鬥
-    const combatId = this.runCombat(adventurers, node, baseDiff, enemyFeature);
-    if (combatId) {
-      segments.push({ type: 'COMBAT_LINK', content: combatId });
+    if (overallVictory) {
+      const returnTexts = [
+        `討伐任務圓滿完成，${leader.name} 帶領隊伍稍作休整，帶著戰利品踏上歸途。`,
+        `雖然經歷了連番激戰，但隊伍成功肅清了敵人，凱旋而歸。`,
+      ];
+      segments.push({ type: 'TEXT', content: Random.pick(returnTexts) });
+      
+      // 清除據點 (若為動態節點)
+      if (node.isDynamic && GameState.mapSystem) {
+         GameState.mapSystem.removeDynamicNode(node.id);
+      }
     }
 
-    // 5. 歸途描述
-    const returnTexts = [
-      `戰鬥結束後，${leader.name} 帶領隊伍稍作休整，帶著戰利品踏上歸途。`,
-      `雖然經歷了激烈的戰鬥，但隊伍完成了討伐任務，凱旋而歸。`,
-      `清理完戰場後，隊員們互相攙扶著，朝著據點的方向返回。`,
-    ];
-    segments.push({ type: 'TEXT', content: Random.pick(returnTexts) });
-
-    // 6. 寫入日誌
+    // 寫入日誌
     const entry: AdventureLogEntry = {
       id: "log_" + Date.now().toString(36) + Math.random().toString(36).substring(2, 6),
       day: GameState.totalDays,
       squadLeaderName: leader.name,
       nodeName: node.name,
-      segments
+      segments,
+      rewards: {
+        gold: totalGold,
+        exp: totalExp,
+        prestige: totalPrestige,
+        items: totalItems
+      }
     };
 
     territory.addAdventureLog(entry);
@@ -87,9 +136,19 @@ export class ExplorationNarrativeEngine {
       type: GameEventType.GAME_EVENT_TRIGGERED,
       payload: { eventId: entry.id, isExploration: false }
     });
+    
+    return overallVictory;
   }
 
-  private static runCombat(adventurers: Adventurer[], node: MapNode, baseDiff: number, feature: EnemyFeature): string | null {
+  private static runCombat(
+    adventurers: Adventurer[], 
+    node: MapNode, 
+    baseDiff: number, 
+    feature: EnemyFeature, 
+    waves: number = 1,
+    initialHpMap?: Record<string, number>,
+    initialMpMap?: Record<string, number>
+  ): { combatId: string; rewards?: AdventureLogRewards; isVictory: boolean; playerHpMap?: Record<string, number>; playerMpMap?: Record<string, number> } | null {
     let enemyLineup = undefined;
     if (monsterSystem) {
       enemyLineup = (node.scoutData?.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0)
@@ -97,14 +156,19 @@ export class ExplorationNarrativeEngine {
         : monsterSystem.generateNodeEncounter(node);
     }
     
+    const initialHpMpOverride = (initialHpMap || initialMpMap) ? { hp: initialHpMap || {}, mp: initialMpMap || {} } : undefined;
+
     const finalReport = CombatSystem.simulateCombat(
       adventurers.map(a => a.id),
       baseDiff,
       feature,
       node.terrain,
-      1,
+      waves,
       undefined,
-      enemyLineup
+      enemyLineup,
+      undefined,
+      undefined,
+      initialHpMpOverride
     );
 
     const combatId = "combat_" + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
@@ -115,16 +179,18 @@ export class ExplorationNarrativeEngine {
       report: finalReport
     });
 
+    let rewards: AdventureLogRewards | undefined;
+
     if (finalReport.isVictory) {
-      // 1. 金幣與聲望
-      const expectedGold = 100 + node.nodeLevel * 50;
+      // 1. 取得底層累積的金幣與經驗
+      const expectedGold = finalReport.totalEarnedGold || 0;
       const expectedPrestige = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
       
       GameState.myTerritory.addGold(expectedGold);
       GameState.myTerritory.prestige += expectedPrestige;
 
       // 2. 經驗值與 restedExpPool 處理
-      let heroXpReward = Math.max(10, expectedPrestige * 2);
+      let heroXpReward = finalReport.totalEarnedExp || 0;
       if (GameState.restedExpPool > 0) {
          const bonus = Math.min(GameState.restedExpPool, heroXpReward);
          GameState.restedExpPool -= bonus;
@@ -134,21 +200,23 @@ export class ExplorationNarrativeEngine {
         adv.gainXP(heroXpReward);
       }
 
-      // 3. 裝備掉落
-      if (Random.next() * 100 <= baseDiff + 20) {
-        const maxLevel = Math.max(5, Math.floor(baseDiff / 2));
-        const droppedEq = EquipmentGenerator.dropRandomEquipment(maxLevel);
-        if (droppedEq) {
-          GameState.myTerritory.addEquipmentToWarehouse(droppedEq);
-        }
-      }
+      // 3. 取得戰場中掉落的裝備名稱 (已在 CombatSystem 中入庫)
+      const droppedItems: string[] = finalReport.droppedEquipment || [];
 
-      // 4. 清除據點 (若為動態節點)
-      if (node.isDynamic && GameState.mapSystem) {
-         GameState.mapSystem.removeDynamicNode(node.id);
-      }
+      rewards = {
+        gold: expectedGold,
+        prestige: expectedPrestige,
+        exp: heroXpReward,
+        items: droppedItems
+      };
     }
 
-    return combatId;
+    return { 
+      combatId, 
+      rewards, 
+      isVictory: finalReport.isVictory,
+      playerHpMap: finalReport.playerHpMap,
+      playerMpMap: finalReport.playerMpMap
+    };
   }
 }

@@ -44,8 +44,17 @@
 │   │   ├── BalanceData.ts   # 全域平衡性常數配置
 │   │   ├── DifficultyData.ts# 遊戲難度設定與補正參數
 │   │   ├── NarrativeData.ts # 敘事文本池與探險事件定義\n│   │   └── SkillData.ts     # 技能與特效資料庫
+│   ├── templates/           # [HTML 分頁模板] 防止大型 index.html 誤改
+│   │   ├── ui-chrome.html   # top-bar, overlay, tooltip
+│   │   ├── views-main.html  # 主選單, 地圖, 野外, 街道視圖
+│   │   ├── views-facility.html # 書房, 謁見廳, 酒館, 商店, 鍛造屋
+│   │   ├── views-right-panel.html # 右側共用領地面板
+│   │   ├── modals-combat-trade.html # 戰鬥 Modal, 貿易跑商 Modal
+│   │   ├── modals-game.html # 倉庫, 新遊戲, 載入, 派遣, 俘虜, 系統選單, 事件, 待辦 Modal
+│   │   └── panels-hud.html  # 左側抽屜面板 (戰鬥紀錄/外交/隊伍) & 右下角史詩圓鈕
 │   ├── ui/                  # DOM UI、Phaser Scene、呈現資料與獨立 UI Controllers
-│   │   ├── modals/                # [Phase 4] 獨立的彈窗面版控制器 (Facade 拆分)
+│   │   ├── TemplateLoader.ts # [核心] 動態 HTML 模板載入器
+│   │   ├── modals/          # [Phase 4] 獨立的彈窗面版控制器 (Facade 拆分)
 │   │   │   ├── DispatchModalController.ts  # 派遣/出征設定面板
 │   │   │   ├── NodeDetailModalController.ts# 節點詳細資訊與圓形選單
 │   │   │   ├── PartyModalController.ts     # 傭兵陣容與屬性詳細面板
@@ -54,10 +63,12 @@
 │   │   │   ├── TodoModalController.ts      # 待辦事項清單
 │   │   │   ├── PrisonerModalController.ts  # 戰後俘虜處置
 │   │   │   └── CombatHistoryModalController.ts # 戰鬥歷程紀錄
-│   │   ├── components/            # 共用 UI 元件\n│   │   │   ├── ForgeUIController.ts# 鐵匠舖與倉庫獨立控制器
+│   │   ├── components/            # 共用 UI 元件
+│   │   │   ├── ForgeUIController.ts# 鐵匠舖與倉庫獨立控制器
 │   │   │   └── AdventurerCard.ts  # 傭兵卡片渲染邏輯
 │   │   ├── PhaserManager.ts       # [Lazy Chunk] Phaser 引擎初始化與地圖繪製隔離模組
 │   │   ├── ShopController.ts      # [Lazy Chunk] 武器店與防具店介面控制 (Facade)
+
 │   │   ├── TradeController.ts     # [Lazy Chunk] 跑商路線規劃與交易介面控制 (備註維護註記)
 │   │   ├── RecruitController.ts   # 傭兵酒館招募與動態卡片邏輯
 │   │   ├── MainMenuController.ts  # 主選單與存檔欄位渲染

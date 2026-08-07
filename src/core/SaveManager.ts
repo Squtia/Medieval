@@ -13,7 +13,7 @@ import { calendarToTotalDays } from './Calendar';
 import { CURRENT_SAVE_SCHEMA_VERSION, migrateSaveData } from './SaveMigration';
 import { ExplorationSystem } from '../systems/ExplorationSystem';
 import { RoadSystem } from '../systems/RoadSystem';
-import { getTitleConfig } from '../models/types';
+import { getTitleConfig, ThreatType } from '../models/types';
 import { MapGenerator } from '../systems/MapGenerator';
 import { GameDifficulty } from '../models/WorldGeneration';
 
@@ -169,6 +169,20 @@ export class SaveManager {
       // 1. 還原 Territory
       const t = new Territory(data.territory.name, data.territory.currentCountryId);
       Object.assign(t, data.territory);
+      
+      // 確保酒館的客人中的 Adventurer 是正確的類別實例
+      if (t.tavernGuests && Array.isArray(t.tavernGuests)) {
+        t.tavernGuests = t.tavernGuests.map((guest: any) => {
+          const advData = guest.adventurer;
+          if (advData) {
+            const adv = new Adventurer(advData.id, advData.name, advData.job, advData.trait);
+            Object.assign(adv, advData);
+            guest.adventurer = adv;
+          }
+          return guest;
+        });
+      }
+      
       t.prestige = Math.max(t.prestige || 0, getTitleConfig(t.title).reqPrestige);
       
       // 相容舊存檔預設值
@@ -242,7 +256,7 @@ export class SaveManager {
       GameState.currentMonth = data.currentMonth || 1;
       GameState.currentYear = data.currentYear || 1;
       GameState.totalDays = data.totalDays || calendarToTotalDays(GameState.currentYear, GameState.currentMonth, GameState.currentDay);
-      GameState.threat = { name: '凜冬寒流', severity: 5, daysRemaining: 10, warningIssued: false, prepared: false, ...(data.threat || {}) };
+      GameState.threat = { name: '凜冬寒流', type: ThreatType.NATURAL_DISASTER, severity: 5, daysRemaining: 10, warningIssued: false, prepared: false, ...(data.threat || {}) };
       GameState.lastDailySummary = data.lastDailySummary || null;
       GameState.worldGeneration = data.worldGeneration || null;
       GameState.milestones = Array.isArray(data.milestones) ? data.milestones : [];

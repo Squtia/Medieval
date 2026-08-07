@@ -1,0 +1,165 @@
+﻿  <!-- 戰鬥紀錄 左側抽屜面板 -->
+  <div class="side-panel-left glass-panel" id="combat-history-panel" style="border: 2px solid rgba(239,68,68,0.4); box-shadow: 0 0 20px rgba(239,68,68,0.1);">
+    <button class="close-btn" id="btn-close-combat-history">×</button>
+    <h2 style="text-align: left; color: #fca5a5; margin: 0 0 4px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">⚔️ 戰鬥紀錄</h2>
+    <p style="color: #94a3b8; font-size: 0.8em; margin: 0 0 10px 0;">(僅保留最近三天的戰報)</p>
+    <div id="combat-history-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">
+      <!-- JS 動態產生紀錄卡片 -->
+    </div>
+  </div>
+
+  <!-- 外交與派系 左側抽屜面板 -->
+  <div class="side-panel-left glass-panel" id="diplomacy-panel" style="border: 2px solid rgba(234,179,8,0.5); box-shadow: 0 0 20px rgba(234,179,8,0.15);">
+    <button class="close-btn" id="btn-close-diplomacy">×</button>
+    <h2 style="text-align: left; color: #fef08a; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">📜 外交與派系</h2>
+    <div id="diplomacy-list" style="flex: 1; overflow-y: auto; padding-right: 6px;">
+      <!-- JS 動態渲染派系列表 -->
+    </div>
+  </div>
+
+  <!-- 傭兵小隊/傭兵資訊 左側面板 (展開式) -->
+  <div class="side-panel-left glass-panel" id="modal-party-list" style="width: auto; max-width: 1300px; flex-direction: row; gap: 0; padding: 0; overflow: visible; background: url('./bg-parchment.png') left top / 1920px 1080px no-repeat;">
+    
+    <!-- 左半部：傭兵列表 (常駐顯示) -->
+    <div id="party-roster-pane" style="width: 440px; padding: 12px 14px; display: flex; flex-direction: column; flex-shrink: 0; max-height: 625px; position: relative;">
+      <button class="close-btn" id="btn-close-party-list">×</button>
+      <h2 style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">👥 傭兵小隊</h2>
+      
+      <div style="font-size: 0.8em; color: #94a3b8; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+        <span>選擇成員以查看詳細資訊：</span>
+        <span id="party-count-tag" style="color: #eab308;">0 人</span>
+      </div>
+      
+      <div id="party-modal-container" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 2px; overflow-y: auto; align-content: flex-start; justify-content: center; flex: 1;">
+        <!-- JS 動態生成傭兵卡片 -->
+      </div>
+    </div>
+
+    <!-- 右半部：詳細資訊 (點擊後展開) -->
+    <div id="party-details-pane" style="width: 440px; padding: 12px 14px; border-left: 1px solid rgba(234,179,8,0.3); display: none; flex-direction: column; flex-shrink: 0; position: relative; background: rgba(0,0,0,0.4); max-height: 625px;">
+      <button class="close-btn" id="btn-close-party-details" style="right: 14px; top: 12px;">×</button>
+      <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 名字</h2>
+      
+      <!-- 詳細資訊內容：包含頭像、屬性與裝備 -->
+      <div id="party-upper-section" style="display: flex; flex-direction: column; flex: 1; gap: 8px; position: relative;">
+        <!-- 頂部：常駐立繪卡與基本資訊 -->
+        <div style="display: flex; gap: 10px; background: rgba(15, 23, 42, 0.6); border-radius: 6px; padding: 6px 8px; border: 1px solid rgba(234, 179, 8, 0.3); flex-shrink: 0;">
+          <div id="party-portrait-card" style="display:none;"></div> <!-- 保留舊ID相容 -->
+          <div id="party-portrait-img-wrapper" style="position: relative; width: 82px; height: 82px; border-radius: 6px; overflow: hidden; background: linear-gradient(180deg, #1e293b, #0f172a); display: flex; justify-content: center; align-items: center; border: 1px solid rgba(255,255,255,0.15); flex-shrink: 0; box-shadow: inset 0 0 8px rgba(0,0,0,0.6);">
+            <span style="font-size: 3.2em; position: absolute;">🦸</span>
+          </div>
+          
+          <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div id="party-job-trait" style="font-size: 0.88em; color: #f1f5f9; font-weight: bold; line-height: 1.2;">Lv.1 戰士</div>
+                <div id="party-trait-name" style="font-size: 0.78em; color: #94a3b8; margin-top: 1px;">勇敢</div>
+              </div>
+              <div id="party-status-badge" style="font-size: 0.72em; padding: 1px 5px; border-radius: 4px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); flex-shrink: 0;">🟢 閒置</div>
+            </div>
+            
+            <div id="party-portrait-bars" style="width: 100%; display: flex; flex-direction: column; gap: 3px; margin-top: 3px;">
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 0.68em;">
+                <span style="color: #f87171; font-weight: bold; width: 22px; text-align: right;">HP</span>
+                <div style="flex: 1; height: 11px; background: rgba(15, 23, 42, 0.8); border-radius: 3px; border: 1px solid rgba(220, 38, 38, 0.4); position: relative; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);">
+                  <div id="party-bar-hp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #7f1d1d, #dc2626); border-radius: 2px; transition: width 0.3s;"></div>
+                  <span id="party-bar-hp-text" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 4px #000; font-size: 0.95em;">0 / 0</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 0.68em;">
+                <span style="color: #60a5fa; font-weight: bold; width: 22px; text-align: right;">MP</span>
+                <div style="flex: 1; height: 11px; background: rgba(15, 23, 42, 0.8); border-radius: 3px; border: 1px solid rgba(37, 99, 235, 0.4); position: relative; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);">
+                  <div id="party-bar-mp-fill" style="width: 100%; height: 100%; background: linear-gradient(90deg, #1e3a8a, #2563eb); border-radius: 2px; transition: width 0.3s;"></div>
+                  <span id="party-bar-mp-text" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 4px #000; font-size: 0.95em;">0 / 0</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 4px; font-size: 0.68em;">
+                <span style="color: #facc15; font-weight: bold; width: 22px; text-align: right;">EXP</span>
+                <div style="flex: 1; height: 9px; background: rgba(15, 23, 42, 0.8); border-radius: 3px; border: 1px solid rgba(217, 119, 6, 0.4); position: relative; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);">
+                  <div id="party-bar-xp-fill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #78350f, #d97706); border-radius: 2px; transition: width 0.3s;"></div>
+                  <span id="party-bar-xp-text" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #ffffff; text-shadow: 0 1px 2px #000, 0 0 4px #000; font-size: 0.9em;">0 / 0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 頁籤切換 -->
+        <div class="party-tab-bar" style="display: flex; gap: 6px; margin-top: 2px; flex-shrink: 0;">
+          <button id="tab-btn-stats" class="party-tab-btn active" data-tab="stats" style="flex: 1; padding: 4px 0; border: 1px solid rgba(234,179,8,0.4); background: rgba(234,179,8,0.2); color: #eab308; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
+            <span>📊</span><span>屬性配置</span>
+          </button>
+          <button id="tab-btn-equip" class="party-tab-btn" data-tab="equip" style="flex: 1; padding: 4px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
+            <span>⚔️</span><span>武裝配備</span>
+          </button>
+          <button id="tab-btn-skills" class="party-tab-btn" data-tab="skills" style="flex: 1; padding: 4px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
+            <span>✨</span><span>技能戰術</span>
+          </button>
+        </div>
+
+        <!-- 下半部動態資訊頁 (屬性與裝備) -->
+        <div id="party-tab-viewport" style="flex: 1; overflow-y: hidden; background: rgba(0,0,0,0.2); border-radius: 6px; padding: 6px 8px; border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: space-between;">
+          <!-- JS 動態寫入 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 裝備選擇 第三欄 (點擊裝備槽後向右展開) -->
+    <div id="party-equip-select-pane" style="width: 320px; padding: 12px 14px; border-left: 1px solid rgba(234,179,8,0.3); display: none; flex-direction: column; flex-shrink: 0; position: relative; background: rgba(0,0,0,0.5); max-height: 625px;">
+      <button class="close-btn" id="btn-close-equip-select-pane" style="right: 14px; top: 12px;">×</button>
+      <h2 style="text-align: center; color: #eab308; margin: 0 0 8px 0; font-size: 1.05em; font-family: 'Cinzel', serif;">🛡️ 選擇裝備</h2>
+      <div id="equip-select-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px; flex: 1; overflow-y: auto; padding-right: 4px;">
+        <!-- JS 渲染可選裝備 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 右下角史詩 Command Crest Hub (全域固定於右下角) -->
+  <div id="command-crest-container" style="display: none;">
+    <!-- 左側快捷按鈕列 -->
+    <div id="floating-quick-dock">
+      <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
+      <button id="btn-dock-diplomacy" class="dock-btn" data-tip="外交與派系">🤝</button>
+      <button id="btn-adventure-log" class="dock-btn" data-tip="探險日誌">📜</button>
+      <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>
+    </div>
+
+    <!-- 切換據點/世界地圖圓鈕 (相鄰在上方) -->
+    <button id="btn-return-base" class="floating-base-btn" data-tip="切換 據點 / 世界地圖" style="display: none;"></button>
+
+    <!-- 結束本日史詩劍盾大圓鈕 -->
+    <div id="btn-end-day-wrapper">
+      <button id="btn-end-day" class="epic-crest-btn" data-tip="點擊結束本日">
+        <span id="end-day-tag" class="end-day-pill">第 1 天</span>
+      </button>
+    </div>
+  </div>
+
+
+
+  <!-- 每日結算與預測面板 -->
+  <div id="modal-daily-summary" class="modal-overlay">
+    <div class="modal-content glass-panel" style="width: 500px; padding: 40px; border: 2px solid #eab308; box-shadow: 0 0 30px rgba(234, 179, 8, 0.3);">
+      <h2 style="text-align: center; color: #fef08a; border-bottom: 1px solid rgba(234,179,8,0.5); padding-bottom: 15px; margin-bottom: 20px;">📜 本日結算</h2>
+      
+      <div id="daily-summary-content" style="margin-bottom: 20px; line-height: 1.6;">
+        <!-- JS 動態寫入本日結算 -->
+      </div>
+
+      <!-- 今日見聞 / 里程碑區塊 -->
+      <div id="daily-narrative-container" style="display: none; margin-bottom: 20px; background: rgba(234, 179, 8, 0.08); border: 1px dashed rgba(234, 179, 8, 0.4); padding: 12px; border-radius: 8px;">
+        <h4 style="color: #fef08a; font-size: 0.95em; margin-bottom: 8px;">📖 今日見聞</h4>
+        <div id="daily-narrative-content" style="font-size: 0.9em; color: #ebdcb6; line-height: 1.5;"></div>
+      </div>
+
+      <h3 style="color: #60a5fa; border-bottom: 1px solid rgba(96,165,250,0.5); padding-bottom: 10px; margin-bottom: 15px;">🔮 未來預測</h3>
+      <div id="daily-forecast-content" style="margin-bottom: 30px; line-height: 1.6; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+        <!-- JS 動態寫入預測資訊 -->
+      </div>
+
+      <div style="text-align: center;">
+        <button id="btn-daily-summary-confirm" class="action-btn" style="width: 100%; font-size: 1.1em; padding: 15px;">確認 / 進入下一天</button>
+      </div>
+    </div>
+  </div>
+

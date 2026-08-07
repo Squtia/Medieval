@@ -2,7 +2,7 @@ import { Adventurer } from '../models/Adventurer';
 import { Territory } from '../models/Territory';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
-import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature, getTitleConfig, FormationPreset } from '../models/types';
+import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature, getTitleConfig, FormationPreset, ThreatType } from '../models/types';
 import { DataStore } from '../systems/DataStore';
 import { NameGenerator } from '../systems/NameGenerator';
 import { INITIAL_FACTIONS } from '../data/FactionData';
@@ -39,6 +39,7 @@ export const GameState = {
   restedExpPool: 0,
   threat: {
     name: '凜冬寒流',
+    type: ThreatType.NATURAL_DISASTER,
     severity: 5,
     daysRemaining: 10,
     warningIssued: false,
@@ -110,6 +111,7 @@ export function initGameState(options: NewGameOptions = {
   GameState.restedExpPool = 0;
   GameState.threat = {
     name: '凜冬寒流',
+    type: ThreatType.NATURAL_DISASTER,
     severity: 5,
     daysRemaining: Math.max(5, Math.round(10 * getDifficultyModifiers(options.difficulty).threatInterval)),
     warningIssued: false,

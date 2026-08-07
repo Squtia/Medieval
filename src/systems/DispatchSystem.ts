@@ -458,18 +458,20 @@ export class DispatchSystem {
     }
 
     // 敘事討伐引擎接管 COMBAT 邏輯
+    let isVictory = true;
     if (task.targetNodeId && GameState.mapSystem) {
       const node = GameState.mapSystem.getNodeById(task.targetNodeId);
       if (node) {
-        ExplorationNarrativeEngine.generateSubjugationLog(adventurers, node, task.baseDifficulty, task.enemyFeature || EnemyFeature.BALANCED);
+        isVictory = ExplorationNarrativeEngine.generateSubjugationLog(adventurers, node, task.baseDifficulty, task.enemyFeature || EnemyFeature.BALANCED);
       }
     }
 
-    // 解除派遣狀態
+    // 解除派遣狀態並處理戰敗休養
     adventurers.forEach(a => {
-      a.currentState = AdventurerState.IDLE;
+      a.currentState = isVictory ? AdventurerState.IDLE : AdventurerState.RESTING;
       a.dispatchEndTime = null;
-      a.restingDaysLeft = 0;
+      // 若戰敗，則加上一回合(天)恢復時間
+      a.restingDaysLeft = isVictory ? 0 : 1; 
     });
     
     // 注意：ExplorationNarrativeEngine.generateSubjugationLog 內部已處理所有的獎勵與裝備掉落！

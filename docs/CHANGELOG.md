@@ -1,4 +1,101 @@
-# 遊戲更新日誌 (Changelog)\n\n## [2026-08-05] UI 架構模組化與事件系統準備\n\n### Refactoring (UI)\n\n- **[UI/Modal] 徹底拆解 ModalController (Phase 4 完工)**\n  - 將原本高達上千行的 ModalController.ts 徹底解耦。\n  - 抽離 NodeDetailModalController、DispatchModalController、EventModalController、TodoModalController、CombatHistoryModalController、PrisonerModalController。\n  - 原有 ModalController.ts 全面改為輕量級的 Facade 入口 (動態載入對應模組)。\n\n### Systems\n\n- **[System/Event] 探險事件系統支援 (Phase 1 完工)**\n  - 新增 NarrativeData.ts 定義隨機文本池。\n  - 擴充 EventSystem.ts，支援透過 GAME_EVENT_TRIGGERED 派發動態事件，並無縫整合至剛抽離的 EventModalController 中。\n
+# 遊戲更新日誌 (Changelog)
+
+## [2026-08-07] 酒館動態客流升級：傭兵個別離店判定與結算轉場即時重繪
+- **[Logic/Tavern] 傭兵 100% 個別獨立離店與入住判定**：在 [`TavernSystem.ts`](file:///d:/tryagent/Medieval/src/systems/TavernSystem.ts) 重構客流演算法：
+  - 每日結算時，對酒館內每一位傭兵**個別單獨抽籤**（`stayDaysLeft` 歸零或 50% 獨立離店機率），使傭兵流動不再集體死板。
+  - 對每一個空座位**個別進行 70% 獨立補新判定**（且人數低於 2 人時 100% 保底補滿），確保天天皆有全新傭兵入住。
+- **[UI/GameFlow] 結算轉場完畢強制重繪酒館**：在 [`GameFlowController.ts`](file:///d:/tryagent/Medieval/src/ui/GameFlowController.ts) 的【每日結算 Modal】轉場完成回調中，若玩家當時正在酒館視圖 (`view-camp`) 內，強制非同步執行 `renderTavernView()`，使轉場黑幕揭開後畫面100%展示當日最新傭兵。
+- **[Fix/Recruit] 排除誓約守衛 (GUARDIAN) 性格**：在 `TavernSystem.ts` 改用 `DataStore.getRandomRecruitTrait()`，防止「誓約守衛」主角專屬性格隨機進入酒館供招募。
+
+
+## [2026-08-07] index.html 模組化拆分 & Agent 檔案保護機制 (A+B 雙保險)
+- **[Architecture/HTML] 巨型 index.html 拆分**：將原本 2256 行的 `index.html` 拆分為 **38 行精簡骨架** + `style.css` + **7 個獨立 HTML 模板**：
+  - `src/templates/ui-chrome.html`：頂部資源欄、全域提示與遮罩
+  - `src/templates/views-main.html`：主選單、世界地圖、野外據點與橫向動態街景
+  - `src/templates/views-facility.html`：領主書房、謁見廳、傭兵酒館、武器/防具店與鍛造屋
+  - `src/templates/views-right-panel.html`：右側領地資訊共用面板
+  - `src/templates/modals-combat-trade.html`：戰鬥動畫 Modal 與貿易跑商 Modal
+  - `src/templates/modals-game.html`：倉庫、新遊戲、載入、派遣、俘虜、系統選單、事件與待辦 Modal
+  - `src/templates/panels-hud.html`：左側抽屜面板（戰鬥紀錄/外交/隊伍）與右下角史詩按鈕
+- **[System/UI] 動態模板載入器 (`TemplateLoader.ts`)**：
+  - 在 `main.ts` 入口導入 `TemplateLoader.ts`，遊戲啟動時透過 `Promise.all` 並行非同步 `fetch` 所有 `.html` 模板並注入至 `#template-root` 容器。
+  - 自動重新掛載模板內的 `<script>` 腳本，保證如 `selectDispatchMode()` 等全域函數正常生效。
+- **[Refactor/UI] DOM 懶加載修正**：
+  - 修復 `UIManagerClass` 與 `CombatUIManager` 靜態屬性在 TS 模組載入時立即執行 `document.getElementById()` 導致的 `null` 錯誤。新增 `UIManager.reinitDOM()` 並延遲至模板注入完成後才讀取 DOM 節點。
+- **[Fix/Layout] 修復右側面板 (#shared-right-panel) 脫離 Flex 容器區塊**：
+  - 修復因 `views-main.html` 包含未閉合標籤導致瀏覽器自動插入 `</div></div>` 的問題。
+  - 將 `#main-layout` 與 `#view-container` 結構固定於 `index.html` 骨架內。
+  - 在 [`TemplateLoader.ts`](file:///d:/tryagent/Medieval/src/ui/TemplateLoader.ts) 指定 `views-main.html` 與 `views-facility.html` 注入 `#view-container`；`views-right-panel.html` 注入 `#main-layout`，使街景與帝國儀表板重新完美並排呈現！
+
+
+## [2026-08-07] 酒館 UI 強化：屬性面板 & 傭兵即時刷新
+- **[Bug/Tavern] 結束本日後立刻顯示新傭兵**：修復 `DAY_PASSED` 事件觸發時，`selectedTavernGuest` 未被清除導致新一批客流無法即時呈現的問題，現在推進天數後酒館畫面會自動選中最新的第一位傭兵。
+- **[UI/Tavern] 右側面板屬性展開**：`tavern-selected-detail` 全面改版為「三列固定式」下錨佈局：
+  - **第一列**：對話泡泡 + 綜合戰力 + 性格特徵 + 招募按鈕。
+  - **第二列（📊 基礎屬性）**：以 4 欄格線顯示八維屬性（力量/敏捷/體質/智慧/精神/幸運/魅力/統帥），含色碼區分。
+  - **第三列（⚔️ 戰鬥數值）**：以 3 欄格線顯示衍生屬性（HP/MP/物攻/魔攻/物防/魔防/命中/閃避/爆擊率）。
+- **[UI/Tavern] 卡片列可捲動 / 屬性格固定**：右側面板改用 flex 伸縮佈局，傭兵卡片區 `flex: 1` 可捲動；屬性區 `flex-shrink: 0` 固定在下方，不受卡片數量影響。
+- **[Logic/Recruit] 戰力計算升級**：綜合戰力改以 `getCombatStats()` 衍生公式計算（atk×2 + def + hp/10），更精準反映英雄強度。
+
+
+- **[System/Tavern] 傭兵動態流動**：拔除手動抽卡機制。酒館現在擁有真實客流，傭兵會隨機入住並逗留 1~10 天，客滿上限隨酒館等級提升 (最高 10 人)。
+- **[System/Tavern] 情報傳聞與迷霧連動**：酒館 3 級解鎖打聽情報。若目標隱藏據點未驅散迷霧，老爹僅給予模糊環境線索；若已驅散迷霧，則直接解鎖據點並給出精確情報。
+- **[UI/Recruit] 卡片規格統一與動態報價**：酒館內的英雄卡片全面改用原生 `AdventurerCard` 規格。招募價格會受英雄性格 (Trait) 影響，並新增性格專屬的招募對話氣泡。
+
+## [2026-08-07] 順序探索流敘事重構 & 戰利品 UI 同步修正
+
+- **[System/Narrative] 探險敘事引擎重構：順序探索流 (Sequential Exploration) (`ExplorationNarrativeEngine.ts`)**
+  - **廢除單一連戰機制**：移除了先前不合理的一次遭遇 3 波怪物的設計。現在每次討伐任務會被拆分為 2~3 個推進節點。
+  - **節點交錯遭遇**：在每一次的推進中，系統會依據機率 (30% 隨機事件 / 70% 單波戰鬥) 生成對應的敘事。這讓探險日誌更加生動，真實還原「路上救商人，接著拔營作戰」的跑團體驗。
+  - **跨戰鬥狀態繼承**：為支援連戰時血量不回滿的硬核設定，現在 `CombatSystem.simulateCombat` 支援傳入 `initialHpMpOverride`。英雄在探索過程中的每一場獨立戰鬥都會**繼承上一場結束時的殘餘血量與魔力**。若途中戰敗，探險會立即中斷並撤退。
+  - **獎勵總匯整**：雖然每一場戰鬥的戰利品都會獨立獲得，但在探險日誌的底端 `🎁 戰利品與收益`，會自動將這 2~3 個節點的所有金幣、經驗、聲望與裝備進行累加顯示。
+
+- **[UI/Combat] 內部戰鬥視窗顯示修正 (`CombatUIManager.ts`)**
+  - 修復了「內部戰鬥紀錄」與「外部探險日誌」戰利品顯示不同步的問題。
+  - 移除了舊版寫死的單一聲望顯示，改為讀取 `CombatReport` 裡的 `totalEarnedGold`, `totalEarnedExp`, 與 `droppedEquipment`，並以直觀的圖文 (💰, ✨, 🗡️) 直接渲染於戰鬥結算視窗內。
+
+## [2026-08-07] 怪物多樣性與戰利品底層重構 & 災難判定架構升級
+
+- **[Combat/Monster] 怪物多樣性與戰利品底層重構 (`MonsterSystem.ts`, `CombatSystem.ts`, `ExplorationNarrativeEngine.ts`, `types.ts`)**
+  - **單向隔離與地形約束混編**：重構 `MonsterSystem.ts` 中的 `generateEncounter`。現在生成整隊怪物時，會遵守單向隔離法則（生靈據點絕對排除純亡靈）與據點本身的出沒地形限制。以隊長戰力為基準，在剩餘戰力額度內從合法的池子中隨機混編其他種類的怪物。
+  - **屬性混編與初期防呆**：將賦予隨機屬性 (Element) 的邏輯從「全隊共用」移入「每隻個體生成迴圈」內，實現同隊可能出現不同屬性的怪物。並將變異機率與 `baseDifficulty` 綁定，初期 (難度 < 2.0) 變異率為 0%，避免初期玩家遭刁鑽元素團滅。
+  - **底層戰利品動態計算**：
+    - `types.ts` 中的 `MonsterData` 新增了 `lootConfig`，`MonsterInstance` 新增了 `goldReward`, `expReward` 和 `equipmentDropRate`。
+    - `MonsterSystem.ts` 在生成個體時動態結算該怪物的專屬掉落價值（由 `powerScore` 決定的基底加上其本身的特殊機率）。
+    - `CombatSystem.ts` 擴充 `CombatReport`，在敵方角色 HP 歸零倒下時，立即累加擊殺金幣與經驗值，並進行獨立裝備掉落骰子（`EquipmentGenerator.dropRandomEquipment`），直接將隨機裝備收入國庫。
+    - 徹底捨棄舊版 `ExplorationNarrativeEngine.ts` 中「依據點等級給予死板金幣與掉落率」的作法，改為直接取用 `CombatSystem.ts` 回傳的真實累加戰利品總和，並寫入探險日誌，大幅提升打寶樂趣。
+
+- **[UI/Exploration] 探險日誌實裝「戰利品與收益」顯示面板 (`AdventureLog.ts`, `ExplorationNarrativeEngine.ts`, `AdventureLogModalController.ts`)**
+  - **資料結構擴充**：於 `AdventureLogEntry` 新增 `rewards` 屬性，用以精準記錄單次探險/討伐所獲得之資源與裝備。
+  - **後台結算連動**：在 `ExplorationNarrativeEngine.ts` 執行戰鬥後，將實際獲得的金幣、英雄經驗值 (包含 restedExpPool 加成)、聲望與隨機掉落裝備等資料同步包裝至 `rewards`，並與日誌一併存檔。
+  - **前端面板呈現**：在右側探險日誌 (`adventure-log-content`) 的最底層，新增具有暗色玻璃質感邊框與 Emoji 排版的小面板 `🎁 戰利品與收益`，動態渲染該場戰役的金錢 (`💰`)、經驗值 (`✨`)、聲望 (`👑`) 與獲得裝備 (`🗡️`)，使玩家能直觀享受戰鬥收穫。
+  - **底部快捷列 (Dock) 調整**：移除了重複冗餘的「戰鬥紀錄 (⚔️)」獨立按鈕（統一透過探險日誌查看），並將「外交與派系」的圖示變更為握手 (`🤝`)，以區別於「探險日誌」的卷軸 (`📜`) 圖示。
+  - **多波次戰鬥與戰敗懲罰**：
+    - 將 `ExplorationNarrativeEngine.ts` 中的討伐戰鬥波數由原本寫死的 `1` 波，改為隨機 **1 ~ 3 波**。戰鬥機制維持血量與魔力狀態跨波次繼承（不會自動回滿）。
+    - 實裝戰敗回復懲罰：調整 `GameLoop.ts` 中據點防守戰敗的重傷休養由 3 天增加為 **4 天**；同時修復 `DispatchSystem.ts` 中外出討伐戰敗無懲罰的問題，現在討伐戰敗後將被強制賦予 **1 天** 的休養狀態。
+
+- **[System/Threat] 重構天災與敵意襲擊判定機制 (`types.ts`, `GameState.ts`, `TownManagementSystem.ts`, `ThreatSystem.ts`)**
+  - **根本原因**：過去在 `TownManagementSystem.ts` 判定是否為「天災」時，採用的是簡陋的字串比對 (`/雪|旱|災|蝗|疫|震/i.test(threatName)`)，導致預設災難名稱「凜冬寒流」因未包含關鍵字而被錯誤判定為敵軍襲擊，並觸發「衛兵防禦成功」的荒謬結算。
+  - **架構升級 (方案二)**：
+    - 新增 `ThreatType` 列舉 (`NATURAL_DISASTER`、`INVASION`)。
+    - 重構 `GameState.threat` 資料結構與存檔管理 (`SaveManager.ts`)，引入明確的 `type` 屬性區分災難類型。
+    - 更新 `GameEvents.ts` 事件負載，使 `THREAT_ARRIVED` 事件精準傳遞 `threatType`。
+    - `TownManagementSystem.ts` 現已完全捨棄名稱猜測，改由 `payload.threatType === 'NATURAL_DISASTER'` 進行嚴謹判定，徹底防堵類似邏輯漏洞。
+
+## [2026-08-05] UI 架構模組化與事件系統準備
+
+### Refactoring (UI)
+
+- **[UI/Modal] 徹底拆解 ModalController (Phase 4 完工)**
+  - 將原本高達上千行的 ModalController.ts 徹底解耦。
+  - 抽離 NodeDetailModalController、DispatchModalController、EventModalController、TodoModalController、CombatHistoryModalController、PrisonerModalController。
+  - 原有 ModalController.ts 全面改為輕量級的 Facade 入口 (動態載入對應模組)。
+
+### Systems
+
+- **[System/Event] 探險事件系統支援 (Phase 1 完工)**
+  - 新增 NarrativeData.ts 定義隨機文本池。
+  - 擴充 EventSystem.ts，支援透過 GAME_EVENT_TRIGGERED 派發動態事件，並無縫整合至剛抽離的 EventModalController 中。
 
 ## [2026-08-03] 建立世界觀敘事聖經與陣營設定計畫
 
