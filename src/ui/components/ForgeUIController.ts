@@ -298,15 +298,40 @@ export class ForgeUIController {
     const workspace = document.getElementById('forge-workspace')!;
     workspace.innerHTML = '';
   
-    const recipes = DataStore.CraftingRecipeDB.filter(r => r.isMaterialRecipe === (mode === 'smelt'));
-    let selectedRecipeId: string = recipes.length > 0 ? recipes[0].id : '';
+    let recipes = DataStore.CraftingRecipeDB;
     let craftAmount = 1;
-    
-    if (mode !== 'smelt') {
+
+    if (mode === 'smelt') {
+      // 僅顯示素材冶煉配方
+      recipes = recipes.filter((r: any) => r.isMaterialRecipe === true);
+    } else {
       // 裝備鍛造/重鑄配方 (排除素材冶煉)
+      recipes = recipes.filter((r: any) => !r.isMaterialRecipe);
+      
       // 若為需要前置裝備的重鑄配方，需進階過濾
-      // recipes 已在上面篩選過，這裡針對裝備類型進行邏輯驗證
+      recipes = recipes.filter((r: any) => {
+        if (!r.baseEquipmentId) return true; // 一般鍛造
+        
+        // 必須擁有對應前置裝備 (T3) 才能看見該重鑄配方 (T4)
+        const hasBaseEquip = territory.warehouse.some((eq: any) => eq.id === r.baseEquipmentId);
+        if (!hasBaseEquip) return false;
+
+        // 變異職業專用重鑄項目：必須持對應重鑄書道具 (requireTomeId/tome_...) 才顯示！
+        const isVar = r.isVariant || (r.name && r.name.includes('專用'));
+        if (isVar) {
+          const tomeId = r.requireTomeId || `tome_${r.targetEquipmentId}`;
+          const hasReforgeTome = getMaterialCount(territory, tomeId) > 0 || getMaterialCount(territory, 'mat_reforge_scroll') > 0;
+          if (!hasReforgeTome) return false;
+        }
+        
+        // 需確認設施等級是否 >= 3 才能進行重鑄
+        if ((territory.forgeLevel || 0) < 3) return false;
+        
+        return true;
+      });
     }
+    
+    let selectedRecipeId: string = recipes.length > 0 ? recipes[0].id : '';
   
     if (recipes.length === 0) {
       workspace.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:50px 0;">目前沒有可用的配方。</p>`;
