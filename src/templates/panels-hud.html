@@ -35,6 +35,16 @@
     </div>
   </div>
 
+  <!-- 領地地牢 左側抽屜面板 -->
+  <div class="side-panel-left glass-panel" id="dungeon-panel" style="width: 440px; border: 2px solid rgba(239, 68, 68, 0.5); box-shadow: 0 0 20px rgba(239, 68, 68, 0.15); display: flex; flex-direction: column;">
+    <button class="close-btn" id="btn-close-dungeon-list">×</button>
+    <h2 style="text-align: left; color: #fca5a5; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">⛓️ 領地地牢</h2>
+    <p style="color: #cbd5e1; font-size: 0.85em; text-align: left; margin-bottom: 12px;">關押被俘虜的敵國將領。隨時提審並決定命運。</p>
+    <div id="dungeon-list-container" style="flex: 1; overflow-y: auto; padding-right: 6px; display: flex; flex-direction: column; gap: 8px;">
+      <!-- JS 動態生成戰俘列表 -->
+    </div>
+  </div>
+
   <!-- 傭兵小隊/傭兵資訊 左側面板 (展開式) -->
   <div class="side-panel-left glass-panel" id="modal-party-list" style="width: auto; max-width: 1300px; flex-direction: row; gap: 0; padding: 0; overflow: visible; background: url('./bg-parchment.png') left top / 1920px 1080px no-repeat;">
     
@@ -71,7 +81,10 @@
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
               <div>
                 <div id="party-job-trait" style="font-size: 0.88em; color: #f1f5f9; font-weight: bold; line-height: 1.2;">Lv.1 戰士</div>
-                <div id="party-trait-name" style="font-size: 0.78em; color: #94a3b8; margin-top: 1px;">勇敢</div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 1px;">
+                  <div id="party-trait-name" style="font-size: 0.78em; color: #94a3b8;">勇敢</div>
+                  <button id="btn-advance-class" style="display: none; font-size: 0.7em; padding: 1px 6px; background: linear-gradient(135deg, #eab308, #d97706); border: 1px solid #fef08a; border-radius: 4px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 0 5px rgba(234,179,8,0.5);">✨ 轉職</button>
+                </div>
               </div>
               <div id="party-status-badge" style="font-size: 0.72em; padding: 1px 5px; border-radius: 4px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); flex-shrink: 0;">🟢 閒置</div>
             </div>
@@ -136,10 +149,14 @@
   <div id="command-crest-container" style="display: none;">
     <!-- 左側快捷按鈕列 -->
     <div id="floating-quick-dock" style="align-items: flex-end;">
-      <div style="display: flex; flex-direction: column; gap: 12px; align-items: center;">
-        <button id="btn-dock-inventory" class="dock-btn" data-tip="全域倉庫">📦</button>
+      <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
+        <div style="position: relative;">
+          <button id="btn-dock-inventory" class="dock-btn" data-tip="全域倉庫">📦</button>
+          <button id="btn-dock-dungeon" class="dock-btn" data-tip="領地地牢" style="position: absolute; left: 60px; top: 0; border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); color: #ef4444;">⛓️</button>
+        </div>
         <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
       </div>
+
       <button id="btn-dock-diplomacy" class="dock-btn" data-tip="外交與派系">🤝</button>
       <button id="btn-adventure-log" class="dock-btn" data-tip="探險日誌">📜</button>
       <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>

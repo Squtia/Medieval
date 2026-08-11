@@ -269,6 +269,7 @@
     </div>
   </div>
 
+
   <!-- 戰後俘虜處置 Modal -->
   <div class="modal-overlay" id="modal-prisoner-action">
     <div class="glass-panel modal-content" style="width: 520px; text-align: center;">
@@ -312,6 +313,65 @@
       <p id="event-desc" style="color: #e2e8f0; line-height: 1.6; margin-bottom: 20px;">事件描述...</p>
       <div id="event-options" style="display: flex; flex-direction: column; gap: 10px;">
         <!-- 按鈕動態生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- GAMBIT 戰術編輯 Modal -->
+  <div class="modal-overlay" id="modal-gambit-edit">
+    <div class="glass-panel modal-content" style="width: 400px; display: flex; flex-direction: column; gap: 15px;">
+      <button class="close-btn" id="btn-close-gambit-edit">×</button>
+      <h2 style="color: #eab308; margin-top: 0; margin-bottom: 0;">🎯 編輯 Gambit 戰術</h2>
+      <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 10px;">設定傭兵在自動戰鬥中的決策優先順序。</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="color: #cbd5e1; font-weight: bold; font-size: 0.9em;">啟用狀態</label>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="gambit-is-active" style="width: 18px; height: 18px; cursor: pointer;">
+          <span style="color: #e2e8f0;">啟用此戰術</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="color: #cbd5e1; font-weight: bold; font-size: 0.9em;">IF 條件 (Condition)</label>
+        <select id="gambit-condition-select" class="rpg-input" style="padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(234,179,8,0.4); outline: none;">
+          <!-- JS 動態生成條件清單 -->
+        </select>
+      </div>
+
+      <div id="gambit-value-container" style="display: flex; flex-direction: column; gap: 8px;">
+        <label id="gambit-value-label" style="color: #cbd5e1; font-weight: bold; font-size: 0.9em;">條件參數</label>
+        <select id="gambit-value-number" class="rpg-input" style="padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.2); outline: none;">
+          <option value="10">10%</option>
+          <option value="20">20%</option>
+          <option value="30">30%</option>
+          <option value="40">40%</option>
+          <option value="50">50%</option>
+          <option value="60">60%</option>
+          <option value="70">70%</option>
+          <option value="80">80%</option>
+          <option value="90">90%</option>
+          <option value="100">100%</option>
+        </select>
+        <select id="gambit-value-select" class="rpg-input" style="display: none; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(255,255,255,0.2); outline: none;">
+          <!-- 狀態選擇下拉 -->
+        </select>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="color: #cbd5e1; font-weight: bold; font-size: 0.9em;">THEN 動作 (Action)</label>
+        <select id="gambit-action-select" class="rpg-input" style="padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid rgba(59,130,246,0.4); outline: none;">
+          <!-- JS 動態生成技能清單 -->
+        </select>
+      </div>
+
+      <!-- 防呆警告訊息區塊 -->
+      <div id="gambit-warning-box" style="display: none; margin-top: 5px; padding: 8px 10px; background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; border-radius: 4px; font-size: 0.85em; color: #fca5a5; line-height: 1.4;">
+        ⚠️ 注意：該技能為近戰攻擊，若指定目標為「敵方後排」，在敵方前排存活時可能無法命中而導致戰術失敗。
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button id="btn-save-gambit" class="action-btn" style="flex: 1; padding: 10px; font-weight: bold; background: linear-gradient(135deg, #059669, #047857); color: white;">💾 儲存戰術</button>
       </div>
     </div>
   </div>

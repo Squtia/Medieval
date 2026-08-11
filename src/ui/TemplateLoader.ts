@@ -35,7 +35,7 @@ export async function loadAllTemplates(): Promise<void> {
   // 並行 fetch 所有 template
   const results = await Promise.all(
     TEMPLATES.map(async (t) => {
-      const res = await fetch(t.url);
+      const res = await fetch(`${t.url}?t=${Date.now()}`);
       if (!res.ok) {
         throw new Error(`[TemplateLoader] 無法載入 ${t.url} (HTTP ${res.status})`);
       }

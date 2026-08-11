@@ -1,5 +1,52 @@
 # 遊戲更新日誌 (Changelog)
 
+## [2026-08-11] 實裝戰俘系統與 UI 修復
+- **[Feature/System] 戰俘捕獲機制** (`ExplorationNarrativeEngine.ts`, `FactionData.ts`, `MapData.ts`)：
+  - 各陣營現在擁有名為「洛斯加 (Hrothgar)」等帶有傳奇與勢力特性的基礎兵種。
+  - 擊敗特定據點的傳奇 Boss 後，會自動將其加入對應勢力的被俘名單（`capturedChampionIds`）。
+- **[Feature/UI] 地牢抽屜介面** (`panels-hud.html`, `PrisonerModalController.ts`)：
+  - 於 HUD 左側快捷列，在「全域倉庫」右側新增「領地地牢 (⛓️)」按鈕。
+  - 將地牢介面改為左側滑出的抽屜面板 (`dungeon-panel`)，與倉庫面板設計保持一致。
+- **[Bugfix/UI] 修復戰鬥重播 UI** (`CombatUIManager.ts`)：
+  - 針對擁有長前綴（如 `[陣營] 攻城器械`）的單位，修改單位卡片的 CSS 樣式，允許文字在超過寬度時自動換行（最多兩行），解決了名字被切斷隱藏的問題。
+- **[Bugfix/System] 修正攻城佔領邏輯與代官 UI** (`DispatchSystem.ts`, `NodeDetailModalController.ts`)：
+  - 修復了「攻城戰鬥失敗卻依舊佔領據點」的嚴重 Bug，現在必須 `isVictory` 為 true 才能取得所有權與指派代官。
+  - 修復了點擊自己領地時依然顯示「⚔️ 發動攻城戰」的 UI 問題，現在會正確顯示「🔒 您的領地」並禁止無效操作。
+
+## [2026-08-11] 實裝滿等轉職系統 (素材消耗制)
+- **[Feature/Advancement] 滿等轉職與專屬素材** (`Adventurer.ts`, `types.ts`, `PartyModalController.ts`)：
+  - 實作了達到等級 10 級滿等後的「轉職試煉」機制。
+  - 在 `types.ts` 中新增了 6 種對應基礎職業的轉職專屬素材（如：狂怒之鋒、秘法魔典等）。
+  - 在傭兵隊伍面板 (`PartyModalController.ts`) 中新增「轉職」按鈕。當滿等且未轉職時自動顯示。
+  - 轉職會消耗對應的領地倉庫素材 (`territory.materials`)，並正式開啟該傭兵的潛能（`isAdvanced = true`），解鎖進階變異職業與專屬被動技能。
+- **[Feature/Cheats] 測試輔助密技** (`CheatController.ts`, `CHEATS.md`)：
+  - 新增 `advmat` 密技，可以在開發與測試階段一鍵獲取所有轉職專屬素材各 10 個，方便驗證完整的 UI 點擊流程。
+
+## [2026-08-11] 實裝 GAMBIT 戰術系統
+- **[Feature/Combat] 傭兵戰術系統 (Gambit)** (`Gambit.ts`, `GambitEvaluator.ts`, `CombatSystem.ts`)：
+  - 實作了類似 FFXII 的 Gambit 條件判斷系統，允許玩家為傭兵設定高達 3 條的「If-Then」條件戰術。
+  - 支援 9 種核心條件判斷：血量 (自身/隊友/敵方)、目標位置 (前/後排)、狀態異常等。
+  - 實作「方案 A」防呆機制，當近戰角色被設定為攻擊後排時，系統會在 UI 上給予警告，且戰鬥中將嚴格受限於物理射程，避免近戰技能越過前排的問題。
+- **[Feature/UI] 戰術編輯器** (`GambitModalController.ts`, `PartyModalController.ts`, `modals-game.html`)：
+  - 於傭兵詳情選單中新增了「GAMBIT 戰術策略」編輯區塊，並透過 `GambitModalController` 動態產出條件設定與下拉選單。
+  - 處理了舊存檔的相容升級 (`SaveMigration.ts`)，為已招募傭兵自動分配空的預設戰術。
+
+## [2026-08-11] 實裝硬核傳統 Game Over 結局
+- **[Feature/Core] 傳統壞結局 (Wipeout)** (`GameLoop.ts`, `GameOverModalController.ts`)：
+  - 當領地的**人口與糧食雙雙歸零**（例如因高難度下的凜冬事件扣光糧食，或指派不當）時，遊戲將在每日結算階段觸發硬核壞結局。
+  - 跳出「領地崩潰」的全螢幕絕望敘事畫面（伴隨黑屏漸變轉場與史詩字體），無事前警告，玩家的領地與爵位將被歷史遺忘。
+  - 玩家只能選擇「載入最新存檔」來挽回局面，或是直接「回到主選單」。
+  - 在 `GameFlowController.ts` 中實作了攔截機制，當發生 Game Over 時將中止一般的每日結算畫面。
+
+## [2026-08-11] 戰鬥九宮格陣型與渲染修復
+- **[Fix/Combat] 陣型資料傳遞斷層修復** (`DispatchSystem.ts`, `ExplorationNarrativeEngine.ts`)：
+  - 修復了任務派發時 `task.gridMap` 與 `task.formationId` 未正確傳入戰鬥底層 (`ExplorationNarrativeEngine.generateSubjugationLog` 與 `CombatSystem.simulateCombat`) 的嚴重 Bug，確保玩家在介面上排好的九宮格陣型與站位能 100% 原汁原味呈現於戰鬥重播中。
+- **[Fix/UI] 戰鬥重播 UI 防呆機制強化** (`CombatUIManager.ts`)：
+  - 修復了無陣型狀態下角色會預設重疊擠在「第一行 (gridRow = 1)」的 Bug。
+  - 新增防呆邏輯：若角色無 `gridMap` 資訊，會根據預設站位（前/中/後）自動分配列，並按照入場順序自動向下排開至 1~3 行，徹底解決角色重疊、血條交錯的顯示異常問題。
+- **[Fix/Combat] 敵方隨機站位防撞機制** (`CombatSystem.ts`)：
+  - 於敵方生成階段引入 `occupiedEnemyGrids` 判定。當敵方隨機產生九宮格站位時，若該格子已被佔用，會自動重新擲骰尋找空位（最多嘗試 10 次），防止多個敵方圖標在畫面上完全重疊消失的問題。
+
 ## [2026-08-07] 鍛造屋批量操作與介面細節優化
 - **[Feature/Forge] 批量冶煉與鍛造 UI** (`ForgeUIController.ts`)
   - 於鍛造屋的「冶煉素材」與「裝備鍛造」介面下方，新增完整的數量調整器 (`[ - ] [ 數量 ] [ + ] [ MAX ]`)。

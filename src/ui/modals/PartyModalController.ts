@@ -5,8 +5,10 @@ import { ToastManager } from '../ToastManager';
 import { UIManager } from '../UIManager';
 import { EquipModalController } from './EquipModalController';
 import { positionFloatingElement } from '../FloatingPosition';
-import { getAdventurerSkillInfo, getAdventurerPassiveInfo } from '../../data/SkillData';
+import { getAdventurerSkillInfo, getAdventurerPassiveInfo, SKILLS } from '../../data/SkillData';
 import { renderEquipIcon } from '../ShopController';
+import { GambitConditionType, GAMBIT_CONDITION_LABELS } from '../../models/Gambit';
+import { GambitModalController } from './GambitModalController';
 
 export class PartyModalController {
   private static instance: PartyModalController;
@@ -108,6 +110,19 @@ export class PartyModalController {
     }
     if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${displayClass}`;
     if (traitNameEl) traitNameEl.textContent = adv.trait.name;
+
+    const btnAdvance = document.getElementById('btn-advance-class') as HTMLButtonElement;
+    if (btnAdvance) {
+      if (adv.level >= 10 && !adv.isAdvanced) {
+        btnAdvance.style.display = 'inline-block';
+        btnAdvance.onclick = () => {
+          this.handleAdvanceClass(adv);
+        };
+      } else {
+        btnAdvance.style.display = 'none';
+        btnAdvance.onclick = null;
+      }
+    }
   
     const stats = adv.getCombatStats();
     const hpTextEl = document.getElementById('party-bar-hp-text');
@@ -489,21 +504,37 @@ export class PartyModalController {
             ${passivesHtml || '<div style="font-size:0.75em; color:#94a3b8;">暫無額外被動效果</div>'}
           </div>
   
-          <!-- Gambit 戰術策略預留卡槽 -->
+          <!-- Gambit 戰術策略卡槽 -->
           <div id="gambit-strategy-container" style="margin-top: 6px; background: rgba(15,23,42,0.6); border: 1px dashed rgba(234,179,8,0.4); border-radius: 6px; padding: 6px 8px; flex-shrink: 0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-              <span style="font-size:0.78em; color:#facc15; font-weight:bold;">🎯 Gambit 戰術策略 (預留 Slot)</span>
+              <span style="font-size:0.78em; color:#facc15; font-weight:bold;">🎯 Gambit 戰術策略 (前3順位)</span>
               <span style="font-size:0.68em; color:#94a3b8; background:rgba(255,255,255,0.05); padding:1px 4px; border-radius:3px;">智慧 AI 動態評估</span>
             </div>
             <div style="display:flex; flex-direction:column; gap:3px;">
-              <div style="font-size:0.72em; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:3px 6px; border-radius:4px; color:#cbd5e1; display:flex; justify-content:space-between; align-items:center;">
-                <span>[戰術 1] If 隊友 HP < 40% ➔ 優先施放防禦/治療</span>
-                <span style="color:#64748b; font-size:0.9em;">🔒 擴充槽</span>
-              </div>
-              <div style="font-size:0.72em; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); padding:3px 6px; border-radius:4px; color:#cbd5e1; display:flex; justify-content:space-between; align-items:center;">
-                <span>[戰術 2] If 敵方有後排 ➔ 優先遠程/貫穿斬殺</span>
-                <span style="color:#64748b; font-size:0.9em;">🔒 擴充槽</span>
-              </div>
+              ${(function() {
+                let html = '';
+                if (!adv.gambits) adv.gambits = [];
+                if (adv.gambits.length === 0) {
+                  for(let i=0; i<3; i++) adv.gambits.push({ isActive: i===0, conditionType: GambitConditionType.ALWAYS, actionSkillId: 'DEFAULT_ATTACK' });
+                }
+                adv.gambits.slice(0, 3).forEach((g, index) => {
+                  const condLabel = GAMBIT_CONDITION_LABELS[g.conditionType];
+                  const valStr = g.conditionValue !== undefined ? ` (${g.conditionValue})` : '';
+                  const skillName = g.actionSkillId === 'DEFAULT_ATTACK' ? '預設普攻' : (SKILLS[g.actionSkillId]?.name || '未知');
+                  const isActiveColor = g.isActive ? '#eab308' : '#64748b';
+                  const isActiveBorder = g.isActive ? 'rgba(234,179,8,0.4)' : 'rgba(255,255,255,0.08)';
+                  html += `
+                    <div class="gambit-row" data-index="${index}" style="font-size:0.72em; background:rgba(255,255,255,0.03); border:1px solid ${isActiveBorder}; padding:3px 6px; border-radius:4px; color:${isActiveColor}; display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="font-weight:bold; font-size:1.1em;">${index + 1}.</span>
+                        <span>If ${condLabel}${valStr} ➔ ${skillName}</span>
+                      </div>
+                      <span style="font-size:0.9em; background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:3px;">✏️ 編輯</span>
+                    </div>
+                  `;
+                });
+                return html;
+              })()}
             </div>
           </div>
         </div>
@@ -535,9 +566,58 @@ export class PartyModalController {
           }
         });
       });
+
+      // 綁定 Gambit 行點擊事件
+      viewport.querySelectorAll('.gambit-row').forEach(row => {
+        row.addEventListener('click', (e) => {
+          const index = parseInt((e.currentTarget as HTMLElement).getAttribute('data-index') || '0', 10);
+          GambitModalController.getInstance().open(adv, index);
+        });
+      });
     }
   }
   
+  private handleAdvanceClass(adv: Adventurer) {
+    let reqMaterialId = '';
+    const baseClass = adv.job.name;
+    
+    if (baseClass === '戰士') reqMaterialId = 'ADVANCE_WARRIOR';
+    else if (baseClass === '法師') reqMaterialId = 'ADVANCE_MAGE';
+    else if (baseClass === '弓箭手') reqMaterialId = 'ADVANCE_ARCHER';
+    else if (baseClass === '騎士') reqMaterialId = 'ADVANCE_KNIGHT';
+    else if (baseClass === '盜賊') reqMaterialId = 'ADVANCE_THIEF';
+    else if (baseClass === '祈禱者') reqMaterialId = 'ADVANCE_PRAYER';
+    
+    if (!reqMaterialId) {
+      ToastManager.show(`該職業無法轉職！`, 'error');
+      return;
+    }
+
+    const territory = GameState.myTerritory;
+    if (!territory.materials) territory.materials = {};
+    const hasCount = territory.materials[reqMaterialId] || 0;
+    
+    // We import ADVANCEMENT_MATERIALS from types
+    // Actually, we can hardcode the names or import
+    const reqMaterialName = reqMaterialId === 'ADVANCE_WARRIOR' ? '狂怒之鋒' :
+                            reqMaterialId === 'ADVANCE_MAGE' ? '秘法魔典' :
+                            reqMaterialId === 'ADVANCE_ARCHER' ? '鷹隼之眼' :
+                            reqMaterialId === 'ADVANCE_KNIGHT' ? '守護者之盾' :
+                            reqMaterialId === 'ADVANCE_THIEF' ? '幽影之塵' :
+                            '信仰之證';
+
+    if (hasCount < 1) {
+      ToastManager.show(`轉職失敗！需要素材：${reqMaterialName}`, 'error');
+      return;
+    }
+
+    territory.materials[reqMaterialId] -= 1;
+    const msg = adv.advance();
+    ToastManager.show(msg, 'success');
+    
+    this.renderPartyUpperSection();
+  }
+
   public open(adv: Adventurer) {
     this.selectPartyAdventurer(adv);
     const modal = document.getElementById('modal-party-list');

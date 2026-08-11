@@ -3,6 +3,8 @@ import { Random } from '../core/Random';
 import monstersJson from '../data/monsters.json';
 
 import nestNamesJson from '../data/nestNames.json';
+import { GameState } from '../core/GameState';
+import { FactionArmyGenerator } from './map/FactionArmyGenerator';
 
 export class MonsterSystem {
   private monsters: MonsterData[] = [];
@@ -216,7 +218,23 @@ export class MonsterSystem {
     const isNecroticTheme = node.terrain === TerrainType.RUINS || node.name.includes('墓') || node.name.includes('深淵') || node.name.includes('無光');
     const baseDifficulty = node.baseDifficulty || 1.5;
     
-    const encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme);
+    let encounter: MonsterInstance[];
+
+    if (node.ownerFactionId && node.ownerFactionId !== 'player') {
+      // 這是陣營的據點，生成陣營正規軍與傳奇 Boss
+      const factions = GameState.mapSystem.getFactions();
+      const faction = factions.find(f => f.id === node.ownerFactionId);
+      if (faction) {
+        // 依照難度生成約 4~6 隻單位的部隊
+        const armyCount = Math.min(6, Math.max(4, Math.floor(baseDifficulty * 3)));
+        encounter = FactionArmyGenerator.generateSiegeEncounter(faction, baseDifficulty, armyCount) as MonsterInstance[];
+      } else {
+        encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme);
+      }
+    } else {
+      // 普通野外據點，生成一般怪物
+      encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme);
+    }
 
     // 隨機生成據點詞綴 (20% 機率)
     let affix: StrongholdAffix | undefined = undefined;

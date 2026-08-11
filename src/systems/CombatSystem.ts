@@ -5,6 +5,7 @@ import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType, 
 import { Random } from '../core/Random';
 import { TargetType } from '../models/Skill';
 import { SKILLS } from '../data/SkillData';
+import { GambitEvaluator } from './combat/GambitEvaluator';
 import { calculateSkillDamage } from '../utils/CombatMath';
 import { FormationDB } from '../systems/FormationDB';
 import { PassiveManager } from './combat/PassiveManager';
@@ -200,6 +201,7 @@ export class CombatSystem {
 
     for (let wave = 1; wave <= totalWaves; wave++) {
       const enemyTeam: CombatParticipant[] = [];
+      const occupiedEnemyGrids = new Set<string>();
       const currentWaveDiff = taskDifficulty + (wave - 1) * 5;
       const enemyCount = (enemyLineup && enemyLineup.length > 0) ? enemyLineup.length : Random.int(1, 3);
       
@@ -224,9 +226,17 @@ export class CombatSystem {
         }
         if (enemyFeature === 'HIGH_EVADE' && !lineupMonster) eEvade *= 2;
 
-        const isFront = Random.next() > 0.5;
-        const eGridR = isFront ? 0 : 2; // Simple random placement
-        const eGridC = Random.int(0, 2);
+        let eGridR = 0;
+        let eGridC = 0;
+        let attempts = 0;
+        let isFront = true;
+        do {
+           isFront = Random.next() > 0.5;
+           eGridR = isFront ? 0 : 2; // Simple random placement
+           eGridC = Random.int(0, 2);
+           attempts++;
+        } while (occupiedEnemyGrids.has(`${eGridR}_${eGridC}`) && attempts < 10);
+        occupiedEnemyGrids.add(`${eGridR}_${eGridC}`);
         
         enemyTeam.push({
           id: `enemy_${wave}_${i}`,
@@ -360,11 +370,19 @@ export class CombatSystem {
 
         let target = Random.pick(validTargets);
 
-        // 選擇技能 (Smart Casting AI)
+        // 先讓 GAMBIT 進行決策
+        let gambitResult = GambitEvaluator.evaluate(actor, playerTeam, enemyTeam);
         let selectedSkill = null;
         let skillTargets = [target]; // 最終確定的目標
 
-        if (actor.skills && actor.skills.length > 0) {
+        if (gambitResult) {
+          if (gambitResult.skillId !== 'DEFAULT_ATTACK') {
+             selectedSkill = SKILLS[gambitResult.skillId];
+          }
+          skillTargets = gambitResult.targets;
+        } else {
+          // 選擇技能 (Smart Casting AI - 只有在沒觸發 Gambit 時執行)
+          if (actor.skills && actor.skills.length > 0) {
           const availableSkills = actor.skills
             .map(id => SKILLS[id])
             .filter(s => s && actor.stats.mp >= s.mpCost && !(actor.cooldowns && actor.cooldowns[s.id] > 0));
@@ -399,6 +417,8 @@ export class CombatSystem {
               }
             }
           }
+        }
+        // end of gambit else block
         }
 
         if (selectedSkill) {

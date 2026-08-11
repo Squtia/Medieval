@@ -46,5 +46,11 @@
   { "id": "hydra_spawn", "name": "幼九頭蛇", "race": "DRAGON", "compatibleRaces": ["DRAGON"], "terrains": ["FOREST", "CAVE"], "powerTier": 2.4 },
   { "id": "salamander", "name": "熔岩蜥", "race": "DRAGON", "compatibleRaces": ["DRAGON"], "terrains": ["VOLCANO"], "powerTier": 1.5, "defaultElement": "FIRE" },
   { "id": "thunder_drake", "name": "迅雷飛龍", "race": "DRAGON", "compatibleRaces": ["DRAGON"], "terrains": ["SNOW_MOUNTAIN", "PLAINS"], "powerTier": 2.2, "defaultElement": "LIGHTNING" },
-  { "id": "swamp_drake", "name": "沼澤毒龍", "race": "DRAGON", "compatibleRaces": ["DRAGON", "UNDEAD"], "terrains": ["FOREST", "RUINS"], "powerTier": 1.9 }
+  { "id": "swamp_drake", "name": "沼澤毒龍", "race": "DRAGON", "compatibleRaces": ["DRAGON", "UNDEAD"], "terrains": ["FOREST", "RUINS"], "powerTier": 1.9 },
+  { "id": "faction_infantry", "name": "步兵", "race": "HUMAN", "compatibleRaces": ["HUMAN"], "terrains": [], "powerTier": 1.0 },
+  { "id": "faction_spearman", "name": "長槍兵", "race": "HUMAN", "compatibleRaces": ["HUMAN"], "terrains": [], "powerTier": 1.1 },
+  { "id": "faction_crossbowman", "name": "弩兵", "race": "HUMAN", "compatibleRaces": ["HUMAN"], "terrains": [], "powerTier": 1.2 },
+  { "id": "faction_knight", "name": "騎士", "race": "HUMAN", "compatibleRaces": ["HUMAN"], "terrains": [], "powerTier": 1.8 },
+  { "id": "faction_mage", "name": "隨軍法師", "race": "HUMAN", "compatibleRaces": ["HUMAN"], "terrains": [], "powerTier": 1.6 },
+  { "id": "faction_siege_weapon", "name": "攻城器械", "race": "MONSTER", "compatibleRaces": ["MONSTER"], "terrains": [], "powerTier": 2.5 }
 ]

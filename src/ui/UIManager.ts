@@ -9,7 +9,9 @@ import { positionFloatingElement } from './FloatingPosition';
 import { PROSPERITY_THRESHOLDS, calculateNodeLevel } from '../data/BalanceData';
 import { ToastManager } from './ToastManager';
 import { resetExplorationControllerState } from './ExplorationController';
+import { DataStore } from '../systems/DataStore';
 import { InventoryUIController } from './components/InventoryUIController';
+import { PrisonerModalController } from './modals/PrisonerModalController';
 
 class UIManagerClass {
   // 頂部資源列 — 延遲到 reinitDOM() 時才初始化，避免 template 注入前取得 null
@@ -113,6 +115,7 @@ class UIManagerClass {
     
     // 初始化全域倉庫 UI
     new InventoryUIController(this);
+    PrisonerModalController.getInstance().init();
   }
 
 
@@ -429,10 +432,12 @@ class UIManagerClass {
       // 傭兵隊伍功能：在大陸地圖時隱藏按鈕並關閉面板
       const btnDockParty = document.getElementById('btn-dock-party');
       const btnDockInventory = document.getElementById('btn-dock-inventory');
+      const btnDockDungeon = document.getElementById('btn-dock-dungeon');
       const modalPartyList = document.getElementById('modal-party-list');
       const inventoryPanel = document.getElementById('inventory-panel');
       if (btnDockParty) btnDockParty.style.display = 'none';
       if (btnDockInventory) btnDockInventory.style.display = 'none';
+      if (btnDockDungeon) btnDockDungeon.style.display = 'none';
       if (modalPartyList) modalPartyList.classList.remove('active');
       if (inventoryPanel) inventoryPanel.classList.remove('active');
 
@@ -461,8 +466,10 @@ class UIManagerClass {
       // 在據點街道視圖時顯示傭兵隊伍按鈕
       const btnDockParty = document.getElementById('btn-dock-party');
       const btnDockInventory = document.getElementById('btn-dock-inventory');
+      const btnDockDungeon = document.getElementById('btn-dock-dungeon');
       if (btnDockParty) btnDockParty.style.display = 'flex';
       if (btnDockInventory) btnDockInventory.style.display = 'flex';
+      if (btnDockDungeon) btnDockDungeon.style.display = 'flex';
     } else {
       if (sharedRightPanel) sharedRightPanel.style.display = 'none';
       if (sceneDashboard) sceneDashboard.style.display = 'none';

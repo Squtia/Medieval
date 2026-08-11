@@ -18,7 +18,7 @@ export class ExplorationNarrativeEngine {
    * 討伐敘事引擎入口
    * 專門處理節點討伐的敘事化日誌生成與底層戰鬥結算
    */
-  public static generateSubjugationLog(adventurers: Adventurer[], node: MapNode, baseDiff: number, enemyFeature: EnemyFeature): boolean {
+  public static generateSubjugationLog(adventurers: Adventurer[], node: MapNode, baseDiff: number, enemyFeature: EnemyFeature, formationId?: string, gridMap?: Record<string, string>): boolean {
     const territory = GameState.myTerritory;
     const segments: AdventureLogSegment[] = [];
     
@@ -76,7 +76,7 @@ export class ExplorationNarrativeEngine {
           segments.push({ type: 'TEXT', content: `繼續推進時，又遭遇了另一波敵軍的阻撓。` });
         }
 
-        const combatResult = this.runCombat(adventurers, node, baseDiff, enemyFeature, 1, currentHpOverrides, currentMpOverrides);
+        const combatResult = this.runCombat(adventurers, node, baseDiff, enemyFeature, 1, currentHpOverrides, currentMpOverrides, formationId, gridMap);
         
         if (combatResult && combatResult.combatId) {
           segments.push({ type: 'COMBAT_LINK', content: combatResult.combatId });
@@ -147,7 +147,9 @@ export class ExplorationNarrativeEngine {
     feature: EnemyFeature, 
     waves: number = 1,
     initialHpMap?: Record<string, number>,
-    initialMpMap?: Record<string, number>
+    initialMpMap?: Record<string, number>,
+    formationId?: string,
+    gridMap?: Record<string, string>
   ): { combatId: string; rewards?: AdventureLogRewards; isVictory: boolean; playerHpMap?: Record<string, number>; playerMpMap?: Record<string, number> } | null {
     let enemyLineup = undefined;
     if (monsterSystem) {
@@ -166,8 +168,8 @@ export class ExplorationNarrativeEngine {
       waves,
       undefined,
       enemyLineup,
-      undefined,
-      undefined,
+      formationId,
+      gridMap,
       initialHpMpOverride
     );
 
@@ -195,6 +197,24 @@ export class ExplorationNarrativeEngine {
          const bonus = Math.min(GameState.restedExpPool, heroXpReward);
          GameState.restedExpPool -= bonus;
          heroXpReward += bonus;
+      }
+      
+      // 3. 戰俘判定 (Dungeon System)
+      if (enemyLineup && enemyLineup.length > 0) {
+        const bosses = enemyLineup.filter(e => (e as any).isBoss && (e as any).factionId);
+        for (const boss of bosses) {
+          const bossAny = boss as any;
+          const faction = GameState.mapSystem.getFactions().find(f => f.id === bossAny.factionId);
+          if (faction) {
+            if (!faction.capturedChampionIds) faction.capturedChampionIds = [];
+            if (!faction.capturedChampionIds.includes(bossAny.id)) {
+              faction.capturedChampionIds.push(bossAny.id);
+              import('../ui/ToastManager').then(({ ToastManager }) => {
+                ToastManager.show(`🏆 戰鬥勝利！你俘虜了【傳奇騎士】${bossAny.name}，已押送至領地地牢。`, 'success');
+              });
+            }
+          }
+        }
       }
       for (const adv of adventurers) {
         adv.gainXP(heroXpReward);

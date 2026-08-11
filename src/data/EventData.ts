@@ -21,13 +21,13 @@ export interface GameEvent {
 export const GAME_EVENTS: GameEvent[] = [
   // --- 家族政治事件 ---
   {
-    id: 'evt_valerius_demand',
+    id: 'evt_vormund_demand',
     title: '鐵血徵收',
-    description: '瓦萊里烏斯家族的軍隊路過你的領地。帶隊的長官傲慢地要求你「捐獻」一批物資以支持他們對北方的軍事行動。拒絕他們可能會被視為叛亂的徵兆。',
+    description: '沃爾蒙德大公的軍隊路過你的領地。帶隊的長官傲慢地要求你「捐獻」一批物資以支持他們對北方的軍事行動。拒絕他們可能會被視為叛亂的徵兆。',
     isImportant: true,
     condition: () => {
-      // 玩家領地繁榮度 > 300 且 瓦萊里烏斯家族還存在
-      const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_valerius');
+      // 玩家領地繁榮度 > 300 且 沃爾蒙德大公還存在
+      const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_vormund');
       return !!val && val.controlledNodes.length > 0 && GameState.myTerritory.gold >= 500;
     },
     options: [
@@ -35,15 +35,15 @@ export const GAME_EVENTS: GameEvent[] = [
         text: '屈服並繳納物資 (金幣 -200，好感度 +10)',
         onSelect: () => {
           GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold - 200);
-          const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_valerius');
+          const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_vormund');
           if (val) val.playerFavor += 10;
-          console.log('📉 你無奈地交出了物資，瓦萊里烏斯軍隊滿意地離去。');
+          console.log('📉 你無奈地交出了物資，北境軍隊滿意地離去。');
         }
       },
       {
         text: '嚴詞拒絕 (好感度 -20)',
         onSelect: () => {
-          const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_valerius');
+          const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_vormund');
           if (val) val.playerFavor -= 20;
           console.log('⚔️ 你拒絕了徵收。對方指揮官冷笑著記下了這筆帳。');
         }
@@ -51,29 +51,29 @@ export const GAME_EVENTS: GameEvent[] = [
     ]
   },
   {
-    id: 'evt_morvayn_assassin',
+    id: 'evt_hurst_assassin',
     title: '雪夜的訪客',
-    description: '一個身受重傷的黑衣人倒在你的據點門外。從他的裝備來看，似乎是莫凡恩家族的刺客。他的口袋裡有一封沾血的密信。',
+    description: '一個身受重傷的黑衣人倒在你的據點門外。從他的裝備來看，似乎是教廷異端審判庭的刺客。他的口袋裡有一封沾血的密信。',
     condition: () => {
       // 隨機事件，無特別條件限制
-      const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_morvayn');
+      const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_hurst');
       return !!mor && Random.next() < 0.2;
     },
     options: [
       {
-        text: '救治他並歸還密信 (莫凡恩好感度 +15，金幣 -100)',
+        text: '救治他並歸還密信 (教廷好感度 +15，金幣 -100)',
         onSelect: () => {
           GameState.myTerritory.gold -= 100;
-          const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_morvayn');
+          const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_hurst');
           if (mor) mor.playerFavor += 15;
-          console.log('🩹 刺客醒來後一言不發地離開了，但莫凡恩家族會記住你的恩情。');
+          console.log('🩹 刺客醒來後一言不發地離開了，但神聖教廷會記住你的恩情。');
         }
       },
       {
-        text: '將信件賣給情報販子 (金幣 +800，莫凡恩好感度 -30)',
+        text: '將信件賣給情報販子 (金幣 +800，教廷好感度 -30)',
         onSelect: () => {
           GameState.myTerritory.gold += 800;
-          const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_morvayn');
+          const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_hurst');
           if (mor) mor.playerFavor -= 30;
           console.log('💰 你獲得了一筆不義之財，但也惹上了危險的敵人。');
         }
@@ -85,7 +85,7 @@ export const GAME_EVENTS: GameEvent[] = [
   {
     id: 'evt_royal_tax',
     title: '王室特使',
-    description: '一位身穿紫袍的埃瑟加德王室特使帶著國王的詔書來到你的據點。他宣稱為了重建「永恆之城」，所有領主都必須繳納特別稅。',
+    description: '一位身穿紫袍的洛斯加王室特使帶著國王的詔書來到你的據點。他宣稱為了重建「永恆之城」，所有領主都必須繳納特別稅。',
     isImportant: true,
     condition: () => {
       // 領地金幣較多時觸發
@@ -97,7 +97,7 @@ export const GAME_EVENTS: GameEvent[] = [
         onSelect: () => {
           GameState.myTerritory.gold -= 1000;
           GameState.myTerritory.prestige += 50;
-          const royal = GameState.mapSystem.getFactions().find(f => f.id === 'f_royal');
+          const royal = GameState.mapSystem.getFactions().find(f => f.id === 'f_lothgar');
           if (royal) royal.playerFavor += 20;
           console.log('👑 特使讚賞了你的忠誠，你的聲望在貴族圈中傳開了。');
         }
@@ -105,7 +105,7 @@ export const GAME_EVENTS: GameEvent[] = [
       {
         text: '以領地貧困為由拖延 (王室好感度 -15)',
         onSelect: () => {
-          const royal = GameState.mapSystem.getFactions().find(f => f.id === 'f_royal');
+          const royal = GameState.mapSystem.getFactions().find(f => f.id === 'f_lothgar');
           if (royal) royal.playerFavor -= 15;
           console.log('📜 特使帶著不滿離開了，你在王都的評價下降。');
         }
@@ -146,10 +146,10 @@ export const GAME_EVENTS: GameEvent[] = [
   {
     id: 'evt_advisor_spy',
     title: '暗流湧動',
-    description: '一名自稱來自「培提爾樞密院」的情報商人來到你的據點。他提議以金幣交換關於周圍敵對勢力的致命弱點，但這也可能是一個陷阱。',
+    description: '一名自稱來自「樞密院」的情報商人來到你的據點。他提議以金幣交換關於周圍敵對勢力的致命弱點，但這也可能是一個陷阱。',
     isImportant: true,
     condition: () => {
-      const adv = GameState.mapSystem.getFactions().find(f => f.id === 'f_advisor');
+      const adv = GameState.mapSystem.getFactions().find(f => f.id === 'f_lothgar');
       return !!adv && GameState.myTerritory.gold >= 400;
     },
     options: [
@@ -165,7 +165,7 @@ export const GAME_EVENTS: GameEvent[] = [
       {
         text: '驅逐他 (樞密院好感度 -10)',
         onSelect: () => {
-          const adv = GameState.mapSystem.getFactions().find(f => f.id === 'f_advisor');
+          const adv = GameState.mapSystem.getFactions().find(f => f.id === 'f_lothgar');
           if (adv) adv.playerFavor -= 10;
           console.log('🚪 情報商人冷哼一聲離開了。你可能錯失了一個機會。');
         }

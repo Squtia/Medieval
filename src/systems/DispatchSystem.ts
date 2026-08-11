@@ -462,7 +462,7 @@ export class DispatchSystem {
     if (task.targetNodeId && GameState.mapSystem) {
       const node = GameState.mapSystem.getNodeById(task.targetNodeId);
       if (node) {
-        isVictory = ExplorationNarrativeEngine.generateSubjugationLog(adventurers, node, task.baseDifficulty, task.enemyFeature || EnemyFeature.BALANCED);
+        isVictory = ExplorationNarrativeEngine.generateSubjugationLog(adventurers, node, task.baseDifficulty, task.enemyFeature || EnemyFeature.BALANCED, task.formationId, task.gridMap);
       }
     }
 
@@ -479,9 +479,13 @@ export class DispatchSystem {
     if (task.isWar && task.targetNodeId && GameState.mapSystem) {
        const node = GameState.mapSystem.getNodeById(task.targetNodeId);
        if (node) {
-          node.ownerFactionId = 'player';
-          node.governorId = undefined; 
-          console.log(`✅ [攻城勝利] 成功佔領了 ${node.name}！現在可以指派代官來管理該城鎮。`);
+          if (isVictory) {
+            node.ownerFactionId = 'player';
+            node.governorId = undefined; 
+            console.log(`✅ [攻城勝利] 成功佔領了 ${node.name}！現在可以指派代官來管理該城鎮。`);
+          } else {
+            console.log(`❌ [攻城失敗] 佔領 ${node.name} 失敗，部隊已撤退。`);
+          }
        }
     }
 

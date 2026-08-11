@@ -239,7 +239,13 @@ export function initGameFlowController(rebindUIEvents: () => void): void {
       (window as any).eventQueue = [];
 
       // 計算本日資源與推演
-      advanceDay();
+      const isGameOver = advanceDay();
+      
+      // 若觸發 Game Over，直接中斷結算與後續流程
+      if (isGameOver) {
+        (window as any).isAdvancingDay = false;
+        return;
+      }
       
       // 直接顯示每日結算面板，此時不黑屏，等待玩家確認
       showDailySummaryModal(() => {

@@ -23,6 +23,8 @@ export class CombatUIManager {
   private static currentSpeed = 1200; // 1x 預設較慢
   private static eventIndex = 0;
   private static hpMap: Record<string, number> = {};
+  private static fallbackPlayerCount = 0;
+  private static fallbackEnemyCount = 0;
 
   private static isInitialized = false;
 
@@ -85,6 +87,8 @@ export class CombatUIManager {
     this.currentReport = report;
     this.eventIndex = 0;
     this.hpMap = {};
+    this.fallbackPlayerCount = 0;
+    this.fallbackEnemyCount = 0;
     
     this.modal.classList.add('active');
     this.resultOverlay.classList.remove('active');
@@ -141,14 +145,18 @@ export class CombatUIManager {
          gridColumn = 3 - state.gridR; // r=0(Front) -> col=3, r=1(Mid) -> col=2, r=2(Back) -> col=1
          gridRow = state.gridC + 1;    // c=0(Top) -> row=1, c=1(Mid) -> row=2, c=2(Bottom) -> row=3
       } else {
-         gridColumn = state.row === 'FRONT' ? 3 : 1;
+         const fallbackIndex = this.fallbackPlayerCount++;
+         gridColumn = state.row === 'FRONT' ? 3 : (state.row === 'MIDDLE' ? 2 : 1);
+         gridRow = (fallbackIndex % 3) + 1;
       }
     } else {
       if (state.gridR !== undefined && state.gridC !== undefined) {
          gridColumn = state.gridR + 1; // r=0(Front) -> col=1, r=1(Mid) -> col=2, r=2(Back) -> col=3
          gridRow = state.gridC + 1;
       } else {
-         gridColumn = state.row === 'FRONT' ? 1 : 3;
+         const fallbackIndex = this.fallbackEnemyCount++;
+         gridColumn = state.row === 'FRONT' ? 1 : (state.row === 'MIDDLE' ? 2 : 3);
+         gridRow = (fallbackIndex % 3) + 1;
       }
     }
     div.style.gridColumn = gridColumn.toString();
@@ -166,7 +174,7 @@ export class CombatUIManager {
       <div style="display: flex; align-items: center; gap: 4px; ${state.isPlayer ? '' : 'flex-direction: row-reverse;'} flex-shrink: 0; min-height: 0;">
         ${avatarHtml}
         <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 0.62em; font-weight: bold; color: ${state.isPlayer ? '#fbbf24' : '#f87171'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${state.name} <span style="font-size: 0.85em; color: #94a3b8;">${rowLabel}</span></div>
+          <div style="font-size: 0.55em; line-height: 1.2; font-weight: bold; color: ${state.isPlayer ? '#fbbf24' : '#f87171'}; word-break: break-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${state.name} <span style="font-size: 0.85em; color: #94a3b8; white-space: nowrap;">${rowLabel}</span></div>
         </div>
       </div>
       <div class="combat-hp-bg">

@@ -1,6 +1,6 @@
 import { calendarToTotalDays } from './Calendar';
 
-export const CURRENT_SAVE_SCHEMA_VERSION = 3;
+export const CURRENT_SAVE_SCHEMA_VERSION = 4;
 
 export function migrateSaveData(raw: any): any {
   const data = { ...raw };
@@ -27,6 +27,16 @@ export function migrateSaveData(raw: any): any {
       data.adventurers.forEach((adv: any) => {
         if (adv.isAdvanced === undefined) {
           adv.isAdvanced = false;
+        }
+      });
+    }
+  }
+
+  if (version < 4) {
+    if (data.adventurers && Array.isArray(data.adventurers)) {
+      data.adventurers.forEach((adv: any) => {
+        if (!adv.gambits) {
+          adv.gambits = [];
         }
       });
     }

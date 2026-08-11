@@ -13,6 +13,15 @@ export enum ElementType {
   DARK = 'DARK'
 }
 
+export const ADVANCEMENT_MATERIALS: Record<string, string> = {
+  ADVANCE_WARRIOR: '狂怒之鋒',
+  ADVANCE_MAGE: '秘法魔典',
+  ADVANCE_ARCHER: '鷹隼之眼',
+  ADVANCE_KNIGHT: '守護者之盾',
+  ADVANCE_THIEF: '幽影之塵',
+  ADVANCE_PRAYER: '信仰之證'
+};
+
 export enum StrongholdAffix {
   MIASMA = 'MIASMA',             // 死靈瘴氣 (恢復-50%)
   VOLCANIC_HEAT = 'VOLCANIC_HEAT', // 酷熱熔岩 (回合扣血)

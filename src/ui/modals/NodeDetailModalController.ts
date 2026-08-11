@@ -267,8 +267,8 @@ export class NodeDetailModalController {
         this.closeNodeDetailPanel();
       };
     } else {
-      if (node.isPlayerBase) {
-        newBtnAction.textContent = '🔒 無法操作';
+      if (node.ownerFactionId === 'player') {
+        newBtnAction.textContent = '🔒 您的領地';
         newBtnAction.onclick = () => ToastManager.show('這是您自己的領地！');
       } else {
         newBtnAction.textContent = '⚔️ 發動攻城戰';

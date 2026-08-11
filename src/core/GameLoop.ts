@@ -31,8 +31,8 @@ export function stopGameLoop() {
   if ((window as any).autoSaveLoop) clearInterval((window as any).autoSaveLoop);
 }
 
-export function advanceDay() {
-  if (!GameState.system || !GameState.mapSystem) return;
+export function advanceDay(): boolean {
+  if (!GameState.system || !GameState.mapSystem) return false;
 
   const before = {
     gold: GameState.myTerritory.gold,
@@ -183,6 +183,16 @@ export function advanceDay() {
   // if (typeof (window as any).updateUICallback === 'function') {
   //   (window as any).updateUICallback();
   // }
+  
+  if (GameState.myTerritory.population <= 0 && GameState.myTerritory.food <= 0) {
+    stopGameLoop();
+    import('../ui/GameOverModalController').then(({ GameOverModalController }) => {
+      GameOverModalController.getInstance().show();
+    });
+    return true;
+  }
+  
+  return false;
 }
 
 function handleRandomInvasion() {

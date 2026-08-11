@@ -1,5 +1,6 @@
 import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow, OfficeType, WeaponType } from './types';
 import { Random } from '../core/Random';
+import { GambitRule } from './Gambit';
 
 export class Adventurer {
   public id: string;
@@ -23,6 +24,7 @@ export class Adventurer {
   // OPT-02: RESTING 狀態剩餘天數
   public restingDaysLeft: number;
   public isAdvanced: boolean;
+  public gambits: GambitRule[];
 
   // 戰鬥陣位
   public formationRow: FormationRow;
@@ -119,6 +121,7 @@ export class Adventurer {
     this.dispatchEndTime = null;
     this.restingDaysLeft = 0;
     this.isAdvanced = false;
+    this.gambits = [];
     this.formationRow = FormationRow.FRONT;
     this.office = null;
     this.stationedNodeId = null;
@@ -201,6 +204,17 @@ export class Adventurer {
   }
 
   /**
+   * 進行轉職
+   * 成功轉職後 isAdvanced 設為 true，並回傳提示訊息
+   */
+  public advance(): string {
+    if (this.level < 10) return "等級未達要求。";
+    if (this.isAdvanced) return "已經完成轉職。";
+    this.isAdvanced = true;
+    return `轉職試煉通過！${this.name} 潛能解放，獲得了進階職業的專屬技能與被動！`;
+  }
+
+  /**
    * 升級處理
    * 根據職業的成長係數，微幅增加基礎屬性，並給予 2 點自由屬性點
    */
@@ -230,7 +244,6 @@ export class Adventurer {
     
     this.baseAttributes[statKey] += 1;
     this.unspentStatPoints -= 1;
-    console.log(`✨ ${this.name} 消耗了一點自由屬性點，提升了 ${statKey.toUpperCase()}！`);
     return true;
   }
 

@@ -94,6 +94,16 @@ export function initCheatController(): void {
            }
         });
         ToastManager.show(`✨ 已為 ${count} 名滿等傭兵解鎖轉職狀態！`);
+    }},
+    'advmat': { name: '取得所有轉職素材', noPrompt: true, setter: () => {
+        if (!GameState.myTerritory.materials) GameState.myTerritory.materials = {};
+        GameState.myTerritory.materials['ADVANCE_WARRIOR'] = (GameState.myTerritory.materials['ADVANCE_WARRIOR'] || 0) + 10;
+        GameState.myTerritory.materials['ADVANCE_MAGE'] = (GameState.myTerritory.materials['ADVANCE_MAGE'] || 0) + 10;
+        GameState.myTerritory.materials['ADVANCE_ARCHER'] = (GameState.myTerritory.materials['ADVANCE_ARCHER'] || 0) + 10;
+        GameState.myTerritory.materials['ADVANCE_KNIGHT'] = (GameState.myTerritory.materials['ADVANCE_KNIGHT'] || 0) + 10;
+        GameState.myTerritory.materials['ADVANCE_THIEF'] = (GameState.myTerritory.materials['ADVANCE_THIEF'] || 0) + 10;
+        GameState.myTerritory.materials['ADVANCE_PRAYER'] = (GameState.myTerritory.materials['ADVANCE_PRAYER'] || 0) + 10;
+        ToastManager.show(`✨ 已獲得全套轉職素材 (各 10 個)！`);
     }}
   });
 
