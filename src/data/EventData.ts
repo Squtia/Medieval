@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { FactionType } from '../models/types';
+import { FactionType, NodeLevel, TITLE_CONFIG } from '../models/types';
 import { Random } from '../core/Random';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
@@ -16,6 +16,10 @@ export interface GameEvent {
   condition: () => boolean; // 判斷是否符合觸發條件
   options: EventOption[];
   isImportant?: boolean; // 標記是否為重要事件 (跳窗)，若為 false/undefined 則進入待辦清單
+  isUnique?: boolean;       // 是否為一次性事件
+  cooldownDays?: number;    // 事件發生後的冷卻天數 (例如 180)
+  omenDuration?: number;    // 潛伏期天數 (例如 3)
+  omenText?: string;        // 潛伏期觸發時的警告文案
 }
 
 export const GAME_EVENTS: GameEvent[] = [
@@ -25,10 +29,15 @@ export const GAME_EVENTS: GameEvent[] = [
     title: '鐵血徵收',
     description: '沃爾蒙德大公的軍隊路過你的領地。帶隊的長官傲慢地要求你「捐獻」一批物資以支持他們對北方的軍事行動。拒絕他們可能會被視為叛亂的徵兆。',
     isImportant: true,
+    cooldownDays: 180,
+    omenDuration: 3,
+    omenText: '有商隊提到，北方沃爾蒙德大公的軍隊正頻繁地打聽您領地的金庫大小...',
     condition: () => {
-      // 玩家領地繁榮度 > 300 且 沃爾蒙德大公還存在
       const val = GameState.mapSystem.getFactions().find(f => f.id === 'f_vormund');
-      return !!val && val.controlledNodes.length > 0 && GameState.myTerritory.gold >= 500;
+      if (!val || val.controlledNodes.length === 0) return false;
+      const titleLevel = TITLE_CONFIG.findIndex(c => c.title === GameState.myTerritory.title);
+      const dynamicThreshold = 3000 + (Math.max(0, titleLevel) * 2000);
+      return val.playerFavor < 30 && GameState.myTerritory.gold > dynamicThreshold;
     },
     options: [
       {
@@ -54,10 +63,12 @@ export const GAME_EVENTS: GameEvent[] = [
     id: 'evt_hurst_assassin',
     title: '雪夜的訪客',
     description: '一個身受重傷的黑衣人倒在你的據點門外。從他的裝備來看，似乎是教廷異端審判庭的刺客。他的口袋裡有一封沾血的密信。',
+    isUnique: true,
     condition: () => {
-      // 隨機事件，無特別條件限制
       const mor = GameState.mapSystem.getFactions().find(f => f.id === 'f_hurst');
-      return !!mor && Random.next() < 0.2;
+      const baseNode = GameState.mapSystem.getNodes().find(n => n.id === GameState.myTerritory.currentCountryId);
+      const isTown = baseNode && baseNode.nodeLevel >= NodeLevel.TOWN;
+      return !!mor && (GameState.totalDays > 30 || !!isTown);
     },
     options: [
       {
@@ -87,9 +98,13 @@ export const GAME_EVENTS: GameEvent[] = [
     title: '王室特使',
     description: '一位身穿紫袍的洛斯加王室特使帶著國王的詔書來到你的據點。他宣稱為了重建「永恆之城」，所有領主都必須繳納特別稅。',
     isImportant: true,
+    cooldownDays: 180,
     condition: () => {
-      // 領地金幣較多時觸發
-      return GameState.myTerritory.gold > 2000;
+      const titleLevel = TITLE_CONFIG.findIndex(c => c.title === GameState.myTerritory.title);
+      const dynamicThreshold = 3000 + (Math.max(0, titleLevel) * 2000);
+      // We check if a promotion happened recently. We can simulate it by checking if they just reached the prestige requirement,
+      // but actually, let's just make it trigger if they are rich and high title, but with a strict cooldown.
+      return titleLevel > 0 && GameState.myTerritory.gold > dynamicThreshold;
     },
     options: [
       {
@@ -118,8 +133,10 @@ export const GAME_EVENTS: GameEvent[] = [
     id: 'evt_village_festival',
     title: '豐收祭典',
     description: '領地內的農作物獲得了罕見的大豐收，村民們提議舉辦一場祭典來慶祝。這會消耗一些資金，但能大幅提升士氣與人口增長。',
+    cooldownDays: 360,
     condition: () => {
-      return GameState.myTerritory.gold >= 300;
+      const dynamicFoodThreshold = GameState.myTerritory.population * 10;
+      return GameState.myTerritory.security > 80 && GameState.myTerritory.food > Math.max(500, dynamicFoodThreshold);
     },
     options: [
       {
@@ -148,9 +165,10 @@ export const GAME_EVENTS: GameEvent[] = [
     title: '暗流湧動',
     description: '一名自稱來自「樞密院」的情報商人來到你的據點。他提議以金幣交換關於周圍敵對勢力的致命弱點，但這也可能是一個陷阱。',
     isImportant: true,
+    isUnique: true,
     condition: () => {
       const adv = GameState.mapSystem.getFactions().find(f => f.id === 'f_lothgar');
-      return !!adv && GameState.myTerritory.gold >= 400;
+      return !!adv && GameState.myTerritory.gold > 1000 && GameState.myTerritory.prestige > 100;
     },
     options: [
       {
@@ -176,9 +194,10 @@ export const GAME_EVENTS: GameEvent[] = [
     id: 'evt_oakhaven_refugees',
     title: '橡木谷的求援',
     description: '一群難民從「橡木谷家族」的領地逃難而來，宣稱他們的村莊遭到了野獸的襲擊。他們懇求你收留他們並提供一些糧食。',
+    isUnique: true,
     condition: () => {
       const oak = GameState.mapSystem.getFactions().find(f => f.id === 'f_oakhaven');
-      return !!oak;
+      return !!oak && GameState.totalDays > 15;
     },
     options: [
       {

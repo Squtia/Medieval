@@ -45,7 +45,9 @@ export class Territory {
   
   // 事件與狀態屬性
   public pendingEvents: string[]; // 待處理的普通事件 ID
-  public eventPressure: number;   // 事件壓力值 (累積到一定程度觸發事件)
+  public lastEventTriggerDay: Record<string, number>; // 紀錄每個事件最後觸發的天數 (計算冷卻)
+  public triggeredUniqueEvents: string[]; // 已發生過的 unique 事件 ID
+  public activeOmens: Record<string, { triggerDay: number, text: string }>; // 進行中的徵兆潛伏期
 
   // 探索屬性
   public exploredToday: number;
@@ -119,7 +121,9 @@ export class Territory {
     this.adventurerBudget = 0;
     this.diplomaticGift = 0;
     this.pendingEvents = [];
-    this.eventPressure = 0;
+    this.lastEventTriggerDay = {};
+    this.triggeredUniqueEvents = [];
+    this.activeOmens = {};
     this.exploredToday = 0;
     this.maxExplorationsPerDay = 1; // 預設一回合只能探索一次
     this.combatHistory = [];
@@ -354,7 +358,9 @@ export class Territory {
    */
   public removeWorkers(amount: number, prioritizeUnassigned: boolean = true): number {
     if (amount <= 0) return 0;
-    
+    // A2 確保 workers 各職業的數值正確
+    const requiredJobs = Object.values(WorkerJob);
+
     let leftToRemove = amount;
     
     if (prioritizeUnassigned) {

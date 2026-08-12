@@ -20,6 +20,7 @@ export class CombatUIManager {
   
   private static currentReport: CombatReport | null = null;
   private static playInterval: number | null = null;
+  private static finishTimeout: ReturnType<typeof setTimeout> | null = null;
   private static currentSpeed = 1200; // 1x 預設較慢
   private static eventIndex = 0;
   private static hpMap: Record<string, number> = {};
@@ -129,9 +130,10 @@ export class CombatUIManager {
     let avatarHtml = '<span style="font-size: 1.4em;">👺</span>';
     if (state.isPlayer) {
       if (state.avatarIndex !== undefined) {
-        const bgX = (state.avatarIndex % 6) * 20;
-        const bgY = Math.floor(state.avatarIndex / 6) * 33.3333;
-        avatarHtml = `<div style="width: 34px; height: 34px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(234, 179, 8, 0.7); flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.5); background-image: url('assets/avatars_6x4.jpg'); background-size: auto 400%; background-position: ${bgX}% ${bgY}%;"></div>`;
+        const bgX = (state.avatarIndex % 5) * 25;
+        const bgY = Math.floor(state.avatarIndex / 5) * 25;
+        const avatarImage = state.gender === 'FEMALE' ? 'assets/avatars_female.jpg' : 'assets/avatars_male.jpg';
+        avatarHtml = `<div style="width: 34px; height: 34px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(234, 179, 8, 0.7); flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.5); background-image: url('${avatarImage}'); background-size: 500% 500%; background-position: ${bgX}% ${bgY}%;"></div>`;
       } else {
         avatarHtml = '<span style="font-size: 1.4em;">🦸</span>';
       }
@@ -197,7 +199,13 @@ export class CombatUIManager {
     if (!this.currentReport) return;
     
     if (this.eventIndex >= this.currentReport.events.length) {
-      this.finishPlayback();
+      if (this.playInterval) {
+        clearInterval(this.playInterval);
+        this.playInterval = null;
+      }
+      if (!this.finishTimeout) {
+        this.finishTimeout = setTimeout(() => this.finishPlayback(), 800);
+      }
       return;
     }
     
@@ -315,6 +323,10 @@ export class CombatUIManager {
       clearInterval(this.playInterval);
       this.playInterval = null;
     }
+    if (this.finishTimeout) {
+      clearTimeout(this.finishTimeout);
+      this.finishTimeout = null;
+    }
     if (!this.currentReport) return;
     
     // 瞬間渲染剩下的所有 events
@@ -330,6 +342,10 @@ export class CombatUIManager {
     if (this.playInterval) {
       clearInterval(this.playInterval);
       this.playInterval = null;
+    }
+    if (this.finishTimeout) {
+      clearTimeout(this.finishTimeout);
+      this.finishTimeout = null;
     }
     this.btnSkip.style.display = 'none';
     this.btnClose.style.display = 'block'; // 顯示返回按鈕

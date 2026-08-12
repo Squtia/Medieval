@@ -22,28 +22,28 @@ export const DIFFICULTY_CONFIGS: Record<GameDifficulty, DifficultyConfig> = {
     difficulty: GameDifficulty.NORMAL,
     label: '普通',
     color: '#3b82f6',
-    description: '以城鎮規模起步，資源平衡，保留標準的發展壓力。',
-    baseNodeLevels: [NodeLevel.TOWN],
-    startingTitle: NobleTitle.KNIGHT,
+    description: '從荒野白手起家，資源平衡，保留標準的發展壓力。',
+    baseNodeLevels: [NodeLevel.WILDERNESS],
+    startingTitle: NobleTitle.COMMONER,
     startingResources: {
       gold: 1500,
-      population: 30,
-      food: 300,
-      wood: 60,
-      stone: 20,
-      iron: 5
+      population: 10,
+      food: 500,
+      wood: 100,
+      stone: 50,
+      iron: 10
     }
   },
   [GameDifficulty.HARD]: {
     difficulty: GameDifficulty.HARD,
     label: '困難',
     color: '#f59e0b',
-    description: '以村莊規模起步，生產較低、維持費與敵人較強，需要謹慎向外探索。',
-    baseNodeLevels: [NodeLevel.VILLAGE],
+    description: '從荒野白手起家，初始資源極其匱乏，維持費與敵人較強，生存壓力巨大。',
+    baseNodeLevels: [NodeLevel.WILDERNESS],
     startingTitle: NobleTitle.COMMONER,
     startingResources: {
-      gold: 600,
-      population: 5,
+      gold: 500,
+      population: 2,
       food: 100,
       wood: 20,
       stone: 10,
@@ -69,10 +69,8 @@ export const DIFFICULTY_CONFIGS: Record<GameDifficulty, DifficultyConfig> = {
 };
 
 export const DIFFICULTY_ORDER: readonly GameDifficulty[] = [
-  GameDifficulty.EASY,
   GameDifficulty.NORMAL,
-  GameDifficulty.HARD,
-  GameDifficulty.EXTREME
+  GameDifficulty.HARD
 ];
 
 export function getDifficultyConfig(difficulty: GameDifficulty): DifficultyConfig {

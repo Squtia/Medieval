@@ -86,15 +86,8 @@ export class TownManagementSystem {
     territory.security = newSecurity;
   }
 
-  private resolveDailyResources() {
+  public static getProductionMultiplier(): number {
     const territory = GameState.myTerritory;
-    const workers = territory.workers;
-    
-    // -- Phase 5: 治安度 (Security System) --
-    this.updateSecurity();
-    const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
-
-    // 計算官職的內政加成總和
     let officeCivicBonus = 0;
     GameState.adventurers.forEach(adv => {
       if (adv.office) {
@@ -106,9 +99,22 @@ export class TownManagementSystem {
     });
 
     let productionMultiplier = 1.0 + officeCivicBonus;
-    productionMultiplier *= getDifficultyModifiers(GameState.worldGeneration?.difficulty).production;
+    // 統一刪除難度對產量的影響
     if (territory.security >= 80) productionMultiplier *= 1.2;
     else if (territory.security < 30) productionMultiplier *= 0.7;
+    
+    return productionMultiplier;
+  }
+
+  private resolveDailyResources() {
+    const territory = GameState.myTerritory;
+    const workers = territory.workers;
+    
+    // -- Phase 5: 治安度 (Security System) --
+    this.updateSecurity();
+    const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
+
+    const productionMultiplier = TownManagementSystem.getProductionMultiplier();
 
     // 軍事威望 (選項 B)：每 10 名士兵每日產生 1 點聲望
     if (totalTroops >= 10 && GameState.totalDays % 30 === 0) {

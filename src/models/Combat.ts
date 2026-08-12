@@ -99,6 +99,7 @@ export interface CombatParticipantState {
   gridR?: number;
   gridC?: number;
   avatarIndex?: number;
+  gender?: string; // or Gender, but we can just use string to avoid import
 }
 
 export interface CombatReport {

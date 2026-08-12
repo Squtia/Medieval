@@ -35,8 +35,8 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
   
   // 計算 Spritesheet 背景偏移
   // 6x4: X = (index % 6) * 20%, Y = floor(index / 6) * 33.3333%
-  const bgX = (avatarIndex % 6) * 20;
-  const bgY = Math.floor(avatarIndex / 6) * 33.3333;
+  const bgX = (avatarIndex % 5) * 25;
+  const bgY = Math.floor(avatarIndex / 5) * 25;
 
   let extraStatsHtml = '';
   if (options.extraStats) {
@@ -95,15 +95,15 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
   }
 
   // 預設頭像背景樣式 (6x4 英雄頭像庫，使用 auto 400% 保持 1:1 正方形不拉伸)
-  const spriteStyle = `width: 100%; height: 100%; background-image: url('assets/avatars_6x4.jpg'); background-size: auto 400%; background-position: ${bgX}% ${bgY}%;`;
+  const avatarImage = adv.gender === 'FEMALE' ? 'assets/avatars_female.jpg' : 'assets/avatars_male.jpg';
+  const spriteStyle = `aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: url('${avatarImage}'); background-size: 500% 500%; background-position: ${bgX}% ${bgY}%;`;
 
   const qualityColor = adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1';
 
   return `
     <div class="adv-name" style="color: ${qualityColor};">${adv.name}</div>
-    <div class="adv-avatar-wrapper">
+    <div class="adv-avatar-wrapper" style="display: flex; justify-content: center; align-items: center; overflow: hidden;">
       <div class="adv-avatar-sprite" style="${spriteStyle}"></div>
-      <span style="font-size: 1.5em; position: absolute; z-index: -1;">🦸</span>
     </div>
     <div class="adv-card-gradient"></div>
     <div class="adv-card-info">

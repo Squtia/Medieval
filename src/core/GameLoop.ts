@@ -10,6 +10,7 @@ import { ToastManager } from '../ui/ToastManager';
 import { Random } from './Random';
 import { TaskType } from '../models/DispatchTask';
 import { getDifficultyModifiers } from '../data/BalanceData';
+import { BountySystem } from '../systems/BountySystem';
 
 export function startGameLoop(updateUICallback: () => void) {
   if ((window as any).autoSaveLoop) {
@@ -152,6 +153,9 @@ export function advanceDay(): boolean {
   if (GameState.totalDays % 7 === 0) {
     GameState.system.resolvePayday();
   }
+
+  // 處理懸賞系統的每日推進
+  BountySystem.processDailyTick(GameState);
 
   // 處理隨機侵略事件
   handleRandomInvasion();

@@ -1,4 +1,4 @@
-import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow, OfficeType, WeaponType } from './types';
+import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow, OfficeType, WeaponType, Gender } from './types';
 import { Random } from '../core/Random';
 import { GambitRule } from './Gambit';
 
@@ -10,6 +10,7 @@ export class Adventurer {
   
   public job: JobConfig;
   public trait: TraitConfig;
+  public gender: Gender;
   
   // 基礎六維與非戰鬥屬性 (未包含性格與裝備加成)
   public baseAttributes: Attributes;
@@ -37,7 +38,7 @@ export class Adventurer {
 
   public quality: 'N' | 'R' | 'SR' | 'SSR';
 
-  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' = 'N') {
+  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' = 'N', gender?: Gender) {
     this.id = id;
     this.name = name;
     this.level = 1;
@@ -45,6 +46,8 @@ export class Adventurer {
     this.job = job;
     this.trait = trait;
     this.quality = quality;
+    // 預設隨機分配性別，後續可以透過 Object.assign 被覆蓋 (存檔讀取)
+    this.gender = gender ?? (Math.random() > 0.5 ? Gender.MALE : Gender.FEMALE);
     this.avatarIndex = Math.floor(Math.random() * 25); // 0-24
 
     // 1. 根據品質段範圍隨機抽取六維總合（套用加權隨機抽取，讓偏大的極品數值機率遞減）

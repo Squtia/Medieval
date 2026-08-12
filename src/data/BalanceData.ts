@@ -21,7 +21,7 @@ export interface DifficultyModifiers {
 export const DIFFICULTY_MODIFIERS: Readonly<Record<GameDifficulty, DifficultyModifiers>> = {
   [GameDifficulty.EASY]: {
     enemyStrength: 0.8,
-    production: 1.2,
+    production: 1,
     upkeep: 0.8,
     explorationReward: 1.15,
     refugeeChance: 1.15,
@@ -37,7 +37,7 @@ export const DIFFICULTY_MODIFIERS: Readonly<Record<GameDifficulty, DifficultyMod
   },
   [GameDifficulty.HARD]: {
     enemyStrength: 1.15,
-    production: 0.9,
+    production: 1,
     upkeep: 1.15,
     explorationReward: 0.85,
     refugeeChance: 0.85,
@@ -45,7 +45,7 @@ export const DIFFICULTY_MODIFIERS: Readonly<Record<GameDifficulty, DifficultyMod
   },
   [GameDifficulty.EXTREME]: {
     enemyStrength: 1.3,
-    production: 0.8,
+    production: 1,
     upkeep: 1.3,
     explorationReward: 0.7,
     refugeeChance: 0.7,

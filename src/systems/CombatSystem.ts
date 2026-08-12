@@ -55,35 +55,42 @@ export class CombatSystem {
         const jobName = adv.job?.name || '';
         const isAdv = adv.isAdvanced && adv.level >= 10;
         
+        const lvl = adv.level || 1;
         if (jobName.includes('戰士')) {
-          skills.push('FIGHTER_HEAVY_STRIKE', 'FIGHTER_ARMOR_BREAK');
+          if (lvl >= 2) skills.push('FIGHTER_HEAVY_STRIKE');
+          if (lvl >= 5) skills.push('FIGHTER_ARMOR_BREAK');
           if (isAdv && weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
           if (isAdv && weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
         }
         if (jobName.includes('法師')) {
-          skills.push('MAGE_ARCANE_MISSILES', 'MAGE_STATIC_FIELD');
+          if (lvl >= 2) skills.push('MAGE_ARCANE_MISSILES');
+          if (lvl >= 5) skills.push('MAGE_STATIC_FIELD');
           if (isAdv && weaponType === 'STAFF') skills.push('STAFF_METEOR');
           if (isAdv && weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
         }
         if (jobName.includes('弓箭手')) {
-          skills.push('ARCHER_PIERCING_SHOT', 'ARCHER_AIMED_SHOT');
+          if (lvl >= 2) skills.push('ARCHER_PIERCING_SHOT');
+          if (lvl >= 5) skills.push('ARCHER_AIMED_SHOT');
           if (isAdv && weaponType === 'BOW') skills.push('SNIPER_FATAL_SNIPE');
           if (isAdv && weaponType === 'MAGIC_BOW') skills.push('SPIRIT_ARCHER_SPIRIT_CHAIN');
         }
         if (jobName.includes('盜賊')) {
-          skills.push('THIEF_SURPRISE_ATTACK', 'THIEF_POISON_BLADE');
+          if (lvl >= 2) skills.push('THIEF_SURPRISE_ATTACK');
+          if (lvl >= 5) skills.push('THIEF_POISON_BLADE');
           if (isAdv && weaponType === 'DAGGERS') {
             skills.push('ASSASSIN_SHADOW_ASSASSINATION');
           }
           if (isAdv && weaponType === 'MAGIC_RING') skills.push('TRICKSTER_TRICK_MAGIC');
         }
         if (jobName.includes('騎士')) {
-          skills.push('KNIGHT_SHIELD_BASH', 'KNIGHT_TAUNT');
+          if (lvl >= 2) skills.push('KNIGHT_SHIELD_BASH');
+          if (lvl >= 5) skills.push('KNIGHT_TAUNT');
           if (isAdv && weaponType === 'SWORD_AND_SHIELD') skills.push('KNIGHT_PALADIN_AEGIS');
           if (isAdv && weaponType === 'RUNE_SHIELD') skills.push('KNIGHT_RUNE_REFLECTION');
         }
         if (jobName.includes('祈禱者')) {
-          skills.push('PRAYER_HEAL', 'PRAYER_HOLY_LIGHT');
+          if (lvl >= 2) skills.push('PRAYER_HEAL');
+          if (lvl >= 5) skills.push('PRAYER_HOLY_LIGHT');
           if (isAdv && weaponType === 'HOLY_BOOK') skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
           if (isAdv && weaponType === 'HAMMER') skills.push('PRAYER_INQUISITOR_JUDGMENT');
         }
@@ -189,7 +196,8 @@ export class CombatSystem {
         maxHp: p.maxHp,
         maxMp: maxMp,
         currentMp: p.stats.mp ?? maxMp,
-        avatarIndex: adv?.avatarIndex ?? 0
+        avatarIndex: adv?.avatarIndex ?? 0,
+        gender: adv?.gender
       };
     });
 

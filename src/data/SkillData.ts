@@ -1092,11 +1092,12 @@ export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
   const weapon = adv.equipment?.WEAPON;
   const wpnType = weapon?.weaponType;
   const isAdvanced = !!adv.isAdvanced;
+  const lvl = adv.level || 1;
 
   // 1. 基礎職業技能
   if (jobName.includes('戰士') || jobName.includes('狂戰') || jobName.includes('魔劍')) {
-    if (SKILLS['FIGHTER_HEAVY_STRIKE']) result.push({ skill: SKILLS['FIGHTER_HEAVY_STRIKE'], isLearned: true, category: 'BASE' });
-    if (SKILLS['FIGHTER_ARMOR_BREAK']) result.push({ skill: SKILLS['FIGHTER_ARMOR_BREAK'], isLearned: true, category: 'BASE' });
+    if (lvl >= 2 && SKILLS['FIGHTER_HEAVY_STRIKE']) result.push({ skill: SKILLS['FIGHTER_HEAVY_STRIKE'], isLearned: true, category: 'BASE' });
+    if (lvl >= 5 && SKILLS['FIGHTER_ARMOR_BREAK']) result.push({ skill: SKILLS['FIGHTER_ARMOR_BREAK'], isLearned: true, category: 'BASE' });
     if (SKILLS['GREATSWORD_WHIRLWIND']) {
       const learned = isAdvanced && wpnType === 'GREATSWORD';
       result.push({ skill: SKILLS['GREATSWORD_WHIRLWIND'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備巨劍' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
@@ -1106,8 +1107,8 @@ export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
       result.push({ skill: SKILLS['MAGIC_SWORDSMAN_PHANTOM'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備雙劍' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
     }
   } else if (jobName.includes('法師') || jobName.includes('大魔導') || jobName.includes('死靈')) {
-    if (SKILLS['MAGE_ARCANE_MISSILES']) result.push({ skill: SKILLS['MAGE_ARCANE_MISSILES'], isLearned: true, category: 'BASE' });
-    if (SKILLS['MAGE_STATIC_FIELD']) result.push({ skill: SKILLS['MAGE_STATIC_FIELD'], isLearned: true, category: 'BASE' });
+    if (lvl >= 2 && SKILLS['MAGE_ARCANE_MISSILES']) result.push({ skill: SKILLS['MAGE_ARCANE_MISSILES'], isLearned: true, category: 'BASE' });
+    if (lvl >= 5 && SKILLS['MAGE_STATIC_FIELD']) result.push({ skill: SKILLS['MAGE_STATIC_FIELD'], isLearned: true, category: 'BASE' });
     if (SKILLS['STAFF_METEOR']) {
       const learned = isAdvanced && wpnType === 'STAFF';
       result.push({ skill: SKILLS['STAFF_METEOR'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備法杖' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
@@ -1117,8 +1118,8 @@ export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
       result.push({ skill: SKILLS['SCYTHE_SOUL_REAP'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備戰鐮' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
     }
   } else if (jobName.includes('弓箭手') || jobName.includes('神射手') || jobName.includes('精靈使')) {
-    if (SKILLS['ARCHER_PIERCING_SHOT']) result.push({ skill: SKILLS['ARCHER_PIERCING_SHOT'], isLearned: true, category: 'BASE' });
-    if (SKILLS['ARCHER_AIMED_SHOT']) result.push({ skill: SKILLS['ARCHER_AIMED_SHOT'], isLearned: true, category: 'BASE' });
+    if (lvl >= 2 && SKILLS['ARCHER_PIERCING_SHOT']) result.push({ skill: SKILLS['ARCHER_PIERCING_SHOT'], isLearned: true, category: 'BASE' });
+    if (lvl >= 5 && SKILLS['ARCHER_AIMED_SHOT']) result.push({ skill: SKILLS['ARCHER_AIMED_SHOT'], isLearned: true, category: 'BASE' });
     if (SKILLS['SNIPER_FATAL_SNIPE']) {
       const learned = isAdvanced && wpnType === 'BOW';
       result.push({ skill: SKILLS['SNIPER_FATAL_SNIPE'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備長弓' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
@@ -1128,8 +1129,8 @@ export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
       result.push({ skill: SKILLS['SPIRIT_ARCHER_SPIRIT_CHAIN'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備魔弓' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
     }
   } else if (jobName.includes('盜賊') || jobName.includes('暗殺者') || jobName.includes('詭術師')) {
-    if (SKILLS['THIEF_SURPRISE_ATTACK']) result.push({ skill: SKILLS['THIEF_SURPRISE_ATTACK'], isLearned: true, category: 'BASE' });
-    if (SKILLS['THIEF_POISON_BLADE']) result.push({ skill: SKILLS['THIEF_POISON_BLADE'], isLearned: true, category: 'BASE' });
+    if (lvl >= 2 && SKILLS['THIEF_SURPRISE_ATTACK']) result.push({ skill: SKILLS['THIEF_SURPRISE_ATTACK'], isLearned: true, category: 'BASE' });
+    if (lvl >= 5 && SKILLS['THIEF_POISON_BLADE']) result.push({ skill: SKILLS['THIEF_POISON_BLADE'], isLearned: true, category: 'BASE' });
     if (SKILLS['ASSASSIN_SHADOW_ASSASSINATION']) {
       const learned = isAdvanced && (wpnType === 'DAGGERS' || wpnType === 'DAGGER');
       result.push({ skill: SKILLS['ASSASSIN_SHADOW_ASSASSINATION'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備匕首' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
@@ -1139,8 +1140,8 @@ export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
       result.push({ skill: SKILLS['TRICKSTER_TRICK_MAGIC'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備魔環' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
     }
   } else if (jobName.includes('騎士') || jobName.includes('聖騎士') || jobName.includes('符文')) {
-    if (SKILLS['KNIGHT_SHIELD_BASH']) result.push({ skill: SKILLS['KNIGHT_SHIELD_BASH'], isLearned: true, category: 'BASE' });
-    if (SKILLS['KNIGHT_TAUNT']) result.push({ skill: SKILLS['KNIGHT_TAUNT'], isLearned: true, category: 'BASE' });
+    if (lvl >= 2 && SKILLS['KNIGHT_SHIELD_BASH']) result.push({ skill: SKILLS['KNIGHT_SHIELD_BASH'], isLearned: true, category: 'BASE' });
+    if (lvl >= 5 && SKILLS['KNIGHT_TAUNT']) result.push({ skill: SKILLS['KNIGHT_TAUNT'], isLearned: true, category: 'BASE' });
     if (SKILLS['KNIGHT_PALADIN_AEGIS']) {
       const learned = isAdvanced && wpnType === 'SWORD_AND_SHIELD';
       result.push({ skill: SKILLS['KNIGHT_PALADIN_AEGIS'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備劍盾' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
@@ -1150,8 +1151,8 @@ export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
       result.push({ skill: SKILLS['KNIGHT_RUNE_REFLECTION'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備符文盾' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });
     }
   } else if (jobName.includes('祈禱') || jobName.includes('主教') || jobName.includes('拷問')) {
-    if (SKILLS['PRAYER_HEAL']) result.push({ skill: SKILLS['PRAYER_HEAL'], isLearned: true, category: 'BASE' });
-    if (SKILLS['PRAYER_HOLY_LIGHT']) result.push({ skill: SKILLS['PRAYER_HOLY_LIGHT'], isLearned: true, category: 'BASE' });
+    if (lvl >= 2 && SKILLS['PRAYER_HEAL']) result.push({ skill: SKILLS['PRAYER_HEAL'], isLearned: true, category: 'BASE' });
+    if (lvl >= 5 && SKILLS['PRAYER_HOLY_LIGHT']) result.push({ skill: SKILLS['PRAYER_HOLY_LIGHT'], isLearned: true, category: 'BASE' });
     if (SKILLS['PRAYER_ARCHBISHOP_MASS_HEAL']) {
       const learned = isAdvanced && wpnType === 'HOLY_BOOK';
       result.push({ skill: SKILLS['PRAYER_ARCHBISHOP_MASS_HEAL'], isLearned: learned, lockReason: learned ? undefined : (isAdvanced ? '需裝備聖典' : '需 10 等滿等轉職解鎖'), category: 'ADVANCED' });

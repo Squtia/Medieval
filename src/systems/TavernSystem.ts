@@ -4,6 +4,7 @@ import { Adventurer } from '../models/Adventurer';
 import { Territory } from '../models/Territory';
 import { NameGenerator } from './NameGenerator';
 import { DataStore } from './DataStore';
+import { Gender } from '../models/types';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { RumorData, LOCATION_FOG_RUMORS, LOCATION_REVEAL_RUMORS } from '../data/RumorData';
@@ -38,12 +39,14 @@ export class TavernSystem {
       const fillChance = territory.tavernGuests.length < 2 ? 1.0 : 0.7;
       if (Random.next() < fillChance) {
         const quality = this.rollQuality(territory.tavernLevel);
+        const gender = Math.random() > 0.5 ? Gender.MALE : Gender.FEMALE;
         const adv = new Adventurer(
           `adv_${Date.now()}_${Random.int(1, 10000)}`,
-          NameGenerator.generateFullName(),
+          NameGenerator.generateFullName(gender),
           DataStore.getRandomJob(),
           DataStore.getRandomRecruitTrait(),
-          quality
+          quality,
+          gender
         );
         
         // 短期流動天數：1 ~ 3 天

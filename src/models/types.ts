@@ -71,6 +71,10 @@ export enum NobleTitle {
   DUKE = 'DUKE'          // 公爵
 }
 
+export enum Gender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE'
+}
 /**
  * 爵位設定檔，包含各項特權與晉升條件
  */

@@ -98,14 +98,14 @@ export class PartyModalController {
   
     if (avatarWrapper) {
       const nameHash = adv.name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      const avatarIndex = adv.avatarIndex ?? (nameHash % 24);
+      const avatarIndex = adv.avatarIndex ?? (nameHash % 25);
       adv.avatarIndex = avatarIndex;
   
-      const bgX = (avatarIndex % 6) * 20;
-      const bgY = Math.floor(avatarIndex / 6) * 33.3333;
+      const bgX = (avatarIndex % 5) * 25;
+      const bgY = Math.floor(avatarIndex / 5) * 25;
+      const avatarImage = adv.gender === 'FEMALE' ? 'assets/avatars_female.jpg' : 'assets/avatars_male.jpg';
       avatarWrapper.innerHTML = `
-        <span style="font-size: 3.2em; position: absolute;">🦸</span>
-        <div style="width: 100%; height: 100%; position: absolute; inset: 0; background-image: url('assets/avatars_6x4.jpg'); background-size: auto 400%; background-position: ${bgX}% ${bgY}%;"></div>
+        <div style="aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: url('${avatarImage}'); background-size: 500% 500%; background-position: ${bgX}% ${bgY}%;"></div>
       `;
     }
     if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${displayClass}`;

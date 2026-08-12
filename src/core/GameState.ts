@@ -2,7 +2,7 @@ import { Adventurer } from '../models/Adventurer';
 import { Territory } from '../models/Territory';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
-import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature, getTitleConfig, FormationPreset, ThreatType } from '../models/types';
+import { Faction, MapNode, NodeLevel, TerrainType, NodeFeature, getTitleConfig, FormationPreset, ThreatType, Gender } from '../models/types';
 import { DataStore } from '../systems/DataStore';
 import { NameGenerator } from '../systems/NameGenerator';
 import { INITIAL_FACTIONS } from '../data/FactionData';
@@ -61,7 +61,8 @@ export const GameState = {
   explorationSystem: null as unknown as ExplorationSystem,
   roadSystem: null as unknown as RoadSystem,
   unlockedFormations: ['DEFAULT'] as string[],
-  formationPresets: [] as FormationPreset[]
+  formationPresets: [] as FormationPreset[],
+  bounties: [] as any[]
 };
 
 export function initGameState(options: NewGameOptions = {
@@ -123,6 +124,7 @@ export function initGameState(options: NewGameOptions = {
   GameState.pendingMilestones = [];
   GameState.unlockedFormations = ['DEFAULT'];
   GameState.formationPresets = [];
+  GameState.bounties = [];
   
   // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
   EventBus.getInstance().clearAll();
@@ -133,7 +135,15 @@ export function initGameState(options: NewGameOptions = {
   new CombatSystem();
   new ThreatSystem();
 
-  const startingAdv = new Adventurer('p1', NameGenerator.generateFullName(), DataStore.JobDB.WARRIOR, DataStore.TraitDB.GUARDIAN);
+  const gender = Math.random() > 0.5 ? Gender.MALE : Gender.FEMALE;
+  const startingAdv = new Adventurer(
+    'p1',
+    NameGenerator.generateFullName(gender),
+    DataStore.JobDB.WARRIOR,
+    DataStore.TraitDB.GUARDIAN,
+    'R',
+    gender
+  );
   startingAdv.locationNodeId = generatedWorld.playerBase.id;
   GameState.adventurers.push(startingAdv);
 

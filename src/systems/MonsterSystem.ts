@@ -111,7 +111,7 @@ export class MonsterSystem {
       
       // 動態戰利品配置
       goldReward: Math.floor(powerScore * 1.5),
-      expReward: Math.floor(powerScore * 1.2),
+      expReward: Math.floor(powerScore * 0.4),
       equipmentDropRate: baseMonster.lootConfig ? baseMonster.lootConfig.equipmentDropRate : Math.min(0.15, powerScore * 0.001) // 預設 0.1% * score, 上限 15%
     };
   }

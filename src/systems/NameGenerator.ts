@@ -1,12 +1,13 @@
 import { NAME_DATA } from '../data/NameData';
 import { Random } from '../core/Random';
+import { Gender } from '../models/types';
 
 export class NameGenerator {
   /**
    * 隨機生成一個帶有姓氏與名字的全名
    */
-  public static generateFullName(): string {
-    const isMale = Random.next() > 0.5;
+  public static generateFullName(gender?: Gender): string {
+    const isMale = gender !== undefined ? (gender === Gender.MALE) : (Random.next() > 0.5);
     const firstNames = isMale ? NAME_DATA.maleFirstNames : NAME_DATA.femaleFirstNames;
     const fn = Random.pick(firstNames);
     

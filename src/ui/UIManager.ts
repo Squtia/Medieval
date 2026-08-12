@@ -12,6 +12,8 @@ import { resetExplorationControllerState } from './ExplorationController';
 import { DataStore } from '../systems/DataStore';
 import { InventoryUIController } from './components/InventoryUIController';
 import { PrisonerModalController } from './modals/PrisonerModalController';
+import { BountyModalController } from './modals/BountyModalController';
+import { TownManagementSystem } from '../systems/TownManagementSystem';
 
 class UIManagerClass {
   // 頂部資源列 — 延遲到 reinitDOM() 時才初始化，避免 template 注入前取得 null
@@ -116,6 +118,7 @@ class UIManagerClass {
     // 初始化全域倉庫 UI
     new InventoryUIController(this);
     PrisonerModalController.getInstance().init();
+    BountyModalController.getInstance();
   }
 
 
@@ -205,11 +208,12 @@ class UIManagerClass {
     });
     
     if (this.uiNetProduction) {
-      const foodProduced = (territory.workers['FARMER'] || 0) * 3;
-      const woodProduced = (territory.workers['WOODCUTTER'] || 0) * 2;
-      const stoneProduced = (territory.workers['MINER'] || 0) * 1;
-      const ironProduced = Math.floor((territory.workers['MINER'] || 0) * 0.2);
-      const hideProduced = (territory.workers['HUNTER'] || 0) * 1;
+      const productionMultiplier = TownManagementSystem.getProductionMultiplier();
+      const foodProduced = Math.floor((territory.workers['FARMER'] || 0) * 3 * productionMultiplier);
+      const woodProduced = Math.floor((territory.workers['WOODCUTTER'] || 0) * 2 * productionMultiplier);
+      const stoneProduced = Math.floor((territory.workers['MINER'] || 0) * 1 * productionMultiplier);
+      const ironProduced = Math.floor((territory.workers['MINER'] || 0) * 0.2 * productionMultiplier);
+      const hideProduced = Math.floor((territory.workers['HUNTER'] || 0) * 1 * productionMultiplier);
 
       const totalPeople = territory.population + GameState.adventurers.length;
       let foodConsumed = totalPeople * 1;

@@ -1,4 +1,4 @@
-﻿/* 基礎重置與字型 */
+/* 基礎重置與字型 */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
   font-family: 'Inter', sans-serif;
@@ -585,7 +585,7 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
 .adventurer-card .adv-card-gradient {
   position: absolute;
   left: 0; right: 0; bottom: 0; top: 0;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.55) 45%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.3) 40%, rgba(0,0,0,0) 80%);
   z-index: 2;
   pointer-events: none;
   border-radius: 6px; /* 配合卡片圓角 */

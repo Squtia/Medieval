@@ -173,6 +173,13 @@ export class ExplorationNarrativeEngine {
       initialHpMpOverride
     );
 
+    const expectedPrestige = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
+    
+    // 將實際結算的聲望數值覆蓋回戰報，讓 UI (CombatUIManager) 顯示正確的聲望
+    if (finalReport.isVictory) {
+      finalReport.lootValue = expectedPrestige;
+    }
+
     const combatId = "combat_" + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
     GameState.myTerritory.addCombatRecord({
       id: combatId,
@@ -186,7 +193,6 @@ export class ExplorationNarrativeEngine {
     if (finalReport.isVictory) {
       // 1. 取得底層累積的金幣與經驗
       const expectedGold = finalReport.totalEarnedGold || 0;
-      const expectedPrestige = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
       
       GameState.myTerritory.addGold(expectedGold);
       GameState.myTerritory.prestige += expectedPrestige;
