@@ -57,7 +57,7 @@ describe('balance configuration', () => {
   });
 
   it('uses fixed starting tiers and matching title prestige floors', () => {
-    expect(getDifficultyConfig(GameDifficulty.HARD).baseNodeLevels).toEqual([NodeLevel.VILLAGE]);
+    expect(getDifficultyConfig(GameDifficulty.HARD).baseNodeLevels).toEqual([NodeLevel.WILDERNESS]);
 
     const titleRequirements = Object.fromEntries(
       TITLE_CONFIG.map(config => [config.title, config.reqPrestige])
