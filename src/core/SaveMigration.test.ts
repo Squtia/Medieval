@@ -12,7 +12,7 @@ describe('save migration', () => {
   });
 
   it('does not overwrite values already present in a current save, but upgrades schema version', () => {
-    const current = { schemaVersion: 3, totalDays: 99, threat: { daysRemaining: 2 } };
+    const current = { schemaVersion: 4, totalDays: 99, threat: { daysRemaining: 2 } };
     expect(migrateSaveData(current)).toEqual(current);
   });
 });

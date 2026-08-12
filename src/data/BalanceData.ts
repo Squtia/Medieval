@@ -21,7 +21,7 @@ export interface DifficultyModifiers {
 export const DIFFICULTY_MODIFIERS: Readonly<Record<GameDifficulty, DifficultyModifiers>> = {
   [GameDifficulty.EASY]: {
     enemyStrength: 0.8,
-    production: 1,
+    production: 1.2,    // 簡單難度生產加成
     upkeep: 0.8,
     explorationReward: 1.15,
     refugeeChance: 1.15,

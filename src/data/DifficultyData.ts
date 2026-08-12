@@ -38,8 +38,8 @@ export const DIFFICULTY_CONFIGS: Record<GameDifficulty, DifficultyConfig> = {
     difficulty: GameDifficulty.HARD,
     label: '困難',
     color: '#f59e0b',
-    description: '從荒野白手起家，初始資源極其匱乏，維持費與敵人較強，生存壓力巨大。',
-    baseNodeLevels: [NodeLevel.WILDERNESS],
+    description: '從村莊規模起步，初始資源極其匯乏，維持費與敵人較強，生存壓力巨大。',
+    baseNodeLevels: [NodeLevel.VILLAGE],
     startingTitle: NobleTitle.COMMONER,
     startingResources: {
       gold: 500,
