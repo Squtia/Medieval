@@ -1,4 +1,36 @@
 import { Adventurer } from '../../models/Adventurer';
+import { AdventurerState } from '../../models/types';
+
+export function getAdventurerTooltipHtml(adv: Adventurer | any): string {
+  if (!adv) return '';
+  const displayClass = adv.currentClass || (adv.job && adv.job.name) || '平民';
+  
+  let stateText = '';
+  if (adv.currentState) {
+    if (adv.currentState === AdventurerState.RESTING) stateText = `<span style="color:#fde047;">休養中(${adv.restingDaysLeft}天)</span>`;
+    else if (adv.currentState === AdventurerState.DISPATCHED) stateText = `<span style="color:#f87171;">派遣中</span>`;
+    else if (adv.currentState === AdventurerState.CAPTURED) stateText = `<span style="color:#ef4444;">被俘虜</span>`;
+    else if (adv.currentState === AdventurerState.IDLE) stateText = `<span style="color:#4ade80;">閒置</span>`;
+    else stateText = adv.currentState;
+  }
+  
+  const powerVal = typeof adv.getPower === 'function' ? adv.getPower() : (adv.power ?? 0);
+  const powerHtml = `<br/>戰鬥力：<span style="color:#eab308; font-weight:bold;">${powerVal}</span>`;
+  const stateHtml = stateText ? `<br/>狀態：${stateText}` : '';
+
+  return `
+    <div style="padding:2px 4px; line-height:1.4;">
+      <div style="font-weight:bold; color:#f8fafc; font-size:1.05em; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:4px; margin-bottom:4px;">
+        【${adv.name}】
+      </div>
+      <div style="font-size:0.9em; color:#cbd5e1;">
+        Lv.${adv.level || 1} ${displayClass}
+        ${powerHtml}
+        ${stateHtml}
+      </div>
+    </div>
+  `;
+}
 
 export interface CardOptions {
   cornerLabel?: string;     // e.g. "👑", "任務中"

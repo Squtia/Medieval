@@ -38,6 +38,7 @@ export class Territory {
   // 內政與外交屬性
   public taxRate: number;         // 稅率 (預設 1.0)
   public adventurerBudget: number; // 冒險者預算 (每回合扣除)
+  public consecutiveDaysInDebt: number = 0; // 連續負債天數
   public diplomaticGift: number;   // 外交獻禮金 (每回合扣除)
 
   // 據點與國家屬性
@@ -76,7 +77,7 @@ export class Territory {
 
   // 治安與侵略
   public security: number = 100;
-  public invasionCooldown: number = 0;
+  public extortionCooldown: number = 0; // 繳交保護費後的喘息期
 
   constructor(name: string, startingCountryId: string | null = null) {
     this.name = name;

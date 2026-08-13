@@ -6,7 +6,7 @@ import { UIManager } from '../UIManager';
 import { EquipModalController } from './EquipModalController';
 import { positionFloatingElement } from '../FloatingPosition';
 import { getAdventurerSkillInfo, getAdventurerPassiveInfo, SKILLS } from '../../data/SkillData';
-import { renderEquipIcon } from '../ShopController';
+import { renderEquipIcon, getEquipTooltipHtml } from '../ShopController';
 import { GambitConditionType, GAMBIT_CONDITION_LABELS } from '../../models/Gambit';
 import { GambitModalController } from './GambitModalController';
 
@@ -320,15 +320,7 @@ export class PartyModalController {
           const jobMeta = eq.allowedJobs && eq.allowedJobs.length > 0
             ? `<div style="color:#94a3b8; font-size:0.8em; margin-bottom:4px;">職業：${eq.allowedJobs.join('/')}</div>`
             : '';
-          const tooltipHtml = `
-            <div style="font-size: 1.05em; color: #eab308; border-bottom: 1px solid rgba(234,179,8,0.3); padding-bottom: 4px; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
-              ${iconHtml} <b>${eq.name}</b> ${eq.enhancementLevel ? `<span style="color:#3b82f6;">+${eq.enhancementLevel}</span>` : ''}
-            </div>
-            ${jobMeta}
-            <div style="font-size: 0.88em; display: flex; flex-direction: column; gap: 2px;">
-              ${statsHtml}
-            </div>
-          `;
+          const tooltipHtml = getEquipTooltipHtml(eq);
           equipRowsHtml += `
             <div class="equip-card-square tooltip-eq-trigger" data-slot="${s.key}" data-html-tip="${encodeURIComponent(tooltipHtml)}" style="position:relative; background:rgba(15,23,42,0.6); border:1px solid rgba(234,179,8,0.3); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 5px; cursor:pointer;">
               <div style="flex:1; display:flex; align-items:center; justify-content:center;">${iconHtml}</div>

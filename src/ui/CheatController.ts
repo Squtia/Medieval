@@ -44,6 +44,15 @@ export function initCheatController(): void {
     'wood': { name: '木材', setter: (v) => GameState.myTerritory.wood = v },
     'rock': { name: '石材', setter: (v) => GameState.myTerritory.stone = v },
     'iron': { name: '鐵礦', setter: (v) => GameState.myTerritory.iron = v },
+    'allres': { name: '所有物資(金/木/石/鐵/皮/麻)同時增加', setter: (v) => {
+        GameState.myTerritory.gold += v;
+        GameState.myTerritory.wood += v;
+        GameState.myTerritory.stone += v;
+        GameState.myTerritory.iron += v;
+        if (!GameState.myTerritory.tradeInventory) GameState.myTerritory.tradeInventory = {};
+        GameState.myTerritory.tradeInventory['tg_hide'] = (GameState.myTerritory.tradeInventory['tg_hide'] || 0) + v;
+        GameState.myTerritory.tradeInventory['tg_cotton'] = (GameState.myTerritory.tradeInventory['tg_cotton'] || 0) + v;
+    }},
     'fame': { name: '聲望', setter: (v) => GameState.myTerritory.prestige += v },
     'army': { name: '軍隊', setter: (v) => { 
         GameState.myTerritory.workers['INFANTRY'] = (GameState.myTerritory.workers['INFANTRY'] || 0) + v;

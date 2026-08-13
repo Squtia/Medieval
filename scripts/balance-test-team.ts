@@ -1,45 +1,96 @@
-import { GameState } from '../src/core/GameState.js';
-import { CombatSystem } from '../src/systems/CombatSystem.js';
-import { Adventurer } from '../src/models/Adventurer.js';
-import { EquipmentSlot, FormationRow, MonsterInstance, TerrainType } from '../src/models/types.js';
+import { GameState } from '../src/core/GameState';
+import { CombatSystem } from '../src/systems/CombatSystem';
+import { Adventurer } from '../src/models/Adventurer';
+import { EquipmentSlot, FormationRow, MonsterInstance, TerrainType } from '../src/models/types';
+import { MonsterSystem } from '../src/systems/MonsterSystem';
+
+const JOB_DEFINITIONS: Record<string, { base: any, growth: any, primaryStat: string }> = {
+  '戰士': { base: { str: 10, agi: 5, con: 8, int: 3, spr: 3, luk: 5, charm: 5, command: 5 }, growth: { str: 3, agi: 1, con: 2, int: 0, spr: 0, luk: 1, charm: 0, command: 0 }, primaryStat: 'str' },
+  '法師': { base: { str: 3, agi: 5, con: 4, int: 12, spr: 8, luk: 5, charm: 5, command: 5 }, growth: { str: 0, agi: 1, con: 1, int: 3, spr: 2, luk: 1, charm: 0, command: 0 }, primaryStat: 'int' },
+  '弓箭手': { base: { str: 6, agi: 10, con: 5, int: 4, spr: 4, luk: 8, charm: 5, command: 5 }, growth: { str: 1, agi: 3, con: 1, int: 1, spr: 1, luk: 2, charm: 0, command: 0 }, primaryStat: 'agi' },
+  '盜賊': { base: { str: 7, agi: 12, con: 5, int: 3, spr: 3, luk: 10, charm: 5, command: 5 }, growth: { str: 2, agi: 3, con: 1, int: 0, spr: 0, luk: 2, charm: 0, command: 0 }, primaryStat: 'agi' },
+  '騎士': { base: { str: 8, agi: 4, con: 12, int: 3, spr: 6, luk: 5, charm: 5, command: 5 }, growth: { str: 1, agi: 1, con: 3, int: 0, spr: 2, luk: 1, charm: 0, command: 0 }, primaryStat: 'con' },
+  '祈禱者': { base: { str: 4, agi: 5, con: 6, int: 8, spr: 12, luk: 5, charm: 5, command: 5 }, growth: { str: 0, agi: 1, con: 1, int: 2, spr: 3, luk: 1, charm: 0, command: 0 }, primaryStat: 'spr' }
+};
+
+function calculateLv10Attributes(baseJobName: string, weaponType?: string) {
+  const def = JOB_DEFINITIONS[baseJobName] || JOB_DEFINITIONS['戰士'];
+  const attrs = { ...def.base };
+  for(let i=0; i<9; i++) {
+    attrs.str += Math.floor(def.growth.str / 2);
+    attrs.agi += Math.floor(def.growth.agi / 2);
+    attrs.con += Math.floor(def.growth.con / 2);
+    attrs.int += Math.floor(def.growth.int / 2);
+    attrs.spr += Math.floor(def.growth.spr / 2);
+    attrs.luk += Math.floor(def.growth.luk / 2);
+  }
+  
+  // 依據裝備決定變異職業的屬性點分配 (共18點)
+  if (weaponType === 'DUAL_SWORDS') { attrs.str += 9; attrs.int += 9; }
+  else if (weaponType === 'SCYTHE') { attrs.str += 18; }
+  else if (weaponType === 'MAGIC_BOW') { attrs.agi += 9; attrs.int += 9; }
+  else if (weaponType === 'RUNE_SHIELD') { attrs.con += 9; attrs.spr += 9; }
+  else if (weaponType === 'MAGIC_RING') { attrs.int += 18; }
+  else if (weaponType === 'HAMMER') { attrs.str += 9; attrs.spr += 9; }
+  else {
+    attrs[def.primaryStat] += 18;
+  }
+  
+  return attrs;
+}
 
 // Helper to create a mock max-level advanced adventurer
 function createMaxLevelAdventurer(
   id: string,
   name: string,
-  jobName: string,
+  baseJobName: string,
   weaponType: string,
   row: FormationRow
 ): Adventurer {
+  const def = JOB_DEFINITIONS[baseJobName] || JOB_DEFINITIONS['戰士'];
   const adv = new Adventurer(
     id,
     name,
-    { id: 'job_test', name: jobName, role: 'DPS', baseAttributes: { str: 10, agi: 10, con: 10, int: 10, spr: 10, luk: 10 } },
-    { id: 'trait_test', name: 'None', statMultipliers: {} }
+    { name: baseJobName, baseAttributes: def.base, growthRates: def.growth },
+    { id: 'trait_test', name: 'None', xpModifier: 1, statMultipliers: {} }
   );
   
   adv.level = 10;
   adv.isAdvanced = true;
   adv.formationRow = row;
+  adv.baseAttributes = calculateLv10Attributes(baseJobName, weaponType);
   
-  // Set extremely high base attributes to ensure they hit hard
-  adv.baseAttributes = { str: 50, agi: 50, con: 50, int: 50, spr: 50, luk: 50 };
-  
-  // Mock high-tier equipment
+  let wAtk = 10, wMatk = 10;
+  let wScaling: any = { patk: { str: 'C' } };
+
+  if (weaponType === 'GREATSWORD') { wAtk = 50; wScaling = { patk: { str: 'S' } }; }
+  if (weaponType === 'DUAL_SWORDS') { wAtk = 30; wMatk = 20; wScaling = { patk: { str: 'A' }, matk: { int: 'A' } }; }
+  if (weaponType === 'STAFF') { wMatk = 50; wScaling = { matk: { int: 'S' } }; }
+  if (weaponType === 'SCYTHE') { wAtk = 25; wMatk = 35; wScaling = { matk: { int: 'S' } }; }
+  if (weaponType === 'BOW') { wAtk = 40; wScaling = { patk: { agi: 'S' } }; }
+  if (weaponType === 'MAGIC_BOW') { wAtk = 20; wMatk = 30; wScaling = { patk: { agi: 'A' }, matk: { int: 'A' } }; }
+  if (weaponType === 'DAGGERS') { wAtk = 35; wScaling = { patk: { agi: 'S' } }; }
+  if (weaponType === 'MAGIC_RING') { wMatk = 40; wScaling = { matk: { int: 'S' } }; }
+  if (weaponType === 'SWORD_AND_SHIELD') { wAtk = 25; wScaling = { patk: { con: 'S' } }; }
+  if (weaponType === 'RUNE_SHIELD') { wAtk = 15; wMatk = 25; wScaling = { patk: { con: 'S' }, matk: { spr: 'S' } }; }
+  if (weaponType === 'HOLY_BOOK') { wMatk = 45; wScaling = { matk: { spr: 'S' } }; }
+  if (weaponType === 'HAMMER') { wAtk = 35; wMatk = 25; wScaling = { patk: { str: 'A' }, matk: { spr: 'A' } }; }
+
   adv.equipment = {
     [EquipmentSlot.WEAPON]: {
       id: 'w_test',
       name: 'Legendary Weapon',
       type: 'WEAPON',
       weaponType: weaponType as any,
-      stats: { atk: 150, hit: 50, crit: 20 },
+      combatEffects: { atk: wAtk, matk: wMatk, hit: 15, crit: 10, speed: 5 },
+      scaling: wScaling,
       isBroken: false
     } as any,
     [EquipmentSlot.ARMOR]: {
       id: 'a_test',
       name: 'Legendary Armor',
       type: 'ARMOR',
-      stats: { def: 100, maxHp: 500, evade: 20 },
+      stats: { def: 30, mdef: 30, maxHp: 150, evade: 10, speed: 5 },
       isBroken: false
     } as any
   };
@@ -47,21 +98,38 @@ function createMaxLevelAdventurer(
   return adv;
 }
 
-// 產生標準的菁英怪群
+let battleCount = 0;
+
+// 產生測試用菁英怪群 (包含極端防禦特化)
 function generateEliteMonsters(): MonsterInstance[] {
-  const monsters: MonsterInstance[] = [];
-  for (let i = 1; i <= 5; i++) {
-    monsters.push({
-      id: `elite_orc_${i}`,
-      name: `深淵戰神 ${i}號`,
-      race: 'ORC',
-      terrains: [TerrainType.PLAINS],
-      powerTier: 5,
-      hp: 2000,
-      damage: 100,
-      defense: 60,
-      evade: 15,
-      calculatedPowerScore: 1000
+  const monsterSys = new MonsterSystem();
+  const monsters = monsterSys.generateEncounter(TerrainType.PLAINS, 10.0, true);
+  
+  battleCount++;
+  const mode = battleCount % 3;
+  
+  if (mode === 0) {
+    // 物理嘆息之牆：極高物防，極低魔防
+    monsters.forEach(m => {
+       if (!m.stats) m.stats = {};
+       m.stats.pdef = (m.stats.pdef || 10) * 8;
+       m.stats.mdef = 5;
+       m.name = `[物防] ${m.name}`;
+    });
+  } else if (mode === 1) {
+    // 魔法免疫之盾：極低物防，極高魔防
+    monsters.forEach(m => {
+       if (!m.stats) m.stats = {};
+       m.stats.pdef = 5;
+       m.stats.mdef = (m.stats.mdef || 10) * 8;
+       m.name = `[魔防] ${m.name}`;
+    });
+  } else {
+    // 均衡怪，血量加倍
+    monsters.forEach(m => {
+       m.maxHp = m.maxHp * 2;
+       m.currentHp = m.maxHp;
+       m.name = `[血牛] ${m.name}`;
     });
   }
   return monsters;
@@ -71,25 +139,25 @@ async function runTest() {
   console.log('⚔️  Medieval 5v5 團隊平衡模擬測試開始 ⚔️\n');
   
   // 初始化核心隊員 (Tank & Healer)
-  const paladin = createMaxLevelAdventurer('tank_1', '亞瑟 (聖騎士)', '聖騎士', 'SWORD_AND_SHIELD', FormationRow.FRONT);
-  const archbishop = createMaxLevelAdventurer('heal_1', '瑪麗亞 (大主教)', '大主教', 'HOLY_BOOK', FormationRow.BACK);
+  const paladin = createMaxLevelAdventurer('tank_1', '亞瑟 (聖騎士)', '騎士', 'SWORD_AND_SHIELD', FormationRow.FRONT);
+  const archbishop = createMaxLevelAdventurer('heal_1', '瑪麗亞 (大主教)', '祈禱者', 'HOLY_BOOK', FormationRow.BACK);
   
   // 建立 DPS 陣容池
   const dpsGroups = {
     'A (極致物理單體)': [
-      createMaxLevelAdventurer('dps_A1', '狂戰士', '狂戰士', 'GREATSWORD', FormationRow.FRONT),
-      createMaxLevelAdventurer('dps_A2', '神射手', '神射手', 'BOW', FormationRow.BACK),
-      createMaxLevelAdventurer('dps_A3', '暗殺者', '暗殺者', 'DAGGERS', FormationRow.MIDDLE)
+      createMaxLevelAdventurer('dps_A1', '狂戰士', '戰士', 'GREATSWORD', FormationRow.FRONT),
+      createMaxLevelAdventurer('dps_A2', '神射手', '弓箭手', 'BOW', FormationRow.BACK),
+      createMaxLevelAdventurer('dps_A3', '暗殺者', '盜賊', 'DAGGERS', FormationRow.FRONT)
     ],
     'B (極致魔法群攻)': [
-      createMaxLevelAdventurer('dps_B1', '大魔導士', '大魔導士', 'STAFF', FormationRow.BACK),
-      createMaxLevelAdventurer('dps_B2', '精靈使', '精靈使', 'MAGIC_BOW', FormationRow.BACK),
-      createMaxLevelAdventurer('dps_B3', '異端拷問官', '異端拷問官', 'HAMMER', FormationRow.MIDDLE)
+      createMaxLevelAdventurer('dps_B1', '大魔導士', '法師', 'STAFF', FormationRow.BACK),
+      createMaxLevelAdventurer('dps_B2', '精靈使', '弓箭手', 'MAGIC_BOW', FormationRow.BACK),
+      createMaxLevelAdventurer('dps_B3', '異端拷問官', '祈禱者', 'HAMMER', FormationRow.FRONT)
     ],
     'C (混沌特效連鎖)': [
-      createMaxLevelAdventurer('dps_C1', '魔劍士', '魔劍士', 'DUAL_SWORDS', FormationRow.FRONT),
-      createMaxLevelAdventurer('dps_C2', '詭術師', '詭術師', 'MAGIC_RING', FormationRow.MIDDLE),
-      createMaxLevelAdventurer('dps_C3', '死靈法師', '死靈法師', 'SCYTHE', FormationRow.BACK)
+      createMaxLevelAdventurer('dps_C1', '魔劍士', '戰士', 'DUAL_SWORDS', FormationRow.FRONT),
+      createMaxLevelAdventurer('dps_C2', '詭術師', '盜賊', 'MAGIC_RING', FormationRow.BACK),
+      createMaxLevelAdventurer('dps_C3', '死靈法師', '法師', 'SCYTHE', FormationRow.BACK)
     ]
   };
 
@@ -126,7 +194,7 @@ async function runTest() {
       const dmgEvents = report.events.filter(e => (e.type === 'HIT' || e.type === 'CRIT') && team.some(a => a.id === e.actorId));
       dmgEvents.forEach(e => {
         const actorName = e.actorName;
-        if (damageMap[actorName] !== undefined && e.damage) {
+        if (actorName && damageMap[actorName] !== undefined && e.damage) {
           damageMap[actorName] += e.damage;
         }
       });

@@ -62,23 +62,16 @@ export function calculateSkillDamage(
   forcedCrit?: boolean,
   forcedCritChance?: number
 ): { damage: number, isCrit: boolean } {
-  let critChance = forcedCritChance !== undefined ? forcedCritChance : (0.05 + (caster.stats.hit / 500));
-  
-  if (caster.isAdvanced) {
-    if (caster.weaponType === 'BOW') critChance += 0.20;
-    else if (caster.weaponType === 'MAGIC_BOW') critChance += 0.25;
-    else if (caster.weaponType === 'DAGGERS') critChance += 0.10;
-  }
+  // 從面板讀取爆擊率 (百分比轉小數)，如果沒有則預設 5%
+  let critChance = forcedCritChance !== undefined ? forcedCritChance : ((caster.stats.critRate ?? 5) / 100);
   
   const isCrit = forcedCrit || (Random.next() < critChance);
   
   // 1. 面板基礎傷害 (以 PATK/MATK 面板數值為唯一基準，避免雙重屬性二次乘算 Bug)
   let finalBase = baseDmg;
   
-  let critMult = 1.5;
-  if (caster.isAdvanced && caster.weaponType === 'BOW') {
-    critMult = 2.0;
-  }
+  // 從面板讀取爆擊傷害倍率 (百分比轉小數)，如果沒有則預設 1.5 倍 (150%)
+  let critMult = (caster.stats.critDmg ?? 150) / 100;
   
   if (isCrit) finalBase *= critMult;
 
@@ -98,15 +91,15 @@ export function calculateSkillDamage(
     effectiveDef = effectiveDef * 0.8;
   }
 
-  // 狂戰士被動：裝備巨劍且已轉職時，無視 15% 防禦力
+  // 狂戰士被動：裝備巨劍且已轉職時，無視 30% 防禦力
   if (caster.isAdvanced && caster.weaponType === 'GREATSWORD') {
-    effectiveDef = effectiveDef * 0.85;
+    effectiveDef = effectiveDef * 0.70;
   }
 
   // 3. 最終傷害結算 (護甲公式)
   let dmgReduction = 0;
   if (damageType !== DamageType.CHAOS) {
-    dmgReduction = effectiveDef / (effectiveDef + 50);
+    dmgReduction = effectiveDef / (effectiveDef + 150);
   }
   let finalDamage = Math.max(1, Math.floor(finalBase * (1 - dmgReduction)));
 

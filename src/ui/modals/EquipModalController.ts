@@ -3,7 +3,7 @@ import { EquipmentSlot } from '../../models/types';
 import { GameState } from '../../core/GameState';
 import { ToastManager } from '../ToastManager';
 import { UIManager } from '../UIManager';
-import { renderEquipIcon } from '../ShopController';
+import { renderEquipIcon, getEquipTooltipHtml } from '../ShopController';
 import { PartyModalController } from './PartyModalController';
 
 export class EquipModalController {
@@ -133,20 +133,8 @@ export class EquipModalController {
         card.style.opacity = isJobAllowed ? '1' : '0.65';
         card.style.transition = 'all 0.2s';
 
-        const statsHtml = EquipModalController.buildEquipStatsHtml(eq);
-        const jobTagHtml = eq.allowedJobs && eq.allowedJobs.length > 0 
-          ? `<div style="color:#f59e0b; font-size:0.82em; margin-top:2px; font-weight:bold;">限定職業: ${eq.allowedJobs.join('/')}</div>` 
-          : '';
         const iconHtml = renderEquipIcon(eq, 38);
-        const tooltipHtml = `
-          <div style="font-size: 1.05em; color: #eab308; border-bottom: 1px solid rgba(234,179,8,0.3); padding-bottom: 4px; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
-            ${iconHtml} <b>${eq.name}</b> ${eq.enhancementLevel ? `<span style="color:#3b82f6;">+${eq.enhancementLevel}</span>` : ''}
-          </div>
-          ${jobTagHtml}
-          <div style="font-size: 0.85em; display: flex; flex-direction: column; gap: 2px; margin-top: 4px;">
-            ${statsHtml}
-          </div>
-        `;
+        const tooltipHtml = getEquipTooltipHtml(eq);
 
         card.setAttribute('data-html-tip', encodeURIComponent(tooltipHtml));
 

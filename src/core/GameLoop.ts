@@ -157,8 +157,20 @@ export function advanceDay(): boolean {
   // 處理懸賞系統的每日推進
   BountySystem.processDailyTick(GameState);
 
-  // 處理隨機侵略事件
-  handleRandomInvasion();
+  // 處理盜匪勒索事件暫停
+  if (GameState.pendingExtortionEvent) {
+    GameState.pendingExtortionEvent = false;
+    stopGameLoop();
+    import('../ui/ExtortionModalController').then(({ ExtortionModalController }) => {
+      ExtortionModalController.getInstance().show();
+    });
+    return true; // 暫停迴圈等待玩家決策
+  }
+
+  // 處理保護期倒數
+  if (GameState.myTerritory.extortionCooldown > 0) {
+    GameState.myTerritory.extortionCooldown--;
+  }
 
   // 4. 月底大結算 (世界地圖)
   if (monthEnded) {
@@ -188,10 +200,24 @@ export function advanceDay(): boolean {
   //   (window as any).updateUICallback();
   // }
   
+  if (GameState.myTerritory.gold < 0) {
+    GameState.myTerritory.consecutiveDaysInDebt = (GameState.myTerritory.consecutiveDaysInDebt || 0) + 1;
+  } else {
+    GameState.myTerritory.consecutiveDaysInDebt = 0;
+  }
+
+  if (GameState.myTerritory.consecutiveDaysInDebt >= 14) {
+    stopGameLoop();
+    import('../ui/GameOverModalController').then(({ GameOverModalController }) => {
+      GameOverModalController.getInstance().show('bankruptcy');
+    });
+    return true;
+  }
+  
   if (GameState.myTerritory.population <= 0 && GameState.myTerritory.food <= 0) {
     stopGameLoop();
     import('../ui/GameOverModalController').then(({ GameOverModalController }) => {
-      GameOverModalController.getInstance().show();
+      GameOverModalController.getInstance().show('starvation');
     });
     return true;
   }
@@ -199,21 +225,13 @@ export function advanceDay(): boolean {
   return false;
 }
 
-function handleRandomInvasion() {
+export function processInvasionCombat(forcedEnemyPower?: number) {
   const territory = GameState.myTerritory;
   if (!territory) return;
   const difficulty = getDifficultyModifiers(GameState.worldGeneration?.difficulty);
-  const nextCooldown = () => Math.max(5, Math.round(Random.int(15, 25) * difficulty.threatInterval));
   
-  if (territory.invasionCooldown === undefined || territory.invasionCooldown === 0) {
-    territory.invasionCooldown = nextCooldown();
-    return;
-  }
-  
-  territory.invasionCooldown -= 1;
-  if (territory.invasionCooldown <= 0) {
-    const defenseLevel = territory.defenseLevel || 0;
-    const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
+  const defenseLevel = territory.defenseLevel || 0;
+  const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
     const advPower = idleAdvs.reduce((sum, a) => sum + a.power, 0);
 
     // 哨所/衛兵戰力計算
@@ -235,7 +253,8 @@ function handleRandomInvasion() {
       topThreePower * 0.45;
     const defenseReduction = Math.min(0.6, defenseLevel * 0.08);
     const randomFactor = Random.int(85, 115) / 100;
-    const enemyPower = Math.max(
+    
+    const enemyPower = forcedEnemyPower !== undefined ? forcedEnemyPower : Math.max(
       10,
       Math.round(baseEnemyPower * difficulty.enemyStrength * randomFactor * (1 - defenseReduction))
     );
@@ -263,7 +282,6 @@ function handleRandomInvasion() {
         `${defenderDesc}\n\n敵軍戰力：${enemyPower}\n戰利品：${goldLoot} 金幣、${prestigeReward} 聲望`,
         false
       );
-      territory.invasionCooldown = nextCooldown();
     } else {
       // 戰力不敵，但哨所守衛與留守傭兵進行抵抗，獲得減傷
       idleAdvs.forEach(a => {
@@ -284,7 +302,6 @@ function handleRandomInvasion() {
 
       processInvasionDefeat(territory, defeatMsg, mitigationRatio);
     }
-  }
 }
 
 function showInvasionReport(title: string, message: string, isError: boolean) {
@@ -362,10 +379,7 @@ function processInvasionDefeat(territory: any, baseMsg: string, mitigationRatio:
     });
   }
   
-  // 戰敗進入 7 日絕對保護期
-  territory.invasionCooldown = 7;
-  
-  const reportMsg = `${baseMsg}\n\n損失統計：\n🪵 木材 -${lostWood}\n🍞 糧食 -${lostFood}\n👥 人口 -${actualLostPop}\n\n(據點進入 7 天破敗保護期，期間不會再次遭遇侵略)`;
+  const reportMsg = `${baseMsg}\n\n損失統計：\n🪵 木材 -${lostWood}\n🍞 糧食 -${lostFood}\n👥 人口 -${actualLostPop}`;
   showInvasionReport(mitigationRatio > 0 ? '⚔️ 哨所抵抗（遭強敵突破）' : '慘遭洗劫', reportMsg, true);
 }
 

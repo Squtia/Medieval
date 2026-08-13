@@ -46,14 +46,10 @@ describe('balance configuration', () => {
   });
 
   it('keeps difficulty modifiers ordered across the full campaign', () => {
-    expect(DIFFICULTY_MODIFIERS[GameDifficulty.EASY].enemyStrength)
-      .toBeLessThan(DIFFICULTY_MODIFIERS[GameDifficulty.NORMAL].enemyStrength);
-    expect(DIFFICULTY_MODIFIERS[GameDifficulty.HARD].enemyStrength)
-      .toBeLessThan(DIFFICULTY_MODIFIERS[GameDifficulty.EXTREME].enemyStrength);
-    expect(DIFFICULTY_MODIFIERS[GameDifficulty.EASY].production)
-      .toBeGreaterThan(DIFFICULTY_MODIFIERS[GameDifficulty.NORMAL].production);
-    expect(DIFFICULTY_MODIFIERS[GameDifficulty.HARD].explorationReward)
-      .toBeGreaterThan(DIFFICULTY_MODIFIERS[GameDifficulty.EXTREME].explorationReward);
+    expect(DIFFICULTY_MODIFIERS[GameDifficulty.NORMAL].enemyStrength)
+      .toBeLessThan(DIFFICULTY_MODIFIERS[GameDifficulty.HARD].enemyStrength);
+    expect(DIFFICULTY_MODIFIERS[GameDifficulty.NORMAL].explorationReward)
+      .toBeGreaterThan(DIFFICULTY_MODIFIERS[GameDifficulty.HARD].explorationReward);
   });
 
   it('uses fixed starting tiers and matching title prestige floors', () => {

@@ -1,10 +1,8 @@
 import { MapNode, NodeLevel, NobleTitle } from './types';
 
 export enum GameDifficulty {
-  EASY = 'EASY',
   NORMAL = 'NORMAL',
-  HARD = 'HARD',
-  EXTREME = 'EXTREME'
+  HARD = 'HARD'
 }
 
 export interface StartingResources {

@@ -1,7 +1,7 @@
 import { GameState } from '../core/GameState';
 import { AdventurerState, NobleTitle, TITLE_CONFIG, NodeLevel, NodeFeature } from '../models/types';
 import { openAdvDetail, getSelectedPartyAdventurer, selectPartyAdventurer, renderPartyUpperSection } from './ModalController';
-import { renderAdventurerCard } from './components/AdventurerCard';
+import { renderAdventurerCard, getAdventurerTooltipHtml } from './components/AdventurerCard';
 import { renderBaseBuildings } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
@@ -347,7 +347,7 @@ class UIManagerClass {
         if (adv.equipment.ACCESSORY) equipText += `\n- 💍 ${adv.equipment.ACCESSORY.name}`;
         if (!equipText) equipText = '\n- 無裝備';
 
-        const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${adv.currentClass}<br/>狀態：${stateText}`;
+        const tooltipHtml = getAdventurerTooltipHtml(adv);
 
         card.addEventListener('mouseenter', () => {
           const tEl = document.getElementById('adv-tooltip');

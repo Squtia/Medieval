@@ -3,7 +3,7 @@ import { ToastManager } from '../ToastManager';
 import { Adventurer } from '../../models/Adventurer';
 import { MapNode, NodeLevel, AdventurerState } from '../../models/types';
 import { GameState } from '../../core/GameState';
-import { renderAdventurerCard } from '../components/AdventurerCard';
+import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
 import { DispatchTask, EnemyFeature, TaskType, SubjugationMode } from '../../models/DispatchTask';
 import { monsterSystem } from '../../systems/MonsterSystem';
 import { getCombatPrestigeReward, getDifficultyModifiers } from '../../data/BalanceData';
@@ -212,7 +212,7 @@ export class DispatchModalController {
         });
         
         const displayClass = (adv as any).currentClass || adv.job.name;
-        const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>戰力：${adv.power}`;
+        const tooltipHtml = getAdventurerTooltipHtml(adv);
         
         cardDiv.addEventListener('mouseenter', () => {
           const tEl = document.getElementById('adv-tooltip');
@@ -375,7 +375,7 @@ export class DispatchModalController {
     card.innerHTML = renderAdventurerCard(adv);
     
     const displayClass = (adv as any).currentClass || adv.job.name;
-    const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level} ${displayClass}<br/>戰力：${adv.power}`;
+    const tooltipHtml = getAdventurerTooltipHtml(adv);
     
     card.addEventListener('mouseenter', () => {
       const tEl = document.getElementById('adv-tooltip');

@@ -10,6 +10,7 @@ export interface BountyQuest {
   duration: number; // 所需花費的遊戲天數(回合)
   expireDays: number; // 懸賞單掛在牆上多久後過期消失(若未接取)
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  type?: 'NORMAL' | 'BANDIT';
   dispatchedMercId?: string; // 派出的傭兵 ID
   remainingDuration?: number; // 任務執行中的剩餘回合數
   rewards: {
@@ -20,23 +21,23 @@ export interface BountyQuest {
 }
 
 export class BountySystem {
-  // 15 種日常任務模板
+  // 日常任務模板
   private static readonly QUEST_TEMPLATES = [
-    { name: '找尋走失的貓', desc: '鎮上的老奶奶丟失了她心愛的花貓，希望有人能幫忙找回來。', duration: 1, gold: 20, exp: 10 },
-    { name: '清理下水道老鼠', desc: '酒館老闆抱怨下水道老鼠氾濫，需要有人去清理一下。', duration: 1, gold: 15, exp: 25, items: [{id: 'RAW_HIDE', amount: 1}] },
-    { name: '夜間守望巡邏', desc: '守衛長正在招募夜間巡邏的人手，確保城鎮安寧。', duration: 2, gold: 30, exp: 40 },
-    { name: '幫忙農夫收割', desc: '收穫季到了，農夫急需人手幫忙收割麥子。', duration: 1, gold: 10, exp: 15, items: [{id: 'GRAIN', amount: 3}] },
-    { name: '驅趕偷吃穀物的野豬', desc: '一頭野豬頻繁破壞農田，將其驅趕或獵殺。', duration: 2, gold: 25, exp: 35, items: [{id: 'MEAT', amount: 2}] },
-    { name: '護送商人到鄰鎮', desc: '一名行商需要護衛，保護他平安抵達鄰近城鎮。', duration: 3, gold: 80, exp: 50 },
-    { name: '採集稀有藥草', desc: '藥劑師委託採集生長在森林深處的珍貴藥草。', duration: 2, gold: 20, exp: 30, items: [{id: 'COTTON', amount: 2}] },
-    { name: '教訓地痞流氓', desc: '市場有幾個小混混在收保護費，去給他們一點教訓。', duration: 1, gold: 40, exp: 20 },
-    { name: '修補城牆破損', desc: '城牆有一處缺口需要搬運石料並修補。', duration: 2, gold: 15, exp: 15, items: [{id: 'STONE', amount: 3}] },
-    { name: '協助礦工搬運', desc: '礦場近期產量大增，需要體力充沛的人幫忙搬運礦石。', duration: 2, gold: 20, exp: 20, items: [{id: 'IRON_ORE', amount: 3}] },
-    { name: '伐木場周邊警戒', desc: '伐木工在森林中感覺被注視，請去周邊巡視一圈。', duration: 2, gold: 30, exp: 25, items: [{id: 'WOOD', amount: 3}] },
-    { name: '尋找遺失的傳家寶', desc: '某位貴族在郊外弄丟了戒指，重金懸賞尋回。', duration: 3, gold: 100, exp: 10 },
-    { name: '捕捉破壞農田的野狼', desc: '一群野狼正在襲擊家畜，需要強者去解決。', duration: 2, gold: 40, exp: 40, items: [{id: 'RAW_HIDE', amount: 2}, {id: 'MEAT', amount: 1}] },
-    { name: '清理廢棄水井的黏液', desc: '鎮外廢棄的水井長滿了奇怪的史萊姆，去清理乾淨。', duration: 1, gold: 25, exp: 30 },
-    { name: '保護商隊免受哥布林騷擾', desc: '有商隊通報路線上有哥布林出沒，隨行保護他們。', duration: 3, gold: 60, exp: 60 }
+    { name: '找尋走失的貓', desc: '鎮上的老奶奶丟失了她心愛的花貓，希望有人能幫忙找回來。', duration: 1, gold: 20, exp: 10, type: 'NORMAL' },
+    { name: '清理下水道老鼠', desc: '酒館老闆抱怨下水道老鼠氾濫，需要有人去清理一下。', duration: 1, gold: 15, exp: 25, items: [{id: 'RAW_HIDE', amount: 1}], type: 'NORMAL' },
+    { name: '夜間守望巡邏', desc: '守衛長正在招募夜間巡邏的人手，提防鎮外的流寇。', duration: 2, gold: 30, exp: 40, type: 'BANDIT' },
+    { name: '幫忙農夫收割', desc: '收穫季到了，農夫急需人手幫忙收割麥子。', duration: 1, gold: 10, exp: 15, items: [{id: 'GRAIN', amount: 3}], type: 'NORMAL' },
+    { name: '驅趕偷吃穀物的野豬', desc: '一頭野豬頻繁破壞農田，將其驅趕或獵殺。', duration: 2, gold: 25, exp: 35, items: [{id: 'MEAT', amount: 2}], type: 'NORMAL' },
+    { name: '護送商人到鄰鎮', desc: '一名行商需要護衛，保護他平安抵達鄰近城鎮。', duration: 3, gold: 80, exp: 50, type: 'NORMAL' },
+    { name: '採集稀有藥草', desc: '藥劑師委託採集生長在森林深處的珍貴藥草。', duration: 2, gold: 20, exp: 30, items: [{id: 'COTTON', amount: 2}], type: 'NORMAL' },
+    { name: '教訓地痞流氓', desc: '有幾個小混混在收保護費，去給他們一點教訓。', duration: 1, gold: 40, exp: 20, type: 'BANDIT' },
+    { name: '修補城牆破損', desc: '城牆有一處缺口需要搬運石料並修補。', duration: 2, gold: 15, exp: 15, items: [{id: 'STONE', amount: 3}], type: 'NORMAL' },
+    { name: '協助礦工搬運', desc: '礦場近期產量大增，需要體力充沛的人幫忙搬運礦石。', duration: 2, gold: 20, exp: 20, items: [{id: 'IRON_ORE', amount: 3}], type: 'NORMAL' },
+    { name: '伐木場周邊警戒', desc: '伐木工在森林中感覺被注視，疑似有強盜出沒，請去巡視。', duration: 2, gold: 30, exp: 25, items: [{id: 'WOOD', amount: 3}], type: 'BANDIT' },
+    { name: '尋找遺失的傳家寶', desc: '某位貴族在郊外弄丟了戒指，重金懸賞尋回。', duration: 3, gold: 100, exp: 10, type: 'NORMAL' },
+    { name: '捕捉破壞農田的野狼', desc: '一群野狼正在襲擊家畜，需要強者去解決。', duration: 2, gold: 40, exp: 40, items: [{id: 'RAW_HIDE', amount: 2}, {id: 'MEAT', amount: 1}], type: 'NORMAL' },
+    { name: '清理廢棄水井的黏液', desc: '鎮外廢棄的水井長滿了奇怪的史萊姆，去清理乾淨。', duration: 1, gold: 25, exp: 30, type: 'NORMAL' },
+    { name: '清剿荒野強盜營地', desc: '有一群強盜在荒野紮營並頻繁襲擊旅人，將其徹底清剿。', duration: 3, gold: 60, exp: 60, type: 'BANDIT' }
   ];
 
   /**
@@ -55,12 +56,18 @@ export class BountySystem {
         bounty.expireDays--;
         if (bounty.expireDays <= 0) {
           // 任務過期，移除
+          if (bounty.type === 'BANDIT') {
+            gameState.pendingExtortionEvent = true;
+          }
           gameState.bounties.splice(i, 1);
         }
       } else if (bounty.status === 'IN_PROGRESS' && bounty.remainingDuration !== undefined) {
         bounty.remainingDuration--;
         if (bounty.remainingDuration <= 0) {
           bounty.status = 'COMPLETED';
+          if (bounty.type === 'BANDIT' && gameState.myTerritory) {
+            gameState.myTerritory.security = Math.min(100, (gameState.myTerritory.security || 100) + 20);
+          }
           GameLog.add(`✅ 委託【${bounty.name}】已完成！請至懸賞欄領取獎勵。`, 'info');
         }
       }
@@ -71,8 +78,21 @@ export class BountySystem {
     if (currentCount < 10) {
       const maxNew = Math.min(3, 10 - currentCount);
       const newAmount = Math.floor(Math.random() * maxNew) + 1; // 1 to maxNew
+      const security = (gameState.myTerritory && gameState.myTerritory.security !== undefined) ? gameState.myTerritory.security : 100;
+      const extortionCooldown = (gameState.myTerritory && gameState.myTerritory.extortionCooldown) || 0;
+      const banditChance = extortionCooldown > 0 ? 0 : Math.max(0, 1.0 - (security / 100));
+
+      const normalTemplates = this.QUEST_TEMPLATES.filter(q => q.type !== 'BANDIT');
+      const banditTemplates = this.QUEST_TEMPLATES.filter(q => q.type === 'BANDIT');
+
       for (let i = 0; i < newAmount; i++) {
-        const template = this.QUEST_TEMPLATES[Math.floor(Math.random() * this.QUEST_TEMPLATES.length)];
+        let template;
+        if (Math.random() < banditChance && banditTemplates.length > 0) {
+          template = banditTemplates[Math.floor(Math.random() * banditTemplates.length)];
+        } else {
+          template = normalTemplates[Math.floor(Math.random() * normalTemplates.length)];
+        }
+        
         const newBounty: BountyQuest = {
           id: 'BTY_' + Math.random().toString(36).substring(2, 9),
           name: template.name,
@@ -80,6 +100,7 @@ export class BountySystem {
           duration: template.duration,
           expireDays: Math.floor(Math.random() * 4) + 3, // 3~6 天過期
           status: 'PENDING',
+          type: template.type as 'NORMAL' | 'BANDIT',
           rewards: {
             gold: template.gold,
             exp: template.exp,

@@ -17,14 +17,14 @@ describe('MapGenerator', () => {
   });
 
   it('keeps world positions stable when only difficulty changes', () => {
-    const easy = MapGenerator.generateWorld(INITIAL_MAP_NODES, 'shared-world', GameDifficulty.EASY);
-    const extreme = MapGenerator.generateWorld(INITIAL_MAP_NODES, 'shared-world', GameDifficulty.EXTREME);
+    const normal = MapGenerator.generateWorld(INITIAL_MAP_NODES, 'shared-world', GameDifficulty.NORMAL);
+    const hard = MapGenerator.generateWorld(INITIAL_MAP_NODES, 'shared-world', GameDifficulty.HARD);
 
-    expect(extreme.nodes.map(node => [node.id, node.x, node.y])).toEqual(
-      easy.nodes.map(node => [node.id, node.x, node.y])
+    expect(hard.nodes.map(node => [node.id, node.x, node.y])).toEqual(
+      normal.nodes.map(node => [node.id, node.x, node.y])
     );
-    expect(easy.playerBase.nodeLevel).toBe(NodeLevel.CAPITAL);
-    expect(extreme.playerBase.nodeLevel).toBe(NodeLevel.WILDERNESS);
+    expect(hard.playerBase.nodeLevel).toBe(NodeLevel.WILDERNESS);
+    expect(normal.playerBase.nodeLevel).toBe(NodeLevel.WILDERNESS);
   });
 
   it('promotes one original settlement to player base and keeps every node on valid terrain', () => {

@@ -1,4 +1,4 @@
-import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow, OfficeType, WeaponType, Gender } from './types';
+import { AdventurerState, Attributes, Equipment, EquipmentSlot, JobConfig, TraitConfig, CombatStats, FormationRow, OfficeType, WeaponType, Gender, SCALING_MULTIPLIERS, ScalingTier, EquipmentScaling } from './types';
 import { Random } from '../core/Random';
 import { GambitRule } from './Gambit';
 
@@ -304,18 +304,81 @@ export class Adventurer {
   public getCombatStats(excludeSlot?: EquipmentSlot, tempAllocations?: Partial<Attributes>): CombatStats {
     const attr = this.getEffectiveAttributes(excludeSlot, tempAllocations);
     
-    // 物魔雙軌基礎公式重構
+    // 基礎衍生存活數值
     const baseHp = attr.con * 10;
     const baseMp = attr.spr * 5;
-    const basePatk = attr.str * 2;
-    const baseMatk = attr.int * 2;
-    const basePdef = attr.con + Math.floor(attr.str * 0.5);
-    const baseMdef = attr.con + Math.floor(attr.spr * 0.5);
     const baseHit = attr.agi * 2 + attr.luk;
     const baseEvade = attr.agi * 1 + attr.luk;
     const baseSpeed = attr.agi;
 
+    let basePatk = 0;
+    let baseMatk = 0;
+    let basePdef = 0;
+    let baseMdef = 0;
+
+    const getMultiplier = (tier?: ScalingTier): number => {
+      if (!tier) return 0;
+      return SCALING_MULTIPLIERS[tier] || 0;
+    };
+
     const weapon = this.equipment[EquipmentSlot.WEAPON];
+    const armor = this.equipment[EquipmentSlot.ARMOR];
+
+    // 向後相容：處理舊存檔中沒有 scaling 屬性的裝備
+    const getFallbackWeaponScaling = (wType?: string): EquipmentScaling => {
+      if (wType === 'GREATSWORD') return { patk: { str: 'C' } };
+      if (wType === 'DUAL_SWORDS') return { patk: { str: 'C' }, matk: { int: 'C' } };
+      if (wType === 'BOW') return { patk: { agi: 'C' } };
+      if (wType === 'MAGIC_BOW') return { patk: { agi: 'C' }, matk: { int: 'C' } };
+      if (wType === 'DAGGERS') return { patk: { agi: 'C' } };
+      if (wType === 'MAGIC_RING') return { matk: { int: 'C' } };
+      if (wType === 'STAFF') return { matk: { int: 'C' } };
+      if (wType === 'SCYTHE') return { matk: { int: 'C' } };
+      if (wType === 'SWORD_AND_SHIELD') return { patk: { con: 'C' } };
+      if (wType === 'RUNE_SHIELD') return { patk: { con: 'C' }, matk: { spr: 'C' } };
+      if (wType === 'HOLY_BOOK') return { matk: { spr: 'C' } };
+      if (wType === 'HAMMER') return { patk: { str: 'C' }, matk: { spr: 'C' } };
+      return { patk: { str: 'C' }, matk: { int: 'C' } };
+    };
+
+    const getFallbackArmorScaling = (aType?: string): EquipmentScaling => {
+      if (aType === 'CLOTH') return { mdef: { spr: 'C' } };
+      if (aType === 'LEATHER') return { pdef: { luk: 'C' }, mdef: { luk: 'C' } };
+      if (aType === 'HEAVY') return { pdef: { con: 'C' } };
+      return { pdef: { con: 'C' }, mdef: { spr: 'C' } };
+    };
+
+    // 計算武器屬性補正
+    const weaponScaling = weapon?.scaling || getFallbackWeaponScaling(weapon?.weaponType);
+    if (weaponScaling.patk) {
+       for (const [key, tier] of Object.entries(weaponScaling.patk)) {
+          basePatk += attr[key as keyof Attributes] * getMultiplier(tier as ScalingTier);
+       }
+    }
+    if (weaponScaling.matk) {
+       for (const [key, tier] of Object.entries(weaponScaling.matk)) {
+          baseMatk += attr[key as keyof Attributes] * getMultiplier(tier as ScalingTier);
+       }
+    }
+
+    // 計算防具屬性補正
+    const armorScaling = armor?.scaling || getFallbackArmorScaling(armor?.armorType);
+    if (armorScaling.pdef) {
+       for (const [key, tier] of Object.entries(armorScaling.pdef)) {
+          basePdef += attr[key as keyof Attributes] * getMultiplier(tier as ScalingTier);
+       }
+    }
+    if (armorScaling.mdef) {
+       for (const [key, tier] of Object.entries(armorScaling.mdef)) {
+          baseMdef += attr[key as keyof Attributes] * getMultiplier(tier as ScalingTier);
+       }
+    }
+
+    basePatk = Math.floor(basePatk);
+    baseMatk = Math.floor(baseMatk);
+    basePdef = Math.floor(basePdef);
+    baseMdef = Math.floor(baseMdef);
+
     const weaponType = weapon?.weaponType;
 
     let critChance = 0.05 + (baseHit / 500);

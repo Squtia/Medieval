@@ -116,7 +116,8 @@ export class DataStore {
           baseRequirements: item.baseRequirements || {},
           baseEffects: item.baseEffects || {},
           baseCombatEffects: item.baseCombatEffects || {},
-          randomPool: item.randomPool || {}
+          randomPool: item.randomPool || {},
+          scalingRules: item.scalingRules
         };
       });
     });
@@ -128,7 +129,13 @@ export class DataStore {
       baseRequirements: { str: 1 }, 
       baseEffects: { str: 5, con: 5 }, 
       baseCombatEffects: { patk: 15, hit: 10 },
-      randomPool: { combatStats: ['hit', 'patk'] }
+      randomPool: { combatStats: ['hit', 'patk'] },
+      scalingRules: {
+        patk: {
+          guaranteed: { str: ['B', 'S'] },
+          randomPool: { possibleAttributes: ['con', 'luk'], rankRange: ['E', 'B'], count: [0, 1] }
+        }
+      }
     };
 
     return db;

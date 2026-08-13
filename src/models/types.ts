@@ -460,6 +460,49 @@ export interface CombatStats {
 }
 
 /**
+ * 武器/防具的打寶補正層級
+ */
+export type ScalingTier = 'S' | 'A' | 'B' | 'C' | 'D' | 'E';
+
+export const SCALING_MULTIPLIERS: Record<ScalingTier, number> = {
+  'S': 2.1,
+  'A': 2.0,
+  'B': 1.5,
+  'C': 1.0,
+  'D': 0.8,
+  'E': 0.5
+};
+
+/**
+ * 裝備實體所擁有的具體補正倍率字母
+ */
+export interface EquipmentScaling {
+  patk?: Partial<Record<keyof Attributes, ScalingTier>>;
+  matk?: Partial<Record<keyof Attributes, ScalingTier>>;
+  pdef?: Partial<Record<keyof Attributes, ScalingTier>>;
+  mdef?: Partial<Record<keyof Attributes, ScalingTier>>;
+}
+
+/**
+ * 裝備模板用來生成隨機補正的骰子規則
+ */
+export interface ScalingRuleTarget {
+  guaranteed?: Partial<Record<keyof Attributes, [ScalingTier, ScalingTier]>>; // 保底主屬性，例 { str: ['C', 'S'] }
+  randomPool?: {
+    possibleAttributes: (keyof Attributes)[]; // 可選的隨機屬性池
+    rankRange: [ScalingTier, ScalingTier];    // 抽中時的等級範圍，例 ['E', 'A']
+    count: [number, number];                  // 抽取數量範圍，例 [0, 2]
+  };
+}
+
+export interface ScalingRules {
+  patk?: ScalingRuleTarget;
+  matk?: ScalingRuleTarget;
+  pdef?: ScalingRuleTarget;
+  mdef?: ScalingRuleTarget;
+}
+
+/**
  * 職業設定檔
  * 決定傭兵的初始屬性與每次升級時的成長係數
  */
@@ -525,6 +568,7 @@ export interface Equipment {
   combatEffects?: Partial<CombatStats>; // 直接給予的戰鬥數值加成 (例如加HP、攻擊力)
   baseCombatEffects?: Partial<CombatStats>; // 原始固定基底戰鬥數值 (用於強化時準確還原/計算)
   grantedSkill?: string;                // 裝備附帶的額外技能 ID
+  scaling?: EquipmentScaling;           // 個體差異化的屬性倍率補正 (S~E級)
   enhancementLevel?: number;            // 強化等級 (預設0)
   icon?: string;                        // 裝備圖示佔位符(emoji)
   element?: ElementType;                // 裝備附帶的元素屬性
@@ -559,6 +603,7 @@ export interface EquipmentTemplate {
     attributes?: (keyof Attributes)[];
     combatStats?: (keyof CombatStats)[];
   };
+  scalingRules?: ScalingRules;             // 定義掉落生成時的屬性權責補正骰子規則
 }
 
 /**

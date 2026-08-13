@@ -1,5 +1,38 @@
 # 遊戲更新日誌 (Changelog)
 
+## [2026-08-13] 介面優化與開發者工具擴充 (UI & Cheats)
+- **[Feature/UI] 全域「裝備 Tooltip」一致性重構** (`ShopController.ts`, `EquipModalController.ts`, `PartyModalController.ts`)：
+  - 徹底拔除各面板內手動硬寫的 HTML 裝備屬性字串，將全遊戲所有介面（包含裝備選擇清單、傭兵面板）的裝備 Tooltip 統一強制綁定呼叫 `getEquipTooltipHtml`。
+  - 解決了「倉庫裡 Tooltip 有顯示打寶詞綴/Scaling，但裝備欄沒有」的脫鉤 Bug。
+  - 根據風格設計，拔除生硬的「武器權責 (Scaling)」字眼改為「武器屬性」，並移除「物理/魔法」等冗長前綴字，使排版更精緻乾淨。
+- **[Feature/UI] 全域「英雄頭像卡片 Tooltip」大一統** (`AdventurerCard.ts`, `UIManager.ts`, 等 5 個檔案)：
+  - 將過去散落於主介面、酒館、派遣與探索面板中 5 種各自為政的英雄卡片 Hover 提示框，抽離整合為單一共用系統 `getAdventurerTooltipHtml`。
+  - 現在全遊戲中任何英雄頭像懸停，都會**同時**完美顯示「英雄名稱/等級」、「總戰鬥力 (亮金色)」與「即時狀態 (如休養中亮黃色、閒置亮綠色)」。
+- **[Feature/System] 擴充世紀帝國式鍵盤密技** (`CheatController.ts`, `CHEATS.md`)：
+  - 在隱藏作弊系統中新增了實用指令：在遊戲畫面盲打輸入 **`allres`**。
+  - 可一次性呼叫彈窗，為領地同時大量增加**金幣、木材、石材、鐵礦**四種核心資源，以及**生皮 (Hide)、棉麻 (Cotton)** 兩種狩獵/農業貿易素材，大幅減少繁瑣的逐一輸入，加速經濟循環測試。
+
+## [2026-08-13] 內容與職業數值平衡 (P3)
+- **[Feature/System] 修正戰鬥減傷公式** (`CombatMath.ts`)：
+  - 將護甲減傷基數從 50 調整為 150 (`effectiveDef / (effectiveDef + 150)`)，使低數值環境下的減傷曲線更加平滑，大幅提升低倍率與多段攻擊職業的可用性。
+- **[Refactor/Test] 重構 5v5 團隊平衡測試腳本** (`balance-test-team.ts`)：
+  - 將寫死的 2000 HP「深淵戰神」，改為直接呼叫 `MonsterSystem` 動態生成真實難度 10.0 的遭遇戰，對齊遊戲內建的「低數值基準」。
+  - 修復傳說級測試裝備，全面補齊 `matk` (魔法攻擊力) 與 `speed` (速度)，解決魔法系職業因缺少 `matk` 導致傷害掛零的假象。
+  - 實裝真實屬性成長：移除全 20 的假屬性，改為依照 `CLASS_SYSTEM.md` 的初始屬性與成長率動態計算 Lv.10 的數值，並配置 18 點自由點數至該職業主屬性。
+  - 修復職業判定與技能施放：修正 `baseJobName` 以符合 `CombatSystem` 的進階技能判定邏輯（如「戰士」而非「狂戰士」），並依照武器給予約 20~50 點不等的真實基底 `atk` / `matk`。
+  - 成功驗證 5v5 團隊戰鬥：旋風斬、隕石轟炸等進階技能皆能正確觸發，不同隊伍流派（物理單體、魔法群攻、混沌連鎖）的輸出佔比也能真實反映職業特性。
+## [2026-08-13] 外敵入侵與治安度重構 (P1.3)
+- **[Feature/System] 實作半浮動式治安度公式** (`TownManagementSystem.ts`)：
+  - 移除了前期的「免守衛」保護。治安度現在從荒野階段就會開始運作。
+  - 根據據點規模設定基礎守衛需求 (荒野 0、營地 2、村莊 5、城鎮 15、首都 40 人)，並加上總人口 10% 的動態需求，模擬擴建陣痛期。
+- **[Feature/System] 懸賞任務動態生成** (`BountySystem.ts`)：
+  - 將部分任務標籤為 `BANDIT`。
+  - 懸賞板生成盜匪任務的機率，改由「前一日治安度」動態決定（治安越低，盜匪任務越多）。
+- **[Feature/System] 盜匪勒索與入侵事件** (`BountySystem.ts`, `GameLoop.ts`, `ExtortionModalController.ts`)：
+  - 移除原先自動倒數的隨機入侵機制。
+  - 若懸賞板上的盜匪任務遭到無視直至過期，將觸發「盜匪勒索」事件。
+  - 玩家必須選擇「破財消災（扣除 20% 所有資源並恢復治安）」或「拔劍捍衛（立刻進行防禦戰自動結算）」。
+
 ## [2026-08-13] 戰鬥數值機制重構 (P1.1)
 - **[Feature/System] 將出手順序與閃避分離，導入「速度 (Speed)」** (`types.ts`, `Adventurer.ts`, `CombatSystem.ts`)：
   - 新增了獨立的 `speed` (速度) 屬性。
@@ -12,6 +45,19 @@
   - 將角色的爆擊率強制封頂於 90%，並修正了裝備提供的 `critRate` 遺漏累加的 Bug。
 - **[Feature/UI] 各介面對應速度屬性顯示**：
   - 在酒館招募面板、隊伍屬性面板與鍛造頁面的能力比較中，補上了速度 (`SPD`) 的顯示。
+
+## [2026-08-13] 經濟平衡與難度清理 (P2)
+- **[Feature/System] 實作破產機制** (`GameLoop.ts`, `Territory.ts`, `GameOverModalController.ts`)：
+  - 現在遊戲會追蹤領地的連續負債天數。當金幣小於 0 時，會累加負債天數。
+  - 當連續負債達到 14 天時，會強制觸發 Game Over，並在結局畫面顯示專屬的「破產倒閉」文字描述，解決了過去長期負債造成的軟鎖 (Soft-lock) 問題。
+- **[Refactor/Data] 清理無效的難度設定** (`WorldGeneration.ts`, `DifficultyData.ts`, `BalanceData.ts`)：
+  - 徹底移除底層程式碼中殘留的 `EASY` (簡單) 與 `EXTREME` (極難) 難度定義，確保遊戲難度如設計預期，只存在 `NORMAL` (普通) 與 `HARD` (困難)。
+  - 移除 `DifficultyModifiers` 中毫無作用的 `production` (生產倍率) 參數，消除設定與實際表現不符的混淆。
+
+## [2026-08-13] 戰鬥數值與公式統一化 (P1.2)
+- **[Refactor/Combat] 重構戰鬥運算公式** (`CombatMath.ts`)：
+  - 修復了實戰運算時無視面板爆擊率 (`critRate`) 的 Bug。現在技能與普攻傷害結算會確實讀取裝備、武器與職業算好的面板爆擊率與爆擊傷害 (`critDmg`)。
+  - 移除了 `CombatMath.ts` 中與 `Adventurer.ts` 重複定義的弓箭手/刺客爆擊率與爆擊倍率特化邏輯，將屬性計算權威統一交回給面板數值。
 ## [2026-08-12] 隨機事件系統全面重構：因果邏輯與潛伏期
 - **[Feature/System] 廢除壓力值，引入徵兆潛伏期與冷卻機制** (`EventSystem.ts`, `Territory.ts`, `EventData.ts`)：
   - 徹底移除了原本單一且死板的「全域壓力值 (eventPressure)」。

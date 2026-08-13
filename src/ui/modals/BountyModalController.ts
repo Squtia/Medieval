@@ -1,7 +1,7 @@
 import { GameState } from '../../core/GameState';
 import { BountyQuest, BountySystem } from '../../systems/BountySystem';
-import { AdventurerState } from '../../models/types';
-import { renderAdventurerCard } from '../components/AdventurerCard';
+import { Adventurer, ADV_TEMPLATES } from '../../models/Adventurer';
+import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
 import { positionFloatingElement } from '../FloatingPosition';
 
 
@@ -256,7 +256,7 @@ export class BountyModalController {
       card.innerHTML = renderAdventurerCard(merc);
       
       const displayClass = (merc as any).currentClass || merc.job.name;
-      const tooltipHtml = `【${merc.name}】<br/>Lv.${merc.level} ${displayClass}<br/>戰力：${merc.power}`;
+      const tooltipHtml = getAdventurerTooltipHtml(merc);
 
       card.addEventListener('mouseenter', () => {
         const tEl = document.getElementById('adv-tooltip');

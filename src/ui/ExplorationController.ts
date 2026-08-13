@@ -6,7 +6,7 @@ import { AdventurerState } from '../models/types';
 import { ExplorationTargetCheck } from '../models/Exploration';
 import { isRoutePlanningMode, renderMap } from './MapController';
 import { ToastManager } from './ToastManager';
-import { renderAdventurerCard } from './components/AdventurerCard';
+import { renderAdventurerCard, getAdventurerTooltipHtml } from './components/AdventurerCard';
 import { positionFloatingElement } from './FloatingPosition';
 
 let initialized = false;
@@ -219,7 +219,7 @@ function showDispatchModal(
         });
 
         const displayClass = (adv as any).currentClass || adv.job?.name || '冒險者';
-        const tooltipHtml = `【${adv.name}】<br/>Lv.${adv.level ?? 1} ${displayClass}<br/>戰力：${adv.power ?? 0}`;
+        const tooltipHtml = getAdventurerTooltipHtml(adv);
 
         card.addEventListener('mouseenter', () => {
           const tEl = document.getElementById('adv-tooltip');

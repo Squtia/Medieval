@@ -75,6 +75,9 @@ export function getEquipTooltipHtml(eq: any): string {
       <div style="font-size:0.85em; color:#cbd5e1; margin-top:6px; background:rgba(0,0,0,0.4); padding:6px; border-radius:4px;">
         <strong>戰鬥效果：</strong><br/>${statsStr}
       </div>
+      <div style="font-size:0.85em; color:#fbbf24; margin-top:6px; background:rgba(0,0,0,0.4); padding:6px; border-radius:4px;">
+        <strong>武器屬性：</strong><br/>${formatScalingTags(eq.scaling)}
+      </div>
     </div>
   `;
 }
@@ -82,6 +85,44 @@ export function getEquipTooltipHtml(eq: any): string {
 // === 鍛造屋主視圖全功能實作 (對齊領主書房與傭兵小隊 3 欄網格) ===
 
 
+
+/**
+ * 格式化雙攻雙防與衍生屬性標籤 (依據 ATTRIBUTE_SYSTEM.md 規範)
+ */
+export function formatScalingTags(scaling?: any): string {
+  if (!scaling) return '<span style="color:#64748b;">(無特殊屬性，使用基礎保底)</span>';
+  const parts: string[] = [];
+  
+  if (scaling.patk) {
+     for(const [attr, tier] of Object.entries(scaling.patk)) {
+        let color = '#ef4444'; // 紅色
+        if (tier === 'S' || tier === 'A') color = '#facc15'; // 黃色
+        parts.push(`<span style="color:${color}; font-weight:bold;">⚔️${attr.toUpperCase()}(${tier})</span>`);
+     }
+  }
+  if (scaling.matk) {
+     for(const [attr, tier] of Object.entries(scaling.matk)) {
+        let color = '#3b82f6';
+        if (tier === 'S' || tier === 'A') color = '#facc15';
+        parts.push(`<span style="color:${color}; font-weight:bold;">🔮${attr.toUpperCase()}(${tier})</span>`);
+     }
+  }
+  if (scaling.pdef) {
+     for(const [attr, tier] of Object.entries(scaling.pdef)) {
+        let color = '#10b981';
+        if (tier === 'S' || tier === 'A') color = '#facc15';
+        parts.push(`<span style="color:${color}; font-weight:bold;">🛡️${attr.toUpperCase()}(${tier})</span>`);
+     }
+  }
+  if (scaling.mdef) {
+     for(const [attr, tier] of Object.entries(scaling.mdef)) {
+        let color = '#8b5cf6';
+        if (tier === 'S' || tier === 'A') color = '#facc15';
+        parts.push(`<span style="color:${color}; font-weight:bold;">✨${attr.toUpperCase()}(${tier})</span>`);
+     }
+  }
+  return parts.length > 0 ? parts.join(' | ') : '<span style="color:#64748b;">(無特殊屬性)</span>';
+}
 
 /**
  * 格式化雙攻雙防與衍生屬性標籤 (依據 ATTRIBUTE_SYSTEM.md 規範)

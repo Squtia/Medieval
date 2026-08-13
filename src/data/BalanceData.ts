@@ -11,7 +11,6 @@ export const PROSPERITY_THRESHOLDS: Readonly<Record<NodeLevel, number>> = {
 
 export interface DifficultyModifiers {
   enemyStrength: number;
-  production: number;
   upkeep: number;
   explorationReward: number;
   refugeeChance: number;
@@ -19,17 +18,8 @@ export interface DifficultyModifiers {
 }
 
 export const DIFFICULTY_MODIFIERS: Readonly<Record<GameDifficulty, DifficultyModifiers>> = {
-  [GameDifficulty.EASY]: {
-    enemyStrength: 0.8,
-    production: 1.2,    // 簡單難度生產加成
-    upkeep: 0.8,
-    explorationReward: 1.15,
-    refugeeChance: 1.15,
-    threatInterval: 1.25
-  },
   [GameDifficulty.NORMAL]: {
     enemyStrength: 1,
-    production: 1,
     upkeep: 1,
     explorationReward: 1,
     refugeeChance: 1,
@@ -37,19 +27,10 @@ export const DIFFICULTY_MODIFIERS: Readonly<Record<GameDifficulty, DifficultyMod
   },
   [GameDifficulty.HARD]: {
     enemyStrength: 1.15,
-    production: 1,
     upkeep: 1.15,
     explorationReward: 0.85,
     refugeeChance: 0.85,
     threatInterval: 0.85
-  },
-  [GameDifficulty.EXTREME]: {
-    enemyStrength: 1.3,
-    production: 1,
-    upkeep: 1.3,
-    explorationReward: 0.7,
-    refugeeChance: 0.7,
-    threatInterval: 0.7
   }
 };
 

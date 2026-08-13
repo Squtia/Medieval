@@ -72,17 +72,29 @@ export class TownManagementSystem {
     const workers = territory.workers;
     let newSecurity = 100;
     const currentNode = GameState.mapSystem.getNodes().find(n => n.id === territory.currentCountryId);
-    const requiresGuards = currentNode && (currentNode.nodeLevel === NodeLevel.VILLAGE || currentNode.nodeLevel === NodeLevel.TOWN || currentNode.nodeLevel === NodeLevel.CAPITAL);
-    const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
-
-    if (requiresGuards) {
-      const effectivePop = Math.max(0, territory.population - 50); // 新手保護：前 50 人不需守衛
-      if (effectivePop > 0) {
-        const requiredTroops = effectivePop * 0.1; // 每 10 名有效人口需要 1 名士兵維持治安
-        const coverage = totalTroops / requiredTroops;
-        newSecurity = Math.floor(Math.min(1, coverage) * 100);
+    
+    // 基礎守衛需求 (按 NodeLevel)
+    let baseGuards = 0;
+    if (currentNode) {
+      switch (currentNode.nodeLevel) {
+        case NodeLevel.CAMP: baseGuards = 2; break;
+        case NodeLevel.VILLAGE: baseGuards = 5; break;
+        case NodeLevel.TOWN: baseGuards = 15; break;
+        case NodeLevel.CAPITAL: baseGuards = 40; break;
+        default: baseGuards = 0; break; // WILDERNESS
       }
     }
+
+    const totalTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
+    
+    // 總需求 = 基礎需求 + 10%人口
+    const requiredTroops = baseGuards + Math.floor(territory.population * 0.1);
+
+    if (requiredTroops > 0) {
+      const coverage = totalTroops / requiredTroops;
+      newSecurity = Math.floor(Math.min(1, coverage) * 100);
+    }
+    
     territory.security = newSecurity;
   }
 
