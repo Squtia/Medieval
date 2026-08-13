@@ -33,6 +33,10 @@ export class DispatchSystem {
     this.territory = territory;
   }
 
+  public getActiveMissions(): ActiveMission[] {
+    return this.activeMissions;
+  }
+
   /**
    * 派遣傭兵小隊執行任務
    */

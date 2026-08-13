@@ -417,10 +417,10 @@ export class Adventurer {
       if (equip && equip.combatEffects) {
         stats.hp += equip.combatEffects.hp || 0;
         stats.mp += equip.combatEffects.mp || 0;
-        stats.patk += equip.combatEffects.atk || 0;
-        stats.matk += equip.combatEffects.atk || 0;
-        stats.pdef += equip.combatEffects.def || 0;
-        stats.mdef += equip.combatEffects.def || 0;
+        stats.patk += (equip.combatEffects.patk || 0) + (equip.combatEffects.atk || 0);
+        stats.matk += (equip.combatEffects.matk || 0) + (equip.combatEffects.atk || 0);
+        stats.pdef += (equip.combatEffects.pdef || 0) + (equip.combatEffects.def || 0);
+        stats.mdef += (equip.combatEffects.mdef || 0) + (equip.combatEffects.def || 0);
         stats.hit += equip.combatEffects.hit || 0;
         stats.evade += equip.combatEffects.evade || 0;
         stats.speed += equip.combatEffects.speed || 0;

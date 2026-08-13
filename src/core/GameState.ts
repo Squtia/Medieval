@@ -62,7 +62,8 @@ export const GameState = {
   roadSystem: null as unknown as RoadSystem,
   unlockedFormations: ['DEFAULT'] as string[],
   formationPresets: [] as FormationPreset[],
-  bounties: [] as any[]
+  bounties: [] as any[],
+  pendingExtortionEvent: false
 };
 
 export function initGameState(options: NewGameOptions = {
@@ -125,6 +126,7 @@ export function initGameState(options: NewGameOptions = {
   GameState.unlockedFormations = ['DEFAULT'];
   GameState.formationPresets = [];
   GameState.bounties = [];
+  GameState.pendingExtortionEvent = false;
   
   // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
   EventBus.getInstance().clearAll();

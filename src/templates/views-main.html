@@ -138,6 +138,22 @@
         <!-- 街道左右捲動指示箭頭 -->
         <button id="street-arrow-left" class="street-nav-arrow arrow-left" style="display: none;" title="向左捲動">◀</button>
         <button id="street-arrow-right" class="street-nav-arrow arrow-right" style="display: none;" title="向右捲動">▶</button>
+
+        <!-- 活躍任務狀態面板 (右上角) -->
+        <div id="active-missions-container" style="
+          position: absolute;
+          top: 15px;
+          right: 20px;
+          width: 250px;
+          max-height: 280px;
+          overflow-y: auto;
+          overflow-x: hidden;
+          z-index: 60;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding-right: 5px;
+        "></div>
       </div>
     </div>
 

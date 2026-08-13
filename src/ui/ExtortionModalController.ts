@@ -42,9 +42,8 @@ export class ExtortionModalController {
 
   public hide() {
     if (this.overlay) {
-      this.overlay.classList.add('hidden');
+      this.overlay.style.display = 'none';
     }
-    startGameLoop((window as any).updateUICallback);
   }
 
   private handlePay() {

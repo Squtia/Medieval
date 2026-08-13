@@ -1,6 +1,7 @@
 import { GameState } from '../../core/GameState';
 import { BountyQuest, BountySystem } from '../../systems/BountySystem';
-import { Adventurer, ADV_TEMPLATES } from '../../models/Adventurer';
+import { Adventurer } from '../../models/Adventurer';
+import { AdventurerState } from '../../models/types';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
 import { positionFloatingElement } from '../FloatingPosition';
 

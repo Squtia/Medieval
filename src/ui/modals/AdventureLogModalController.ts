@@ -39,7 +39,7 @@ export class AdventureLogModalController {
     if (!listContainer) return;
 
     listContainer.innerHTML = '';
-    const logs = [...GameState.myTerritory.adventureLogs].reverse();
+    const logs = GameState.myTerritory.adventureLogs;
 
     if (logs.length === 0) {
       listContainer.innerHTML = '<div style="padding: 15px; color: #64748b; text-align: center;">尚無探險紀錄</div>';
@@ -56,8 +56,8 @@ export class AdventureLogModalController {
       item.onmouseout = () => item.style.background = 'transparent';
       
       item.innerHTML = `
-        <div style="color: #fbbf24; font-size: 0.9rem;">第 ${log.day} 天</div>
-        <div style="font-size: 1.1rem; margin: 5px 0;">以 ${log.squadLeaderName} 為首的隊伍</div>
+        <div style="color: #fbbf24; font-size: 0.85rem;">第 ${log.day} 天</div>
+        <div style="font-size: 0.95rem; margin: 3px 0;">以 ${log.squadLeaderName} 為首的隊伍</div>
         <div style="color: #94a3b8; font-size: 0.8rem;">探索了 ${log.nodeName}</div>
       `;
       item.onclick = () => this.renderContent(log);

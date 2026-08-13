@@ -1,6 +1,24 @@
 # 遊戲更新日誌 (Changelog)
 
+## [2026-08-13] 介面流暢度優化與活躍任務面板 (UI & UX)
+- **[Feature/UI] 實作街道活躍任務面板** (`views-main.html`, `UIManager.ts`, `DispatchSystem.ts`)：
+  - 在街道視圖 (Street View) 的右上角新增了精巧的「活躍任務 (Active Missions)」追蹤面板，無論是討伐魔物、懸賞任務還是商隊貿易，都會即時顯示任務名稱與剩餘回合數。
+  - 面板內建高度限制與卷軸，並透過嚴謹的視圖判斷邏輯，確保只有在「純街道場景」時顯示，打開設施 (如酒館) 或回到世界地圖時會自動隱藏，維持畫面整潔不重疊。
+- **[Bugfix/UI] 修正探險日誌排序與排版** (`AdventureLogModalController.ts`)：
+  - 修復了探險日誌因疊加 `.reverse()` 導致顯示順序顛倒的問題，現在最新的探險紀錄會正確固定在列表最上方。
+  - 微調並縮小了左側歷史清單的字體大小 (1.1rem -> 0.95rem)，使得長清單的視覺壓力減輕，排版更加精緻。
+- **[Bugfix/UI] 系統選單自動關閉** (`GameFlowController.ts`)：
+  - 優化操作體驗：點擊「手動儲存進度」後，系統選單現在會自動關閉，不需再額外點擊一次關閉按鈕。
+
 ## [2026-08-13] 介面優化與開發者工具擴充 (UI & Cheats)
+- **[Bugfix/Combat] 修復技能擊殺不掉落戰利品 Bug** (`CombatSystem.ts`)：
+  - 修復了長久以來的一項核心 Bug：當敵方魔物死於「傭兵技能」、「中毒」或「流血」時，因程式流程被中斷 (`continue` / `return`)，導致系統跳過結算該名敵人的死亡獎勵。
+  - 將死亡與戰利品（金幣、經驗、裝備）結算邏輯統一抽離成 `processDeaths()` 方法，確保戰鬥迴圈無論在哪個階段造成擊殺，必定會正確結算獎勵，解決玩家「很多怪都不給獎勵」的困惑。
+- **[Bugfix/Event] 修復盜匪勒索事件無限輪迴與關閉失效 Bug** (`ExtortionModalController.ts`)：
+  - 修復了「盜匪勒索」彈出視窗在點擊按鈕後無法關閉（因錯誤使用 CSS 類別取代 inline style）的問題。
+  - 移除了隱藏視窗時多餘的 `startGameLoop` 呼叫，徹底解決重複觸發導致時間無限加速、玩家無限遇襲的崩潰迴圈。
+- **[Bugfix/UI] 修復懸賞欄無法顯示閒置傭兵 Bug** (`BountyModalController.ts`)：
+  - 修復了因遺漏匯入 `AdventurerState` 導致在篩選閒置傭兵時發生 `ReferenceError` 錯誤，進而造成懸賞欄右側傭兵列表一片空白且無法派遣的嚴重漏洞。
 - **[Feature/UI] 全域「裝備 Tooltip」一致性重構** (`ShopController.ts`, `EquipModalController.ts`, `PartyModalController.ts`)：
   - 徹底拔除各面板內手動硬寫的 HTML 裝備屬性字串，將全遊戲所有介面（包含裝備選擇清單、傭兵面板）的裝備 Tooltip 統一強制綁定呼叫 `getEquipTooltipHtml`。
   - 解決了「倉庫裡 Tooltip 有顯示打寶詞綴/Scaling，但裝備欄沒有」的脫鉤 Bug。

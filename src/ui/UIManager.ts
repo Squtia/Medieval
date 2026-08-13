@@ -650,6 +650,54 @@ class UIManagerClass {
       : levelNames[playerNode.nodeLevel + 1] || '';
 
     this.updateProsperityBar(current, nextThreshold, levelLabelText, nextLevelName);
+    this.updateActiveMissions();
+  }
+
+  // 更新活躍任務面板
+  updateActiveMissions(): void {
+    const container = document.getElementById('active-missions-container');
+    if (!container) return;
+    
+    // 檢查是否在街道視圖，且沒有開啟任何 facility-view
+    const isSceneActive = document.getElementById('scene-view')?.classList.contains('active');
+    const isFacilityOpen = Array.from(document.querySelectorAll('.facility-view')).some(v => v.classList.contains('active'));
+    
+    if (!isSceneActive || isFacilityOpen) {
+      container.style.display = 'none';
+      container.innerHTML = '';
+      return;
+    }
+
+    container.style.display = 'flex';
+    container.innerHTML = '';
+    const missions = GameState.system?.getActiveMissions() || [];
+    if (missions.length === 0) return;
+
+    missions.forEach(mission => {
+      const el = document.createElement('div');
+      el.style.background = 'rgba(0, 0, 0, 0.7)';
+      el.style.border = '1px solid rgba(251, 191, 36, 0.4)';
+      el.style.borderRadius = '6px';
+      el.style.padding = '8px 12px';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.gap = '8px';
+      el.style.backdropFilter = 'blur(4px)';
+      el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
+      
+      let icon = '⚔️';
+      if (mission.task.type === 'TRADE') icon = '🐫';
+      else if (mission.task.type === 'BOUNTY') icon = '📜';
+
+      el.innerHTML = `
+        <div style="font-size: 1.2rem;">${icon}</div>
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="color: #fbbf24; font-size: 0.85rem; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">${mission.task.name}</div>
+          <div style="color: #cbd5e1; font-size: 0.75rem;">剩餘 ${mission.remainingDays} 回合</div>
+        </div>
+      `;
+      container.appendChild(el);
+    });
   }
 
   // C4: 更新繁榮度進度條

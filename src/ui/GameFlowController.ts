@@ -61,6 +61,7 @@ export function initGameFlowController(): void {
       if (GameState.currentSaveSlot) {
         SaveManager.saveGame(GameState.currentSaveSlot);
         ToastManager.show('遊戲進度已手動儲存！');
+        document.getElementById('modal-system-menu')?.classList.remove('active');
       }
     });
   }

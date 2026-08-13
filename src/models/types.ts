@@ -36,7 +36,8 @@ export enum StrongholdAffix {
 export enum AdventurerState {
   IDLE = 'IDLE',             // 閒置：留在領地內，可以隨時派遣或執行其他操作
   DISPATCHED = 'DISPATCHED', // 派遣中：正在執行任務，無法指派其他工作
-  RESTING = 'RESTING'        // 休息：體力耗盡或受傷正在恢復中
+  RESTING = 'RESTING',       // 休息：體力耗盡或受傷正在恢復中
+  CAPTURED = 'CAPTURED'      // 被俘虜
 }
 
 /**

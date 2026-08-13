@@ -299,6 +299,29 @@ export class CombatSystem {
       let turn = 1;
       const MAX_TURNS = 20;
 
+      const processDeaths = () => {
+        const allParticipants = [...playerTeam, ...enemyTeam];
+        for (const p of allParticipants) {
+          if (p.currentHp <= 0 && !(p as any).isDead) {
+            (p as any).isDead = true;
+            p.currentHp = 0;
+            events.push({ type: CombatEventType.DEATH, targetName: p.name, text: `${p.name} 倒下了！` });
+
+            if (!p.isPlayer) {
+              totalEarnedGold += p.goldReward || 0;
+              totalEarnedExp += p.expReward || 0;
+              if (p.equipmentDropRate && Random.next() < p.equipmentDropRate) {
+                const equip = EquipmentGenerator.dropRandomEquipment(Math.max(5, Math.floor(currentWaveDiff / 2)));
+                if (equip) {
+                  GameState.myTerritory.addEquipmentToWarehouse(equip);
+                  droppedEquipment.push(equip.name);
+                }
+              }
+            }
+          }
+        }
+      };
+
       while (turn <= MAX_TURNS) {
         const allParticipants = [...playerTeam, ...enemyTeam].filter(p => p.currentHp > 0);
         if (playerTeam.every(p => p.currentHp <= 0) || enemyTeam.every(p => p.currentHp <= 0)) {
@@ -312,6 +335,7 @@ export class CombatSystem {
         if (actor.currentHp <= 0) continue;
 
         CombatSystem.processStatusEffects(actor, events);
+        processDeaths();
         if (actor.currentHp <= 0) continue;
 
         // 減少冷卻時間
@@ -459,6 +483,7 @@ export class CombatSystem {
           const totalSkillDmg = skillEvents.reduce((sum, e) => sum + (e.damage || 0), 0);
           PassiveManager.onDamageDealt(actor, totalSkillDmg, events, 'SKILL');
           
+          processDeaths();
           continue; // 技能施放完畢，跳過普攻階段
         }
 
@@ -535,22 +560,7 @@ export class CombatSystem {
            }
         }
 
-        if (target.currentHp <= 0) {
-          target.currentHp = 0;
-          events.push({ type: CombatEventType.DEATH, targetName: target.name, text: `${target.name} 倒下了！` });
-
-          if (!target.isPlayer) {
-            totalEarnedGold += target.goldReward || 0;
-            totalEarnedExp += target.expReward || 0;
-            if (target.equipmentDropRate && Random.next() < target.equipmentDropRate) {
-              const equip = EquipmentGenerator.dropRandomEquipment(Math.max(5, Math.floor(currentWaveDiff / 2)));
-              if (equip) {
-                GameState.myTerritory.addEquipmentToWarehouse(equip);
-                droppedEquipment.push(equip.name);
-              }
-            }
-          }
-        }
+        processDeaths();
       }
       turn++;
     } // 單波次迴圈結束
@@ -650,7 +660,6 @@ export class CombatSystem {
 
       if (actor.currentHp <= 0) {
         actor.currentHp = 0;
-        events.push({ type: CombatEventType.DEATH, targetName: actor.name, text: `${actor.name} 傷重倒地！` });
         return; 
       }
 
