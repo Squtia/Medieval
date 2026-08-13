@@ -452,6 +452,7 @@ export interface CombatStats {
   mdef: number;      // 魔法防禦力
   hit: number;       // 命中率
   evade: number;     // 閃避率
+  speed: number;     // 速度 (決定出手順序)
   critRate: number;  // 爆擊率 (%)
   critDmg: number;   // 爆擊傷害 (%)
   atk: number;       // 攻擊力 (為 patk 或 matk 較高者)

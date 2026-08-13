@@ -45,7 +45,7 @@ export function initRecruitController(): void {
     if (viewCamp && viewCamp.classList.contains('active')) {
       renderTavernView();
     }
-  });
+  }, 'ui');
 
 }
 
@@ -185,6 +185,7 @@ function renderSelectedGuestDetail() {
       'adv-cs-mdef': `${cs.mdef}`,
       'adv-cs-hit':  `${cs.hit}`,
       'adv-cs-evade':`${cs.evade}`,
+      'adv-cs-speed':`${cs.speed}`,
       'adv-cs-crit': `${cs.critRate}%`,
     };
     for (const [id, val] of Object.entries(combatMap)) {

@@ -205,14 +205,14 @@ export class ForgeUIController {
       const nextMult = 1 + (0.10 * (curLvl + 1));
       
       const previews: string[] = [];
-      for (const key of ['patk', 'matk', 'pdef', 'mdef', 'hit', 'evade', 'hp', 'mp']) {
+      for (const key of ['patk', 'matk', 'pdef', 'mdef', 'hit', 'evade', 'speed', 'hp', 'mp']) {
         const k = key as keyof CombatStats;
         const baseVal = baseCb[k];
         if (typeof baseVal === 'number' && baseVal > 0) {
           const curVal = eq.combatEffects?.[k] || baseVal;
           const nextVal = Math.round(baseVal * nextMult);
           const diff = nextVal - curVal;
-          const labelText = k === 'patk' ? '⚔️ 物理攻擊 (PATK)' : (k === 'matk' ? '🔮 魔法攻擊 (MATK)' : (k === 'pdef' ? '🛡️ 物理防禦 (PDEF)' : (k === 'mdef' ? '✨ 魔法防禦 (MDEF)' : (k === 'hit' ? '🎯 命中 (HIT)' : (k === 'evade' ? '🌀 閃避 (EVD)' : k.toUpperCase())))));
+          const labelText = k === 'patk' ? '⚔️ 物理攻擊 (PATK)' : (k === 'matk' ? '🔮 魔法攻擊 (MATK)' : (k === 'pdef' ? '🛡️ 物理防禦 (PDEF)' : (k === 'mdef' ? '✨ 魔法防禦 (MDEF)' : (k === 'hit' ? '🎯 命中 (HIT)' : (k === 'evade' ? '🌀 閃避 (EVD)' : (k === 'speed' ? '👟 速度 (SPD)' : k.toUpperCase()))))));
           previews.push(`
             <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(0,0,0,0.5); border-radius:6px; border:1px solid rgba(217,119,6,0.2);">
               <span style="color:#cbd5e1; font-weight:bold; font-size:0.9em;">${labelText}</span>

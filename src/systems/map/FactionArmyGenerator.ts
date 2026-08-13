@@ -109,7 +109,7 @@ export class FactionArmyGenerator {
         break;
       case 'f_bellavia':
         // 貝拉維亞 (南境)：暗殺與用毒，擁有高閃避與爆發傷害
-        instance.evade = Math.min(0.8, instance.evade + 0.15);
+        instance.evade = Math.min(500, instance.evade + 20);
         instance.damage = Math.floor(instance.damage * 1.2);
         break;
       case 'f_dusk':
@@ -148,7 +148,7 @@ export class FactionArmyGenerator {
           hp: Math.floor(powerScore * 6),
           damage: Math.floor(powerScore * 0.8),
           defense: Math.floor(powerScore * 2.0),
-          evade: 0.1,
+          evade: 20,
           calculatedPowerScore: powerScore,
           skills: [boss.jobId + '_ULTIMATE'], // 示意：給予特殊大招
           // 為了相容 CombatParticipant，給予基礎怪物的特徵

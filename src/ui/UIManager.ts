@@ -707,7 +707,7 @@ import('../core/EventBus').then(({ EventBus }) => {
   import('../core/GameEvents').then(({ GameEventType }) => {
     EventBus.getInstance().subscribe(GameEventType.PROSPERITY_CHANGED, (payload) => {
       UIManager.refreshProsperityBar();
-    });
+    }, 'ui');
   });
 });
 

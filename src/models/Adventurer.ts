@@ -313,6 +313,7 @@ export class Adventurer {
     const baseMdef = attr.con + Math.floor(attr.spr * 0.5);
     const baseHit = attr.agi * 2 + attr.luk;
     const baseEvade = attr.agi * 1 + attr.luk;
+    const baseSpeed = attr.agi;
 
     const weapon = this.equipment[EquipmentSlot.WEAPON];
     const weaponType = weapon?.weaponType;
@@ -339,6 +340,7 @@ export class Adventurer {
       mdef: baseMdef,
       hit: baseHit,
       evade: baseEvade,
+      speed: baseSpeed,
       critRate: Math.round(critChance * 100),
       critDmg: Math.round(critMult * 100),
       atk: Math.max(basePatk, baseMatk),
@@ -358,9 +360,12 @@ export class Adventurer {
         stats.mdef += equip.combatEffects.def || 0;
         stats.hit += equip.combatEffects.hit || 0;
         stats.evade += equip.combatEffects.evade || 0;
+        stats.speed += equip.combatEffects.speed || 0;
+        stats.critRate += equip.combatEffects.critRate || 0;
       }
     }
 
+    stats.critRate = Math.min(90, stats.critRate);
     stats.atk = Math.max(stats.patk, stats.matk);
     stats.def = stats.pdef;
 

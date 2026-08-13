@@ -92,7 +92,7 @@ export class MonsterSystem {
     const pdef = Math.floor(powerScore * pdefRatio * 1.5);
     const mdef = Math.floor(powerScore * mdefRatio * 1.5);
     const defense = pdef; // 相容舊版欄位
-    const evade = Math.min(0.5, powerScore * evaRatio * 0.001);
+    const evade = Math.min(500, Math.floor(powerScore * evaRatio * 0.1));
 
     return {
       ...baseMonster,

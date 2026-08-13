@@ -133,7 +133,7 @@ async function main() {
       generatedWorld.baseCount !== 1 ||
       generatedWorld.baseId === 'player_base' ||
       generatedWorld.baseName === '流浪傭兵團' ||
-      generatedWorld.baseLevel !== 3 ||
+      generatedWorld.baseLevel !== 0 ||
       generatedWorld.discoveredCount !== 1 ||
       !(generatedWorld.revealedCells > 0) ||
       !(generatedWorld.revealedCells < generatedWorld.totalCells)

@@ -1,4 +1,5 @@
 import { ToastManager } from './ToastManager';
+import { refreshGlobalUI } from '../main';
 import { GameState, initGameState } from '../core/GameState';
 import { SaveManager } from '../core/SaveManager';
 import { UIManager } from './UIManager';
@@ -27,7 +28,7 @@ function getNodeLevelLabel(level: NodeLevel): string {
   }
 }
 
-function openNewGameSetup(slot: number, rebindUIEvents: () => void): void {
+function openNewGameSetup(slot: number): void {
   const modal = document.getElementById('modal-new-game');
   const loadModal = document.getElementById('modal-load-game');
   const difficultyList = document.getElementById('new-game-difficulty-list');
@@ -107,7 +108,7 @@ function openNewGameSetup(slot: number, rebindUIEvents: () => void): void {
     try {
       clearGameLog();
       initGameState({ difficulty: selectedDifficulty, seed });
-      rebindUIEvents();
+      refreshGlobalUI();
       GameState.currentSaveSlot = slot;
       await ensurePhaserLoaded();
 
@@ -140,7 +141,7 @@ function openNewGameSetup(slot: number, rebindUIEvents: () => void): void {
   };
 }
 
-export function renderSaveSlots(rebindUIEvents: () => void): void {
+export function renderSaveSlots(): void {
   const container = document.getElementById('save-slots-container');
   const modalTitle = document.getElementById('modal-save-title');
   const mainMenu = document.getElementById('main-menu-view');
@@ -192,7 +193,7 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
 
     btn.addEventListener('click', async () => {
       if (s.isEmpty) {
-        openNewGameSetup(s.slot, rebindUIEvents);
+        openNewGameSetup(s.slot);
       } else {
         if (confirm(`確定要進入欄位 ${s.slot} 的旅程嗎？`)) {
           document.getElementById('modal-load-game')?.classList.remove('active');
@@ -201,7 +202,7 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
           await ensurePhaserLoaded();
           if (SaveManager.loadGame(s.slot)) {
             setStartupMode(false);
-            rebindUIEvents();
+            refreshGlobalUI();
             UIManager.playTransition(() => {
               mainMenu.classList.remove('active');
               topBar.style.display = 'flex';
@@ -238,7 +239,7 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
         e.stopPropagation();
         if (confirm(`確定要刪除欄位 ${s.slot} 的存檔嗎？此動作無法復原！`)) {
           SaveManager.deleteGame(s.slot);
-          renderSaveSlots(rebindUIEvents);
+          renderSaveSlots();
         }
       });
       btnWrapper.appendChild(deleteBtn);
@@ -248,14 +249,14 @@ export function renderSaveSlots(rebindUIEvents: () => void): void {
   });
 }
 
-export function initMainMenuController(rebindUIEvents: () => void): void {
+export function initMainMenuController(): void {
   const btnEnterJourney = document.getElementById('btn-enter-journey');
   const btnCloseLoadGame = document.getElementById('btn-close-load-game');
   const modalLoadGame = document.getElementById('modal-load-game');
 
   if (btnEnterJourney && modalLoadGame) {
     btnEnterJourney.addEventListener('click', () => {
-      renderSaveSlots(rebindUIEvents);
+      renderSaveSlots();
       modalLoadGame.classList.add('active');
     });
   }

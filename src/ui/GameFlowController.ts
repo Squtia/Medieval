@@ -12,7 +12,7 @@ import { showDailySummaryModal } from './DailySummaryModal';
 import { DiplomacyController } from './DiplomacyController';
 import { renderSaveSlots } from './MainMenuController';
 
-export function initGameFlowController(rebindUIEvents: () => void): void {
+export function initGameFlowController(): void {
   // 三個側邊抽屜面板的輔助取得函式（提前宣告供互斥邏輯共用）
   const partyModal = () => document.getElementById('modal-party-list');
   const combatHistoryPanel = () => document.getElementById('combat-history-panel');
@@ -81,7 +81,7 @@ export function initGameFlowController(rebindUIEvents: () => void): void {
         if (mainMenu) {
           mainMenu.classList.add('active');
           // 重新渲染存檔欄位，確保退出後看到最新的存檔資訊
-          renderSaveSlots(rebindUIEvents);
+          renderSaveSlots();
         }
       });
     });

@@ -20,7 +20,7 @@ export class EquipModalController {
       hp:    { label: 'HP', color: '#f87171', icon: '❤️' },
       hit:   { label: '命中', color: '#3b82f6', icon: '🎯' },
       evade: { label: '閃避', color: '#3b82f6', icon: '💨' },
-      spd:   { label: '速度', color: '#3b82f6', icon: '⚡' },
+      speed: { label: '速度', color: '#fcd34d', icon: '👟' },
       crit:  { label: '暴擊率', color: '#eab308', icon: '🔥' },
     };
     const attrStatMeta: Record<string, { label: string; color: string }> = {

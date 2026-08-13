@@ -37,7 +37,7 @@ export function initExplorationController(): void {
   document.addEventListener('phaser-map-clicked', handleMapClick);
   EventBus.getInstance().subscribe(GameEventType.DAY_PASSED, () => {
     refreshExplorationUI();
-  });
+  }, 'ui');
 }
 
 function handleMapClick(e: Event): void {

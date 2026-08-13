@@ -1,5 +1,17 @@
 # 遊戲更新日誌 (Changelog)
 
+## [2026-08-13] 戰鬥數值機制重構 (P1.1)
+- **[Feature/System] 將出手順序與閃避分離，導入「速度 (Speed)」** (`types.ts`, `Adventurer.ts`, `CombatSystem.ts`)：
+  - 新增了獨立的 `speed` (速度) 屬性。
+  - 出手順序現在由速度決定，取代了原本綁定在閃避 (evade) 上的邏輯，確保未來「重裝高防禦 = 低閃避」但仍可透過詞綴獲得出手權的裝備設計。
+- **[Bugfix/System] 修正魔力 (MP) 上限與回復上限** (`CombatSystem.ts`, `Combat.ts`)：
+  - 修復了戰鬥中 MP 回復上限被硬寫死為 200 的問題。現在角色的 MP 回復會正確尊重其基於 `spr` 或裝備計算出的 `maxMp`。
+- **[Feature/System] 統一敵軍與野怪閃避單位為點數制** (`MonsterSystem.ts`, `FactionArmyGenerator.ts`)：
+  - 將所有動態生成怪物的閃避值 (evade) 從「百分比 (0~0.5)」修正為與命中對應的整數點數制。
+- **[Feature/System] 導入爆擊率硬上限** (`Adventurer.ts`)：
+  - 將角色的爆擊率強制封頂於 90%，並修正了裝備提供的 `critRate` 遺漏累加的 Bug。
+- **[Feature/UI] 各介面對應速度屬性顯示**：
+  - 在酒館招募面板、隊伍屬性面板與鍛造頁面的能力比較中，補上了速度 (`SPD`) 的顯示。
 ## [2026-08-12] 隨機事件系統全面重構：因果邏輯與潛伏期
 - **[Feature/System] 廢除壓力值，引入徵兆潛伏期與冷卻機制** (`EventSystem.ts`, `Territory.ts`, `EventData.ts`)：
   - 徹底移除了原本單一且死板的「全域壓力值 (eventPressure)」。

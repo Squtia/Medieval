@@ -21,7 +21,7 @@ export class DiplomacyController {
       if (panel?.classList.contains('active')) {
         this.renderFactions();
       }
-    });
+    }, 'ui');
   }
 
   public static open(): void {

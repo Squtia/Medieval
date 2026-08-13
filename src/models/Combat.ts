@@ -28,8 +28,10 @@ export interface CombatParticipant {
   gridC?: number;
   maxHp: number;
   currentHp: number;
-  stats: CombatStats; // hp, mp, atk, def, hit, evade
-  attributes?: Attributes; // str, int, con, agi, luk (供新版計算使用)
+  maxMp?: number;
+  currentMp?: number;
+  stats: CombatStats; // hp, mp, atk, def, hit, evade, speed
+  attributes?: import('./types').Attributes; // str, int, con, agi, luk (供新版計算使用)
   statusEffects: StatusEffect[];
   // Phase 4: Army Shield System
   shieldType?: string;      // 攜帶的兵種 (例如: 'INFANTRY', 'CAVALRY', 'ARCHER')

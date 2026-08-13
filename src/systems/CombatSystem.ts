@@ -166,7 +166,9 @@ export class CombatSystem {
           gridC: hasGrid ? gridC : undefined,
           maxHp: stats.hp,
           currentHp: currentHp,
-          stats: { ...stats, mp: currentMp },
+          maxMp: stats.mp,
+          currentMp: currentMp,
+          stats: stats,
           attributes: attributes,
           statusEffects: [],
           shieldType: troop?.type,
@@ -185,7 +187,7 @@ export class CombatSystem {
     // 記錄玩家初始狀態供 UI 繪製，敵方則在 WAVE_START 動態處理
     const initialStates = [...playerTeam].map(p => {
       const adv = GameState.adventurers.find(a => a.id === p.id);
-      const maxMp = p.attributes?.spr ? p.attributes.spr * 5 : (p.stats.mp || 100);
+      const maxMp = p.maxMp ?? 100;
       return {
         id: p.id,
         name: p.name,
@@ -195,7 +197,7 @@ export class CombatSystem {
         gridC: p.gridC,
         maxHp: p.maxHp,
         maxMp: maxMp,
-        currentMp: p.stats.mp ?? maxMp,
+        currentMp: p.currentMp ?? maxMp,
         avatarIndex: adv?.avatarIndex ?? 0,
         gender: adv?.gender
       };
@@ -255,8 +257,10 @@ export class CombatSystem {
           gridC: eGridC,
           maxHp: eHp,
           currentHp: eHp,
+          maxMp: 50 + currentWaveDiff * 5,
+          currentMp: 50 + currentWaveDiff * 5,
           element: lineupMonster?.element || ElementType.NONE,
-          stats: { hp: eHp, mp: 50 + currentWaveDiff * 5, patk: eAtk, matk: eAtk, pdef: ePdef, mdef: eMdef, hit: 20 + currentWaveDiff, evade: eEvade, critRate: 5, critDmg: 150, atk: eAtk, def: eDef },
+          stats: { hp: eHp, mp: 50 + currentWaveDiff * 5, patk: eAtk, matk: eAtk, pdef: ePdef, mdef: eMdef, hit: 20 + currentWaveDiff, evade: eEvade, speed: 10 + currentWaveDiff, critRate: 5, critDmg: 150, atk: eAtk, def: eDef },
           attributes: { 
             con: 5 + currentWaveDiff, 
             spr: 5 + currentWaveDiff, 
@@ -285,8 +289,8 @@ export class CombatSystem {
           gridR: e.gridR,
           gridC: e.gridC,
           maxHp: e.maxHp,
-          maxMp: e.stats.mp || 50,
-          currentMp: e.stats.mp || 50
+          maxMp: e.maxMp || 50,
+          currentMp: e.currentMp || 50
         })),
         text: `--- 第 ${wave} 波戰鬥開始！遭遇了 ${enemyCount} 名敵人。 ---` 
       });
@@ -302,7 +306,7 @@ export class CombatSystem {
         }
 
         // 依敏捷排序
-      allParticipants.sort((a, b) => (b.stats.evade + Random.next() * 20) - (a.stats.evade + Random.next() * 20));
+      allParticipants.sort((a, b) => (b.stats.speed + Random.next() * 20) - (a.stats.speed + Random.next() * 20));
 
       for (const actor of allParticipants) {
         if (actor.currentHp <= 0) continue;
@@ -337,8 +341,8 @@ export class CombatSystem {
               text: `${actor.name} 恢復了 ${hpRegen} 點 HP。`
             });
           }
-          if (actor.stats.mp !== undefined) {
-             actor.stats.mp = Math.min(actor.stats.mp > 200 ? actor.stats.mp : 200, actor.stats.mp + mpRegen);
+          if (actor.currentMp !== undefined) {
+             actor.currentMp = Math.min(actor.maxMp ?? 100, actor.currentMp + mpRegen);
              events.push({
                type: CombatEventType.HEAL,
                actorId: actor.id,
@@ -393,7 +397,7 @@ export class CombatSystem {
           if (actor.skills && actor.skills.length > 0) {
           const availableSkills = actor.skills
             .map(id => SKILLS[id])
-            .filter(s => s && actor.stats.mp >= s.mpCost && !(actor.cooldowns && actor.cooldowns[s.id] > 0));
+            .filter(s => s && actor.currentMp !== undefined && actor.currentMp >= s.mpCost && !(actor.cooldowns && actor.cooldowns[s.id] > 0));
           
           if (availableSkills.length > 0) {
             let bestWeight = -1;
@@ -431,7 +435,7 @@ export class CombatSystem {
 
         if (selectedSkill) {
           // 施放技能
-          actor.stats.mp -= selectedSkill.mpCost;
+          actor.currentMp = (actor.currentMp || 0) - selectedSkill.mpCost;
           
           // 進入 CD
           if (selectedSkill.cooldown) {
@@ -444,8 +448,8 @@ export class CombatSystem {
             type: CombatEventType.SKILL_CAST,
             actorId: actor.id, actorName: actor.name,
             targetId: actor.id,
-            targetMp: actor.stats.mp,
-            targetMaxMp: actorMaxMp,
+            targetMp: actor.currentMp || 0,
+            targetMaxMp: actor.maxMp || 100,
             text: `${actor.name} 消耗了 ${selectedSkill.mpCost} MP 施放【${selectedSkill.name}】！`
           });
           
@@ -575,7 +579,7 @@ export class CombatSystem {
     
     playerTeam.forEach(p => {
       playerHpMap[p.id] = p.currentHp;
-      playerMpMap[p.id] = p.stats.mp || 0;
+      playerMpMap[p.id] = p.currentMp || 0;
       if (p.shieldType && p.shieldMaxHp !== undefined && p.shieldCurrentHp !== undefined) {
         const lostHp = p.shieldMaxHp - p.shieldCurrentHp;
         const lostTroops = Math.ceil(lostHp / 10);
@@ -638,7 +642,9 @@ export class CombatSystem {
         events.push({ type: CombatEventType.HEAL, targetName: actor.name, damage: heal, targetHp: actor.currentHp, text: `${actor.name} 受益於生命恢復，回復了 ${heal} 點 HP。`});
       } else if (effect.type === StatusEffectType.REGEN_MP) {
         const healMp = effect.value || 5;
-        actor.stats.mp = Math.min(200, actor.stats.mp + healMp);
+        if (actor.currentMp !== undefined) {
+          actor.currentMp = Math.min(actor.maxMp ?? 100, actor.currentMp + healMp);
+        }
         events.push({ type: CombatEventType.HEAL, targetName: actor.name, text: `${actor.name} 受益於魔力恢復，回復了 ${healMp} 點 MP。`});
       }
 

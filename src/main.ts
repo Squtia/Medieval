@@ -19,22 +19,22 @@ import { initExplorationController, refreshExplorationUI } from './ui/Exploratio
 import { initStreetScroller } from './ui/SceneController';
 import { loadAllTemplates } from './ui/TemplateLoader';
 
-// 全域 UI 事件訂閱
-export function rebindGlobalUIEvents() {
+// 全域 UI 事件訂閱 (只需綁定一次，不會因重新開局被清除)
+export function initGlobalUIEvents() {
   EventBus.getInstance().subscribe(GameEventType.DAY_PASSED, () => {
     ToastManager.clearAll();
-  });
+  }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.RESOURCE_CHANGED, () => {
     UIManager.updateUI();
-  });
+  }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.POPULATION_STARVED, (payload) => {
     UIManager.updateUI();
     ToastManager.show(`⚠️ 飢荒警告！由於糧食不足，${payload.starvedAmount} 名人口流失了！`);
-  });
+  }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.THREAT_WARNING, (payload) => {
     ToastManager.show(`⚠️ ${payload.threatName} 將在 ${payload.daysRemaining} 天後抵達，請預留糧食！`, 'warning');
     UIManager.updateUI();
-  });
+  }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.GAME_EVENT_TRIGGERED, ({ eventId }) => {
     const event = GAME_EVENTS.find(candidate => candidate.id === eventId);
     if (event) {
@@ -45,12 +45,12 @@ export function rebindGlobalUIEvents() {
         openEventModal(event);
       }
     }
-  });
+  }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.MISSIONS_CHANGED, () => {
     renderMap();
     UIManager.updateUI();
     refreshExplorationUI();
-  });
+  }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.ROAD_CHANGED, ({ reason, targetNodeId }) => {
     renderMap();
     refreshExplorationUI();
@@ -58,9 +58,14 @@ export function rebindGlobalUIEvents() {
       const target = GameState.mapSystem?.getNodeById(targetNodeId);
       ToastManager.show(`通往 ${target?.name ?? '目的地'} 的道路已完工。`, 'success');
     }
-  });
+  }, 'ui');
+}
+
+// 重新開局或載入存檔時手動呼叫的畫面刷新邏輯
+export function refreshGlobalUI() {
   refreshExplorationUI();
   CombatUIManager.init();
+  UIManager.updateUI();
 }
 
 // ── 主入口：先載入所有 HTML template，再初始化遊戲 ──
@@ -79,20 +84,22 @@ async function bootstrap() {
 
   // 4. 初始化遊戲資料與全域事件監聽
   initGameState();
-  rebindGlobalUIEvents();
+  initGlobalUIEvents();
 
   // 5. 初始化地圖互動事件
   initMapInteraction();
 
   // 6. 初始化各個 UI Controller
-  initMainMenuController(rebindGlobalUIEvents);
-  initGameFlowController(rebindGlobalUIEvents);
+  initMainMenuController();
+  initGameFlowController();
   initFacilityController();
   initActionController();
   initRecruitController();
   initCheatController();
   initExplorationController();
   initStreetScroller();
+  
+  refreshGlobalUI();
 }
 
 
