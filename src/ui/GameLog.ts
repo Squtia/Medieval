@@ -22,13 +22,15 @@ export class GameLog {
     console.log(`${prefix} ${message}`);
 
     // 若頁面上有全域或局部 log 容器，同步 append formatted HTML
-    const logContainer = document.getElementById('game-log-list');
-    if (logContainer) {
-      const entry = document.createElement('div');
-      entry.className = `log-entry log-entry-${type}`;
-      entry.innerHTML = `<span class="log-prefix">${prefix}</span> <span class="log-text">${message}</span>`;
-      logContainer.appendChild(entry);
-      logContainer.scrollTop = logContainer.scrollHeight;
+    if (typeof document !== 'undefined') {
+      const logContainer = document.getElementById('game-log-list');
+      if (logContainer) {
+        const entry = document.createElement('div');
+        entry.className = `log-entry log-entry-${type}`;
+        entry.innerHTML = `<span class="log-prefix">${prefix}</span> <span class="log-text">${message}</span>`;
+        logContainer.appendChild(entry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
     }
   }
 }

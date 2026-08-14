@@ -686,8 +686,8 @@ class UIManagerClass {
       el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
       
       let icon = '⚔️';
-      if (mission.task.type === 'TRADE') icon = '🐫';
-      else if (mission.task.type === 'BOUNTY') icon = '📜';
+      if ((mission.task.type as string) === 'TRADE') icon = '🐫';
+      else if ((mission.task.type as string) === 'BOUNTY') icon = '📜';
 
       el.innerHTML = `
         <div style="font-size: 1.2rem;">${icon}</div>

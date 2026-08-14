@@ -38,9 +38,28 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
   z-index: 100;
 }
-.resource-group { display: flex; gap: 20px; font-weight: 600; }
-.resource-item { display: flex; align-items: center; gap: 8px; }
-.resource-icon { font-size: 1.2em; }
+.resource-group { display: flex; gap: 20px; font-weight: 600; align-items: center; }
+.resource-item { display: flex; align-items: center; gap: 6px; font-size: 1.05em; }
+.resource-icon { font-size: 1.4em; }
+
+/* 頂部與全域彩色素材 Sprite 圖示 */
+.res-sprite {
+  display: inline-block;
+  width: 36px;
+  height: 36px;
+  vertical-align: middle;
+  border-radius: 4px;
+  background-image: url('./assets/icons_materials_color_12_1.png');
+  background-size: 400% 300%;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.9));
+}
+.res-sprite.res-gold { background-position: 66.666% 50%; }
+.res-sprite.res-wood { background-position: 100% 50%; }
+.res-sprite.res-stone { background-position: 0% 100%; }
+.res-sprite.res-iron { background-position: 33.333% 100%; }
+.res-sprite.res-food { background-position: 66.666% 100%; }
+.res-sprite.res-essence { background-position: 100% 100%; }
 
 /* 視圖切換區 */
 #main-layout {
@@ -873,13 +892,7 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   grid-template-rows: repeat(3, 1fr);
   gap: 5px;
   align-items: stretch;
-  overflow: hidden;
-}
-.combat-team.player-team {
-  /* 玩家在左，前排在最右 */
-}
-.combat-team.enemy-team { 
-  /* 敵軍在右，前排在最左 */
+  /* 玩家在左，前排在最右；敵軍在右，前排在最左 */
 }
 
 .combat-participant { display: flex; flex-direction: column; gap: 2px; position: relative; padding: 5px 6px; background: rgba(0,0,0,0.4); border-radius: 6px; border: 1px solid #333; overflow: hidden; min-height: 0; }
@@ -991,4 +1004,4 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   to { transform: translateX(0); }
 }
 .no-spinners::-webkit-outer-spin-button, .no-spinners::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; } 
-.no-spinners { -moz-appearance: textfield; } 
+.no-spinners { -moz-appearance: textfield; appearance: textfield; } 

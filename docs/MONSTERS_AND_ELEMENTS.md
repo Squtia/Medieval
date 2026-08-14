@@ -120,3 +120,28 @@ export function getElementalMultiplier(atkElement?: ElementType, defElement?: El
 ### 2. 偵查與戰鬥 100% 一致性 (`node.scoutData.garrisonEncounter`)
 - 當斥候成功偵查據點時，`MonsterSystem.generateNodeEncounter(node)` 會生成敵軍小隊並**持久化儲存在 `node.scoutData.garrisonEncounter`** 中。
 - 玩家於據點面板查看的敵軍名單、威脅元素與據點詞綴（如 `MIASMA` 瘴氣、`BLIZZARD` 暴風雪），即為隨後玩家發起討伐時實際對抗的敵軍，保證 100% 精確一致。
+
+---
+
+## 📊 五、怪物數值生成模型與稀有挑戰據點機制
+
+### 1. 怪物戰力分與屬性換算公式 (`MonsterSystem.ts`)
+- **戰力分量綱對齊**：
+  $$\text{powerScore} = \text{baseDifficulty} \times \text{powerTier} \times \text{raceMult} \times 12$$
+  * 以 1 級標準傭兵（約 120~130 戰力）為基準，難度 10 時一隻 1.0 階標準怪戰力約 120 點。
+  * 據點駐守 5 隻標準怪物的總推薦戰力約為 **600 點**，精準對齊玩家 5 人小隊（625 點）。
+- **面板屬性計算**：
+  * 生命值 (HP)：$\max(30, \lfloor\text{powerScore} \times \text{hpRatio} \times 2.5\rfloor)$（確保承受 2~3 輪技能/普攻）
+  * 攻擊力 (Damage)：$\max(5, \lfloor\text{powerScore} \times \text{atkRatio} \times 0.65\rfloor)$（對 1 級傭兵造成 18~25 點實質傷害）
+  * 物理防禦 (PDEF)：$\lfloor\text{powerScore} \times \text{pdefRatio} \times 1.0\rfloor$
+  * 魔法防禦 (MDEF)：$\lfloor\text{powerScore} \times \text{mdefRatio} \times 1.0\rfloor$
+- **法系怪攻擊機制 (`isMagicalAttacker`)**：
+  * 薩滿、幽魂、怨靈、狂熱者、元素石像、隨軍法師等法系怪物，普通攻擊為 `DamageType.MAGICAL`，結算防守者的 MDEF。
+
+### 2. 探索周遭雙軌機制（85% 常規 + 15% 稀有危險挑戰）
+- **常規據點 (85%)**：標準難度，適合初期新手練級與穩定農素材。
+- **稀有危險挑戰據點 (15%, `isEliteLair`)**：
+  * **難度倍率**：難度提升為常規的 **1.8 ~ 2.4 倍**。
+  * **首領駐軍**：保證由高階精英怪/龍族領軍，100% 附加環境詞綴與元素變異。
+  * **專屬冠名**：冠上 `💀[凶兆]`、`👑[首領]`、`🔥[極危險]` 前綴。
+  * **超額戰利品**：金幣與經驗值 **3 倍**，裝備掉落率保底 35%，高機率掉落藍紫色裝備或稀有圖紙。

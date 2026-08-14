@@ -1,5 +1,81 @@
 # 遊戲更新日誌 (Changelog)
 
+## [2026-08-14] 動態戰力偵測與三階梯據點難度生成系統 (Dynamic Team-Power Lair Scaling)
+- **[Fix/System] 修復探索據點無法偵測傭兵戰力問題** (`MapEventSystem.ts`, `Adventurer.ts`)：
+  - 修正原代碼中 `Adventurer` 缺少 `power` 屬性導致戰力計算歸零、觸發難度保底刷出 800+ 戰力據點的致命 Bug。
+  - 完整串接 `Adventurer.getPower()` / `power` getter，整合八維屬性與裝備攻防戰力加成。
+- **[Feature/System] 動態人數與戰力雙重偵測 + 三階梯難度生成** (`MapEventSystem.ts`, `MonsterSystem.ts`)：
+  - **人數雙重適應**：動態偵測玩家目前最強 $N$ 人戰力（$N = \min(5, \text{現有傭兵數})$）。剛開局 1 位傭兵時僅採計 1 人戰力（約 30~50），並限制怪物數量為 1~2 隻（以 1 隻為主），杜絕開局 1v5 群毆滅團！
+  - **三階梯機率對標**：
+    - 🟢 **50% 勢均力敵 (保底)**：據點戰力 $\approx 0.85 \sim 1.05 \times \text{小隊戰力}$（適合安全練等、賺取第一桶金）。
+    - 🟡 **35% 越級挑戰**：據點戰力 $\approx 1.15 \sim 1.35 \times \text{小隊戰力}$（需講究陣型與元素剋制，高回報）。
+    - 🔴 **15% 凶險精英**：據點戰力 $\approx 1.60 \sim 2.00 \times \text{小隊戰力}$（標記稀有挑戰，留待未來攻略）。
+  - **低戰力怪物數量階梯化**：當據點戰力目標 $\le 65$ 時怪物數量上限為 1 隻，隨戰力逐階提升至 2~5 隻。
+- **[Test] 建立自動化驗證測試腳本** (`scripts/test-dynamic-lair-scaling.ts`)：
+  - 1人、3人、5人隊伍與戰力階梯測試 100% 通過。
+
+## [2026-08-14] 酒館懸賞欄一鍵智能派遣與一鍵收取獎勵系統 (Bounty Board Auto-Dispatch & Claim All)
+- **[Feature/System] 🍺 酒館【📜 懸賞欄】一鍵智能派遣與一鍵領取** (`BountySystem.ts`, `BountyModalController.ts`, `modals-game.html`)：
+  - **懸賞欄置頂快捷操作列**：在酒館「📜 懸賞欄」彈窗的左側委託列表頂部新增 **「⚡ 一鍵派遣」** 與 **「🎁 一鍵領取」** 雙按鈕。
+  - **一鍵派遣規則**：
+    1. **高收益優先**：自動按懸賞獎勵金幣與經驗值降序（`gold + exp`）排序所有待接單委託。
+    2. **受傷傭兵健康保護**：嚴格過濾 `HP < 30%` 的受傷傭兵，自動跳過保護隊員，將健康閒置傭兵一次性分派接單出征！
+  - **一鍵領取規則**：批次結算所有已完成的懸賞委託，金幣、素材物品全數入庫，傭兵獲取經驗值並恢復 IDLE，彈出總收穫 Toast 提示。
+- **[Test] 建立自動化驗證測試腳本** (`scripts/test-bounty-board-auto.ts`)：
+  - 12 項單元測試 100% 通過（包含健康過濾、高收益優先、接單出征、批次領取結算與狀態回歸）。
+
+## [2026-08-14] 3 大 Sprite Sheet 圖集系統與 IconSpriteHelper 整合 (Sprite Sheet Atlas System)
+- **[UI/Art] 建立 3 大全景 Sprite Sheet 大圖集與映射架構** (`public/assets/`, `IconSpriteHelper.ts`, `ShopController.ts`, `InventoryUIController.ts`)：
+  - **彩色 12 職業武器圖集 (`icons_weapons_12.jpg`)**：包含 12 種武器形態（巨劍、雙劍、法杖、戰鐮、長弓、魔法弓、雙匕首、魔環、劍盾、符文盾、聖典、戰鎚），支援動態 T1~T5 階級光暈外框與角標。
+  - **羊皮紙木刻 12 設施建築圖集 (`icons_facilities_parchment_12.jpg`)**：古典中世紀羊皮紙與鋼筆木刻蝕刻風格，完美對標主城與街道沉浸感（酒館、鍛造屋、武器店、防具屋、書房政廳、防禦工事）。
+  - **透明彩色鮮明 12 核心素材資源圖集 (`icons_materials_color_12_1.png`)**：純淨透明 Alpha 背景、高對比度的立體資源與素材圖示（金幣袋、木材、鐵錠、糧食拼盤、魔法藥水精華）。
+- **[UI/Engine] 封裝 `IconSpriteHelper.ts` 渲染引擎與精準建築卡片**：
+  - 對照角色卡片 (`AdventurerCard.ts`) 的 Sprite Sheet 做法，採用 CSS `background-size: 400% 300%` 與 `background-position: X% Y%` 精準映射。
+  - **頂部與全域素材圖示加大放大**：將頂部 HUD `.res-sprite` 提升至 **36px**、倉庫素材圖標提升至 **42px**，強化立體光影與高辨識度。
+  - **街道建築卡片完美對齊**：精確校準像素座標並輸出獨立羊皮紙建築卡片（`bld_tavern.png`, `bld_forge.png`, `bld_weapon.png`, `bld_armor.png`, `bld_defense.png`），徹底消除白邊與相鄰木框穿幫。
+  - 全面升級武器店、防具店、裝備彈窗、鍛造屋、傭兵資訊面板與全域倉庫的圖示呈現。
+
+## [2026-08-14] 祈禱者全生命週期治療量重構與終局對標 (Healer Balance & Endgame Calibration)
+- **[Balance/Combat] 祈禱者治療公式全面重構** (`SkillData.ts`, `CLASS_SYSTEM.md`)：
+  - **修復計算基數 BUG**：將原先僅讀取基礎屬性 `INT` 的錯誤公式，修正為正確讀取 **`MATK`（魔法攻擊力）**，使裝備法杖與聖典的法術加成 100% 作用於治療。
+  - **基礎技能【治療術】**：基礎倍率定為 **160% MATK**（大主教聖典被動可達 **208% MATK**）。
+    - 🟢 初期 (Lv.1)：單補從 18 點 $\rightarrow$ **56 點 HP**（拉回戰士 37% 血量，抵消怪 2~3 下普攻）。
+    - 🔴 終局 (Lv.10 滿裝)：單補達到 **416 點 HP**，精準對標 750 HP 終局肉盾單體急救（拉回 >50% 血量）。
+  - **大主教終極大招【神聖之雨】**：基礎倍率定為 **110% MATK**（含被動為 **143% MATK** 全體群補 + 全狀態驅散）。
+    - 🟡 中期 (Lv.5)：全體群補從 39 點 $\rightarrow$ **127 點 HP**。
+    - 🔴 終局 (Lv.10)：全體群補達到 **278 點 HP**，完全抵消高階 Boss 全屏 AOE 爆發。
+  - **異端拷問官【終焉審判】**：全體副補調整為 **75% MATK**（終局約 120 HP）並回饋 **8% MATK MP**（終局約 12~15 MP）。
+- **[Docs] 規範文件同步更新** (`CLASS_SYSTEM.md`)：
+  - 更新祈禱者系技能具體倍率與機制說明。
+
+## [2026-08-14] 怪物數值平衡校準與探索稀有挑戰據點系統 (Monster Balance & Elite Lair)
+- **[Balance/Combat] 怪物戰力分與攻防屬性模型全面校準** (`MonsterSystem.ts`, `monsters.json`, `CombatSystem.ts`, `PassiveManager.ts`)：
+  - **戰力分量綱對齊**：修正 `powerScore` 係數（`baseDifficulty * powerTier * raceMult * 12`），使 5 隻標準怪物的據點推薦戰力如實呈現為 **500~650 點**，精準對齊玩家 5 人 1 等傭兵隊伍（約 625 點）。
+  - **怪物攻擊力重構**：調升傷害換算係數（`powerScore * atkRatio * 0.65`），使初期怪物普攻達到 25~35 點，對 30 防禦傭兵造成 **18~25 點實質威脅傷害**，告別個位數抓癢。
+  - **怪物生命力調校**：生命公式調整為（`powerScore * hpRatio * 2.5`），讓同級怪物能承受 2~3 輪技能/普攻，戰鬥長度穩定維持在 3~4 回合。
+  - **法系怪魔法傷害支援**：在 `monsters.json` 標記法系怪物（薩滿、幽魂、怨靈、狂熱者、元素石像、隨軍法師）之 `isMagicalAttacker: true`，普攻結算為魔法傷害並對應 MDEF 防禦。
+- **[Feature/World] 探索周遭雙軌機制與稀有危險挑戰據點** (`MapEventSystem.ts`, `MonsterSystem.ts`, `DispatchModalController.ts`)：
+  - **85% 常規日常據點**：提供平穩難度，適合 1 等新手練級與穩定農基礎資源。
+  - **15% 稀有危險挑戰據點 (`isEliteLair`)**：
+    - **難度大幅躍升**：難度為常規的 **1.8 ~ 2.4 倍**。
+    - **首領駐軍**：保證高階精英怪/龍族領軍，100% 附加環境詞綴與元素變異。
+    - **專屬冠名與情報**：冠上 `💀[凶兆]`、`👑[首領]`、`🔥[極危險]` 前綴與專屬危險警告。
+    - **超額傳奇戰利品**：金幣與經驗值 **3 倍**，裝備掉落率保底 35%，高機率掉落藍紫色裝備或稀有圖紙。
+- **[Docs] 規範文件同步更新** (`MONSTERS_AND_ELEMENTS.md`)：
+  - 新增第五節詳細記載怪物數值生成模型與稀有挑戰據點機制規範。
+
+## [2026-08-14] 詭術師技能與專屬被動重構 (Class Balance & Rework)
+- **[Feature/Combat] 詭術師被動【幻影步伐】全面重構** (`PassiveManager.ts`, `CombatSystem.ts`, `Combat.ts`, `CombatMath.ts`)：
+  - **有隊友時自身無敵**：當隊伍中尚有其他存活隊友時，詭術師處於絕對無敵狀態，完全免疫任何直接傷害（普攻、技能）、持續性傷害 (DOT) 與異常狀態（中毒、流血、破甲、感電、暈眩等）。
+  - **無隊友時閃避加成**：當隊伍中沒有其他隊友或單人出戰時，無敵效果解除，自身獲得閃避率 +15。
+  - **既有戰鬥機制保留**：普攻維持轉化為混沌傷害，突襲技能維持 50% 混沌傷害且可引爆中毒層數（每層增傷 10%）。
+- **[Feature/Combat] 詭術師終極技能【欺詐魔術】重製** (`SkillData.ts`, `Combat.ts`, `CombatMath.ts`)：
+  - 基礎傷害提升為 120% 混沌傷害（基於雙攻平均）。
+  - **目標血量 >= 70%**：為我方全體隊員附加「閃避 +30」與「PATK +10%」Buff 一回合。
+  - **目標血量 < 70%**：對目標直接附加 5 層中毒（持續 3 回合），並使詭術師自身獲得「PATK +30%」與「MATK +30%」Buff 一回合。
+- **[Docs] 規範文件同步更新** (`CLASS_SYSTEM.md`)：
+  - 同步更新職業規範文件中盜賊變異進階「詭術師」的專屬被動與終極技能敘述。
+
 ## [2026-08-13] 介面流暢度優化與活躍任務面板 (UI & UX)
 - **[Feature/UI] 實作街道活躍任務面板** (`views-main.html`, `UIManager.ts`, `DispatchSystem.ts`)：
   - 在街道視圖 (Street View) 的右上角新增了精巧的「活躍任務 (Active Missions)」追蹤面板，無論是討伐魔物、懸賞任務還是商隊貿易，都會即時顯示任務名稱與剩餘回合數。

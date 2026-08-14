@@ -247,6 +247,7 @@ export interface MapNode {
   // 動態顯示與解鎖機制
   isHidden?: boolean;
   isDynamic?: boolean; // 是否為動態生成的節點 (如：探索出來的隨機巢穴)
+  isEliteLair?: boolean; // 是否為低機率刷出的稀有高難度挑戰據點
   baseDifficulty?: number; // 用於動態巢穴等自訂難度的節點
   unlockCondition?: {
     minDay?: number;
@@ -629,6 +630,7 @@ export interface MonsterData {
   powerTier: number;                    // 基礎戰力係數
   defaultElement?: ElementType;         // 預設元素
   isBoss?: boolean;                     // 是否為 Boss
+  isMagicalAttacker?: boolean;          // 是否為法系攻擊者 (普攻造成魔法傷害)
   lootConfig?: {
     goldBase: number;
     expBase: number;

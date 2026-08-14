@@ -48,11 +48,10 @@ export function attachTooltip(element: HTMLElement, getHtml: () => string) {
   });
 }
 
+import { renderEquipIcon as helperRenderEquipIcon } from './IconSpriteHelper';
+
 export function renderEquipIcon(eq: any, sizePx: number = 38): string {
-  if (eq.slot === EquipmentSlot.WEAPON || !eq.slot || eq.weaponType) {
-    return `<img src="./assets/weapon_icon.png" style="width:${sizePx}px; height:${sizePx}px; object-fit:contain; mix-blend-mode:multiply; filter:contrast(1.1) drop-shadow(0 2px 5px rgba(0,0,0,0.85));" />`;
-  }
-  return `<div style="font-size:1.6em;">${eq.icon || '🛡️'}</div>`;
+  return helperRenderEquipIcon(eq, sizePx);
 }
 
 export function getEquipTooltipHtml(eq: any): string {

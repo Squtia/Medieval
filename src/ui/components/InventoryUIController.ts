@@ -3,6 +3,7 @@ import { UIManager } from '../UIManager';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
 import { renderEquipIcon, attachTooltip, getEquipTooltipHtml } from '../ShopController';
+import { renderResourceSpriteHtml } from '../IconSpriteHelper';
 
 export class InventoryUIController {
   private panel: HTMLElement | null;
@@ -153,9 +154,12 @@ export class InventoryUIController {
         display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4);
         padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
       `;
+      const matSpriteType = id.replace('mat_', '');
+      const iconDisplay = renderResourceSpriteHtml(matSpriteType, 42);
+
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.5em;">${def.icon}</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          ${iconDisplay}
           <div>
             <div style="font-weight: bold; color: #cbd5e1;">${def.name}</div>
             <div style="font-size: 0.8em; color: #94a3b8;">${def.description}</div>

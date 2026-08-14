@@ -286,7 +286,7 @@ export class Adventurer {
     }
 
     // 3. 乘上性格的百分比修正 (1 + multiplier)
-    const traitMods = this.trait.statMultipliers;
+    const traitMods = this.trait.statMultipliers || {};
     effective.str = Math.floor(effective.str * (1 + (traitMods.str || 0)));
     effective.agi = Math.floor(effective.agi * (1 + (traitMods.agi || 0)));
     effective.con = Math.floor(effective.con * (1 + (traitMods.con || 0)));
@@ -434,6 +434,8 @@ export class Adventurer {
 
     return stats;
   }
+
+
 
   /**
    * 判斷該傭兵是否滿足裝備條件

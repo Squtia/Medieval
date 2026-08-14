@@ -254,6 +254,8 @@ export class NodeDetailModalController {
       govBox.style.display = 'none';
     }
   
+
+
     // 設定底部操作按鈕 (例如討伐/攻城)
     if (node.ownerFactionId === null) {
       newBtnAction.textContent = '🛡️ 討伐該區';

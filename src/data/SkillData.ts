@@ -165,12 +165,13 @@ export const SKILLS: Record<string, Skill> = {
     aiWeight: () => 60,
     execute: (caster, targets, allEnemies) => {
       const events: CombatEvent[] = [];
-      const aliveEnemies = allEnemies.filter(e => e.currentHp > 0);
+      const enemies = allEnemies || targets;
+      const aliveEnemies = enemies.filter(e => e.currentHp > 0);
       if (aliveEnemies.length === 0) return events;
       
       let totalDamage = 0;
       for (let i = 0; i < 3; i++) {
-        const currentAlive = allEnemies.filter(e => e.currentHp > 0);
+        const currentAlive = enemies.filter(e => e.currentHp > 0);
         if (currentAlive.length === 0) break;
         
         const target = Random.pick(currentAlive);
@@ -277,7 +278,8 @@ export const SKILLS: Record<string, Skill> = {
           });
           
           // 找下一個血量大於0且血最低的敵人
-          const aliveEnemies = allEnemies.filter(e => e.currentHp > 0).sort((a, b) => a.currentHp - b.currentHp);
+          const enemies = allEnemies || targets;
+          const aliveEnemies = enemies.filter(e => e.currentHp > 0).sort((a, b) => a.currentHp - b.currentHp);
           if (aliveEnemies.length > 0) {
             currentTarget = aliveEnemies[0];
             chainCount++;
@@ -425,7 +427,7 @@ export const SKILLS: Record<string, Skill> = {
     name: '治療術',
     mpCost: 15,
     targetType: TargetType.ALLY_LOWEST_HP,
-    description: '消耗 15 MP。恢復單一隊友大量生命值。',
+    description: '消耗 15 MP。恢復單一隊友大量生命值 (160% MATK)。',
     aiWeight: (caster, targets) => {
       const target = targets[0];
       if (!target || target.currentHp <= 0) return 0;
@@ -435,11 +437,11 @@ export const SKILLS: Record<string, Skill> = {
     },
     execute: (caster, targets) => {
       const target = targets[0];
-      let baseHeal = (caster.attributes?.int || getMatk(caster)) * 2.0;
+      let baseHeal = getMatk(caster) * 1.6;
       if (caster.isAdvanced && caster.weaponType === 'HOLY_BOOK') {
-        baseHeal *= 1.3;
+        baseHeal *= 1.3; // 大主教被動：治療量 +30%
       }
-      const heal = Math.floor(baseHeal * (0.9 + Random.next() * 0.2));
+      const heal = Math.floor(baseHeal * (0.95 + Random.next() * 0.1));
       target.currentHp = Math.min(target.maxHp, target.currentHp + heal);
       return [{
         type: CombatEventType.HEAL,
@@ -491,7 +493,7 @@ export const SKILLS: Record<string, Skill> = {
     name: '神聖之雨',
     mpCost: 45,
     targetType: TargetType.ALL_ALLIES,
-    description: '消耗 45 MP。為全體隊友恢復大量生命，並消除所有負面狀態。',
+    description: '消耗 45 MP。為全體隊友恢復大量生命 (110% MATK)，並消除所有負面狀態。',
     cooldown: 2,
     aiWeight: (caster, targets, allEnemies, allies) => {
       if (!allies || allies.length === 0) return 0;
@@ -502,10 +504,12 @@ export const SKILLS: Record<string, Skill> = {
     },
     execute: (caster, targets) => {
       const events: CombatEvent[] = [];
-      let baseHeal = (caster.attributes?.int || getMatk(caster)) * 1.5;
-      baseHeal *= 1.3; 
+      let baseHeal = getMatk(caster) * 1.1;
+      if (caster.isAdvanced && caster.weaponType === 'HOLY_BOOK') {
+        baseHeal *= 1.3; // 大主教被動：治療量 +30%
+      }
       targets.forEach(target => {
-        const heal = Math.floor(baseHeal * (0.9 + Random.next() * 0.2));
+        const heal = Math.floor(baseHeal * (0.95 + Random.next() * 0.1));
         target.currentHp = Math.min(target.maxHp, target.currentHp + heal);
         target.statusEffects = target.statusEffects.filter(s => ['TAUNT', 'REGEN_HP', 'REGEN_MP'].includes(s.type));
         events.push({
@@ -525,7 +529,7 @@ export const SKILLS: Record<string, Skill> = {
     name: '終焉審判',
     mpCost: 50,
     targetType: TargetType.SINGLE_ENEMY, // 確認單體
-    description: '消耗 50 MP。對單體造成高額混合傷害 (70% 物理 + 30% 魔法)，並為全體隊友恢復中量 HP 與微量 MP。',
+    description: '消耗 50 MP。對單體造成高額混合傷害 (70% 物理 + 30% 魔法)，並為全體隊友恢復中量 HP (75% MATK) 與微量 MP。',
     cooldown: 2,
     aiWeight: () => 180,
     execute: (caster, targets, allEnemies, allies) => {
@@ -547,8 +551,8 @@ export const SKILLS: Record<string, Skill> = {
       });
 
       if (allies) {
-        let healHp = Math.floor((caster.attributes?.int || caster.stats.atk) * 1.0);
-        let healMp = Math.floor((caster.attributes?.int || caster.stats.atk) * 0.1) || 5;
+        let healHp = Math.floor(getMatk(caster) * 0.75);
+        let healMp = Math.max(5, Math.floor(getMatk(caster) * 0.08));
         allies.forEach(ally => {
           if (ally.currentHp > 0) {
             ally.currentHp = Math.min(ally.maxHp, ally.currentHp + healHp);
@@ -1045,38 +1049,83 @@ export const SKILLS: Record<string, Skill> = {
     name: '欺詐魔術',
     mpCost: 35,
     targetType: TargetType.SINGLE_ENEMY,
-    description: '消耗 35 MP。造成 100% 混沌傷害。血量>=70%自身嘲諷迴避，<70%目標流血。',
+    description: '消耗 35 MP。對單體造成 120% 混沌傷害。若目標血量 >= 70% 則自己隊伍閃避 +30、PATK +10% 一回合；若目標血量 < 70% 則對目標造成 5 層中毒且自身 PATK 與 MATK +30% 一回合。',
     cooldown: 2,
     aiWeight: (caster, targets) => {
       const target = targets[0];
       const isHealthy = (target.currentHp / target.maxHp) >= 0.7;
-      if (isHealthy && !caster.statusEffects.some(s => s.type === StatusEffectType.TAUNT)) {
-         return 150; // 滿血且未嘲諷，非常有價值
-      }
-      return 80;
+      if (isHealthy) return 180; // 健康目標全隊加成
+      return 150; // 殘血爆發與上滿毒
     },
-    execute: (caster, targets, allEnemies) => {
+    execute: (caster, targets, allEnemies, allies) => {
       const target = targets[0];
       const events: CombatEvent[] = [];
+      const isHealthy = (target.currentHp / target.maxHp) >= 0.7;
       const chaosAtk = (getPatk(caster) + getMatk(caster)) / 2;
-      const { damage, isCrit } = calculateSkillDamage(caster, target, chaosAtk * 1.0, DamageType.CHAOS);
+      const { damage, isCrit } = calculateSkillDamage(caster, target, chaosAtk * 1.2, DamageType.CHAOS, false, undefined, allEnemies);
       target.currentHp = Math.max(0, target.currentHp - damage);
       events.push({
         type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
         actorId: caster.id, actorName: caster.name, targetId: target.id, targetName: target.name,
         damage: damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
         skillName: '欺詐魔術',
-        text: `${caster.name} 施展魔術，對 ${target.name} 造成 ${damage} 點混沌傷害！`
+        text: `${caster.name} 施展欺詐魔術，對 ${target.name} 造成 ${damage} 點混沌傷害！`
       });
       
-      if (target.currentHp > 0) {
-        const isHealthy = (target.currentHp / target.maxHp) >= 0.7;
-        if (isHealthy) {
-          caster.statusEffects.push({ type: StatusEffectType.TAUNT, duration: 2 }); // Duration 2 because it decays at end of turn
-          events.push({ type: CombatEventType.STATUS_APPLY, targetId: caster.id, targetName: caster.name, statusType: StatusEffectType.TAUNT, text: `${caster.name} 嘲諷了敵人並獲得完美迴避！` });
-        } else {
-          events.push(tryApplyStatus(target, { type: StatusEffectType.BLEED, duration: 2 }, caster.name, '欺詐魔術', `${target.name} 陷入流血狀態！`));
+      if (isHealthy) {
+        // 目標血量 >= 70%：自己隊伍 (allies 包含 caster) 閃避 +30、PATK +10% 一回合
+        const team = (allies && allies.length > 0) ? allies : [caster];
+        team.forEach(ally => {
+          if (ally.currentHp > 0) {
+            ally.statusEffects.push({ type: StatusEffectType.BUFF_EVADE, duration: 1, value: 30 });
+            ally.statusEffects.push({ type: StatusEffectType.BUFF_PATK, duration: 1, value: 10 });
+            events.push({
+              type: CombatEventType.STATUS_APPLY,
+              targetId: ally.id,
+              targetName: ally.name,
+              statusType: StatusEffectType.BUFF_EVADE,
+              skillName: '欺詐魔術',
+              text: `${ally.name} 獲得欺詐魔術掩護，閃避率 +30、PATK +10% (1回合)！`
+            });
+          }
+        });
+      } else {
+        // 目標血量 < 70%：對目標造成 5 層中毒
+        if (target.currentHp > 0) {
+          let existing = target.statusEffects.find(s => s.type === StatusEffectType.POISON);
+          if (existing) {
+            existing.stacks = 5;
+            existing.duration = Math.max(existing.duration, 3);
+            events.push({
+              type: CombatEventType.STATUS_APPLY,
+              targetId: target.id,
+              targetName: target.name,
+              statusType: StatusEffectType.POISON,
+              skillName: '欺詐魔術',
+              text: `${target.name} 受到劇毒魔術侵蝕，中毒疊加至 5 層！`
+            });
+          } else {
+            events.push(tryApplyStatus(
+              target,
+              { type: StatusEffectType.POISON, duration: 3, stacks: 5, value: 5 },
+              caster.name,
+              '欺詐魔術',
+              `${target.name} 受到劇毒魔術侵蝕，陷入 5 層中毒狀態！`,
+              allEnemies
+            ));
+          }
         }
+        // 自身 PATK 與 MATK +30% 一回合
+        caster.statusEffects.push({ type: StatusEffectType.BUFF_PATK, duration: 1, value: 30 });
+        caster.statusEffects.push({ type: StatusEffectType.BUFF_MATK, duration: 1, value: 30 });
+        events.push({
+          type: CombatEventType.STATUS_APPLY,
+          targetId: caster.id,
+          targetName: caster.name,
+          statusType: StatusEffectType.BUFF_PATK,
+          skillName: '欺詐魔術',
+          text: `${caster.name} 汲取魔術能量，自身 PATK 與 MATK +30% (1回合)！`
+        });
       }
       return events;
     }
@@ -1208,7 +1257,7 @@ export function getAdventurerPassiveInfo(adv: any): PassiveDisplayInfo[] {
     } else if (wpnType === 'DAGGERS' || wpnType === 'DAGGER') {
       result.push({ name: '先發制人', description: '進階暗殺者被動：戰鬥首回合高額閃避，對健康目標增傷 50%。', icon: '🗡️', isActive: true });
     } else if (wpnType === 'MAGIC_RING') {
-      result.push({ name: '幻影步伐', description: '變異詭術師被動：普攻轉混沌傷害，嘲諷狀態下 100% 迴避。', icon: '🃏', isActive: true });
+      result.push({ name: '幻影步伐', description: '變異詭術師被動：有隊友在場時自身無敵且免疫異常狀態，無隊友時獲得閃避+15；普攻轉為混沌傷害，突襲可引爆毒素。', icon: '🃏', isActive: true });
     } else if (wpnType === 'SWORD_AND_SHIELD') {
       result.push({ name: '神聖鐵壁', description: '進階聖騎士被動：受到物理傷害 -30%，魔法傷害 -10%。', icon: '🛡️', isActive: true });
     } else if (wpnType === 'RUNE_SHIELD') {

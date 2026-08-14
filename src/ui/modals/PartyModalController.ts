@@ -316,24 +316,24 @@ export class PartyModalController {
         if (eq) {
           const lvlStr = eq.enhancementLevel ? `<div style="color:#3b82f6; font-size:0.9em; font-weight:bold;">+${eq.enhancementLevel}</div>` : '';
           const statsHtml = EquipModalController.buildEquipStatsHtml(eq);
-          const iconHtml = renderEquipIcon(eq, 36);
+          const iconHtml = renderEquipIcon(eq, 54);
           const jobMeta = eq.allowedJobs && eq.allowedJobs.length > 0
             ? `<div style="color:#94a3b8; font-size:0.8em; margin-bottom:4px;">職業：${eq.allowedJobs.join('/')}</div>`
             : '';
           const tooltipHtml = getEquipTooltipHtml(eq);
           equipRowsHtml += `
-            <div class="equip-card-square tooltip-eq-trigger" data-slot="${s.key}" data-html-tip="${encodeURIComponent(tooltipHtml)}" style="position:relative; background:rgba(15,23,42,0.6); border:1px solid rgba(234,179,8,0.3); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 5px; cursor:pointer;">
-              <div style="flex:1; display:flex; align-items:center; justify-content:center;">${iconHtml}</div>
-              <div style="font-size:0.78em; font-weight:bold; color:#f1f5f9; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; padding:0 2px;">${eq.name}</div>
+            <div class="equip-card-square tooltip-eq-trigger" data-slot="${s.key}" data-html-tip="${encodeURIComponent(tooltipHtml)}" style="position:relative; background:rgba(15,23,42,0.7); border:1px solid rgba(234,179,8,0.4); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; cursor:pointer; min-height:96px;">
+              <div style="flex:1; display:flex; align-items:center; justify-content:center; margin-bottom:4px;">${iconHtml}</div>
+              <div style="font-size:0.82em; font-weight:bold; color:#f1f5f9; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; padding:0 2px;">${eq.name}</div>
               ${lvlStr}
             </div>
           `;
         } else {
           equipRowsHtml += `
-            <div class="equip-card-square" data-slot="${s.key}" style="background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.15); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px 5px; cursor:pointer; color:#64748b; font-size:0.85em; text-align:center; transition: background 0.2s;">
-              <div style="font-size:1.8em; margin-bottom:6px; opacity:0.5;">${s.icon}</div>
-              <div>${s.name}</div>
-              <div style="color:#3b82f6; margin-top:4px; font-size:0.9em; font-weight:bold;">+ 裝備</div>
+            <div class="equip-card-square" data-slot="${s.key}" style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.2); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 5px; cursor:pointer; color:#64748b; font-size:0.85em; text-align:center; transition: all 0.2s; min-height:96px;">
+              <div style="font-size:1.8em; margin-bottom:4px; opacity:0.6;">${s.icon}</div>
+              <div style="font-weight:600; color:#cbd5e1;">${s.name}</div>
+              <div style="color:#3b82f6; margin-top:3px; font-size:0.85em; font-weight:bold;">+ 裝備</div>
             </div>
           `;
         }

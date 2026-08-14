@@ -16,19 +16,38 @@ export class PassiveManager {
   }
 
   /**
+   * 判定詭術師是否處於【無敵】狀態 (場上有其他存活隊友)
+   */
+  public static isTricksterInvulnerable(participant: CombatParticipant, team?: CombatParticipant[]): boolean {
+    if (!participant.isAdvanced || participant.weaponType !== 'MAGIC_RING') {
+      return false;
+    }
+    if (!team || team.length === 0) {
+      return false;
+    }
+    const otherAliveAllies = team.filter(p => p.id !== participant.id && p.currentHp > 0);
+    return otherAliveAllies.length > 0;
+  }
+
+  /**
    * 修改普攻命中率
    */
-  public static getModifiedHitChance(attacker: CombatParticipant, defender: CombatParticipant, baseHitChance: number): number {
+  public static getModifiedHitChance(
+    attacker: CombatParticipant, 
+    defender: CombatParticipant, 
+    baseHitChance: number,
+    defenderTeam?: CombatParticipant[]
+  ): number {
+    // 詭術師被動：有隊友在場時無敵 (不可被命中)
+    if (defenderTeam && PassiveManager.isTricksterInvulnerable(defender, defenderTeam)) {
+      return 0.0;
+    }
+
     let hitChance = baseHitChance;
     
     // 法師法杖被動：必定命中
     if (attacker.isAdvanced && attacker.weaponType === 'STAFF') {
       hitChance = 1.0;
-    }
-    
-    // 詭術師被動：帶有嘲諷時 100% 閃避
-    if (defender.isAdvanced && defender.weaponType === 'MAGIC_RING' && defender.statusEffects.some(s => s.type === StatusEffectType.TAUNT)) {
-      hitChance = 0.0;
     }
     
     return hitChance;
@@ -51,9 +70,15 @@ export class PassiveManager {
       const mag = calculateSkillDamage(attacker, defender, (attacker.stats.matk || attacker.stats.atk || 0) * 0.5, DamageType.MAGICAL);
       finalDamage = phys.damage + mag.damage;
       isCrit = phys.isCrit || mag.isCrit;
+    } else if (attacker.isAdvanced && attacker.weaponType === 'MAGIC_RING') {
+      // 詭術師被動：普攻轉化為混沌傷害
+      const chaosAtk = ((attacker.stats.patk || attacker.stats.atk || 0) + (attacker.stats.matk || attacker.stats.atk || 0)) / 2;
+      const result = calculateSkillDamage(attacker, defender, chaosAtk, DamageType.CHAOS);
+      finalDamage = result.damage;
+      isCrit = result.isCrit;
     } else {
       let dType = DamageType.PHYSICAL;
-      if (['STAFF', 'HOLY_BOOK', 'SCYTHE', 'MAGIC_RING'].includes(attacker.weaponType || '')) {
+      if (['STAFF', 'HOLY_BOOK', 'SCYTHE'].includes(attacker.weaponType || '') || attacker.isMagicalAttacker) {
         dType = DamageType.MAGICAL;
       }
       let atkPower = dType === DamageType.MAGICAL 

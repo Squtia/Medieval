@@ -111,24 +111,22 @@ function generateEliteMonsters(): MonsterInstance[] {
   if (mode === 0) {
     // 物理嘆息之牆：極高物防，極低魔防
     monsters.forEach(m => {
-       if (!m.stats) m.stats = {};
-       m.stats.pdef = (m.stats.pdef || 10) * 8;
-       m.stats.mdef = 5;
+       m.pdef = (m.pdef || m.defense || 10) * 8;
+       m.mdef = 5;
        m.name = `[物防] ${m.name}`;
     });
   } else if (mode === 1) {
     // 魔法免疫之盾：極低物防，極高魔防
     monsters.forEach(m => {
-       if (!m.stats) m.stats = {};
-       m.stats.pdef = 5;
-       m.stats.mdef = (m.stats.mdef || 10) * 8;
+       m.pdef = 5;
+       m.mdef = (m.mdef || m.defense || 10) * 8;
        m.name = `[魔防] ${m.name}`;
     });
   } else {
     // 均衡怪，血量加倍
     monsters.forEach(m => {
-       m.maxHp = m.maxHp * 2;
-       m.currentHp = m.maxHp;
+       m.hp = m.hp * 2;
+       m.maxHp = m.hp;
        m.name = `[血牛] ${m.name}`;
     });
   }

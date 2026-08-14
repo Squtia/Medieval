@@ -4,7 +4,7 @@ import { Adventurer } from '../../models/Adventurer';
 import { AdventurerState } from '../../models/types';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
 import { positionFloatingElement } from '../FloatingPosition';
-
+import { ToastManager } from '../ToastManager';
 
 export class BountyModalController {
   private static instance: BountyModalController;
@@ -56,6 +56,39 @@ export class BountyModalController {
       btnClaim.addEventListener('click', () => {
         this.handleClaimReward();
       });
+    }
+
+    // ⚡ 一鍵智能派遣所有懸賞
+    const btnAutoDispatch = document.getElementById('btn-bounty-auto-dispatch');
+    if (btnAutoDispatch) {
+      btnAutoDispatch.onclick = () => {
+        const res = BountySystem.autoDispatchAllBounties(GameState);
+        if (res.dispatchedCount > 0) {
+          ToastManager.show(`⚡ 一鍵派遣成功！已派出 ${res.dispatchedCount} 位傭兵接取委託！`, 'success');
+          this.renderList();
+          this.renderDetail();
+          import('../UIManager').then(m => m.UIManager.updateUI());
+        } else {
+          ToastManager.show('⚠️ 派遣失敗：沒有待接取的委託或沒有健康(HP ≥ 30%)且閒置的傭兵！', 'warning');
+        }
+      };
+    }
+
+    // 🎁 一鍵領取所有已完成懸賞獎勵
+    const btnClaimAll = document.getElementById('btn-bounty-claim-all');
+    if (btnClaimAll) {
+      btnClaimAll.onclick = () => {
+        const res = BountySystem.claimAllCompletedBounties(GameState);
+        if (res.completedCount > 0) {
+          ToastManager.show(`🎉 領取成功！共結算 ${res.completedCount} 項委託，獲得 ${res.totalGold} 金幣、${res.totalExp} 經驗值！`, 'success');
+          this.selectedBountyId = null;
+          this.renderList();
+          this.renderDetail();
+          import('../UIManager').then(m => m.UIManager.updateUI());
+        } else {
+          ToastManager.show('目前沒有可領取的已完成委託！', 'info');
+        }
+      };
     }
 
     this.isBound = true;

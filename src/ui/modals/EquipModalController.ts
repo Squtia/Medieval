@@ -133,7 +133,7 @@ export class EquipModalController {
         card.style.opacity = isJobAllowed ? '1' : '0.65';
         card.style.transition = 'all 0.2s';
 
-        const iconHtml = renderEquipIcon(eq, 38);
+        const iconHtml = renderEquipIcon(eq, 52);
         const tooltipHtml = getEquipTooltipHtml(eq);
 
         card.setAttribute('data-html-tip', encodeURIComponent(tooltipHtml));

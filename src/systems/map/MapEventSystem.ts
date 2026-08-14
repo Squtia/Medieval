@@ -3,6 +3,7 @@ import { Territory } from '../../models/Territory';
 import { Random } from '../../core/Random';
 import { monsterSystem } from '../MonsterSystem';
 import { MapUtils } from './MapUtils';
+import { GameState } from '../../core/GameState';
 
 export class MapEventSystem {
   public static scoutNode(nodeId: string, mapNodes: MapNode[], territory: Territory): boolean {
@@ -233,22 +234,46 @@ export class MapEventSystem {
       namePrefix = '隨機事件';
     }
 
-    let top5Power = 0;
-    try {
-       const gs = (window as any).GameState;
-       if (gs && gs.adventurers) {
-          const sorted = [...gs.adventurers].sort((a: any, b: any) => b.power - a.power);
-          top5Power = sorted.slice(0, 5).reduce((sum: number, a: any) => sum + a.power, 0);
-       }
-    } catch(e) {}
+    // 1. 動態偵測玩家目前擁有最強的 N 人戰力 (N = min(5, 現有傭兵數))
+    let teamPower = 35; // 預設 1 級空裝傭兵最低保底
+    if (GameState.adventurers && GameState.adventurers.length > 0) {
+      const sorted = [...GameState.adventurers].sort((a, b) => b.power - a.power);
+      const activeCount = Math.min(5, sorted.length);
+      teamPower = sorted.slice(0, activeCount).reduce((sum, a) => sum + a.power, 0);
+    }
     
-    const maxDiff = Math.max(10, Math.floor(10 + top5Power / 40));
-    const dynamicDiff = Random.int(5, maxDiff);
+    // 2. 三階梯機率對標生成
+    // 🟢 50% 勢均力敵保底 (0.85 ~ 1.05x teamPower)
+    // 🟡 35% 越級挑戰 (1.15 ~ 1.35x teamPower)
+    // 🔴 15% 凶險精英 (1.60 ~ 2.00x teamPower)
+    const roll = Random.next();
+    let targetPower = teamPower;
+    let isEliteLair = false;
+
+    if (roll < 0.50) {
+      // 勢均力敵 (50%)
+      const mult = 0.85 + Random.next() * 0.20; // 0.85 ~ 1.05
+      targetPower = Math.round(teamPower * mult);
+    } else if (roll < 0.85) {
+      // 越級挑戰 (35%)
+      const mult = 1.15 + Random.next() * 0.20; // 1.15 ~ 1.35
+      targetPower = Math.round(teamPower * mult);
+    } else {
+      // 凶險精英 (15%)
+      isEliteLair = true;
+      const mult = 1.60 + Random.next() * 0.40; // 1.60 ~ 2.00
+      targetPower = Math.round(teamPower * mult);
+    }
+
+    // 換算為難度基數 baseDifficulty (據點目標戰力 targetScore ≈ baseDifficulty * 54)
+    const dynamicDiff = Math.max(1, Math.round(targetPower / 54));
 
     const newNode: MapNode = {
       id: `dynamic_node_${Date.now()}_${Random.int(100, 999)}`,
       name: `未知的${namePrefix}`,
-      description: '這是領主親自探索時發現的神秘地點。',
+      description: isEliteLair 
+        ? '【稀有危險挑戰】此處散發著極其危險的凶煞氣息，駐守著強大的首領與精銳衛隊，但同時也埋藏著傳奇戰利品與稀有寶藏！'
+        : '這是領主親自探索時發現的神秘地點。',
       x: newX,
       y: newY,
       population: 0,
@@ -261,6 +286,7 @@ export class MapEventSystem {
       isHidden: false,
       isDiscovered: true,
       isDynamic: true,
+      isEliteLair: isEliteLair,
       baseDifficulty: dynamicDiff,
       isScouted: false,
       scoutExpiryDate: null,

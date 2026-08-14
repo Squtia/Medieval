@@ -453,82 +453,90 @@ export class DispatchModalController {
   }
 }
 
-  public openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'war' | 'diplomacy') {
-  const modal = document.getElementById('modal-dispatch-setup')!;
-  const title = document.getElementById('dispatch-setup-title')!;
-  const desc = document.getElementById('dispatch-setup-desc')!;
-  const reqPowerEl = document.getElementById('dispatch-req-power')!;
-  
-  this.pendingDispatchNode = node;
-  this.selectedAdventurersForDispatch.clear();
-  this.selectedTroopsForDispatch = {};
-  this.currentFormationId = 'DEFAULT';
-  this.currentGridMap = {};
-  this.dragDraggedAdvId = null;
-  this.dragSourceSlot = null;
-  // 根據 NodeLevel 或自訂難度決定難度
-  const difficultyModifiers = getDifficultyModifiers(GameState.worldGeneration?.difficulty);
-  const rawBaseDiff = node.baseDifficulty !== undefined ? node.baseDifficulty : (node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10);
-  const baseDiff = Math.max(1, Math.round(rawBaseDiff * difficultyModifiers.enemyStrength));
-  const rawMinPower = node.nodeLevel === NodeLevel.WILDERNESS ? 30 : 50 + node.nodeLevel * 40;
-  const minPower = Math.max(1, Math.round(rawMinPower * difficultyModifiers.enemyStrength));
-  
-  const optionsContainer = document.getElementById('dispatch-subjugation-options')!;
-  
-  if (actionType === 'diplomacy') {
-    optionsContainer.style.display = 'none';
-    title.innerHTML = '🤝 外交使節隊伍編制';
-    desc.textContent = `目標：${node.name} (派遣使節前往簽署通商條約)`;
-    this.pendingDispatchTask = new DispatchTask(`外交使節前往${node.name}`, TaskType.DIPLOMACY, 3, 0, 50, 0, 30);
-    this.pendingDispatchTask.targetNodeId = node.id;
-  } else if (actionType === 'war') {
-    optionsContainer.style.display = 'none'; // Forced hidden for Narrative Engine
-    title.innerHTML = '🛡️ 攻城隊伍編制';
+  public static createDispatchTaskForNode(node: MapNode, actionType: 'subjugation' | 'war' | 'diplomacy'): DispatchTask {
+    const difficultyModifiers = getDifficultyModifiers(GameState.worldGeneration?.difficulty);
+    const rawBaseDiff = node.baseDifficulty !== undefined ? node.baseDifficulty : (node.nodeLevel === NodeLevel.WILDERNESS ? 10 : 20 + node.nodeLevel * 10);
+    const baseDiff = Math.max(1, Math.round(rawBaseDiff * difficultyModifiers.enemyStrength));
+    const rawMinPower = node.nodeLevel === NodeLevel.WILDERNESS ? 30 : 50 + node.nodeLevel * 40;
+    const minPower = Math.max(1, Math.round(rawMinPower * difficultyModifiers.enemyStrength));
     const features = Object.values(EnemyFeature);
     const randomFeature = Random.pick(features);
-    const prestigeReward = getCombatPrestigeReward(baseDiff, true, node.nodeLevel);
-    this.pendingDispatchTask = new DispatchTask(`攻城${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, minPower, randomFeature);
-    this.pendingDispatchTask.targetNodeId = node.id;
-    this.pendingDispatchTask.isWar = true;
+
+    if (actionType === 'diplomacy') {
+      const task = new DispatchTask(`外交使節前往${node.name}`, TaskType.DIPLOMACY, 3, 0, 50, 0, 30);
+      task.targetNodeId = node.id;
+      return task;
+    } else if (actionType === 'war') {
+      const prestigeReward = getCombatPrestigeReward(baseDiff, true, node.nodeLevel);
+      const task = new DispatchTask(`攻城${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, minPower, randomFeature);
+      task.targetNodeId = node.id;
+      task.isWar = true;
+      return task;
+    } else {
+      const enemyLineup = (node.scoutData && node.scoutData.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0)
+        ? node.scoutData.garrisonEncounter
+        : monsterSystem.generateNodeEncounter(node);
+      
+      const rawGarrisonPower = (node.scoutData && node.scoutData.garrisonPower !== undefined)
+        ? node.scoutData.garrisonPower
+        : (enemyLineup ? enemyLineup.reduce((sum, m) => sum + m.calculatedPowerScore, 0) : 0);
+      const subjugationMinPower = rawGarrisonPower > 0 ? Math.round(rawGarrisonPower) : minPower;
+
+      const baseRewardGold = node.isEliteLair ? (100 + node.nodeLevel * 50) * 3 : (100 + node.nodeLevel * 50);
+      const prestigeReward = getCombatPrestigeReward(baseDiff, false, node.nodeLevel) * (node.isEliteLair ? 2.5 : 1.0);
+      const task = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, baseRewardGold, prestigeReward, subjugationMinPower, randomFeature);
+      task.targetNodeId = node.id;
+      task.enemyLineup = enemyLineup;
+      return task;
+    }
+  }
+
+  public openDispatchSetup(node: MapNode, actionType: 'subjugation' | 'war' | 'diplomacy') {
+    const modal = document.getElementById('modal-dispatch-setup')!;
+    const title = document.getElementById('dispatch-setup-title')!;
+    const desc = document.getElementById('dispatch-setup-desc')!;
+    const reqPowerEl = document.getElementById('dispatch-req-power')!;
     
+    this.pendingDispatchNode = node;
+    this.selectedAdventurersForDispatch.clear();
+    this.selectedTroopsForDispatch = {};
+    this.currentFormationId = 'DEFAULT';
+    this.currentGridMap = {};
+    this.dragDraggedAdvId = null;
+    this.dragSourceSlot = null;
+  
+  const optionsContainer = document.getElementById('dispatch-subjugation-options')!;
+  optionsContainer.style.display = 'none';
+
+  this.pendingDispatchTask = DispatchModalController.createDispatchTaskForNode(node, actionType);
+  const baseDiff = this.pendingDispatchTask.baseDifficulty || 10;
+  const randomFeature = this.pendingDispatchTask.enemyFeature;
+
+  if (actionType === 'diplomacy') {
+    title.innerHTML = '🤝 外交使節隊伍編制';
+    desc.textContent = `目標：${node.name} (派遣使節前往簽署通商條約)`;
+  } else if (actionType === 'war') {
+    title.innerHTML = '🛡️ 攻城隊伍編制';
     let fStr = '';
     if (randomFeature === EnemyFeature.HIGH_DEF) fStr = '（高防禦敵人：建議高攻擊與多波續戰能力）';
     if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
     desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   } else {
-    optionsContainer.style.display = 'none'; // Forced hidden for Narrative Engine
-    title.innerHTML = '⚔️ 討伐隊伍編制';
-    const features = Object.values(EnemyFeature);
-    const randomFeature = Random.pick(features);
-    
-    // 確保偵查資訊與討伐敵軍 100% 一致：優先取用 node.scoutData 已持久化的 garrisonEncounter
-    const enemyLineup = (node.scoutData && node.scoutData.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0)
-      ? node.scoutData.garrisonEncounter
-      : monsterSystem.generateNodeEncounter(node);
-    
-    // 計算與四捨五入駐軍真實戰力，建議戰力 100% 對齊真實駐軍
-    const rawGarrisonPower = (node.scoutData && node.scoutData.garrisonPower !== undefined)
-      ? node.scoutData.garrisonPower
-      : (enemyLineup ? enemyLineup.reduce((sum, m) => sum + m.calculatedPowerScore, 0) : 0);
-    const subjugationMinPower = rawGarrisonPower > 0 ? Math.round(rawGarrisonPower) : minPower;
-
-    // 討伐任務需要較長天數 (預設 4 天)
-    const prestigeReward = getCombatPrestigeReward(baseDiff, false, node.nodeLevel);
-    this.pendingDispatchTask = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, subjugationMinPower, randomFeature);
-    this.pendingDispatchTask.targetNodeId = node.id;
-    this.pendingDispatchTask.enemyLineup = enemyLineup;
-    
+    title.innerHTML = node.isEliteLair ? '💀 稀有危險挑戰討伐' : '⚔️ 討伐隊伍編制';
+    const enemyLineup = this.pendingDispatchTask.enemyLineup;
     let fStr = '';
     if (enemyLineup && enemyLineup.length > 0) {
       const monsterNames = enemyLineup.map(m => m.name).join('、');
       const elemStr = node.scoutData?.mainElements && node.scoutData.mainElements.length > 0 ? ` [威脅元素: ${node.scoutData.mainElements.join('/')}]` : '';
       const affixStr = node.scoutData?.affix ? ` [據點詞綴: ${node.scoutData.affix}]` : '';
-      fStr = `\n情報回報：據點駐守 ${enemyLineup.length} 隻【${monsterNames}】${elemStr}${affixStr}`;
+      const eliteBonus = node.isEliteLair ? ' 🌟[高額傳奇戰利品/高掉寶]' : '';
+      fStr = `\n情報回報：據點駐守 ${enemyLineup.length} 隻【${monsterNames}】${elemStr}${affixStr}${eliteBonus}`;
     } else {
       if (randomFeature === EnemyFeature.HIGH_DEF) fStr = '（高防禦敵人：建議高攻擊與多波續戰能力）';
       if (randomFeature === EnemyFeature.HIGH_EVADE) fStr = '（高閃避敵人：建議高命中隊員）';
     }
-    desc.textContent = `目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
+    const eliteTag = node.isEliteLair ? '【💀 稀有危險挑戰】' : '';
+    desc.textContent = `${eliteTag}目標：${node.name}${fStr} - 難度評估：${baseDiff}`;
   }
 
   reqPowerEl.textContent = `🎯 建議戰力：${this.pendingDispatchTask.minPowerRequired}`;

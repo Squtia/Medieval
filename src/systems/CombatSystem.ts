@@ -6,7 +6,7 @@ import { Random } from '../core/Random';
 import { TargetType } from '../models/Skill';
 import { SKILLS } from '../data/SkillData';
 import { GambitEvaluator } from './combat/GambitEvaluator';
-import { calculateSkillDamage } from '../utils/CombatMath';
+import { calculateSkillDamage, getEvade } from '../utils/CombatMath';
 import { FormationDB } from '../systems/FormationDB';
 import { PassiveManager } from './combat/PassiveManager';
 
@@ -260,6 +260,7 @@ export class CombatSystem {
           maxMp: 50 + currentWaveDiff * 5,
           currentMp: 50 + currentWaveDiff * 5,
           element: lineupMonster?.element || ElementType.NONE,
+          isMagicalAttacker: lineupMonster?.isMagicalAttacker || false,
           stats: { hp: eHp, mp: 50 + currentWaveDiff * 5, patk: eAtk, matk: eAtk, pdef: ePdef, mdef: eMdef, hit: 20 + currentWaveDiff, evade: eEvade, speed: 10 + currentWaveDiff, critRate: 5, critDmg: 150, atk: eAtk, def: eDef },
           attributes: { 
             con: 5 + currentWaveDiff, 
@@ -334,7 +335,7 @@ export class CombatSystem {
       for (const actor of allParticipants) {
         if (actor.currentHp <= 0) continue;
 
-        CombatSystem.processStatusEffects(actor, events);
+        CombatSystem.processStatusEffects(actor, events, actor.isPlayer ? playerTeam : enemyTeam);
         processDeaths();
         if (actor.currentHp <= 0) continue;
 
@@ -487,14 +488,32 @@ export class CombatSystem {
           continue; // 技能施放完畢，跳過普攻階段
         }
 
-        let baseHitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - target.stats.evade) / 100));
-        let hitChance = PassiveManager.getModifiedHitChance(actor, target, baseHitChance);
+        const targetTeam = actor.isPlayer ? enemyTeam : playerTeam;
+        let targetEvade = getEvade(target);
+        if (target.isAdvanced && target.weaponType === 'MAGIC_RING' && !PassiveManager.isTricksterInvulnerable(target, targetTeam)) {
+          // 場上沒有隊友時自身獲得閃避 +15
+          targetEvade += 15;
+        }
+
+        let baseHitChance = Math.max(0.1, Math.min(0.95, 0.7 + (actor.stats.hit - targetEvade) / 100));
+        let hitChance = PassiveManager.getModifiedHitChance(actor, target, baseHitChance, targetTeam);
         if (Random.next() > hitChance) {
           events.push({
             type: CombatEventType.MISS,
             actorName: actor.name,
             targetName: target.name,
             text: `${actor.name} 的攻擊被 ${target.name} 閃避了！`
+          });
+          continue;
+        }
+
+        // 詭術師被動：有隊友在場時無敵，免疫傷害
+        if (PassiveManager.isTricksterInvulnerable(target, targetTeam)) {
+          events.push({
+            type: CombatEventType.MISS,
+            actorName: actor.name,
+            targetName: target.name,
+            text: `${target.name} 處於【無敵】狀態，免疫了攻擊！`
           });
           continue;
         }
@@ -554,9 +573,9 @@ export class CombatSystem {
 
         if (target.currentHp > 0) {
            if (actor.isPlayer && Random.next() < 0.15) {
-             events.push(tryApplyStatus(target, { type: StatusEffectType.BLEED, duration: 3 }, actor.name, undefined, `${target.name} 陷入流血狀態！`));
+             events.push(tryApplyStatus(target, { type: StatusEffectType.BLEED, duration: 3 }, actor.name, undefined, `${target.name} 陷入流血狀態！`, targetTeam));
            } else if (!actor.isPlayer && Random.next() < 0.1) {
-             events.push(tryApplyStatus(target, { type: StatusEffectType.POISON, duration: 2, value: 5 }, actor.name, undefined, `${target.name} 陷入中毒狀態！`));
+             events.push(tryApplyStatus(target, { type: StatusEffectType.POISON, duration: 2, value: 5 }, actor.name, undefined, `${target.name} 陷入中毒狀態！`, targetTeam));
            }
         }
 
@@ -635,17 +654,24 @@ export class CombatSystem {
     };
   }
 
-  private static processStatusEffects(actor: CombatParticipant, events: CombatEvent[]) {
+  private static processStatusEffects(actor: CombatParticipant, events: CombatEvent[], allies?: CombatParticipant[]) {
     const activeEffects = [];
+    const isInvuln = allies ? PassiveManager.isTricksterInvulnerable(actor, allies) : false;
+
     for (const effect of actor.statusEffects) {
       if (effect.type === StatusEffectType.BLEED) {
-        const dmg = Math.max(1, Math.floor(actor.maxHp * 0.05));
-        actor.currentHp -= dmg;
-        events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因流血受到 ${dmg} 點傷害。`});
+        if (!isInvuln) {
+          const dmg = Math.max(1, Math.floor(actor.maxHp * 0.05));
+          actor.currentHp -= dmg;
+          events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因流血受到 ${dmg} 點傷害。`});
+        }
       } else if (effect.type === StatusEffectType.POISON) {
-        const dmg = effect.value || 5;
-        actor.currentHp -= dmg;
-        events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因中毒受到 ${dmg} 點傷害。`});
+        if (!isInvuln) {
+          const stacks = effect.stacks || 1;
+          const dmg = (effect.value || 5) * stacks;
+          actor.currentHp -= dmg;
+          events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因中毒 (${stacks}層) 受到 ${dmg} 點傷害。`});
+        }
       } else if (effect.type === StatusEffectType.REGEN_HP) {
         const heal = effect.value || 10;
         actor.currentHp = Math.min(actor.maxHp, actor.currentHp + heal);

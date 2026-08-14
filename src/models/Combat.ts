@@ -9,7 +9,10 @@ export enum StatusEffectType {
   ARMOR_BREAK = 'ARMOR_BREAK', // 破甲
   SHOCK = 'SHOCK', // 感電
   REGEN_HP = 'REGEN_HP', // 生命恢復
-  REGEN_MP = 'REGEN_MP'  // 魔力恢復
+  REGEN_MP = 'REGEN_MP',  // 魔力恢復
+  BUFF_PATK = 'BUFF_PATK', // 物理攻擊增益 (%)
+  BUFF_MATK = 'BUFF_MATK', // 魔法攻擊增益 (%)
+  BUFF_EVADE = 'BUFF_EVADE' // 閃避率增益 (點數)
 }
 
 export interface StatusEffect {
@@ -45,6 +48,7 @@ export interface CombatParticipant {
   isAdvanced?: boolean; // 轉職開關狀態
   cooldowns?: Record<string, number>; // 技能 CD 狀態
   element?: import('./types').ElementType; // 單位/武器攜帶的元素
+  isMagicalAttacker?: boolean; // 是否為法系攻擊者 (普攻造成魔法傷害)
 
   // 動態戰利品 (供怪獸使用)
   goldReward?: number;
@@ -137,8 +141,31 @@ export function tryApplyStatus(
   effect: StatusEffect,
   actorName?: string,
   skillName?: string,
-  customApplyText?: string
+  customApplyText?: string,
+  targetTeam?: CombatParticipant[]
 ): CombatEvent {
+  const isBuff = [
+    StatusEffectType.REGEN_HP,
+    StatusEffectType.REGEN_MP,
+    StatusEffectType.BUFF_PATK,
+    StatusEffectType.BUFF_MATK,
+    StatusEffectType.BUFF_EVADE
+  ].includes(effect.type);
+
+  if (!isBuff && target.isAdvanced && target.weaponType === 'MAGIC_RING') {
+    if (targetTeam) {
+      const aliveAllies = targetTeam.filter(p => p.id !== target.id && p.currentHp > 0);
+      if (aliveAllies.length > 0) {
+        return {
+          type: CombatEventType.MISS,
+          targetId: target.id,
+          targetName: target.name,
+          text: `${target.name} 處於【無敵】狀態，免疫了負面狀態！`
+        };
+      }
+    }
+  }
+
   let resistChance = 0;
   if (target.attributes) {
     resistChance = ((target.attributes.con || 0) + (target.attributes.spr || 0)) * 0.01;

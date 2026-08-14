@@ -46,11 +46,37 @@ export function getElementalMultiplier(atkElement?: ElementType, defElement?: El
 }
 
 export function getPatk(caster: CombatParticipant): number {
-  return caster.stats.patk ?? caster.stats.atk ?? 0;
+  let base = caster.stats.patk ?? caster.stats.atk ?? 0;
+  if (caster.statusEffects && caster.statusEffects.length > 0) {
+    const patkBuffs = caster.statusEffects.filter(s => s.type === StatusEffectType.BUFF_PATK);
+    const buffPct = patkBuffs.reduce((sum, b) => sum + (b.value || 0), 0);
+    if (buffPct > 0) {
+      base = Math.floor(base * (1 + buffPct / 100));
+    }
+  }
+  return base;
 }
 
 export function getMatk(caster: CombatParticipant): number {
-  return caster.stats.matk ?? caster.stats.atk ?? 0;
+  let base = caster.stats.matk ?? caster.stats.atk ?? 0;
+  if (caster.statusEffects && caster.statusEffects.length > 0) {
+    const matkBuffs = caster.statusEffects.filter(s => s.type === StatusEffectType.BUFF_MATK);
+    const buffPct = matkBuffs.reduce((sum, b) => sum + (b.value || 0), 0);
+    if (buffPct > 0) {
+      base = Math.floor(base * (1 + buffPct / 100));
+    }
+  }
+  return base;
+}
+
+export function getEvade(caster: CombatParticipant): number {
+  let base = caster.stats.evade ?? 0;
+  if (caster.statusEffects && caster.statusEffects.length > 0) {
+    const evadeBuffs = caster.statusEffects.filter(s => s.type === StatusEffectType.BUFF_EVADE);
+    const buffVal = evadeBuffs.reduce((sum, b) => sum + (b.value || 0), 0);
+    base += buffVal;
+  }
+  return base;
 }
 
 // 通用的傷害計算與防禦減免函式 (給技能使用)
@@ -60,8 +86,17 @@ export function calculateSkillDamage(
   baseDmg: number, 
   damageType: DamageType = DamageType.PHYSICAL,
   forcedCrit?: boolean,
-  forcedCritChance?: number
+  forcedCritChance?: number,
+  targetTeam?: CombatParticipant[]
 ): { damage: number, isCrit: boolean } {
+  // 詭術師被動：有隊友在場時無敵，免疫傷害
+  if (targetTeam && target.isAdvanced && target.weaponType === 'MAGIC_RING') {
+    const aliveAllies = targetTeam.filter(p => p.id !== target.id && p.currentHp > 0);
+    if (aliveAllies.length > 0) {
+      return { damage: 0, isCrit: false };
+    }
+  }
+
   // 從面板讀取爆擊率 (百分比轉小數)，如果沒有則預設 5%
   let critChance = forcedCritChance !== undefined ? forcedCritChance : ((caster.stats.critRate ?? 5) / 100);
   

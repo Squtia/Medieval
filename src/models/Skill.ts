@@ -18,8 +18,8 @@ export interface Skill {
   targetType: TargetType;
   description: string;
   cooldown?: number;
-  aiWeight?: (caster: CombatParticipant, skillTargets: CombatParticipant[], allEnemies: CombatParticipant[], allAllies?: CombatParticipant[]) => number;
-  execute: (caster: CombatParticipant, targets: CombatParticipant[], allEnemies: CombatParticipant[], allAllies?: CombatParticipant[]) => CombatEvent[];
+  aiWeight?: (caster: CombatParticipant, skillTargets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => number;
+  execute: (caster: CombatParticipant, targets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => CombatEvent[];
 }
 
 export interface SkillDisplayInfo {

@@ -478,7 +478,16 @@ export class DispatchSystem {
       a.restingDaysLeft = isVictory ? 0 : 1; 
     });
     
-    // 注意：ExplorationNarrativeEngine.generateSubjugationLog 內部已處理所有的獎勵與裝備掉落！
+    // 發放懸賞金與聲望獎勵
+    if (isVictory) {
+      if (task.expectedGold && task.expectedGold > 0) {
+        this.territory.addGold(task.expectedGold);
+      }
+      if (task.expectedPrestige && task.expectedPrestige > 0) {
+        this.territory.prestige += task.expectedPrestige;
+      }
+    }
+
     // 若是攻城戰，則保留攻城的額外邏輯
     if (task.isWar && task.targetNodeId && GameState.mapSystem) {
        const node = GameState.mapSystem.getNodeById(task.targetNodeId);
@@ -502,10 +511,6 @@ export class DispatchSystem {
 
   public getActiveMissionsCount(): number {
     return this.activeMissions.length;
-  }
-
-  public getActiveMissions(): ActiveMission[] {
-    return this.activeMissions;
   }
 
   public loadActiveMissions(rawMissions: any[]): void {

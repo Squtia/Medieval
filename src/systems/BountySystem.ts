@@ -171,4 +171,83 @@ export class BountySystem {
     gameState.bounties.splice(bountyIndex, 1);
     return true;
   }
+
+  /**
+   * ⚡ 一鍵智能派遣所有待接取的懸賞
+   * 規則：高難度/高收益優先，自動跳過 HP < 30% 受傷傭兵
+   */
+  public static autoDispatchAllBounties(gameState: any): { dispatchedCount: number, taskNames: string[] } {
+    if (!gameState.bounties || gameState.bounties.length === 0) {
+      return { dispatchedCount: 0, taskNames: [] };
+    }
+
+    // 1. 取得所有待接取的懸賞，按獎勵金幣與經驗降序排序
+    const pendingBounties = gameState.bounties
+      .filter((b: BountyQuest) => b.status === 'PENDING')
+      .sort((a: BountyQuest, b: BountyQuest) => (b.rewards.gold + b.rewards.exp) - (a.rewards.gold + a.rewards.exp));
+
+    if (pendingBounties.length === 0) {
+      return { dispatchedCount: 0, taskNames: [] };
+    }
+
+    // 2. 取得所有 IDLE 且健康 (HP >= 30%) 的傭兵
+    const availableMercs = (gameState.adventurers || []).filter((adv: Adventurer) => {
+      const isIdle = adv.currentState === AdventurerState.IDLE && !adv.office;
+      const stats = adv.getCombatStats ? adv.getCombatStats() : (adv as any).stats;
+      const maxHp = stats?.hp || (adv as any).maxHp || 100;
+      const curHp = (adv as any).currentHp !== undefined ? (adv as any).currentHp : maxHp;
+      const hpRatio = curHp / maxHp;
+      return isIdle && hpRatio >= 0.3;
+    });
+
+    if (availableMercs.length === 0) {
+      return { dispatchedCount: 0, taskNames: [] };
+    }
+
+    let dispatchedCount = 0;
+    const taskNames: string[] = [];
+
+    // 3. 逐一指派傭兵接取懸賞
+    for (const bounty of pendingBounties) {
+      if (availableMercs.length === 0) break;
+      const merc = availableMercs.shift()!;
+      const success = this.acceptBounty(gameState, bounty.id, merc.id);
+      if (success) {
+        dispatchedCount++;
+        taskNames.push(bounty.name);
+      }
+    }
+
+    return { dispatchedCount, taskNames };
+  }
+
+  /**
+   * 🎁 一鍵領取所有已完成的懸賞獎勵
+   */
+  public static claimAllCompletedBounties(gameState: any): { completedCount: number, totalGold: number, totalExp: number } {
+    if (!gameState.bounties || gameState.bounties.length === 0) {
+      return { completedCount: 0, totalGold: 0, totalExp: 0 };
+    }
+
+    const completedBounties = gameState.bounties.filter((b: BountyQuest) => b.status === 'COMPLETED');
+    if (completedBounties.length === 0) {
+      return { completedCount: 0, totalGold: 0, totalExp: 0 };
+    }
+
+    let completedCount = 0;
+    let totalGold = 0;
+    let totalExp = 0;
+
+    // 批次結算
+    for (const bounty of completedBounties) {
+      totalGold += bounty.rewards.gold;
+      totalExp += bounty.rewards.exp;
+      const success = this.claimReward(gameState, bounty.id);
+      if (success) {
+        completedCount++;
+      }
+    }
+
+    return { completedCount, totalGold, totalExp };
+  }
 }

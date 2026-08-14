@@ -2,6 +2,7 @@ import { GameState } from '../core/GameState';
 import { MapNode, NodeLevel, getNodeMaxFacilityLevel } from '../models/types';
 import { UIManager } from './UIManager';
 import { renderMap } from './MapController';
+import { renderFacilitySpriteHtml } from './IconSpriteHelper';
 
 export function renderCampTraining() {
   const campTrainList = document.getElementById('camp-train-list')!;
@@ -258,14 +259,19 @@ export function renderBaseBuildings() {
       `;
     }
     
+    const facilityIconHtml = renderFacilitySpriteHtml(bld.key, 44);
+
     card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-        <div>
-          <span style="font-size: 1em; font-weight: bold; color: #fff;">${dynamicInfo.icon} ${dynamicInfo.name}</span>
-          <span style="font-size: 0.85em; color: #eab308; font-weight: bold; margin-left: 5px;">Lv.${lvl}</span>
+      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 2px;">
+        ${facilityIconHtml}
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 1em; font-weight: bold; color: #fff;">${dynamicInfo.name}</span>
+            <span style="font-size: 0.85em; color: #eab308; font-weight: bold;">Lv.${lvl}</span>
+          </div>
+          <div style="font-size: 0.78em; color: #cbd5e1; line-height: 1.3; margin-top: 2px;">${dynamicInfo.desc}</div>
         </div>
       </div>
-      <div style="font-size: 0.8em; color: #cbd5e1; line-height: 1.3;">${dynamicInfo.desc}</div>
       ${actionBtnHtml}
     `;
     
