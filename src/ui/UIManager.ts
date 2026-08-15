@@ -1,5 +1,5 @@
 import { GameState } from '../core/GameState';
-import { AdventurerState, NobleTitle, TITLE_CONFIG, NodeLevel, NodeFeature } from '../models/types';
+import { AdventurerState, NobleTitle, TITLE_CONFIG, NodeLevel, NodeFeature, getNodeMaxFacilityLevel } from '../models/types';
 import { openAdvDetail, getSelectedPartyAdventurer, selectPartyAdventurer, renderPartyUpperSection } from './ModalController';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from './components/AdventurerCard';
 import { renderBaseBuildings } from './SceneController';
@@ -207,13 +207,64 @@ class UIManagerClass {
       slider.value = current.toString();
     });
     
+    // 更新四大生產設施等級、倍率與升級按鈕
+    const facilities: ('farmland' | 'lumberMill' | 'quarry' | 'huntingGround')[] = ['farmland', 'lumberMill', 'quarry', 'huntingGround'];
+    const maxFacAllowed = getNodeMaxFacilityLevel(nodeLevel);
+
+    facilities.forEach(fac => {
+      const lvl = territory.getFacilityLevel(fac);
+      const mult = territory.getFacilityMultiplier(fac);
+      const nextLvl = lvl + 1;
+      const lvlLabel = document.getElementById(`ui-facility-lvl-${fac}`);
+      if (lvlLabel) lvlLabel.textContent = `Lv.${lvl}`;
+
+      const btn = document.getElementById(`btn-upgrade-${fac}`) as HTMLButtonElement | null;
+      if (btn) {
+        if (nextLvl > maxFacAllowed) {
+          btn.textContent = `需擴建規模`;
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+        } else {
+          const cost = territory.getFacilityUpgradeCost(fac, nextLvl);
+          const hasRes = territory.gold >= cost.gold && territory.wood >= cost.wood && territory.stone >= cost.stone && territory.iron >= cost.iron;
+          btn.textContent = `🔨 升級 (${cost.gold}G)`;
+          btn.disabled = !hasRes;
+          btn.style.opacity = hasRes ? '1.0' : '0.6';
+          btn.title = `升級消耗：💰${cost.gold}金幣 🌲${cost.wood}木材 🧱${cost.stone}石材 ${cost.iron > 0 ? `🔗${cost.iron}鐵礦` : ''}`;
+          
+          btn.onclick = () => {
+            if (territory.gold >= cost.gold && territory.wood >= cost.wood && territory.stone >= cost.stone && territory.iron >= cost.iron) {
+              territory.gold -= cost.gold;
+              territory.wood -= cost.wood;
+              territory.stone -= cost.stone;
+              territory.iron -= cost.iron;
+              if (fac === 'farmland') territory.farmlandLevel = nextLvl;
+              else if (fac === 'lumberMill') territory.lumberMillLevel = nextLvl;
+              else if (fac === 'quarry') territory.quarryLevel = nextLvl;
+              else territory.huntingGroundLevel = nextLvl;
+
+              ToastManager.show(`🎉 設施升級成功！${fac === 'farmland' ? '🌾 農田' : fac === 'lumberMill' ? '🪓 伐木場' : fac === 'quarry' ? '⛏️ 採石場' : '🏹 獵場'} 已達 Lv.${nextLvl}！`, 'success');
+              this.updateUI();
+            } else {
+              ToastManager.show('資源或金幣不足，無法升級設施！', 'warning');
+            }
+          };
+        }
+      }
+    });
+
     if (this.uiNetProduction) {
       const productionMultiplier = TownManagementSystem.getProductionMultiplier();
-      const foodProduced = Math.floor((territory.workers['FARMER'] || 0) * 3 * productionMultiplier);
-      const woodProduced = Math.floor((territory.workers['WOODCUTTER'] || 0) * 2 * productionMultiplier);
-      const stoneProduced = Math.floor((territory.workers['MINER'] || 0) * 1 * productionMultiplier);
-      const ironProduced = Math.floor((territory.workers['MINER'] || 0) * 0.2 * productionMultiplier);
-      const hideProduced = Math.floor((territory.workers['HUNTER'] || 0) * 1 * productionMultiplier);
+      const farmMult = territory.getFacilityMultiplier('farmland');
+      const lumberMult = territory.getFacilityMultiplier('lumberMill');
+      const quarryMult = territory.getFacilityMultiplier('quarry');
+      const huntMult = territory.getFacilityMultiplier('huntingGround');
+
+      const foodProduced = Math.floor((territory.workers['FARMER'] || 0) * 3 * farmMult * productionMultiplier);
+      const woodProduced = Math.floor((territory.workers['WOODCUTTER'] || 0) * 2 * lumberMult * productionMultiplier);
+      const stoneProduced = Math.floor((territory.workers['MINER'] || 0) * 1 * quarryMult * productionMultiplier);
+      const ironProduced = Math.floor((territory.workers['MINER'] || 0) * 0.2 * quarryMult * productionMultiplier);
+      const hideProduced = Math.floor((territory.workers['HUNTER'] || 0) * 1 * huntMult * productionMultiplier);
 
       const totalPeople = territory.population + GameState.adventurers.length;
       let foodConsumed = totalPeople * 1;
@@ -249,10 +300,13 @@ class UIManagerClass {
         
         if (this.uiTitleProgress) this.uiTitleProgress.style.width = `${progress}%`;
         
+        const playerNode = GameState.mapSystem?.getNodes().find(n => n.isPlayerBase);
+        const currentProsperity = playerNode ? playerNode.prosperity : (territory.getRealtimeProsperity ? territory.getRealtimeProsperity() : territory.population);
+
         const condPrestige = territory.prestige >= nextRank.reqPrestige;
-        const condPop = territory.population >= nextRank.reqPopulation;
+        const condProsperity = currentProsperity >= nextRank.reqProsperity;
         const condGold = territory.gold >= nextRank.reqGold;
-        const canPromote = condPrestige && condPop && condGold;
+        const canPromote = condPrestige && condProsperity && condGold;
 
         if (canPromote) {
           if (this.uiTitleText) this.uiTitleText.innerHTML = `<span style="color:#10b981;">條件已達成，準備晉升！</span>`;
@@ -277,7 +331,7 @@ class UIManagerClass {
           let missingText = `距離下一階 (${nextRank.titleCN}) 還需: `;
           let reqs = [];
           if (!condPrestige) reqs.push(`${nextRank.reqPrestige - territory.prestige} 聲望`);
-          if (!condPop) reqs.push(`${nextRank.reqPopulation - territory.population} 人口`);
+          if (!condProsperity) reqs.push(`${nextRank.reqProsperity - currentProsperity} 領地繁榮度`);
           if (!condGold) reqs.push(`${nextRank.reqGold - territory.gold} 金幣`);
           if (this.uiTitleText) this.uiTitleText.textContent = missingText + reqs.join(', ');
           if (btnPromote) btnPromote.style.display = 'none';
@@ -597,6 +651,20 @@ class UIManagerClass {
     const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
     const levelIcons = ['🏚️', '🏕️', '🏡', '🏘️', '🏰'];
     const vassalNodesCount = GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
+    const roadCount = GameState.roadSystem ? GameState.roadSystem.getRoads().length : 0;
+
+    const hasAdjacentDanger = GameState.mapSystem.getNodes().some(other =>
+      other.id !== playerNode.id &&
+      other.isDynamic &&
+      (other.nodeLevel === NodeLevel.WILDERNESS || other.feature === NodeFeature.MONSTER_NEST) &&
+      Math.sqrt((other.x - playerNode.x) ** 2 + (other.y - playerNode.y) ** 2) < 15
+    );
+
+    const t = GameState.myTerritory;
+    if (t && t.getRealtimeProsperity) {
+      playerNode.prosperity = t.getRealtimeProsperity(roadCount, vassalNodesCount, hasAdjacentDanger);
+    }
+
     const previousLevel = playerNode.nodeLevel;
     const computedLevel = calculateNodeLevel(playerNode, vassalNodesCount > 0);
 
@@ -739,6 +807,7 @@ class UIManagerClass {
       if (playerNode) {
         const hasDanger = GameState.mapSystem.getNodes().some(other =>
           other.id !== playerNode.id &&
+          other.isDynamic &&
           (other.nodeLevel === NodeLevel.WILDERNESS || other.feature === NodeFeature.MONSTER_NEST) &&
           Math.sqrt((other.x - playerNode.x) ** 2 + (other.y - playerNode.y) ** 2) < 15
         );

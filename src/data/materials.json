@@ -1,11 +1,11 @@
 [
   { "id": "tg_wheat", "name": "小麥", "icon": "🌾", "category": "TRADE_GOOD", "tier": 1, "description": "基礎糧食，平原多產。", "basePrice": 10 },
-  { "id": "tg_cotton", "name": "棉麻", "icon": "🌿", "category": "TRADE_GOOD", "tier": 1, "description": "紡織基礎原料，平原多產。", "basePrice": 15 },
-  { "id": "tg_meat", "name": "獸肉", "icon": "🥩", "category": "TRADE_GOOD", "tier": 1, "description": "高營養食物，森林與荒野多產。", "basePrice": 20 },
-  { "id": "tg_hide", "name": "生皮", "icon": "🦬", "category": "TRADE_GOOD", "tier": 1, "description": "未加工的獸皮，森林狩獵特產。", "basePrice": 18 },
-  { "id": "tg_timber", "name": "原木", "icon": "🪵", "category": "TRADE_GOOD", "tier": 1, "description": "基礎木材原料，森林特產。", "basePrice": 15 },
-  { "id": "tg_stone", "name": "石材", "icon": "🪨", "category": "TRADE_GOOD", "tier": 1, "description": "進階建材，山地特產。", "basePrice": 20 },
-  { "id": "tg_iron", "name": "鐵礦石", "icon": "🪨", "category": "TRADE_GOOD", "tier": 1, "description": "金屬材料，火山與雪山常見。", "basePrice": 30 },
+  { "id": "tg_cotton", "name": "棉麻", "icon": "🌿", "category": "TRADE_GOOD", "tier": 1, "description": "紡織基礎原料，平原多產。", "basePrice": 4 },
+  { "id": "tg_meat", "name": "獸肉", "icon": "🥩", "category": "TRADE_GOOD", "tier": 1, "description": "高營養食物，森林與荒野多產。", "basePrice": 5 },
+  { "id": "tg_hide", "name": "生皮", "icon": "🦬", "category": "TRADE_GOOD", "tier": 1, "description": "未加工的獸皮，森林狩獵特產。", "basePrice": 5 },
+  { "id": "tg_timber", "name": "原木", "icon": "🪵", "category": "TRADE_GOOD", "tier": 1, "description": "基礎木材原料，森林特產。", "basePrice": 4 },
+  { "id": "tg_stone", "name": "石材", "icon": "🪨", "category": "TRADE_GOOD", "tier": 1, "description": "進階建材，山地特產。", "basePrice": 6 },
+  { "id": "tg_iron", "name": "鐵礦石", "icon": "🪨", "category": "TRADE_GOOD", "tier": 1, "description": "金屬材料，火山與雪山常見。", "basePrice": 10 },
   { "id": "tg_spice", "name": "香料", "icon": "🌶️", "category": "TRADE_GOOD", "tier": 2, "description": "沙漠地帶的昂貴特產。", "basePrice": 100 },
   { "id": "tg_silk", "name": "絲綢", "icon": "🧵", "category": "CRAFTING_MATERIAL", "tier": 2, "description": "粗布精煉而成的高級布料。", "basePrice": 150 },
   { "id": "tg_ice_crystal", "name": "冰晶", "icon": "🧊", "category": "TRADE_GOOD", "tier": 2, "description": "雪山獨有的魔法素材。", "basePrice": 80 },
@@ -40,5 +40,19 @@
   { "id": "mat_element_ice", "name": "霜冰附魔石", "icon": "❄️", "category": "CRAFTING_MATERIAL", "tier": 2, "description": "極北雪域凝結之冰核，用於對裝備進行冰元素附魔。", "basePrice": 200 },
   { "id": "mat_element_lightning", "name": "疾雷附魔石", "icon": "⚡", "category": "CRAFTING_MATERIAL", "tier": 2, "description": "引動雷霆落電之晶石，用於對裝備進行雷元素附魔。", "basePrice": 200 },
   { "id": "mat_element_holy", "name": "聖光附魔石", "icon": "☀️", "category": "CRAFTING_MATERIAL", "tier": 2, "description": "受高階神官祈禱祝福之光石，用於對裝備進行光元素附魔。", "basePrice": 250 },
-  { "id": "mat_element_dark", "name": "暗影附魔石", "icon": "🌙", "category": "CRAFTING_MATERIAL", "tier": 2, "description": "深淵暗影凝結之黑石，用於對裝備進行暗元素附魔。", "basePrice": 250 }
+  { "id": "mat_element_dark", "name": "暗影附魔石", "icon": "🌙", "category": "CRAFTING_MATERIAL", "tier": 2, "description": "深淵暗影凝結之黑石，用於對裝備進行暗元素附魔。", "basePrice": 250 },
+
+  { "id": "mat_reforge_scroll", "name": "古代神兵重鑄卷軸", "icon": "📜", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載失傳神兵重鑄鍛造法的古代秘卷，可用於替代任意神兵重鑄書。", "basePrice": 1000 },
+  { "id": "tome_wpn_mithril_dual_swords", "name": "秘銀重鑄雙劍鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載魔劍士專屬神兵「秘銀重鑄雙劍」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_reaper_scythe", "name": "死靈收割戰鐮鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載死靈法師專屬神兵「死靈收割戰鐮」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_spirit_magic_bow", "name": "精靈使魔法弓鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載精靈使專屬神兵「精靈使魔法弓」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_rune_counter_shield", "name": "破魔符文巨盾鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載符文騎士專屬神兵「破魔符文巨盾」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_trickster_ring", "name": "詭術魔導戒鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載詭術師專屬神兵「詭術魔導戒」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_holy_war_hammer", "name": "破空聖鎚鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載異端拷問官專屬神兵「破空聖鎚」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_meteoric_greatsword", "name": "隕鐵巨劍鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載狂戰士專屬神兵「隕鐵巨劍」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_archmage_staff", "name": "賢者法杖鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載大魔導士專屬神兵「賢者法杖」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_composite_bow", "name": "複合強弓鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載神射手專屬神兵「複合強弓」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_royal_paladin_sword", "name": "皇家聖騎士劍盾鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載聖騎士專屬神兵「皇家聖騎士劍盾」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_poison_fanged_daggers", "name": "毒牙雙刃鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載暗殺者專屬神兵「毒牙雙刃」鍛造技術的秘傳典籍。", "basePrice": 800 },
+  { "id": "tome_wpn_grace_tome", "name": "恩典聖典鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載大主教專屬神兵「恩典聖典」鍛造技術的秘傳典籍。", "basePrice": 800 }
 ]

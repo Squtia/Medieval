@@ -93,7 +93,7 @@ export interface TitleConfig {
   maxRoster: number;
   taxBonusPer10Pop: number; // 每 10 人口帶來的額外稅收
   reqPrestige: number;
-  reqPopulation: number;
+  reqProsperity: number;    // 晉升所需領地實質繁榮度
   reqGold: number;          // 晉升大典花費
   officeSlots: Partial<Record<OfficeType, number>>; // 各官職的數量上限
 }
@@ -112,13 +112,13 @@ export enum OfficeType {
  * 爵位數值設定表 (可隨時調整)
  */
 export const TITLE_CONFIG: TitleConfig[] = [
-  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, taxBonusPer10Pop: 0, reqPrestige: 0, reqPopulation: 0, reqGold: 0, officeSlots: {} },
-  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, taxBonusPer10Pop: 1, reqPrestige: 500, reqPopulation: 0, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
-  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, taxBonusPer10Pop: 2, reqPrestige: 1500, reqPopulation: 50, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, taxBonusPer10Pop: 3, reqPrestige: 4000, reqPopulation: 200, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, taxBonusPer10Pop: 4, reqPrestige: 9000, reqPopulation: 500, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, taxBonusPer10Pop: 5, reqPrestige: 18000, reqPopulation: 1500, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
-  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, taxBonusPer10Pop: 6, reqPrestige: 35000, reqPopulation: 5000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } }
+  { title: NobleTitle.COMMONER, titleCN: '平民', maxCaravans: 1, maxRoster: 10, taxBonusPer10Pop: 0, reqPrestige: 0, reqProsperity: 0, reqGold: 0, officeSlots: {} },
+  { title: NobleTitle.KNIGHT, titleCN: '騎士', maxCaravans: 1, maxRoster: 15, taxBonusPer10Pop: 1, reqPrestige: 500, reqProsperity: 100, reqGold: 1500, officeSlots: { [OfficeType.RETAINER]: 1 } },
+  { title: NobleTitle.BARON, titleCN: '男爵', maxCaravans: 2, maxRoster: 20, taxBonusPer10Pop: 2, reqPrestige: 1500, reqProsperity: 250, reqGold: 4000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.VISCOUNT, titleCN: '子爵', maxCaravans: 2, maxRoster: 30, taxBonusPer10Pop: 3, reqPrestige: 4000, reqProsperity: 600, reqGold: 10000, officeSlots: { [OfficeType.RETAINER]: 1, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.COUNT, titleCN: '伯爵', maxCaravans: 3, maxRoster: 40, taxBonusPer10Pop: 4, reqPrestige: 9000, reqProsperity: 1200, reqGold: 25000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 1, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.MARQUIS, titleCN: '侯爵', maxCaravans: 4, maxRoster: 50, taxBonusPer10Pop: 5, reqPrestige: 18000, reqProsperity: 2500, reqGold: 60000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.CASTELLAN]: 1 } },
+  { title: NobleTitle.DUKE, titleCN: '公爵', maxCaravans: 5, maxRoster: 60, taxBonusPer10Pop: 6, reqPrestige: 35000, reqProsperity: 5000, reqGold: 150000, officeSlots: { [OfficeType.RETAINER]: 2, [OfficeType.CAPTAIN]: 2, [OfficeType.BANNERET]: 1, [OfficeType.CASTELLAN]: 1 } }
 ];
 
 export function getTitleConfig(title: NobleTitle): TitleConfig {
@@ -138,12 +138,12 @@ export function getMaxRosterLimit(title: NobleTitle): number {
 
 export function getNodeMaxFacilityLevel(level: NodeLevel): number {
   switch (level) {
-    case NodeLevel.WILDERNESS: return 1;
-    case NodeLevel.CAMP: return 2;
-    case NodeLevel.VILLAGE: return 3;
-    case NodeLevel.TOWN: return 5;
-    case NodeLevel.CAPITAL: return 7;
-    default: return 1;
+    case NodeLevel.WILDERNESS: return 2; // 荒野允許開墾升至 Lv.2
+    case NodeLevel.CAMP: return 3;       // 營地允許升至 Lv.3
+    case NodeLevel.VILLAGE: return 4;    // 村莊允許升至 Lv.4
+    case NodeLevel.TOWN: return 5;       // 城鎮允許升至 Lv.5
+    case NodeLevel.CAPITAL: return 5;    // 首都最高 Lv.5
+    default: return 2;
   }
 }
 
@@ -249,6 +249,9 @@ export interface MapNode {
   isDynamic?: boolean; // 是否為動態生成的節點 (如：探索出來的隨機巢穴)
   isEliteLair?: boolean; // 是否為低機率刷出的稀有高難度挑戰據點
   baseDifficulty?: number; // 用於動態巢穴等自訂難度的節點
+  expansionCount?: number; // 動態隨機據點未清剿擴張次數 (最多2次)
+  establishedBaseMonsterId?: string; // 首次確立的主題怪物原型 ID (保證擴張永遠同種族)
+  establishedAffix?: StrongholdAffix; // 確立的據點環境詞綴
   unlockCondition?: {
     minDay?: number;
     minPrestige?: number;
@@ -648,6 +651,7 @@ export interface MonsterInstance extends MonsterData {
   defense: number;                       // 基礎/通用防禦 (相容性)
   pdef?: number;                         // 物理防禦
   mdef?: number;                         // 魔法防禦
+  speed?: number;                        // 出手速度
   evade: number;
   calculatedPowerScore: number;
   element: ElementType;                 // 戰鬥實體的最終元素

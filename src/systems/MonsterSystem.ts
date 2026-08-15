@@ -62,12 +62,12 @@ export class MonsterSystem {
     const racePrefix = this.getRacePrefix(appliedRaceTag, baseMonster.compatibleRaces);
     const fullName = `${elemPrefix}${racePrefix}${baseMonster.name}`;
 
-    // 戰力權算 (powerScore: 以 powerTier 1.0 在難度 10 基準下對齊 120 點戰力)
+    // 戰力權算 (powerScore 基準：以 powerTier 1.0 在難度 1 基準下對齊約 55 點標準戰力)
     let raceMult = 1.0;
     if (appliedRaceTag === MonsterRace.UNDEAD) raceMult = 1.1;
     else if (appliedRaceTag === MonsterRace.DRAGON) raceMult = 1.5;
 
-    const powerScore = Math.max(10, Math.round(baseDifficulty * baseMonster.powerTier * raceMult * 12));
+    const baseBudget = Math.max(15, Math.round(baseDifficulty * baseMonster.powerTier * raceMult * 55));
 
     // 根據種族分配數值傾向 (區分物防 pdefRatio 與魔防 mdefRatio)
     let hpRatio = 0.45;
@@ -87,12 +87,18 @@ export class MonsterSystem {
         hpRatio = 0.45; atkRatio = 0.38; pdefRatio = 0.18; mdefRatio = 0.14; evaRatio = 0.05; break;   // 史詩高攻高物防中魔防
     }
 
-    const hp = Math.max(30, Math.floor(powerScore * hpRatio * 2.5));
-    const damage = Math.max(5, Math.floor(powerScore * atkRatio * 0.65));
-    const pdef = Math.floor(powerScore * pdefRatio * 1.0);
-    const mdef = Math.floor(powerScore * mdefRatio * 1.0);
+    const hp = Math.max(45, Math.floor(baseBudget * hpRatio * 2.8));
+    const damage = Math.max(12, Math.floor(baseBudget * atkRatio * 1.15));
+    const pdef = Math.floor(baseBudget * pdefRatio * 1.2);
+    const mdef = Math.floor(baseBudget * mdefRatio * 1.2);
     const defense = pdef; // 相容舊版欄位
-    const evade = Math.min(500, Math.floor(powerScore * evaRatio * 0.2));
+    const speed = Math.max(4, Math.floor(baseBudget * 0.12));
+    const evade = Math.min(500, Math.floor(baseBudget * evaRatio * 0.2));
+
+    // 大一統戰力計分公式 (與冒險者完全對齊：有效攻擊 + 平均防禦*0.6 + HP*0.2 + 速度*0.5)
+    const effAtk = damage;
+    const avgDef = Math.floor((pdef + mdef) / 2);
+    const calculatedPowerScore = effAtk + Math.floor(avgDef * 0.6) + Math.floor(hp * 0.2) + Math.floor(speed * 0.5);
 
     return {
       ...baseMonster,
@@ -106,14 +112,15 @@ export class MonsterSystem {
       defense,
       pdef,
       mdef,
+      speed,
       evade,
-      calculatedPowerScore: powerScore,
+      calculatedPowerScore,
       isMagicalAttacker: baseMonster.isMagicalAttacker || false,
       
-      // 動態戰利品配置
-      goldReward: Math.floor(powerScore * 2.0),
-      expReward: Math.floor(powerScore * 0.6),
-      equipmentDropRate: baseMonster.lootConfig ? baseMonster.lootConfig.equipmentDropRate : Math.min(0.25, powerScore * 0.0015) // 上限 25%
+      // 動態戰利品配置 (金幣: 戰力 * 1.0, 經驗: 戰力 * 0.25)
+      goldReward: Math.floor(calculatedPowerScore * 1.0),
+      expReward: Math.floor(calculatedPowerScore * 0.25),
+      equipmentDropRate: baseMonster.lootConfig ? baseMonster.lootConfig.equipmentDropRate : Math.min(0.25, calculatedPowerScore * 0.0015) // 上限 25%
     };
   }
 
@@ -126,11 +133,22 @@ export class MonsterSystem {
   public generateEncounter(
     terrain: TerrainType,
     baseDifficulty: number,
-    isNecroticTheme: boolean = false
+    isNecroticTheme: boolean = false,
+    forcedLeaderId?: string
   ): MonsterInstance[] {
-    // 1. 單向隔離過濾原型與標籤
-    let validMonsters = this.monsters.filter(m => m.terrains.includes(terrain) && !m.isBoss);
+    // 1. 單向隔離與階級過濾 (低難度排除超階精英怪與龍族)
+    const maxAllowedTier = baseDifficulty <= 1 ? 1.3 : (baseDifficulty <= 2 ? 1.6 : (baseDifficulty <= 4 ? 2.0 : 3.0));
+    let validMonsters = this.monsters.filter(m => m.terrains.includes(terrain) && !m.isBoss && m.powerTier <= maxAllowedTier);
     
+    if (baseDifficulty <= 2) {
+      // 難度 1~2 排除野生龍族，保留給高難度與精英據點
+      const nonDragons = validMonsters.filter(m => m.race !== MonsterRace.DRAGON);
+      if (nonDragons.length > 0) validMonsters = nonDragons;
+    }
+
+    if (validMonsters.length === 0) {
+      validMonsters = this.monsters.filter(m => !m.isBoss && m.powerTier <= maxAllowedTier);
+    }
     if (validMonsters.length === 0) {
       validMonsters = this.monsters.filter(m => !m.isBoss);
     }
@@ -141,32 +159,37 @@ export class MonsterSystem {
       if (livingMonsters.length > 0) validMonsters = livingMonsters;
     }
 
-    // 2. 決定隊長與總戰力額度
+    // 2. 決定隊長 (若有鎖定主題原型，優先採用)
     let selectedBase = validMonsters[0];
-    const weights = validMonsters.map(m => m.race === MonsterRace.DRAGON ? 0.25 : 1.0);
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    let rand = Random.next() * totalWeight;
-    for (let i = 0; i < validMonsters.length; i++) {
-      rand -= weights[i];
-      if (rand <= 0) {
-        selectedBase = validMonsters[i];
-        break;
+    if (forcedLeaderId) {
+      const forced = this.getMonsterById(forcedLeaderId);
+      if (forced) selectedBase = forced;
+    } else {
+      const weights = validMonsters.map(m => m.race === MonsterRace.DRAGON ? 0.25 : 1.0);
+      const totalWeight = weights.reduce((a, b) => a + b, 0);
+      let rand = Random.next() * totalWeight;
+      for (let i = 0; i < validMonsters.length; i++) {
+        rand -= weights[i];
+        if (rand <= 0) {
+          selectedBase = validMonsters[i];
+          break;
+        }
       }
     }
 
-    const targetScore = Math.max(25, Math.round(baseDifficulty * 12 * 4.5));
+    const targetScore = Math.max(50, Math.round(baseDifficulty * 55));
     let currentScore = 0;
     const encounter: MonsterInstance[] = [];
     
-    // 依據難度與戰力目標動態決定隊伍最大怪物數量 (避免低戰力時 5 打 1 群毆)
+    // 依據難度與戰力目標動態決定隊伍最大怪物數量 (避免低戰力時 5 打 1 群毆，但允許 2 隻低階雜兵湊足目標戰力)
     let maxEncounterSize = 5;
-    if (targetScore <= 65 || baseDifficulty <= 2) {
-      maxEncounterSize = 1;
-    } else if (targetScore <= 160 || baseDifficulty <= 4) {
+    if (targetScore <= 80) {
       maxEncounterSize = 2;
-    } else if (targetScore <= 320 || baseDifficulty <= 7) {
+    } else if (targetScore <= 160) {
+      maxEncounterSize = 2;
+    } else if (targetScore <= 320) {
       maxEncounterSize = 3;
-    } else if (targetScore <= 550 || baseDifficulty <= 12) {
+    } else if (targetScore <= 550) {
       maxEncounterSize = 4;
     }
     
@@ -200,17 +223,21 @@ export class MonsterSystem {
     encounter.push(leaderInstance);
     currentScore += leaderInstance.calculatedPowerScore;
 
-    // 4. 混編抽取剩餘隊員 (依 maxEncounterSize 動態限制數量)
+    // 4. 混編抽取剩餘隊員 (若有主題原型，優先混編同種族援軍)
+    const thematicMonsters = forcedLeaderId 
+      ? validMonsters.filter(m => m.race === selectedBase.race || m.compatibleRaces.includes(selectedBase.race))
+      : validMonsters;
+    const mixPool = thematicMonsters.length > 0 ? thematicMonsters : validMonsters;
+
     while (currentScore < targetScore * 0.9 && encounter.length < maxEncounterSize) {
-      // 隨機抽取一個符合過濾條件的怪物
-      const mixWeights = validMonsters.map(m => m.race === MonsterRace.DRAGON ? 0.25 : 1.0);
+      const mixWeights = mixPool.map(m => m.race === MonsterRace.DRAGON ? 0.25 : 1.0);
       const mixTotalWeight = mixWeights.reduce((a, b) => a + b, 0);
       let mixRand = Random.next() * mixTotalWeight;
-      let mixedBase = validMonsters[0];
-      for (let i = 0; i < validMonsters.length; i++) {
+      let mixedBase = mixPool[0];
+      for (let i = 0; i < mixPool.length; i++) {
         mixRand -= mixWeights[i];
         if (mixRand <= 0) {
-          mixedBase = validMonsters[i];
+          mixedBase = mixPool[i];
           break;
         }
       }
@@ -225,7 +252,7 @@ export class MonsterSystem {
   }
 
   /**
-   * 為特定地圖據點生成並持久化駐軍資訊 (確保偵查內容與戰鬥 100% 一致)
+   * 為特定地圖據點生成並持久化駐軍資訊 (確保偵查內容與戰鬥 100% 一致，且動態據點擴張時主題不變)
    */
   public generateNodeEncounter(node: MapNode): MonsterInstance[] {
     const isNecroticTheme = node.terrain === TerrainType.RUINS || node.name.includes('墓') || node.name.includes('深淵') || node.name.includes('無光');
@@ -242,18 +269,21 @@ export class MonsterSystem {
         const armyCount = Math.min(6, Math.max(4, Math.floor(baseDifficulty / 3)));
         encounter = FactionArmyGenerator.generateSiegeEncounter(faction, baseDifficulty, armyCount) as MonsterInstance[];
       } else {
-        encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme);
+        encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme, node.establishedBaseMonsterId);
       }
     } else {
-      // 普通野外據點，生成一般怪物
-      encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme);
+      // 普通野外據點或動態據點
+      encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme, node.establishedBaseMonsterId);
     }
 
-    // 隨機生成據點詞綴 (若為挑戰據點 100% 附加詞綴，一般據點 25% 機率)
-    let affix: StrongholdAffix | undefined = undefined;
-    if (node.isEliteLair || Random.next() < 0.25) {
+    // 隨機生成或繼承據點詞綴
+    let affix: StrongholdAffix | undefined = node.establishedAffix;
+    if (!affix && (node.isEliteLair || Random.next() < 0.25)) {
       const affixes = [StrongholdAffix.MIASMA, StrongholdAffix.VOLCANIC_HEAT, StrongholdAffix.BLIZZARD, StrongholdAffix.FORTIFIED, StrongholdAffix.BERSERK_AURA];
       affix = Random.pick(affixes);
+      if (node.isDynamic) {
+        node.establishedAffix = affix;
+      }
     }
 
     // 若為挑戰據點，將戰利品與掉落率進行超額強化 (3倍金幣與經驗，保底高裝備掉落率)
@@ -265,14 +295,19 @@ export class MonsterSystem {
       });
     }
 
-    // 若為動態探索出的據點，從 nestNames.json 詞庫檔隨機抽取後綴組合據點名稱 (例如：哥布林營地、飛龍巨巢、骷髏古墓、流寇山寨)
-    if (node.isDynamic || node.name.startsWith('未知的')) {
-      const baseMonster = encounter[0] ? this.getMonsterById(encounter[0].id) : undefined;
-      const cleanBaseName = baseMonster ? baseMonster.name : '怪魔';
-      const raceTag = encounter[0]?.appliedRaceTag || baseMonster?.race;
-      const suffix = this.getNestSuffix(raceTag);
-      const elitePrefix = node.isEliteLair ? Random.pick(['💀[凶兆] ', '👑[首領] ', '🔥[極危險] ']) : '';
-      node.name = `${elitePrefix}${cleanBaseName}${suffix}`;
+    // 首次定型動態據點的主題怪物與名稱
+    if (node.isDynamic) {
+      if (!node.establishedBaseMonsterId && encounter[0]) {
+        node.establishedBaseMonsterId = encounter[0].id;
+      }
+      if (node.name.startsWith('未知的')) {
+        const baseMonster = encounter[0] ? this.getMonsterById(encounter[0].id) : undefined;
+        const cleanBaseName = baseMonster ? baseMonster.name : '怪魔';
+        const raceTag = encounter[0]?.appliedRaceTag || baseMonster?.race;
+        const suffix = this.getNestSuffix(raceTag);
+        const elitePrefix = node.isEliteLair ? Random.pick(['💀[凶兆] ', '👑[首領] ', '🔥[極危險] ']) : '';
+        node.name = `${elitePrefix}${cleanBaseName}${suffix}`;
+      }
     }
 
     // 更新並持久化於 node.scoutData

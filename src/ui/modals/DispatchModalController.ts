@@ -527,8 +527,22 @@ export class DispatchModalController {
     let fStr = '';
     if (enemyLineup && enemyLineup.length > 0) {
       const monsterNames = enemyLineup.map(m => m.name).join('、');
-      const elemStr = node.scoutData?.mainElements && node.scoutData.mainElements.length > 0 ? ` [威脅元素: ${node.scoutData.mainElements.join('/')}]` : '';
-      const affixStr = node.scoutData?.affix ? ` [據點詞綴: ${node.scoutData.affix}]` : '';
+      
+      const elemMap: Record<string, string> = {
+        'NONE': '無屬性', 'FIRE': '🔥火焰', 'ICE': '❄️冰霜', 'LIGHTNING': '⚡雷電', 'HOLY': '☀️聖光', 'DARK': '🌑黑暗'
+      };
+      const affixMap: Record<string, string> = {
+        'MIASMA': '瘴氣之森 (持續中毒)',
+        'VOLCANIC_HEAT': '灼熱熔岩 (持續灼燒)',
+        'BLIZZARD': '極寒暴雪 (速度降低)',
+        'FORTIFIED': '堅不可摧 (護甲提升)',
+        'BERSERK_AURA': '狂暴光狂 (攻擊提升)'
+      };
+
+      const filteredElems = (node.scoutData?.mainElements || []).filter(e => e !== 'NONE');
+      const elemDisplay = filteredElems.length > 0 ? filteredElems.map(e => elemMap[e] || e).join('/') : '無屬性';
+      const elemStr = ` [威脅元素: ${elemDisplay}]`;
+      const affixStr = node.scoutData?.affix ? ` [據點詞綴: ${affixMap[node.scoutData.affix] || node.scoutData.affix}]` : '';
       const eliteBonus = node.isEliteLair ? ' 🌟[高額傳奇戰利品/高掉寶]' : '';
       fStr = `\n情報回報：據點駐守 ${enemyLineup.length} 隻【${monsterNames}】${elemStr}${affixStr}${eliteBonus}`;
     } else {

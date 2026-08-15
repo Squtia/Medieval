@@ -49,6 +49,7 @@ export class CombatSystem {
         }
         const troop = troopAssignments?.[id];
         const weapon = adv.equipment ? adv.equipment[EquipmentSlot.WEAPON] : undefined;
+        const armor = adv.equipment ? adv.equipment[EquipmentSlot.ARMOR] : undefined;
         const weaponType = weapon ? weapon.weaponType : undefined;
         
         let skills: string[] = [];
@@ -176,7 +177,9 @@ export class CombatSystem {
           shieldCurrentHp: troop?.count ? troop.count * 10 : 0,
           baseClass: adv.job?.name || '戰士',
           weaponType: weaponType,
-          element: weapon?.element || ElementType.NONE,
+          atkElement: weapon?.element || ElementType.NONE,
+          defElement: armor?.element || ElementType.NONE,
+          element: armor?.element || weapon?.element || ElementType.NONE,
           skills: skills,
           isAdvanced: adv.isAdvanced && adv.level >= 10,
         });
@@ -259,6 +262,8 @@ export class CombatSystem {
           currentHp: eHp,
           maxMp: 50 + currentWaveDiff * 5,
           currentMp: 50 + currentWaveDiff * 5,
+          atkElement: lineupMonster?.element || ElementType.NONE,
+          defElement: lineupMonster?.element || ElementType.NONE,
           element: lineupMonster?.element || ElementType.NONE,
           isMagicalAttacker: lineupMonster?.isMagicalAttacker || false,
           stats: { hp: eHp, mp: 50 + currentWaveDiff * 5, patk: eAtk, matk: eAtk, pdef: ePdef, mdef: eMdef, hit: 20 + currentWaveDiff, evade: eEvade, speed: 10 + currentWaveDiff, critRate: 5, critDmg: 150, atk: eAtk, def: eDef },

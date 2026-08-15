@@ -3,7 +3,8 @@ import { EquipmentSlot } from '../../models/types';
 import { GameState } from '../../core/GameState';
 import { ToastManager } from '../ToastManager';
 import { UIManager } from '../UIManager';
-import { renderEquipIcon, getEquipTooltipHtml } from '../ShopController';
+import { renderEquipIcon, getEquipComparisonTooltipHtml } from '../ShopController';
+import { positionFloatingElement } from '../FloatingPosition';
 import { PartyModalController } from './PartyModalController';
 
 export class EquipModalController {
@@ -134,7 +135,7 @@ export class EquipModalController {
         card.style.transition = 'all 0.2s';
 
         const iconHtml = renderEquipIcon(eq, 52);
-        const tooltipHtml = getEquipTooltipHtml(eq);
+        const tooltipHtml = getEquipComparisonTooltipHtml(adv, slotKey, eq);
 
         card.setAttribute('data-html-tip', encodeURIComponent(tooltipHtml));
 
@@ -163,8 +164,7 @@ export class EquipModalController {
           const mouseEv = e as MouseEvent;
           const tEl = document.getElementById('adv-tooltip');
           if (tEl) {
-            tEl.style.left = mouseEv.clientX + 10 + 'px';
-            tEl.style.top = mouseEv.clientY + 10 + 'px';
+            positionFloatingElement(tEl, mouseEv.clientX, mouseEv.clientY);
           }
         });
         card.addEventListener('mouseleave', () => {

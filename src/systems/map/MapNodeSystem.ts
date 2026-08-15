@@ -8,32 +8,26 @@ import { PROSPERITY_THRESHOLDS, calculateNodeLevel, getMonthlyProsperityGain } f
 export class MapNodeSystem {
   public static simulateProsperity(mapNodes: MapNode[]): void {
     for (const node of mapNodes) {
-      if (node.isPlayerBase) {
-        let prosperityGain = 8;
-        const t = GameState.myTerritory;
-        if (t) {
-          const assignedWorkers =
-            (t.workers['FARMER'] || 0) +
-            (t.workers['WOODCUTTER'] || 0) +
-            (t.workers['MINER'] || 0);
-          prosperityGain = getMonthlyProsperityGain(assignedWorkers, t.getBuildingProsperityBonus());
-        }
-
-        node.prosperity += prosperityGain;
-        console.log(`[MapDynamics] 📈 月底繁榮度成長 +${prosperityGain}（基礎+工人+建築）`);
-      } else if (node.ownerFactionId !== null) {
-        node.prosperity += 5;  // 派系改節點每月 +5
-      }
-
-      // 檢查相鄰高危險節點 (距離 15 內的荒野或巢穴)
+      // 檢查相鄰高危險動態節點 (距離 15 內的探索動態巢穴/荒野)
       const hasAdjacentDanger = mapNodes.some(other => 
         other.id !== node.id && 
+        other.isDynamic &&
         (other.nodeLevel === NodeLevel.WILDERNESS || other.feature === 'MONSTER_NEST' as any) && 
         MapUtils.getDistance(node, other) < 15
       );
 
-      if (hasAdjacentDanger && (node.ownerFactionId !== null || node.isPlayerBase)) {
-        node.prosperity -= 3;
+      if (node.isPlayerBase) {
+        const t = GameState.myTerritory;
+        if (t) {
+          const roadCount = GameState.roadSystem ? GameState.roadSystem.getRoads().length : 0;
+          const vassalCount = mapNodes.filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
+          node.prosperity = t.getRealtimeProsperity(roadCount, vassalCount, hasAdjacentDanger);
+          console.log(`[MapDynamics] 📊 玩家據點即時繁榮度評分：${node.prosperity}（人口+設施+建築）`);
+        }
+      } else if (node.ownerFactionId !== null) {
+        if (hasAdjacentDanger) {
+          node.prosperity = Math.max(0, node.prosperity - 3);
+        }
       }
 
       // 確保繁榮度不小於 0

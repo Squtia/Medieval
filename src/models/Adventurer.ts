@@ -494,21 +494,18 @@ export class Adventurer {
   }
 
   /**
-   * 綜合戰力 (反映八維屬性與裝備戰鬥實力，支援配點即時預覽)
+   * 大一統綜合戰力 (客觀反映實戰有效攻擊、防禦、HP、MP 與速度)
    */
   public getPower(tempAllocations?: Partial<Attributes>): number {
-    const eff = this.getEffectiveAttributes(undefined, tempAllocations);
-    const baseAttrPower = eff.str + eff.agi + eff.con + eff.int + eff.spr + eff.luk;
+    const combatStats = this.getCombatStats(undefined, tempAllocations);
+    const effAtk = Math.max(combatStats.patk, combatStats.matk, Math.floor((combatStats.patk + combatStats.matk) / 2));
+    const avgDef = Math.floor((combatStats.pdef + combatStats.mdef) / 2);
     
-    // 折算戰術實力 (含裝備攻防與 HP 加成)
-    const combatStats = this.getCombatStats();
-    const equipPower = Math.floor(
-      (combatStats.patk + combatStats.matk) * 0.5 + 
-      (combatStats.pdef + combatStats.mdef) * 0.8 + 
-      (combatStats.hp) * 0.05
-    );
-
-    return baseAttrPower + equipPower;
+    return effAtk + 
+      Math.floor(avgDef * 0.6) + 
+      Math.floor(combatStats.hp * 0.2) + 
+      Math.floor((combatStats.mp || 0) * 0.1) + 
+      Math.floor(combatStats.speed * 0.5);
   }
 
   public get power(): number {

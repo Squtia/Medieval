@@ -54,6 +54,11 @@ export function enterScene(node: MapNode) {
   mapView.classList.remove('active');
   uiLocation.textContent = node.name;
 
+  // 關閉所有可能殘留的建築設施視圖
+  document.querySelectorAll('.facility-view').forEach(el => {
+    el.classList.remove('active');
+  });
+
   const nodeDetailPanel = document.getElementById('node-detail-panel');
   if (nodeDetailPanel) {
     nodeDetailPanel.style.display = 'none';
@@ -118,13 +123,9 @@ export function enterSceneWithTransition(node: MapNode) {
 export function returnToMap() {
   UIManager.playTransition(() => {
     GameState.currentViewNode = null;
-    // 強制關閉所有建築視圖，避免切換場景後殘留
-    ['view-base', 'view-hall', 'view-camp', 'view-forge', 'view-weapon-shop', 'view-armor-shop', 'scene-view', 'wilderness-view'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.classList.remove('active');
-        // CSS .facility-view { display:none } 確保隱藏，不需 inline style
-      }
+    // 強制關閉所有建築設施視圖與場景視圖，避免切換場景後殘留
+    document.querySelectorAll('.facility-view, #scene-view, #wilderness-view').forEach(el => {
+      el.classList.remove('active');
     });
     
     // 返回地圖後，重新顯示 map-view
@@ -175,15 +176,15 @@ export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'fo
     if (level === 3) return { name: '簡陋酒館', desc: '開始供應劣質麥酒，能吸引傭兵前來', icon: '🍻' };
     return { name: '豪華酒館', desc: '正規的傭兵公會駐點與情報中心', icon: '🏰' };
   } else if (type === 'weapon') {
-    if (level === 1) return { name: '拾荒者交易點', desc: '吸引流浪商人來交易粗糙的武器與石器', icon: '🪨' };
-    if (level === 2) return { name: '流浪武商營帳', desc: '有拉車的武商駐點，能買到勉強可用的鐵器', icon: '🏕️' };
-    if (level === 3) return { name: '武器鋪', desc: '正規的城鎮武器鋪，提供精良的制式武器', icon: '⚔️' };
-    return { name: '皇家武器庫', desc: '提供頂尖武器的軍事設施', icon: '🗡️' };
+    if (level === 1) return { name: '簡易打磨台', desc: '工匠搭建的露天工作台，提供基礎裝備數值打磨與改造', icon: '🔧' };
+    if (level === 2) return { name: '工匠改造坊', desc: '引進精良工具與附魔台，支援進階屬性追加與配重調整', icon: '🔧' };
+    if (level === 3) return { name: '皇家改造所', desc: '具備頂尖車床與銘刻工藝的皇家級裝備改造中心', icon: '🔧' };
+    return { name: '頂級改造所', desc: '機能齊全的頂級裝備改造工坊', icon: '🔧' };
   } else if (type === 'armor') {
-    if (level === 1) return { name: '獸皮交易鋪', desc: '能跟獵人買到粗糙的破爛皮甲', icon: '🪵' };
-    if (level === 2) return { name: '流浪防具商', desc: '販售修補過的皮甲與二手盾牌', icon: '🛡️' };
-    if (level === 3) return { name: '防具鋪', desc: '提供堅固鎖子甲與制式防具的店舖', icon: '🛡️' };
-    return { name: '皇家防具庫', desc: '提供最頂尖護甲的軍事設施', icon: '🛡️' };
+    if (level === 1) return { name: '雜貨回收攤', desc: '流浪行商開設的二手物資收購攤，提供基礎飾品出售與舊裝備典當', icon: '⚖️' };
+    if (level === 2) return { name: '典當行商營帳', desc: '流通各類二手軍備物資與稀有護符飾品', icon: '⚖️' };
+    if (level === 3) return { name: '皇家珍寶典當閣', desc: '高價回收各階神兵，定期陳列古代修道院與黑市流出的稀有飾品', icon: '⚖️' };
+    return { name: '頂級典當商行', desc: '信譽卓著的頂級二手軍備商行', icon: '⚖️' };
   } else if (type === 'forge') {
     if (level === 1) return { name: '初級鍛造屋', desc: '最基礎的高溫火窯與鐵砧，提供裝備強化與基礎合成', icon: '⚒️' };
     if (level === 2) return { name: '進階鍛造屋', desc: '擁有精良熔爐與淬火池，支援高階裝備鍛造與元素附魔', icon: '⚒️' };

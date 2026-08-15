@@ -38,9 +38,12 @@
 *   **爆擊率 (CRIT %)** = `5% + ⌊(HIT / 500) * 100⌋%` *(弓箭手與雙匕首享職業/武器額外加成)*
 *   **爆擊傷害 (CRIT DMG %)** = `150%` *(神射手/戰弓特化為 200%)*
 
-### 戰鬥力估算 (Power)
-*   **綜合戰鬥力** = `STR + AGI + CON + INT + SPR + LUK` 
-    *(不含裝備戰鬥屬性，僅反映角色肉體素質的簡單加總)*
+### 大一統戰力估算 (Universal Combat Power)
+*   **大一統戰鬥力公式**：
+    $$\text{Power} = \text{有效攻擊} + \lfloor\text{平均防禦} \times 0.6\rfloor + \lfloor\text{最大 HP} \times 0.2\rfloor + \lfloor\text{最大 MP} \times 0.1\rfloor + \lfloor\text{出手速度} \times 0.5\rfloor$$
+    *   **有效攻擊**：$\max(\text{PATK}, \text{MATK}, \lfloor\frac{\text{PATK} + \text{MATK}}{2}\rfloor)$
+    *   **平均防禦**：$\lfloor\frac{\text{PDEF} + \text{MDEF}}{2}\rfloor$
+    *(傭兵與怪物 100% 共用此客觀實戰計分公式，達成戰力 60 vs 60 旗鼓相當)*
 
 ---
 

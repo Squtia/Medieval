@@ -147,8 +147,10 @@ export function calculateSkillDamage(
     if (damageType === DamageType.PHYSICAL) finalDamage *= 0.9;
   }
 
-  // 5. 元素相剋運算 (根據施放者/武器與目標元素)
-  const elemMult = getElementalMultiplier(caster.element, target.element);
+  // 5. 元素相剋運算 (根據攻擊方武器元素 atkElement 與防守方防具元素 defElement)
+  const atkElem = caster.atkElement ?? caster.element;
+  const defElem = target.defElement ?? target.element;
+  const elemMult = getElementalMultiplier(atkElem, defElem);
   finalDamage = Math.max(1, Math.floor(finalDamage * elemMult));
 
   finalDamage = Math.floor(finalDamage * (0.9 + Random.next() * 0.2));

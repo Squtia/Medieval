@@ -8,7 +8,8 @@
 /
 ├── .agents/                 # AI 行為準則與客製化設定
 ├── docs/                    # 開發日誌、交接、未來擴充藍圖與架構文件
-│   ├── FUTURE_DESIGN.md     # [核心藍圖] 未來 7 大系統擴充規範與程式碼引用總覽
+│   ├── FEUDAL_AND_TERRITORY_SYSTEM.md # [核心手冊] 封建爵位、領地規模、繁榮度與內政建築權威規範
+│   ├── FUTURE_DESIGN.md     # [核心藍圖] 未來系統擴充規範與程式碼引用總覽
 ├── src/
 │   ├── core/                # 核心驅動引擎
 │   │   ├── EventBus.ts      # [核心] 全局事件總線

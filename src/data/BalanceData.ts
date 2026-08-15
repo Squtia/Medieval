@@ -3,9 +3,9 @@ import { MapNode, NodeLevel } from '../models/types';
 
 export const PROSPERITY_THRESHOLDS: Readonly<Record<NodeLevel, number>> = {
   [NodeLevel.WILDERNESS]: 0,
-  [NodeLevel.CAMP]: 40,
-  [NodeLevel.VILLAGE]: 200,
-  [NodeLevel.TOWN]: 1000,
+  [NodeLevel.CAMP]: 100,
+  [NodeLevel.VILLAGE]: 250,
+  [NodeLevel.TOWN]: 1200,
   [NodeLevel.CAPITAL]: 5000
 };
 

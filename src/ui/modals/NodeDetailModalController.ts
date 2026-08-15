@@ -86,8 +86,22 @@ export class NodeDetailModalController {
         if (node.scoutData.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0) {
           garrisonBox.style.display = 'block';
           const names = node.scoutData.garrisonEncounter.map(m => m.name).join('、');
-          const elemInfo = node.scoutData.mainElements && node.scoutData.mainElements.length > 0 ? ` | ⚡元素: ${node.scoutData.mainElements.join('/')}` : '';
-          const affixInfo = node.scoutData.affix ? ` | ☠️詞綴: ${node.scoutData.affix}` : '';
+          
+          const elemMap: Record<string, string> = {
+            'NONE': '無屬性', 'FIRE': '🔥火焰', 'ICE': '❄️冰霜', 'LIGHTNING': '⚡雷電', 'HOLY': '☀️聖光', 'DARK': '🌑黑暗'
+          };
+          const affixMap: Record<string, string> = {
+            'MIASMA': '瘴氣之森 (持續中毒)',
+            'VOLCANIC_HEAT': '灼熱熔岩 (持續灼燒)',
+            'BLIZZARD': '極寒暴雪 (速度降低)',
+            'FORTIFIED': '堅不可摧 (護甲提升)',
+            'BERSERK_AURA': '狂暴光環 (攻擊提升)'
+          };
+
+          const filteredElems = (node.scoutData.mainElements || []).filter(e => e !== 'NONE');
+          const elemDisplay = filteredElems.length > 0 ? filteredElems.map(e => elemMap[e] || e).join('/') : '無屬性';
+          const elemInfo = ` | ⚡元素: ${elemDisplay}`;
+          const affixInfo = node.scoutData.affix ? ` | ☠️詞綴: ${affixMap[node.scoutData.affix] || node.scoutData.affix}` : '';
           const roundedPower = Math.round(node.scoutData.garrisonPower || 0);
           document.getElementById('nd-garrison')!.textContent = `【${names}】(戰力:${roundedPower})${elemInfo}${affixInfo}`;
         } else if (node.scoutData.garrisonPower !== undefined) {
@@ -148,7 +162,7 @@ export class NodeDetailModalController {
     const roadButton = oldRoadButton.cloneNode(true) as HTMLButtonElement;
     oldRoadButton.parentNode!.replaceChild(roadButton, oldRoadButton);
     const playerBase = GameState.mapSystem.getNodes().find(candidate => candidate.isPlayerBase);
-    const isNonPlayerTarget = !node.isPlayerBase && node.ownerFactionId !== 'player';
+    const isNonPlayerTarget = !node.isPlayerBase && node.ownerFactionId !== 'player' && !node.isDynamic;
   
     if (isNonPlayerTarget && playerBase && GameState.roadSystem) {
       roadButton.style.display = 'block';

@@ -47,7 +47,9 @@ export interface CombatParticipant {
   skills?: string[]; // 可使用的技能 ID 列表
   isAdvanced?: boolean; // 轉職開關狀態
   cooldowns?: Record<string, number>; // 技能 CD 狀態
-  element?: import('./types').ElementType; // 單位/武器攜帶的元素
+  element?: import('./types').ElementType; // 相容用總元素
+  atkElement?: import('./types').ElementType; // 攻擊元素 (來自武器或怪物原生)
+  defElement?: import('./types').ElementType; // 防禦元素 (來自防具或怪物原生)
   isMagicalAttacker?: boolean; // 是否為法系攻擊者 (普攻造成魔法傷害)
 
   // 動態戰利品 (供怪獸使用)

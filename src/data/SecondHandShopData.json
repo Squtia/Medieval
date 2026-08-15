@@ -1,0 +1,79 @@
+{
+  "resaleMultiplier": 0.5,
+  "refreshIntervalDays": 3,
+  "dailyStockCount": 4,
+  "accessories": [
+    {
+      "id": "acc_brave_ring",
+      "name": "勇氣指環",
+      "icon": "💍",
+      "slot": "ACCESSORY",
+      "tier": 1,
+      "allowedJobs": [],
+      "basePrice": 350,
+      "baseEffects": { "str": 2, "con": 1 },
+      "baseCombatEffects": { "patk": 4, "hp": 20 },
+      "description": "鐫刻著猛獅圖騰的厚重銅戒，給予佩戴者不屈的勇氣。"
+    },
+    {
+      "id": "acc_wind_amulet",
+      "name": "風行者護符",
+      "icon": "🧿",
+      "slot": "ACCESSORY",
+      "tier": 1,
+      "allowedJobs": [],
+      "basePrice": 350,
+      "baseEffects": { "agi": 2, "luk": 1 },
+      "baseCombatEffects": { "hit": 4, "evade": 3 },
+      "description": "以風靈鳥羽毛編織的精緻護符，腳步如林間疾風般輕盈。"
+    },
+    {
+      "id": "acc_scholar_pendant",
+      "name": "學者智慧墜飾",
+      "icon": "📿",
+      "slot": "ACCESSORY",
+      "tier": 1,
+      "allowedJobs": [],
+      "basePrice": 400,
+      "baseEffects": { "int": 2, "spr": 1 },
+      "baseCombatEffects": { "matk": 5, "mp": 15 },
+      "description": "鑲嵌微型紫水晶的銀質吊墜，時刻保持心靈澄澈清明。"
+    },
+    {
+      "id": "acc_guardian_medal",
+      "name": "守護者青銅勳章",
+      "icon": "🎖️",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "allowedJobs": [],
+      "basePrice": 800,
+      "baseEffects": { "con": 3, "command": 2 },
+      "baseCombatEffects": { "pdef": 6, "mdef": 4, "hp": 40 },
+      "description": "王國退役老衛士流出的榮譽勳章，散發著沉穩的護衛氣息。"
+    },
+    {
+      "id": "acc_thief_band",
+      "name": "暗影夜行手鐲",
+      "icon": "💫",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "allowedJobs": [],
+      "basePrice": 850,
+      "baseEffects": { "agi": 3, "luk": 2 },
+      "baseCombatEffects": { "critRate": 5, "evade": 5, "patk": 4 },
+      "description": "黑市流通的漆黑手鐲，能在月光下隱匿身影與行蹤。"
+    },
+    {
+      "id": "acc_holy_relic_cross",
+      "name": "神聖救贖十字",
+      "icon": "✝️",
+      "slot": "ACCESSORY",
+      "tier": 3,
+      "allowedJobs": [],
+      "basePrice": 1600,
+      "baseEffects": { "spr": 4, "con": 2, "charm": 2 },
+      "baseCombatEffects": { "mdef": 10, "mp": 30, "hp": 50 },
+      "description": "古老修道院典藏之神聖遺物，受聖光長久庇佑。"
+    }
+  ]
+}

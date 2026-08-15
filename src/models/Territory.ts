@@ -61,6 +61,12 @@ export class Territory {
   public forgeLevel: number;
   public defenseLevel: number;
 
+  // 四大基礎生產設施等級 (預設 Lv.1)
+  public farmlandLevel: number = 1;
+  public lumberMillLevel: number = 1;
+  public quarryLevel: number = 1;
+  public huntingGroundLevel: number = 1;
+
   // 自宅探索招募進度與保底狀態
   public exploreCount: number;
   public hasRecruitedFromFirstExplorations: boolean;
@@ -143,12 +149,41 @@ export class Territory {
     return this.forgeLevel || 0;
   }
 
+  public getFacilityLevel(type: 'farmland' | 'lumberMill' | 'quarry' | 'huntingGround'): number {
+    if (type === 'farmland') return this.farmlandLevel || 1;
+    if (type === 'lumberMill') return this.lumberMillLevel || 1;
+    if (type === 'quarry') return this.quarryLevel || 1;
+    return this.huntingGroundLevel || 1;
+  }
+
+  public getFacilityMultiplier(type: 'farmland' | 'lumberMill' | 'quarry' | 'huntingGround'): number {
+    const lvl = this.getFacilityLevel(type);
+    // Lv.1: 1.0x, Lv.2: 1.5x, Lv.3: 2.0x, Lv.4: 2.5x, Lv.5: 3.0x
+    return 1.0 + (lvl - 1) * 0.5;
+  }
+
+  public getFacilityUpgradeCost(type: 'farmland' | 'lumberMill' | 'quarry' | 'huntingGround', nextLevel: number) {
+    if (nextLevel === 2) return { gold: 100, wood: 30, stone: 15, iron: 0 };
+    if (nextLevel === 3) return { gold: 300, wood: 80, stone: 50, iron: 0 };
+    if (nextLevel === 4) return { gold: 800, wood: 200, stone: 120, iron: 10 };
+    return { gold: 2000, wood: 500, stone: 300, iron: 30 };
+  }
+
   public getBuildingProsperityBonus(): number {
-    // 每個等級提供永久繁榮度加成
+    // 城鎮 5 棟建築：Lv.1=10, Lv.2=25, Lv.3=45, Lv.4=70, Lv.5=100
     const calcBonus = (lvl: number) => {
       let bonus = 0;
       for (let i = 1; i <= lvl; i++) {
-        bonus += (i === 1) ? 10 : (i === 2) ? 15 : 20; // Lv1=10, Lv2=10+15=25, Lv3=25+20=45...
+        bonus += (i === 1) ? 10 : (i === 2) ? 15 : (i === 3) ? 20 : (i === 4) ? 25 : 30;
+      }
+      return bonus;
+    };
+
+    // 四大生產設施：Lv.1=0 (初始基礎), Lv.2=10, Lv.3=25, Lv.4=45, Lv.5=70
+    const calcFacilityBonus = (lvl: number) => {
+      let bonus = 0;
+      for (let i = 2; i <= lvl; i++) {
+        bonus += (i === 2) ? 10 : (i === 3) ? 15 : (i === 4) ? 20 : (i === 5) ? 25 : 30;
       }
       return bonus;
     };
@@ -157,7 +192,21 @@ export class Territory {
            calcBonus(this.getBuildingLevel('weapon')) +
            calcBonus(this.getBuildingLevel('armor')) +
            calcBonus(this.getBuildingLevel('forge')) +
-           calcBonus(this.getBuildingLevel('defense'));
+           calcBonus(this.getBuildingLevel('defense')) +
+           calcFacilityBonus(this.getFacilityLevel('farmland')) +
+           calcFacilityBonus(this.getFacilityLevel('lumberMill')) +
+           calcFacilityBonus(this.getFacilityLevel('quarry')) +
+           calcFacilityBonus(this.getFacilityLevel('huntingGround'));
+  }
+
+  public getRealtimeProsperity(roadCount: number = 0, vassalCount: number = 0, hasAdjacentDanger: boolean = false): number {
+    const popScore = this.population;
+    const bldScore = this.getBuildingProsperityBonus();
+    const roadScore = roadCount * 25;
+    const vassalScore = vassalCount * 100;
+    const dangerPenalty = hasAdjacentDanger ? 20 : 0;
+
+    return Math.max(0, popScore + bldScore + roadScore + vassalScore - dangerPenalty);
   }
 
   public getUpgradeCost(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nextLevel: number) {

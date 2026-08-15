@@ -81,6 +81,105 @@ export function getEquipTooltipHtml(eq: any): string {
   `;
 }
 
+/**
+ * 渲染單張裝備卡片內容 (用於雙欄對比 Tooltip)
+ */
+export function renderSingleEquipCardHtml(eq: any, headerTitle: string, isCurrent: boolean): string {
+  if (!eq) {
+    return `
+      <div style="width:215px; min-width:215px; box-sizing:border-box; background:rgba(0,0,0,0.45); border:1px dashed rgba(255,255,255,0.2); border-radius:6px; padding:10px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+        <div style="font-weight:bold; color:#94a3b8; font-size:0.88em; margin-bottom:8px;">${headerTitle}</div>
+        <div style="color:#64748b; font-size:0.82em; font-style:italic;">(未穿戴任何裝備)</div>
+      </div>
+    `;
+  }
+
+  const name = eq.name || '未知裝備';
+  const lvl = eq.enhancementLevel ? ` +${eq.enhancementLevel}` : '';
+  const tier = eq.tier ? ` (T${eq.tier})` : '';
+  const jobs = eq.allowedJobs ? eq.allowedJobs.join('/') : '通用';
+  const elemBadge = getElementBadge(eq.element);
+  const statsStr = formatStatsTags(eq.combatEffects || eq.baseCombatEffects, eq.effects || eq.baseEffects);
+  const iconHtml = renderEquipIcon(eq, 24);
+  const headerColor = isCurrent ? '#94a3b8' : '#38bdf8';
+  const borderColor = isCurrent ? 'rgba(148, 163, 184, 0.3)' : 'rgba(56, 189, 248, 0.4)';
+
+  return `
+    <div style="width:215px; min-width:215px; box-sizing:border-box; background:rgba(0,0,0,0.5); border:1px solid ${borderColor}; border-radius:6px; padding:8px 10px; display:flex; flex-direction:column; gap:4px; text-align:left;">
+      <div style="font-size:0.78em; font-weight:bold; color:${headerColor}; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:3px; display:flex; justify-content:space-between; align-items:center;">
+        <span>${headerTitle}</span>
+        <span style="font-size:0.9em;">${elemBadge}</span>
+      </div>
+      <div style="font-weight:bold; color:#eab308; font-size:0.92em; display:flex; align-items:center; gap:5px; margin-top:2px;">
+        ${iconHtml} <span style="line-height:1.2;">${name}${lvl}${tier}</span>
+      </div>
+      <div style="font-size:0.74em; color:#94a3b8;">
+        職業：${jobs}
+      </div>
+      <div style="font-size:0.78em; color:#cbd5e1; background:rgba(0,0,0,0.4); padding:5px 6px; border-radius:4px; margin-top:2px;">
+        <strong style="color:#fbbf24;">戰鬥效果：</strong><br/>${statsStr}
+      </div>
+      <div style="font-size:0.78em; color:#fbbf24; background:rgba(0,0,0,0.4); padding:5px 6px; border-radius:4px; margin-top:2px;">
+        <strong style="color:#fbbf24;">武器屬性：</strong><br/>${formatScalingTags(eq.scaling)}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 取得傭兵裝備雙欄比較 Tooltip HTML (支援戰力變動預覽)
+ */
+export function getEquipComparisonTooltipHtml(adv: any, slotKey: any, targetEq: any): string {
+  if (!adv || !targetEq) {
+    return getEquipTooltipHtml(targetEq);
+  }
+
+  const currentEq = adv.equipment ? adv.equipment[slotKey] : null;
+  const currentPower = typeof adv.getPower === 'function' ? adv.getPower() : (adv.power || 0);
+
+  // 暫存並模擬置換裝備計算新戰力
+  let newPower = currentPower;
+  if (adv.equipment && typeof adv.getPower === 'function') {
+    const savedEq = adv.equipment[slotKey];
+    adv.equipment[slotKey] = targetEq;
+    newPower = adv.getPower();
+    adv.equipment[slotKey] = savedEq;
+  }
+
+  const powerDiff = newPower - currentPower;
+  let powerDiffBadge = '';
+  if (powerDiff > 0) {
+    powerDiffBadge = `<span style="color:#22c55e; font-weight:bold;">(+${powerDiff} 戰力提升 🟢)</span>`;
+  } else if (powerDiff < 0) {
+    powerDiffBadge = `<span style="color:#ef4444; font-weight:bold;">(${powerDiff} 戰力下降 🔴)</span>`;
+  } else {
+    powerDiffBadge = `<span style="color:#94a3b8; font-weight:bold;">(戰力持平 ⚪)</span>`;
+  }
+
+  const leftCardHtml = renderSingleEquipCardHtml(currentEq, '🛡️【當前穿戴】', true);
+  const rightCardHtml = renderSingleEquipCardHtml(targetEq, '✨【選中裝備】', false);
+
+  return `
+    <div style="display:flex; flex-direction:column; width:440px; box-sizing:border-box; line-height:1.35; font-family:sans-serif;">
+      <!-- 頂部：傭兵與戰力預覽條 -->
+      <div style="width:100%; box-sizing:border-box; background:rgba(0,0,0,0.65); padding:6px 10px; border-radius:6px; margin-bottom:6px; border:1px solid rgba(217,119,6,0.35); text-align:center;">
+        <div style="font-weight:bold; color:#f8fafc; font-size:0.9em;">
+          👤 ${adv.name} <span style="color:#94a3b8; font-size:0.85em;">(Lv.${adv.level} ${adv.job?.name || ''})</span>
+        </div>
+        <div style="font-size:0.84em; margin-top:2px;">
+          戰力評估：<span style="color:#cbd5e1;">${currentPower}</span> ➔ <span style="color:${powerDiff >= 0 ? '#22c55e' : '#ef4444'}; font-weight:bold;">${newPower}</span> ${powerDiffBadge}
+        </div>
+      </div>
+
+      <!-- 中段：雙欄並排對比 (左: 當前穿戴, 右: 選中目標) -->
+      <div style="display:flex; gap:8px; justify-content:center; align-items:stretch; width:100%; box-sizing:border-box;">
+        ${leftCardHtml}
+        ${rightCardHtml}
+      </div>
+    </div>
+  `;
+}
+
 // === 鍛造屋主視圖全功能實作 (對齊領主書房與傭兵小隊 3 欄網格) ===
 
 
@@ -96,28 +195,28 @@ export function formatScalingTags(scaling?: any): string {
      for(const [attr, tier] of Object.entries(scaling.patk)) {
         let color = '#ef4444'; // 紅色
         if (tier === 'S' || tier === 'A') color = '#facc15'; // 黃色
-        parts.push(`<span style="color:${color}; font-weight:bold;">⚔️${attr.toUpperCase()}(${tier})</span>`);
+        parts.push(`<span style="display:inline-block; white-space:nowrap; color:${color}; font-weight:bold; margin:1px 1px;">⚔️${attr.toUpperCase()}(${tier})</span>`);
      }
   }
   if (scaling.matk) {
      for(const [attr, tier] of Object.entries(scaling.matk)) {
         let color = '#3b82f6';
         if (tier === 'S' || tier === 'A') color = '#facc15';
-        parts.push(`<span style="color:${color}; font-weight:bold;">🔮${attr.toUpperCase()}(${tier})</span>`);
+        parts.push(`<span style="display:inline-block; white-space:nowrap; color:${color}; font-weight:bold; margin:1px 1px;">🔮${attr.toUpperCase()}(${tier})</span>`);
      }
   }
   if (scaling.pdef) {
      for(const [attr, tier] of Object.entries(scaling.pdef)) {
         let color = '#10b981';
         if (tier === 'S' || tier === 'A') color = '#facc15';
-        parts.push(`<span style="color:${color}; font-weight:bold;">🛡️${attr.toUpperCase()}(${tier})</span>`);
+        parts.push(`<span style="display:inline-block; white-space:nowrap; color:${color}; font-weight:bold; margin:1px 1px;">🛡️${attr.toUpperCase()}(${tier})</span>`);
      }
   }
   if (scaling.mdef) {
      for(const [attr, tier] of Object.entries(scaling.mdef)) {
         let color = '#8b5cf6';
         if (tier === 'S' || tier === 'A') color = '#facc15';
-        parts.push(`<span style="color:${color}; font-weight:bold;">✨${attr.toUpperCase()}(${tier})</span>`);
+        parts.push(`<span style="display:inline-block; white-space:nowrap; color:${color}; font-weight:bold; margin:1px 1px;">✨${attr.toUpperCase()}(${tier})</span>`);
      }
   }
   return parts.length > 0 ? parts.join(' | ') : '<span style="color:#64748b;">(無特殊屬性)</span>';
@@ -131,18 +230,18 @@ export function formatStatsTags(cb?: Partial<CombatStats>, eff?: any): string {
   if (!cb) cb = {};
   if (!eff) eff = {};
 
-  if (cb.patk) parts.push(`<span style="color:#ef4444; font-weight:bold;">⚔️物攻+${cb.patk}</span>`);
-  if (cb.matk) parts.push(`<span style="color:#3b82f6; font-weight:bold;">🔮魔攻+${cb.matk}</span>`);
-  if (cb.pdef) parts.push(`<span style="color:#10b981; font-weight:bold;">🛡️物防+${cb.pdef}</span>`);
-  if (cb.mdef) parts.push(`<span style="color:#8b5cf6; font-weight:bold;">✨魔防+${cb.mdef}</span>`);
-  if (cb.hit) parts.push(`<span style="color:#f59e0b;">🎯命中+${cb.hit}</span>`);
-  if (cb.evade) parts.push(`<span style="color:#06b6d4;">🌀閃避+${cb.evade}</span>`);
-  if (cb.hp) parts.push(`<span style="color:#ec4899;">❤️HP+${cb.hp}</span>`);
-  if (cb.mp) parts.push(`<span style="color:#6366f1;">💧MP+${cb.mp}</span>`);
-  if (cb.critRate) parts.push(`<span style="color:#f97316;">💥爆擊+${cb.critRate}%</span>`);
+  if (cb.patk) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#ef4444; font-weight:bold;">⚔️物攻+${cb.patk}</span>`);
+  if (cb.matk) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#3b82f6; font-weight:bold;">🔮魔攻+${cb.matk}</span>`);
+  if (cb.pdef) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#10b981; font-weight:bold;">🛡️物防+${cb.pdef}</span>`);
+  if (cb.mdef) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#8b5cf6; font-weight:bold;">✨魔防+${cb.mdef}</span>`);
+  if (cb.hit) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#f59e0b;">🎯命中+${cb.hit}</span>`);
+  if (cb.evade) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#06b6d4;">🌀閃避+${cb.evade}</span>`);
+  if (cb.hp) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#ec4899;">❤️HP+${cb.hp}</span>`);
+  if (cb.mp) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#6366f1;">💧MP+${cb.mp}</span>`);
+  if (cb.critRate) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#f97316;">💥爆擊+${cb.critRate}%</span>`);
 
   for (const [k, v] of Object.entries(eff)) {
-    if (v) parts.push(`<span style="color:#e2e8f0;">${k.toUpperCase()}+${v}</span>`);
+    if (v) parts.push(`<span style="display:inline-block; white-space:nowrap; color:#e2e8f0;">${k.toUpperCase()}+${v}</span>`);
   }
 
   return parts.join(' | ') || '無加成';

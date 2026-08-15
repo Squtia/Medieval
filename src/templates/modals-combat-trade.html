@@ -1,4 +1,4 @@
-﻿
+
   <!-- 戰鬥結算 Modal -->
   <div id="combat-modal">
     <div id="combat-stage" class="combat-stage">
@@ -23,53 +23,99 @@
       <p id="combat-result-desc" style="font-size: 1.2em; margin-bottom: 30px;"></p>
       <button id="btn-combat-result-close" class="action-btn" style="background: #10b981; font-size: 1.2em;">返回</button>
     </div>
-    </div>
   </div>
 
   <!-- 歷史戰鬥紀錄已移至左側抽屜面板 (#combat-history-panel)，見下方 -->
 
-  <!-- 商隊預設指令面板 -->
+  <!-- 精準單線跑商面板 -->
   <div id="modal-trade-planner" class="modal-overlay" style="display: none; z-index: 2100;">
-    <div class="modal-content" style="max-width: 800px; text-align: left;">
-      <h2 id="trade-planner-title">📜 商隊指令面板</h2>
-      <p>請為各個中途站設定預設買賣指令，並分配商隊本金與護衛。</p>
+    <div class="modal-content" style="width: 960px; max-width: 95vw; height: 86vh; max-height: 720px; text-align: left; background: rgba(18, 14, 11, 0.96); border: 1px solid rgba(217, 119, 6, 0.45); border-radius: 10px; padding: 20px; box-shadow: 0 12px 36px rgba(0,0,0,0.85); display: flex; flex-direction: column;">
       
-      <div id="trade-planner-nodes" style="max-height: 350px; overflow-y: auto; margin-bottom: 20px; background: rgba(0,0,0,0.3); padding: 10px;">
-        <!-- 動態生成各節點設定 -->
+      <!-- 頂部標題列 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(217, 119, 6, 0.3); padding-bottom: 10px; margin-bottom: 12px; flex-shrink: 0;">
+        <h2 id="trade-planner-title" style="margin: 0; color: #fbbf24; font-size: 1.4em;">🐎 單線商隊派遣</h2>
+        <div id="trade-planner-route-info" style="font-size: 0.9em; color: #38bdf8; font-weight: 500;"></div>
       </div>
       
-      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 8px;">
-        <div style="display: flex; gap: 20px; align-items: center;">
-          <div style="flex: 1;">
-            <label>💰 投入商隊本金：</label>
-            <input type="number" id="trade-planner-gold" value="500" style="width: 100px; padding: 5px;" min="0">
+      <!-- 左右分欄主體區 -->
+      <div style="display: flex; gap: 18px; flex: 1; min-height: 0;">
+        
+        <!-- 左欄：護衛傭兵池 (與討伐編制一致風格) -->
+        <div style="width: 320px; display: flex; flex-direction: column; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 12px; min-height: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-shrink: 0;">
+            <strong style="color: #cbd5e1; font-size: 0.95em;">👥 護衛傭兵池</strong>
+            <span id="trade-planner-adv-count" style="font-size: 0.82em; color: #fbbf24; font-weight: bold;">(已選 0 / 5 人)</span>
           </div>
-          <div style="flex: 1;">
-            <p id="trade-planner-capacity" style="color: #eab308; font-weight: bold; margin: 0;">商隊最大載重量: 0</p>
+          
+          <!-- 傭兵卡片滾動區 -->
+          <div id="trade-planner-adv-list" style="flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 8px;">
+            <!-- JS 動態生成傭兵卡片 -->
           </div>
-        </div>
-        <div style="display: flex; gap: 20px; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-          <div style="flex: 1;">
-            <p id="trade-planner-expected-cost" style="color: #3b82f6; font-weight: bold; margin: 0;">預計買入總金額: 0 金幣</p>
-          </div>
-          <div style="flex: 1;">
-            <p id="trade-planner-expected-weight" style="color: #10b981; font-weight: bold; margin: 0;">預計買入總重量: 0</p>
-          </div>
-        </div>
-        <div style="display: flex; gap: 20px; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
-          <div style="flex: 1;">
-            <p id="trade-planner-expected-days" style="color: #60a5fa; font-weight: bold; margin: 0;">預計旅途天數: 0 天 (返程依距離計)</p>
-          </div>
-        </div>
-      </div>
 
-      <div id="trade-planner-adv-list" class="adventurer-list" style="max-height: 150px; margin-bottom: 20px;">
-         <!-- 傭兵清單 -->
+          <!-- 左側底部：護衛隊伍能力總覽 -->
+          <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; display: flex; flex-direction: column; gap: 4px; font-size: 0.82em;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #94a3b8;">🛡️ 護衛總戰力：</span>
+              <span id="trade-planner-total-power" style="color: #fbbf24; font-weight: bold;">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #94a3b8;">📦 商隊載重上限：</span>
+              <span id="trade-planner-capacity" style="color: #34d399; font-weight: bold;">0 單位</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: #94a3b8;">💬 總議價率加成：</span>
+              <span id="trade-planner-negotiation" style="color: #38bdf8; font-weight: bold;">+0.0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右欄：寬廣商貿操作區 -->
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-right: 4px;">
+          
+          <!-- 區塊 1: 出發載貨 (賣貨變現) -->
+          <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <strong style="color: #fbbf24; font-size: 1em;">📦 1. 出發載貨 (將領地倉庫特產運去目標城變現)</strong>
+              <span id="trade-planner-sell-summary" style="font-size: 0.85em; color: #34d399; font-weight: bold;">載重 0 單位 | 預計收益: +0G</span>
+            </div>
+            <div id="trade-planner-cargo-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto; padding-right: 4px;">
+              <!-- 動態生成領地特產裝載列 (支援手打與快捷按鈕) -->
+            </div>
+          </div>
+
+          <!-- 區塊 2: 目標城採購 (帶錢買入) -->
+          <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 14px;">
+            <strong style="color: #fbbf24; font-size: 1em; display: block; margin-bottom: 10px;">🛒 2. 目標城採購 (投入本金買特產運回領地倉庫)</strong>
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 170px;">
+                <label style="font-size: 0.82em; color: #cbd5e1; display: block; margin-bottom: 4px;">💰 投入採購本金 (未花完全數帶回)：</label>
+                <input type="number" id="trade-planner-gold" value="300" style="width: 100%; padding: 6px 10px; background: rgba(0,0,0,0.6); border: 1px solid rgba(217, 119, 6, 0.4); color: #fbbf24; border-radius: 4px; font-weight: bold;" min="0">
+              </div>
+              <div style="flex: 1.5; min-width: 220px;">
+                <label style="font-size: 0.82em; color: #cbd5e1; display: block; margin-bottom: 4px;">🎯 採購目標特產：</label>
+                <select id="trade-planner-buy-select" style="width: 100%; padding: 6px; background: rgba(0,0,0,0.6); border: 1px solid rgba(217, 119, 6, 0.4); color: #e2e8f0; border-radius: 4px;"></select>
+              </div>
+              <div style="width: 120px;">
+                <label style="font-size: 0.82em; color: #cbd5e1; display: block; margin-bottom: 4px;">採購數量：</label>
+                <input type="number" id="trade-planner-buy-amount" value="10" style="width: 100%; padding: 6px; background: rgba(0,0,0,0.6); border: 1px solid rgba(217, 119, 6, 0.4); color: #e2e8f0; border-radius: 4px; font-weight: bold;" min="0">
+              </div>
+            </div>
+            <div id="trade-planner-buy-summary" style="font-size: 0.82em; color: #94a3b8; margin-top: 8px;"></div>
+          </div>
+
+          <!-- 區塊 3: 旅程與收支結算明細 -->
+          <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.25); border-radius: 6px; padding: 10px 14px; font-size: 0.86em; margin-top: auto;">
+            <span id="trade-planner-expected-days" style="color: #60a5fa;">預計往返旅程：0 天</span>
+            <span id="trade-planner-profit-preview" style="color: #34d399; font-weight: bold;">💰 預計結算損益：+0 金幣</span>
+          </div>
+
+        </div>
       </div>
       
-      <div style="display: flex; gap: 15px;">
-        <button id="btn-start-caravan" class="action-btn" style="background: #10b981; flex: 1;">出發！</button>
-        <button id="btn-close-trade-planner" class="action-btn" style="background: #b91c1c; flex: 1;">取消</button>
+      <!-- 底部操作按鈕列 -->
+      <div style="display: flex; gap: 14px; margin-top: 14px; flex-shrink: 0;">
+        <button id="btn-start-caravan" class="action-btn" style="background: linear-gradient(135deg, #10b981, #059669); flex: 1.5; padding: 12px; font-size: 1.05em; font-weight: bold; letter-spacing: 1px;">🚀 出發派遣商隊！</button>
+        <button id="btn-close-trade-planner" class="action-btn" style="background: #475569; flex: 1; padding: 12px; font-size: 1.05em;">取消</button>
       </div>
     </div>
   </div>
@@ -82,12 +128,12 @@
         <!-- 本地庫存 -->
         <div style="flex: 1; border: 1px solid rgba(139, 69, 19, 0.5); padding: 15px; background: rgba(0,0,0,0.5);">
           <h3 style="margin-top: 0;">領地物資</h3>
-          <div id="trade-inventory" style="max-height: 300px; overflow-y: auto;"></div>
+          <div id="player-trade-inventory" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
         <!-- 當地市場 -->
         <div style="flex: 1; border: 1px solid rgba(139, 69, 19, 0.5); padding: 15px; background: rgba(0,0,0,0.5);">
           <h3 style="margin-top: 0;">市場商品</h3>
-          <div id="trade-market" style="max-height: 300px; overflow-y: auto;"></div>
+          <div id="target-market-goods" style="max-height: 300px; overflow-y: auto;"></div>
         </div>
       </div>
       

@@ -1,0 +1,80 @@
+[
+  {
+    "id": "mod_sharpen_str",
+    "name": "鋒刃精磨",
+    "icon": "🗡️",
+    "category": "ATTRIBUTE",
+    "targetSlots": ["WEAPON"],
+    "bonusEffects": { "str": 1 },
+    "bonusCombatEffects": { "patk": 2 },
+    "requiredMaterials": { "mat_whetstone": 2, "mat_iron_ingot": 1 },
+    "goldCost": 150,
+    "maxModCount": 3,
+    "description": "透過精細打磨強化受力刀刃，提升 +1 力量與 +2 物理攻擊力。"
+  },
+  {
+    "id": "mod_lightweight_agi",
+    "name": "輕量化配重",
+    "icon": "💨",
+    "category": "ATTRIBUTE",
+    "targetSlots": ["WEAPON", "ARMOR"],
+    "bonusEffects": { "agi": 1 },
+    "bonusCombatEffects": { "hit": 2, "evade": 2 },
+    "requiredMaterials": { "mat_leather": 2, "mat_wood_plank": 1 },
+    "goldCost": 150,
+    "maxModCount": 3,
+    "description": "削去非必要多餘負重，提升 +1 敏捷以及命中與閃避各 +2。"
+  },
+  {
+    "id": "mod_reinforce_con",
+    "name": "淬火厚甲重鑄",
+    "icon": "🛡️",
+    "category": "ATTRIBUTE",
+    "targetSlots": ["ARMOR"],
+    "bonusEffects": { "con": 1 },
+    "bonusCombatEffects": { "pdef": 3, "hp": 15 },
+    "requiredMaterials": { "mat_steel_ingot": 1, "mat_stone_brick": 1 },
+    "goldCost": 200,
+    "maxModCount": 3,
+    "description": "對護甲受創弱點進行高溫加固，提升 +1 體質、+3 物理防禦與 +15 生命值。"
+  },
+  {
+    "id": "mod_rune_engraving_int",
+    "name": "魔導符文雕刻",
+    "icon": "🔮",
+    "category": "ATTRIBUTE",
+    "targetSlots": ["WEAPON", "ACCESSORY"],
+    "bonusEffects": { "int": 1 },
+    "bonusCombatEffects": { "matk": 3, "mp": 5 },
+    "requiredMaterials": { "mat_cloth": 2, "tg_ice_crystal": 1 },
+    "goldCost": 200,
+    "maxModCount": 3,
+    "description": "在器物內部雕琢導魔迴路，提升 +1 智慧、+3 魔法攻擊力與 +5 魔力上限。"
+  },
+  {
+    "id": "mod_holy_blessing_spr",
+    "name": "聖泉祝聖祈禮",
+    "icon": "✨",
+    "category": "ATTRIBUTE",
+    "targetSlots": ["WEAPON", "ARMOR", "ACCESSORY"],
+    "bonusEffects": { "spr": 1 },
+    "bonusCombatEffects": { "mdef": 3, "mp": 10 },
+    "requiredMaterials": { "mat_holy_water": 1, "tg_silk": 1 },
+    "goldCost": 250,
+    "maxModCount": 3,
+    "description": "浸入受祝聖泉並附著聖言絲綢，提升 +1 精神、+3 魔法防禦與 +10 魔力上限。"
+  },
+  {
+    "id": "mod_lucky_charm_luk",
+    "name": "幸運秘銀鍍層",
+    "icon": "🍀",
+    "category": "ATTRIBUTE",
+    "targetSlots": ["WEAPON", "ARMOR", "ACCESSORY"],
+    "bonusEffects": { "luk": 1 },
+    "bonusCombatEffects": { "critRate": 2, "evade": 1 },
+    "requiredMaterials": { "mat_gold_ingot": 1, "mat_whetstone": 1 },
+    "goldCost": 250,
+    "maxModCount": 3,
+    "description": "以黃金粉末與秘銀鍍上幸運紋章，提升 +1 幸運、+2% 暴擊率與 +1 閃避。"
+  }
+]

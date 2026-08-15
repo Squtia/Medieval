@@ -133,19 +133,24 @@ export class TownManagementSystem {
       territory.prestige += Math.min(30, Math.floor(totalTroops / 10));
     }
     
-    // 1. 產出計算 (套用治安倍率)
+    // 1. 產出計算 (套用治安倍率與設施等級倍率)
+    const farmMult = territory.getFacilityMultiplier ? territory.getFacilityMultiplier('farmland') : 1.0;
+    const lumberMult = territory.getFacilityMultiplier ? territory.getFacilityMultiplier('lumberMill') : 1.0;
+    const quarryMult = territory.getFacilityMultiplier ? territory.getFacilityMultiplier('quarry') : 1.0;
+    const huntMult = territory.getFacilityMultiplier ? territory.getFacilityMultiplier('huntingGround') : 1.0;
+
     const farmerCount = workers[WorkerJob.FARMER] || 0;
-    const foodProduced = Math.floor((farmerCount * 3) * productionMultiplier);
+    const foodProduced = Math.floor((farmerCount * 3 * farmMult) * productionMultiplier);
     
     // 農夫有 30% 機率產出棉麻
     let cottonProduced = 0;
     for (let i = 0; i < farmerCount; i++) {
       if (Random.next() < 0.3) cottonProduced++;
     }
-    cottonProduced = Math.floor(cottonProduced * productionMultiplier);
+    cottonProduced = Math.floor(cottonProduced * farmMult * productionMultiplier);
 
-    const woodProduced = Math.floor(((workers[WorkerJob.WOODCUTTER] || 0) * 2) * productionMultiplier);
-    const stoneProduced = Math.floor(((workers[WorkerJob.MINER] || 0) * 1) * productionMultiplier);
+    const woodProduced = Math.floor(((workers[WorkerJob.WOODCUTTER] || 0) * 2 * lumberMult) * productionMultiplier);
+    const stoneProduced = Math.floor(((workers[WorkerJob.MINER] || 0) * 1 * quarryMult) * productionMultiplier);
     
     // 礦工有機率挖到鐵礦 (每個礦工獨立 20% 機率)
     let ironProduced = 0;
@@ -156,12 +161,12 @@ export class TownManagementSystem {
       }
     }
     // 鐵礦也套用倍率
-    ironProduced = Math.floor(ironProduced * productionMultiplier);
+    ironProduced = Math.floor(ironProduced * quarryMult * productionMultiplier);
     
     // 獵人產出生皮與獸肉
     const hunterCount = workers[WorkerJob.HUNTER] || 0;
-    const hideProduced = Math.floor((hunterCount * 1) * productionMultiplier);
-    const meatProduced = Math.floor((hunterCount * 1) * productionMultiplier);
+    const hideProduced = Math.floor((hunterCount * 1 * huntMult) * productionMultiplier);
+    const meatProduced = Math.floor((hunterCount * 1 * huntMult) * productionMultiplier);
 
     // 2. 消耗計算 (總人口每人耗 1 糧，英雄每人耗 1 糧)
     const totalPeople = territory.population + GameState.adventurers.length;

@@ -47,15 +47,15 @@ export function initFacilityController(): void {
   });
   
   document.getElementById('btn-enter-weapon-shop')?.addEventListener('click', async () => {
-    enterFacility('view-weapon-shop');
-    const { renderWeaponShop } = await import('./ShopController');
-    renderWeaponShop();
+    enterFacility('view-modification-workshop');
+    const { ModificationWorkshopController } = await import('./components/ModificationWorkshopController');
+    ModificationWorkshopController.render();
   });
 
   document.getElementById('btn-enter-armor-shop')?.addEventListener('click', async () => {
-    enterFacility('view-armor-shop');
-    const { renderArmorShop } = await import('./ShopController');
-    renderArmorShop();
+    enterFacility('view-secondhand-shop');
+    const { SecondHandShopController } = await import('./components/SecondHandShopController');
+    SecondHandShopController.render();
   });
 
   document.getElementById('btn-enter-forge')?.addEventListener('click', async () => {

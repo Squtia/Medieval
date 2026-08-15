@@ -13,9 +13,9 @@ describe('balance configuration', () => {
   it('uses one monotonic prosperity curve', () => {
     expect(PROSPERITY_THRESHOLDS).toEqual({
       [NodeLevel.WILDERNESS]: 0,
-      [NodeLevel.CAMP]: 40,
-      [NodeLevel.VILLAGE]: 200,
-      [NodeLevel.TOWN]: 1000,
+      [NodeLevel.CAMP]: 100,
+      [NodeLevel.VILLAGE]: 250,
+      [NodeLevel.TOWN]: 1200,
       [NodeLevel.CAPITAL]: 5000
     });
   });
@@ -42,7 +42,7 @@ describe('balance configuration', () => {
       getMonthlyProsperityGain(30, 0)
     );
     expect(villageToTownMonths).toBeGreaterThanOrEqual(12);
-    expect(villageToTownMonths).toBeLessThanOrEqual(18);
+    expect(villageToTownMonths).toBeLessThanOrEqual(24);
   });
 
   it('keeps difficulty modifiers ordered across the full campaign', () => {

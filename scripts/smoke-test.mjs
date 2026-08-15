@@ -330,6 +330,12 @@ async function main() {
     }
     console.log(`  💾 Save data successfully written to localStorage (${saveData.length} bytes).`);
 
+    const isMenuOpen = await page.evaluate(() => document.getElementById('modal-system-menu')?.classList.contains('active'));
+    if (!isMenuOpen) {
+      await page.click('#btn-system-menu', { force: true });
+      await page.waitForSelector('#modal-system-menu.active', { state: 'visible', timeout: 5000 });
+    }
+
     await page.click('#btn-exit-game');
     await page.waitForFunction(() =>
       document.getElementById('transition-overlay')?.classList.contains('active')

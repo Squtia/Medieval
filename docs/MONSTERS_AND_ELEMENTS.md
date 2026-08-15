@@ -88,9 +88,18 @@ $$\text{最終名稱} = [\text{元素前綴}] + [\text{種族質變前綴}] + \t
 
 ---
 
-## ⚡ 三、元素相剋傷害算式 (`Skill.ts`)
+## ⚡ 三、元素相剋傷害算式 (`Skill.ts` & `CombatMath.ts`)
 
-戰鬥運算時，攻擊方單位/武器元素與受擊方怪物元素的傷害乘數 `elemMult` 規範如下：
+戰鬥運算時，全面採用**「攻防分離雙元素」**機制進行相剋運算：
+
+$$\text{元素相剋乘數} = \text{getElementalMultiplier}(\text{攻擊方 atkElement}, \text{防守方 defElement})$$
+
+- **攻擊方元素 (`atkElement`)**：
+  - **傭兵**：來自**【主手武器】(`WEAPON.element`)**。例如手持**熾炎大劍🔥**攻擊**雷霆魔物⚡**，觸發火剋雷 **1.25x (125%) 剋制增傷**！
+  - **魔物**：來自魔物原生元素屬性（如惡魔犬🔥、冰原狼❄️、死靈魔物🌙）。
+- **防守方元素 (`defElement`)**：
+  - **傭兵**：來自**【身穿防具】(`ARMOR.element`)**。例如身穿**霜冰鎧甲❄️**抵禦火系怪物攻擊，觸發逆剋防護折減！
+  - **魔物**：來自魔物原生元素屬性。
 
 ```ts
 export function getElementalMultiplier(atkElement?: ElementType, defElement?: ElementType): number
@@ -126,22 +135,28 @@ export function getElementalMultiplier(atkElement?: ElementType, defElement?: El
 ## 📊 五、怪物數值生成模型與稀有挑戰據點機制
 
 ### 1. 怪物戰力分與屬性換算公式 (`MonsterSystem.ts`)
-- **戰力分量綱對齊**：
-  $$\text{powerScore} = \text{baseDifficulty} \times \text{powerTier} \times \text{raceMult} \times 12$$
-  * 以 1 級標準傭兵（約 120~130 戰力）為基準，難度 10 時一隻 1.0 階標準怪戰力約 120 點。
-  * 據點駐守 5 隻標準怪物的總推薦戰力約為 **600 點**，精準對齊玩家 5 人小隊（625 點）。
+- **屬性預算量綱對齊**：
+  $$\text{baseBudget} = \max(15, \lfloor\text{baseDifficulty} \times \text{powerTier} \times \text{raceMult} \times 55\rfloor)$$
+  * 以 1 級標準傭兵（約 45~65 戰力）為基準，難度 1 時一隻 1.0 階標準怪戰力約 45~55 點。
+  * 據點駐守 1~2 隻標準怪物的總戰力約為 **55~85 點**，精準對齊開局 1 人出征。
 - **面板屬性計算**：
-  * 生命值 (HP)：$\max(30, \lfloor\text{powerScore} \times \text{hpRatio} \times 2.5\rfloor)$（確保承受 2~3 輪技能/普攻）
-  * 攻擊力 (Damage)：$\max(5, \lfloor\text{powerScore} \times \text{atkRatio} \times 0.65\rfloor)$（對 1 級傭兵造成 18~25 點實質傷害）
-  * 物理防禦 (PDEF)：$\lfloor\text{powerScore} \times \text{pdefRatio} \times 1.0\rfloor$
-  * 魔法防禦 (MDEF)：$\lfloor\text{powerScore} \times \text{mdefRatio} \times 1.0\rfloor$
+  * 生命值 (HP)：$\max(45, \lfloor\text{baseBudget} \times \text{hpRatio} \times 2.8\rfloor)$（確保承受 3~4 輪技能/普攻）
+  * 攻擊力 (Damage)：$\max(12, \lfloor\text{baseBudget} \times \text{atkRatio} \times 1.15\rfloor)$（對 1 級傭兵造成 18~24 點實質傷害）
+  * 物理防禦 (PDEF)：$\lfloor\text{baseBudget} \times \text{pdefRatio} \times 1.2\rfloor$
+  * 魔法防禦 (MDEF)：$\lfloor\text{baseBudget} \times \text{mdefRatio} \times 1.2\rfloor$
+  * 出手速度 (Speed)：$\max(4, \lfloor\text{baseBudget} \times 0.12\rfloor)$
+- **大一統戰力計分 (`calculatedPowerScore`)**：
+  $$\text{Power} = \text{Damage} + \lfloor\frac{\text{PDEF} + \text{MDEF}}{2} \times 0.6\rfloor + \lfloor\text{HP} \times 0.2\rfloor + \lfloor\text{Speed} \times 0.5\rfloor$$
+- **戰利品回報標準**：
+  * 金幣回報：$\lfloor\text{Power} \times 1.0\rfloor$
+  * 經驗值回報：$\lfloor\text{Power} \times 0.25\rfloor$ (升級節奏健康拉長，1 級升 2 級約需 7 場討伐)
 - **法系怪攻擊機制 (`isMagicalAttacker`)**：
   * 薩滿、幽魂、怨靈、狂熱者、元素石像、隨軍法師等法系怪物，普通攻擊為 `DamageType.MAGICAL`，結算防守者的 MDEF。
 
-### 2. 探索周遭雙軌機制（85% 常規 + 15% 稀有危險挑戰）
-- **常規據點 (85%)**：標準難度，適合初期新手練級與穩定農素材。
-- **稀有危險挑戰據點 (15%, `isEliteLair`)**：
-  * **難度倍率**：難度提升為常規的 **1.8 ~ 2.4 倍**。
-  * **首領駐軍**：保證由高階精英怪/龍族領軍，100% 附加環境詞綴與元素變異。
+### 2. 領地近郊生態三階梯據點機制 (`MapEventSystem.ts`)
+- **🟢 50% 小型落單威脅 (難度 1)**：1~2 隻初階怪 (戰力 ~55~65)，適合開局 1 人單挑。
+- **🟡 35% 中型營地巢穴 (難度 2~3)**：2~3 隻普通怪 (戰力 ~110~160)，適合 2~3 人小隊。
+- **🔴 15% 稀有凶煞首領 (難度 3~4, `isEliteLair`)**：
+  * **首領駐軍**：高階精英怪/龍族領軍，100% 附加環境詞綴。
   * **專屬冠名**：冠上 `💀[凶兆]`、`👑[首領]`、`🔥[極危險]` 前綴。
   * **超額戰利品**：金幣與經驗值 **3 倍**，裝備掉落率保底 35%，高機率掉落藍紫色裝備或稀有圖紙。

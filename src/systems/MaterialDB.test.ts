@@ -16,11 +16,13 @@ describe('Material & Crafting Recipe DB Integrity', () => {
 
   it('should verify every crafting recipe references valid material IDs in MaterialDB', () => {
     const recipes = DataStore.CraftingRecipeDB;
-    expect(recipes.length).toBeGreaterThanOrEqual(12);
+    // 9 T1 + 9 T2 + 9 T3 + 12 T4 + 11 冶煉 = 50 配方
+    expect(recipes.length).toBeGreaterThanOrEqual(30);
 
     recipes.forEach(recipe => {
       expect(recipe.id).toBeDefined();
       expect(recipe.targetEquipmentId).toBeDefined();
+      expect(recipe.tier).toBeDefined();
       if (recipe.isMaterialRecipe) {
         const mat = DataStore.MaterialDB[recipe.targetEquipmentId];
         expect(mat).toBeDefined();

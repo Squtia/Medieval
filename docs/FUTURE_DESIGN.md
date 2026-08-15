@@ -125,41 +125,40 @@
 
 ---
 
-## 6. 爵位天賦與特權系統 (Noble Title Talents & Perks)
+## 6. 爵位與領地規模咬合系統 (Noble Titles & Territory Progression)
 
 ### 🎯 核心定位
-隨著聲望與皇家好感度晉升爵位 (`COMMONER` ➔ `DUKE`)，解鎖領地全域天賦與特權。
+徹底告別虛胖人口要求，改以「領地繁榮度（硬實力）+ 領主聲望（戰功）+ 晉升大典金幣」三維一體受封爵位，讓封建爵位與領地規模（營地 ➔ 村莊 ➔ 城鎮 ➔ 首都）100% 雙向咬合。
 
-### 📋 系統規範
-- **爵位階級與晉升條件**：
-  - 引用 [src/models/types.ts](file:///i:/gameproject/Medieval/src/models/types.ts#L76-L84) `TITLE_CONFIG` (平民、騎士、男爵、子爵、伯爵、侯爵、公爵)。
-- **天賦解鎖分支 (Noble Perks)**：
-  - **軍事天賦**：擴充傭兵名冊上限 (`maxRoster`)、解鎖更高官職槽位 (`OfficeType`).
-  - **商業天賦**：擴充商隊派遣上限 (`maxCaravans`)、關稅優惠、多隊探索上限 (`maxExpeditions`).
-  - **內政天賦**：每 10 人口稅收加成 (`taxBonusPer10Pop`)、建築升級成本減免.
-
-### 🔗 相關關鍵檔案
-- 爵位設定與計算：[src/models/types.ts](file:///i:/gameproject/Medieval/src/models/types.ts#L38-L115)
-- 領地數據與聲望管理：[src/models/Territory.ts](file:///i:/gameproject/Medieval/src/models/Territory.ts)
-- 外交與皇家晉升大典：[src/ui/DiplomacyController.ts](file:///i:/gameproject/Medieval/src/ui/DiplomacyController.ts)
+### 📋 系統規範與對應表
+- **爵位晉升條件 (`TitleConfig`)**：
+  - 移除不合理之 `reqPopulation`（如公爵 5000 人），全面改為要求領地繁榮度 `reqProsperity`。
+  - **平民 ➔ 騎士**：繁榮度 100（營地）、聲望 500、金幣 1500
+  - **騎士 ➔ 男爵**：繁榮度 250（村莊）、聲望 1500、金幣 4000
+  - **男爵 ➔ 子爵**：繁榮度 600（村莊）、聲望 4000、金幣 10000
+  - **子爵 ➔ 伯爵**：繁榮度 1200（城鎮）、聲望 9000、金幣 25000
+  - **伯爵 ➔ 侯爵**：繁榮度 2500（城鎮）、聲望 18000、金幣 60000
+  - **侯爵 ➔ 公爵**：繁榮度 5000（首都且附庸≥1）、聲望 35000、金幣 150000
+- **封建特權**：
+  - 擴充商隊上限 (1~5隊)、傭兵名冊 (10~60人)、官職槽位 (扈從、隊長、城主、方旗騎士) 與每日稅收加成。
 
 ---
 
-## 7. 內政與建築深化系統 (Civic & Base Building Expansion)
+## 7. 內政生產設施與繁榮度即時評分體系 (Civic Facilities & Realtime Prosperity Index)
 
 ### 🎯 核心定位
-領地建築獨立建造與升級，維護糧食/木材/石材/鐵礦資源流，與人口治安度單一真相來源連動。
+繁榮度不再是無上限單向累積的 EXP，而是「即時領地綜合實力總評分」；引入基礎生產設施（農田、伐木場、採石場、獵場）升級，提供人口產能槓桿與實質繁榮分。
 
 ### 📋 系統規範
-- **建築設施解鎖與升級 (Building Upgrades)**：
-  - **自宅**：解鎖領地內政管理與代官指派。
-  - **酒館**：決定招募品質。
-  - **武器店 / 防具店**：決定商店解鎖之武具階級 (1~3階)。
-  - **鍛造屋**：解鎖裝備強化與拆解。
-- **人口與治安度 Single Source of Truth**：
-  - 人口動態加總 `workers` (農夫、伐木工、礦工、步/騎/弓兵)，治安度由 `GameEventType.POPULATION_CHANGED` 動態更新。
-- **月底發薪與稅收雙軌制**：
-  - 每日結算稅收進帳；每 7 天結算傭兵薪資與維護費。
+- **繁榮度即時總分公式**：
+  $$\text{即時繁榮度} = \text{當前總人口} + \sum(\text{全體建築等級固定繁榮分}) + \text{道路/附庸加成} - \text{動態危險壓制}$$
+- **基礎生產設施升級 (Resource Facilities)**：
+  - **🌾 農田 (Farmland)**：升級提升每位農夫每日產糧倍率，少數農夫即可養活全領地人口與攻城正規軍。
+  - **🪵 伐木場 (Lumber Mill) / 🪨 採石場 (Quarry)**：提升建材日產能。
+  - **🏹 獵場 (Hunting Ground)**：提升生皮與獸肉產能。
+  - **🏰 哨所 (Watchtower)**：提升步/騎/弓兵駐守防禦與治安。
+- **人口回歸純粹的動態勞動力與兵力**：
+  - 人口自由調配於務農、工匠與攻城戰備，不再成為受封爵位的硬性卡點。
 
 ### 🔗 相關關鍵檔案
 - 領地建築與資源：[src/models/Territory.ts](file:///i:/gameproject/Medieval/src/models/Territory.ts)

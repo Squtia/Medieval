@@ -26,9 +26,10 @@
   - ⚔️ 涉及職業與武器 ➔ **強制預讀 [docs/CLASS_SYSTEM.md](file:///i:/gameproject/Medieval/docs/CLASS_SYSTEM.md)**
   - 📊 涉及八維屬性與戰鬥公式 ➔ **強制預讀 [docs/ATTRIBUTE_SYSTEM.md](file:///i:/gameproject/Medieval/docs/ATTRIBUTE_SYSTEM.md)**
   - 👾 涉及怪物與元素相剋 ➔ **強制預讀 [docs/MONSTERS_AND_ELEMENTS.md](file:///i:/gameproject/Medieval/docs/MONSTERS_AND_ELEMENTS.md)**
+  - 🏰 涉及封建爵位、領地規模、繁榮度與內政設施 ➔ **強制預讀 [docs/FEUDAL_AND_TERRITORY_SYSTEM.md](file:///i:/gameproject/Medieval/docs/FEUDAL_AND_TERRITORY_SYSTEM.md)**
   - 🗺️ 涉及未來系統擴充 ➔ **強制預讀 [docs/FUTURE_DESIGN.md](file:///i:/gameproject/Medieval/docs/FUTURE_DESIGN.md)**
   - ⚖️ 涉及平衡性數據 ➔ **強制預讀 [docs/BALANCE_TEST_REPORT.md](file:///i:/gameproject/Medieval/docs/BALANCE_TEST_REPORT.md)**
-- **自動對齊稽核**：所有提案、計畫或代碼變更，必須 100% ผ่าน這 5 大權威文件的交叉比對，確保完全符合專案原創規範後方可交由使用者審閱。
+- **自動對齊稽核**：所有提案、計畫或代碼變更，必須 100% 通過這 6 大權威文件的交叉比對，確保完全符合專案原創規範後方可交由使用者審閱。
 
 ## 6. HTML 檔案保護規則 (HTML File Protection Rules)
 

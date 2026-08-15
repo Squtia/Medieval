@@ -3,6 +3,8 @@ import { Random } from '../core/Random';
 import equipmentTemplatesJson from '../data/EquipmentTemplates.json';
 import materialsJson from '../data/materials.json';
 import craftingRecipesJson from '../data/CraftingRecipes.json';
+import modificationRecipesJson from '../data/ModificationRecipes.json';
+import secondHandShopDataJson from '../data/SecondHandShopData.json';
 
 export class DataStore {
   // ============================
@@ -20,6 +22,16 @@ export class DataStore {
   // 重鑄/鍛造配方庫 (CraftingRecipeDB)
   // ============================
   public static readonly CraftingRecipeDB = craftingRecipesJson;
+
+  // ============================
+  // 裝備改造配方庫 (ModificationRecipeDB)
+  // ============================
+  public static readonly ModificationRecipeDB = modificationRecipesJson;
+
+  // ============================
+  // 二手商人與飾品庫 (SecondHandShopDB)
+  // ============================
+  public static readonly SecondHandShopDB = secondHandShopDataJson;
 
   // ============================
   // 職業庫 (JobDB)
@@ -99,7 +111,8 @@ export class DataStore {
     const allLists = [
       equipmentTemplatesJson.weapons,
       equipmentTemplatesJson.armors,
-      (equipmentTemplatesJson as any).accessories || []
+      (equipmentTemplatesJson as any).accessories || [],
+      (secondHandShopDataJson as any).accessories || []
     ];
     allLists.forEach(list => {
       (list as any[]).forEach(item => {

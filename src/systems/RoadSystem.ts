@@ -240,6 +240,9 @@ export class RoadSystem {
     if (target.isPlayerBase || target.ownerFactionId === 'player') {
       return { valid: false, reason: '請選擇非己方據點作為道路目的地。' };
     }
+    if (target.isDynamic) {
+      return { valid: false, reason: '動態隨機巢穴無法鋪設永久道路。' };
+    }
     if (!target.isDiscovered) {
       return { valid: false, reason: '必須先探索並發現這個據點。' };
     }

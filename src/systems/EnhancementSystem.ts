@@ -4,7 +4,19 @@ import { Random } from '../core/Random';
 
 export class EnhancementSystem {
   /**
-   * 強化費用 (每級增加 100 金幣)
+   * 根據鍛造設施等級取得強化等級上限
+   * Lv 1 鐵匠鋪: +3
+   * Lv 2 工藝坊: +6
+   * Lv 3 皇家鍛造所: +10
+   */
+  public static getMaxEnhancementLevel(forgeLevel: number = 0): number {
+    if (forgeLevel <= 1) return 3;
+    if (forgeLevel === 2) return 6;
+    return 10;
+  }
+
+  /**
+   * 取得強化費用 (每級增加 100 金幣)
    */
   public static getEnhancementCost(currentLevel: number): number {
     return 100 + (currentLevel * 100);
@@ -51,15 +63,20 @@ export class EnhancementSystem {
 
   /**
    * 執行裝備強化
-   * @param territory 玩家領地 (用於扣除金幣)
+   * @param territory 玩家領地 (用於扣除金幣與檢查鍛造屋等級)
    * @param eq 目標裝備
    * @returns 強化結果字串，用於日誌顯示
    */
   public static enhance(territory: Territory, eq: Equipment): string {
     const currentLevel = eq.enhancementLevel || 0;
+    const maxLevel = this.getMaxEnhancementLevel(territory.forgeLevel || 0);
     
     if (currentLevel >= 10) {
-      return `⚠️ 【${eq.name}】已達到強化上限 (+10)！`;
+      return `⚠️ 【${eq.name}】已達到最高強化上限 (+10)！`;
+    }
+
+    if (currentLevel >= maxLevel) {
+      return `⚠️ 設施等級不足！當前鍛造屋最高支援強化至 +${maxLevel}，請升級鍛造屋以解鎖更高強化等級。`;
     }
 
     const cost = this.getEnhancementCost(currentLevel);

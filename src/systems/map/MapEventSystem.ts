@@ -60,7 +60,20 @@ export class MapEventSystem {
           node.isScouted = false;
           node.scoutExpiryDate = null;
           node.scoutData = undefined;
-          console.log(`[系統] 🌫️ 關於「${node.name}」的情報已經過期，節點重新陷入迷霧。`);
+
+          if (node.isDynamic) {
+            // 動態隨機據點未清剿擴張演進 (最多擴張 2 次)
+            const currentExpansions = node.expansionCount || 0;
+            if (currentExpansions < 2) {
+              node.expansionCount = currentExpansions + 1;
+              node.baseDifficulty = Math.min(10, (node.baseDifficulty || 1) + 1);
+              console.log(`[系統] ⚠️ 斥候回報：領地近郊的「${node.name}」因長期未受清剿，勢力已擴張增援！(難度提升至 Lv.${node.baseDifficulty})`);
+            } else {
+              console.log(`[系統] 🌫️ 關於「${node.name}」的情報已經過期，節點重新陷入迷霧。(已達最高威脅)`);
+            }
+          } else {
+            console.log(`[系統] 🌫️ 關於「${node.name}」的情報已經過期，節點重新陷入迷霧。`);
+          }
         }
       }
     }
@@ -234,39 +247,25 @@ export class MapEventSystem {
       namePrefix = '隨機事件';
     }
 
-    // 1. 動態偵測玩家目前擁有最強的 N 人戰力 (N = min(5, 現有傭兵數))
-    let teamPower = 35; // 預設 1 級空裝傭兵最低保底
-    if (GameState.adventurers && GameState.adventurers.length > 0) {
-      const sorted = [...GameState.adventurers].sort((a, b) => b.power - a.power);
-      const activeCount = Math.min(5, sorted.length);
-      teamPower = sorted.slice(0, activeCount).reduce((sum, a) => sum + a.power, 0);
-    }
-    
-    // 2. 三階梯機率對標生成
-    // 🟢 50% 勢均力敵保底 (0.85 ~ 1.05x teamPower)
-    // 🟡 35% 越級挑戰 (1.15 ~ 1.35x teamPower)
-    // 🔴 15% 凶險精英 (1.60 ~ 2.00x teamPower)
+    // 領地近郊生態三階梯機率生成 (獨立客觀，不依賴脫裝戰力)
+    // 🟢 50% 小型落單威脅 (難度 1，戰力 ~55~65，適合開局 1 人單挑)
+    // 🟡 35% 中型營地巢穴 (難度 2~3，戰力 ~110~160，適合 2~3 人小隊)
+    // 🔴 15% 稀有凶煞首領 (難度 3~4，戰力 ~180~220，Elite 挑戰)
     const roll = Random.next();
-    let targetPower = teamPower;
+    let dynamicDiff = 1;
     let isEliteLair = false;
 
     if (roll < 0.50) {
-      // 勢均力敵 (50%)
-      const mult = 0.85 + Random.next() * 0.20; // 0.85 ~ 1.05
-      targetPower = Math.round(teamPower * mult);
+      // 小型落單威脅 (50%)
+      dynamicDiff = 1;
     } else if (roll < 0.85) {
-      // 越級挑戰 (35%)
-      const mult = 1.15 + Random.next() * 0.20; // 1.15 ~ 1.35
-      targetPower = Math.round(teamPower * mult);
+      // 中型營地巢穴 (35%)
+      dynamicDiff = Random.next() < 0.6 ? 2 : 3;
     } else {
-      // 凶險精英 (15%)
+      // 稀有凶煞首領 (15%)
       isEliteLair = true;
-      const mult = 1.60 + Random.next() * 0.40; // 1.60 ~ 2.00
-      targetPower = Math.round(teamPower * mult);
+      dynamicDiff = Random.next() < 0.5 ? 3 : 4;
     }
-
-    // 換算為難度基數 baseDifficulty (據點目標戰力 targetScore ≈ baseDifficulty * 54)
-    const dynamicDiff = Math.max(1, Math.round(targetPower / 54));
 
     const newNode: MapNode = {
       id: `dynamic_node_${Date.now()}_${Random.int(100, 999)}`,

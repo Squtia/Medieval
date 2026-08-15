@@ -28,10 +28,12 @@ export async function initPhaserMap(parentId: string) {
 }
 
 // 監聽 Phaser 節點點擊事件
-document.addEventListener('phaser-node-clicked', (e: any) => {
-  const node = e.detail.node;
-  handlePhaserNodeClick(node);
-});
+if (typeof document !== 'undefined') {
+  document.addEventListener('phaser-node-clicked', (e: any) => {
+    const node = e.detail.node;
+    handlePhaserNodeClick(node);
+  });
+}
 
 function handlePhaserNodeClick(node: MapNode, clientX?: number, clientY?: number) {
   if (isRoutePlanningMode) {
@@ -110,7 +112,9 @@ export function hideMapTooltip() {
 }
 
 // 掛載至全域以打破與 UIManager 的循環依賴，保障編譯與部署流暢
-(window as any).renderTradeRoutes = renderTradeRoutes;
+if (typeof window !== 'undefined') {
+  (window as any).renderTradeRoutes = renderTradeRoutes;
+}
 
 export let isRoutePlanningMode = false;
 export let plannedRouteNodeIds: string[] = [];
@@ -125,44 +129,10 @@ export function startRoutePlanning(startNode?: MapNode) {
   }
 
   if (startNode) {
-    const playerNode = GameState.mapSystem.getNodes().find(n => n.isPlayerBase);
-    if (playerNode) {
-      const dist = Math.sqrt(Math.pow(playerNode.x - startNode.x, 2) + Math.pow(playerNode.y - startNode.y, 2));
-      const maxDist = 30;
-      if (dist > maxDist) {
-        ToastManager.show(`⚠️ 無法從此城市開始行商！該城市距離本鎮太遠 (${dist.toFixed(1)} 里)，第一個停靠站距離不能超過 ${maxDist} 里。`);
-        return;
-      }
-    }
+    openTradePlanner([startNode.id]);
+  } else {
+    ToastManager.show('請先在地圖上點選已建交的城鎮以發起商隊。');
   }
-
-  isRoutePlanningMode = true;
-  plannedRouteNodeIds = startNode ? [startNode.id] : [];
-  const hud = document.getElementById('route-planning-hud')!;
-  hud.style.display = 'block';
-  updateRoutePlanningHUD();
-
-  const btnFinish = document.getElementById('btn-finish-route')!;
-  const btnCancel = document.getElementById('btn-cancel-route')!;
-  
-  const finishClone = btnFinish.cloneNode(true) as HTMLButtonElement;
-  btnFinish.parentNode!.replaceChild(finishClone, btnFinish);
-  finishClone.addEventListener('click', () => {
-    if (plannedRouteNodeIds.length === 0) {
-      ToastManager.show('請至少在地圖上點選 1 個城市作為商隊中途站！');
-      return;
-    }
-    isRoutePlanningMode = false;
-    hud.style.display = 'none';
-    openTradePlanner([...plannedRouteNodeIds]);
-  });
-
-  const cancelClone = btnCancel.cloneNode(true) as HTMLButtonElement;
-  btnCancel.parentNode!.replaceChild(cancelClone, btnCancel);
-  cancelClone.addEventListener('click', () => {
-    isRoutePlanningMode = false;
-    hud.style.display = 'none';
-  });
 }
 
 
