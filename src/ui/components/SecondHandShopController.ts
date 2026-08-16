@@ -3,7 +3,7 @@ import { DataStore } from '../../systems/DataStore';
 import { EquipmentGenerator } from '../../systems/EquipmentGenerator';
 import { ToastManager } from '../ToastManager';
 import { UIManager } from '../UIManager';
-import { renderEquipIcon, formatStatsTags, attachTooltip, getEquipTooltipHtml } from '../ShopController';
+import { renderEquipIcon, ICON_SIZE, formatStatsTags, attachTooltip, getEquipTooltipHtml } from '../ShopController';
 import { EquipmentSlot, Equipment } from '../../models/types';
 
 export class SecondHandShopController {
@@ -103,7 +103,7 @@ export class SecondHandShopController {
       card.style.justifyContent = 'space-between';
       card.style.gap = '8px';
 
-      const iconHtml = renderEquipIcon(acc, 36);
+      const iconHtml = renderEquipIcon(acc, ICON_SIZE.MD);
       const statsStr = formatStatsTags(acc.baseCombatEffects, acc.baseEffects);
       const tierBadge = acc.tier ? `<span style="color:#a855f7; font-size:0.8em; font-weight:bold;">T${acc.tier}</span>` : '';
 
@@ -179,7 +179,7 @@ export class SecondHandShopController {
     header.style.paddingBottom = '8px';
     header.style.marginBottom = '14px';
 
-    const t1Count = warehouseEqs.filter(e => (e.tier || 1) === 1 && !e.enhancementLevel).length;
+    const t1Count = warehouseEqs.filter(e => (e.tier || 1) === 1 && !e.enhancementLevel && e.id !== 'wpn_heirloom_sword' && !e.isLocked).length;
 
     header.innerHTML = `
       <div>
@@ -198,7 +198,7 @@ export class SecondHandShopController {
     if (quickBtn && t1Count > 0) {
       quickBtn.addEventListener('click', () => {
         let totalGain = 0;
-        const toSell = warehouseEqs.filter(e => (e.tier || 1) === 1 && !e.enhancementLevel);
+        const toSell = warehouseEqs.filter(e => (e.tier || 1) === 1 && !e.enhancementLevel && e.id !== 'wpn_heirloom_sword' && !e.isLocked);
         toSell.forEach(eq => {
           const p = getPawnPrice(eq);
           totalGain += p;
@@ -231,10 +231,11 @@ export class SecondHandShopController {
       grid.style.gap = '12px';
 
       warehouseEqs.forEach(eq => {
+        const isHeirloom = eq.id === 'wpn_heirloom_sword' || eq.isLocked;
         const price = getPawnPrice(eq);
         const card = document.createElement('div');
-        card.style.background = 'rgba(0, 0, 0, 0.45)';
-        card.style.border = '1px solid rgba(255, 255, 255, 0.12)';
+        card.style.background = isHeirloom ? 'rgba(30, 20, 15, 0.7)' : 'rgba(0, 0, 0, 0.45)';
+        card.style.border = isHeirloom ? '1px solid rgba(234, 179, 8, 0.4)' : '1px solid rgba(255, 255, 255, 0.12)';
         card.style.borderRadius = '6px';
         card.style.padding = '10px';
         card.style.display = 'flex';
@@ -245,25 +246,29 @@ export class SecondHandShopController {
         const iconHtml = renderEquipIcon(eq, 32);
         const lvlStr = eq.enhancementLevel ? ` <span style="color:#38bdf8;">+${eq.enhancementLevel}</span>` : '';
         const tierStr = eq.tier ? ` <span style="color:#a855f7; font-size:0.8em;">(T${eq.tier})</span>` : '';
+        const lockBadge = isHeirloom ? `<span style="font-size:0.75em; background:rgba(234,179,8,0.2); color:#fbbf24; border:1px solid rgba(234,179,8,0.4); border-radius:3px; padding:1px 4px;">🔒 傳家寶</span>` : '';
 
         card.innerHTML = `
           <div style="display:flex; align-items:center; gap:8px;">
             ${iconHtml}
             <div style="flex:1;">
-              <div style="font-weight:bold; color:#e2e8f0; font-size:0.88em;">${eq.name}${lvlStr}${tierStr}</div>
+              <div style="font-weight:bold; color:#e2e8f0; font-size:0.88em; display:flex; align-items:center; gap:4px;">
+                <span>${eq.name}${lvlStr}${tierStr}</span>
+                ${lockBadge}
+              </div>
               <div style="font-size:0.75em; color:#94a3b8;">${eq.slot || '裝備'}</div>
             </div>
           </div>
           <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:6px; margin-top:4px;">
             <span style="font-size:0.82em; color:#34d399; font-weight:bold;">估價: +${price} G</span>
-            <button class="action-btn btn-pawn-single" style="padding:3px 10px; font-size:0.78em; background:linear-gradient(135deg, #b45309, #78350f);">
-              典當變現
+            <button class="action-btn btn-pawn-single" style="padding:3px 10px; font-size:0.78em; ${isHeirloom ? 'background:#475569; color:#94a3b8; cursor:not-allowed;' : 'background:linear-gradient(135deg, #b45309, #78350f);'}" ${isHeirloom ? 'disabled' : ''}>
+              ${isHeirloom ? '🔒 不可出售' : '典當變現'}
             </button>
           </div>
         `;
 
         const pawnBtn = card.querySelector('.btn-pawn-single');
-        if (pawnBtn) {
+        if (pawnBtn && !isHeirloom) {
           pawnBtn.addEventListener('click', () => {
             territory.removeEquipmentFromWarehouse(eq.uuid);
             territory.gold += price;

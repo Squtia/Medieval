@@ -48,9 +48,10 @@ export function attachTooltip(element: HTMLElement, getHtml: () => string) {
   });
 }
 
-import { renderEquipIcon as helperRenderEquipIcon } from './IconSpriteHelper';
+import { renderEquipIcon as helperRenderEquipIcon, ICON_SIZE } from './IconSpriteHelper';
+export { ICON_SIZE };
 
-export function renderEquipIcon(eq: any, sizePx: number = 38): string {
+export function renderEquipIcon(eq: any, sizePx: number = ICON_SIZE.MD): string {
   return helperRenderEquipIcon(eq, sizePx);
 }
 
@@ -61,7 +62,7 @@ export function getEquipTooltipHtml(eq: any): string {
   const jobs = eq.allowedJobs ? eq.allowedJobs.join('/') : '通用';
   const elemBadge = getElementBadge(eq.element);
   const statsStr = formatStatsTags(eq.combatEffects || eq.baseCombatEffects, eq.effects || eq.baseEffects);
-  const iconHtml = renderEquipIcon(eq, 28);
+  const iconHtml = renderEquipIcon(eq, 32);
 
   return `
     <div style="padding:10px 12px; max-width:260px; line-height:1.4;">

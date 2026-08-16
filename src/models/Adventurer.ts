@@ -37,8 +37,9 @@ export class Adventurer {
   public avatarIndex: number; // 0-24, 對應 5x5 的半身像 Spritesheet
 
   public quality: 'N' | 'R' | 'SR' | 'SSR';
+  public isGuardian: boolean = false;
 
-  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' = 'N', gender?: Gender) {
+  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' = 'N', gender?: Gender, isGuardian: boolean = false) {
     this.id = id;
     this.name = name;
     this.level = 1;
@@ -46,9 +47,10 @@ export class Adventurer {
     this.job = job;
     this.trait = trait;
     this.quality = quality;
+    this.isGuardian = isGuardian;
     // 預設隨機分配性別，後續可以透過 Object.assign 被覆蓋 (存檔讀取)
     this.gender = gender ?? (Math.random() > 0.5 ? Gender.MALE : Gender.FEMALE);
-    this.avatarIndex = Math.floor(Math.random() * 25); // 0-24
+    this.avatarIndex = isGuardian ? Math.floor(Math.random() * 5) : Math.floor(Math.random() * 25);
 
     // 1. 根據品質段範圍隨機抽取六維總合（套用加權隨機抽取，讓偏大的極品數值機率遞減）
     let minSum = 35;

@@ -28,7 +28,7 @@ describe('Equip Comparison Tooltip', () => {
     return new Adventurer('adv_1', '加雷斯·葛雷夫', job as any, trait as any);
   };
 
-  const swordA = {
+  const swordA: any = {
     uuid: 'sword_a',
     id: 'wpn_zanbato',
     name: '斬馬劍',
@@ -36,11 +36,13 @@ describe('Equip Comparison Tooltip', () => {
     weaponType: WeaponType.GREATSWORD,
     tier: 2,
     enhancementLevel: 2,
+    requirements: {},
+    effects: {},
     baseCombatEffects: { patk: 25, pdef: 10 },
     combatEffects: { patk: 25, pdef: 10 }
   };
 
-  const swordB = {
+  const swordB: any = {
     uuid: 'sword_b',
     id: 'wpn_heirloom_sword',
     name: '破敗的傳家寶劍',
@@ -48,9 +50,10 @@ describe('Equip Comparison Tooltip', () => {
     weaponType: WeaponType.GREATSWORD,
     tier: 1,
     enhancementLevel: 0,
+    requirements: {},
+    effects: { str: 5, con: 5 },
     baseCombatEffects: { patk: 15, hit: 10 },
-    combatEffects: { patk: 15, hit: 10 },
-    effects: { str: 5, con: 5 }
+    combatEffects: { patk: 15, hit: 10 }
   };
 
   it('renders single equipment card correctly when equipped or empty', () => {

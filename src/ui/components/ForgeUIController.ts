@@ -6,7 +6,7 @@ import { EnhancementSystem } from '../../systems/EnhancementSystem';
 import { CombatStats, ElementType, Equipment, EquipmentSlot, EquipmentTemplate } from '../../models/types';
 import { MarketSystem } from '../../systems/MarketSystem';
 import { positionFloatingElement } from '../FloatingPosition';
-import { renderEquipIcon, formatStatsTags, getElementBadge, consumeMaterial, attachTooltip, getEquipTooltipHtml, getMaterialCount } from '../ShopController';
+import { renderEquipIcon, ICON_SIZE, formatStatsTags, getElementBadge, consumeMaterial, attachTooltip, getEquipTooltipHtml, getMaterialCount } from '../ShopController';
 import { ToastManager } from '../ToastManager';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
@@ -246,7 +246,7 @@ export class ForgeUIController {
           card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
 
           card.innerHTML = `
-            <div style="flex-shrink:0;">${renderEquipIcon(eq, 34)}</div>
+            <div style="flex-shrink:0;">${renderEquipIcon(eq, ICON_SIZE.SM)}</div>
             <div style="flex:1; min-width:0; line-height:1.2;">
               <div style="font-size:0.85em; font-weight:bold; color:${isSel ? '#fbbf24' : '#e2e8f0'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                 ${eq.name} <span style="color:#38bdf8;">+${eq.enhancementLevel || 0}</span>
@@ -261,23 +261,24 @@ export class ForgeUIController {
           card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
           card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
           card.style.borderRadius = '6px';
-          card.style.padding = '5px 4px';
+          card.style.padding = '4px 3px';
           card.style.display = 'flex';
           card.style.flexDirection = 'column';
           card.style.alignItems = 'center';
           card.style.textAlign = 'center';
           card.style.justifyContent = 'space-between';
           card.style.cursor = 'pointer';
-          card.style.height = '85px';
+          card.style.height = '94px';
           card.style.minWidth = '0';
           card.style.boxSizing = 'border-box';
+          card.style.overflow = 'hidden';
           card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
 
           card.innerHTML = `
-            <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2px;">
-              ${renderEquipIcon(eq, 42)}
+            <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+              ${renderEquipIcon(eq, ICON_SIZE.MD)}
             </div>
-            <div style="display:flex; justify-content:space-between; width:100%; font-size:0.68em; border-top:1px solid rgba(255,255,255,0.12); padding-top:2px; margin-top:2px;">
+            <div style="display:flex; justify-content:space-between; width:100%; font-size:0.7em; border-top:1px solid rgba(255,255,255,0.12); padding:2px 3px 0; margin-top:2px;">
               <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
               <span style="color:#fbbf24; font-size:0.85em; padding:0 2px; background:rgba(217,119,6,0.25); border-radius:2px;">T${eq.tier || 1}</span>
             </div>
@@ -366,7 +367,7 @@ export class ForgeUIController {
         <div style="display:flex; flex-direction:column; gap:16px;">
           <!-- 上方選中裝備卡片 -->
           <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
-            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(eq, 64)}</div>
+            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(eq, ICON_SIZE.LG)}</div>
             <div style="flex:1;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0; color:#eab308; font-size:1.35em;">${eq.name} <span style="color:#38bdf8;">+${curLvl}</span> ➔ <span style="color:${isCappedByFacility || isMax10 ? '#94a3b8' : '#22c55e'};">+${isMax10 ? curLvl : curLvl + 1}</span></h3>
@@ -602,8 +603,12 @@ export class ForgeUIController {
         card.style.cursor = 'pointer';
         card.style.opacity = isLockedByFacility ? '0.75' : '1';
 
+        const iconHtml = mode === 'smelt' 
+          ? `<div style="font-size:1.8em; flex-shrink:0;">${matTpl?.icon || '📦'}</div>`
+          : `<div style="flex-shrink:0;">${renderEquipIcon(targetTpl, ICON_SIZE.SM)}</div>`;
+
         card.innerHTML = `
-          <div style="font-size:1.8em; flex-shrink:0;">${mode === 'smelt' ? matTpl?.icon || '📦' : targetTpl?.icon || '⚔️'}</div>
+          ${iconHtml}
           <div style="flex:1; overflow:hidden;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <strong style="color:${isSel ? '#fbbf24' : (isLockedByFacility ? '#94a3b8' : '#e2e8f0')}; font-size:0.9em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.name}</strong>
@@ -687,8 +692,8 @@ export class ForgeUIController {
       if (baseTemplate) {
         matCardsHtml.push(`
           <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px;">
-            <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${hasBaseEquip ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:2.2em; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
-              ${baseTemplate.icon || '🗡️'}
+            <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${hasBaseEquip ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
+              ${renderEquipIcon(baseTemplate, ICON_SIZE.MD)}
             </div>
             <div style="font-size:0.78em; color:#e2e8f0; margin-top:4px; font-weight:bold; text-align:center; height:28px; overflow:hidden;">${baseTemplate.name}</div>
             <div style="font-size:0.82em; color:${hasBaseEquip ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasBaseEquip ? '1/1' : '0/1'}</div>
@@ -758,7 +763,7 @@ export class ForgeUIController {
       } else if (targetTemplate) {
         targetHtml = `
           <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
-            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(targetTemplate, 64)}</div>
+            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(targetTemplate, ICON_SIZE.LG)}</div>
             <div style="flex:1;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0; color:#eab308; font-size:1.4em;">${targetTemplate.name}</h3>
@@ -1038,7 +1043,7 @@ export class ForgeUIController {
           card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
 
           card.innerHTML = `
-            <div style="flex-shrink:0;">${renderEquipIcon(eq, 34)}</div>
+            <div style="flex-shrink:0;">${renderEquipIcon(eq, ICON_SIZE.SM)}</div>
             <div style="flex:1; min-width:0; line-height:1.2;">
               <div style="font-size:0.85em; font-weight:bold; color:${isSel ? '#fbbf24' : '#e2e8f0'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                 ${eq.name} ${getElementBadge(eq.element)}
@@ -1053,23 +1058,24 @@ export class ForgeUIController {
           card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
           card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
           card.style.borderRadius = '6px';
-          card.style.padding = '5px 4px';
+          card.style.padding = '4px 3px';
           card.style.display = 'flex';
           card.style.flexDirection = 'column';
           card.style.alignItems = 'center';
           card.style.textAlign = 'center';
           card.style.justifyContent = 'space-between';
           card.style.cursor = 'pointer';
-          card.style.height = '85px';
+          card.style.height = '94px';
           card.style.minWidth = '0';
           card.style.boxSizing = 'border-box';
+          card.style.overflow = 'hidden';
           card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
 
           card.innerHTML = `
-            <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2px;">
-              ${renderEquipIcon(eq, 42)}
+            <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+              ${renderEquipIcon(eq, ICON_SIZE.MD)}
             </div>
-            <div style="display:flex; justify-content:space-between; width:100%; font-size:0.68em; border-top:1px solid rgba(255,255,255,0.12); padding-top:2px; margin-top:2px;">
+            <div style="display:flex; justify-content:space-between; width:100%; font-size:0.7em; border-top:1px solid rgba(255,255,255,0.12); padding:2px 3px 0; margin-top:2px;">
               <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
               <span style="font-size:0.85em;">${getElementBadge(eq.element)}</span>
             </div>
@@ -1127,7 +1133,7 @@ export class ForgeUIController {
         <div style="display:flex; flex-direction:column; gap:16px;">
           <!-- 頂部選中裝備卡片 -->
           <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
-            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(eq, 64)}</div>
+            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderEquipIcon(eq, ICON_SIZE.LG)}</div>
             <div style="flex:1;">
               <h3 style="margin:0; color:#eab308; font-size:1.35em;">${eq.name}</h3>
               <div style="font-size:0.85em; color:#94a3b8; margin-top:4px;">
@@ -1253,23 +1259,24 @@ export class ForgeUIController {
         card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
         card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
         card.style.borderRadius = '6px';
-        card.style.padding = '5px 4px';
+        card.style.padding = '4px 3px';
         card.style.display = 'flex';
         card.style.flexDirection = 'column';
         card.style.alignItems = 'center';
         card.style.textAlign = 'center';
         card.style.justifyContent = 'space-between';
         card.style.cursor = 'pointer';
-        card.style.height = '85px';
+        card.style.height = '94px';
         card.style.minWidth = '0';
         card.style.boxSizing = 'border-box';
+        card.style.overflow = 'hidden';
         card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
   
         card.innerHTML = `
-          <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:2px;">
-            ${renderEquipIcon(eq, 42)}
+          <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+            ${renderEquipIcon(eq, ICON_SIZE.MD)}
           </div>
-          <div style="display:flex; justify-content:space-between; width:100%; font-size:0.68em; border-top:1px solid rgba(255,255,255,0.12); padding-top:2px; margin-top:2px;">
+          <div style="display:flex; justify-content:space-between; width:100%; font-size:0.7em; border-top:1px solid rgba(255,255,255,0.12); padding:2px 3px 0; margin-top:2px;">
             <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
             <span style="color:#fbbf24; font-size:0.85em; padding:0 2px; background:rgba(217,119,6,0.25); border-radius:2px;">T${eq.tier || 1}</span>
           </div>
@@ -1348,7 +1355,7 @@ export class ForgeUIController {
           <!-- 目標裝備 -->
           <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
             <div id="disassemble-source-icon" style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer;">
-              ${renderEquipIcon(selectedEq, 64)}
+              ${renderEquipIcon(selectedEq, ICON_SIZE.LG)}
             </div>
             <div style="flex:1;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1372,15 +1379,25 @@ export class ForgeUIController {
   
         <!-- 確認拆解按鈕 -->
         <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px; text-align:center;">
-          <button id="btn-exec-disassemble" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:linear-gradient(135deg, #059669, #047857); color:#fff;">
-            ♻️ 確定拆解
-          </button>
+          ${(selectedEq.id === 'wpn_heirloom_sword' || (selectedEq as any).isLocked)
+            ? `<button id="btn-exec-disassemble" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:#475569; color:#94a3b8; cursor:not-allowed;" disabled>
+                🔒 傳家寶無法拆解
+              </button>`
+            : `<button id="btn-exec-disassemble" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:linear-gradient(135deg, #059669, #047857); color:#fff; cursor:pointer;">
+                ♻️ 確定拆解
+              </button>`
+          }
         </div>
       `;
   
       attachTooltip(rightPanel.querySelector('#disassemble-source-icon') as HTMLElement, () => getEquipTooltipHtml(selectedEq));
   
       rightPanel.querySelector('#btn-exec-disassemble')?.addEventListener('click', () => {
+        if (selectedEq.id === 'wpn_heirloom_sword' || (selectedEq as any).isLocked) {
+          ToastManager.show('🛡️ 家族傳承的佩劍蘊含先祖榮光，無法被拆解摧毀！', 'warning');
+          return;
+        }
+
         const idx = territory.warehouse.findIndex(e => e.uuid === selectedEq.uuid);
         if (idx !== -1) {
           territory.warehouse.splice(idx, 1);
@@ -1496,7 +1513,7 @@ export class ForgeUIController {
       card.style.background = 'rgba(30, 24, 20, 0.8)';
       card.style.border = '1.5px solid rgba(217, 119, 6, 0.3)';
       card.style.borderRadius = '6px';
-      card.style.padding = '5px 4px';
+      card.style.padding = '4px 3px';
       card.style.display = 'flex';
       card.style.flexDirection = 'column';
       card.style.alignItems = 'center';
@@ -1504,18 +1521,18 @@ export class ForgeUIController {
       card.style.justifyContent = 'space-between';
       card.style.cursor = 'pointer';
       card.style.width = '85px';
-      card.style.height = '85px';
-      card.style.aspectRatio = '1 / 1';
+      card.style.height = '94px';
       card.style.flexShrink = '0';
       card.style.boxSizing = 'border-box';
+      card.style.overflow = 'hidden';
   
-      const iconHtml = renderEquipIcon(eq, 42);
+      const iconHtml = renderEquipIcon(eq, ICON_SIZE.MD);
       const enhancementText = eq.enhancementLevel ? `+${eq.enhancementLevel}` : '+0';
       const tierText = `T${eq.tier || 1}`;
   
       card.innerHTML = `
         <div style="flex:1; display:flex; align-items:center; justify-content:center;">${iconHtml}</div>
-        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.7em; padding:2px 3px 0; border-top:1px solid rgba(255,255,255,0.12); margin-top:2px;">
           <span style="color:#38bdf8; font-weight:bold;">${enhancementText}</span>
           <span style="color:#fbbf24; background:rgba(0,0,0,0.5); padding:1px 4px; border-radius:3px; border:1px solid rgba(251,191,36,0.3);">${tierText}</span>
         </div>

@@ -1,0 +1,1370 @@
+{
+  "timestamp": "2026-08-16T09:53:24.200Z",
+  "note": "儲存於 2026/8/16 下午5:53:24",
+  "data": {
+    "weapons": {
+      "GREATSWORD": {
+        "bgX": 2.41,
+        "bgY": 3.37,
+        "zoom": 115
+      },
+      "DUAL_SWORDS": {
+        "zoom": 115,
+        "bgX": 34.08,
+        "bgY": 2.9400000000000004
+      },
+      "STAFF": {
+        "zoom": 115,
+        "bgX": 66.04,
+        "bgY": 3.49
+      },
+      "SCYTHE": {
+        "zoom": 116,
+        "bgX": 97.93,
+        "bgY": 3.38
+      },
+      "BOW": {
+        "zoom": 115,
+        "bgX": 2,
+        "bgY": 50.28
+      },
+      "MAGIC_BOW": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 50
+      },
+      "DAGGERS": {
+        "zoom": 115,
+        "bgX": 66.1,
+        "bgY": 50
+      },
+      "MAGIC_RING": {
+        "zoom": 115,
+        "bgX": 98,
+        "bgY": 50
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 116,
+        "bgX": 2.4,
+        "bgY": 96.34
+      },
+      "RUNE_SHIELD": {
+        "zoom": 116,
+        "bgX": 34.15,
+        "bgY": 96.58
+      },
+      "HOLY_BOOK": {
+        "zoom": 115,
+        "bgX": 65.73,
+        "bgY": 96.34
+      },
+      "HAMMER": {
+        "zoom": 115,
+        "bgX": 97.99,
+        "bgY": 96.34
+      }
+    },
+    "facilities": {
+      "tavern": {
+        "bgX": 6.83,
+        "bgY": 9.62,
+        "zoom": 134
+      },
+      "forge": {
+        "zoom": 142,
+        "bgX": 36.13,
+        "bgY": 10.18
+      },
+      "weapon": {
+        "bgX": 64.86,
+        "bgY": 9.12,
+        "zoom": 139
+      },
+      "armor": {
+        "zoom": 142,
+        "bgX": 93.06,
+        "bgY": 9.54
+      },
+      "study": {
+        "zoom": 140,
+        "bgX": 6.85,
+        "bgY": 50.64
+      },
+      "defense": {
+        "bgX": 35.6,
+        "bgY": 50.57,
+        "zoom": 135
+      }
+    },
+    "materials": {
+      "gold": {
+        "zoom": 118,
+        "bgX": 65.73,
+        "bgY": 51.65
+      },
+      "wood": {
+        "zoom": 106,
+        "bgX": 98.46,
+        "bgY": 49.43
+      },
+      "stone": {
+        "zoom": 106,
+        "bgX": 3.08,
+        "bgY": 97.99
+      },
+      "iron": {
+        "zoom": 107,
+        "bgX": 34.48,
+        "bgY": 98.28
+      }
+    },
+    "avatars_male": {},
+    "avatars_female": {
+      "female_0": {
+        "bgX": 0.37,
+        "bgY": 0.74
+      }
+    },
+    "armors": {
+      "CLOTH_T1": {
+        "bgX": 2,
+        "bgY": 1.81,
+        "zoom": 105
+      },
+      "CLOTH_T2": {
+        "zoom": 105,
+        "bgX": 34.2,
+        "bgY": 1.94
+      },
+      "CLOTH_T3": {
+        "zoom": 105,
+        "bgX": 66.1,
+        "bgY": 2.02
+      },
+      "CLOTH_T4": {
+        "zoom": 105,
+        "bgX": 98.07,
+        "bgY": 1.44
+      },
+      "LEATHER_T1": {
+        "zoom": 105,
+        "bgX": 2,
+        "bgY": 50
+      },
+      "LEATHER_T2": {
+        "zoom": 105,
+        "bgX": 33.833333333333336,
+        "bgY": 50
+      },
+      "LEATHER_T3": {
+        "zoom": 105,
+        "bgX": 66.16666666666667,
+        "bgY": 50
+      },
+      "LEATHER_T4": {
+        "zoom": 105,
+        "bgX": 98.3,
+        "bgY": 50
+      },
+      "HEAVY_T1": {
+        "zoom": 105,
+        "bgX": 2,
+        "bgY": 98.5
+      },
+      "HEAVY_T2": {
+        "zoom": 105,
+        "bgX": 33.833333333333336,
+        "bgY": 98.5
+      },
+      "HEAVY_T3": {
+        "zoom": 105,
+        "bgX": 66.16666666666667,
+        "bgY": 98.5
+      },
+      "HEAVY_T4": {
+        "zoom": 105,
+        "bgX": 98.3,
+        "bgY": 98.5
+      }
+    },
+    "weapons_t2": {
+      "GREATSWORD": {
+        "bgX": 4.54,
+        "bgY": 6,
+        "zoom": 125
+      },
+      "DUAL_SWORDS": {
+        "zoom": 125,
+        "bgX": 34.9,
+        "bgY": 5.6
+      },
+      "STAFF": {
+        "zoom": 125,
+        "bgX": 65.3,
+        "bgY": 5.67
+      },
+      "SCYTHE": {
+        "zoom": 125,
+        "bgX": 96.1,
+        "bgY": 6.1
+      },
+      "BOW": {
+        "zoom": 125,
+        "bgX": 4.59,
+        "bgY": 50.28
+      },
+      "MAGIC_BOW": {
+        "zoom": 125,
+        "bgX": 34.62,
+        "bgY": 49.73
+      },
+      "DAGGERS": {
+        "zoom": 125,
+        "bgX": 65.36,
+        "bgY": 49.73
+      },
+      "MAGIC_RING": {
+        "zoom": 125,
+        "bgX": 95.47,
+        "bgY": 49.77
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 125,
+        "bgX": 4.27,
+        "bgY": 95
+      },
+      "RUNE_SHIELD": {
+        "bgX": 34.93,
+        "bgY": 94.46,
+        "zoom": 125
+      },
+      "HOLY_BOOK": {
+        "zoom": 125,
+        "bgX": 65.17,
+        "bgY": 94.44
+      },
+      "HAMMER": {
+        "zoom": 125,
+        "bgX": 95.47,
+        "bgY": 94.12
+      }
+    },
+    "weapons_t3": {
+      "GREATSWORD": {
+        "zoom": 110,
+        "bgX": 1.5,
+        "bgY": 2
+      },
+      "DUAL_SWORDS": {
+        "zoom": 110,
+        "bgX": 33.833333333333336,
+        "bgY": 2.5
+      },
+      "STAFF": {
+        "zoom": 110,
+        "bgX": 66.16666666666667,
+        "bgY": 2
+      },
+      "SCYTHE": {
+        "zoom": 110,
+        "bgX": 98.5,
+        "bgY": 2
+      },
+      "BOW": {
+        "zoom": 110,
+        "bgX": 1.5,
+        "bgY": 50
+      },
+      "MAGIC_BOW": {
+        "zoom": 110,
+        "bgX": 33.833333333333336,
+        "bgY": 50
+      },
+      "DAGGERS": {
+        "zoom": 110,
+        "bgX": 66.16666666666667,
+        "bgY": 50
+      },
+      "MAGIC_RING": {
+        "zoom": 110,
+        "bgX": 98.5,
+        "bgY": 50
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 110,
+        "bgX": 1.5,
+        "bgY": 98.5
+      },
+      "RUNE_SHIELD": {
+        "zoom": 110,
+        "bgX": 33.833333333333336,
+        "bgY": 98.5
+      },
+      "HOLY_BOOK": {
+        "zoom": 110,
+        "bgX": 66.16666666666667,
+        "bgY": 98
+      },
+      "HAMMER": {
+        "zoom": 110,
+        "bgX": 98.5,
+        "bgY": 98.5
+      }
+    },
+    "weapons_t4": {
+      "GREATSWORD": {
+        "zoom": 115,
+        "bgX": 2.5,
+        "bgY": 3
+      },
+      "DUAL_SWORDS": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 3
+      },
+      "STAFF": {
+        "zoom": 115,
+        "bgX": 65.66666666666667,
+        "bgY": 3
+      },
+      "SCYTHE": {
+        "zoom": 115,
+        "bgX": 97.5,
+        "bgY": 3
+      },
+      "BOW": {
+        "zoom": 115,
+        "bgX": 2.5,
+        "bgY": 50
+      },
+      "MAGIC_BOW": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 50
+      },
+      "DAGGERS": {
+        "zoom": 115,
+        "bgX": 65.66666666666667,
+        "bgY": 50
+      },
+      "MAGIC_RING": {
+        "zoom": 115,
+        "bgX": 97.5,
+        "bgY": 50
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 115,
+        "bgX": 2.5,
+        "bgY": 96.5
+      },
+      "RUNE_SHIELD": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 97
+      },
+      "HOLY_BOOK": {
+        "zoom": 115,
+        "bgX": 65.66666666666667,
+        "bgY": 97
+      },
+      "HAMMER": {
+        "zoom": 115,
+        "bgX": 97.5,
+        "bgY": 97
+      }
+    }
+  },
+  "datasets": {
+    "weapons": {
+      "title": "⚔️ 武器 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_12.jpg",
+        "./assets/icons_weapons_12.jpg",
+        "/assets/icons_weapons_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "狂戰士巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "魔劍士雙劍",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "大魔導士法杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "死靈法師戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "神射手戰弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "精靈使魔法弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "暗殺者雙匕首",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "詭術師魔戒",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "聖騎士劍盾",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "符文騎士巨盾",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "大主教聖典",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "異端拷問官戰鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "weapons_t2": {
+      "title": "⚔️ 武器 T2 高級 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_t2_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_t2_12.jpg",
+        "./assets/icons_weapons_t2_12.jpg",
+        "/assets/icons_weapons_t2_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "T2 精鋼巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "T2 彎刃雙劍",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "T2 寶珠法杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "T2 鋸齒戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "T2 複合長弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "T2 精靈長弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "T2 刺客短刃",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "T2 紫晶魔戒",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "T2 鋼盾長劍",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "T2 符文方盾",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "T2 鍍金福音書",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "T2 尖刺戰鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "weapons_t3": {
+      "title": "⚔️ 武器 T3 專家 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_t3_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_t3_12.jpg",
+        "./assets/icons_weapons_t3_12.jpg",
+        "/assets/icons_weapons_t3_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "T3 霜焰波刃巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "T3 龍首大馬士革雙刀",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "T3 鈷藍古木大魔導杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "T3 黑曜死翼戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "T3 鐵木名匠重弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "T3 月華精靈弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "T3 毒牙幽冥匕首",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "T3 雷霆真視之戒",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "T3 金獅皇室神聖盾劍",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "T3 秘術符文壁壘",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "T3 太陽聖輝啟示錄",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "T3 審判烈焰戰鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "weapons_t4": {
+      "title": "⚔️ 武器 T4 神兵 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_t4_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_t4_12.jpg",
+        "./assets/icons_weapons_t4_12.jpg",
+        "/assets/icons_weapons_t4_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "T4 滅世熔岩屠龍巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "T4 星穹虛空神刃",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "T4 星系奇點世界樹權杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "T4 湮滅死神龍骨戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "T4 不死鳥烈陽神弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "T4 蒼穹極光精靈神弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "T4 日蝕深淵嗜血雙刃",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "T4 永恆星環之眼",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "T4 太陽神王不朽盾劍",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "T4 泰坦始源金符壁壘",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "T4 終焉救贖啟示真典",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "T4 諸神黃昏滅世雷神鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "armors": {
+      "title": "🛡️ 防具 (4x3)",
+      "spriteUrl": "../public/assets/icons_armors_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_armors_12.jpg",
+        "./assets/icons_armors_12.jpg",
+        "/assets/icons_armors_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "CLOTH_T1",
+          "name": "布甲 T1 粗布長袍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "CLOTH_T2",
+          "name": "布甲 T2 學徒法袍",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "CLOTH_T3",
+          "name": "布甲 T3 魔導長袍",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "CLOTH_T4",
+          "name": "布甲 T4 大賢者神聖法袍",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T1",
+          "name": "皮甲 T1 輕皮甲",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T2",
+          "name": "皮甲 T2 獵手皮甲",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T3",
+          "name": "皮甲 T3 斥候暗影皮甲",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T4",
+          "name": "皮甲 T4 刺客龍鱗皮甲",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T1",
+          "name": "重鎧 T1 鏈甲",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T2",
+          "name": "重鎧 T2 鐵胸甲",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T3",
+          "name": "重鎧 T3 騎士板金鎧",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T4",
+          "name": "重鎧 T4 聖殿騎士神鎧",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "facilities": {
+      "title": "🏰 領地設施 (4x3)",
+      "spriteUrl": "../public/assets/icons_facilities_parchment_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_facilities_parchment_12.jpg",
+        "./assets/icons_facilities_parchment_12.jpg",
+        "/assets/icons_facilities_parchment_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "tavern",
+          "name": "酒館 (Tavern)",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "forge",
+          "name": "鐵匠鋪 (Forge)",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "weapon",
+          "name": "武器店 (Weapon)",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armor",
+          "name": "防具店 (Armor)",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "study",
+          "name": "領主書房 (Study)",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "defense",
+          "name": "城防哨所 (Defense)",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        }
+      ]
+    },
+    "materials": {
+      "title": "💎 素材與資源 (4x3)",
+      "spriteUrl": "../public/assets/icons_materials_color_12_1.png",
+      "fallbackUrls": [
+        "../assets/icons_materials_color_12_1.png",
+        "./assets/icons_materials_color_12_1.png",
+        "/assets/icons_materials_color_12_1.png"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "gold",
+          "name": "金幣 (Gold)",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "wood",
+          "name": "木材 (Wood)",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "stone",
+          "name": "石材 (Stone)",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "iron",
+          "name": "鐵礦 (Iron)",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "food",
+          "name": "糧食 (Food)",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "essence",
+          "name": "靈魂精華 (Essence)",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "cotton",
+          "name": "棉麻 (Cotton)",
+          "customEmoji": "🌿"
+        },
+        {
+          "id": "hide",
+          "name": "生皮 (Hide)",
+          "customEmoji": "🦬"
+        },
+        {
+          "id": "cloth",
+          "name": "粗布 (Cloth)",
+          "customEmoji": "🪢"
+        },
+        {
+          "id": "leather",
+          "name": "皮革 (Leather)",
+          "customEmoji": "📜"
+        }
+      ]
+    },
+    "avatars_male": {
+      "title": "👨 男傭兵頭像 (5x5)",
+      "spriteUrl": "../public/assets/avatars_male.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_male.jpg",
+        "./assets/avatars_male.jpg",
+        "/assets/avatars_male.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "male_0",
+          "name": "男傭兵 #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_1",
+          "name": "男傭兵 #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_2",
+          "name": "男傭兵 #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_3",
+          "name": "男傭兵 #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_4",
+          "name": "男傭兵 #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_5",
+          "name": "男傭兵 #06",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_6",
+          "name": "男傭兵 #07",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_7",
+          "name": "男傭兵 #08",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_8",
+          "name": "男傭兵 #09",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_9",
+          "name": "男傭兵 #10",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_10",
+          "name": "男傭兵 #11",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_11",
+          "name": "男傭兵 #12",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_12",
+          "name": "男傭兵 #13",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_13",
+          "name": "男傭兵 #14",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_14",
+          "name": "男傭兵 #15",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_15",
+          "name": "男傭兵 #16",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_16",
+          "name": "男傭兵 #17",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_17",
+          "name": "男傭兵 #18",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_18",
+          "name": "男傭兵 #19",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_19",
+          "name": "男傭兵 #20",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_20",
+          "name": "男傭兵 #21",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_21",
+          "name": "男傭兵 #22",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_22",
+          "name": "男傭兵 #23",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_23",
+          "name": "男傭兵 #24",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_24",
+          "name": "男傭兵 #25",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "avatars_female": {
+      "title": "👩 女傭兵頭像 (5x5)",
+      "spriteUrl": "../public/assets/avatars_female.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_female.jpg",
+        "./assets/avatars_female.jpg",
+        "/assets/avatars_female.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "female_0",
+          "name": "女傭兵 #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_1",
+          "name": "女傭兵 #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_2",
+          "name": "女傭兵 #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_3",
+          "name": "女傭兵 #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_4",
+          "name": "女傭兵 #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_5",
+          "name": "女傭兵 #06",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_6",
+          "name": "女傭兵 #07",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_7",
+          "name": "女傭兵 #08",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_8",
+          "name": "女傭兵 #09",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_9",
+          "name": "女傭兵 #10",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_10",
+          "name": "女傭兵 #11",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_11",
+          "name": "女傭兵 #12",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_12",
+          "name": "女傭兵 #13",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_13",
+          "name": "女傭兵 #14",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_14",
+          "name": "女傭兵 #15",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_15",
+          "name": "女傭兵 #16",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_16",
+          "name": "女傭兵 #17",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_17",
+          "name": "女傭兵 #18",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_18",
+          "name": "女傭兵 #19",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_19",
+          "name": "女傭兵 #20",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_20",
+          "name": "女傭兵 #21",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_21",
+          "name": "女傭兵 #22",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_22",
+          "name": "女傭兵 #23",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_23",
+          "name": "女傭兵 #24",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_24",
+          "name": "女傭兵 #25",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    }
+  }
+}

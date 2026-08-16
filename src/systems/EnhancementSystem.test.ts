@@ -12,6 +12,8 @@ describe('EnhancementSystem Facility Caps & Mechanics', () => {
     weaponType: WeaponType.GREATSWORD,
     tier: 1,
     enhancementLevel,
+    requirements: {},
+    effects: {},
     baseCombatEffects: { patk: 12 },
     combatEffects: { patk: 12 }
   });

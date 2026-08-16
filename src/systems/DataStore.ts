@@ -86,8 +86,15 @@ export class DataStore {
     AGILE: { id: 'AGILE', name: '靈動', xpModifier: 1.0, statMultipliers: { agi: 0.15 }, recruitmentModifier: 1.0, recruitDialogue: '沒人能跟得上我的腳步！' },
     LUCKY: { id: 'LUCKY', name: '幸運兒', xpModifier: 1.0, statMultipliers: { luk: 0.3 }, recruitmentModifier: 1.0, recruitDialogue: '跟著我，保證能撿到好東西！' },
     LAZY: { id: 'LAZY', name: '懶惰', xpModifier: 1.5, statMultipliers: { str: -0.1, agi: -0.1 }, recruitmentModifier: 0.8, recruitDialogue: '哈啊...如果可以的話，我想在酒館裡多睡一下...' },
-    GUARDIAN: { id: 'GUARDIAN', name: '誓約守衛', xpModifier: 0.8, statMultipliers: { con: 0.3, str: 0.2, command: 0.5 }, recruitmentModifier: 0.9, recruitDialogue: '我的盾牌將會化為守護您的鐵壁。' },
-    GREEDY: { id: 'GREEDY', name: '貪婪', xpModifier: 1.0, statMultipliers: { luk: 0.1 }, recruitmentModifier: 1.2, recruitDialogue: '要我賣命可以，得加錢！' }
+    GREEDY: { id: 'GREEDY', name: '貪婪', xpModifier: 1.0, statMultipliers: { luk: 0.1 }, recruitmentModifier: 1.2, recruitDialogue: '要我賣命可以，得加錢！' },
+    
+    // 🌟 誓約守衛 5 大專屬性格
+    GUARDIAN: { id: 'GUARDIAN', name: '誓約守衛', xpModifier: 0.9, statMultipliers: { con: 0.2, str: 0.15, command: 0.3 }, recruitmentModifier: 0.9, recruitDialogue: '我的盾牌將會化為守護您的鐵壁。' },
+    GUARDIAN_LOYAL: { id: 'GUARDIAN_LOYAL', name: '忠誠護衛', xpModifier: 0.9, statMultipliers: { con: 0.2, str: 0.1 }, recruitmentModifier: 0.9, recruitDialogue: '誓死護衛領主大人，我的劍與盾與您同在！' },
+    GUARDIAN_PRUDENT: { id: 'GUARDIAN_PRUDENT', name: '沉著參謀', xpModifier: 0.9, statMultipliers: { agi: 0.15, int: 0.15 }, recruitmentModifier: 0.9, recruitDialogue: '保持冷靜與縝密，方能在亂世中奪回屬於我們的領地。' },
+    GUARDIAN_VALIANT: { id: 'GUARDIAN_VALIANT', name: '熱血戰魂', xpModifier: 0.9, statMultipliers: { str: 0.2, luk: 0.1 }, recruitmentModifier: 0.9, recruitDialogue: '敵人的數量越多，只會讓我手中的武器燃燒得更熾烈！' },
+    GUARDIAN_DEVOUT: { id: 'GUARDIAN_DEVOUT', name: '堅毅信仰', xpModifier: 0.9, statMultipliers: { spr: 0.2, con: 0.1 }, recruitmentModifier: 0.9, recruitDialogue: '榮光終將降臨，我會將受傷的您引領向復興之路。' },
+    GUARDIAN_SCOUT: { id: 'GUARDIAN_SCOUT', name: '敏銳斥候', xpModifier: 0.9, statMultipliers: { agi: 0.2, luk: 0.1 }, recruitmentModifier: 0.9, recruitDialogue: '荒野的陰影由我來掃清，沒有任何人能偷襲我們！' }
   };
 
   /** 取得隨機性格 */
@@ -97,9 +104,9 @@ export class DataStore {
     return this.TraitDB[randomKey];
   }
 
-  /** 一般招募專用；誓約守衛只保留給初始角色。 */
+  /** 一般招募專用；誓約守衛性格只保留給初始角色。 */
   public static getRandomRecruitTrait(): TraitConfig {
-    const keys = Object.keys(this.TraitDB).filter(key => key !== 'GUARDIAN');
+    const keys = Object.keys(this.TraitDB).filter(key => !key.startsWith('GUARDIAN'));
     return this.TraitDB[Random.pick(keys)];
   }
 

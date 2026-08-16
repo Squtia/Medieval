@@ -10,6 +10,7 @@ import { startGameLoop } from '../core/GameLoop';
 import { DIFFICULTY_ORDER, getDifficultyConfig } from '../data/DifficultyData';
 import { GameDifficulty } from '../models/WorldGeneration';
 import { NodeLevel } from '../models/types';
+import { OathCreationController } from './modals/OathCreationController';
 
 function createWorldSeed(): string {
   const randomPart = typeof crypto !== 'undefined' && 'getRandomValues' in crypto
@@ -103,41 +104,8 @@ function openNewGameSetup(slot: number): void {
       return;
     }
 
-    confirmButton.disabled = true;
-    ToastManager.show('🗺️ 正在生成新的大陸配置...', 'info');
-    try {
-      clearGameLog();
-      initGameState({ difficulty: selectedDifficulty, seed });
-      refreshGlobalUI();
-      GameState.currentSaveSlot = slot;
-      await ensurePhaserLoaded();
-
-      const mainMenu = document.getElementById('main-menu-view');
-      const mapView = document.getElementById('map-view');
-      const topBar = document.getElementById('top-bar');
-      const playerBase = GameState.mapSystem.getNodes().find(node => node.isPlayerBase);
-      if (!mainMenu || !mapView || !topBar || !playerBase) {
-        throw new Error('New game UI could not find the generated player base.');
-      }
-
-      modal.classList.remove('active');
-      setStartupMode(false);
-      UIManager.playTransition(() => {
-        mainMenu.classList.remove('active');
-        mapView.classList.add('active');
-        topBar.style.display = 'flex';
-        renderMap();
-        enterScene(playerBase);
-        UIManager.updateUI();
-        SaveManager.saveGame(slot);
-        document.dispatchEvent(new Event('game-started'));
-      });
-    } catch (error) {
-      console.error(error);
-      ToastManager.show('世界生成失敗，請更換種子後再試一次。', 'error');
-    } finally {
-      confirmButton.disabled = false;
-    }
+    modal.classList.remove('active');
+    OathCreationController.getInstance().open(selectedDifficulty, seed, slot);
   };
 }
 

@@ -2,6 +2,7 @@ import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipantState } from '../models/Combat';
 import { FormationRow, TerrainType } from '../models/types';
+import { getAvatarSpriteStyle } from './IconSpriteHelper';
 
 export class CombatUIManager {
   // DOM 引用：延遲到 init() 時才初始化，避免 template 尚未注入時取得 null
@@ -130,10 +131,8 @@ export class CombatUIManager {
     let avatarHtml = '<span style="font-size: 1.4em;">👺</span>';
     if (state.isPlayer) {
       if (state.avatarIndex !== undefined) {
-        const bgX = (state.avatarIndex % 5) * 25;
-        const bgY = Math.floor(state.avatarIndex / 5) * 25;
-        const avatarImage = state.gender === 'FEMALE' ? 'assets/avatars_female.jpg' : 'assets/avatars_male.jpg';
-        avatarHtml = `<div style="width: 34px; height: 34px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(234, 179, 8, 0.7); flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.5); background-image: url('${avatarImage}'); background-size: 500% 500%; background-position: ${bgX}% ${bgY}%;"></div>`;
+        const avatarStyle = getAvatarSpriteStyle(state.gender || 'MALE', state.avatarIndex);
+        avatarHtml = `<div style="width: 34px; height: 34px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(234, 179, 8, 0.7); flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.5); background-image: ${avatarStyle.backgroundImage}; background-size: ${avatarStyle.backgroundSize}; background-position: ${avatarStyle.backgroundPosition};"></div>`;
       } else {
         avatarHtml = '<span style="font-size: 1.4em;">🦸</span>';
       }

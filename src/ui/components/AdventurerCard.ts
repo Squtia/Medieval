@@ -1,5 +1,6 @@
 import { Adventurer } from '../../models/Adventurer';
 import { AdventurerState } from '../../models/types';
+import { getAvatarSpriteStyle } from '../IconSpriteHelper';
 
 export function getAdventurerTooltipHtml(adv: Adventurer | any): string {
   if (!adv) return '';
@@ -126,9 +127,9 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
     `;
   }
 
-  // 預設頭像背景樣式 (6x4 英雄頭像庫，使用 auto 400% 保持 1:1 正方形不拉伸)
-  const avatarImage = adv.gender === 'FEMALE' ? 'assets/avatars_female.jpg' : 'assets/avatars_male.jpg';
-  const spriteStyle = `aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: url('${avatarImage}'); background-size: 500% 500%; background-position: ${bgX}% ${bgY}%;`;
+  // 取得自訂或預設頭像樣式
+  const avatarStyleObj = getAvatarSpriteStyle(adv.gender, avatarIndex, adv.isGuardian);
+  const spriteStyle = `aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: ${avatarStyleObj.backgroundImage}; background-size: ${avatarStyleObj.backgroundSize}; background-position: ${avatarStyleObj.backgroundPosition};`;
 
   const qualityColor = adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1';
 

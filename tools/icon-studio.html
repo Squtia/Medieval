@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medieval - 萬用圖標工坊 (Universal Icon Studio)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: #131b2e;
+      --bg-card-hover: #1c2742;
+      --border-color: rgba(255, 255, 255, 0.1);
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-ui: 'Noto Sans TC', sans-serif;
+      --font-title: 'Cinzel', serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-ui);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 頂部導航列 */
+    header {
+      background: rgba(19, 27, 46, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 8px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      gap: 12px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .logo-title {
+      font-family: var(--font-title);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fbbf24;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      font-family: var(--font-ui);
+    }
+
+    /* 分類分頁列 (支援滾動與新增) */
+    .nav-tabs-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 2px;
+      max-width: 60vw;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 3px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .nav-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .nav-tab:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .nav-tab.active {
+      color: #fff;
+      background: var(--primary);
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+      background: var(--bg-card);
+      color: var(--text-main);
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary-hover);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+    }
+
+    .btn-success {
+      background: #059669;
+      border-color: #10b981;
+      color: #fff;
+    }
+
+    /* 主體工作區 (三欄式) */
+    .studio-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr 340px;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* 左側圖標列表 */
+    .sidebar-left {
+      background: var(--bg-card);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .icon-item-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .icon-list-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: rgba(0, 0, 0, 0.15);
+      transition: all 0.15s;
+    }
+
+    .icon-list-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .icon-list-item.active {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: var(--primary);
+    }
+
+    .item-thumb {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-name {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .item-sub {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+
+    /* 中間畫布區 */
+    .canvas-stage-area {
+      background: #070a12;
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+      padding: 24px;
+    }
+
+    .canvas-toolbar {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .canvas-toolbar > * {
+      pointer-events: auto;
+    }
+
+    .tool-pill {
+      background: rgba(19, 27, 46, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 4px 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+    }
+
+    .canvas-wrapper {
+      position: relative;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .sprite-sheet-img {
+      display: block;
+      max-width: 680px;
+      height: auto;
+      pointer-events: none;
+    }
+
+    /* 選取框 (Bounding Box) */
+    .crop-box {
+      position: absolute;
+      border: 2px solid #38bdf8;
+      background: rgba(56, 189, 248, 0.22);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5), inset 0 0 10px rgba(56, 189, 248, 0.3);
+      cursor: move;
+      z-index: 20;
+    }
+
+    .crop-handle {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #fff;
+      border: 2px solid #0284c7;
+      border-radius: 2px;
+      z-index: 25;
+    }
+
+    .handle-nw { top: -5px; left: -5px; cursor: nwse-resize; }
+    .handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
+    .handle-sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+    .handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+    .handle-n  { top: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+    .handle-s  { bottom: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+    .handle-w  { top: calc(50% - 5px); left: -5px; cursor: ew-resize; }
+    .handle-e  { top: calc(50% - 5px); right: -5px; cursor: ew-resize; }
+
+    /* 其他格子的半透明 Ghost 網格 */
+    .grid-ghost-box {
+      position: absolute;
+      border: 1px dashed rgba(255, 255, 255, 0.25);
+      background: rgba(0, 0, 0, 0.15);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .grid-ghost-box:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* 右側屬性與預覽面板 */
+    .sidebar-right {
+      background: var(--bg-card);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .panel-section {
+      padding: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #93c5fd;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* 實機品質框預覽區 */
+    .live-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .preview-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .preview-label {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    /* 滑桿與數值控制器 */
+    .control-row {
+      margin-bottom: 8px;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-bottom: 3px;
+    }
+
+    .range-slider {
+      width: 100%;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    .mode-switch-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .mode-btn {
+      padding: 5px;
+      font-size: 0.74rem;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      background: rgba(0, 0, 0, 0.2);
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .mode-btn.active {
+      border-color: var(--accent);
+      color: #fff;
+      background: rgba(245, 158, 11, 0.15);
+      font-weight: bold;
+    }
+
+    .dropzone {
+      border: 2px dashed rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .dropzone:hover {
+      border-color: var(--primary);
+      color: var(--text-main);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    /* Modal 彈窗通用樣式 */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      width: 540px;
+      max-width: 90vw;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .modal-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-label {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+
+    .form-input {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: #fff;
+      font-size: 0.82rem;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .code-preview {
+      width: 100%;
+      height: 240px;
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      color: #38bdf8;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      resize: none;
+    }
+
+    .modal-footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #10b981;
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      font-size: 0.82rem;
+      font-weight: 600;
+      z-index: 200;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 頂部導航 -->
+  <header>
+    <div class="logo-area">
+      <div class="logo-title">
+        <span>⚔️ MEDIEVAL</span>
+        <span class="badge">萬用圖標工坊</span>
+      </div>
+    </div>
+
+    <!-- 動態分類列表與新增分類按鈕 -->
+    <div class="nav-tabs-wrapper">
+      <div class="nav-tabs" id="nav-tabs-container">
+        <!-- JS 動態生成分類分頁 -->
+      </div>
+      <button class="btn btn-primary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="openCategoryModal()">
+        ➕ 新增/自訂圖集
+      </button>
+    </div>
+
+    <!-- 頂部快捷操作按鈕 -->
+    <div class="header-actions">
+      <button class="btn" style="color: #38bdf8; border-color: rgba(56,189,248,0.4);" onclick="openHistoryModal()">⏳ 歷史快照回溯</button>
+      <button class="btn" onclick="openImportExportModal()">📥 匯出/匯入 JSON</button>
+      <button class="btn" onclick="openCodeModal()">📋 匯出代碼</button>
+      <button class="btn btn-success" style="background: #059669; font-weight: bold;" onclick="saveToDiskFile()">💾 寫入專案硬碟</button>
+      <button class="btn btn-primary" onclick="saveToGame()">⚡ 套用至遊戲快取</button>
+    </div>
+  </header>
+
+  <!-- 工作區主佈局 (三欄式) -->
+  <div class="studio-layout">
+    
+    <aside class="sidebar-left">
+      <div class="sidebar-header">
+        <span id="current-cat-title">⚔️ 武器清單</span>
+        <div style="display:flex; gap:4px; align-items:center;">
+          <span class="badge" id="icon-count">12 個</span>
+          <button class="btn" style="padding: 1px 6px; font-size: 0.7rem;" onclick="addNewItemPrompt()">➕</button>
+        </div>
+      </div>
+      <!-- 自訂圖集專屬安全操作列 (更換圖檔、安全刪除、內建鎖定保護) -->
+      <div id="cat-management-bar" style="padding: 4px 8px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem;">
+        <!-- JS 動態渲染管理按鈕 -->
+      </div>
+      <div class="icon-item-list" id="icon-list-container">
+        <!-- JS 動態生成 -->
+      </div>
+    </aside>
+
+    <!-- 中間：大圖畫布裁切區 -->
+    <main class="canvas-stage-area" id="canvas-stage">
+      <div class="canvas-toolbar">
+        <div class="tool-pill">
+          <span>💡 <b>操作技巧：</b>滑鼠拖曳移動 / 邊框 8 向縮放 ｜ 鍵盤 <b>↑↓←→</b> 1px 極限微調 (Shift+方向鍵 5px)</span>
+        </div>
+        <div class="tool-pill">
+          <button class="btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="smartGridAlign()">🪄 智慧網格貼齊</button>
+          <button class="btn" style="padding: 2px 8px; font-size: 0.72rem;" onclick="resetCurrentIcon()">🔄 重設此項</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrapper" id="canvas-wrapper">
+        <img id="sprite-sheet-img" class="sprite-sheet-img" src="../public/assets/icons_weapons_12.jpg" alt="Sprite Sheet">
+        <!-- 裁切框與 Ghost 格子由 JS 渲染 -->
+      </div>
+    </main>
+
+    <!-- 右側：屬性與即時實機預覽 -->
+    <aside class="sidebar-right">
+      
+      <!-- 即時實機預覽 -->
+      <div class="panel-section">
+        <div class="panel-title">
+          <span>🔍 高解析大圖特寫 (140px)</span>
+          <span style="font-size: 0.72rem; color: #38bdf8;">精準對齊檢視</span>
+        </div>
+
+        <!-- 140px 大圖特寫視窗 -->
+        <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+          <div style="position: relative; width: 140px; height: 140px; border-radius: 8px; border: 2px solid #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.4); overflow: hidden; background: #000;">
+            <div id="preview-hd" style="width: 100%; height: 100%;"></div>
+            <!-- 十字準星輔助線 -->
+            <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(255,255,255,0.25); pointer-events: none;"></div>
+            <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.25); pointer-events: none;"></div>
+            <!-- 安全框提示 -->
+            <div style="position: absolute; inset: 10px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 4px; pointer-events: none;"></div>
+          </div>
+        </div>
+
+        <div class="panel-title" style="margin-top: 6px;">
+          <span>📺 遊戲實機品質外框預覽</span>
+          <span style="font-size: 0.7rem; color: #34d399;">60fps 即時渲染</span>
+        </div>
+
+        <div class="live-preview-grid">
+          <div class="preview-card">
+            <div id="preview-t1" style="width: 38px; height: 38px;"></div>
+            <span class="preview-label">T1 普通</span>
+          </div>
+          <div class="preview-card">
+            <div id="preview-t2" style="width: 38px; height: 38px;"></div>
+            <span class="preview-label" style="color: #10b981;">T2 精良</span>
+          </div>
+          <div class="preview-card">
+            <div id="preview-t3" style="width: 38px; height: 38px;"></div>
+            <span class="preview-label" style="color: #3b82f6;">T3 稀有</span>
+          </div>
+          <div class="preview-card">
+            <div id="preview-t4" style="width: 38px; height: 38px;"></div>
+            <span class="preview-label" style="color: #a855f7;">T4 史詩</span>
+          </div>
+          <div class="preview-card">
+            <div id="preview-t5" style="width: 38px; height: 38px;"></div>
+            <span class="preview-label" style="color: #f59e0b;">T5 傳奇</span>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-around; align-items: center; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 6px;">
+          <div style="text-align: center;">
+            <div id="preview-32" style="width: 32px; height: 32px; margin: 0 auto 3px;"></div>
+            <span style="font-size: 0.65rem; color: #94a3b8;">SM 行內 (32px)</span>
+          </div>
+          <div style="text-align: center;">
+            <div id="preview-58" style="width: 58px; height: 58px; margin: 0 auto 3px;"></div>
+            <span style="font-size: 0.65rem; color: #38bdf8; font-weight: bold;">MD 卡片 (58px)</span>
+          </div>
+          <div style="text-align: center;">
+            <div id="preview-68" style="width: 68px; height: 68px; margin: 0 auto 3px;"></div>
+            <span style="font-size: 0.65rem; color: #fbbf24; font-weight: bold;">LG 焦點 (68px)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模式切換與單圖上傳 -->
+      <div class="panel-section">
+        <div class="panel-title">
+          <span>⚙️ 圖標模式與微調</span>
+        </div>
+
+        <div class="mode-switch-group">
+          <button class="mode-btn active" id="mode-sprite-btn" onclick="setMode('sprite')">🔲 宮格裁切</button>
+          <button class="mode-btn" id="mode-custom-btn" onclick="setMode('custom')">🖼️ 單圖上傳/內嵌</button>
+        </div>
+
+        <!-- 宮格微調滑桿 -->
+        <div id="sprite-controls">
+          <div class="control-row">
+            <div class="control-label-row">
+              <span>X 偏移百分比 (bgX)</span>
+              <span id="val-bgx">0.0%</span>
+            </div>
+            <input type="range" class="range-slider" id="slider-bgx" min="0" max="100" step="0.1" oninput="updateFromSlider('bgX', this.value)">
+          </div>
+
+          <div class="control-row">
+            <div class="control-label-row">
+              <span>Y 偏移百分比 (bgY)</span>
+              <span id="val-bgy">0.0%</span>
+            </div>
+            <input type="range" class="range-slider" id="slider-bgy" min="0" max="100" step="0.1" oninput="updateFromSlider('bgY', this.value)">
+          </div>
+
+          <div class="control-row">
+            <div class="control-label-row">
+              <span>裁切框縮放比例 (Zoom)</span>
+              <span id="val-zoom">100%</span>
+            </div>
+            <input type="range" class="range-slider" id="slider-zoom" min="60" max="200" step="1" oninput="updateFromSlider('zoom', this.value)">
+          </div>
+        </div>
+
+        <!-- 單圖上傳區 -->
+        <div id="custom-controls" style="display: none;">
+          <div class="dropzone" onclick="document.getElementById('file-upload-input').click()">
+            <div style="font-size: 1.3rem; margin-bottom: 4px;">📥</div>
+            <div>點擊或拖曳獨立圖片到這裡</div>
+            <div style="font-size: 0.68rem; color: #64748b; margin-top: 2px;">支援 PNG, JPG, WebP, SVG (自動轉為內嵌 DataURL)</div>
+          </div>
+          <input type="file" id="file-upload-input" accept="image/*" style="display: none;" onchange="handleFileUpload(event)">
+          <div id="custom-img-preview" style="margin-top: 8px; text-align: center; display: none;">
+            <button class="btn" style="padding: 3px 8px; font-size: 0.7rem; color: var(--danger);" onclick="removeCustomImage()">❌ 移除自訂圖片</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 重設與安全復原 -->
+      <div class="panel-section" style="margin-top: auto; display: flex; flex-direction: column; gap: 6px;">
+        <button id="btn-undo-restore" class="btn" style="width: 100%; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); font-size: 0.75rem; display: none;" onclick="undoRestoreBackup()">
+          ↩️ 復原上次清除/修改的設定 (Undo)
+        </button>
+        <button class="btn" style="width: 100%; color: var(--danger); border-color: rgba(239, 68, 68, 0.3); font-size: 0.75rem;" onclick="clearAllCustomConfig()">
+          🗑️ 清除所有自訂並還原預設
+        </button>
+      </div>
+
+    </aside>
+  </div>
+
+  <!-- 新增/自訂分類彈窗 -->
+  <div class="modal-overlay" id="category-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>➕ 新增自訂圖集分類</span>
+        <button class="btn" style="padding: 2px 8px;" onclick="closeCategoryModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">分類唯一識別碼 (Key / ID，如 monsters, skills, custom_avatars)</label>
+          <input type="text" class="form-input" id="modal-cat-key" placeholder="例如: avatars_extra">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分類顯示名稱 (Title)</label>
+          <input type="text" class="form-input" id="modal-cat-title" placeholder="例如: 👾 怪物圖鑑 (4x4)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">大圖底圖來源 (Sprite Sheet)</label>
+          <input type="text" class="form-input" id="modal-cat-url" placeholder="例如: ../public/assets/avatars_male.jpg 或選擇上傳圖片">
+          <div class="dropzone" style="margin-top: 6px; padding: 10px;" onclick="document.getElementById('cat-sheet-upload').click()">
+            📁 點擊選取或拖入本地大圖 (PNG/JPG)
+          </div>
+          <input type="file" id="cat-sheet-upload" accept="image/*" style="display: none;" onchange="handleCatSheetUpload(event)">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">欄數 (Cols / 寬度格數)</label>
+            <input type="number" class="form-input" id="modal-cat-cols" value="5" min="1" max="20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">列數 (Rows / 高度格數)</label>
+            <input type="number" class="form-input" id="modal-cat-rows" value="5" min="1" max="20">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeCategoryModal()">取消</button>
+        <button class="btn btn-primary" onclick="submitNewCategory()">建立圖集分類</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 匯出/匯入 JSON 備份彈窗 -->
+  <div class="modal-overlay" id="import-export-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>📥 備份與還原圖標工坊設定 (JSON)</span>
+        <button class="btn" style="padding: 2px 8px;" onclick="closeImportExportModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea class="code-preview" id="import-export-textarea" placeholder="貼上 JSON 設定檔..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="downloadConfigJson()">💾 下載 JSON 檔案</button>
+        <button class="btn btn-primary" onclick="importConfigJson()">📤 套用貼上的 JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 匯出代碼彈窗 -->
+  <div class="modal-overlay" id="code-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <span>📋 匯出 TypeScript 配置代碼</span>
+        <button class="btn" style="padding: 2px 8px;" onclick="closeCodeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea class="code-preview" id="code-output" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeCodeModal()">關閉</button>
+        <button class="btn btn-primary" onclick="copyCode()">複製代碼</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 歷史快照時光機彈窗 -->
+  <div class="modal-overlay" id="history-modal">
+    <div class="modal-content" style="width: 620px;">
+      <div class="modal-header">
+        <span>⏳ 歷史快照時光機 (版本回溯)</span>
+        <button class="btn" style="padding: 2px 8px;" onclick="closeHistoryModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">
+          系統在您每次點擊「💾 寫入專案硬碟」時都會自動在伺服器建立快照。點擊右側【還原此版本】即可一鍵回溯：
+        </div>
+        <div id="history-list-container" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;">
+          <div style="color: #64748b; text-align: center; padding: 20px;">載入快照列表中...</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeHistoryModal()">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通知 Toast -->
+  <div id="toast">✅ 已儲存並套用至本機遊戲！</div>
+
+  <script>
+    // 預設內建資料集 (包含武器、設施、素材、以及男女傭兵 5x5)
+    const DEFAULT_DATASETS = {
+      weapons: {
+        title: '⚔️ 武器 T1 基礎 (4x3)',
+        spriteUrl: '../public/assets/icons_weapons_12.jpg',
+        fallbackUrls: ['../assets/icons_weapons_12.jpg', './assets/icons_weapons_12.jpg', '/assets/icons_weapons_12.jpg'],
+        cols: 4,
+        rows: 3,
+        items: [
+          { id: 'GREATSWORD', name: '狂戰士巨劍', col: 0, row: 0, zoom: 100 },
+          { id: 'DUAL_SWORDS', name: '魔劍士雙劍', col: 1, row: 0, zoom: 100 },
+          { id: 'STAFF', name: '大魔導士法杖', col: 2, row: 0, zoom: 100 },
+          { id: 'SCYTHE', name: '死靈法師戰鐮', col: 3, row: 0, zoom: 100 },
+          { id: 'BOW', name: '神射手戰弓', col: 0, row: 1, zoom: 100 },
+          { id: 'MAGIC_BOW', name: '精靈使魔法弓', col: 1, row: 1, zoom: 100 },
+          { id: 'DAGGERS', name: '暗殺者雙匕首', col: 2, row: 1, zoom: 100 },
+          { id: 'MAGIC_RING', name: '詭術師魔戒', col: 3, row: 1, zoom: 100 },
+          { id: 'SWORD_AND_SHIELD', name: '聖騎士劍盾', col: 0, row: 2, zoom: 100 },
+          { id: 'RUNE_SHIELD', name: '符文騎士巨盾', col: 1, row: 2, zoom: 100 },
+          { id: 'HOLY_BOOK', name: '大主教聖典', col: 2, row: 2, zoom: 100 },
+          { id: 'HAMMER', name: '異端拷問官戰鎚', col: 3, row: 2, zoom: 100 }
+        ]
+      },
+      weapons_t2: {
+        title: '⚔️ 武器 T2 高級 (4x3)',
+        spriteUrl: '../public/assets/icons_weapons_t2_12.jpg',
+        fallbackUrls: ['../assets/icons_weapons_t2_12.jpg', './assets/icons_weapons_t2_12.jpg', '/assets/icons_weapons_t2_12.jpg'],
+        cols: 4,
+        rows: 3,
+        items: [
+          { id: 'GREATSWORD', name: 'T2 精鋼巨劍', col: 0, row: 0, zoom: 100 },
+          { id: 'DUAL_SWORDS', name: 'T2 彎刃雙劍', col: 1, row: 0, zoom: 100 },
+          { id: 'STAFF', name: 'T2 寶珠法杖', col: 2, row: 0, zoom: 100 },
+          { id: 'SCYTHE', name: 'T2 鋸齒戰鐮', col: 3, row: 0, zoom: 100 },
+          { id: 'BOW', name: 'T2 複合長弓', col: 0, row: 1, zoom: 100 },
+          { id: 'MAGIC_BOW', name: 'T2 精靈長弓', col: 1, row: 1, zoom: 100 },
+          { id: 'DAGGERS', name: 'T2 刺客短刃', col: 2, row: 1, zoom: 100 },
+          { id: 'MAGIC_RING', name: 'T2 紫晶魔戒', col: 3, row: 1, zoom: 100 },
+          { id: 'SWORD_AND_SHIELD', name: 'T2 鋼盾長劍', col: 0, row: 2, zoom: 100 },
+          { id: 'RUNE_SHIELD', name: 'T2 符文方盾', col: 1, row: 2, zoom: 100 },
+          { id: 'HOLY_BOOK', name: 'T2 鍍金福音書', col: 2, row: 2, zoom: 100 },
+          { id: 'HAMMER', name: 'T2 尖刺戰鎚', col: 3, row: 2, zoom: 100 }
+        ]
+      },
+      weapons_t3: {
+        title: '⚔️ 武器 T3 專家 (4x3)',
+        spriteUrl: '../public/assets/icons_weapons_t3_12.jpg',
+        fallbackUrls: ['../assets/icons_weapons_t3_12.jpg', './assets/icons_weapons_t3_12.jpg', '/assets/icons_weapons_t3_12.jpg'],
+        cols: 4,
+        rows: 3,
+        items: [
+          { id: 'GREATSWORD', name: 'T3 霜焰波刃巨劍', col: 0, row: 0, zoom: 100 },
+          { id: 'DUAL_SWORDS', name: 'T3 龍首大馬士革雙刀', col: 1, row: 0, zoom: 100 },
+          { id: 'STAFF', name: 'T3 鈷藍古木大魔導杖', col: 2, row: 0, zoom: 100 },
+          { id: 'SCYTHE', name: 'T3 黑曜死翼戰鐮', col: 3, row: 0, zoom: 100 },
+          { id: 'BOW', name: 'T3 鐵木名匠重弓', col: 0, row: 1, zoom: 100 },
+          { id: 'MAGIC_BOW', name: 'T3 月華精靈弓', col: 1, row: 1, zoom: 100 },
+          { id: 'DAGGERS', name: 'T3 毒牙幽冥匕首', col: 2, row: 1, zoom: 100 },
+          { id: 'MAGIC_RING', name: 'T3 雷霆真視之戒', col: 3, row: 1, zoom: 100 },
+          { id: 'SWORD_AND_SHIELD', name: 'T3 金獅皇室神聖盾劍', col: 0, row: 2, zoom: 100 },
+          { id: 'RUNE_SHIELD', name: 'T3 秘術符文壁壘', col: 1, row: 2, zoom: 100 },
+          { id: 'HOLY_BOOK', name: 'T3 太陽聖輝啟示錄', col: 2, row: 2, zoom: 100 },
+          { id: 'HAMMER', name: 'T3 審判烈焰戰鎚', col: 3, row: 2, zoom: 100 }
+        ]
+      },
+      weapons_t4: {
+        title: '⚔️ 武器 T4 神兵 (4x3)',
+        spriteUrl: '../public/assets/icons_weapons_t4_12.jpg',
+        fallbackUrls: ['../assets/icons_weapons_t4_12.jpg', './assets/icons_weapons_t4_12.jpg', '/assets/icons_weapons_t4_12.jpg'],
+        cols: 4,
+        rows: 3,
+        items: [
+          { id: 'GREATSWORD', name: 'T4 滅世熔岩屠龍巨劍', col: 0, row: 0, zoom: 100 },
+          { id: 'DUAL_SWORDS', name: 'T4 星穹虛空神刃', col: 1, row: 0, zoom: 100 },
+          { id: 'STAFF', name: 'T4 星系奇點世界樹權杖', col: 2, row: 0, zoom: 100 },
+          { id: 'SCYTHE', name: 'T4 湮滅死神龍骨戰鐮', col: 3, row: 0, zoom: 100 },
+          { id: 'BOW', name: 'T4 不死鳥烈陽神弓', col: 0, row: 1, zoom: 100 },
+          { id: 'MAGIC_BOW', name: 'T4 蒼穹極光精靈神弓', col: 1, row: 1, zoom: 100 },
+          { id: 'DAGGERS', name: 'T4 日蝕深淵嗜血雙刃', col: 2, row: 1, zoom: 100 },
+          { id: 'MAGIC_RING', name: 'T4 永恆星環之眼', col: 3, row: 1, zoom: 100 },
+          { id: 'SWORD_AND_SHIELD', name: 'T4 太陽神王不朽盾劍', col: 0, row: 2, zoom: 100 },
+          { id: 'RUNE_SHIELD', name: 'T4 泰坦始源金符壁壘', col: 1, row: 2, zoom: 100 },
+          { id: 'HOLY_BOOK', name: 'T4 終焉救贖啟示真典', col: 2, row: 2, zoom: 100 },
+          { id: 'HAMMER', name: 'T4 諸神黃昏滅世雷神鎚', col: 3, row: 2, zoom: 100 }
+        ]
+      },
+      armors: {
+        title: '🛡️ 防具 (4x3)',
+        spriteUrl: '../public/assets/icons_armors_12.jpg',
+        fallbackUrls: ['../assets/icons_armors_12.jpg', './assets/icons_armors_12.jpg', '/assets/icons_armors_12.jpg'],
+        cols: 4,
+        rows: 3,
+        items: [
+          { id: 'CLOTH_T1', name: '布甲 T1 粗布長袍', col: 0, row: 0, zoom: 100 },
+          { id: 'CLOTH_T2', name: '布甲 T2 學徒法袍', col: 1, row: 0, zoom: 100 },
+          { id: 'CLOTH_T3', name: '布甲 T3 魔導長袍', col: 2, row: 0, zoom: 100 },
+          { id: 'CLOTH_T4', name: '布甲 T4 大賢者神聖法袍', col: 3, row: 0, zoom: 100 },
+          { id: 'LEATHER_T1', name: '皮甲 T1 輕皮甲', col: 0, row: 1, zoom: 100 },
+          { id: 'LEATHER_T2', name: '皮甲 T2 獵手皮甲', col: 1, row: 1, zoom: 100 },
+          { id: 'LEATHER_T3', name: '皮甲 T3 斥候暗影皮甲', col: 2, row: 1, zoom: 100 },
+          { id: 'LEATHER_T4', name: '皮甲 T4 刺客龍鱗皮甲', col: 3, row: 1, zoom: 100 },
+          { id: 'HEAVY_T1', name: '重鎧 T1 鏈甲', col: 0, row: 2, zoom: 100 },
+          { id: 'HEAVY_T2', name: '重鎧 T2 鐵胸甲', col: 1, row: 2, zoom: 100 },
+          { id: 'HEAVY_T3', name: '重鎧 T3 騎士板金鎧', col: 2, row: 2, zoom: 100 },
+          { id: 'HEAVY_T4', name: '重鎧 T4 聖殿騎士神鎧', col: 3, row: 2, zoom: 100 }
+        ]
+      },
+      facilities: {
+        title: '🏰 領地設施 (4x3)',
+        spriteUrl: '../public/assets/icons_facilities_parchment_12.jpg',
+        fallbackUrls: ['../assets/icons_facilities_parchment_12.jpg', './assets/icons_facilities_parchment_12.jpg', '/assets/icons_facilities_parchment_12.jpg'],
+        cols: 4,
+        rows: 3,
+        items: [
+          { id: 'tavern', name: '酒館 (Tavern)', col: 0, row: 0, zoom: 100 },
+          { id: 'forge', name: '鐵匠鋪 (Forge)', col: 1, row: 0, zoom: 100 },
+          { id: 'weapon', name: '武器店 (Weapon)', col: 2, row: 0, zoom: 100 },
+          { id: 'armor', name: '防具店 (Armor)', col: 3, row: 0, zoom: 100 },
+          { id: 'study', name: '領主書房 (Study)', col: 0, row: 1, zoom: 100 },
+          { id: 'defense', name: '城防哨所 (Defense)', col: 1, row: 1, zoom: 100 }
+        ]
+      },
+      materials: {
+        title: '💎 素材與資源 (4x3)',
+        spriteUrl: '../public/assets/icons_materials_color_12_1.png',
+        fallbackUrls: ['../assets/icons_materials_color_12_1.png', './assets/icons_materials_color_12_1.png', '/assets/icons_materials_color_12_1.png'],
+        cols: 4,
+        rows: 3,
+        items: [
+          { id: 'gold', name: '金幣 (Gold)', col: 2, row: 1, zoom: 100 },
+          { id: 'wood', name: '木材 (Wood)', col: 3, row: 1, zoom: 100 },
+          { id: 'stone', name: '石材 (Stone)', col: 0, row: 2, zoom: 100 },
+          { id: 'iron', name: '鐵礦 (Iron)', col: 1, row: 2, zoom: 100 },
+          { id: 'food', name: '糧食 (Food)', col: 2, row: 2, zoom: 100 },
+          { id: 'essence', name: '靈魂精華 (Essence)', col: 3, row: 2, zoom: 100 },
+          { id: 'cotton', name: '棉麻 (Cotton)', customEmoji: '🌿' },
+          { id: 'hide', name: '生皮 (Hide)', customEmoji: '🦬' },
+          { id: 'cloth', name: '粗布 (Cloth)', customEmoji: '🪢' },
+          { id: 'leather', name: '皮革 (Leather)', customEmoji: '📜' }
+        ]
+      },
+      avatars_male: {
+        title: '👨 男傭兵頭像 (5x5)',
+        spriteUrl: '../public/assets/avatars_male.jpg',
+        fallbackUrls: ['../assets/avatars_male.jpg', './assets/avatars_male.jpg', '/assets/avatars_male.jpg'],
+        cols: 5,
+        rows: 5,
+        items: Array.from({ length: 25 }, (_, i) => ({
+          id: `male_${i}`,
+          name: `男傭兵 #${i < 9 ? '0' + (i + 1) : (i + 1)}`,
+          col: i % 5,
+          row: Math.floor(i / 5),
+          zoom: 100
+        }))
+      },
+      avatars_female: {
+        title: '👩 女傭兵頭像 (5x5)',
+        spriteUrl: '../public/assets/avatars_female.jpg',
+        fallbackUrls: ['../assets/avatars_female.jpg', './assets/avatars_female.jpg', '/assets/avatars_female.jpg'],
+        cols: 5,
+        rows: 5,
+        items: Array.from({ length: 25 }, (_, i) => ({
+          id: `female_${i}`,
+          name: `女傭兵 #${i < 9 ? '0' + (i + 1) : (i + 1)}`,
+          col: i % 5,
+          row: Math.floor(i / 5),
+          zoom: 100
+        }))
+      },
+      guardian_male: {
+        title: '🛡️ 誓約男守衛 (10款·Row 0~1)',
+        spriteUrl: '../public/assets/avatars_guardians.jpg',
+        fallbackUrls: ['../assets/avatars_guardians.jpg', './assets/avatars_guardians.jpg', '/assets/avatars_guardians.jpg'],
+        cols: 5,
+        rows: 5,
+        items: [
+          { id: 'guardian_m_0', name: '滄桑老兵隊長 (1/10)', col: 0, row: 0, zoom: 100 },
+          { id: 'guardian_m_1', name: '銀髮雄獅騎士 (2/10)', col: 1, row: 0, zoom: 100 },
+          { id: 'guardian_m_2', name: '忠誠青年侍從 (3/10)', col: 2, row: 0, zoom: 100 },
+          { id: 'guardian_m_3', name: '金紋重甲將軍 (4/10)', col: 3, row: 0, zoom: 100 },
+          { id: 'guardian_m_4', name: '神秘兜帽遊俠 (5/10)', col: 4, row: 0, zoom: 100 },
+          { id: 'guardian_m_5', name: '狂怒戰斧勇士 (6/10)', col: 0, row: 1, zoom: 100 },
+          { id: 'guardian_m_6', name: '莊嚴黑袍神官 (7/10)', col: 1, row: 1, zoom: 100 },
+          { id: 'guardian_m_7', name: '堅毅歷戰傭兵 (8/10)', col: 2, row: 1, zoom: 100 },
+          { id: 'guardian_m_8', name: '森林長弓獵手 (9/10)', col: 3, row: 1, zoom: 100 },
+          { id: 'guardian_m_9', name: '全罩重裝步兵 (10/10)', col: 4, row: 1, zoom: 100 }
+        ]
+      },
+      guardian_female: {
+        title: '🛡️ 誓約女守衛 (10款·Row 3~4)',
+        spriteUrl: '../public/assets/avatars_guardians.jpg',
+        fallbackUrls: ['../assets/avatars_guardians.jpg', './assets/avatars_guardians.jpg', '/assets/avatars_guardians.jpg'],
+        cols: 5,
+        rows: 5,
+        items: [
+          { id: 'guardian_f_0', name: '金髮璀璨聖騎 (1/10)', col: 0, row: 3, zoom: 100 },
+          { id: 'guardian_f_1', name: '聖潔修道神官 (2/10)', col: 1, row: 3, zoom: 100 },
+          { id: 'guardian_f_2', name: '颯爽赤髮劍士 (3/10)', col: 2, row: 3, zoom: 100 },
+          { id: 'guardian_f_3', name: '短髮英姿女騎 (4/10)', col: 3, row: 3, zoom: 100 },
+          { id: 'guardian_f_4', name: '暗影兜帽俠女 (5/10)', col: 4, row: 3, zoom: 100 },
+          { id: 'guardian_f_5', name: '紫袍秘術法師 (6/10)', col: 0, row: 4, zoom: 100 },
+          { id: 'guardian_f_6', name: '宮廷貴族女爵 (7/10)', col: 1, row: 4, zoom: 100 },
+          { id: 'guardian_f_7', name: '夜行黑皮刺客 (8/10)', col: 2, row: 4, zoom: 100 },
+          { id: 'guardian_f_8', name: '雙辮長弓射手 (9/10)', col: 3, row: 4, zoom: 100 },
+          { id: 'guardian_f_9', name: '重裝板金女戰 (10/10)', col: 4, row: 4, zoom: 100 }
+        ]
+      }
+    };
+
+    const LOCAL_STORAGE_KEY = 'MEDIEVAL_CUSTOM_ICON_CONFIG';
+    const STUDIO_DATA_VERSION = 'v2.3_guardians_10_slots';
+    let DATASETS = loadDatasets();
+    let currentCategory = 'guardian_male';
+    let currentSelectedId = 'guardian_m_0';
+    let customConfigs = loadSavedConfig();
+    let currentFallbackIdx = 0;
+    let tempUploadedCatSheet = '';
+
+    function loadDatasets() {
+      try {
+        const ver = localStorage.getItem('MEDIEVAL_STUDIO_VER');
+        if (ver !== STUDIO_DATA_VERSION) {
+          // 版本過期，自動清除舊快取，強制套用最新 5x5 與 10 款守衛定義
+          localStorage.removeItem(LOCAL_STORAGE_DATASETS_KEY);
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+          localStorage.setItem('MEDIEVAL_STUDIO_VER', STUDIO_DATA_VERSION);
+          return { ...DEFAULT_DATASETS };
+        }
+
+        const saved = localStorage.getItem(LOCAL_STORAGE_DATASETS_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          // 內建資料集永遠以 DEFAULT_DATASETS 為基底，僅合併自訂欄位
+          const merged = { ...DEFAULT_DATASETS };
+          Object.keys(parsed).forEach(k => {
+            if (!DEFAULT_DATASETS[k]) {
+              merged[k] = parsed[k];
+            } else {
+              merged[k] = { ...DEFAULT_DATASETS[k], ...parsed[k], items: DEFAULT_DATASETS[k].items, cols: DEFAULT_DATASETS[k].cols, rows: DEFAULT_DATASETS[k].rows, spriteUrl: DEFAULT_DATASETS[k].spriteUrl };
+            }
+          });
+          return merged;
+        }
+      } catch (e) {
+        console.warn('載入自訂圖集失敗:', e);
+      }
+      return { ...DEFAULT_DATASETS };
+    }
+
+    function saveDatasets() {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_DATASETS_KEY, JSON.stringify(DATASETS));
+      } catch (e) {
+        console.warn('儲存圖集失敗:', e);
+      }
+    }
+
+    function loadSavedConfig() {
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.warn('載入自訂設定失敗', e);
+      }
+      return {};
+    }
+
+    async function init() {
+      // 確保頂部有重設按鈕
+      const headerActions = document.querySelector('.header-actions');
+      if (headerActions && !document.getElementById('btn-reset-studio-cache')) {
+        const resetBtn = document.createElement('button');
+        resetBtn.id = 'btn-reset-studio-cache';
+        resetBtn.className = 'btn btn-secondary';
+        resetBtn.style.fontSize = '0.8em';
+        resetBtn.style.padding = '5px 10px';
+        resetBtn.innerHTML = '🔄 強制同步最新圖集';
+        resetBtn.onclick = () => {
+          localStorage.removeItem('MEDIEVAL_STUDIO_VER');
+          localStorage.removeItem(LOCAL_STORAGE_DATASETS_KEY);
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+          location.reload();
+        };
+        headerActions.insertBefore(resetBtn, headerActions.firstChild);
+      }
+      const img = document.getElementById('sprite-sheet-img');
+      img.onload = () => {
+        renderCropBoxAndGrid();
+        updateLivePreviews();
+      };
+      img.onerror = () => {
+        const catData = DATASETS[currentCategory];
+        if (catData?.fallbackUrls && currentFallbackIdx < catData.fallbackUrls.length) {
+          const nextUrl = catData.fallbackUrls[currentFallbackIdx++];
+          img.src = nextUrl;
+        }
+      };
+
+      // 嘗試自硬碟 API 載入既有配置檔案
+      try {
+        const res = await fetch('/api/get-icon-config');
+        const diskConfig = await res.json();
+        if (diskConfig && Object.keys(diskConfig).length > 0) {
+          customConfigs = { ...diskConfig, ...customConfigs };
+        }
+      } catch (e) {}
+
+      renderCategoryTabs();
+      switchCategory('weapons');
+      setupKeyboardListener();
+      checkUndoStatus();
+    }
+
+    function renderCategoryTabs() {
+      const container = document.getElementById('nav-tabs-container');
+      container.innerHTML = '';
+
+      Object.keys(DATASETS).forEach(key => {
+        const cat = DATASETS[key];
+        const tab = document.createElement('button');
+        tab.className = `nav-tab ${key === currentCategory ? 'active' : ''}`;
+        tab.dataset.category = key;
+        tab.textContent = cat.title;
+        tab.onclick = () => switchCategory(key);
+        container.appendChild(tab);
+      });
+    }
+
+    function switchCategory(catKey) {
+      if (!DATASETS[catKey]) catKey = Object.keys(DATASETS)[0];
+      currentCategory = catKey;
+      currentFallbackIdx = 0;
+      
+      document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.category === catKey);
+      });
+
+      const catData = DATASETS[catKey];
+      document.getElementById('current-cat-title').textContent = catData.title;
+      document.getElementById('icon-count').textContent = `${catData.items.length} 個`;
+      
+      // 渲染分類管理列 (若為自訂圖集，提供更換圖片與刪除按鈕；內建圖集則顯示受保護提示)
+      const isBuiltin = !!DEFAULT_DATASETS[catKey];
+      const mgmtBar = document.getElementById('cat-management-bar');
+      if (mgmtBar) {
+        if (isBuiltin) {
+          mgmtBar.innerHTML = `<span style="color: #64748b; font-size: 0.72rem;">🔒 系統內建圖集 (安全保護)</span>`;
+        } else {
+          mgmtBar.innerHTML = `
+            <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 0.7rem;" onclick="openChangeImagePrompt('${catKey}')">🖼️ 更換圖檔</button>
+            <button class="btn" style="padding: 2px 6px; font-size: 0.7rem; background: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.4);" onclick="deleteCategorySafe('${catKey}')">🗑️ 刪除圖集</button>
+          `;
+        }
+      }
+
+      const img = document.getElementById('sprite-sheet-img');
+      img.src = catData.spriteUrl;
+
+      if (catData.items.length > 0) {
+        currentSelectedId = catData.items[0].id;
+      } else {
+        currentSelectedId = '';
+      }
+      
+      renderIconList();
+      if (currentSelectedId) selectIcon(currentSelectedId);
+    }
+
+    function renderIconList() {
+      const listContainer = document.getElementById('icon-list-container');
+      listContainer.innerHTML = '';
+      const catData = DATASETS[currentCategory];
+
+      catData.items.forEach(item => {
+        const el = document.createElement('div');
+        el.className = `icon-list-item ${item.id === currentSelectedId ? 'active' : ''}`;
+        el.onclick = () => selectIcon(item.id);
+
+        const config = getActiveConfig(item.id);
+        let thumbHtml = '🔲';
+        if (config.customEmoji) {
+          thumbHtml = config.customEmoji;
+        } else if (config.customImage) {
+          thumbHtml = `<div style="width:100%; height:100%; background:url('${config.customImage}') center/cover;"></div>`;
+        }
+
+        el.innerHTML = `
+          <div class="item-thumb">${thumbHtml}</div>
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-sub">${item.id}</div>
+          </div>
+        `;
+        listContainer.appendChild(el);
+      });
+    }
+
+    function getActiveConfig(id) {
+      const catData = DATASETS[currentCategory];
+      const defaultItem = catData?.items?.find(i => i.id === id) || {};
+      const custom = customConfigs[currentCategory]?.[id] || {};
+      return { ...defaultItem, ...custom };
+    }
+
+    function selectIcon(id) {
+      currentSelectedId = id;
+      
+      document.querySelectorAll('.icon-list-item').forEach((el, idx) => {
+        const item = DATASETS[currentCategory]?.items[idx];
+        el.classList.toggle('active', item && item.id === id);
+      });
+
+      const config = getActiveConfig(id);
+      
+      if (config.customImage) {
+        setMode('custom');
+      } else {
+        setMode('sprite');
+      }
+
+      const cols = DATASETS[currentCategory]?.cols || 4;
+      const rows = DATASETS[currentCategory]?.rows || 3;
+      const defBgX = cols > 1 ? (config.col || 0) * (100 / (cols - 1)) : 0;
+      const defBgY = rows > 1 ? (config.row || 0) * (100 / (rows - 1)) : 0;
+
+      const bgX = config.bgX !== undefined ? config.bgX : defBgX;
+      const bgY = config.bgY !== undefined ? config.bgY : defBgY;
+      const zoom = config.zoom || 100;
+
+      document.getElementById('slider-bgx').value = bgX;
+      document.getElementById('val-bgx').textContent = `${Number(bgX).toFixed(1)}%`;
+
+      document.getElementById('slider-bgy').value = bgY;
+      document.getElementById('val-bgy').textContent = `${Number(bgY).toFixed(1)}%`;
+
+      document.getElementById('slider-zoom').value = zoom;
+      document.getElementById('val-zoom').textContent = `${zoom}%`;
+
+      renderCropBoxAndGrid();
+      updateLivePreviews();
+    }
+
+    function renderCropBoxAndGrid() {
+      const wrapper = document.getElementById('canvas-wrapper');
+      wrapper.querySelectorAll('.crop-box, .grid-ghost-box').forEach(el => el.remove());
+
+      const config = getActiveConfig(currentSelectedId);
+      const catData = DATASETS[currentCategory];
+      const img = document.getElementById('sprite-sheet-img');
+
+      const imgWidth = img.offsetWidth || 680;
+      const imgHeight = img.offsetHeight || 510;
+
+      if (imgWidth <= 0 || imgHeight <= 0) return;
+
+      const cols = catData?.cols || 4;
+      const rows = catData?.rows || 3;
+
+      const cellW = imgWidth / cols;
+      const cellH = imgHeight / rows;
+
+      // 渲染 Ghost 格子
+      catData?.items?.forEach(item => {
+        if (item.col === undefined || item.row === undefined) return;
+        if (item.id === currentSelectedId) return;
+
+        const ghost = document.createElement('div');
+        ghost.className = 'grid-ghost-box';
+        ghost.style.left = `${item.col * cellW}px`;
+        ghost.style.top = `${item.row * cellH}px`;
+        ghost.style.width = `${cellW}px`;
+        ghost.style.height = `${cellH}px`;
+        ghost.title = item.name;
+        ghost.onclick = (e) => {
+          e.stopPropagation();
+          selectIcon(item.id);
+        };
+        wrapper.appendChild(ghost);
+      });
+
+      // 渲染當前選中框
+      if (config.col !== undefined || config.bgX !== undefined) {
+        const cropBox = document.createElement('div');
+        cropBox.className = 'crop-box';
+        cropBox.id = 'active-crop-box';
+
+        const zoom = config.zoom || 100;
+        const boxW = cellW / (zoom / 100);
+        const boxH = cellH / (zoom / 100);
+
+        const defBgX = cols > 1 ? (config.col || 0) * (100 / (cols - 1)) : 0;
+        const defBgY = rows > 1 ? (config.row || 0) * (100 / (rows - 1)) : 0;
+        const bgX = config.bgX !== undefined ? config.bgX : defBgX;
+        const bgY = config.bgY !== undefined ? config.bgY : defBgY;
+
+        const leftPx = (bgX / 100) * (imgWidth - boxW);
+        const topPx = (bgY / 100) * (imgHeight - boxH);
+
+        cropBox.style.left = `${leftPx}px`;
+        cropBox.style.top = `${topPx}px`;
+        cropBox.style.width = `${boxW}px`;
+        cropBox.style.height = `${boxH}px`;
+
+        const handles = ['nw', 'ne', 'sw', 'se', 'n', 's', 'w', 'e'];
+        handles.forEach(h => {
+          const handleEl = document.createElement('div');
+          handleEl.className = `crop-handle handle-${h}`;
+          handleEl.dataset.direction = h;
+          cropBox.appendChild(handleEl);
+        });
+
+        setupBoxDraggingAndResizing(cropBox, imgWidth, imgHeight, cellW, cellH);
+        wrapper.appendChild(cropBox);
+      }
+    }
+
+    function setupBoxDraggingAndResizing(box, imgW, imgH, cellW, cellH) {
+      let isAction = false;
+      let actionType = 'drag';
+      let resizeDir = '';
+      let startX, startY, initialLeft, initialTop, initialW, initialH;
+
+      box.onmousedown = (e) => {
+        const handle = e.target.closest('.crop-handle');
+        if (handle) {
+          actionType = 'resize';
+          resizeDir = handle.dataset.direction;
+        } else {
+          actionType = 'drag';
+        }
+
+        isAction = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        initialLeft = parseFloat(box.style.left) || 0;
+        initialTop = parseFloat(box.style.top) || 0;
+        initialW = parseFloat(box.style.width) || cellW;
+        initialH = parseFloat(box.style.height) || cellH;
+        e.preventDefault();
+      };
+
+      window.onmousemove = (e) => {
+        if (!isAction) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (actionType === 'drag') {
+          const curW = parseFloat(box.style.width) || cellW;
+          const curH = parseFloat(box.style.height) || cellH;
+
+          let newLeft = Math.max(0, Math.min(imgW - curW, initialLeft + dx));
+          let newTop = Math.max(0, Math.min(imgH - curH, initialTop + dy));
+
+          box.style.left = `${newLeft}px`;
+          box.style.top = `${newTop}px`;
+
+          const maxRangeX = imgW - curW;
+          const maxRangeY = imgH - curH;
+          const bgX = maxRangeX > 0 ? (newLeft / maxRangeX) * 100 : 0;
+          const bgY = maxRangeY > 0 ? (newTop / maxRangeY) * 100 : 0;
+
+          updateConfigValue('bgX', parseFloat(bgX.toFixed(2)));
+          updateConfigValue('bgY', parseFloat(bgY.toFixed(2)));
+
+          document.getElementById('slider-bgx').value = bgX;
+          document.getElementById('val-bgx').textContent = `${bgX.toFixed(1)}%`;
+          document.getElementById('slider-bgy').value = bgY;
+          document.getElementById('val-bgy').textContent = `${bgY.toFixed(1)}%`;
+        } else if (actionType === 'resize') {
+          let newW = initialW;
+          let newH = initialH;
+          let newLeft = initialLeft;
+          let newTop = initialTop;
+
+          if (resizeDir.includes('e')) newW = Math.max(25, Math.min(imgW - initialLeft, initialW + dx));
+          if (resizeDir.includes('s')) newH = Math.max(25, Math.min(imgH - initialTop, initialH + dy));
+          if (resizeDir.includes('w')) {
+            const rawW = initialW - dx;
+            newW = Math.max(25, Math.min(initialLeft + initialW, rawW));
+            newLeft = initialLeft + (initialW - newW);
+          }
+          if (resizeDir.includes('n')) {
+            const rawH = initialH - dy;
+            newH = Math.max(25, Math.min(initialTop + initialH, rawH));
+            newTop = initialTop + (initialH - newH);
+          }
+
+          box.style.width = `${newW}px`;
+          box.style.height = `${newH}px`;
+          box.style.left = `${newLeft}px`;
+          box.style.top = `${newTop}px`;
+
+          const avgScale = (cellW / newW + cellH / newH) / 2;
+          const newZoom = Math.min(200, Math.max(50, Math.round(avgScale * 100)));
+
+          const maxRangeX = imgW - newW;
+          const maxRangeY = imgH - newH;
+          const bgX = maxRangeX > 0 ? (newLeft / maxRangeX) * 100 : 0;
+          const bgY = maxRangeY > 0 ? (newTop / maxRangeY) * 100 : 0;
+
+          updateConfigValue('zoom', newZoom);
+          updateConfigValue('bgX', parseFloat(bgX.toFixed(2)));
+          updateConfigValue('bgY', parseFloat(bgY.toFixed(2)));
+
+          document.getElementById('slider-zoom').value = newZoom;
+          document.getElementById('val-zoom').textContent = `${newZoom}%`;
+          document.getElementById('slider-bgx').value = bgX;
+          document.getElementById('val-bgx').textContent = `${bgX.toFixed(1)}%`;
+          document.getElementById('slider-bgy').value = bgY;
+          document.getElementById('val-bgy').textContent = `${bgY.toFixed(1)}%`;
+        }
+
+        updateLivePreviews();
+      };
+
+      window.onmouseup = () => {
+        if (isAction) {
+          isAction = false;
+          autoSaveConfig();
+        }
+      };
+    }
+
+    function autoSaveConfig() {
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+      } catch (e) {
+        console.warn('自動儲存失敗:', e);
+      }
+    }
+
+    function updateFromSlider(key, val) {
+      const num = parseFloat(val);
+      document.getElementById(`val-${key.toLowerCase()}`).textContent = `${num}%`;
+      updateConfigValue(key, num);
+
+      const box = document.getElementById('active-crop-box');
+      const img = document.getElementById('sprite-sheet-img');
+      if (box && img) {
+        const imgW = img.offsetWidth;
+        const imgH = img.offsetHeight;
+        const catData = DATASETS[currentCategory];
+        const cols = catData?.cols || 4;
+        const rows = catData?.rows || 3;
+        const cellW = imgW / cols;
+        const cellH = imgH / rows;
+
+        const config = getActiveConfig(currentSelectedId);
+        const zoom = config.zoom || 100;
+        const boxW = cellW / (zoom / 100);
+        const boxH = cellH / (zoom / 100);
+
+        const defBgX = cols > 1 ? (config.col || 0) * (100 / (cols - 1)) : 0;
+        const defBgY = rows > 1 ? (config.row || 0) * (100 / (rows - 1)) : 0;
+        const bgX = config.bgX !== undefined ? config.bgX : defBgX;
+        const bgY = config.bgY !== undefined ? config.bgY : defBgY;
+
+        box.style.width = `${boxW}px`;
+        box.style.height = `${boxH}px`;
+        box.style.left = `${(bgX / 100) * (imgW - boxW)}px`;
+        box.style.top = `${(bgY / 100) * (imgH - boxH)}px`;
+      }
+
+      updateLivePreviews();
+      autoSaveConfig();
+    }
+
+    function updateConfigValue(key, val) {
+      if (!customConfigs[currentCategory]) customConfigs[currentCategory] = {};
+      if (!customConfigs[currentCategory][currentSelectedId]) {
+        customConfigs[currentCategory][currentSelectedId] = {};
+      }
+      customConfigs[currentCategory][currentSelectedId][key] = val;
+    }
+
+    function setupKeyboardListener() {
+      window.addEventListener('keydown', (e) => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+          e.preventDefault();
+          const step = e.shiftKey ? 2.5 : 0.5;
+          const config = getActiveConfig(currentSelectedId);
+          const cols = DATASETS[currentCategory]?.cols || 4;
+          const rows = DATASETS[currentCategory]?.rows || 3;
+          const defBgX = cols > 1 ? (config.col || 0) * (100 / (cols - 1)) : 0;
+          const defBgY = rows > 1 ? (config.row || 0) * (100 / (rows - 1)) : 0;
+
+          let bgX = config.bgX !== undefined ? config.bgX : defBgX;
+          let bgY = config.bgY !== undefined ? config.bgY : defBgY;
+
+          if (e.key === 'ArrowLeft') bgX = Math.max(0, bgX - step);
+          if (e.key === 'ArrowRight') bgX = Math.min(100, bgX + step);
+          if (e.key === 'ArrowUp') bgY = Math.max(0, bgY - step);
+          if (e.key === 'ArrowDown') bgY = Math.min(100, bgY + step);
+
+          updateFromSlider('bgX', bgX);
+          updateFromSlider('bgY', bgY);
+        }
+      });
+    }
+
+    function updateLivePreviews() {
+      const config = getActiveConfig(currentSelectedId);
+      const catData = DATASETS[currentCategory];
+
+      const hdEl = document.getElementById('preview-hd');
+      if (hdEl) hdEl.innerHTML = renderIconHtml(config, catData, 140, 'border: none;');
+
+      const qualities = [
+        { id: 'preview-t1', border: 'border: 1px solid rgba(255,255,255,0.2);', badge: '' },
+        { id: 'preview-t2', border: 'border: 1.5px solid #10b981; box-shadow: 0 0 8px rgba(16,185,129,0.3);', badge: '<span style="position:absolute;bottom:1px;right:2px;font-size:8px;font-weight:bold;color:#10b981;">T2</span>' },
+        { id: 'preview-t3', border: 'border: 1.5px solid #3b82f6; box-shadow: 0 0 8px rgba(59,130,246,0.4);', badge: '<span style="position:absolute;bottom:1px;right:2px;font-size:8px;font-weight:bold;color:#3b82f6;">T3</span>' },
+        { id: 'preview-t4', border: 'border: 1.5px solid #a855f7; box-shadow: 0 0 8px rgba(168,85,247,0.5);', badge: '<span style="position:absolute;bottom:1px;right:2px;font-size:8px;font-weight:bold;color:#a855f7;">T4</span>' },
+        { id: 'preview-t5', border: 'border: 1.5px solid #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.6);', badge: '<span style="position:absolute;bottom:1px;right:2px;font-size:8px;font-weight:bold;color:#f59e0b;">T5</span>' }
+      ];
+
+      qualities.forEach(q => {
+        const el = document.getElementById(q.id);
+        if (el) el.innerHTML = renderIconHtml(config, catData, 48, q.border, q.badge);
+      });
+
+      const el32 = document.getElementById('preview-32');
+      if (el32) el32.innerHTML = renderIconHtml(config, catData, 32);
+
+      const el58 = document.getElementById('preview-58');
+      if (el58) el58.innerHTML = renderIconHtml(config, catData, 58);
+
+      const el68 = document.getElementById('preview-68');
+      if (el68) el68.innerHTML = renderIconHtml(config, catData, 68);
+    }
+
+    function renderIconHtml(config, catData, sizePx, customBorder = 'border: 1px solid rgba(255,255,255,0.2);', badge = '') {
+      if (config.customImage) {
+        return `
+          <div style="width:${sizePx}px; height:${sizePx}px; border-radius:4px; overflow:hidden; position:relative; ${customBorder} background-image:url('${config.customImage}'); background-size:cover; background-position:center;">
+            ${badge}
+          </div>
+        `;
+      }
+
+      if (config.customEmoji) {
+        return `
+          <div style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:${Math.round(sizePx * 0.7)}px; ${customBorder}">
+            ${config.customEmoji}
+          </div>
+        `;
+      }
+
+      const img = document.getElementById('sprite-sheet-img');
+      const imgUrl = img.src || catData?.spriteUrl;
+
+      const cols = catData?.cols || 4;
+      const rows = catData?.rows || 3;
+      const zoom = config.zoom || 100;
+
+      const defBgX = cols > 1 ? (config.col || 0) * (100 / (cols - 1)) : 0;
+      const defBgY = rows > 1 ? (config.row || 0) * (100 / (rows - 1)) : 0;
+
+      const bgX = config.bgX !== undefined ? config.bgX : defBgX;
+      const bgY = config.bgY !== undefined ? config.bgY : defBgY;
+
+      const bgSizeX = (cols * 100) * (zoom / 100);
+      const bgSizeY = (rows * 100) * (zoom / 100);
+
+      return `
+        <div style="width:${sizePx}px; height:${sizePx}px; border-radius:4px; overflow:hidden; position:relative; ${customBorder} background-image:url('${imgUrl}'); background-size:${bgSizeX}% ${bgSizeY}%; background-position:${bgX}% ${bgY}%;">
+          ${badge}
+        </div>
+      `;
+    }
+
+    function setMode(mode) {
+      document.getElementById('mode-sprite-btn').classList.toggle('active', mode === 'sprite');
+      document.getElementById('mode-custom-btn').classList.toggle('active', mode === 'custom');
+      document.getElementById('sprite-controls').style.display = mode === 'sprite' ? 'block' : 'none';
+      document.getElementById('custom-controls').style.display = mode === 'custom' ? 'block' : 'none';
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        updateConfigValue('customImage', dataUrl);
+        document.getElementById('custom-img-preview').style.display = 'block';
+        updateLivePreviews();
+        renderIconList();
+        autoSaveConfig();
+        showToast('🖼️ 已載入自訂圖片！');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeCustomImage() {
+      updateConfigValue('customImage', undefined);
+      document.getElementById('custom-img-preview').style.display = 'none';
+      setMode('sprite');
+      updateLivePreviews();
+      renderIconList();
+      autoSaveConfig();
+    }
+
+    function smartGridAlign() {
+      const catData = DATASETS[currentCategory];
+      const item = catData?.items?.find(i => i.id === currentSelectedId);
+      const cols = catData?.cols || 4;
+      const rows = catData?.rows || 3;
+
+      if (item && item.col !== undefined && item.row !== undefined) {
+        const bgX = cols > 1 ? item.col * (100 / (cols - 1)) : 0;
+        const bgY = rows > 1 ? item.row * (100 / (rows - 1)) : 0;
+        updateFromSlider('bgX', bgX);
+        updateFromSlider('bgY', bgY);
+        updateFromSlider('zoom', 100);
+        showToast('🪄 已貼齊標準網格！');
+      }
+    }
+
+    function resetCurrentIcon() {
+      if (customConfigs[currentCategory]?.[currentSelectedId]) {
+        delete customConfigs[currentCategory][currentSelectedId];
+        autoSaveConfig();
+        selectIcon(currentSelectedId);
+        showToast('🔄 已重設當前圖標！');
+      }
+    }
+
+    const LOCAL_STORAGE_TRASH_KEY = 'MEDIEVAL_ICON_TRASH_BACKUP';
+
+    function checkUndoStatus() {
+      const btnUndo = document.getElementById('btn-undo-restore');
+      if (!btnUndo) return;
+      const backup = localStorage.getItem(LOCAL_STORAGE_TRASH_KEY);
+      if (backup) {
+        btnUndo.style.display = 'block';
+      } else {
+        btnUndo.style.display = 'none';
+      }
+    }
+
+    async function saveToDiskFile() {
+      showToast('💾 正在寫入硬碟專案檔案...');
+      
+      // 自動補齊所有自訂圖集的基礎座標，確保檔案內完整可見
+      const fullConfigs = { ...customConfigs };
+      Object.keys(DATASETS).forEach(catKey => {
+        const cat = DATASETS[catKey];
+        if (!fullConfigs[catKey]) fullConfigs[catKey] = {};
+        cat.items.forEach(item => {
+          if (!fullConfigs[catKey][item.id]) {
+            const defBgX = cat.cols > 1 ? (item.col || 0) * (100 / (cat.cols - 1)) : 0;
+            const defBgY = cat.rows > 1 ? (item.row || 0) * (100 / (cat.rows - 1)) : 0;
+            fullConfigs[catKey][item.id] = {
+              col: item.col,
+              row: item.row,
+              zoom: item.zoom || 100,
+              bgX: Math.round(defBgX * 10) / 10,
+              bgY: Math.round(defBgY * 10) / 10
+            };
+          }
+        });
+      });
+
+      const payload = {
+        configs: fullConfigs,
+        datasets: DATASETS,
+        note: `儲存於 ${new Date().toLocaleString()}`
+      };
+
+      try {
+        const res = await fetch('/api/save-icon-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.success) {
+          customConfigs = fullConfigs;
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+          saveDatasets();
+          showToast('🎉 成功直接寫入硬碟專案檔案並建立歷史快照！');
+        } else {
+          alert('寫入硬碟失敗: ' + (json.error || '伺服器未回應'));
+        }
+      } catch (e) {
+        alert('無法連接 Vite 本機伺服器 API。\n請確認您是在 http://localhost:5173/tools/icon-studio.html 開啟本工具！');
+      }
+    }
+
+    async function openHistoryModal() {
+      const container = document.getElementById('history-list-container');
+      container.innerHTML = '<div style="color: #64748b; text-align: center; padding: 20px;">載入快照列表中...</div>';
+      document.getElementById('history-modal').classList.add('open');
+
+      try {
+        const res = await fetch('/api/list-icon-backups');
+        const data = await res.json();
+        if (!data.backups || data.backups.length === 0) {
+          container.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 30px;">尚無硬碟歷史快照記錄。<br/><span style="font-size:0.75rem; color:#64748b; margin-top:4px; display:inline-block;">每次點擊【💾 寫入專案硬碟】都會自動在此產生歷史存檔！</span></div>';
+          return;
+        }
+
+        container.innerHTML = '';
+        data.backups.forEach((b, idx) => {
+          const itemEl = document.createElement('div');
+          itemEl.style.cssText = 'background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;';
+          
+          const timeStr = b.timestamp ? new Date(b.timestamp).toLocaleString() : b.filename;
+          itemEl.innerHTML = `
+            <div>
+              <div style="font-weight: bold; color: #fbbf24; font-size: 0.85rem;">🕒 ${timeStr} ${idx === 0 ? '<span class="badge" style="background:#059669; color:#fff;">最新</span>' : ''}</div>
+              <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 2px;">檔案: ${b.filename} ｜ ${b.note}</div>
+            </div>
+            <button class="btn btn-primary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="restoreServerSnapshot('${b.filename}')">
+              ↩️ 還原此版本
+            </button>
+          `;
+          container.appendChild(itemEl);
+        });
+      } catch (e) {
+        container.innerHTML = '<div style="color: #ef4444; text-align: center; padding: 20px;">無法取得伺服器歷史快照 (請在 localhost:5173 環境開啟)</div>';
+      }
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('history-modal').classList.remove('open');
+    }
+
+    async function restoreServerSnapshot(filename) {
+      if (!confirm(`確定要將圖標配置還原至快照【${filename}】嗎？`)) return;
+
+      try {
+        const res = await fetch('/api/restore-icon-backup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename })
+        });
+        const json = await res.json();
+        if (json.success) {
+          customConfigs = json.data || {};
+          if (json.datasets) DATASETS = json.datasets;
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+          saveDatasets();
+          renderCategoryTabs();
+          switchCategory(currentCategory);
+          closeHistoryModal();
+          showToast(`🎉 成功還原至歷史版本 ${filename}！`);
+        } else {
+          alert('還原失敗: ' + json.error);
+        }
+      } catch (e) {
+        alert('連線失敗: ' + e);
+      }
+    }
+
+    function saveToGame() {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+      saveDatasets();
+      showToast('⚡ 已儲存並即時套用至遊戲！');
+    }
+
+    function clearAllCustomConfig() {
+      if (confirm('確定要清除所有圖標的自訂設定並還原遊戲預設值嗎？\n(清除前系統會為您自動備份，隨時可按復原按鈕救回)')) {
+        // 清除前先自動建立安全備份！
+        const backupData = {
+          configs: customConfigs,
+          datasets: DATASETS,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(LOCAL_STORAGE_TRASH_KEY, JSON.stringify(backupData));
+        
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+        localStorage.removeItem(LOCAL_STORAGE_DATASETS_KEY);
+        customConfigs = {};
+        DATASETS = { ...DEFAULT_DATASETS };
+        renderCategoryTabs();
+        switchCategory('weapons');
+        checkUndoStatus();
+        showToast('🗑️ 已清除自訂！(可隨時點擊上方【↩️ 復原】救回)');
+      }
+    }
+
+    function undoRestoreBackup() {
+      try {
+        const savedBackup = localStorage.getItem(LOCAL_STORAGE_TRASH_KEY);
+        if (!savedBackup) {
+          return alert('目前沒有可復原的備份記錄！');
+        }
+        const parsed = JSON.parse(savedBackup);
+        if (parsed.configs) customConfigs = parsed.configs;
+        if (parsed.datasets) DATASETS = parsed.datasets;
+        
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+        saveDatasets();
+        
+        renderCategoryTabs();
+        switchCategory(currentCategory);
+        checkUndoStatus();
+        showToast('🎉 成功復原上一次清除的所有圖標設定！');
+      } catch (e) {
+        alert('復原失敗: ' + e);
+      }
+    }
+
+    /* 新增分類 Modal 邏輯 */
+    function openCategoryModal() {
+      tempUploadedCatSheet = '';
+      document.getElementById('modal-cat-key').value = '';
+      document.getElementById('modal-cat-title').value = '';
+      document.getElementById('modal-cat-url').value = '';
+      document.getElementById('modal-cat-cols').value = '5';
+      document.getElementById('modal-cat-rows').value = '5';
+      document.getElementById('category-modal').classList.add('open');
+    }
+
+    function closeCategoryModal() {
+      document.getElementById('category-modal').classList.remove('open');
+    }
+
+    function handleCatSheetUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        tempUploadedCatSheet = ev.target.result;
+        document.getElementById('modal-cat-url').value = `[已上傳本地圖片: ${file.name}]`;
+        showToast('📁 已載入大圖檔案！');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function submitNewCategory() {
+      const key = document.getElementById('modal-cat-key').value.trim().toLowerCase();
+      const title = document.getElementById('modal-cat-title').value.trim();
+      const urlInput = document.getElementById('modal-cat-url').value.trim();
+      const cols = parseInt(document.getElementById('modal-cat-cols').value) || 5;
+      const rows = parseInt(document.getElementById('modal-cat-rows').value) || 5;
+
+      if (!key || !title) {
+        return alert('請填寫分類 ID 與名稱！');
+      }
+
+      const spriteUrl = tempUploadedCatSheet || urlInput || '../public/assets/avatars_male.jpg';
+
+      const count = cols * rows;
+      const items = Array.from({ length: count }, (_, i) => ({
+        id: `${key}_${i}`,
+        name: `${title} #${i < 9 ? '0' + (i + 1) : (i + 1)}`,
+        col: i % cols,
+        row: Math.floor(i / cols),
+        zoom: 100
+      }));
+
+      DATASETS[key] = {
+        title,
+        spriteUrl,
+        cols,
+        rows,
+        items
+      };
+
+      saveDatasets();
+      renderCategoryTabs();
+      closeCategoryModal();
+      switchCategory(key);
+      showToast(`🎉 成功建立圖集分類【${title}】！`);
+    }
+
+    /* 更換圖片來源 Modal / Prompt */
+    function openChangeImagePrompt(catKey) {
+      const cat = DATASETS[catKey];
+      if (!cat) return;
+      const newUrl = prompt(`請輸入【${cat.title}】的最新圖檔相對路徑 (例如: ../public/assets/avatars_guardians.jpg) 或點擊「取消」：`, cat.spriteUrl.startsWith('data:') ? '' : cat.spriteUrl);
+      if (newUrl && newUrl.trim()) {
+        cat.spriteUrl = newUrl.trim();
+        saveDatasets();
+        switchCategory(catKey);
+        showToast(`🖼️ 已更新【${cat.title}】的圖檔來源！`);
+      }
+    }
+
+    let LAST_DELETED_CATEGORY = null;
+
+    /* 安全刪除分類 (自訂圖集專屬，帶防誤刪雙重確認與復原) */
+    function deleteCategorySafe(catKey) {
+      if (DEFAULT_DATASETS[catKey]) {
+        return alert('🔒 系統內建圖集受保護，無法刪除！');
+      }
+
+      const cat = DATASETS[catKey];
+      if (!cat) return;
+
+      const ok = confirm(`⚠️ 確定要刪除自訂圖集【${cat.title}】嗎？\n\n（系統已自動建立快照，若誤刪可點擊右上方『↩️ 復原』找回！）`);
+      if (!ok) return;
+
+      // 備份快照以供復原
+      LAST_DELETED_CATEGORY = {
+        key: catKey,
+        data: JSON.parse(JSON.stringify(cat)),
+        configs: customConfigs[catKey] ? JSON.parse(JSON.stringify(customConfigs[catKey])) : null
+      };
+
+      // 執行刪除
+      delete DATASETS[catKey];
+      if (customConfigs[catKey]) delete customConfigs[catKey];
+
+      saveDatasets();
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+
+      // 顯示復原按鈕
+      showUndoDeleteBtn();
+
+      // 切換至第一個分類
+      const firstKey = Object.keys(DATASETS)[0] || 'weapons';
+      renderCategoryTabs();
+      switchCategory(firstKey);
+      showToast(`🗑️ 已刪除自訂圖集【${cat.title}】！`);
+    }
+
+    function showUndoDeleteBtn() {
+      const headerActions = document.querySelector('.header-actions');
+      if (!headerActions || !LAST_DELETED_CATEGORY) return;
+
+      let undoBtn = document.getElementById('btn-undo-deleted-cat');
+      if (!undoBtn) {
+        undoBtn = document.createElement('button');
+        undoBtn.id = 'btn-undo-deleted-cat';
+        undoBtn.className = 'btn btn-secondary';
+        undoBtn.style.color = '#facc15';
+        undoBtn.style.borderColor = '#facc15';
+        undoBtn.style.fontSize = '0.78rem';
+        headerActions.insertBefore(undoBtn, headerActions.firstChild);
+      }
+
+      undoBtn.innerHTML = `↩️ 復原已刪除【${LAST_DELETED_CATEGORY.data.title}】`;
+      undoBtn.onclick = () => {
+        if (!LAST_DELETED_CATEGORY) return;
+        DATASETS[LAST_DELETED_CATEGORY.key] = LAST_DELETED_CATEGORY.data;
+        if (LAST_DELETED_CATEGORY.configs) {
+          customConfigs[LAST_DELETED_CATEGORY.key] = LAST_DELETED_CATEGORY.configs;
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+        }
+        saveDatasets();
+        const restoredKey = LAST_DELETED_CATEGORY.key;
+        LAST_DELETED_CATEGORY = null;
+        undoBtn.remove();
+        renderCategoryTabs();
+        switchCategory(restoredKey);
+        showToast('🎉 成功復原被刪除的自訂圖集！');
+      };
+    }
+
+    function addNewItemPrompt() {
+      const name = prompt('請輸入新增圖標名稱 (例如: 隱藏神器):');
+      if (!name) return;
+      const id = prompt('請輸入唯一 ID (例如: wpn_secret_blade):') || `item_${Date.now()}`;
+      
+      const catData = DATASETS[currentCategory];
+      catData.items.push({
+        id,
+        name,
+        col: 0,
+        row: 0,
+        zoom: 100
+      });
+
+      saveDatasets();
+      renderIconList();
+      selectIcon(id);
+      showToast(`➕ 已新增項目【${name}】！`);
+    }
+
+    /* JSON 匯入匯出 Modal */
+    function openImportExportModal() {
+      const data = {
+        configs: customConfigs,
+        datasets: DATASETS
+      };
+      document.getElementById('import-export-textarea').value = JSON.stringify(data, null, 2);
+      document.getElementById('import-export-modal').classList.add('open');
+    }
+
+    function closeImportExportModal() {
+      document.getElementById('import-export-modal').classList.remove('open');
+    }
+
+    function downloadConfigJson() {
+      const content = document.getElementById('import-export-textarea').value;
+      const blob = new Blob([content], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `medieval_icon_studio_backup_${Date.now()}.json`;
+      a.click();
+      showToast('💾 已下載備份 JSON 檔案！');
+    }
+
+    function importConfigJson() {
+      try {
+        const text = document.getElementById('import-export-textarea').value;
+        const parsed = JSON.parse(text);
+        if (parsed.configs) customConfigs = parsed.configs;
+        if (parsed.datasets) DATASETS = parsed.datasets;
+        saveToGame();
+        renderCategoryTabs();
+        switchCategory(currentCategory);
+        closeImportExportModal();
+        showToast('📤 成功還原備份資料！');
+      } catch (e) {
+        alert('JSON 解析失敗，請確認格式正確！');
+      }
+    }
+
+    function openCodeModal() {
+      const codeOutput = document.getElementById('code-output');
+      codeOutput.value = `// 遊戲專屬圖標配置 (由 Universal Icon Studio 產出)\nexport const CUSTOM_ICON_STUDIO_CONFIG = ${JSON.stringify(customConfigs, null, 2)};`;
+      document.getElementById('code-modal').classList.add('open');
+    }
+
+    function closeCodeModal() {
+      document.getElementById('code-modal').classList.remove('open');
+    }
+
+    function copyCode() {
+      const codeOutput = document.getElementById('code-output');
+      codeOutput.select();
+      navigator.clipboard.writeText(codeOutput.value);
+      showToast('📋 代碼已複製至剪貼簿！');
+      closeCodeModal();
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

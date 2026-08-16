@@ -1,0 +1,961 @@
+{
+  "weapons": {
+    "GREATSWORD": {
+      "bgX": 2.4,
+      "bgY": 2.7,
+      "zoom": 115
+    },
+    "DUAL_SWORDS": {
+      "zoom": 115,
+      "bgX": 34.08,
+      "bgY": 2.9400000000000004
+    },
+    "STAFF": {
+      "zoom": 115,
+      "bgX": 66.04,
+      "bgY": 3.49
+    },
+    "SCYTHE": {
+      "zoom": 116,
+      "bgX": 97.93,
+      "bgY": 3.38
+    },
+    "BOW": {
+      "zoom": 115,
+      "bgX": 2,
+      "bgY": 50.28
+    },
+    "MAGIC_BOW": {
+      "zoom": 115,
+      "bgX": 34.333333333333336,
+      "bgY": 50
+    },
+    "DAGGERS": {
+      "zoom": 115,
+      "bgX": 66.1,
+      "bgY": 50
+    },
+    "MAGIC_RING": {
+      "zoom": 115,
+      "bgX": 98,
+      "bgY": 50
+    },
+    "SWORD_AND_SHIELD": {
+      "zoom": 116,
+      "bgX": 2.4,
+      "bgY": 96.34
+    },
+    "RUNE_SHIELD": {
+      "zoom": 116,
+      "bgX": 34.15,
+      "bgY": 96.58
+    },
+    "HOLY_BOOK": {
+      "zoom": 115,
+      "bgX": 66.1,
+      "bgY": 96.34
+    },
+    "HAMMER": {
+      "zoom": 115,
+      "bgX": 97.99,
+      "bgY": 96.34
+    }
+  },
+  "facilities": {
+    "tavern": {
+      "bgX": 6.83,
+      "bgY": 9.62,
+      "zoom": 134
+    },
+    "forge": {
+      "zoom": 142,
+      "bgX": 36.13,
+      "bgY": 10.18
+    },
+    "weapon": {
+      "bgX": 64.86,
+      "bgY": 9.12,
+      "zoom": 139
+    },
+    "armor": {
+      "zoom": 142,
+      "bgX": 93.06,
+      "bgY": 9.54
+    },
+    "study": {
+      "zoom": 140,
+      "bgX": 6.85,
+      "bgY": 50.64
+    },
+    "defense": {
+      "bgX": 35.6,
+      "bgY": 50.57,
+      "zoom": 135
+    }
+  },
+  "materials": {
+    "gold": {
+      "zoom": 118,
+      "bgX": 65.73,
+      "bgY": 51.65
+    },
+    "wood": {
+      "zoom": 106,
+      "bgX": 98.46,
+      "bgY": 49.43
+    },
+    "stone": {
+      "zoom": 106,
+      "bgX": 3.08,
+      "bgY": 97.99
+    },
+    "iron": {
+      "zoom": 107,
+      "bgX": 34.48,
+      "bgY": 98.28
+    },
+    "food": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 66.7,
+      "bgY": 100
+    },
+    "essence": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    },
+    "cotton": {
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "hide": {
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "cloth": {
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "leather": {
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    }
+  },
+  "avatars_male": {
+    "male_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "male_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 0
+    },
+    "male_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 0
+    },
+    "male_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 0
+    },
+    "male_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "male_5": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 25
+    },
+    "male_6": {
+      "col": 1,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 25
+    },
+    "male_7": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 25
+    },
+    "male_8": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 25
+    },
+    "male_9": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 25
+    },
+    "male_10": {
+      "col": 0,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 50
+    },
+    "male_11": {
+      "col": 1,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 50
+    },
+    "male_12": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 50
+    },
+    "male_13": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 50
+    },
+    "male_14": {
+      "col": 4,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 50
+    },
+    "male_15": {
+      "col": 0,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 75
+    },
+    "male_16": {
+      "col": 1,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 75
+    },
+    "male_17": {
+      "col": 2,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 75
+    },
+    "male_18": {
+      "col": 3,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 75
+    },
+    "male_19": {
+      "col": 4,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 75
+    },
+    "male_20": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "male_21": {
+      "col": 1,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 100
+    },
+    "male_22": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 100
+    },
+    "male_23": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 100
+    },
+    "male_24": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    }
+  },
+  "avatars_female": {
+    "female_0": {
+      "bgX": 0.37,
+      "bgY": 0.74
+    },
+    "female_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 0
+    },
+    "female_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 0
+    },
+    "female_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 0
+    },
+    "female_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "female_5": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 25
+    },
+    "female_6": {
+      "col": 1,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 25
+    },
+    "female_7": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 25
+    },
+    "female_8": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 25
+    },
+    "female_9": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 25
+    },
+    "female_10": {
+      "col": 0,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 50
+    },
+    "female_11": {
+      "col": 1,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 50
+    },
+    "female_12": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 50
+    },
+    "female_13": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 50
+    },
+    "female_14": {
+      "col": 4,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 50
+    },
+    "female_15": {
+      "col": 0,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 75
+    },
+    "female_16": {
+      "col": 1,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 75
+    },
+    "female_17": {
+      "col": 2,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 75
+    },
+    "female_18": {
+      "col": 3,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 75
+    },
+    "female_19": {
+      "col": 4,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 75
+    },
+    "female_20": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "female_21": {
+      "col": 1,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 100
+    },
+    "female_22": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 100
+    },
+    "female_23": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 100
+    },
+    "female_24": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    }
+  },
+  "armors": {
+    "CLOTH_T1": {
+      "bgX": 2,
+      "bgY": 1.81,
+      "zoom": 105
+    },
+    "CLOTH_T2": {
+      "zoom": 105,
+      "bgX": 34.2,
+      "bgY": 1.94
+    },
+    "CLOTH_T3": {
+      "zoom": 105,
+      "bgX": 66.1,
+      "bgY": 2.02
+    },
+    "CLOTH_T4": {
+      "zoom": 105,
+      "bgX": 98.07,
+      "bgY": 1.44
+    },
+    "LEATHER_T1": {
+      "zoom": 105,
+      "bgX": 2,
+      "bgY": 50
+    },
+    "LEATHER_T2": {
+      "zoom": 105,
+      "bgX": 33.833333333333336,
+      "bgY": 50
+    },
+    "LEATHER_T3": {
+      "zoom": 105,
+      "bgX": 66.16666666666667,
+      "bgY": 50
+    },
+    "LEATHER_T4": {
+      "zoom": 105,
+      "bgX": 98.3,
+      "bgY": 50
+    },
+    "HEAVY_T1": {
+      "zoom": 105,
+      "bgX": 2,
+      "bgY": 98.5
+    },
+    "HEAVY_T2": {
+      "zoom": 105,
+      "bgX": 33.833333333333336,
+      "bgY": 98.5
+    },
+    "HEAVY_T3": {
+      "zoom": 105,
+      "bgX": 66.16666666666667,
+      "bgY": 98.5
+    },
+    "HEAVY_T4": {
+      "zoom": 105,
+      "bgX": 98.3,
+      "bgY": 98.5
+    }
+  },
+  "weapons_t2": {
+    "GREATSWORD": {
+      "bgX": 4.54,
+      "bgY": 6,
+      "zoom": 125
+    },
+    "DUAL_SWORDS": {
+      "zoom": 125,
+      "bgX": 34.9,
+      "bgY": 5.6
+    },
+    "STAFF": {
+      "zoom": 125,
+      "bgX": 65.3,
+      "bgY": 5.67
+    },
+    "SCYTHE": {
+      "zoom": 125,
+      "bgX": 96.1,
+      "bgY": 6.1
+    },
+    "BOW": {
+      "zoom": 125,
+      "bgX": 4.59,
+      "bgY": 50.28
+    },
+    "MAGIC_BOW": {
+      "zoom": 125,
+      "bgX": 34.62,
+      "bgY": 49.73
+    },
+    "DAGGERS": {
+      "zoom": 125,
+      "bgX": 65.36,
+      "bgY": 49.73
+    },
+    "MAGIC_RING": {
+      "zoom": 125,
+      "bgX": 95.47,
+      "bgY": 49.77
+    },
+    "SWORD_AND_SHIELD": {
+      "zoom": 125,
+      "bgX": 4.27,
+      "bgY": 95
+    },
+    "RUNE_SHIELD": {
+      "bgX": 34.93,
+      "bgY": 94.46,
+      "zoom": 125
+    },
+    "HOLY_BOOK": {
+      "zoom": 125,
+      "bgX": 65.17,
+      "bgY": 94.44
+    },
+    "HAMMER": {
+      "zoom": 125,
+      "bgX": 95.47,
+      "bgY": 94.12
+    }
+  },
+  "weapons_t3": {
+    "GREATSWORD": {
+      "zoom": 110,
+      "bgX": 1.5,
+      "bgY": 2
+    },
+    "DUAL_SWORDS": {
+      "zoom": 110,
+      "bgX": 33.833333333333336,
+      "bgY": 2.5
+    },
+    "STAFF": {
+      "zoom": 110,
+      "bgX": 66.16666666666667,
+      "bgY": 2
+    },
+    "SCYTHE": {
+      "zoom": 110,
+      "bgX": 98.5,
+      "bgY": 2
+    },
+    "BOW": {
+      "zoom": 110,
+      "bgX": 1.5,
+      "bgY": 50
+    },
+    "MAGIC_BOW": {
+      "zoom": 110,
+      "bgX": 33.833333333333336,
+      "bgY": 50
+    },
+    "DAGGERS": {
+      "zoom": 110,
+      "bgX": 66.16666666666667,
+      "bgY": 50
+    },
+    "MAGIC_RING": {
+      "zoom": 110,
+      "bgX": 98.5,
+      "bgY": 50
+    },
+    "SWORD_AND_SHIELD": {
+      "zoom": 110,
+      "bgX": 1.5,
+      "bgY": 98.5
+    },
+    "RUNE_SHIELD": {
+      "zoom": 110,
+      "bgX": 33.833333333333336,
+      "bgY": 98.5
+    },
+    "HOLY_BOOK": {
+      "zoom": 110,
+      "bgX": 66.16666666666667,
+      "bgY": 98
+    },
+    "HAMMER": {
+      "zoom": 110,
+      "bgX": 98.5,
+      "bgY": 98.5
+    }
+  },
+  "weapons_t4": {
+    "GREATSWORD": {
+      "zoom": 115,
+      "bgX": 2.5,
+      "bgY": 3
+    },
+    "DUAL_SWORDS": {
+      "zoom": 115,
+      "bgX": 34.333333333333336,
+      "bgY": 3
+    },
+    "STAFF": {
+      "zoom": 115,
+      "bgX": 65.66666666666667,
+      "bgY": 3
+    },
+    "SCYTHE": {
+      "zoom": 115,
+      "bgX": 97.5,
+      "bgY": 3
+    },
+    "BOW": {
+      "zoom": 115,
+      "bgX": 2.5,
+      "bgY": 50
+    },
+    "MAGIC_BOW": {
+      "zoom": 115,
+      "bgX": 34.333333333333336,
+      "bgY": 50
+    },
+    "DAGGERS": {
+      "zoom": 115,
+      "bgX": 65.66666666666667,
+      "bgY": 50
+    },
+    "MAGIC_RING": {
+      "zoom": 115,
+      "bgX": 97.5,
+      "bgY": 50
+    },
+    "SWORD_AND_SHIELD": {
+      "zoom": 115,
+      "bgX": 2.5,
+      "bgY": 96.5
+    },
+    "RUNE_SHIELD": {
+      "zoom": 115,
+      "bgX": 34.333333333333336,
+      "bgY": 97
+    },
+    "HOLY_BOOK": {
+      "zoom": 115,
+      "bgX": 65.66666666666667,
+      "bgY": 97
+    },
+    "HAMMER": {
+      "zoom": 115,
+      "bgX": 97.5,
+      "bgY": 97
+    }
+  },
+  "guardian_male": {
+    "guardian_m_0": {
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "guardian_m_6": {
+      "bgX": 100,
+      "bgY": 50.2
+    },
+    "guardian_m_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 0
+    },
+    "guardian_m_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 0
+    },
+    "guardian_m_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 0
+    },
+    "guardian_m_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "guardian_m_5": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 25
+    },
+    "guardian_m_7": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 25
+    },
+    "guardian_m_8": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 25
+    },
+    "guardian_m_9": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 25
+    }
+  },
+  "guardian_female": {
+    "guardian_f_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 74.9
+    },
+    "guardian_f_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 74.9
+    },
+    "guardian_f_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 74.9
+    },
+    "guardian_f_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 74.9
+    },
+    "guardian_f_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 74.9
+    },
+    "guardian_f_6": {
+      "bgY": 50.2,
+      "bgX": 50.2
+    },
+    "guardian_f_5": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "guardian_f_7": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 100
+    },
+    "guardian_f_8": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 100
+    },
+    "guardian_f_9": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    }
+  },
+  "npc": {
+    "npc_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "npc_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 0
+    },
+    "npc_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 0
+    },
+    "npc_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 0
+    },
+    "npc_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    }
+  },
+  "npc_man": {
+    "npc_man_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "npc_man_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 0
+    },
+    "npc_man_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 0
+    },
+    "npc_man_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 0
+    },
+    "npc_man_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    }
+  }
+}

@@ -2,7 +2,7 @@ import { GameState } from '../../core/GameState';
 import { DataStore } from '../../systems/DataStore';
 import { ToastManager } from '../ToastManager';
 import { UIManager } from '../UIManager';
-import { renderEquipIcon, formatStatsTags, attachTooltip, getEquipTooltipHtml, getMaterialCount, consumeMaterial } from '../ShopController';
+import { renderEquipIcon, ICON_SIZE, formatStatsTags, attachTooltip, getEquipTooltipHtml, getMaterialCount, consumeMaterial } from '../ShopController';
 import { EquipmentSlot, Equipment } from '../../models/types';
 
 export class ModificationWorkshopController {
@@ -186,7 +186,7 @@ export class ModificationWorkshopController {
         card.style.cursor = 'pointer';
         card.style.transition = 'all 0.15s';
 
-        const iconHtml = renderEquipIcon(eq, 36);
+        const iconHtml = renderEquipIcon(eq, ICON_SIZE.SM);
         const lvlStr = eq.enhancementLevel ? ` <span style="color:#38bdf8;">+${eq.enhancementLevel}</span>` : '';
         const tierStr = eq.tier ? ` <span style="color:#a855f7; font-size:0.8em;">(T${eq.tier})</span>` : '';
         const modCount = (eq as any).modCount || 0;
@@ -241,7 +241,7 @@ export class ModificationWorkshopController {
       targetHeader.style.padding = '12px 16px';
       targetHeader.style.marginBottom = '14px';
 
-      const bigIcon = renderEquipIcon(selectedEq, 48);
+      const bigIcon = renderEquipIcon(selectedEq, ICON_SIZE.LG);
       const lvlStr = selectedEq.enhancementLevel ? ` +${selectedEq.enhancementLevel}` : '';
       const tierStr = selectedEq.tier ? ` (T${selectedEq.tier})` : '';
       const wearerInfo = targetItem.advName ? `<div style="font-size:0.82em; color:#38bdf8; margin-top:2px;">👤 穿戴者：${targetItem.label} (就地升級，即時生效)</div>` : '';

@@ -1,3 +1,86 @@
+- **[Tools/IconStudio] 圖標工坊支援「更換圖片來源」、「自訂圖集安全刪除」與「防誤刪一鍵復原」機制** (`tools/icon-studio.html`)：
+  - **🖼️ 隨時更換大圖來源**：在自訂圖集標題旁新增「🖼️ 更換圖檔」按鈕，可直接更新圖檔路徑（如換上最新 `avatars_guardians.jpg`），無須刪除重調。
+  - **🔒 系統內建圖集絕對保護**：武器、防具、男女傭兵與男女守衛等系統核心圖集顯示「🔒 系統內建圖集 (安全保護)」，鎖定禁止刪除，杜絕手滑風險。
+  - **🛡️ 自訂圖集防誤刪雙重保護**：僅使用者自行建立的自訂圖集（如「事件NPC」）可刪除，且刪除時自動建立記憶體快照，頂部操作列即時亮起「↩️ 復原剛才刪除的圖集」按鈕，一秒無痛救回！
+- **[Feature/Avatar] 誓約守衛立繪選擇擴充為男女各 10 款（共 20 款）** (`OathCreationController.ts`, `IconSpriteHelper.ts`, `custom_icon_config.json`, `tools/icon-studio.html`)：
+  - **👨 男性守衛 10 款（Row 0~1）**：滄桑老兵隊長、銀髮雄獅騎士、忠誠青年侍從、金紋重甲將軍、神秘兜帽遊俠、狂怒戰斧勇士、莊嚴黑袍神官、堅毅歷戰傭兵、森林長弓獵手、全罩重裝步兵。
+  - **👩 女性守衛 10 款（Row 3~4）**：金髮璀璨聖騎、聖潔修道神官、颯爽赤髮劍士、短髮英姿女騎、暗影兜帽俠女、紫袍秘術法師、宮廷貴族女爵、夜行黑皮刺客、雙辮長弓射手、重裝板金女戰。
+  - **🔄 羊皮紙創角契約全面支援**：羊皮紙創角介面提供 1/10 ~ 10/10 自由輪播切換，全域介面 100% 保持 1:1 正方形等比立體呈現！
+  - **🛠️ 圖標工坊預載 20 格條目**：`icon-studio.html` 分頁同步擴充為 10 款男守衛與 10 款女守衛，支援獨立調整與磁碟寫入！
+- **[Assets/Avatar] 生成 1:1 正方形 5×5 誓約男女守衛大圖集 & 全局接入** (`avatars_guardians.jpg`, `IconSpriteHelper.ts`, `custom_icon_config.json`, `tools/icon-studio.html`, `OathCreationController.ts`)：
+  - **🖼️ 25 格暗黑油畫 1:1 正方形頭像圖集**：
+    - **Row 0（第 1 排，男性誓約守衛）**：滄桑老兵隊長、銀髮雄獅騎士、忠誠青年侍從、金紋重甲將軍、神秘兜帽遊俠。
+    - **Row 1（第 2 排，男性勇士夥伴）**：狂斧戰士、黑袍神官、歷戰傭兵、森林獵手、全罩重裝步兵。
+    - **Row 2（第 3 排，特殊中立英雄）**：國王領主、奧術秘法大導師、金髮女將軍、黑袍暗影刺客、歷戰騎士。
+    - **Row 3（第 4 排，女性誓約守衛）**：金髮璀璨聖騎、聖潔修道神官、颯爽赤髮劍士、短髮英姿女騎、暗影兜帽俠女。
+    - **Row 4（第 5 排，女性英雄夥伴）**：紫袍秘術女法師、貴族宮廷女公爵、暗夜黑皮甲女刺客、雙辮綠袍女射手、重裝板金女戰士。
+  - **📐 100% 徹底消除拉伸變形**：整張大圖天然為 1:1 正方形，每個頭像在 500% 500% 縮放下寬高比 100% 鎖死，五官端正大氣，徹底告別長條拉伸與只拍到頭髮的問題！
+  - **🛠️ 工坊與設定檔無縫整合**：圖標工坊 `icon-studio.html` 與 `custom_icon_config.json` 預載 Row 0 (男) 與 Row 3 (女) 座標，選取框天然為 1:1 正方形，支援一鍵存檔！
+- **[Refactor/Avatar] 誓約守衛頭像指定範圍完全統一為一般傭兵標準 5x5 規格** (`IconSpriteHelper.ts`, `custom_icon_config.json`, `tools/icon-studio.html`)：
+  - **📐 統一座標規格 (5x5 體系)**：誓約男守衛 (`guardian_male`) 與女守衛 (`guardian_female`) 的頭像計算邏輯、縮放比率 (`500% 500%`)、欄列座標 (`col: 0~4, row: 0~4`) 與偏移微調 (`bgX, bgY, zoom`) 完全比照一般傭兵標準。
+  - **📝 專案配置檔預填條目**：在 `src/data/custom_icon_config.json` 預置了男女各 5 款守衛的 `guardian_m_0~4` 與 `guardian_f_0~4` 基礎條目，使用者可直接手動或透過圖標工坊編輯。
+  - **🛠️ 圖標工坊 100% 完美對齊**：[tools/icon-studio.html](file:///i:/gameproject/Medieval/tools/icon-studio.html) 內建「🛡️ 誓約男守衛」與「🛡️ 誓約女守衛」分頁，拉框、平移、8 向縮放與一般傭兵操作手感完全一致，並支援直接「💾 寫入專案硬碟」！
+- **[Fix/Story] 誓約守衛頭像等比例修復、基礎職業名稱回歸、全域立繪對齊與劇情轉場點擊優化** (`OathCreationController.ts`, `AdventurerCard.ts`, `PartyModalController.ts`, `IconSpriteHelper.ts`)：
+  - **🖼️ 徹底消除頭像壓扁變形**：重構 `IconSpriteHelper` 守衛立繪渲染為 `background-size: 500% auto` 寬高比等比例居中鎖定，頭部不再受上下拉伸壓扁，神采英拔。
+  - **⚔️ 職業名稱回歸基礎名稱**：創角介面職業名稱全面回歸「戰士、騎士、弓手、法師、盜賊、祈禱者」，並 100% 精準對齊 `DataStore.JobDB` 核心資料庫。
+  - **🎭 遊戲全域守衛立繪正確讀取**：修復 `AdventurerCard` 與 `PartyModalController` 漏傳 `isGuardian` 導致進遊戲變回普通老頭傭兵的重大 Bug，所有介面 100% 呈現所選守衛高顏值立繪。
+  - **🎬 劇情黑幕播放結束後才允許點擊進入**：黑幕轉場調整為所有文字逐段淡入完畢（約 4 秒）後，底部提示才亮起並允許點擊進入荒野，並新增右上角「⏩ 略過劇情」按鈕供快速跳過。
+- **[Feature/Story] 實裝「誓約守衛」羊皮紙創角契約、專屬立繪、開局黑幕電影感劇情轉場與領主傳家劍安全鎖** (`OathCreationController.ts`, `modals-game.html`, `MainMenuController.ts`, `IconSpriteHelper.ts`, `DataStore.ts`, `SecondHandShopController.ts`, `ForgeUIController.ts`)：
+  - **📜 羊皮紙契約創角彈窗**：新遊戲選擇難度與種子後，展開復古羊皮紙風格的【誓約之卷】，玩家可自由客製化命名、切換性別、挑選 6 大職業（戰士/騎士/神射手/大魔導/暗殺者/大主教）與 5 大誓約性格。
+  - **🖼️ 10 款專屬誓約守衛立繪生成**：
+    - **男性 5 款 (`avatars_guardian_male.jpg`)**：銀髮貴族騎士、忠誠青年侍從、滄桑老兵隊長、神秘兜帽遊俠、聖殿學者神官。
+    - **女性 5 款 (`avatars_guardian_female.jpg`)**：英氣金髮女聖騎、溫柔修道侍女、颯爽赤髮女劍士、冷艷紫袍女術士、靈動暗影俠女。
+  - **🎭 5 大誓約獨特性格**：忠誠護衛、沉著參謀、熱血戰魂、堅毅信仰、敏銳斥候（自帶溫和實用的戰鬥與經營加成，並隔離於一般酒館招募庫）。
+  - **🎬 電影感黑幕文字劇情轉場**：確認立誓後進入全黑轉場，逐段優雅浮現父親領地淪陷、臨終託付佩劍與守衛隨主角流亡荒野點燃營火之開局敘事。
+  - **🔒 領主傳家劍 (Family Heirloom Sword) 防賣防拆安全鎖**：守衛開局隨身佩戴家族傳家劍，可自由卸下/裝備，但嚴格鎖定二手店典當（不可出售）與鐵匠鋪（不可拆解摧毀），並彈出專屬守護提示。
+- **[Assets/Weapon] 生成 T2/T3/T4 武器 12 宮格圖集 & 實裝四階武器動態外觀切換** (`icons_weapons_t2_12.jpg`, `icons_weapons_t3_12.jpg`, `icons_weapons_t4_12.jpg`, `IconSpriteHelper.ts`, `tools/icon-studio.html`)：
+  - **⚔️ 36 款全新進階與神兵武器暗黑油畫美術生成**：
+    - **T2 高級武器 (`icons_weapons_t2_12.jpg`)**：精鋼巨劍、彎刃雙劍、寶珠法杖、鋸齒戰鐮、複合長弓、精靈長弓、刺客短刃、紫晶魔戒、鋼盾長劍、符文方盾、鍍金福音書、尖刺戰鎚。
+    - **T3 專家武器 (`icons_weapons_t3_12.jpg`)**：霜焰波刃巨劍、龍首大馬士革雙刀、鈷藍古木大魔導杖、黑曜死翼戰鐮、鐵木重弓、月華精靈弓、毒牙幽冥匕首、雷霆真視之戒、金獅皇室盾劍、秘術符文壁壘、太陽聖輝啟示錄、審判烈焰戰鎚。
+    - **T4 史詩神兵 (`icons_weapons_t4_12.jpg`)**：滅世熔岩屠龍巨劍、星穹虛空神刃、星系奇點世界樹權杖、湮滅死神龍骨戰鐮、不死鳥烈陽神弓、蒼穹極光精靈神弓、日蝕深淵嗜血雙刃、永恆星環之眼、太陽神王不朽盾劍、泰坦始源金符壁壘、終焉救贖啟示真典、諸神黃昏滅世雷神鎚。
+  - **🔄 全局階級動態外觀匹配**：`renderWeaponSpriteHtml` 依據裝備的 Tier 階級（T1/T2/T3/T4）自動切換載入對應階級的專屬 12 宮格大圖，進階裝備外觀肉眼可見地霸氣蛻變！
+  - **🎨 萬用工坊完整預載**：[tools/icon-studio.html](file:///i:/gameproject/Medieval/tools/icon-studio.html) 同步預載 T1、T2、T3、T4 四大武器分頁，支援獨立裁切與「💾 寫入專案硬碟」！
+- **[Assets/Armor] 生成 4×3 防具圖集 `icons_armors_12.jpg` & 實裝布甲/皮甲/重鎧全階級圖標渲染** (`icons_armors_12.jpg`, `IconSpriteHelper.ts`, `tools/icon-studio.html`, `custom_icon_config.json`)：
+  - **🛡️ 12 款防具裝備暗黑油畫美術生成**：
+    - **Row 1 (布甲 CLOTH T1~T4)**：粗布長袍、學徒法袍、魔導法袍、大賢者神聖法袍。
+    - **Row 2 (皮甲 LEATHER T1~T4)**：輕皮甲、獵手皮甲、斥候暗影皮甲、刺客龍鱗皮甲。
+    - **Row 3 (重鎧 HEAVY T1~T4)**：鏈甲、鐵胸甲、皇家獅心板金鎧、聖殿騎士光輝神鎧。
+  - **⚙️ 全局防具渲染管線接入**：`IconSpriteHelper` 實裝 `renderArmorSpriteHtml` 與 `ARMOR_SPRITE_COORDS`，所有穿戴、掉落、商店、鍛造與倉庫的防具皆自動匹配專屬 12 宮格高清圖標。
+  - **🎨 萬用工坊預載支援**：[tools/icon-studio.html](file:///i:/gameproject/Medieval/tools/icon-studio.html) 內建預載「🛡️ 防具 (4x3)」分類，支援自由拉框、8 向縮放與「💾 寫入專案硬碟」！
+- **[UI/Forge] 鍛造/重鑄配方清單全面接入 `renderEquipIcon` 統一圖標渲染管線** (`ForgeUIController.ts`)：
+  - **🛡️ 消除殘留 Emoji**：修復鍛造左側配方清單與基底裝備槽仍殘留 ⚔️ / 🗡️ 符號的問題，全面改為調用 `renderEquipIcon(targetTpl, ICON_SIZE.SM)` 與 `renderEquipIcon(baseTemplate, ICON_SIZE.MD)`，完整呈現武器外觀與貼圖。
+- **[Fix/UI] 緊急修復 `ICON_SIZE` 模組 Import 缺失異常** (`ForgeUIController.ts`, `InventoryUIController.ts`, `ModificationWorkshopController.ts`, `SecondHandShopController.ts`, `EquipModalController.ts`, `PartyModalController.ts`)：
+  - **🐛 解決裝備欄/倉庫/鍛造所崩潰**：修復上述 6 大控制器在引用 `ICON_SIZE` 時未正確自 `ShopController` 導入，導致瀏覽器執行期拋出 `ReferenceError` 的問題；全模組補齊導入，經 TypeScript 靜態分析與單元測試 100% 驗證通過。
+- **[Tool/Persistence] 實裝 Vite 本地寫檔 API 與「時光機歷史快照回溯系統」** (`vite.config.ts`, `custom_icon_config.json`, `IconSpriteHelper.ts`, `tools/icon-studio.html`)：
+  - **💾 一鍵直寫專案硬碟檔案**：在 `vite.config.ts` 開闢 `/api/save-icon-config` 與 `/api/get-icon-config` 端點，工坊點擊「💾 寫入專案硬碟」即可直接永久更新 `src/data/custom_icon_config.json`，徹底擺脫純 LocalStorage 易被清除的痛點。
+  - **⏳ 歷史快照時光機 (Time Machine)**：每次點擊寫入硬碟時，伺服器自動在 `src/data/icon_backups/` 建立帶時間戳記的快照；在工坊點擊「⏳ 歷史快照回溯」即可列出所有歷史版本並一鍵無損還原。
+  - **🔄 雙向智能讀取**：遊戲端 `IconSpriteHelper` 優先讀取 LocalStorage 即時微調，若無則自動回退讀取專案磁碟檔案作為單一真相來源。
+- **[UI/DesignSystem] 全遊戲圖標尺寸規範化與 3 級制標準化 (Design Tokens)** (`IconSpriteHelper.ts`, `ShopController.ts`, `InventoryUIController.ts`, `PartyModalController.ts`, `EquipModalController.ts`, `ForgeUIController.ts`, `SecondHandShopController.ts`, `ModificationWorkshopController.ts`, `tools/icon-studio.html`)：
+  - **📐 最佳化收斂 3 大標準尺寸常數 `ICON_SIZE`**：
+    - **🟢 LG (焦點展示 - 68px)**：角色裝備欄、裝備更換視窗、鍛造/重鑄主特寫、改裝工作臺焦點展示。
+    - **🟡 MD (標準卡片 - 58px)**：倉庫背包道具卡片（極致飽滿霸氣，完美填滿卡片）、二手店卡片、鍛造配方清單卡片。
+    - **🔵 SM (緊湊行內 - 32px)**：商店商品購買清單、附魔石清單、材料消耗表格。
+  - **🛡️ 消除碎片化數字與排版安全性**：全專案消除混亂數字，所有卡片容器與邊距 1:1 精準適配，既消除多餘留白，又保證全局不破版。
+  - **🎨 工坊預覽同步**：`tools/icon-studio.html` 同步對齊 32px / 58px / 68px 三大實機標準尺寸即時預覽。
+- **[Tool/Studio] 全面升級為「萬用圖標工作台 (Universal Icon Studio)」& 實裝男女傭兵 5×5 頭像校準體系** (`tools/icon-studio.html`, `IconSpriteHelper.ts`, `AdventurerCard.ts`, `PartyModalController.ts`, `CombatUIManager.ts`)：
+  - **🚀 零代碼限制的自主擴充架構**：
+    - **➕ 自助新增任意圖集 (New Sprite Sheet)**：支援直接在介面輸入任意分類名稱、上傳本地任意大圖 (PNG/JPG/WebP/DataURL)，並設定任意宮格尺寸（如 5×5、6×4、4×4、NxM），自動生成子項目與選取框。
+    - **📝 自助管理項目**：支援為任何分類隨意「➕ 新增項目」、「✏️ 重新命名」與「🗑️ 刪除項目」。
+    - **📥 完整備份與還原 (JSON Import/Export)**：支援一鍵下載完整配置 JSON 備份檔與隨時貼上還原。
+  - **👨👩 男女傭兵 5×5 (25位) 頭像預載與遊戲連動**：
+    - 內建預載「👨 男傭兵頭像 (5×5)」與「👩 女傭兵頭像 (5×5)」，可直接在工坊中拖拉方框校準 25 位男女傭兵的五官置中與特寫比例。
+    - 支援為特定編號傭兵上傳獨立高解析立繪（自動轉 DataURL 覆寫）。
+    - 遊戲端 `AdventurerCard`（卡片與名冊）、`PartyModalController`（出征編隊）與 `CombatUIManager`（戰鬥即時頭像）全數接入 `getAvatarSpriteStyle` 統一渲染管線，點擊「⚡ 套用」即刻無縫同步！
+- **[Fix/Icon] 武器圖標映射修復 & 專屬「圖標工坊 (Icon Studio)」視覺化微調工具** (`IconSpriteHelper.ts`, `tools/icon-studio.html`, `CheatController.ts`)：
+  - **🛡️ 劍盾等武器 Enum 映射修復**：修正 `WEAPON_SPRITE_COORDS`，補齊 `SWORD_AND_SHIELD`（劍盾）、`RUNE_SHIELD`（符文盾）與 `HAMMER`（戰鎚）等核心 Enum Key，徹底解決劍盾等武器誤 fallback 至「大劍」貼圖的問題。
+  - **🎨 專屬「圖標工坊 (Icon Studio)」獨立工具** (`tools/icon-studio.html`)：
+    - **全視覺化滑鼠拉框裁切**：支援原圖上自由拖曳移動選取框、8 向控制把手縮放。
+    - **鍵盤 1 像素微調**：支援 `↑` `↓` `←` `→` 鍵進行 1px 極限微移（`Shift + 方向鍵` 5px 加速）。
+    - **60fps 實機品質框 Live 預覽**：支援 38px / 48px / 64px 尺寸與 T1~T5（普通、精良綠、稀有藍、史詩紫、傳奇金）外框與光暈即時渲染。
+    - **單圖上傳轉內嵌 (DataURL)**：支援拖曳單張 PNG/JPG/SVG 圖片，直接轉為 Base64 內嵌圖標。
+    - **雙向接口連動**：支援「⚡ 套用至本機遊戲 (LocalStorage)」、「📋 匯出 TypeScript 配置代碼」與「📦 匯出裁切獨立 PNG」。
+  - **🌿 資源與素材擴充架構**：`IconSpriteHelper` 擴充 `renderResourceIcon` 統一入口，棉麻 (`cotton`)、生皮 (`hide`)、粗布、皮革等既有 Emoji 資源可隨時透過圖標工坊升級為專屬貼圖，未設定時安全 fallback。
+  - **🧙‍♂️ 開發快捷指令**：遊戲內鍵盤輸入 `studio` 密技或控制台輸入 `openIconStudio()` 即可一鍵在新分頁開啟圖標工坊。
 - **[Feudal/Civic] 正式實裝「領地規模與爵位 100% 雙向咬合體系」&「四大生產設施升級」** (`types.ts`, `Territory.ts`, `BalanceData.ts`, `TownManagementSystem.ts`, `MapNodeSystem.ts`, `UIManager.ts`, `views-facility.html`)：
   - **👑 爵位與領地規模門檻校準**：騎士/營地 (100)、男爵/村莊 (250)、子爵 (600)、伯爵/城鎮 (1200)、侯爵 (2500)、公爵/首都 (5000)。
   - **🌾 生產設施繁榮階梯與消耗**：荒野開放升至 Lv.2（消耗 100G 30木 15石），升級 Lv.2=+10, Lv.3=+25, Lv.4=+45, Lv.5=+70（產能 1.5x~3.0x）。

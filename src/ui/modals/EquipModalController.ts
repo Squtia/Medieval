@@ -3,7 +3,7 @@ import { EquipmentSlot } from '../../models/types';
 import { GameState } from '../../core/GameState';
 import { ToastManager } from '../ToastManager';
 import { UIManager } from '../UIManager';
-import { renderEquipIcon, getEquipComparisonTooltipHtml } from '../ShopController';
+import { renderEquipIcon, ICON_SIZE, getEquipComparisonTooltipHtml } from '../ShopController';
 import { positionFloatingElement } from '../FloatingPosition';
 import { PartyModalController } from './PartyModalController';
 
@@ -134,7 +134,7 @@ export class EquipModalController {
         card.style.opacity = isJobAllowed ? '1' : '0.65';
         card.style.transition = 'all 0.2s';
 
-        const iconHtml = renderEquipIcon(eq, 52);
+        const iconHtml = renderEquipIcon(eq, ICON_SIZE.LG);
         const tooltipHtml = getEquipComparisonTooltipHtml(adv, slotKey, eq);
 
         card.setAttribute('data-html-tip', encodeURIComponent(tooltipHtml));

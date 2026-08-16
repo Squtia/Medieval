@@ -113,8 +113,16 @@ export function initCheatController(): void {
         GameState.myTerritory.materials['ADVANCE_THIEF'] = (GameState.myTerritory.materials['ADVANCE_THIEF'] || 0) + 10;
         GameState.myTerritory.materials['ADVANCE_PRAYER'] = (GameState.myTerritory.materials['ADVANCE_PRAYER'] || 0) + 10;
         ToastManager.show(`✨ 已獲得全套轉職素材 (各 10 個)！`);
+    }},
+    'studio': { name: '開啟圖標工坊', noPrompt: true, setter: () => {
+        window.open('./tools/icon-studio.html', '_blank');
+        ToastManager.show(`🎨 已在新分頁開啟「圖標工坊 (Icon Studio)」！`);
     }}
   });
+
+  (window as any).openIconStudio = () => {
+    window.open('./tools/icon-studio.html', '_blank');
+  };
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {

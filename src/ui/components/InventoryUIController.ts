@@ -2,7 +2,7 @@ import { GameState } from '../../core/GameState';
 import { UIManager } from '../UIManager';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
-import { renderEquipIcon, attachTooltip, getEquipTooltipHtml } from '../ShopController';
+import { renderEquipIcon, ICON_SIZE, attachTooltip, getEquipTooltipHtml } from '../ShopController';
 import { renderResourceSpriteHtml } from '../IconSpriteHelper';
 
 export class InventoryUIController {
@@ -122,10 +122,10 @@ export class InventoryUIController {
       card.style.padding = '6px 4px';
       card.style.cursor = 'pointer';
       
-      const iconHtml = renderEquipIcon(eq, 38);
+      const iconHtml = renderEquipIcon(eq, ICON_SIZE.MD);
       card.innerHTML = `
-        <div style="flex:1; display:flex; align-items:center; justify-content:center;">${iconHtml}</div>
-        <div style="font-size:0.7em; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center;">${eq.name}</div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; padding: 2px 0;">${iconHtml}</div>
+        <div style="font-size:0.75em; font-weight:500; color:#e2e8f0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; text-align:center; margin-top:2px;">${eq.name}</div>
         ${eq.enhancementLevel ? `<div style="position:absolute; top:2px; right:4px; font-size:0.7em; color:#3b82f6; font-weight:bold;">+${eq.enhancementLevel}</div>` : ''}
       `;
       

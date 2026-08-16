@@ -6,7 +6,8 @@ import { UIManager } from '../UIManager';
 import { EquipModalController } from './EquipModalController';
 import { positionFloatingElement } from '../FloatingPosition';
 import { getAdventurerSkillInfo, getAdventurerPassiveInfo, SKILLS } from '../../data/SkillData';
-import { renderEquipIcon, getEquipTooltipHtml } from '../ShopController';
+import { renderEquipIcon, ICON_SIZE, getEquipTooltipHtml } from '../ShopController';
+import { getAvatarSpriteStyle } from '../IconSpriteHelper';
 import { GambitConditionType, GAMBIT_CONDITION_LABELS } from '../../models/Gambit';
 import { GambitModalController } from './GambitModalController';
 
@@ -101,11 +102,9 @@ export class PartyModalController {
       const avatarIndex = adv.avatarIndex ?? (nameHash % 25);
       adv.avatarIndex = avatarIndex;
   
-      const bgX = (avatarIndex % 5) * 25;
-      const bgY = Math.floor(avatarIndex / 5) * 25;
-      const avatarImage = adv.gender === 'FEMALE' ? 'assets/avatars_female.jpg' : 'assets/avatars_male.jpg';
+      const avatarStyle = getAvatarSpriteStyle(adv.gender, avatarIndex, adv.isGuardian);
       avatarWrapper.innerHTML = `
-        <div style="aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: url('${avatarImage}'); background-size: 500% 500%; background-position: ${bgX}% ${bgY}%;"></div>
+        <div style="aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: ${avatarStyle.backgroundImage}; background-size: ${avatarStyle.backgroundSize}; background-position: ${avatarStyle.backgroundPosition};"></div>
       `;
     }
     if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${displayClass}`;
@@ -316,7 +315,7 @@ export class PartyModalController {
         if (eq) {
           const lvlStr = eq.enhancementLevel ? `<div style="color:#3b82f6; font-size:0.9em; font-weight:bold;">+${eq.enhancementLevel}</div>` : '';
           const statsHtml = EquipModalController.buildEquipStatsHtml(eq);
-          const iconHtml = renderEquipIcon(eq, 54);
+          const iconHtml = renderEquipIcon(eq, ICON_SIZE.LG);
           const jobMeta = eq.allowedJobs && eq.allowedJobs.length > 0
             ? `<div style="color:#94a3b8; font-size:0.8em; margin-bottom:4px;">職業：${eq.allowedJobs.join('/')}</div>`
             : '';
