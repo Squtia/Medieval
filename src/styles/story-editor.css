@@ -14,6 +14,19 @@ button, input, select, textarea { font: inherit; }
 .story-editor-header p, .story-editor-canvas-toolbar span { color: #a99a82; font-size: .85rem; }
 .story-editor-header-actions { display: flex; gap: 8px; align-items: center; }
 .story-editor-header .close-btn { position: static; margin-left: 8px; }
+
+/* ── Tab Bar ── */
+.story-tab-bar { display: flex; gap: 2px; padding: 0 18px; background: rgba(16,12,8,.95); border-bottom: 1px solid rgba(180,140,70,.35); flex-shrink: 0; }
+.story-tab { padding: 10px 18px; color: #a99a82; border: none; border-bottom: 3px solid transparent; background: transparent; cursor: pointer; font-size: .88rem; font-weight: 600; letter-spacing: .02em; transition: color .15s, border-color .15s; }
+.story-tab:hover { color: #e8c77c; }
+.story-tab.active { color: #fbbf24; border-bottom-color: #fbbf24; }
+
+/* ── Tab Panels ── */
+.story-tab-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.story-tab-panel[hidden] { display: none; }
+.story-tab-panel.active { display: flex; }
+
+/* ── Tab 1: 節點編輯（原樣式） ── */
 .story-editor-workspace { display: grid; grid-template-columns: 260px minmax(360px, 1fr) 390px; flex: 1; min-height: 0; background: rgba(12,10,8,.84); }
 .story-editor-sidebar, .story-editor-inspector { padding: 14px; overflow-y: auto; background: rgba(29,23,16,.9); }
 .story-editor-sidebar { border-right: 1px solid rgba(180,140,70,.25); }
@@ -35,6 +48,10 @@ button, input, select, textarea { font: inherit; }
 .story-node-card h4 { margin: 9px 0 6px; color: #fff0c7; }
 .story-node-card p { color: #aaa08f; font-size: .78rem; line-height: 1.35; }
 .story-node-state { margin-top: 9px; font-size: .73rem; color: #93c5fd; }
+.sn-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.sn-badge { padding: 2px 7px; border-radius: 9px; font-size: .68rem; font-weight: 700; }
+.sn-badge-fact { background: rgba(134,239,172,.18); color: #86efac; border: 1px solid rgba(134,239,172,.35); }
+.sn-badge-ref { background: rgba(147,197,253,.18); color: #93c5fd; border: 1px solid rgba(147,197,253,.35); }
 .story-editor-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .story-editor-shell details { border-top: 1px solid rgba(180,140,70,.22); padding-top: 9px; margin-top: 12px; }
 .story-editor-shell summary { color: #e8c77c; cursor: pointer; font-weight: 700; }
@@ -60,6 +77,86 @@ button, input, select, textarea { font: inherit; }
 .story-history-item { display: flex; justify-content: space-between; gap: 16px; padding: 11px; color: #eadfc9; text-align: left; border: 1px solid #5e4930; border-radius: 5px; background: #251d14; cursor: pointer; }
 .story-history-item span { color: #a99a82; font-size: .8rem; }
 .story-studio-error { margin: 40px; color: #fca5a5; white-space: pre-wrap; }
+
+/* ── Tab 2: 線索登錄表 ── */
+#tab-fact-registry { background: rgba(10,8,6,.92); overflow: hidden; }
+.fact-registry-toolbar { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid rgba(180,140,70,.25); background: rgba(18,14,10,.9); flex-shrink: 0; }
+.fact-registry-search-wrap { flex: 1; }
+.fact-registry-search-wrap input { width: 100%; padding: 9px 14px; background: #18130e; border: 1px solid #6d5533; border-radius: 6px; color: #f5ead2; font: inherit; font-size: .9rem; }
+.fact-registry-search-wrap input:focus { outline: none; border-color: #fbbf24; }
+.fact-registry-stats { color: #a99a82; font-size: .82rem; white-space: nowrap; }
+.fact-registry-list { flex: 1; overflow-y: auto; padding: 16px 20px; display: grid; gap: 12px; align-content: start; }
+
+/* Fact 卡片 */
+.fact-card { border: 1px solid rgba(180,140,70,.3); border-radius: 8px; background: rgba(25,18,12,.9); overflow: hidden; }
+.fact-card.warn-missing-writer { border-color: rgba(252,100,100,.5); }
+.fact-card.warn-unused-write { border-color: rgba(251,191,36,.4); }
+.fact-card.is-cross-story { border-color: rgba(147,197,253,.45); }
+.fact-card-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(0,0,0,.2); cursor: pointer; }
+.fact-card-header:hover { background: rgba(255,255,255,.04); }
+.fact-name { font-family: "Courier New", monospace; font-size: .88rem; color: #fde68a; font-weight: 700; flex: 1; }
+.fact-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.fact-badge { padding: 2px 8px; border-radius: 10px; font-size: .7rem; font-weight: 700; }
+.fact-badge.write { background: rgba(134,239,172,.2); color: #86efac; border: 1px solid rgba(134,239,172,.4); }
+.fact-badge.read { background: rgba(147,197,253,.2); color: #93c5fd; border: 1px solid rgba(147,197,253,.4); }
+.fact-badge.warn { background: rgba(252,165,165,.2); color: #fca5a5; border: 1px solid rgba(252,165,165,.4); }
+.fact-badge.cross { background: rgba(216,180,254,.2); color: #d8b4fe; border: 1px solid rgba(216,180,254,.4); }
+.fact-card-body { padding: 10px 14px; display: none; border-top: 1px solid rgba(180,140,70,.2); }
+.fact-card.expanded .fact-card-body { display: block; }
+.fact-ref-group { margin-bottom: 10px; }
+.fact-ref-group-title { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.fact-ref-group-title.write-title { color: #86efac; }
+.fact-ref-group-title.read-title { color: #93c5fd; }
+.fact-ref-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; background: rgba(255,255,255,.04); margin-bottom: 4px; cursor: pointer; font-size: .8rem; }
+.fact-ref-item:hover { background: rgba(255,255,255,.08); }
+.fact-ref-story { color: #a99a82; font-size: .75rem; }
+.fact-ref-node { color: #f5ead2; }
+.fact-ref-condition { color: #d6a54a; font-size: .73rem; margin-left: auto; }
+.fact-warn-box { margin-top: 8px; padding: 7px 10px; border-radius: 5px; font-size: .78rem; }
+.fact-warn-box.missing-writer { background: rgba(252,100,100,.1); color: #fca5a5; border: 1px solid rgba(252,100,100,.3); }
+.fact-warn-box.unused-write { background: rgba(251,191,36,.08); color: #fde68a; border: 1px solid rgba(251,191,36,.25); }
+.fact-empty { text-align: center; padding: 60px 20px; color: #6b6050; font-size: .9rem; }
+
+/* ── Tab 3: 流程圖畫布 ── */
+.graph-canvas-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #6b6050; }
+.graph-canvas-placeholder span { font-size: 3rem; }
+.graph-canvas-placeholder p { font-size: 1rem; }
+#tab-graph-canvas { background: #060504; position: relative; flex-direction: column; overflow: hidden; }
+.graph-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 9px 16px; background: rgba(14,10,7,.95); border-bottom: 1px solid rgba(180,140,70,.25); flex-shrink: 0; gap: 12px; }
+.graph-toolbar-legend { display: flex; gap: 14px; font-size: .76rem; flex-wrap: wrap; }
+.graph-legend-item { display: flex; align-items: center; gap: 5px; }
+.legend-fact { color: #d4a017; }
+.legend-schedule { color: #60a5fa; }
+.legend-victory { color: #86efac; }
+.legend-defeat { color: #fca5a5; }
+.legend-journey { color: #c084fc; }
+.graph-wire-hint { color: #fbbf24; font-size: .8rem; flex: 1; text-align: center; animation: hint-pulse 1.2s ease-in-out infinite; }
+@keyframes hint-pulse { 0%,100% { opacity:.7; } 50% { opacity:1; } }
+.graph-scroll-wrapper { flex: 1; overflow: auto; background: radial-gradient(ellipse at 30% 30%, rgba(50,35,15,.35), transparent 60%), #060504; }
+#story-graph-svg { display: block; }
+/* SVG node styles */
+.graph-node-rect { fill: #1d1710; stroke: #5d4930; stroke-width: 1.5; cursor: grab; transition: stroke .12s; }
+.graph-node:hover .graph-node-rect { stroke: #a88040; }
+.graph-node-selected .graph-node-rect { stroke: #fbbf24; stroke-width: 2; }
+.graph-node-wire-src .graph-node-rect { stroke: #60a5fa; stroke-width: 2; }
+.graph-node-channel-bg { fill: #c49333; }
+.graph-node-channel-txt { fill: #100c08; font-size: 10px; font-weight: 700; font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; pointer-events: none; }
+.graph-node-title-txt { fill: #fff0c7; font-size: 12px; font-weight: 600; font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; pointer-events: none; }
+.graph-node-id-txt { fill: #a09080; font-size: 10px; font-family: "Courier New",monospace; pointer-events: none; }
+.graph-node-meta-txt { fill: #7ab4dc; font-size: 10px; font-family: "Noto Sans TC","Microsoft JhengHei",sans-serif; pointer-events: none; }
+/* Ports */
+.graph-port-out { fill: #3a2c1a; stroke: #d6a54a; stroke-width: 1.5; cursor: pointer; transition: fill .12s, r .12s; }
+.graph-port-out:hover { fill: #e8c77c; }
+.graph-port-active { fill: #fbbf24; stroke: #fbbf24; }
+/* Edges */
+.graph-edge { stroke-width: 2; pointer-events: none; }
+.graph-edge-fact { stroke: #d4a017; stroke-dasharray: 7 3; }
+.graph-edge-schedule { stroke: #60a5fa; }
+.graph-edge-victory { stroke: #86efac; }
+.graph-edge-defeat { stroke: #fca5a5; }
+.graph-edge-journey { stroke: #c084fc; stroke-dasharray: 4 2; }
+.graph-edge-label { fill: #c9960f; font-size: 9px; font-family: "Courier New",monospace; pointer-events: none; }
+
 @media (max-width: 1050px) {
   .story-editor-workspace { grid-template-columns: 220px 1fr; }
   .story-editor-inspector { grid-column: 1 / -1; border-left: 0; border-top: 1px solid rgba(180,140,70,.25); max-height: 45vh; }

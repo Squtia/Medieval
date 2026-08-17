@@ -34,7 +34,8 @@ export type NarrativeCondition =
   | { type: 'FACT_EXISTS'; fact: string }
   | { type: 'FACT_MISSING'; fact: string }
   | { type: 'DAYS_SINCE_FACT'; fact: string; value: number }
-  | { type: 'NODE_EXPLORED'; nodeId: string };
+  | { type: 'NODE_EXPLORED'; nodeId: string }
+  | { type: 'SUBJUGATION_COUNT_AT_LEAST'; value: number };
 
 export type NarrativeEffect =
   | { type: 'SET_FACT'; fact: string; value?: string | number | boolean }

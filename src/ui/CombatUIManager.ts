@@ -131,7 +131,7 @@ export class CombatUIManager {
     let avatarHtml = '<span style="font-size: 1.4em;">👺</span>';
     if (state.isPlayer) {
       if (state.avatarIndex !== undefined) {
-        const avatarStyle = getAvatarSpriteStyle(state.gender || 'MALE', state.avatarIndex);
+        const avatarStyle = getAvatarSpriteStyle((state.gender as any) || 'MALE', state.avatarIndex, state.isGuardian);
         avatarHtml = `<div style="width: 34px; height: 34px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(234, 179, 8, 0.7); flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.5); background-image: ${avatarStyle.backgroundImage}; background-size: ${avatarStyle.backgroundSize}; background-position: ${avatarStyle.backgroundPosition};"></div>`;
       } else {
         avatarHtml = '<span style="font-size: 1.4em;">🦸</span>';

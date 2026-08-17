@@ -108,6 +108,7 @@ export interface CombatParticipantState {
   gridC?: number;
   avatarIndex?: number;
   gender?: string; // or Gender, but we can just use string to avoid import
+  isGuardian?: boolean;
 }
 
 export interface CombatReport {

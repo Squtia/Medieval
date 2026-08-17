@@ -2,8 +2,9 @@ import { GameState } from '../core/GameState';
 import { createEmptyNarrativeState } from '../models/Narrative';
 import { NarrativeSystem } from '../systems/NarrativeSystem';
 import { UIManager } from './UIManager';
+import { setStartupMode, renderMap, ensurePhaserLoaded } from './MapController';
 
-export function initNarrativeTestController(): void {
+export async function initNarrativeTestController(): Promise<void> {
   const params = new URLSearchParams(location.search);
   const storyId = params.get('story') ?? NarrativeSystem.getStories()[0]?.id ?? '';
   let nodeId = params.get('node') ?? NarrativeSystem.getStories().find(story => story.id === storyId)?.nodes[0]?.id ?? '';
@@ -14,6 +15,10 @@ export function initNarrativeTestController(): void {
   document.getElementById('map-view')?.classList.add('active');
   const topBar = document.getElementById('top-bar');
   if (topBar) topBar.style.display = 'flex';
+
+  await ensurePhaserLoaded();
+  setStartupMode(false);
+  renderMap();
 
   const panel = document.createElement('aside');
   panel.id = 'narrative-test-panel';
@@ -44,23 +49,37 @@ export function initNarrativeTestController(): void {
   select.innerHTML = (story?.nodes ?? []).map(node => `<option value="${escapeHtml(node.id)}">${escapeHtml(node.title)}（${escapeHtml(node.id)}）</option>`).join('');
   select.value = nodeId;
   select.addEventListener('change', () => { nodeId = select.value; refresh(); });
-  panel.querySelector('#btn-narrative-force')!.addEventListener('click', () => { NarrativeSystem.presentInteractiveNode(storyId, nodeId, true); refresh(); });
-  panel.querySelector('#btn-narrative-natural')!.addEventListener('click', () => { NarrativeSystem.processDailyTick(); refresh(); });
+  panel.querySelector('#btn-narrative-force')!.addEventListener('click', () => {
+    NarrativeSystem.presentInteractiveNode(storyId, nodeId, true);
+    renderMap();
+    refresh();
+  });
+  panel.querySelector('#btn-narrative-natural')!.addEventListener('click', () => {
+    NarrativeSystem.processDailyTick();
+    renderMap();
+    refresh();
+  });
   panel.querySelector('#btn-narrative-day')!.addEventListener('click', () => advance(1));
   panel.querySelector('#btn-narrative-five-days')!.addEventListener('click', () => advance(5));
   panel.querySelector('#btn-narrative-journey')!.addEventListener('click', () => {
     const generated = getGeneratedNode();
     const next = generated?.narrativeSubjugation?.journeyNodeIds.find(id => !NarrativeSystem.ensureState().presentedNodeIds.includes(`${storyId}:${id}`));
     if (next) NarrativeSystem.handleSubjugationJourney(storyId, next);
+    renderMap();
     refresh();
   });
   panel.querySelector('#btn-narrative-victory')!.addEventListener('click', () => simulateOutcome(true));
   panel.querySelector('#btn-narrative-defeat')!.addEventListener('click', () => simulateOutcome(false));
-  panel.querySelector('#btn-narrative-reset')!.addEventListener('click', () => { NarrativeSystem.resetStory(storyId); refresh(); });
+  panel.querySelector('#btn-narrative-reset')!.addEventListener('click', () => {
+    NarrativeSystem.resetStory(storyId);
+    renderMap();
+    refresh();
+  });
 
   function advance(days: number): void {
     GameState.totalDays += days;
     NarrativeSystem.processDailyTick();
+    renderMap();
     UIManager.updateUI();
     refresh();
   }
@@ -74,6 +93,7 @@ export function initNarrativeTestController(): void {
     if (!generated?.narrativeSubjugation) return;
     NarrativeSystem.handleSubjugationCompleted(generated.id, isVictory, generated.narrativeSubjugation);
     if (isVictory && generated.narrativeSubjugation.removeOnVictory) GameState.mapSystem.removeDynamicNode(generated.id);
+    renderMap();
     refresh();
   }
 

@@ -126,7 +126,7 @@ async function bootstrap() {
   NarrativeSystem.reloadDefinitions();
   if (import.meta.env.DEV && new URLSearchParams(location.search).has('storyTest')) {
     const { initNarrativeTestController } = await import('./ui/NarrativeTestController');
-    initNarrativeTestController();
+    await initNarrativeTestController();
   }
   NarrativeSystem.processDailyTick();
   

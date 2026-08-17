@@ -1,3 +1,31 @@
+- **[Fix/CombatUI] 修復戰鬥重播誓約守衛頭像顯示錯誤問題（2026-08-17）**：
+  - 修復戰鬥重播介面中，自訂誓約守衛（如金髮女騎士）頭像被誤當作普通女傭兵而顯示錯誤頭像的問題。
+  - 在 `CombatParticipantState` 模型與 `CombatSystem.ts` 戰報組裝中加入 `isGuardian` 標記，並在 `CombatUIManager.ts` 渲染血條頭像時傳入 `isGuardian`，精確定位專屬守衛頭像圖集（`avatars_guardians.jpg`）。
+
+- **[Fix/StoryTest] 修復故事測試模式未初始化 Phaser 地圖問題（2026-08-17）**：
+  - 修復從故事工坊「強制測試節點」進入故事測試模式時，因未呼叫 `ensurePhaserLoaded()` 與 `renderMap()` 導致大陸地圖城鎮據點與道路未渲染（僅顯示羊皮紙底圖）的問題。
+  - 在推進測試天數、強制觸發節點、模擬討伐勝敗與重置測試進度時，同步調用 `renderMap()`，確保動態生成的故事據點或解鎖地圖節點能夠即時在地圖畫布上繪製與更新。
+
+- **[Feature/StoryStudio] Phase 3 — SVG 流程圖畫布（2026-08-17）**：
+  - 新增第三個分頁「🗺 流程圖」，以純 SVG 繪製整條故事的節點流程，無需任何外部圖表函式庫。
+  - 五種顏色編碼邊：🟡虛線（Fact 依賴）、🔵實線（排程 SCHEDULE_NODE）、🟢實線（討伐勝利）、🔴實線（討伐失敗）、🟣虛線（討伐途中事件）；每條邊帶箭頭標記，Fact 邊標示線索代號。
+  - 節點卡片以純 SVG `<g>` + `<rect>` + `<text>` 組成，顯示 channel 標籤、標題、代號、條件數與效果數；點擊卡片即跳轉至「節點編輯」Tab 並選中對應節點。
+  - 拖曳節點重新排版：mousedown/mousemove/mouseup 追蹤位移，拖曳過程即時更新邊路徑（只重繪邊層，不重繪節點），mouseup 後自動存入 `localStorage` 按故事 ID 持久化。
+  - 牽線模式：點擊節點右側輸出埠（🟡圓點）進入牽線模式，工具列出現動態提示文字；再點擊目標節點自動新增 `SCHEDULE_NODE` 效果到來源節點，並跳轉回節點編輯 Tab 讓使用者確認參數。
+  - 「🔀 重新排版」按鈕清除所有手動位置，重新以 4 欄網格自動排列。
+
+- **[Feature/StoryStudio] Phase 2 — Smart Input 強化（2026-08-17）**：
+  - `FACT_EXISTS / FACT_MISSING / DAYS_SINCE_FACT` 條件及 `SET_FACT` 效果的線索代號欄位，改為支援 `<datalist>` 自動補全，候選清單由 `buildSharedDatalists()` 在每次 `render()` 時從全部故事節點動態掃描產生，無需手動維護。
+  - `SCHEDULE_NODE.nodeId` 改為同故事節點下拉選單，`CREATE_SUBJUGATION_NODE.victoryNodeId / defeatNodeId` 同樣改為下拉，徹底消除填錯 ID 的問題。
+  - `GRANT_MATERIAL.itemId` 與 `GRANT_TRADE_GOOD.itemId` 加入 `<datalist>` 補全，候選來自 `DataStore.MaterialDB` 與 `TRADE_GOODS`。
+  - 節點卡片新增角標：🟢 **✏ N 線索**（該節點設定幾個 Fact）、🔵 **← 被引用 N**（被多少個節點的 SCHEDULE / 討伐流程引用），讓設計者在卡片層就能掌握節點在故事中的角色。
+
+- **[Feature/StoryStudio] Phase 1 — 線索登錄表 + 分頁 + 討伐累積條件（2026-08-17）**：
+  - 引擎新增 `SUBJUGATION_COUNT_AT_LEAST` 條件類型：計算已勝利的動態討伐據點數（讀取 `subjugation:*:victory` fact），可作為故事推進前置，解決動態據點位置隨機無法用 ID 綁定的問題。
+  - 故事工坊 UI 改為分頁式：**節點編輯**（原有三欄）、**線索登錄表**、**流程圖**（Phase 3 佔位）。
+  - 新增全自動線索登錄表：即時掃描所有故事節點，建立 Fact 交叉引用索引（寫入者 / 讀取者），自動偵測四類警告：孤立線索（只設不用）、缺少來源（只用不設）、跨故事依賴、重複寫入；支援全局關鍵字搜尋；點擊引用項目可直接跳轉至對應節點的編輯面板。
+  - `story-editor.html` 加入節點代號欄位的 placeholder 引導說明（`小寫英文＋底線`）與地圖節點 ID 欄位範例。
+
 - **[Feature/Narrative] 獨立故事工坊與隔離式遊戲測試第一版（2026-08-17）**：
   - 新增資料驅動的 `NarrativeSystem`、故事條件／效果／線索狀態與存檔持久化，不再以固定 A→B→C 任務鏈限制故事順序。
   - 首批接通懸賞板、酒館傳聞、領地突發事件、探索發現、討伐結束與既有地圖故事據點解鎖。

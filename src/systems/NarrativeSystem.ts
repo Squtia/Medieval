@@ -104,6 +104,11 @@ export class NarrativeSystem {
         return !!fact && GameState.totalDays - fact.day >= condition.value;
       }
       case 'NODE_EXPLORED': return state.exploredNodeIds.includes(condition.nodeId);
+      case 'SUBJUGATION_COUNT_AT_LEAST': {
+        const count = Object.keys(state.facts)
+          .filter(key => key.startsWith('subjugation:') && key.endsWith(':victory')).length;
+        return count >= condition.value;
+      }
     }
   }
 
@@ -116,6 +121,7 @@ export class NarrativeSystem {
       case 'FACT_MISSING': return `線索「${condition.fact}」已存在`;
       case 'DAYS_SINCE_FACT': return `取得「${condition.fact}」後需經過 ${condition.value} 天`;
       case 'NODE_EXPLORED': return `尚未探索據點「${condition.nodeId}」`;
+      case 'SUBJUGATION_COUNT_AT_LEAST': return `尚未討伐滿 ${condition.value} 個動態據點`;
     }
   }
 

@@ -202,7 +202,8 @@ export class CombatSystem {
         maxMp: maxMp,
         currentMp: p.currentMp ?? maxMp,
         avatarIndex: adv?.avatarIndex ?? 0,
-        gender: adv?.gender
+        gender: adv?.gender,
+        isGuardian: adv?.isGuardian ?? false
       };
     });
 
