@@ -1,0 +1,110 @@
+<div class="modal-overlay" id="modal-story-editor">
+  <div class="story-editor-shell glass-panel">
+    <header class="story-editor-header">
+      <div>
+        <h2>🧭 故事編排器</h2>
+        <p>把故事節點發布到懸賞、酒館、領地事件、探索與固定據點。</p>
+      </div>
+      <div class="story-editor-header-actions">
+        <button id="btn-story-export" class="action-btn">匯出 JSON</button>
+        <button id="btn-story-publish" class="action-btn story-primary">發布到遊戲</button>
+        <button id="btn-close-story-editor" class="close-btn">×</button>
+      </div>
+    </header>
+
+    <div class="story-editor-workspace">
+      <aside class="story-editor-sidebar">
+        <div class="story-editor-section-title">故事</div>
+        <select id="story-editor-story-select"></select>
+        <button id="btn-story-new" class="action-btn">＋ 新增故事</button>
+        <label>故事名稱<input id="story-editor-story-title" type="text"></label>
+        <label>故事摘要<textarea id="story-editor-story-summary" rows="3"></textarea></label>
+        <label class="story-editor-check"><input id="story-editor-story-enabled" type="checkbox"> 啟用這條故事</label>
+        <div class="story-editor-divider"></div>
+        <div class="story-editor-section-title">遊戲狀態</div>
+        <div id="story-editor-facts" class="story-editor-facts"></div>
+        <button id="btn-story-reset-progress" class="action-btn">重置本故事進度</button>
+      </aside>
+
+      <main class="story-editor-canvas">
+        <div class="story-editor-canvas-toolbar">
+          <div>
+            <strong>故事節點</strong>
+            <span>節點順序由條件決定，不是畫面位置。</span>
+          </div>
+          <button id="btn-story-add-node" class="action-btn">＋ 新增節點</button>
+        </div>
+        <div id="story-editor-node-list" class="story-editor-node-list"></div>
+        <div id="story-editor-validation" class="story-editor-validation"></div>
+      </main>
+
+      <aside class="story-editor-inspector">
+        <div id="story-editor-empty">選擇一個節點開始編輯。</div>
+        <div id="story-editor-node-form" hidden>
+          <div class="story-editor-section-title">節點內容</div>
+          <label>節點代號<input id="story-node-id" type="text"></label>
+          <label>出現機制
+            <select id="story-node-channel">
+              <option value="BOUNTY_BOARD">懸賞板</option>
+              <option value="TAVERN_RUMOR">酒館傳聞</option>
+              <option value="TERRITORY_EVENT">領地突發事件</option>
+              <option value="EXPLORATION">發現據點時</option>
+              <option value="SUBJUGATION">討伐結束後</option>
+              <option value="SUBJUGATION_JOURNEY">討伐途中</option>
+              <option value="STORY_NODE">解鎖預設故事據點</option>
+            </select>
+          </label>
+          <label>標題<input id="story-node-title" type="text"></label>
+          <label>故事敘述<textarea id="story-node-description" rows="5"></textarea></label>
+
+          <details open>
+            <summary>出現條件</summary>
+            <div id="story-node-conditions-list" class="story-effect-list"></div>
+            <button id="btn-story-add-condition" type="button" class="action-btn">＋ 新增條件</button>
+          </details>
+
+          <details open>
+            <summary>完成後結果</summary>
+            <div id="story-node-effects-list" class="story-effect-list"></div>
+            <button id="btn-story-add-effect" type="button" class="action-btn">＋ 新增結果／獎勵</button>
+          </details>
+
+          <details id="story-editor-map-target-fields">
+            <summary>解鎖預設故事據點設定</summary>
+            <label>既有地圖節點 ID<input id="story-node-target-map" type="text"></label>
+          </details>
+
+          <details id="story-editor-bounty-fields">
+            <summary>懸賞設定</summary>
+            <div class="story-editor-pair">
+              <label>執行天數<input id="story-node-bounty-duration" type="number" min="1" value="2"></label>
+              <label>保留天數<input id="story-node-bounty-expire" type="number" min="1" value="30"></label>
+            </div>
+            <div class="story-editor-pair">
+              <label>金幣獎勵<input id="story-node-bounty-gold" type="number" min="0" value="50"></label>
+              <label>經驗獎勵<input id="story-node-bounty-exp" type="number" min="0" value="30"></label>
+            </div>
+          </details>
+
+          <details>
+            <summary>玩家選項（最多兩項）</summary>
+            <label>選項一<input id="story-node-choice-1" type="text"></label>
+            <label>選項一結果文字<textarea id="story-node-choice-result-1" rows="2"></textarea></label>
+            <div id="story-node-choice-effects-1" class="story-effect-list compact"></div>
+            <button id="btn-story-add-choice-effect-1" type="button" class="action-btn">＋ 選項一結果</button>
+            <label>選項二<input id="story-node-choice-2" type="text"></label>
+            <label>選項二結果文字<textarea id="story-node-choice-result-2" rows="2"></textarea></label>
+            <div id="story-node-choice-effects-2" class="story-effect-list compact"></div>
+            <button id="btn-story-add-choice-effect-2" type="button" class="action-btn">＋ 選項二結果</button>
+          </details>
+
+          <div class="story-editor-node-actions">
+            <button id="btn-story-test-node" class="action-btn story-primary">強制測試節點</button>
+            <button id="btn-story-delete-node" class="action-btn story-danger">刪除節點</button>
+          </div>
+          <div id="story-editor-blocked-reasons" class="story-editor-blocked"></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

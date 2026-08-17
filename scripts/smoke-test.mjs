@@ -53,7 +53,11 @@ async function main() {
   console.log('🌐 Server ready. Launching Headless Chromium...');
   const browser = await chromium.launch({
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-logging', '--log-level=3'],
+    env: {
+      ...process.env,
+      CHROME_LOG_FILE: process.platform === 'win32' ? 'NUL' : '/dev/null'
+    }
   });
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
@@ -106,6 +110,15 @@ async function main() {
     console.log('  ✅ New journey setup modal opened.');
     await page.fill('#new-game-seed', 'smoke-test-seed');
     await page.click('#btn-confirm-new-game');
+
+    // New journeys now pass through oath creation and the prologue before gameplay.
+    await page.waitForSelector('#modal-oath-creation', { state: 'visible', timeout: 5000 });
+    await page.fill('#ipt-oath-name', 'Smoke守衛');
+    await page.click('#btn-confirm-oath');
+    await page.waitForSelector('#btn-skip-prologue', { state: 'visible', timeout: 15000 });
+    await page.click('#btn-skip-prologue');
+    await page.waitForSelector('#overlay-prologue', { state: 'hidden', timeout: 5000 });
+    console.log('  ✅ Oath creation and prologue completed.');
 
     // Stage 2: Base Street & Top Bar Verification
     console.log('📍 Stage 2: Verifying Base Street and Top Bar UI...');

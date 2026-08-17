@@ -4,8 +4,14 @@ import { monsterSystem } from '../src/systems/MonsterSystem';
 import { TerrainType, MonsterRace, ElementType } from '../src/models/types';
 import { CombatSystem } from '../src/systems/CombatSystem';
 import { GameState } from '../src/core/GameState';
+import { createSeededRandom, Random } from '../src/core/Random';
 
 function runTests() {
+  const nativeMathRandom = Math.random;
+  Random.setSource(createSeededRandom('combat-power-scaling-v1'));
+  Math.random = () => Random.next();
+
+  try {
   console.log('🧪 === [開始戰力大一統與數值對標驗證] ===\n');
 
   // 1. 測試 1 級各職業基礎戰力
@@ -68,21 +74,25 @@ function runTests() {
     throw new Error(`❌ 難度 2 遭遇異常: 數量 ${diff2Encounter.length}, 總戰力 ${totalPowerDiff2}`);
   }
 
-  // 5. 測試模擬戰鬥 (戰力 55 戰士 vs 難度 1 怪物遭遇)
-  console.log('\n⚔️ 5. 測試 1v1 實戰模擬 (戰士單挑難度 1 遭遇)：');
+  // 5. 驗證戰鬥生命週期；勝敗屬於量測結果，不冒充通過條件。
+  console.log('\n⚔️ 5. 測試 1v1 戰鬥生命週期 (戰士單挑難度 1 遭遇)：');
   GameState.adventurers = [warrior];
   const combatReport = CombatSystem.simulateCombat([warrior.id], 1, '', TerrainType.FOREST, 1, undefined, diff1Encounter);
   console.log(`- 戰鬥結果: ${combatReport.isVictory ? '🏆 勝利' : '❌ 戰敗'}`);
   console.log(`- 總戰鬥事件數: ${combatReport.events.length}`);
   console.log(`- 戰利品: ${combatReport.totalEarnedGold} 金幣, ${combatReport.totalEarnedExp} EXP`);
 
-  if (combatReport.events.length >= 2) {
-    console.log('✅ 戰鬥交鋒完整且有來有往！');
+  if (combatReport.events.length >= 2 && combatReport.participants.includes(warrior.id)) {
+    console.log('✅ 戰鬥生命週期完整；勝敗已如實列為量測結果。');
   } else {
     throw new Error('❌ 戰鬥未正常觸發交鋒');
   }
 
-  console.log('\n🎉 === [全部戰力與數值對標測試 100% 通過] ===\n');
+  console.log('\n🎉 === [全部戰力結構與生命週期檢查通過] ===\n');
+  } finally {
+    Math.random = nativeMathRandom;
+    Random.reset();
+  }
 }
 
 runTests();

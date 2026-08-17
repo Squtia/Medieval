@@ -110,7 +110,7 @@ export class ExplorationNarrativeEngine {
       segments.push({ type: 'TEXT', content: Random.pick(returnTexts) });
       
       // 清除據點 (若為動態節點)
-      if (node.isDynamic && GameState.mapSystem) {
+      if (node.isDynamic && GameState.mapSystem && (node.narrativeSubjugation?.removeOnVictory ?? true)) {
          GameState.mapSystem.removeDynamicNode(node.id);
       }
     }

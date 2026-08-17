@@ -8,6 +8,7 @@ import { Gender } from '../models/types';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { RumorData, LOCATION_FOG_RUMORS, LOCATION_REVEAL_RUMORS } from '../data/RumorData';
+import { NarrativeSystem } from './NarrativeSystem';
 
 export class TavernSystem {
   /**
@@ -96,6 +97,11 @@ export class TavernSystem {
       type: GameEventType.RESOURCE_CHANGED,
       payload: { resourceType: 'gold', amount: -50, currentTotal: territory.gold }
     });
+
+    const storyRumor = NarrativeSystem.consumeTavernRumor();
+    if (storyRumor) {
+      return `老爹確認四下無人後壓低聲音：「${storyRumor.node.description}」\n(故事線索：${storyRumor.node.title})`;
+    }
 
     const mapNodes = GameState.mapSystem?.getNodes() || [];
     const hiddenNodes = mapNodes.filter(n => n.isHidden === true);

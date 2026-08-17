@@ -11,6 +11,7 @@ import { Random } from './Random';
 import { TaskType } from '../models/DispatchTask';
 import { getDifficultyModifiers } from '../data/BalanceData';
 import { BountySystem } from '../systems/BountySystem';
+import { NarrativeSystem } from '../systems/NarrativeSystem';
 
 export function startGameLoop(updateUICallback: () => void) {
   if ((window as any).autoSaveLoop) {
@@ -101,6 +102,7 @@ export function advanceDay(): boolean {
         type: GameEventType.NODE_EXPLORED,
         payload: { nodeId, explorerId: explorationProgress.expedition.explorerId }
       });
+      NarrativeSystem.handleNodeExplored(nodeId);
     });
 
     if (explorationProgress.completed) {
@@ -156,6 +158,7 @@ export function advanceDay(): boolean {
 
   // 處理懸賞系統的每日推進
   BountySystem.processDailyTick(GameState);
+  NarrativeSystem.processDailyTick();
 
   // 處理盜匪勒索事件暫停
   if (GameState.pendingExtortionEvent) {

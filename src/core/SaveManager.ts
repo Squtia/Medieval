@@ -147,7 +147,8 @@ export class SaveManager {
       milestones: GameState.milestones || [],
       pendingMilestones: GameState.pendingMilestones || [],
       formationPresets: GameState.formationPresets || [],
-      bounties: GameState.bounties || []
+      bounties: GameState.bounties || [],
+      narrativeState: GameState.narrativeState
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
@@ -264,6 +265,9 @@ export class SaveManager {
       GameState.pendingMilestones = Array.isArray(data.pendingMilestones) ? data.pendingMilestones : [];
       GameState.formationPresets = Array.isArray(data.formationPresets) ? data.formationPresets : [];
       GameState.bounties = Array.isArray(data.bounties) ? data.bounties : [];
+      GameState.narrativeState = data.narrativeState || {
+        facts: {}, completedNodeIds: [], presentedNodeIds: [], scheduledNodes: {}, exploredNodeIds: []
+      };
 
       // 還原 currentViewNode
       if (t.currentCountryId) {

@@ -75,6 +75,14 @@ export class DispatchTask {
   // 討伐任務專用
   public subjugationMode?: SubjugationMode;
   public totalWaves?: number; // 進度討伐的波次數量
+  public narrativeSubjugation?: {
+    storyId: string;
+    sourceNodeId: string;
+    journeyNodeIds: string[];
+    victoryNodeId?: string;
+    defeatNodeId?: string;
+    removeOnVictory: boolean;
+  };
 
 
   constructor(

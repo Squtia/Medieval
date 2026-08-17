@@ -135,4 +135,11 @@ export class MapDynamicsSystem {
   public spawnDynamicNode(baseNode: MapNode, radius: number = 10): MapNode | null {
     return MapEventSystem.spawnDynamicNode(this.mapNodes, baseNode, radius);
   }
+
+  public addStoryNode(node: MapNode): MapNode {
+    const existing = this.getNodeById(node.id);
+    if (existing) return existing;
+    this.mapNodes.push(node);
+    return node;
+  }
 }

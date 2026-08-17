@@ -2,12 +2,91 @@ import { defineConfig, Plugin } from 'vite';
 import fs from 'fs';
 import path from 'path';
 
-function iconStudioPlugin(): Plugin {
+function developmentStudioPlugin(): Plugin {
   return {
-    name: 'icon-studio-api',
+    name: 'development-studio-api',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url || '';
+
+        const storyFile = path.resolve(__dirname, 'src/data/custom_stories.json');
+        const storyBackupsDir = path.resolve(__dirname, 'src/data/story_backups');
+
+        if (url === '/api/get-story-definitions' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(fs.existsSync(storyFile) ? fs.readFileSync(storyFile, 'utf-8') : '[]');
+        }
+
+        if (url === '/api/save-story-definitions' && req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              if (!Array.isArray(payload.stories)) throw new Error('stories 必須是陣列');
+              fs.mkdirSync(storyBackupsDir, { recursive: true });
+              fs.writeFileSync(storyFile, JSON.stringify(payload.stories, null, 2), 'utf-8');
+              const now = new Date();
+              const pad = (value: number) => value.toString().padStart(2, '0');
+              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const snapshot = `snapshot_${stamp}.json`;
+              fs.writeFileSync(path.resolve(storyBackupsDir, snapshot), JSON.stringify({
+                timestamp: now.toISOString(),
+                note: payload.note || '使用者在故事工坊儲存',
+                stories: payload.stories
+              }, null, 2), 'utf-8');
+              const backups = fs.readdirSync(storyBackupsDir).filter(file => file.startsWith('snapshot_')).sort().reverse();
+              for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(storyBackupsDir, oldFile));
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, snapshot }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if (url === '/api/list-story-backups' && req.method === 'GET') {
+          const backups = fs.existsSync(storyBackupsDir)
+            ? fs.readdirSync(storyBackupsDir).filter(file => file.startsWith('snapshot_')).sort().reverse().map(filename => {
+              const fullPath = path.resolve(storyBackupsDir, filename);
+              const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
+              return { filename, timestamp: data.timestamp, note: data.note, size: fs.statSync(fullPath).size };
+            })
+            : [];
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ backups }));
+        }
+
+        if (url === '/api/restore-story-backup' && req.method === 'POST') {
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const { filename } = JSON.parse(body);
+              if (typeof filename !== 'string' || path.basename(filename) !== filename || !filename.startsWith('snapshot_')) {
+                throw new Error('快照檔名不合法');
+              }
+              const targetPath = path.resolve(storyBackupsDir, filename);
+              if (!fs.existsSync(targetPath)) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ success: false, error: '找不到該快照' }));
+              }
+              const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+              if (!Array.isArray(snapshot.stories)) throw new Error('快照內容不合法');
+              fs.writeFileSync(storyFile, JSON.stringify(snapshot.stories, null, 2), 'utf-8');
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, stories: snapshot.stories }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
         
         // 1. 取得當前磁碟配置
         if (url === '/api/get-icon-config' && req.method === 'GET') {
@@ -144,7 +223,7 @@ function iconStudioPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [iconStudioPlugin()],
+  plugins: [developmentStudioPlugin()],
   // 將 base 設定為您的 GitHub Repository 名稱，這樣打包後的檔案路徑才會正確
   base: '/Medieval/'
 });

@@ -2,6 +2,7 @@ import { GameState } from '../core/GameState';
 import { GameLog } from '../ui/GameLog';
 import { Adventurer } from '../models/Adventurer';
 import { AdventurerState } from '../models/types';
+import { NarrativeSystem } from './NarrativeSystem';
 
 export interface BountyQuest {
   id: string;
@@ -18,6 +19,9 @@ export interface BountyQuest {
     exp: number;
     items?: { id: string, amount: number }[];
   };
+  narrativeStoryId?: string;
+  narrativeNodeId?: string;
+  narrativeNodeKey?: string;
 }
 
 export class BountySystem {
@@ -166,6 +170,10 @@ export class BountySystem {
     }
 
     GameLog.add(`💰 領取【${bounty.name}】報酬！${rewardText}`, 'info');
+
+    if (bounty.narrativeStoryId && bounty.narrativeNodeId) {
+      NarrativeSystem.completeNode(bounty.narrativeStoryId, bounty.narrativeNodeId);
+    }
 
     // 移除任務
     gameState.bounties.splice(bountyIndex, 1);

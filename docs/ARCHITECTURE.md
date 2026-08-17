@@ -10,6 +10,7 @@
 ├── docs/                    # 開發日誌、交接、未來擴充藍圖與架構文件
 │   ├── FEUDAL_AND_TERRITORY_SYSTEM.md # [核心手冊] 封建爵位、領地規模、繁榮度與內政建築權威規範
 │   ├── FUTURE_DESIGN.md     # [核心藍圖] 未來系統擴充規範與程式碼引用總覽
+│   ├── STORY_STUDIO_GUIDE.md # 故事條件、獎勵、討伐據點與測試操作指南
 ├── src/
 │   ├── core/                # 核心驅動引擎
 │   │   ├── EventBus.ts      # [核心] 全局事件總線
@@ -21,6 +22,7 @@
 │   │   └── SaveMigration.ts # 純函式存檔版本遷移
 │   ├── models/              # 核心資料模型 (Data Models, 純粹的資料)
 │   │   ├── Adventurer.ts    # 英雄資料與隨機品質/屬性
+│   │   ├── Narrative.ts     # 故事、節點、條件、效果與執行狀態型別
 │   │   ├── Territory.ts     # 領地資料、工作分配與建造設施等級 (Tavern/WeaponShop/ArmorShop/Forge)
 │   │   ├── Exploration.ts   # 探索進度與視野迷霧資料
 │   │   ├── Road.ts          # 道路網路資料
@@ -35,6 +37,8 @@
 │   │   ├── MapDynamicsSystem.ts# 地圖動態與派系擴張\n│   │   ├── map/                # 地圖動態子系統\n│   │   │   ├── FactionSystem.ts    # 派系關係與好感度系統\n│   │   │   ├── MapEventSystem.ts   # 地圖事件生成與觸發\n│   │   │   ├── MapNodeSystem.ts    # 世界地圖節點繁榮度與升降級模擬\n│   │   │   └── MapUtils.ts         # 地圖工具函數
 │   │   ├── ExplorationSystem.ts# 地圖探索與視野解鎖系統
 │   │   ├── EventSystem.ts      # 隨機動態事件觸發與選項抉擇系統
+│   │   ├── NarrativeSystem.ts  # 跨機制故事條件、線索、排程與發布內容執行核心
+│   │   ├── NarrativeContentStore.ts # 正式專案故事載入與開發測試資料隔離
 │   │   ├── MonsterSystem.ts    # 怪物原型、種族質變與能力生成
 │   │   ├── MarketSystem.ts     # 市場經濟與特產系統
 │   │   ├── MilestoneSystem.ts  # 里程碑進度與獎勵
@@ -44,6 +48,9 @@
 │   ├── data/                # 靜態與平衡性資料
 │   │   ├── BalanceData.ts   # 全域平衡性常數配置
 │   │   ├── DifficultyData.ts# 遊戲難度設定與補正參數
+│   │   ├── StoryData.ts     # 內建故事定義與垂直示範
+│   │   ├── custom_stories.json # 編排器發布的專案故事內容
+│   │   ├── story_backups/      # 故事工坊寫入時建立的最近 20 份快照
 │   │   ├── NarrativeData.ts # 敘事文本池與探險事件定義\n│   │   └── SkillData.ts     # 技能與特效資料庫
 │   ├── templates/           # [HTML 分頁模板] 防止大型 index.html 誤改
 │   │   ├── ui-chrome.html   # top-bar, overlay, tooltip
@@ -52,9 +59,16 @@
 │   │   ├── views-right-panel.html # 右側共用領地面板
 │   │   ├── modals-combat-trade.html # 戰鬥 Modal, 貿易跑商 Modal
 │   │   ├── modals-game.html # 倉庫, 新遊戲, 載入, 派遣, 俘虜, 系統選單, 事件, 待辦 Modal
+│   │   ├── story-editor.html # 僅供獨立故事工坊載入的介面片段
 │   │   └── panels-hud.html  # 左側抽屜面板 (戰鬥紀錄/外交/隊伍) & 右下角史詩圓鈕
 │   ├── ui/                  # DOM UI、Phaser Scene、呈現資料與獨立 UI Controllers
 │   │   ├── TemplateLoader.ts # [核心] 動態 HTML 模板載入器
+│   │   ├── NarrativeTestController.ts # 僅 DEV + storyTest 查詢參數載入的遊戲測試面板
+│   ├── tools/
+│   │   └── StoryStudio.ts    # 獨立故事內容編輯、驗證、快照與測試啟動器
+├── tools/
+│   ├── icon-studio.html      # 獨立圖標工坊
+│   └── story-studio.html     # 獨立故事工坊入口，不納入正式建置
 │   │   ├── modals/          # [Phase 4] 獨立的彈窗面版控制器 (Facade 拆分)
 │   │   │   ├── DispatchModalController.ts  # 派遣/出征設定面板
 │   │   │   ├── NodeDetailModalController.ts# 節點詳細資訊與圓形選單
@@ -87,6 +101,28 @@
 
 ## 核心設計理念：事件驅動 (Event-Driven)
 所有系統之間**互不知道對方存在**，所有跨系統的溝通都必須透過 `EventBus` 進行。
+
+### 跨機制故事編排
+
+`NarrativeSystem` 位於既有玩法入口之上。故事內容以靜態 `NarrativeStory` 定義，玩家進度則獨立保存在 `NarrativeRuntimeState`。節點只宣告呈現機制、成立條件及結果效果，不保存固定的下一章指標；後續節點可藉由線索 facts、世界狀態、探索紀錄及延遲排程自行取得資格。
+
+首批轉接路徑如下：
+
+- 懸賞板：把合格節點注入 `GameState.bounties`，領取獎勵時完成故事節點。
+- 酒館：`TavernSystem.askRumor()` 優先消耗合格的故事傳聞。
+- 領地事件：每日結算發布 `NARRATIVE_NODE_TRIGGERED`，沿用事件選項 Modal。
+- 探索／討伐：探索發現與討伐結束回報故事核心，再由合格節點呈現後續事件。
+- 故事據點：目前透過 `UNLOCK_MAP_NODE` 解鎖既有節點，尚不在執行期生成任意地圖座標。
+
+故事定義與存檔狀態必須分離：修改或發布內容不得重置各存檔進度；新增狀態欄位亦需提供舊存檔預設值。
+
+故事效果為可重複的型別清單，涵蓋 facts、資源獎勵、物品獎勵、排程、解鎖與 `CREATE_SUBJUGATION_NODE`。故事討伐據點以 `story_<storyId>_<nodeId>` 作為穩定 ID，`MapNode.narrativeSubjugation` 保存途中節點、勝敗節點與清除策略；`SaveManager` 既有的 `mapNodes` 序列化會自然保存它。
+
+派遣任務從故事據點複製 `narrativeSubjugation`，`ActiveMission.narrativeJourneyIndex` 確保途中節點依序且只觸發一次；討伐結算產生 `subjugation:<mapNodeId>:victory|defeat` fact，再觸發明確指定的結果節點。通用討伐探索日誌仍由 `ExplorationNarrativeEngine` 處理。
+
+故事內容工具採與圖標工坊相同的開發工具邊界：`tools/story-studio.html` 只在 Vite 開發伺服器使用，透過固定路徑 API 讀寫 `custom_stories.json` 與 `story_backups/`。正式遊戲沒有編輯按鈕，也不匯入 `StoryStudio.ts` 或其 CSS。
+
+遊戲內測試必須同時符合 `import.meta.env.DEV` 與 `?storyTest=<token>`。工坊草稿以 token 綁定暫存於 LocalStorage；一般啟動忽略該暫存。測試控制器將 `currentSaveSlot` 固定為 `null`，只操作當次記憶體狀態，避免污染正式存檔。
 
 ### 資料流向 (Data Flow)
 1. **觸發源**：`GameLoop` (時間流逝) 或 `UI` (玩家操作) 呼叫特定的 System 方法或直接發布事件。

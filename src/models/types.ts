@@ -249,6 +249,15 @@ export interface MapNode {
   isDynamic?: boolean; // 是否為動態生成的節點 (如：探索出來的隨機巢穴)
   isEliteLair?: boolean; // 是否為低機率刷出的稀有高難度挑戰據點
   baseDifficulty?: number; // 用於動態巢穴等自訂難度的節點
+  narrativeSubjugation?: {
+    storyId: string;
+    sourceNodeId: string;
+    journeyNodeIds: string[];
+    victoryNodeId?: string;
+    defeatNodeId?: string;
+    removeOnVictory: boolean;
+    enemyFeature?: 'BALANCED' | 'HIGH_DEF' | 'HIGH_EVADE';
+  };
   expansionCount?: number; // 動態隨機據點未清剿擴張次數 (最多2次)
   establishedBaseMonsterId?: string; // 首次確立的主題怪物原型 ID (保證擴張永遠同種族)
   establishedAffix?: StrongholdAffix; // 確立的據點環境詞綴

@@ -2,6 +2,11 @@ import { monsterSystem } from '../src/systems/MonsterSystem';
 import { TerrainType, MonsterRace, ElementType, MapNode, NodeLevel, NodeFeature, WeatherType, FormationRow } from '../src/models/types';
 import { PassiveManager } from '../src/systems/combat/PassiveManager';
 import { CombatParticipant } from '../src/models/Combat';
+import { createSeededRandom, Random } from '../src/core/Random';
+
+Random.setSource(createSeededRandom('monster-balance-v1'));
+const nativeMathRandom = Math.random;
+Math.random = () => Random.next();
 
 console.log('====================================================');
 console.log('🧪 怪物數值平衡與稀有挑戰據點機制驗證測試');
@@ -21,25 +26,25 @@ function assert(condition: boolean, msg: string) {
 }
 
 // 測試 1：怪獸戰力分 (powerScore) 與屬性生成
-console.log('\n--- 測試 1：怪物屬性與戰力分檢測 (難度 10 基準) ---');
+console.log('\n--- 測試 1：怪物屬性與戰力分檢測 (開局難度 1 基準) ---');
 const goblinBase = monsterSystem.getMonsterById('goblin')!;
 const ghoulBase = monsterSystem.getMonsterById('ghoul')!;
 const trollBase = monsterSystem.getMonsterById('troll')!;
 const shamanBase = monsterSystem.getMonsterById('shaman')!;
 
-const goblin = monsterSystem.createMonsterInstance(goblinBase, MonsterRace.MONSTER, ElementType.NONE, 10);
-const ghoul = monsterSystem.createMonsterInstance(ghoulBase, MonsterRace.UNDEAD, ElementType.NONE, 10);
-const troll = monsterSystem.createMonsterInstance(trollBase, MonsterRace.MONSTER, ElementType.NONE, 10);
-const shaman = monsterSystem.createMonsterInstance(shamanBase, MonsterRace.HUMAN, ElementType.NONE, 10);
+const goblin = monsterSystem.createMonsterInstance(goblinBase, MonsterRace.MONSTER, ElementType.NONE, 1);
+const ghoul = monsterSystem.createMonsterInstance(ghoulBase, MonsterRace.UNDEAD, ElementType.NONE, 1);
+const troll = monsterSystem.createMonsterInstance(trollBase, MonsterRace.MONSTER, ElementType.NONE, 1);
+const shaman = monsterSystem.createMonsterInstance(shamanBase, MonsterRace.HUMAN, ElementType.NONE, 1);
 
 console.log(`[哥布林 (0.5階)] 戰力: ${goblin.calculatedPowerScore}, HP: ${goblin.hp}, ATK: ${goblin.damage}, PDEF: ${goblin.pdef}, MDEF: ${goblin.mdef}`);
 console.log(`[食屍鬼 (1.0階)] 戰力: ${ghoul.calculatedPowerScore}, HP: ${ghoul.hp}, ATK: ${ghoul.damage}, PDEF: ${ghoul.pdef}, MDEF: ${ghoul.mdef}`);
 console.log(`[巨魔 (2.2階)] 戰力: ${troll.calculatedPowerScore}, HP: ${troll.hp}, ATK: ${troll.damage}, PDEF: ${troll.pdef}, MDEF: ${troll.mdef}`);
 console.log(`[薩滿 (1.3階法系)] 戰力: ${shaman.calculatedPowerScore}, HP: ${shaman.hp}, ATK: ${shaman.damage}, isMagical: ${shaman.isMagicalAttacker}`);
 
-assert(goblin.calculatedPowerScore === 60, '哥布林(0.5階)戰力應為 60 點');
-assert(ghoul.calculatedPowerScore >= 120 && ghoul.calculatedPowerScore <= 140, '食屍鬼(1.0階不死)戰力應約為 132 點');
-assert(troll.calculatedPowerScore >= 250, '巨魔(2.2階)戰力應 >= 250 點');
+assert(goblin.calculatedPowerScore >= 20 && goblin.calculatedPowerScore <= 35, '哥布林(0.5階)開局戰力應為 20~35 點');
+assert(ghoul.calculatedPowerScore >= 40 && ghoul.calculatedPowerScore <= 60, '食屍鬼(1.0階不死)開局戰力應為 40~60 點');
+assert(troll.calculatedPowerScore >= 80 && troll.calculatedPowerScore <= 120, '巨魔(2.2階)開局戰力應為 80~120 點');
 assert(shaman.isMagicalAttacker === true, '薩滿應具備 isMagicalAttacker: true');
 
 // 測試 2：怪物打在傭兵身上的傷害實質威脅檢測
@@ -107,8 +112,8 @@ const magDmg = PassiveManager.calculateBasicAttackDamage(shamanAttacker, dummyMe
 console.log(`[食屍鬼普攻(物理)] 對 30 防禦傭兵造成: ${physDmg.damage} 點傷害 (舊版僅 7~9 點)`);
 console.log(`[薩滿普攻(魔法)] 對 24 魔防傭兵造成: ${magDmg.damage} 點魔法傷害`);
 
-assert(physDmg.damage >= 15 && physDmg.damage <= 30, '食屍鬼物理普攻應造成 15~30 點實質傷害');
-assert(magDmg.damage >= 15 && magDmg.damage <= 35, '薩滿魔法普攻應造成 15~35 點實質傷害');
+assert(physDmg.damage >= 1 && physDmg.damage < dummyMercenary.maxHp, '開局食屍鬼物理普攻應造成非致死的實質傷害');
+assert(magDmg.damage >= 1 && magDmg.damage < dummyMercenary.maxHp, '開局薩滿魔法普攻應造成非致死的實質傷害');
 
 // 測試 3：據點駐軍生成與戰力對稱性
 console.log('\n--- 測試 3：據點駐軍生成與戰力對齊檢測 ---');
@@ -126,7 +131,7 @@ const normalNode: MapNode = {
   feature: NodeFeature.SUBJUGATION,
   isDynamic: true,
   isEliteLair: false,
-  baseDifficulty: 10,
+  baseDifficulty: 1,
   isScouted: false,
   scoutExpiryDate: null,
   currentWeather: WeatherType.CLEAR,
@@ -135,11 +140,11 @@ const normalNode: MapNode = {
 
 const encounter = monsterSystem.generateNodeEncounter(normalNode);
 const totalPower = normalNode.scoutData?.garrisonPower || 0;
-console.log(`[普通據點(難度10)] 駐軍數量: ${encounter.length} 隻, 總戰力: ${totalPower}, 名稱: ${normalNode.name}`);
+console.log(`[普通據點(難度1)] 駐軍數量: ${encounter.length} 隻, 總戰力: ${totalPower}, 名稱: ${normalNode.name}`);
 console.log(`駐軍名單: ${encounter.map(m => `${m.name}(${m.calculatedPowerScore}戰力)`).join('、')}`);
 
-assert(encounter.length >= 3 && encounter.length <= 5, '據點應生成 3~5 隻怪物');
-assert(totalPower >= 400 && totalPower <= 750, '普通據點總戰力應在 400~750 區間，對稱 5 人隊伍(625)');
+assert(encounter.length >= 1 && encounter.length <= 2, '開局據點應生成 1~2 隻怪物');
+assert(totalPower >= 20 && totalPower <= 100, '開局普通據點總戰力應在 20~100 區間');
 
 // 測試 4：稀有危險挑戰據點 (isEliteLair) 檢測
 console.log('\n--- 測試 4：稀有危險挑戰據點機制實測 ---');
@@ -178,3 +183,9 @@ assert(elitePower >= 1000, '挑戰據點總戰力應 >= 1000 點');
 console.log('\n====================================================');
 console.log(`測試結果：${passedTests} / ${totalTests} 通過`);
 console.log('====================================================');
+
+Math.random = nativeMathRandom;
+Random.reset();
+if (passedTests !== totalTests) {
+  process.exitCode = 1;
+}

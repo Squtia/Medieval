@@ -19,6 +19,7 @@ import { getDifficultyConfig } from '../data/DifficultyData';
 import { ExplorationSystem } from '../systems/ExplorationSystem';
 import { RoadSystem } from '../systems/RoadSystem';
 import { getDifficultyModifiers } from '../data/BalanceData';
+import { createEmptyNarrativeState } from '../models/Narrative';
 
 export const factions: Faction[] = INITIAL_FACTIONS;
 export const mapNodes: MapNode[] = INITIAL_MAP_NODES;
@@ -63,7 +64,8 @@ export const GameState = {
   unlockedFormations: ['DEFAULT'] as string[],
   formationPresets: [] as FormationPreset[],
   bounties: [] as any[],
-  pendingExtortionEvent: false
+  pendingExtortionEvent: false,
+  narrativeState: createEmptyNarrativeState()
 };
 
 export function initGameState(options: NewGameOptions = {
@@ -127,6 +129,7 @@ export function initGameState(options: NewGameOptions = {
   GameState.formationPresets = [];
   GameState.bounties = [];
   GameState.pendingExtortionEvent = false;
+  GameState.narrativeState = createEmptyNarrativeState();
   
   // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
   EventBus.getInstance().clearAll();

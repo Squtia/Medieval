@@ -117,11 +117,19 @@ export function initCheatController(): void {
     'studio': { name: '開啟圖標工坊', noPrompt: true, setter: () => {
         window.open('./tools/icon-studio.html', '_blank');
         ToastManager.show(`🎨 已在新分頁開啟「圖標工坊 (Icon Studio)」！`);
+    }},
+    'story': { name: '開啟故事工坊', noPrompt: true, setter: () => {
+        window.open('./tools/story-studio.html', '_blank');
+        ToastManager.show(`🧭 已在新分頁開啟「故事工坊」！`);
     }}
   });
 
   (window as any).openIconStudio = () => {
     window.open('./tools/icon-studio.html', '_blank');
+  };
+
+  (window as any).openStoryStudio = () => {
+    window.open('./tools/story-studio.html', '_blank');
   };
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {

@@ -10,6 +10,7 @@ import { CombatHistoryRecord } from '../models/Combat';
 import { TRADE_GOODS } from './MarketSystem';
 import { CombatSystem } from './CombatSystem';
 import { ExplorationNarrativeEngine } from './ExplorationNarrativeEngine';
+import { NarrativeSystem } from './NarrativeSystem';
 import { Random } from '../core/Random';
 import { getDifficultyModifiers } from '../data/BalanceData';
 
@@ -20,6 +21,7 @@ export interface ActiveMission {
   adventurers: Adventurer[];
   task: DispatchTask;
   remainingDays: number; // 剩餘天數
+  narrativeJourneyIndex?: number;
 }
 
 /**
@@ -94,6 +96,14 @@ export class DispatchSystem {
     let completedType: TaskType | undefined;
     for (let i = this.activeMissions.length - 1; i >= 0; i--) {
       const mission = this.activeMissions[i];
+      const journey = mission.task.narrativeSubjugation?.journeyNodeIds ?? [];
+      const journeyIndex = mission.narrativeJourneyIndex ?? 0;
+      if (journeyIndex < journey.length) {
+        const meta = mission.task.narrativeSubjugation!;
+        if (NarrativeSystem.handleSubjugationJourney(meta.storyId, journey[journeyIndex])) {
+          mission.narrativeJourneyIndex = journeyIndex + 1;
+        }
+      }
       mission.remainingDays -= days;
       progressed = true;
 
@@ -468,6 +478,7 @@ export class DispatchSystem {
       if (node) {
         isVictory = ExplorationNarrativeEngine.generateSubjugationLog(adventurers, node, task.baseDifficulty, task.enemyFeature || EnemyFeature.BALANCED, task.formationId, task.gridMap);
       }
+      NarrativeSystem.handleSubjugationCompleted(task.targetNodeId, isVictory, task.narrativeSubjugation);
     }
 
     // 解除派遣狀態並處理戰敗休養
@@ -541,7 +552,8 @@ export class DispatchSystem {
       return {
         adventurers: advs,
         task: task,
-        remainingDays: raw.remainingDays
+        remainingDays: raw.remainingDays,
+        narrativeJourneyIndex: raw.narrativeJourneyIndex ?? 0
       };
     });
     this.publishMissionChange('LOADED');

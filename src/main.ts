@@ -18,6 +18,7 @@ import { initCheatController } from './ui/CheatController';
 import { initExplorationController, refreshExplorationUI } from './ui/ExplorationController';
 import { initStreetScroller } from './ui/SceneController';
 import { loadAllTemplates } from './ui/TemplateLoader';
+import { NarrativeSystem } from './systems/NarrativeSystem';
 
 // 全域 UI 事件訂閱 (只需綁定一次，不會因重新開局被清除)
 export function initGlobalUIEvents() {
@@ -50,6 +51,30 @@ export function initGlobalUIEvents() {
     renderMap();
     UIManager.updateUI();
     refreshExplorationUI();
+  }, 'ui');
+  EventBus.getInstance().subscribe(GameEventType.NARRATIVE_NODE_TRIGGERED, ({ storyId, nodeId }) => {
+    const ref = NarrativeSystem.findNode(storyId, nodeId);
+    if (!ref) return;
+    const choices = ref.node.choices.length > 0
+      ? ref.node.choices
+      : [{ id: 'continue', text: '繼續', effects: [], resultText: '' }];
+    const showNode = () => openEventModal({
+      title: ref.node.title,
+      description: ref.node.description,
+      options: choices.map(choice => ({
+        text: choice.text,
+        onSelect: () => {
+          NarrativeSystem.resolveChoice(storyId, nodeId, choice);
+          if (choice.resultText) console.log(choice.resultText);
+        }
+      }))
+    });
+    if ((window as any).isAdvancingDay) {
+      if (!(window as any).eventQueue) (window as any).eventQueue = [];
+      (window as any).eventQueue.push(showNode);
+    } else {
+      showNode();
+    }
   }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.ROAD_CHANGED, ({ reason, targetNodeId }) => {
     renderMap();
@@ -98,6 +123,12 @@ async function bootstrap() {
   initCheatController();
   initExplorationController();
   initStreetScroller();
+  NarrativeSystem.reloadDefinitions();
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has('storyTest')) {
+    const { initNarrativeTestController } = await import('./ui/NarrativeTestController');
+    initNarrativeTestController();
+  }
+  NarrativeSystem.processDailyTick();
   
   refreshGlobalUI();
 }

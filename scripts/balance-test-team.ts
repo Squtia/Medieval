@@ -3,6 +3,7 @@ import { CombatSystem } from '../src/systems/CombatSystem';
 import { Adventurer } from '../src/models/Adventurer';
 import { EquipmentSlot, FormationRow, MonsterInstance, TerrainType } from '../src/models/types';
 import { MonsterSystem } from '../src/systems/MonsterSystem';
+import { createSeededRandom, Random } from '../src/core/Random';
 
 const JOB_DEFINITIONS: Record<string, { base: any, growth: any, primaryStat: string }> = {
   '戰士': { base: { str: 10, agi: 5, con: 8, int: 3, spr: 3, luk: 5, charm: 5, command: 5 }, growth: { str: 3, agi: 1, con: 2, int: 0, spr: 0, luk: 1, charm: 0, command: 0 }, primaryStat: 'str' },
@@ -60,7 +61,7 @@ function createMaxLevelAdventurer(
   adv.formationRow = row;
   adv.baseAttributes = calculateLv10Attributes(baseJobName, weaponType);
   
-  let wAtk = 10, wMatk = 10;
+  let wAtk = 10, wMatk = 0;
   let wScaling: any = { patk: { str: 'C' } };
 
   if (weaponType === 'GREATSWORD') { wAtk = 50; wScaling = { patk: { str: 'S' } }; }
@@ -80,18 +81,20 @@ function createMaxLevelAdventurer(
     [EquipmentSlot.WEAPON]: {
       id: 'w_test',
       name: 'Legendary Weapon',
-      type: 'WEAPON',
+      slot: EquipmentSlot.WEAPON,
       weaponType: weaponType as any,
-      combatEffects: { atk: wAtk, matk: wMatk, hit: 15, crit: 10, speed: 5 },
+      requirements: {},
+      effects: {},
+      combatEffects: { patk: wAtk, matk: wMatk, hit: 15, critRate: 10, speed: 5 },
       scaling: wScaling,
-      isBroken: false
     } as any,
     [EquipmentSlot.ARMOR]: {
       id: 'a_test',
       name: 'Legendary Armor',
-      type: 'ARMOR',
-      stats: { def: 30, mdef: 30, maxHp: 150, evade: 10, speed: 5 },
-      isBroken: false
+      slot: EquipmentSlot.ARMOR,
+      requirements: {},
+      effects: {},
+      combatEffects: { hp: 150, pdef: 30, mdef: 30, evade: 10, speed: 5 },
     } as any
   };
   
@@ -134,11 +137,26 @@ function generateEliteMonsters(): MonsterInstance[] {
 }
 
 async function runTest() {
+  const nativeMathRandom = Math.random;
+  Random.setSource(createSeededRandom('team-balance-v1'));
+  Math.random = () => Random.next();
+
+  try {
   console.log('⚔️  Medieval 5v5 團隊平衡模擬測試開始 ⚔️\n');
   
   // 初始化核心隊員 (Tank & Healer)
   const paladin = createMaxLevelAdventurer('tank_1', '亞瑟 (聖騎士)', '騎士', 'SWORD_AND_SHIELD', FormationRow.FRONT);
   const archbishop = createMaxLevelAdventurer('heal_1', '瑪麗亞 (大主教)', '祈禱者', 'HOLY_BOOK', FormationRow.BACK);
+
+  const equippedTankStats = paladin.getCombatStats();
+  const tankWithoutArmor = paladin.getCombatStats(EquipmentSlot.ARMOR);
+  if (
+    equippedTankStats.hp - tankWithoutArmor.hp !== 150 ||
+    equippedTankStats.pdef - tankWithoutArmor.pdef !== 30 ||
+    equippedTankStats.mdef - tankWithoutArmor.mdef !== 30
+  ) {
+    throw new Error('測試 fixture 無效：防具 combatEffects 未完整套用。');
+  }
   
   // 建立 DPS 陣容池
   const dpsGroups = {
@@ -198,7 +216,8 @@ async function runTest() {
       });
     }
     
-    const winRate = ((wins / ITERATIONS) * 100).toFixed(1);
+    const numericWinRate = (wins / ITERATIONS) * 100;
+    const winRate = numericWinRate.toFixed(1);
     const avgActionPerBattle = (totalTurns / ITERATIONS).toFixed(1);
     
     console.log(`>> 測試結果 (100次模擬):`);
@@ -214,8 +233,18 @@ async function runTest() {
     sortedDmg.forEach(({ name, avgDmg }) => {
       console.log(`   - ${name.padEnd(12, ' ')} : ${avgDmg.toFixed(0)} 傷害`);
     });
+    if (!Number.isFinite(numericWinRate) || !Number.isFinite(Number(avgActionPerBattle)) || sortedDmg.every(entry => entry.avgDmg <= 0)) {
+      throw new Error(`陣容 ${groupName} 產生無效的模擬統計。`);
+    }
     console.log('\n');
+  }
+  } finally {
+    Math.random = nativeMathRandom;
+    Random.reset();
   }
 }
 
-runTest().catch(console.error);
+runTest().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

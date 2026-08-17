@@ -487,6 +487,10 @@ export class DispatchModalController {
       const task = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, baseRewardGold, prestigeReward, subjugationMinPower, randomFeature);
       task.targetNodeId = node.id;
       task.enemyLineup = enemyLineup;
+      if (node.narrativeSubjugation) {
+        task.narrativeSubjugation = { ...node.narrativeSubjugation, journeyNodeIds: [...node.narrativeSubjugation.journeyNodeIds] };
+        if (node.narrativeSubjugation.enemyFeature) task.enemyFeature = node.narrativeSubjugation.enemyFeature as EnemyFeature;
+      }
       return task;
     }
   }
