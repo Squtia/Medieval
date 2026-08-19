@@ -1193,14 +1193,22 @@
         }
       };
 
-      // 嘗試自硬碟 API 載入既有配置檔案
+      // 嘗試自硬碟 API 載入既有配置檔案與圖集定義 (保證自訂圖集 100% 不丟失)
       try {
         const res = await fetch('/api/get-icon-config');
-        const diskConfig = await res.json();
-        if (diskConfig && Object.keys(diskConfig).length > 0) {
-          customConfigs = { ...diskConfig, ...customConfigs };
+        const data = await res.json();
+        if (data && data.datasets && Object.keys(data.datasets).length > 0) {
+          DATASETS = { ...DEFAULT_DATASETS, ...data.datasets };
+          saveDatasets();
         }
-      } catch (e) {}
+        const diskConfigs = data.configs || (data.weapons ? data : null);
+        if (diskConfigs && Object.keys(diskConfigs).length > 0) {
+          customConfigs = { ...diskConfigs, ...customConfigs };
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(customConfigs));
+        }
+      } catch (e) {
+        console.warn('讀取後端圖標設定失敗，使用本機快取:', e);
+      }
 
       renderCategoryTabs();
       switchCategory('weapons');

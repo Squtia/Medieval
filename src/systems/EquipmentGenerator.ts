@@ -133,4 +133,27 @@ export class EquipmentGenerator {
     const selectedTemplate = Random.pick(validTemplates);
     return this.generate(selectedTemplate.id);
   }
+
+  /**
+   * 依部位與階級篩選隨機生成裝備
+   */
+  public static generateByFilter(slot?: string, tier?: number | string): Equipment | null {
+    const allTemplates = Object.values(DataStore.EquipmentDB);
+    const valid = allTemplates.filter(t => {
+      if (t.id === 'wpn_heirloom_sword') return false;
+      if (slot && slot !== 'ANY') {
+        const slotUpper = slot.toUpperCase();
+        if (t.slot.toUpperCase() !== slotUpper) return false;
+      }
+      if (tier && tier !== 'ANY') {
+        const targetTier = Number(tier);
+        if (t.tier !== targetTier) return false;
+      }
+      return true;
+    });
+    if (valid.length === 0) return null;
+    const picked = Random.pick(valid);
+    return this.generate(picked.id);
+  }
 }
+

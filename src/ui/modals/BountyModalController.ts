@@ -220,10 +220,17 @@ export class BountyModalController {
     // 獎勵字串
     let rewardText = `💰 ${bounty.rewards.gold} 金幣, ✨ ${bounty.rewards.exp} 經驗`;
     if (bounty.rewards.items) {
-      bounty.rewards.items.forEach((item: any) => {
-        const names: Record<string, string> = { 'RAW_HIDE': '獸皮', 'GRAIN': '穀物', 'MEAT': '肉類', 'COTTON': '棉花', 'STONE': '石材', 'IRON_ORE': '鐵礦', 'WOOD': '木材' };
-        const itemName = names[item.id] || item.id;
-        rewardText += `, 📦 ${itemName} x${item.amount}`;
+      import('../../systems/DataStore').then(({ DataStore }) => {
+        import('../../systems/MarketSystem').then(({ TRADE_GOODS }) => {
+          bounty.rewards.items?.forEach((item: any) => {
+            const mat = DataStore.MaterialDB[item.id];
+            const tg = TRADE_GOODS.find(g => g.id === item.id);
+            const itemName = mat?.name || tg?.name || item.id;
+            rewardText += `, 📦 ${itemName} x${item.amount}`;
+          });
+          const elRewards = document.getElementById('bounty-detail-rewards');
+          if (elRewards) elRewards.innerText = rewardText;
+        });
       });
     }
     const elRewards = document.getElementById('bounty-detail-rewards');

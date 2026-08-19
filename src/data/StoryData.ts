@@ -106,26 +106,29 @@ export const BUILTIN_STORIES: NarrativeStory[] = [
       {
         id: 'checkpoint_victory',
         title: '關卡地下的帳冊',
-        description: '走私者潰敗後，傭兵在地窖裡找到完整帳冊、數箱香料，以及尚未拆封的軍用武器。',
+        description: '討伐獲勝後，小隊在關卡地下密室搜出一本記載著大量走私交易的暗號帳冊。',
         channel: 'SUBJUGATION',
-        conditions: [{ type: 'FACT_EXISTS', fact: 'subjugation:story_story_missing_caravan_smuggler_checkpoint:victory' }],
+        conditions: [{ type: 'FACT_EXISTS', fact: 'smuggler_clue' }],
         choices: [],
         completionEffects: [
-          { type: 'SET_FACT', fact: 'smuggler_checkpoint_cleared', value: true },
+          { type: 'SET_FACT', fact: 'smuggler_busted', value: true },
+          { type: 'ADD_PRESTIGE', value: 20 },
+          { type: 'ADD_RESTED_EXP', value: 100 },
           { type: 'GRANT_TRADE_GOOD', itemId: 'tg_spice', quantity: 2 },
-          { type: 'GRANT_MATERIAL', itemId: 'mat_iron_ingot', quantity: 3 },
-          { type: 'GRANT_EQUIPMENT', templateId: 'wpn_iron_greatsword', quantity: 1 },
-          { type: 'ADD_RESTED_EXP', value: 50 }
+          { type: 'GRANT_EQUIPMENT', mode: 'RANDOM', slot: 'WEAPON', tier: 2, quantity: 1 }
         ]
       },
       {
         id: 'checkpoint_defeat',
         title: '走私者的反擊',
-        description: '討伐隊被迫撤退。走私者已知道領主掌握了關卡的位置，開始加強戒備。',
+        description: '傭兵小隊戰敗撤退。走私者趁夜襲擊了領地邊境的哨所作為報復。',
         channel: 'SUBJUGATION',
-        conditions: [{ type: 'FACT_EXISTS', fact: 'subjugation:story_story_missing_caravan_smuggler_checkpoint:defeat' }],
+        conditions: [{ type: 'FACT_EXISTS', fact: 'smuggler_clue' }],
         choices: [],
-        completionEffects: [{ type: 'SET_FACT', fact: 'smugglers_alerted', value: true }]
+        completionEffects: [
+          { type: 'SET_FACT', fact: 'checkpoint_retaliation', value: true },
+          { type: 'ADD_GOLD', value: -100 }
+        ]
       },
       {
         id: 'drunken_guard',
@@ -141,6 +144,207 @@ export const BUILTIN_STORIES: NarrativeStory[] = [
         completionEffects: [
           { type: 'SET_FACT', fact: 'guard_testimony', value: true }
         ]
+      }
+    ]
+  },
+  {
+    id: 'story_feudal_politics',
+    title: '🏛️ 帝國政局與家族外交',
+    summary: '洛斯加王國各大勢力與領主間的暗潮洶湧，包含沃爾蒙德大公、赫斯特神聖教廷與王室特使之折衝交鋒。',
+    version: 1,
+    enabled: true,
+    nodes: [
+      {
+        id: 'evt_vormund_demand',
+        title: '沃爾蒙德大公的鐵血徵收',
+        description: '沃爾蒙德大公的北方軍隊途經你的領地，帶隊長官傲慢地要求領地「捐獻」軍費物資以支持北征。拒絕將被視為對大公的不忠。',
+        channel: 'TODO_LIST',
+        conditions: [
+          { type: 'DAY_AT_LEAST', value: 10 },
+          { type: 'GOLD_AT_LEAST', value: 300 }
+        ],
+        choices: [
+          {
+            id: 'pay',
+            text: '屈服繳納物資 (金幣 -200, 大公好感 +15)',
+            resultText: '你無奈地交出了物資，北境軍隊滿意地離去。',
+            effects: [
+              { type: 'ADD_GOLD', value: -200 },
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_vormund', value: 15 },
+              { type: 'SET_FACT', fact: 'vormund_appeased', value: true }
+            ]
+          },
+          {
+            id: 'refuse',
+            text: '嚴詞拒絕 (大公好感 -20, 領主聲望 +10)',
+            resultText: '你果斷拒絕了苛捐雜稅。軍官冷笑著離去，但領民為領主的骨氣歡呼！',
+            effects: [
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_vormund', value: -20 },
+              { type: 'ADD_PRESTIGE', value: 10 },
+              { type: 'SET_FACT', fact: 'vormund_defied', value: true }
+            ]
+          },
+          {
+            id: 'negotiate',
+            text: '以稀有香料折抵 (特產 -1, 大公好感 +5)',
+            resultText: '你巧妙地獻上了珍貴的異域香料，軍官勉為其難地收下並放過金庫。',
+            effects: [
+              { type: 'GRANT_TRADE_GOOD', itemId: 'tg_spice', quantity: -1, mode: 'FIXED' },
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_vormund', value: 5 }
+            ]
+          }
+        ],
+        completionEffects: []
+      },
+      {
+        id: 'evt_hurst_assassin',
+        title: '雪夜的訪客與教廷密信',
+        description: '一個身受重傷的黑衣人倒在領地門外。從裝束看似乎是赫斯特教廷異端審判庭的刺客，其懷中揣著一封沾血的暗影密信。',
+        channel: 'TODO_LIST',
+        conditions: [
+          { type: 'DAY_AT_LEAST', value: 15 }
+        ],
+        choices: [
+          {
+            id: 'heal_and_return',
+            text: '救治刺客並歸還密信 (金幣 -100, 教廷好感 +20)',
+            resultText: '刺客甦醒後不發一語離去，但赫斯特神聖教廷的大主教對你展現的虔誠與仁慈深表贊同。',
+            effects: [
+              { type: 'ADD_GOLD', value: -100 },
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_hurst', value: 20 },
+              { type: 'GRANT_EQUIPMENT', mode: 'RANDOM', slot: 'ACCESSORY', tier: 2, quantity: 1 }
+            ]
+          },
+          {
+            id: 'sell_intel',
+            text: '將信件賣給莫凡恩黑市商會 (金幣 +600, 教廷好感 -25)',
+            resultText: '你獲得了一筆豐厚的橫財，但神聖教廷的暗影耳目已暗中將你列入警戒名冊。',
+            effects: [
+              { type: 'ADD_GOLD', value: 600 },
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_hurst', value: -25 },
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_morfann', value: 15 }
+            ]
+          },
+          {
+            id: 'detain_and_study',
+            text: '扣留密信破譯秘密 (獲得線索, 經驗池 +150)',
+            resultText: '顧問連夜破譯了密信，掌握了周邊異教據點的線索。',
+            effects: [
+              { type: 'SET_FACT', fact: 'heretic_secrets_decoded', value: true },
+              { type: 'ADD_RESTED_EXP', value: 150 }
+            ]
+          }
+        ],
+        completionEffects: []
+      },
+      {
+        id: 'evt_royal_tax',
+        title: '洛斯加王室的永恆之城徵稅令',
+        description: '身披紫袍的王室特使宣讀國王詔書，宣稱為重建「永恆之城」，王國境內所有領主均需繳納年度特別戰備稅。',
+        channel: 'TODO_LIST',
+        conditions: [
+          { type: 'DAY_AT_LEAST', value: 25 },
+          { type: 'PRESTIGE_AT_LEAST', value: 50 }
+        ],
+        choices: [
+          {
+            id: 'pay_royal_tax',
+            text: '恪遵王命全額繳納 (金幣 -500, 王室好感 +25, 聲望 +30)',
+            resultText: '特使當眾讚賞了你的忠誠，你的封建名望在王都貴族院中傳開！',
+            effects: [
+              { type: 'ADD_GOLD', value: -500 },
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_crown', value: 25 },
+              { type: 'ADD_PRESTIGE', value: 30 }
+            ]
+          },
+          {
+            id: 'delay_tax',
+            text: '以領地初創為由請求寬限 (王室好感 -15)',
+            resultText: '特使面露不悅地收起卷軸，警告領主若下次再拖延恐遭國王斥責。',
+            effects: [
+              { type: 'CHANGE_FACTION_FAVOR', factionId: 'f_crown', value: -15 }
+            ]
+          }
+        ],
+        completionEffects: []
+      }
+    ]
+  },
+  {
+    id: 'story_territory_folklore',
+    title: '🌾 領地民情與突發事件',
+    summary: '領地開拓過程中所面臨的農事豐歉、難民安置、古老石碑解讀與天災考驗。',
+    version: 1,
+    enabled: true,
+    nodes: [
+      {
+        id: 'evt_village_festival',
+        title: '秋季豐收大祭典',
+        description: '今年農莊產量喜人，農民與工匠們聚集在廣場，懇請領主撥款舉辦一場篝火豐收祭以提振士氣。',
+        channel: 'TODO_LIST',
+        conditions: [
+          { type: 'DAY_AT_LEAST', value: 8 }
+        ],
+        choices: [
+          {
+            id: 'grand_festival',
+            text: '盛大舉辦並普天同慶 (金幣 -150, 聲望 +25, 經驗池 +100)',
+            resultText: '祭典上酒香四溢、歡呼震天！全領地居民士氣高昂，讚揚領主的慷慨！',
+            effects: [
+              { type: 'ADD_GOLD', value: -150 },
+              { type: 'ADD_PRESTIGE', value: 25 },
+              { type: 'ADD_RESTED_EXP', value: 100 }
+            ]
+          },
+          {
+            id: 'modest_festival',
+            text: '平實舉行小型祈福 (金幣 -50, 聲望 +10)',
+            resultText: '村民們在神龕前點燃祈福之火，平靜祥和地度過了豐收夜。',
+            effects: [
+              { type: 'ADD_GOLD', value: -50 },
+              { type: 'ADD_PRESTIGE', value: 10 }
+            ]
+          },
+          {
+            id: 'refuse_festival',
+            text: '勤儉持家，物資全數入庫 (獲得隨機素材 x3)',
+            resultText: '你嚴格控管財政，村民雖然有些失落，但也認可儲糧過冬的務實作風。',
+            effects: [
+              { type: 'GRANT_MATERIAL', quantity: 3, mode: 'RANDOM', itemId: 'mat_iron_ingot' }
+            ]
+          }
+        ],
+        completionEffects: []
+      },
+      {
+        id: 'evt_ancient_monolith',
+        title: '荒野深處的古代石碑',
+        description: '伐木工人在領地邊界森林中清理灌木時，發現了一座刻滿古代精靈符文的斑駁石碑。',
+        channel: 'TODO_LIST',
+        conditions: [
+          { type: 'DAY_AT_LEAST', value: 12 }
+        ],
+        choices: [
+          {
+            id: 'decode_monolith',
+            text: '聘請學者破譯符文 (金幣 -80, 經驗池 +200, 隨機飾品 x1)',
+            resultText: '學者在石碑基座下挖出了一枚受到古代祝福的遺物飾品！',
+            effects: [
+              { type: 'ADD_GOLD', value: -80 },
+              { type: 'ADD_RESTED_EXP', value: 200 },
+              { type: 'GRANT_EQUIPMENT', mode: 'RANDOM', slot: 'ACCESSORY', tier: 2, quantity: 1 }
+            ]
+          },
+          {
+            id: 'quarry_stone',
+            text: '拆解優質石磚運回 (石磚素材 +3)',
+            resultText: '工匠們將古石碑開採為堅固的建築石磚，充實了領地建材庫存。',
+            effects: [
+              { type: 'GRANT_MATERIAL', itemId: 'mat_stone_brick', quantity: 3, mode: 'FIXED' }
+            ]
+          }
+        ],
+        completionEffects: []
       }
     ]
   }

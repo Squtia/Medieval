@@ -2,6 +2,7 @@ export type NarrativeChannel =
   | 'BOUNTY_BOARD'
   | 'TAVERN_RUMOR'
   | 'TERRITORY_EVENT'
+  | 'TODO_LIST'
   | 'EXPLORATION'
   | 'SUBJUGATION'
   | 'SUBJUGATION_JOURNEY'
@@ -31,20 +32,27 @@ export type NarrativeCondition =
   | { type: 'DAY_AT_LEAST'; value: number }
   | { type: 'TAVERN_LEVEL_AT_LEAST'; value: number }
   | { type: 'PRESTIGE_AT_LEAST'; value: number }
+  | { type: 'GOLD_AT_LEAST'; value: number }
+  | { type: 'FACTION_FAVOR_AT_LEAST'; factionId: string; value: number }
+  | { type: 'FACTION_FAVOR_AT_MOST'; factionId: string; value: number }
   | { type: 'FACT_EXISTS'; fact: string }
   | { type: 'FACT_MISSING'; fact: string }
   | { type: 'DAYS_SINCE_FACT'; fact: string; value: number }
   | { type: 'NODE_EXPLORED'; nodeId: string }
   | { type: 'SUBJUGATION_COUNT_AT_LEAST'; value: number };
 
+export type NarrativeEquipmentSlot = 'ANY' | 'WEAPON' | 'ARMOR' | 'ACCESSORY';
+export type NarrativeEquipmentTier = 'ANY' | 1 | 2 | 3 | 4;
+
 export type NarrativeEffect =
   | { type: 'SET_FACT'; fact: string; value?: string | number | boolean }
   | { type: 'ADD_GOLD'; value: number }
   | { type: 'ADD_PRESTIGE'; value: number }
   | { type: 'ADD_RESTED_EXP'; value: number }
-  | { type: 'GRANT_MATERIAL'; itemId: string; quantity: number }
-  | { type: 'GRANT_TRADE_GOOD'; itemId: string; quantity: number }
-  | { type: 'GRANT_EQUIPMENT'; templateId: string; quantity: number }
+  | { type: 'CHANGE_FACTION_FAVOR'; factionId: string; value: number }
+  | { type: 'GRANT_MATERIAL'; itemId: string; quantity: number; mode?: 'FIXED' | 'RANDOM' }
+  | { type: 'GRANT_TRADE_GOOD'; itemId: string; quantity: number; mode?: 'FIXED' | 'RANDOM' }
+  | { type: 'GRANT_EQUIPMENT'; templateId?: string; mode?: 'FIXED' | 'RANDOM'; slot?: NarrativeEquipmentSlot; tier?: NarrativeEquipmentTier; quantity: number }
   | { type: 'SCHEDULE_NODE'; nodeId: string; delayDays: number }
   | { type: 'UNLOCK_MAP_NODE'; nodeId: string }
   | { type: 'CREATE_SUBJUGATION_NODE'; definition: NarrativeSubjugationDefinition };

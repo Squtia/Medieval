@@ -54,5 +54,12 @@
   { "id": "tome_wpn_composite_bow", "name": "複合強弓鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載神射手專屬神兵「複合強弓」鍛造技術的秘傳典籍。", "basePrice": 800 },
   { "id": "tome_wpn_royal_paladin_sword", "name": "皇家聖騎士劍盾鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載聖騎士專屬神兵「皇家聖騎士劍盾」鍛造技術的秘傳典籍。", "basePrice": 800 },
   { "id": "tome_wpn_poison_fanged_daggers", "name": "毒牙雙刃鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載暗殺者專屬神兵「毒牙雙刃」鍛造技術的秘傳典籍。", "basePrice": 800 },
-  { "id": "tome_wpn_grace_tome", "name": "恩典聖典鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載大主教專屬神兵「恩典聖典」鍛造技術的秘傳典籍。", "basePrice": 800 }
+  { "id": "tome_wpn_grace_tome", "name": "恩典聖典鍛造書", "icon": "📖", "category": "CRAFTING_MATERIAL", "tier": 4, "description": "記載大主教專屬神兵「恩典聖典」鍛造技術的秘傳典籍。", "basePrice": 800 },
+
+  { "id": "ADVANCE_WARRIOR", "name": "狂怒之鋒", "icon": "⚔️", "category": "ADVANCEMENT_MATERIAL", "tier": 3, "description": "戰士進階轉職為狂戰士或魔劍士所需的認證信物。", "basePrice": 300 },
+  { "id": "ADVANCE_MAGE", "name": "秘法魔典", "icon": "🔮", "category": "ADVANCEMENT_MATERIAL", "tier": 3, "description": "法師進階轉職為大魔導士或死靈法師所需的認證信物。", "basePrice": 300 },
+  { "id": "ADVANCE_ARCHER", "name": "鷹隼之眼", "icon": "🏹", "category": "ADVANCEMENT_MATERIAL", "tier": 3, "description": "弓箭手進階轉職為神射手或精靈使所需的認證信物。", "basePrice": 300 },
+  { "id": "ADVANCE_KNIGHT", "name": "守護者之盾", "icon": "🛡️", "category": "ADVANCEMENT_MATERIAL", "tier": 3, "description": "騎士進階轉職為聖騎士或符文騎士所需的認證信物。", "basePrice": 300 },
+  { "id": "ADVANCE_THIEF", "name": "幽影之塵", "icon": "🗡️", "category": "ADVANCEMENT_MATERIAL", "tier": 3, "description": "盜賊進階轉職為暗殺者或詭術師所需的認證信物。", "basePrice": 300 },
+  { "id": "ADVANCE_PRAYER", "name": "信仰之證", "icon": "✝️", "category": "ADVANCEMENT_MATERIAL", "tier": 3, "description": "祈禱者進階轉職為大主教或異端拷問官所需的認證信物。", "basePrice": 300 }
 ]

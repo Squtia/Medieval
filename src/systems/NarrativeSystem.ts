@@ -97,6 +97,15 @@ export class NarrativeSystem {
       case 'DAY_AT_LEAST': return GameState.totalDays >= condition.value;
       case 'TAVERN_LEVEL_AT_LEAST': return GameState.myTerritory.tavernLevel >= condition.value;
       case 'PRESTIGE_AT_LEAST': return GameState.myTerritory.prestige >= condition.value;
+      case 'GOLD_AT_LEAST': return GameState.myTerritory.gold >= condition.value;
+      case 'FACTION_FAVOR_AT_LEAST': {
+        const f = GameState.mapSystem?.getFactions().find(item => item.id === condition.factionId);
+        return (f?.playerFavor ?? 50) >= condition.value;
+      }
+      case 'FACTION_FAVOR_AT_MOST': {
+        const f = GameState.mapSystem?.getFactions().find(item => item.id === condition.factionId);
+        return (f?.playerFavor ?? 50) <= condition.value;
+      }
       case 'FACT_EXISTS': return state.facts[condition.fact] !== undefined;
       case 'FACT_MISSING': return state.facts[condition.fact] === undefined;
       case 'DAYS_SINCE_FACT': {
@@ -117,6 +126,9 @@ export class NarrativeSystem {
       case 'DAY_AT_LEAST': return `需要到第 ${condition.value} 天`;
       case 'TAVERN_LEVEL_AT_LEAST': return `酒館需要達到 ${condition.value} 級`;
       case 'PRESTIGE_AT_LEAST': return `聲望需要達到 ${condition.value}`;
+      case 'GOLD_AT_LEAST': return `金幣需要達到 ${condition.value}`;
+      case 'FACTION_FAVOR_AT_LEAST': return `派系「${condition.factionId}」好感度需 ≥ ${condition.value}`;
+      case 'FACTION_FAVOR_AT_MOST': return `派系「${condition.factionId}」好感度需 ≤ ${condition.value}`;
       case 'FACT_EXISTS': return `尚未取得線索「${condition.fact}」`;
       case 'FACT_MISSING': return `線索「${condition.fact}」已存在`;
       case 'DAYS_SINCE_FACT': return `取得「${condition.fact}」後需經過 ${condition.value} 天`;
@@ -127,9 +139,23 @@ export class NarrativeSystem {
 
   static processDailyTick(): void {
     this.ensureStoryBounties();
+    this.ensureStoryTodos();
     const territoryEvent = this.getEligibleNodes('TERRITORY_EVENT')[0];
     if (territoryEvent) this.presentInteractiveNode(territoryEvent.story.id, territoryEvent.node.id);
     for (const ref of this.getEligibleNodes('STORY_NODE')) this.unlockStoryNode(ref);
+  }
+
+  static ensureStoryTodos(): void {
+    const territory = GameState.myTerritory as any;
+    if (!territory) return;
+    if (!territory.pendingNarrativeNodes) territory.pendingNarrativeNodes = [];
+    for (const { story, node } of this.getEligibleNodes('TODO_LIST')) {
+      const key = this.getNodeKey(story.id, node.id);
+      if (!territory.pendingNarrativeNodes.includes(key)) {
+        territory.pendingNarrativeNodes.push(key);
+        this.markPresented(story.id, node.id);
+      }
+    }
   }
 
   static ensureStoryBounties(): void {
@@ -222,6 +248,39 @@ export class NarrativeSystem {
     GameState.bounties = GameState.bounties.filter((bounty: any) => bounty.narrativeNodeKey !== key);
   }
 
+  static canAffordChoice(choice: NarrativeChoice): { affordable: boolean; missingReason?: string } {
+    const territory = GameState.myTerritory as any;
+    if (!territory) return { affordable: true };
+
+    for (const effect of choice.effects) {
+      if (effect.type === 'ADD_GOLD' && effect.value < 0) {
+        const required = Math.abs(effect.value);
+        if ((territory.gold || 0) < required) {
+          return { affordable: false, missingReason: `金幣不足 (需 ${required} G)` };
+        }
+      }
+      if (effect.type === 'GRANT_MATERIAL' && effect.mode !== 'RANDOM' && effect.quantity < 0) {
+        const required = Math.abs(effect.quantity);
+        const count = territory.materials?.[effect.itemId] || 0;
+        if (count < required) {
+          const mat = DataStore.MaterialDB[effect.itemId];
+          const name = mat?.name || effect.itemId;
+          return { affordable: false, missingReason: `缺少素材：${name} x${required}` };
+        }
+      }
+      if (effect.type === 'GRANT_TRADE_GOOD' && effect.mode !== 'RANDOM' && effect.quantity < 0) {
+        const required = Math.abs(effect.quantity);
+        const count = territory.tradeInventory?.[effect.itemId] || 0;
+        if (count < required) {
+          const tg = TRADE_GOODS.find(g => g.id === effect.itemId);
+          const name = tg?.name || effect.itemId;
+          return { affordable: false, missingReason: `缺少特產：${name} x${required}` };
+        }
+      }
+    }
+    return { affordable: true };
+  }
+
   static applyEffects(storyId: string, effects: NarrativeEffect[]): void {
     const state = this.ensureState();
     for (const effect of effects) {
@@ -230,7 +289,7 @@ export class NarrativeSystem {
           state.facts[effect.fact] = { value: effect.value ?? true, day: GameState.totalDays };
           break;
         case 'ADD_GOLD':
-          GameState.myTerritory.gold += effect.value;
+          GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold + effect.value);
           break;
         case 'ADD_PRESTIGE':
           GameState.myTerritory.prestige += effect.value;
@@ -238,19 +297,51 @@ export class NarrativeSystem {
         case 'ADD_RESTED_EXP':
           GameState.restedExpPool += Math.max(0, effect.value);
           break;
+        case 'CHANGE_FACTION_FAVOR': {
+          const faction = GameState.mapSystem?.getFactions().find(f => f.id === effect.factionId);
+          if (faction) faction.playerFavor = Math.max(-100, Math.min(100, faction.playerFavor + effect.value));
+          break;
+        }
         case 'GRANT_MATERIAL':
-          if (DataStore.MaterialDB[effect.itemId]) {
-            GameState.myTerritory.materials[effect.itemId] = (GameState.myTerritory.materials[effect.itemId] || 0) + Math.max(1, effect.quantity);
+          GameState.myTerritory.materials = GameState.myTerritory.materials || {};
+          if (effect.mode === 'RANDOM') {
+            const allMatKeys = Object.keys(DataStore.MaterialDB);
+            if (allMatKeys.length > 0) {
+              const pickedKey = allMatKeys[Math.floor(Math.random() * allMatKeys.length)];
+              GameState.myTerritory.materials[pickedKey] = (GameState.myTerritory.materials[pickedKey] || 0) + Math.max(1, effect.quantity);
+            }
+          } else if (effect.itemId) {
+            const current = GameState.myTerritory.materials[effect.itemId] || 0;
+            const updated = current + effect.quantity;
+            if (updated <= 0) {
+              delete GameState.myTerritory.materials[effect.itemId];
+            } else {
+              GameState.myTerritory.materials[effect.itemId] = updated;
+            }
           }
           break;
         case 'GRANT_TRADE_GOOD':
-          if (TRADE_GOODS.some(item => item.id === effect.itemId)) {
-            GameState.myTerritory.tradeInventory[effect.itemId] = (GameState.myTerritory.tradeInventory[effect.itemId] || 0) + Math.max(1, effect.quantity);
+          GameState.myTerritory.tradeInventory = GameState.myTerritory.tradeInventory || {};
+          if (effect.mode === 'RANDOM') {
+            if (TRADE_GOODS.length > 0) {
+              const pickedGood = TRADE_GOODS[Math.floor(Math.random() * TRADE_GOODS.length)];
+              GameState.myTerritory.tradeInventory[pickedGood.id] = (GameState.myTerritory.tradeInventory[pickedGood.id] || 0) + Math.max(1, effect.quantity);
+            }
+          } else if (effect.itemId) {
+            const current = GameState.myTerritory.tradeInventory[effect.itemId] || 0;
+            const updated = current + effect.quantity;
+            if (updated <= 0) {
+              delete GameState.myTerritory.tradeInventory[effect.itemId];
+            } else {
+              GameState.myTerritory.tradeInventory[effect.itemId] = updated;
+            }
           }
           break;
         case 'GRANT_EQUIPMENT':
           for (let index = 0; index < Math.max(1, effect.quantity); index++) {
-            const equipment = EquipmentGenerator.generate(effect.templateId);
+            const equipment = effect.mode === 'RANDOM'
+              ? EquipmentGenerator.generateByFilter(effect.slot, effect.tier)
+              : (effect.templateId ? EquipmentGenerator.generate(effect.templateId) : null);
             if (equipment) GameState.myTerritory.addEquipmentToWarehouse(equipment);
           }
           break;

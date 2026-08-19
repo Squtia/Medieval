@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-08-16T09:49:45.931Z",
-  "note": "儲存於 2026/8/16 下午5:49:45",
+  "timestamp": "2026-08-19T15:06:09.544Z",
+  "note": "輕量化架構升級基準快照",
   "data": {
     "weapons": {
       "GREATSWORD": {
-        "bgX": 2.41,
-        "bgY": 3.37,
+        "bgX": 2.4,
+        "bgY": 2.7,
         "zoom": 115
       },
       "DUAL_SWORDS": {
@@ -20,12 +20,12 @@
       },
       "SCYTHE": {
         "zoom": 116,
-        "bgX": 97.43,
+        "bgX": 97.93,
         "bgY": 3.38
       },
       "BOW": {
         "zoom": 115,
-        "bgX": 1.88,
+        "bgX": 2,
         "bgY": 50.28
       },
       "MAGIC_BOW": {
@@ -35,7 +35,7 @@
       },
       "DAGGERS": {
         "zoom": 115,
-        "bgX": 65.66666666666667,
+        "bgX": 66.1,
         "bgY": 50
       },
       "MAGIC_RING": {
@@ -45,7 +45,7 @@
       },
       "SWORD_AND_SHIELD": {
         "zoom": 116,
-        "bgX": 2.07,
+        "bgX": 2.4,
         "bgY": 96.34
       },
       "RUNE_SHIELD": {
@@ -55,7 +55,7 @@
       },
       "HOLY_BOOK": {
         "zoom": 115,
-        "bgX": 65.73,
+        "bgX": 66.1,
         "bgY": 96.34
       },
       "HAMMER": {
@@ -116,13 +116,391 @@
         "zoom": 107,
         "bgX": 34.48,
         "bgY": 98.28
+      },
+      "food": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 66.7,
+        "bgY": 100
+      },
+      "essence": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      },
+      "cotton": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "hide": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "cloth": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "leather": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
       }
     },
-    "avatars_male": {},
+    "avatars_male": {
+      "male_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "male_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "male_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "male_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "male_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "male_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "male_6": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 25
+      },
+      "male_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "male_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "male_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      },
+      "male_10": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 50
+      },
+      "male_11": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 50
+      },
+      "male_12": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 50
+      },
+      "male_13": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 50
+      },
+      "male_14": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 50
+      },
+      "male_15": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 75
+      },
+      "male_16": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 75
+      },
+      "male_17": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 75
+      },
+      "male_18": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 75
+      },
+      "male_19": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 75
+      },
+      "male_20": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "male_21": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 100
+      },
+      "male_22": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "male_23": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "male_24": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
     "avatars_female": {
       "female_0": {
         "bgX": 0.37,
         "bgY": 0.74
+      },
+      "female_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "female_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "female_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "female_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "female_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "female_6": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 25
+      },
+      "female_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "female_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "female_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      },
+      "female_10": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 50
+      },
+      "female_11": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 50
+      },
+      "female_12": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 50
+      },
+      "female_13": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 50
+      },
+      "female_14": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 50
+      },
+      "female_15": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 75
+      },
+      "female_16": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 75
+      },
+      "female_17": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 75
+      },
+      "female_18": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 75
+      },
+      "female_19": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 75
+      },
+      "female_20": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "female_21": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 100
+      },
+      "female_22": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "female_23": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "female_24": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
       }
     },
     "armors": {
@@ -372,11 +750,221 @@
         "bgX": 97.5,
         "bgY": 97
       }
+    },
+    "guardian_male": {
+      "guardian_m_0": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "guardian_m_6": {
+        "bgX": 100,
+        "bgY": 50.2
+      },
+      "guardian_m_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "guardian_m_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "guardian_m_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "guardian_m_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "guardian_m_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "guardian_m_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "guardian_m_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "guardian_m_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      }
+    },
+    "guardian_female": {
+      "guardian_f_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 74.9
+      },
+      "guardian_f_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 74.9
+      },
+      "guardian_f_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 74.9
+      },
+      "guardian_f_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 74.9
+      },
+      "guardian_f_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 74.9
+      },
+      "guardian_f_6": {
+        "bgY": 50.2,
+        "bgX": 50.2
+      },
+      "guardian_f_5": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "guardian_f_7": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "guardian_f_8": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "guardian_f_9": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "npc": {
+      "npc_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "npc_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "npc_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "npc_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "npc_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      }
+    },
+    "npc_man": {
+      "npc_man_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "npc_man_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "npc_man_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "npc_man_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "npc_man_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      }
     }
   },
   "datasets": {
     "weapons": {
-      "title": "⚔️ 武器 (4x3)",
+      "title": "⚔️ 武器 T1 基礎 (4x3)",
       "spriteUrl": "../public/assets/icons_weapons_12.jpg",
       "fallbackUrls": [
         "../assets/icons_weapons_12.jpg",
@@ -1017,7 +1605,7 @@
         },
         {
           "id": "male_2",
-          "name": "男傭兵 #03",
+          "name": "男傭��� #03",
           "col": 2,
           "row": 0,
           "zoom": 100
@@ -1362,6 +1950,258 @@
           "name": "女傭兵 #25",
           "col": 4,
           "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "guardian_male": {
+      "title": "🛡️ 誓約男守衛 (10款·Row 0~1)",
+      "spriteUrl": "../public/assets/avatars_guardians.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_guardians.jpg",
+        "./assets/avatars_guardians.jpg",
+        "/assets/avatars_guardians.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "guardian_m_0",
+          "name": "滄桑老兵隊長 (1/10)",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_1",
+          "name": "銀髮雄獅騎士 (2/10)",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_2",
+          "name": "忠誠青年侍從 (3/10)",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_3",
+          "name": "金紋重甲將軍 (4/10)",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_4",
+          "name": "神秘兜帽遊俠 (5/10)",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_5",
+          "name": "狂怒戰斧勇士 (6/10)",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_6",
+          "name": "莊嚴黑袍神官 (7/10)",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_7",
+          "name": "堅毅歷戰傭兵 (8/10)",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_8",
+          "name": "森林長弓獵手 (9/10)",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_9",
+          "name": "全罩重裝步兵 (10/10)",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        }
+      ]
+    },
+    "guardian_female": {
+      "title": "🛡️ 誓約女守衛 (10款·Row 3~4)",
+      "spriteUrl": "../public/assets/avatars_guardians.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_guardians.jpg",
+        "./assets/avatars_guardians.jpg",
+        "/assets/avatars_guardians.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "guardian_f_0",
+          "name": "金髮璀璨聖騎 (1/10)",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_1",
+          "name": "聖潔修道神官 (2/10)",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_2",
+          "name": "颯爽赤髮劍士 (3/10)",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_3",
+          "name": "短髮英姿女騎 (4/10)",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_4",
+          "name": "暗影兜帽俠女 (5/10)",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_5",
+          "name": "紫袍秘術法師 (6/10)",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_6",
+          "name": "宮廷貴族女爵 (7/10)",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_7",
+          "name": "夜行黑皮刺客 (8/10)",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_8",
+          "name": "雙辮長弓射手 (9/10)",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_9",
+          "name": "重裝板金女戰 (10/10)",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "npc": {
+      "title": "NPC",
+      "spriteUrl": "../public/assets/custom_icons/npc.jpg",
+      "cols": 5,
+      "rows": 1,
+      "items": [
+        {
+          "id": "npc_0",
+          "name": "NPC #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_1",
+          "name": "NPC #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_2",
+          "name": "NPC #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_3",
+          "name": "NPC #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_4",
+          "name": "NPC #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        }
+      ]
+    },
+    "npc_man": {
+      "title": "NPC_MAN",
+      "spriteUrl": "../public/assets/custom_icons/npc_man.jpg",
+      "cols": 5,
+      "rows": 1,
+      "items": [
+        {
+          "id": "npc_man_0",
+          "name": "NPC_MAN #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_1",
+          "name": "NPC_MAN #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_2",
+          "name": "NPC_MAN #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_3",
+          "name": "NPC_MAN #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_4",
+          "name": "NPC_MAN #05",
+          "col": 4,
+          "row": 0,
           "zoom": 100
         }
       ]

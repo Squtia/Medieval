@@ -23,8 +23,16 @@ export class EventModalController {
     event.options.forEach((opt: any) => {
       const btn = document.createElement('button');
       btn.className = 'action-btn';
-      btn.textContent = opt.text;
+      if (opt.disabled) {
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        btn.style.cursor = 'not-allowed';
+        btn.textContent = `${opt.text} ⚠️ (${opt.missingReason || '條件不符'})`;
+      } else {
+        btn.textContent = opt.text;
+      }
       btn.addEventListener('click', () => {
+        if (btn.disabled) return;
         // 攔截 console.log 來獲取事件執行的結果文字
         const oldLog = console.log;
         let resultMsg = '';

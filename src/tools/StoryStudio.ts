@@ -1,5 +1,5 @@
 import { BUILTIN_STORIES } from '../data/StoryData';
-import type { NarrativeChoice, NarrativeCondition, NarrativeEffect, NarrativeNode, NarrativeStory } from '../models/Narrative';
+import type { NarrativeChoice, NarrativeCondition, NarrativeEffect, NarrativeEquipmentSlot, NarrativeEquipmentTier, NarrativeNode, NarrativeStory } from '../models/Narrative';
 import { DataStore } from '../systems/DataStore';
 import { TRADE_GOODS } from '../systems/MarketSystem';
 import '../styles/story-editor.css';
@@ -8,60 +8,120 @@ const TEST_STORAGE_KEY = 'MEDIEVAL_STORY_TEST_PAYLOAD';
 let stories: NarrativeStory[] = [];
 let selectedStoryId = '';
 let selectedNodeId = '';
+let storySearchQuery = '';
 
-const byId = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
+// 流程圖畫布視角與狀態
+let graphZoom = 1.0;
+let graphPanX = 0;
+let graphPanY = 0;
+let graphPositions: Record<string, { x: number; y: number }> = {};
+let graphWireSource: string | null = null;
+
+const GRAPH_NODE_W = 210;
+const GRAPH_NODE_H = 96;
+const GRAPH_H_GAP = 264;
+const GRAPH_V_GAP = 128;
+const GRAPH_COLS = 4;
+const GRAPH_POS_KEY = 'MEDIEVAL_STORY_GRAPH_POS';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+type GraphEdgeType = 'fact' | 'schedule' | 'victory' | 'defeat' | 'journey';
+interface GraphEdge { from: string; to: string; type: GraphEdgeType; label?: string; }
+
+const byId = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as unknown as T;
+const bySvgId = <T extends SVGElement = SVGElement>(id: string): T => document.getElementById(id) as unknown as T;
 const value = (id: string): string => byId<HTMLInputElement>(id).value.trim();
 const numberValue = (id: string): number => Number(byId<HTMLInputElement>(id).value) || 0;
 const clone = <T>(data: T): T => JSON.parse(JSON.stringify(data));
 const activeStory = (): NarrativeStory | undefined => stories.find(story => story.id === selectedStoryId);
 const activeNode = (): NarrativeNode | undefined => activeStory()?.nodes.find(node => node.id === selectedNodeId);
 const safeId = (text: string): string => text.trim().replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').toLowerCase();
+const svgEl = <T extends SVGElement>(tag: string): T => document.createElementNS(SVG_NS, tag) as T;
 
 function makeNode(id: string): NarrativeNode {
   return { id, title: '新故事節點', description: '', channel: 'TERRITORY_EVENT', conditions: [], choices: [], completionEffects: [] };
 }
 
 async function loadTemplate(): Promise<void> {
-  const response = await fetch(`${import.meta.env.BASE_URL}src/templates/story-editor.html`);
+  const response = await fetch(`${import.meta.env.BASE_URL}src/templates/story-editor.html?t=${Date.now()}`);
   if (!response.ok) throw new Error('無法載入故事工坊介面');
   byId('story-studio-root').innerHTML = await response.text();
   byId('modal-story-editor').classList.add('active');
-  document.querySelector('.story-editor-header h2')!.textContent = '🧭 故事工坊';
-  document.querySelector('.story-editor-header p')!.textContent = '開發工具：編排、驗證、寫入專案，或用暫存內容進入遊戲測試。';
-  document.querySelectorAll('.story-editor-section-title')[1].textContent = '故事線索索引';
-  byId('btn-story-publish').textContent = '寫入專案';
-  byId('btn-story-test-node').textContent = '在遊戲中測試';
-  byId('btn-story-reset-progress').textContent = '重新讀取磁碟';
-  const history = document.createElement('button');
-  history.id = 'btn-story-history';
-  history.className = 'action-btn';
-  history.textContent = '歷史快照';
-  byId('btn-story-export').before(history);
 }
 
 async function loadFromProject(): Promise<void> {
   const response = await fetch('/api/get-story-definitions');
   if (!response.ok) throw new Error('讀取專案故事失敗');
   const loaded = await response.json();
-  stories = clone(Array.isArray(loaded) && loaded.length > 0 ? loaded : BUILTIN_STORIES);
-  selectedStoryId = stories[0]?.id ?? '';
-  selectedNodeId = stories[0]?.nodes[0]?.id ?? '';
+  const loadedList: NarrativeStory[] = Array.isArray(loaded) ? loaded : [];
+  const loadedIds = new Set(loadedList.map(s => s.id));
+  const merged: NarrativeStory[] = [...loadedList];
+  for (const builtin of BUILTIN_STORIES) {
+    if (!loadedIds.has(builtin.id)) {
+      merged.push(clone(builtin));
+    }
+  }
+  stories = clone(merged.length > 0 ? merged : BUILTIN_STORIES);
+  if (!stories.some(s => s.id === selectedStoryId)) {
+    selectedStoryId = stories[0]?.id ?? '';
+    selectedNodeId = stories[0]?.nodes[0]?.id ?? '';
+  }
   render();
 }
 
 function render(): void {
   const story = activeStory();
-  const select = byId<HTMLSelectElement>('story-editor-story-select');
-  select.innerHTML = stories.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.title)} (${escapeHtml(item.id)})</option>`).join('');
-  select.value = selectedStoryId;
+  buildSharedDatalists();
+  renderStoryList();
+  
   byId<HTMLInputElement>('story-editor-story-title').value = story?.title ?? '';
   byId<HTMLTextAreaElement>('story-editor-story-summary').value = story?.summary ?? '';
   byId<HTMLInputElement>('story-editor-story-enabled').checked = story?.enabled ?? false;
-  buildSharedDatalists();
+
   renderFacts();
-  renderNodes();
+  renderNodePills();
+  renderGraphCanvas();
   renderForm();
   renderValidation();
+}
+
+// ── 左欄：故事庫清單 ──
+
+function renderStoryList(): void {
+  const container = byId('story-editor-story-list');
+  container.innerHTML = '';
+  const query = storySearchQuery.toLowerCase();
+  
+  const filtered = stories.filter(s => {
+    if (!query) return true;
+    return s.title.toLowerCase().includes(query) || s.id.toLowerCase().includes(query);
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align:center; padding:15px; color:#6b6050; font-size:.8rem;">查無符合的故事</div>`;
+    return;
+  }
+
+  for (const story of filtered) {
+    const item = document.createElement('div');
+    item.className = `story-list-item${story.id === selectedStoryId ? ' selected' : ''}`;
+    item.innerHTML = `
+      <div class="story-item-main">
+        <span class="story-item-status ${story.enabled ? 'enabled' : 'draft'}" title="${story.enabled ? '已啟用' : '草稿'}"></span>
+        <span class="story-item-title">${escapeHtml(story.title || story.id)}</span>
+      </div>
+      <span class="story-item-badge">${story.nodes.length} 節點</span>
+    `;
+    item.addEventListener('click', () => {
+      if (selectedStoryId !== story.id) {
+        selectedStoryId = story.id;
+        selectedNodeId = story.nodes[0]?.id ?? '';
+        loadGraphPos(story.id);
+        render();
+      }
+    });
+    container.appendChild(item);
+  }
 }
 
 function renderFacts(): void {
@@ -72,40 +132,54 @@ function renderFacts(): void {
   byId('story-editor-facts').textContent = facts.length ? [...new Set(facts)].join('\n') : '尚未設定故事線索。';
 }
 
-function renderNodes(): void {
-  const list = byId('story-editor-node-list');
-  list.innerHTML = '';
+function renderNodePills(): void {
+  const container = byId('story-editor-node-pills');
+  container.innerHTML = '';
   const story = activeStory();
   if (!story) return;
 
-  // 預建引用索引：哪些 nodeId 被其他節點引用（SCHEDULE_NODE / 討伐流程）
-  const refCount: Record<string, number> = {};
   for (const node of story.nodes) {
-    const allEffects = [...node.completionEffects, ...node.choices.flatMap(c => c.effects)];
-    for (const effect of allEffects) {
-      if (effect.type === 'SCHEDULE_NODE') refCount[effect.nodeId] = (refCount[effect.nodeId] ?? 0) + 1;
-      if (effect.type === 'CREATE_SUBJUGATION_NODE') {
-        for (const tid of [...effect.definition.journeyNodeIds, effect.definition.victoryNodeId, effect.definition.defeatNodeId].filter(Boolean) as string[]) {
-          refCount[tid] = (refCount[tid] ?? 0) + 1;
-        }
-      }
-    }
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = `sn-pill${node.id === selectedNodeId ? ' selected' : ''}`;
+    pill.innerHTML = `<span class="sn-pill-channel">${channelName(node.channel)}</span><span>${escapeHtml(node.title)}</span>`;
+    pill.addEventListener('click', () => {
+      selectNode(node.id, true);
+    });
+    container.appendChild(pill);
+  }
+}
+
+// ── 節點選中與高亮 ──
+
+function selectNode(nodeId: string, centerGraph = false): void {
+  selectedNodeId = nodeId;
+  
+  // 更新 pills
+  byId('story-editor-node-pills').querySelectorAll('.sn-pill').forEach((pill, idx) => {
+    const n = activeStory()?.nodes[idx];
+    pill.classList.toggle('selected', n?.id === nodeId);
+  });
+
+  // 更新 SVG 節點樣式
+  const svg = bySvgId<SVGSVGElement>('story-graph-svg');
+  svg.querySelectorAll('.graph-node').forEach(g => {
+    const isCur = (g as SVGElement).dataset.nodeId === nodeId;
+    g.classList.toggle('graph-node-selected', isCur);
+  });
+
+  // 平移居中（若要求）
+  if (centerGraph && graphPositions[nodeId]) {
+    const wrapper = byId('story-graph-wrapper');
+    const pos = graphPositions[nodeId];
+    const targetX = wrapper.clientWidth / 2 - (pos.x + GRAPH_NODE_W / 2) * graphZoom;
+    const targetY = wrapper.clientHeight / 2 - (pos.y + GRAPH_NODE_H / 2) * graphZoom;
+    graphPanX = targetX;
+    graphPanY = targetY;
+    applyGraphTransform();
   }
 
-  for (const node of story.nodes) {
-    const factCount = [...node.completionEffects, ...node.choices.flatMap(c => c.effects)].filter(e => e.type === 'SET_FACT').length;
-    const refs = refCount[node.id] ?? 0;
-    const metaBadges = [
-      factCount > 0 ? `<span class="sn-badge sn-badge-fact">✏ ${factCount} 線索</span>` : '',
-      refs > 0 ? `<span class="sn-badge sn-badge-ref">← 被引用 ${refs}</span>` : '',
-    ].filter(Boolean).join('');
-
-    const card = document.createElement('button');
-    card.className = `story-node-card${node.id === selectedNodeId ? ' selected' : ''}`;
-    card.innerHTML = `<span class="story-node-channel">${channelName(node.channel)}</span><h4>${escapeHtml(node.title)}</h4><p>${escapeHtml(node.id)}</p>${metaBadges ? `<div class="sn-meta">${metaBadges}</div>` : ''}`;
-    card.addEventListener('click', () => { selectedNodeId = node.id; render(); });
-    list.appendChild(card);
-  }
+  renderForm();
 }
 
 function renderForm(): void {
@@ -113,6 +187,8 @@ function renderForm(): void {
   byId('story-editor-empty').hidden = !!node;
   byId('story-editor-node-form').hidden = !node;
   if (!node) return;
+  if (!node.choices) node.choices = [];
+
   setValue('story-node-id', node.id);
   setValue('story-node-channel', node.channel);
   setValue('story-node-title', node.title);
@@ -122,18 +198,63 @@ function renderForm(): void {
   setValue('story-node-bounty-expire', node.bounty?.expireDays ?? 30);
   setValue('story-node-bounty-gold', node.bounty?.gold ?? 50);
   setValue('story-node-bounty-exp', node.bounty?.exp ?? 30);
-  for (const index of [0, 1]) {
-    const choice = node.choices[index];
-    setValue(`story-node-choice-${index + 1}`, choice?.text ?? '');
-    setValue(`story-node-choice-result-${index + 1}`, choice?.resultText ?? '');
-  }
+
   renderConditionList(node);
   renderEffectList('story-node-effects-list', node.completionEffects, effects => { node.completionEffects = effects; refreshEffectSummary(); });
-  renderEffectList('story-node-choice-effects-1', node.choices[0]?.effects ?? [], effects => updateChoiceEffects(0, effects));
-  renderEffectList('story-node-choice-effects-2', node.choices[1]?.effects ?? [], effects => updateChoiceEffects(1, effects));
+  renderChoicesList(node);
+
   byId('story-editor-bounty-fields').hidden = node.channel !== 'BOUNTY_BOARD';
   byId('story-editor-map-target-fields').hidden = node.channel !== 'STORY_NODE';
   byId('story-editor-blocked-reasons').textContent = describeConditions(node.conditions);
+}
+
+function renderChoicesList(node: NarrativeNode): void {
+  const container = document.getElementById('story-node-choices-list');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!node.choices || node.choices.length === 0) {
+    container.innerHTML = '<div style="color:#6b6050; font-size:.78rem; padding:4px 0;">目前無決策選項（遊戲中將預設為純閱讀「繼續」）。</div>';
+    return;
+  }
+  node.choices.forEach((choice, index) => {
+    const card = document.createElement('div');
+    card.className = 'story-choice-card';
+    card.innerHTML = `
+      <div class="story-choice-head">
+        <span class="story-choice-title">決策選項 ${index + 1}</span>
+        <button type="button" class="action-btn story-danger" data-remove-choice>刪除選項</button>
+      </div>
+      <label>選項按鈕文字<input data-choice-text type="text" value="${escapeHtml(choice.text)}"></label>
+      <label>結果敘述文字<textarea data-choice-result rows="2">${escapeHtml(choice.resultText ?? '')}</textarea></label>
+      <div class="story-choice-effects-wrap">
+        <div style="font-size:.75rem; color:#fde68a; margin:6px 0 4px; font-weight:700;">選擇後專屬效果／獎勵：</div>
+        <div class="story-effect-list compact" id="story-choice-fx-${index}"></div>
+        <button type="button" class="action-btn" data-add-choice-fx style="margin-top:4px;">＋ 新增選項效果</button>
+      </div>
+    `;
+    container.appendChild(card);
+
+    card.querySelector<HTMLInputElement>('[data-choice-text]')!.addEventListener('input', e => {
+      choice.text = (e.target as HTMLInputElement).value;
+    });
+    card.querySelector<HTMLTextAreaElement>('[data-choice-result]')!.addEventListener('input', e => {
+      choice.resultText = (e.target as HTMLTextAreaElement).value;
+    });
+    card.querySelector('[data-remove-choice]')!.addEventListener('click', () => {
+      node.choices.splice(index, 1);
+      renderChoicesList(node);
+      refreshEffectSummary();
+    });
+    renderEffectList(`story-choice-fx-${index}`, choice.effects, effects => {
+      choice.effects = effects;
+      refreshEffectSummary();
+    });
+    card.querySelector('[data-add-choice-fx]')!.addEventListener('click', () => {
+      choice.effects.push(defaultEffect());
+      renderChoicesList(node);
+      refreshEffectSummary();
+    });
+  });
 }
 
 function syncStory(): void {
@@ -142,7 +263,7 @@ function syncStory(): void {
   story.title = value('story-editor-story-title') || story.id;
   story.summary = value('story-editor-story-summary');
   story.enabled = byId<HTMLInputElement>('story-editor-story-enabled').checked;
-  renderNodes();
+  renderStoryList();
   renderValidation();
 }
 
@@ -150,7 +271,17 @@ function syncNode(): void {
   const node = activeNode();
   if (!node) return;
   const oldId = node.id;
-  node.id = safeId(value('story-node-id')) || oldId;
+  const newId = safeId(value('story-node-id')) || oldId;
+
+  if (newId !== oldId) {
+    if (graphPositions[oldId]) {
+      graphPositions[newId] = graphPositions[oldId];
+      delete graphPositions[oldId];
+      saveGraphPos(activeStory()!.id);
+    }
+  }
+
+  node.id = newId;
   selectedNodeId = node.id;
   node.channel = byId<HTMLSelectElement>('story-node-channel').value as NarrativeNode['channel'];
   node.title = value('story-node-title') || node.id;
@@ -162,27 +293,24 @@ function syncNode(): void {
     gold: Math.max(0, numberValue('story-node-bounty-gold')),
     exp: Math.max(0, numberValue('story-node-bounty-exp'))
   } : undefined;
-  node.choices = [0, 1].flatMap(index => {
-    const text = value(`story-node-choice-${index + 1}`);
-    if (!text) return [];
-    const existingChoice = node.choices[index];
-    const choice: NarrativeChoice = {
-      id: `choice_${index + 1}`,
-      text,
-      resultText: value(`story-node-choice-result-${index + 1}`),
-      effects: existingChoice?.effects ?? []
-    };
-    return [choice];
-  });
+
   renderFacts();
-  renderNodes();
+  renderNodePills();
   renderValidation();
   byId('story-editor-bounty-fields').hidden = node.channel !== 'BOUNTY_BOARD';
   byId('story-editor-map-target-fields').hidden = node.channel !== 'STORY_NODE';
 }
 
+import { INITIAL_FACTIONS } from '../data/FactionData';
+
+const FACTION_OPTIONS = INITIAL_FACTIONS.map(f => ({
+  value: f.id,
+  label: `${f.factionName} (${f.id})`
+}));
+
 const CONDITION_LABELS: Record<NarrativeCondition['type'], string> = {
   DAY_AT_LEAST: '最早遊戲日', TAVERN_LEVEL_AT_LEAST: '最低酒館等級', PRESTIGE_AT_LEAST: '最低聲望',
+  GOLD_AT_LEAST: '最低金幣', FACTION_FAVOR_AT_LEAST: '派系好感度 ≥', FACTION_FAVOR_AT_MOST: '派系好感度 ≤',
   FACT_EXISTS: '需要線索', FACT_MISSING: '必須尚無線索', DAYS_SINCE_FACT: '取得線索後等待', NODE_EXPLORED: '需要已發現據點',
   SUBJUGATION_COUNT_AT_LEAST: '動態討伐累積數'
 };
@@ -190,6 +318,8 @@ const CONDITION_LABELS: Record<NarrativeCondition['type'], string> = {
 function defaultCondition(type: NarrativeCondition['type'] = 'FACT_EXISTS'): NarrativeCondition {
   switch (type) {
     case 'DAY_AT_LEAST': case 'TAVERN_LEVEL_AT_LEAST': case 'PRESTIGE_AT_LEAST': return { type, value: 1 };
+    case 'GOLD_AT_LEAST': return { type, value: 100 };
+    case 'FACTION_FAVOR_AT_LEAST': case 'FACTION_FAVOR_AT_MOST': return { type, factionId: 'f_vormund', value: 30 };
     case 'FACT_EXISTS': case 'FACT_MISSING': return { type, fact: 'new_fact' };
     case 'DAYS_SINCE_FACT': return { type, fact: 'new_fact', value: 1 };
     case 'NODE_EXPLORED': return { type, nodeId: '' };
@@ -224,25 +354,20 @@ function renderConditionList(node: NarrativeNode): void {
 function conditionFields(condition: NarrativeCondition): string {
   const input = (label: string, field: string, current: string | number, type = 'text', list = '') =>
     `<label>${label}<input data-field="${field}" type="${type}" value="${escapeHtml(String(current))}"${list ? ` list="${list}"` : ''}></label>`;
+
+  const select = (label: string, field: string, current: string, options: { value: string; label: string }[]) =>
+    `<label>${label}<select data-field="${field}">${options.map(o => `<option value="${o.value}"${o.value === current ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select></label>`;
+
   switch (condition.type) {
     case 'DAY_AT_LEAST': case 'TAVERN_LEVEL_AT_LEAST': case 'PRESTIGE_AT_LEAST': return input('門檻數值', 'value', condition.value, 'number');
+    case 'GOLD_AT_LEAST': return input('金幣門檻', 'value', condition.value, 'number');
+    case 'FACTION_FAVOR_AT_LEAST': case 'FACTION_FAVOR_AT_MOST':
+      return `${select('目標派系', 'factionId', condition.factionId, FACTION_OPTIONS)}${input('好感度門檻 (-100~100)', 'value', condition.value, 'number')}`;
     case 'FACT_EXISTS': case 'FACT_MISSING': return input('線索代號', 'fact', condition.fact, 'text', 'story-fact-datalist');
     case 'DAYS_SINCE_FACT': return `${input('線索代號', 'fact', condition.fact, 'text', 'story-fact-datalist')}${input('等待天數', 'value', condition.value, 'number')}`;
     case 'NODE_EXPLORED': return input('地圖節點 ID', 'nodeId', condition.nodeId);
     case 'SUBJUGATION_COUNT_AT_LEAST': return input('最少討伐數（動態據點）', 'value', condition.value, 'number');
   }
-}
-
-function updateChoiceEffects(index: number, effects: NarrativeEffect[]): void {
-  const node = activeNode();
-  if (!node) return;
-  while (node.choices.length <= index) {
-    const next = node.choices.length + 1;
-    node.choices.push({ id: `choice_${next}`, text: `新選項 ${next}`, resultText: '', effects: [] });
-  }
-  node.choices[index].effects = effects;
-  setValue(`story-node-choice-${index + 1}`, node.choices[index].text);
-  refreshEffectSummary();
 }
 
 function refreshEffectSummary(): void {
@@ -256,9 +381,10 @@ function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): NarrativeEff
     case 'ADD_GOLD': return { type, value: 100 };
     case 'ADD_PRESTIGE': return { type, value: 10 };
     case 'ADD_RESTED_EXP': return { type, value: 50 };
-    case 'GRANT_MATERIAL': return { type, itemId: 'mat_iron_ingot', quantity: 1 };
-    case 'GRANT_TRADE_GOOD': return { type, itemId: 'tg_spice', quantity: 1 };
-    case 'GRANT_EQUIPMENT': return { type, templateId: 'wpn_iron_greatsword', quantity: 1 };
+    case 'CHANGE_FACTION_FAVOR': return { type, factionId: 'f_vormund', value: 10 };
+    case 'GRANT_MATERIAL': return { type, itemId: 'mat_iron_ingot', quantity: 1, mode: 'FIXED' };
+    case 'GRANT_TRADE_GOOD': return { type, itemId: 'tg_spice', quantity: 1, mode: 'FIXED' };
+    case 'GRANT_EQUIPMENT': return { type, templateId: 'wpn_iron_greatsword', mode: 'FIXED', slot: 'ANY', tier: 'ANY', quantity: 1 };
     case 'SCHEDULE_NODE': return { type, nodeId: '', delayDays: 1 };
     case 'UNLOCK_MAP_NODE': return { type, nodeId: '' };
     case 'CREATE_SUBJUGATION_NODE': return {
@@ -274,9 +400,17 @@ function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): NarrativeEff
 }
 
 const EFFECT_LABELS: Record<NarrativeEffect['type'], string> = {
-  SET_FACT: '新增線索', ADD_GOLD: '金幣變化', ADD_PRESTIGE: '聲望變化', ADD_RESTED_EXP: '經驗池獎勵',
-  GRANT_MATERIAL: '給予素材', GRANT_TRADE_GOOD: '給予貿易品', GRANT_EQUIPMENT: '給予裝備',
-  SCHEDULE_NODE: '延遲排程節點', UNLOCK_MAP_NODE: '解鎖預設地圖據點', CREATE_SUBJUGATION_NODE: '創造故事討伐據點'
+  SET_FACT: '線索：新增線索 (SET_FACT)',
+  ADD_GOLD: '資源：金幣變化 (ADD_GOLD)',
+  ADD_PRESTIGE: '資源：聲望變化 (ADD_PRESTIGE)',
+  ADD_RESTED_EXP: '資源：經驗池獎勵 (ADD_RESTED_EXP)',
+  CHANGE_FACTION_FAVOR: '外交：派系好感度 (CHANGE_FACTION_FAVOR)',
+  GRANT_EQUIPMENT: '物品：裝備獎勵 (GRANT_EQUIPMENT)',
+  GRANT_MATERIAL: '物品：素材獎勵 (GRANT_MATERIAL)',
+  GRANT_TRADE_GOOD: '物品：貿易特產 (GRANT_TRADE_GOOD)',
+  SCHEDULE_NODE: '流程：延遲排程節點 (SCHEDULE_NODE)',
+  UNLOCK_MAP_NODE: '地圖：解鎖預設地圖據點 (UNLOCK_MAP_NODE)',
+  CREATE_SUBJUGATION_NODE: '討伐：創造故事討伐據點 (CREATE_SUBJUGATION_NODE)'
 };
 
 function renderEffectList(id: string, effects: NarrativeEffect[], setter: (effects: NarrativeEffect[]) => void): void {
@@ -307,7 +441,9 @@ function renderEffectList(id: string, effects: NarrativeEffect[], setter: (effec
             : property === 'journeyNodeIds'
               ? field.value.split(',').map(item => item.trim()).filter(Boolean)
               : field.value;
-        setter([...effects]); refreshEffectSummary();
+        setter([...effects]);
+        if (property === 'mode') renderEffectList(id, effects, setter);
+        refreshEffectSummary();
       });
     });
     container.appendChild(row);
@@ -318,22 +454,89 @@ function effectFields(effect: NarrativeEffect): string {
   const input = (label: string, field: string, current: string | number, type = 'text', list = '') =>
     `<label>${label}<input data-field="${field}" type="${type}" value="${escapeHtml(String(current))}"${list ? ` list="${list}"` : ''}></label>`;
 
-  // 建立同故事節點下拉（用於 SCHEDULE_NODE 與討伐流程）
+  const select = (label: string, field: string, current: string, options: { value: string; label: string }[]) =>
+    `<label>${label}<select data-field="${field}">${options.map(o => `<option value="${o.value}"${o.value === current ? ' selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</select></label>`;
+
   const storyNodes = activeStory()?.nodes ?? [];
   const nodeSelect = (label: string, field: string, currentVal: string) => {
-    const opts = ['', ...storyNodes.map(n => n.id)]
-      .map(id => `<option value="${escapeHtml(id)}"${id === currentVal ? ' selected' : ''}>${id ? escapeHtml(id) : '(不設定)'}</option>`).join('');
-    return `<label>${label}<select data-field="${field}">${opts}</select></label>`;
+    const opts = [{ value: '', label: '(不設定)' }, ...storyNodes.map(n => ({ value: n.id, label: n.id }))];
+    return select(label, field, currentVal, opts);
   };
 
   switch (effect.type) {
     case 'SET_FACT': return input('線索代號', 'fact', effect.fact, 'text', 'story-fact-datalist');
     case 'ADD_GOLD': case 'ADD_PRESTIGE': case 'ADD_RESTED_EXP': return input('數量', 'value', effect.value, 'number');
-    case 'GRANT_MATERIAL': return `${input('素材 ID', 'itemId', effect.itemId, 'text', 'story-material-datalist')}${input('數量', 'quantity', effect.quantity, 'number')}`;
-    case 'GRANT_TRADE_GOOD': return `${input('貿易品 ID', 'itemId', effect.itemId, 'text', 'story-tradegood-datalist')}${input('數量', 'quantity', effect.quantity, 'number')}`;
-    case 'GRANT_EQUIPMENT': return `${input('裝備模板 ID', 'templateId', effect.templateId)}${input('數量', 'quantity', effect.quantity, 'number')}`;
+    case 'CHANGE_FACTION_FAVOR': return `${select('目標派系', 'factionId', effect.factionId, FACTION_OPTIONS)}${input('好感度增減 (-100~+100)', 'value', effect.value, 'number')}`;
+    
+    // 統整型裝備獎勵（支援隨機/固定）
+    case 'GRANT_EQUIPMENT': {
+      const mode = effect.mode ?? 'FIXED';
+      const modeSelect = select('生成模式', 'mode', mode, [
+        { value: 'FIXED', label: '固定裝備模板 (Fixed)' },
+        { value: 'RANDOM', label: '隨機生成裝備 (Random)' }
+      ]);
+      if (mode === 'RANDOM') {
+        const slotSelect = select('部位篩選', 'slot', effect.slot ?? 'ANY', [
+          { value: 'ANY', label: '任意部位 (Any)' },
+          { value: 'WEAPON', label: '武器 (Weapon)' },
+          { value: 'ARMOR', label: '防具 (Armor)' },
+          { value: 'ACCESSORY', label: '飾品 (Accessory)' }
+        ]);
+        const tierSelect = select('品質階級', 'tier', String(effect.tier ?? 'ANY'), [
+          { value: 'ANY', label: '任意階級 (Any)' },
+          { value: '1', label: 'T1 基礎裝備' },
+          { value: '2', label: 'T2 高級裝備' },
+          { value: '3', label: 'T3 專家裝備' },
+          { value: '4', label: 'T4 史詩神兵' }
+        ]);
+        return `${modeSelect}${slotSelect}${tierSelect}${input('數量', 'quantity', effect.quantity, 'number')}`;
+      }
+      const eqOptions = Object.values(DataStore.EquipmentDB).map(t => ({
+        value: t.id,
+        label: `${t.name} (${t.id})`
+      }));
+      const templateSelect = select('裝備模板', 'templateId', effect.templateId ?? 'wpn_iron_greatsword', eqOptions.length > 0 ? eqOptions : [{ value: 'wpn_iron_greatsword', label: '鐵大劍 (wpn_iron_greatsword)' }]);
+      return `${modeSelect}${templateSelect}${input('數量', 'quantity', effect.quantity, 'number')}`;
+    }
+
+    // 統整型素材獎勵
+    case 'GRANT_MATERIAL': {
+      const mode = effect.mode ?? 'FIXED';
+      const modeSelect = select('模式', 'mode', mode, [
+        { value: 'FIXED', label: '固定素材 (Fixed)' },
+        { value: 'RANDOM', label: '隨機素材 (Random)' }
+      ]);
+      if (mode === 'RANDOM') {
+        return `${modeSelect}${input('隨機數量', 'quantity', effect.quantity, 'number')}`;
+      }
+      const matOptions = Object.values(DataStore.MaterialDB).map(m => ({
+        value: m.id,
+        label: `${m.name} (${m.id})`
+      }));
+      const matSelect = select('素材種類', 'itemId', effect.itemId ?? 'mat_iron_ingot', matOptions.length > 0 ? matOptions : [{ value: 'mat_iron_ingot', label: '鐵錠 (mat_iron_ingot)' }]);
+      return `${modeSelect}${matSelect}${input('數量', 'quantity', effect.quantity, 'number')}`;
+    }
+
+    // 統整型貿易特產
+    case 'GRANT_TRADE_GOOD': {
+      const mode = effect.mode ?? 'FIXED';
+      const modeSelect = select('模式', 'mode', mode, [
+        { value: 'FIXED', label: '固定特產 (Fixed)' },
+        { value: 'RANDOM', label: '隨機特產 (Random)' }
+      ]);
+      if (mode === 'RANDOM') {
+        return `${modeSelect}${input('隨機數量', 'quantity', effect.quantity, 'number')}`;
+      }
+      const tgOptions = TRADE_GOODS.map(g => ({
+        value: g.id,
+        label: `${g.name} (${g.id})`
+      }));
+      const tgSelect = select('特產種類', 'itemId', effect.itemId ?? 'tg_spice', tgOptions);
+      return `${modeSelect}${tgSelect}${input('數量', 'quantity', effect.quantity, 'number')}`;
+    }
+
     case 'SCHEDULE_NODE': return `${nodeSelect('延遲發佈節點', 'nodeId', effect.nodeId)}${input('幾天後', 'delayDays', effect.delayDays, 'number')}`;
-    case 'UNLOCK_MAP_NODE': return input('既有地圖節點 ID（非故事節點）', 'nodeId', effect.nodeId);
+    case 'UNLOCK_MAP_NODE': return input('既有地圖節點 ID', 'nodeId', effect.nodeId);
     case 'CREATE_SUBJUGATION_NODE': {
       const definition = effect.definition;
       const enumSelect = (label: string, field: string, current: string, choices: string[]) =>
@@ -355,7 +558,6 @@ function effectFields(effect: NarrativeEffect): string {
   }
 }
 
-// 建立並更新共享 datalist（Fact / 素材 / 貿易品），掛在 body 上供各 input 引用
 function buildSharedDatalists(): void {
   const ensureDL = (id: string, options: { value: string; label: string }[]): void => {
     let dl = document.getElementById(id) as HTMLDataListElement | null;
@@ -363,18 +565,17 @@ function buildSharedDatalists(): void {
     dl.innerHTML = options.map(o => `<option value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</option>`).join('');
   };
 
-  // Fact 候選：從全部故事掃描
   const factKeys = [...buildFactRegistry(stories).keys()];
   ensureDL('story-fact-datalist', factKeys.map(f => ({ value: f, label: f })));
 
-  // 素材候選
   const materialIds = Object.keys(DataStore.MaterialDB);
   ensureDL('story-material-datalist', materialIds.map(id => ({ value: id, label: id })));
 
-  // 貿易品候選
   ensureDL('story-tradegood-datalist', TRADE_GOODS.map(g => ({ value: g.id, label: g.name ?? g.id })));
-}
 
+  const eqTemplates = Object.values(DataStore.EquipmentDB);
+  ensureDL('story-equipment-datalist', eqTemplates.map(t => ({ value: t.id, label: `${t.name} (${t.id})` })));
+}
 
 function validationErrors(): string[] {
   const errors: string[] = [];
@@ -390,9 +591,9 @@ function validationErrors(): string[] {
       const allEffects = [...node.completionEffects, ...node.choices.flatMap(choice => choice.effects)];
       for (const effect of allEffects) {
         if (effect.type === 'SCHEDULE_NODE' && !nodeIds.has(effect.nodeId)) errors.push(`${node.id} 排程了不存在的節點：${effect.nodeId}`);
-        if (effect.type === 'GRANT_MATERIAL' && !DataStore.MaterialDB[effect.itemId]) errors.push(`${node.id} 使用不存在的素材 ID：${effect.itemId}`);
-        if (effect.type === 'GRANT_TRADE_GOOD' && !TRADE_GOODS.some(item => item.id === effect.itemId)) errors.push(`${node.id} 使用不存在的貿易品 ID：${effect.itemId}`);
-        if (effect.type === 'GRANT_EQUIPMENT' && !DataStore.getEquipmentTemplate(effect.templateId)) errors.push(`${node.id} 使用不存在的裝備模板：${effect.templateId}`);
+        if (effect.type === 'GRANT_MATERIAL' && effect.mode !== 'RANDOM' && !DataStore.MaterialDB[effect.itemId]) errors.push(`${node.id} 使用不存在的素材 ID：${effect.itemId}`);
+        if (effect.type === 'GRANT_TRADE_GOOD' && effect.mode !== 'RANDOM' && !TRADE_GOODS.some(item => item.id === effect.itemId)) errors.push(`${node.id} 使用不存在的貿易品 ID：${effect.itemId}`);
+        if (effect.type === 'GRANT_EQUIPMENT' && effect.mode !== 'RANDOM' && effect.templateId && !DataStore.getEquipmentTemplate(effect.templateId)) errors.push(`${node.id} 使用不存在的裝備模板：${effect.templateId}`);
         if (effect.type === 'CREATE_SUBJUGATION_NODE') {
           const definition = effect.definition;
           if (!definition.nodeId || !definition.name) errors.push(`${node.id} 的故事討伐據點缺少代號或名稱。`);
@@ -411,6 +612,7 @@ function validationErrors(): string[] {
 function renderValidation(): void {
   const errors = validationErrors();
   const box = byId('story-editor-validation');
+  if (!box) return;
   box.className = `story-editor-validation ${errors.length ? 'error' : 'ok'}`;
   box.textContent = errors.length ? `需要修正：\n• ${errors.join('\n• ')}` : `✓ 結構檢查通過，共 ${stories.length} 條故事、${stories.reduce((sum, story) => sum + story.nodes.length, 0)} 個節點。`;
 }
@@ -459,187 +661,17 @@ async function showHistory(): Promise<void> {
   dialog.showModal();
 }
 
-// ── Fact Registry ──────────────────────────────────────────────────────────────
-
-interface FactRegistryEntry {
-  fact: string;
-  writers: { storyId: string; storyTitle: string; nodeId: string; nodeTitle: string }[];
-  readers: { storyId: string; storyTitle: string; nodeId: string; nodeTitle: string; conditionType: string }[];
-  warnings: ('UNUSED_WRITE' | 'MISSING_WRITER' | 'CROSS_STORY' | 'DUPLICATE_WRITER')[];
-}
-
-function buildFactRegistry(storyList: typeof stories): Map<string, FactRegistryEntry> {
-  const registry = new Map<string, FactRegistryEntry>();
-  const ensure = (fact: string): FactRegistryEntry => {
-    if (!registry.has(fact)) registry.set(fact, { fact, writers: [], readers: [], warnings: [] });
-    return registry.get(fact)!;
-  };
-
-  for (const story of storyList) {
-    for (const node of story.nodes) {
-      const allEffects = [...node.completionEffects, ...node.choices.flatMap(c => c.effects)];
-      for (const effect of allEffects) {
-        if (effect.type === 'SET_FACT') {
-          ensure(effect.fact).writers.push({ storyId: story.id, storyTitle: story.title, nodeId: node.id, nodeTitle: node.title });
-        }
-      }
-      for (const condition of node.conditions) {
-        if (condition.type === 'FACT_EXISTS' || condition.type === 'FACT_MISSING' || condition.type === 'DAYS_SINCE_FACT') {
-          ensure(condition.fact).readers.push({ storyId: story.id, storyTitle: story.title, nodeId: node.id, nodeTitle: node.title, conditionType: condition.type });
-        }
-      }
-    }
-  }
-
-  // 分析警告
-  for (const entry of registry.values()) {
-    const writerStories = new Set(entry.writers.map(w => w.storyId));
-    const readerStories = new Set(entry.readers.map(r => r.storyId));
-    const allStories = new Set([...writerStories, ...readerStories]);
-    if (allStories.size > 1) entry.warnings.push('CROSS_STORY');
-    if (entry.writers.length > 1) entry.warnings.push('DUPLICATE_WRITER');
-    if (entry.writers.length > 0 && entry.readers.length === 0) entry.warnings.push('UNUSED_WRITE');
-    if (entry.readers.length > 0 && entry.writers.length === 0) entry.warnings.push('MISSING_WRITER');
-  }
-
-  return registry;
-}
-
-function renderFactRegistry(query = ''): void {
-  const registry = buildFactRegistry(stories);
-  const listEl = byId('fact-registry-list');
-  const statsEl = byId('fact-registry-stats');
-  const lowerQuery = query.toLowerCase();
-
-  const entries = [...registry.values()].filter(entry => {
-    if (!lowerQuery) return true;
-    if (entry.fact.toLowerCase().includes(lowerQuery)) return true;
-    if (entry.writers.some(w => w.nodeTitle.toLowerCase().includes(lowerQuery) || w.storyTitle.toLowerCase().includes(lowerQuery))) return true;
-    if (entry.readers.some(r => r.nodeTitle.toLowerCase().includes(lowerQuery) || r.storyTitle.toLowerCase().includes(lowerQuery))) return true;
-    return false;
-  }).sort((a, b) => {
-    // 警告項排前面
-    const warnA = a.warnings.includes('MISSING_WRITER') ? 0 : a.warnings.length > 0 ? 1 : 2;
-    const warnB = b.warnings.includes('MISSING_WRITER') ? 0 : b.warnings.length > 0 ? 1 : 2;
-    return warnA - warnB || a.fact.localeCompare(b.fact);
-  });
-
-  const totalWarns = [...registry.values()].filter(e => e.warnings.length > 0).length;
-  statsEl.textContent = `共 ${registry.size} 個線索・${stories.length} 條故事${totalWarns > 0 ? `・⚠ ${totalWarns} 個警告` : ''}`;
-
-  if (entries.length === 0) {
-    listEl.innerHTML = `<div class="fact-empty">${query ? '沒有符合的搜尋結果。' : '目前沒有任何線索，請在節點效果中新增「新增線索」。'}</div>`;
-    return;
-  }
-
-  listEl.innerHTML = '';
-  for (const entry of entries) {
-    const isCross = entry.warnings.includes('CROSS_STORY');
-    const hasMissingWriter = entry.warnings.includes('MISSING_WRITER');
-    const hasUnused = entry.warnings.includes('UNUSED_WRITE');
-    const hasDuplicate = entry.warnings.includes('DUPLICATE_WRITER');
-
-    const cardClasses = ['fact-card',
-      hasMissingWriter ? 'warn-missing-writer' : '',
-      hasUnused && !hasMissingWriter ? 'warn-unused-write' : '',
-      isCross ? 'is-cross-story' : ''
-    ].filter(Boolean).join(' ');
-
-    const badges = [
-      entry.writers.length > 0 ? `<span class="fact-badge write">設定 ${entry.writers.length}</span>` : '',
-      entry.readers.length > 0 ? `<span class="fact-badge read">讀取 ${entry.readers.length}</span>` : '',
-      isCross ? `<span class="fact-badge cross">跨故事</span>` : '',
-      hasDuplicate ? `<span class="fact-badge warn">重複寫入</span>` : '',
-      hasMissingWriter ? `<span class="fact-badge warn">⚠ 無來源</span>` : '',
-      hasUnused ? `<span class="fact-badge warn">⚠ 未使用</span>` : '',
-    ].filter(Boolean).join('');
-
-    const writersHtml = entry.writers.length > 0 ? `
-      <div class="fact-ref-group">
-        <div class="fact-ref-group-title write-title">✏ 設定此線索的節點</div>
-        ${entry.writers.map(w => `
-          <div class="fact-ref-item" data-jump-story="${escapeHtml(w.storyId)}" data-jump-node="${escapeHtml(w.nodeId)}">
-            <span class="fact-ref-story">${escapeHtml(w.storyTitle)}</span>
-            <span class="fact-ref-node">${escapeHtml(w.nodeTitle)}</span>
-          </div>`).join('')}
-      </div>` : '';
-
-    const conditionLabel: Record<string, string> = {
-      FACT_EXISTS: '需要存在', FACT_MISSING: '需要不存在', DAYS_SINCE_FACT: '取得後等待'
-    };
-    const readersHtml = entry.readers.length > 0 ? `
-      <div class="fact-ref-group">
-        <div class="fact-ref-group-title read-title">👁 使用此線索的條件</div>
-        ${entry.readers.map(r => `
-          <div class="fact-ref-item" data-jump-story="${escapeHtml(r.storyId)}" data-jump-node="${escapeHtml(r.nodeId)}">
-            <span class="fact-ref-story">${escapeHtml(r.storyTitle)}</span>
-            <span class="fact-ref-node">${escapeHtml(r.nodeTitle)}</span>
-            <span class="fact-ref-condition">${conditionLabel[r.conditionType] ?? r.conditionType}</span>
-          </div>`).join('')}
-      </div>` : '';
-
-    const warnHtml = [
-      hasMissingWriter ? `<div class="fact-warn-box missing-writer">⚠ 此線索在條件中被使用，但從未有任何節點透過「新增線索」效果來設定它。可能是拼寫錯誤，或對應的節點尚未建立。</div>` : '',
-      hasUnused ? `<div class="fact-warn-box unused-write">⚠ 此線索已被設定，但目前沒有任何節點的條件用到它。可能是未使用的旗標，或條件名稱拼寫錯誤。</div>` : '',
-      hasDuplicate ? `<div class="fact-warn-box unused-write">⚠ 多個節點都會設定此線索，若觸發順序不同可能影響故事流程。請確認是否為預期行為。</div>` : '',
-    ].filter(Boolean).join('');
-
-    const card = document.createElement('div');
-    card.className = cardClasses;
-    card.innerHTML = `
-      <div class="fact-card-header">
-        <span class="fact-name">${escapeHtml(entry.fact)}</span>
-        <div class="fact-badges">${badges}</div>
-      </div>
-      <div class="fact-card-body">
-        ${writersHtml}${readersHtml}${warnHtml}
-      </div>`;
-
-    // 展開/收合
-    card.querySelector('.fact-card-header')!.addEventListener('click', () => card.classList.toggle('expanded'));
-
-    // 跳轉到節點編輯
-    card.querySelectorAll<HTMLElement>('[data-jump-story]').forEach(item => {
-      item.addEventListener('click', event => {
-        event.stopPropagation();
-        const sId = item.dataset.jumpStory!;
-        const nId = item.dataset.jumpNode!;
-        selectedStoryId = sId;
-        selectedNodeId = nId;
-        switchTab('node-editor');
-        render();
-      });
-    });
-
-    listEl.appendChild(card);
-  }
-}
-
-// ── Phase 3: SVG 流程圖畫布 ───────────────────────────────────────────────────
-
-const GRAPH_NODE_W = 210;
-const GRAPH_NODE_H = 96;
-const GRAPH_H_GAP = 264;
-const GRAPH_V_GAP = 128;
-const GRAPH_COLS = 4;
-const GRAPH_POS_KEY = 'MEDIEVAL_STORY_GRAPH_POS';
-
-type GraphEdgeType = 'fact' | 'schedule' | 'victory' | 'defeat' | 'journey';
-interface GraphEdge { from: string; to: string; type: GraphEdgeType; label?: string; }
-
-let graphPositions: Record<string, { x: number; y: number }> = {};
-let graphWireSource: string | null = null;
-
-const SVG_NS = 'http://www.w3.org/2000/svg';
-const svgEl = <T extends SVGElement>(tag: string): T => document.createElementNS(SVG_NS, tag) as T;
+// ── SVG 流程圖畫布（Zoom, Pan, Wiring, Drag） ──
 
 function loadGraphPos(storyId: string): void {
   try { graphPositions = JSON.parse(localStorage.getItem(`${GRAPH_POS_KEY}_${storyId}`) ?? '{}'); }
   catch { graphPositions = {}; }
 }
+
 function saveGraphPos(storyId: string): void {
   localStorage.setItem(`${GRAPH_POS_KEY}_${storyId}`, JSON.stringify(graphPositions));
 }
+
 function autoLayoutMissing(nodes: NarrativeNode[]): void {
   nodes.forEach((node, i) => {
     if (!graphPositions[node.id]) {
@@ -706,47 +738,27 @@ function renderEdgeLayer(layer: SVGGElement, story: NarrativeStory): void {
   }
 }
 
+function applyGraphTransform(): void {
+  const rootG = bySvgId<SVGGElement>('graph-root-g');
+  if (rootG) {
+    rootG.setAttribute('transform', `translate(${graphPanX}, ${graphPanY}) scale(${graphZoom})`);
+  }
+  const zoomVal = byId('graph-zoom-val');
+  if (zoomVal) zoomVal.textContent = `${Math.round(graphZoom * 100)}%`;
+}
+
 function renderGraphCanvas(): void {
   const story = activeStory();
-  const container = byId('tab-graph-canvas');
-  container.innerHTML = '';
+  const svg = bySvgId<SVGSVGElement>('story-graph-svg');
+  if (!svg) return;
+  svg.innerHTML = '';
 
   if (!story || story.nodes.length === 0) {
-    container.innerHTML = '<div class="graph-canvas-placeholder"><span>📭</span><p>目前故事沒有節點。</p></div>';
     return;
   }
 
   loadGraphPos(story.id);
   autoLayoutMissing(story.nodes);
-
-  const maxX = Math.max(...story.nodes.map(n => (graphPositions[n.id]?.x ?? 0) + GRAPH_NODE_W + 60));
-  const maxY = Math.max(...story.nodes.map(n => (graphPositions[n.id]?.y ?? 0) + GRAPH_NODE_H + 60));
-
-  // 工具列
-  const toolbar = document.createElement('div');
-  toolbar.className = 'graph-toolbar';
-  toolbar.innerHTML = `
-    <span class="graph-toolbar-legend">
-      <span class="graph-legend-item legend-fact">── Fact 依賴</span>
-      <span class="graph-legend-item legend-schedule">── 排程</span>
-      <span class="graph-legend-item legend-victory">── 討伐勝利</span>
-      <span class="graph-legend-item legend-defeat">── 討伐失敗</span>
-      <span class="graph-legend-item legend-journey">╌╌ 討伐途中</span>
-    </span>
-    <span id="graph-wire-hint" class="graph-wire-hint" hidden>🔌 點擊另一個節點建立「排程」連線，或再次點擊輸出埠取消</span>
-    <button id="btn-graph-relayout" class="action-btn">🔀 重新排版</button>
-  `;
-  container.appendChild(toolbar);
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'graph-scroll-wrapper';
-  container.appendChild(wrapper);
-
-  const svg = svgEl<SVGSVGElement>('svg');
-  svg.id = 'story-graph-svg';
-  svg.setAttribute('width', String(Math.max(900, maxX)));
-  svg.setAttribute('height', String(Math.max(560, maxY)));
-  wrapper.appendChild(svg);
 
   // 箭頭 marker defs
   const defs = svgEl('defs');
@@ -764,10 +776,15 @@ function renderGraphCanvas(): void {
   }
   svg.appendChild(defs);
 
-  // 邊層 + 節點層
+  // 主群組（受 Zoom & Pan Transform 控制）
+  const rootG = svgEl<SVGGElement>('g');
+  rootG.id = 'graph-root-g';
+  svg.appendChild(rootG);
+
   const edgeLayer = svgEl<SVGGElement>('g'); edgeLayer.id = 'graph-edge-layer';
   const nodeLayer = svgEl<SVGGElement>('g'); nodeLayer.id = 'graph-node-layer';
-  svg.appendChild(edgeLayer); svg.appendChild(nodeLayer);
+  rootG.appendChild(edgeLayer);
+  rootG.appendChild(nodeLayer);
 
   renderEdgeLayer(edgeLayer, story);
 
@@ -801,14 +818,14 @@ function renderGraphCanvas(): void {
     const titleTxt = svgEl<SVGTextElement>('text');
     titleTxt.setAttribute('x', '10'); titleTxt.setAttribute('y', '48');
     titleTxt.setAttribute('class', 'graph-node-title-txt');
-    titleTxt.textContent = node.title.length > 22 ? node.title.slice(0, 22) + '…' : node.title;
+    titleTxt.textContent = node.title.length > 20 ? node.title.slice(0, 20) + '…' : node.title;
     g.appendChild(titleTxt);
 
     // ID
     const idTxt = svgEl<SVGTextElement>('text');
     idTxt.setAttribute('x', '10'); idTxt.setAttribute('y', '63');
     idTxt.setAttribute('class', 'graph-node-id-txt');
-    idTxt.textContent = node.id.length > 28 ? node.id.slice(0, 28) + '…' : node.id;
+    idTxt.textContent = node.id.length > 26 ? node.id.slice(0, 26) + '…' : node.id;
     g.appendChild(idTxt);
 
     // 條件數 & 效果數
@@ -832,173 +849,440 @@ function renderGraphCanvas(): void {
     nodeLayer.appendChild(g);
   }
 
-  // ── 事件綁定 ───────────────────────────────────────────
-
-  // 輸出埠：點擊啟動牽線模式
+  // 輸出埠事件：牽線模式
   nodeLayer.querySelectorAll<SVGCircleElement>('[data-port-node]').forEach(port => {
     port.addEventListener('click', event => {
       event.stopPropagation();
       graphWireSource = graphWireSource === port.dataset.portNode! ? null : port.dataset.portNode!;
-      const hint = document.getElementById('graph-wire-hint') as HTMLElement | null;
+      const hint = byId('graph-wire-hint');
       if (hint) hint.hidden = !graphWireSource;
       renderGraphCanvas();
     });
   });
 
-  // 節點 rect：點擊 → 跳轉或完成牽線
-  nodeLayer.querySelectorAll<SVGRectElement>('.graph-node-rect').forEach(rect => {
-    const g = rect.closest<SVGGElement>('.graph-node')!;
+  // 節點事件：單擊選中高亮（留在畫布）或完成牽線
+  nodeLayer.querySelectorAll<SVGGElement>('.graph-node').forEach(g => {
     const nodeId = g.dataset.nodeId!;
-    rect.addEventListener('click', () => {
+    g.addEventListener('click', event => {
+      event.stopPropagation();
       if (graphWireSource && graphWireSource !== nodeId) {
-        // 牽線完成：新增 SCHEDULE_NODE 效果到來源節點
         const srcId = graphWireSource;
         const srcNode = activeStory()?.nodes.find(n => n.id === srcId);
         if (srcNode && !srcNode.completionEffects.some(e => e.type === 'SCHEDULE_NODE' && e.nodeId === nodeId)) {
           srcNode.completionEffects.push({ type: 'SCHEDULE_NODE', nodeId, delayDays: 1 });
         }
         graphWireSource = null;
-        selectedNodeId = srcId;
-        switchTab('node-editor');
-        render();
+        const hint = byId('graph-wire-hint');
+        if (hint) hint.hidden = true;
+        selectNode(srcId);
+        renderEdgeLayer(edgeLayer, story);
         return;
       }
-      selectedNodeId = nodeId;
-      switchTab('node-editor');
-      render();
+      selectNode(nodeId);
     });
   });
 
-  // 拖曳節點
-  initGraphDrag(svg, story, edgeLayer);
+  applyGraphTransform();
+}
+
+function fitGraphView(): void {
+  const story = activeStory();
+  const wrapper = byId('story-graph-wrapper');
+  if (!story || story.nodes.length === 0 || !wrapper) return;
+
+  const xs = story.nodes.map(n => graphPositions[n.id]?.x ?? 0);
+  const ys = story.nodes.map(n => graphPositions[n.id]?.y ?? 0);
+  const minX = Math.min(...xs), maxX = Math.max(...xs) + GRAPH_NODE_W;
+  const minY = Math.min(...ys), maxY = Math.max(...ys) + GRAPH_NODE_H;
+
+  const contentW = maxX - minX + 80;
+  const contentH = maxY - minY + 80;
+  const viewW = wrapper.clientWidth || 800;
+  const viewH = wrapper.clientHeight || 500;
+
+  const scale = Math.min(1.4, Math.max(0.4, Math.min(viewW / contentW, viewH / contentH)));
+  graphZoom = Math.round(scale * 100) / 100;
+  graphPanX = (viewW - contentW * graphZoom) / 2 - minX * graphZoom + 40 * graphZoom;
+  graphPanY = (viewH - contentH * graphZoom) / 2 - minY * graphZoom + 40 * graphZoom;
+  applyGraphTransform();
+}
+
+function initGraphInteractions(): void {
+  const wrapper = byId('story-graph-wrapper');
+  const svg = bySvgId<SVGSVGElement>('story-graph-svg');
+  if (!wrapper || !svg) return;
+
+  let isPanning = false;
+  let panStartX = 0, panStartY = 0;
+  let draggingNodeId: string | null = null;
+  let dragNodeStartX = 0, dragNodeStartY = 0;
+  let dragNodeInitX = 0, dragNodeInitY = 0;
+
+  // 滑鼠左鍵按下：若是空白畫布 ➔ 拖動畫布平移 (Pan)；若是節點 ➔ 拖動節點 (Node Drag)
+  svg.addEventListener('mousedown', event => {
+    if (event.button !== 0) return; // 僅限左鍵
+    const target = event.target as SVGElement;
+    if (target.closest('[data-port-node]')) return; // 點輸出埠不拖動
+
+    const nodeG = target.closest<SVGGElement>('.graph-node');
+    if (nodeG) {
+      // 拖曳節點
+      draggingNodeId = nodeG.dataset.nodeId!;
+      dragNodeStartX = event.clientX;
+      dragNodeStartY = event.clientY;
+      dragNodeInitX = graphPositions[draggingNodeId]?.x ?? 0;
+      dragNodeInitY = graphPositions[draggingNodeId]?.y ?? 0;
+      svg.style.cursor = 'grabbing';
+      event.preventDefault();
+    } else {
+      // 空白畫布部位拖曳平移 (Pan)
+      isPanning = true;
+      panStartX = event.clientX - graphPanX;
+      panStartY = event.clientY - graphPanY;
+      svg.style.cursor = 'grabbing';
+      event.preventDefault();
+    }
+  });
+
+  window.addEventListener('mousemove', event => {
+    if (isPanning) {
+      graphPanX = event.clientX - panStartX;
+      graphPanY = event.clientY - panStartY;
+      applyGraphTransform();
+    } else if (draggingNodeId) {
+      const dx = (event.clientX - dragNodeStartX) / graphZoom;
+      const dy = (event.clientY - dragNodeStartY) / graphZoom;
+      const newX = Math.max(0, dragNodeInitX + dx);
+      const newY = Math.max(0, dragNodeInitY + dy);
+      graphPositions[draggingNodeId] = { x: newX, y: newY };
+      const g = svg.querySelector<SVGGElement>(`.graph-node[data-node-id="${draggingNodeId}"]`);
+      if (g) g.setAttribute('transform', `translate(${newX},${newY})`);
+      const edgeLayer = svg.querySelector<SVGGElement>('#graph-edge-layer');
+      if (edgeLayer && activeStory()) renderEdgeLayer(edgeLayer, activeStory()!);
+    }
+  });
+
+  const stopPanOrDrag = () => {
+    if (isPanning) {
+      isPanning = false;
+      svg.style.cursor = 'default';
+    }
+    if (draggingNodeId) {
+      saveGraphPos(activeStory()!.id);
+      draggingNodeId = null;
+      svg.style.cursor = 'default';
+    }
+  };
+
+  window.addEventListener('mouseup', stopPanOrDrag);
+
+  // 滾輪縮放（以滑鼠指標為錨點）
+  wrapper.addEventListener('wheel', (event: WheelEvent) => {
+    event.preventDefault();
+    const rect = wrapper.getBoundingClientRect();
+    const mouseX = event.clientX - rect.left;
+    const mouseY = event.clientY - rect.top;
+
+    const oldZoom = graphZoom;
+    const factor = event.deltaY < 0 ? 1.12 : 0.89;
+    const newZoom = Math.min(2.0, Math.max(0.3, Math.round(oldZoom * factor * 100) / 100));
+    if (newZoom === oldZoom) return;
+
+    graphPanX = mouseX - (mouseX - graphPanX) * (newZoom / oldZoom);
+    graphPanY = mouseY - (mouseY - graphPanY) * (newZoom / oldZoom);
+    graphZoom = newZoom;
+    applyGraphTransform();
+  }, { passive: false });
+
+  // 縮放按鈕
+  byId('btn-graph-zoom-in')?.addEventListener('click', () => {
+    graphZoom = Math.min(2.0, Math.round((graphZoom + 0.15) * 100) / 100);
+    applyGraphTransform();
+  });
+  byId('btn-graph-zoom-out')?.addEventListener('click', () => {
+    graphZoom = Math.max(0.3, Math.round((graphZoom - 0.15) * 100) / 100);
+    applyGraphTransform();
+  });
+  byId('btn-graph-zoom-reset')?.addEventListener('click', () => {
+    graphZoom = 1.0;
+    applyGraphTransform();
+  });
+  byId('btn-graph-fit')?.addEventListener('click', fitGraphView);
 
   // 重新排版
-  document.getElementById('btn-graph-relayout')?.addEventListener('click', () => {
+  byId('btn-graph-relayout')?.addEventListener('click', () => {
+    const story = activeStory();
+    if (!story) return;
     graphPositions = {};
     autoLayoutMissing(story.nodes);
     saveGraphPos(story.id);
     renderGraphCanvas();
+    fitGraphView();
   });
 }
 
-function initGraphDrag(svg: SVGSVGElement, story: NarrativeStory, edgeLayer: SVGGElement): void {
-  let dragging: string | null = null;
-  let startX = 0, startY = 0, startNX = 0, startNY = 0;
+// ── Fact Registry ──────────────────────────────────────────────────────────────
 
-  const nodeLayer = svg.querySelector<SVGGElement>('#graph-node-layer')!;
+interface FactRegistryEntry {
+  fact: string;
+  writers: { storyId: string; storyTitle: string; nodeId: string; nodeTitle: string }[];
+  readers: { storyId: string; storyTitle: string; nodeId: string; nodeTitle: string; conditionType: string }[];
+  warnings: ('UNUSED_WRITE' | 'MISSING_WRITER' | 'CROSS_STORY' | 'DUPLICATE_WRITER')[];
+}
 
-  svg.addEventListener('mousedown', event => {
-    const target = event.target as SVGElement;
-    if (target.closest('[data-port-node]')) return; // 不拖曳輸出埠
-    const g = target.closest<SVGGElement>('.graph-node');
-    if (!g) return;
-    const nId = g.dataset.nodeId!;
-    const svgRect = svg.getBoundingClientRect();
-    dragging = nId;
-    startX = event.clientX - svgRect.left;
-    startY = event.clientY - svgRect.top;
-    startNX = graphPositions[nId]?.x ?? 0;
-    startNY = graphPositions[nId]?.y ?? 0;
-    svg.style.cursor = 'grabbing';
-    event.preventDefault();
-  });
-
-  svg.addEventListener('mousemove', event => {
-    if (!dragging) return;
-    const svgRect = svg.getBoundingClientRect();
-    const newX = Math.max(0, startNX + event.clientX - svgRect.left - startX);
-    const newY = Math.max(0, startNY + event.clientY - svgRect.top - startY);
-    graphPositions[dragging] = { x: newX, y: newY };
-    const g = nodeLayer.querySelector<SVGGElement>(`.graph-node[data-node-id="${dragging}"]`);
-    if (g) g.setAttribute('transform', `translate(${newX},${newY})`);
-    renderEdgeLayer(edgeLayer, story);
-  });
-
-  const stopDrag = () => {
-    if (!dragging) return;
-    saveGraphPos(story.id);
-    svg.style.cursor = '';
-    dragging = null;
+function buildFactRegistry(storyList: typeof stories): Map<string, FactRegistryEntry> {
+  const registry = new Map<string, FactRegistryEntry>();
+  const ensure = (fact: string): FactRegistryEntry => {
+    if (!registry.has(fact)) registry.set(fact, { fact, writers: [], readers: [], warnings: [] });
+    return registry.get(fact)!;
   };
-  svg.addEventListener('mouseup', stopDrag);
-  svg.addEventListener('mouseleave', stopDrag);
+
+  for (const story of storyList) {
+    for (const node of story.nodes) {
+      const allEffects = [...node.completionEffects, ...node.choices.flatMap(c => c.effects)];
+      for (const effect of allEffects) {
+        if (effect.type === 'SET_FACT') {
+          ensure(effect.fact).writers.push({ storyId: story.id, storyTitle: story.title, nodeId: node.id, nodeTitle: node.title });
+        }
+      }
+      for (const condition of node.conditions) {
+        if (condition.type === 'FACT_EXISTS' || condition.type === 'FACT_MISSING' || condition.type === 'DAYS_SINCE_FACT') {
+          ensure(condition.fact).readers.push({ storyId: story.id, storyTitle: story.title, nodeId: node.id, nodeTitle: node.title, conditionType: condition.type });
+        }
+      }
+    }
+  }
+
+  for (const entry of registry.values()) {
+    const writerStories = new Set(entry.writers.map(w => w.storyId));
+    const readerStories = new Set(entry.readers.map(r => r.storyId));
+    const allStories = new Set([...writerStories, ...readerStories]);
+    if (allStories.size > 1) entry.warnings.push('CROSS_STORY');
+    if (entry.writers.length > 1) entry.warnings.push('DUPLICATE_WRITER');
+    if (entry.writers.length > 0 && entry.readers.length === 0) entry.warnings.push('UNUSED_WRITE');
+    if (entry.readers.length > 0 && entry.writers.length === 0) entry.warnings.push('MISSING_WRITER');
+  }
+
+  return registry;
 }
 
-// ── Tab 切換 ──────────────────────────────────────────────────────────────────
+function renderFactRegistry(query = ''): void {
+  const registry = buildFactRegistry(stories);
+  const listEl = byId('fact-registry-list');
+  const statsEl = byId('fact-registry-stats');
+  const lowerQuery = query.toLowerCase();
+
+  const entries = [...registry.values()].filter(entry => {
+    if (!lowerQuery) return true;
+    if (entry.fact.toLowerCase().includes(lowerQuery)) return true;
+    if (entry.writers.some(w => w.nodeTitle.toLowerCase().includes(lowerQuery) || w.storyTitle.toLowerCase().includes(lowerQuery))) return true;
+    if (entry.readers.some(r => r.nodeTitle.toLowerCase().includes(lowerQuery) || r.storyTitle.toLowerCase().includes(lowerQuery))) return true;
+    return false;
+  }).sort((a, b) => {
+    const warnA = a.warnings.includes('MISSING_WRITER') ? 0 : a.warnings.length > 0 ? 1 : 2;
+    const warnB = b.warnings.includes('MISSING_WRITER') ? 0 : b.warnings.length > 0 ? 1 : 2;
+    return warnA - warnB || a.fact.localeCompare(b.fact);
+  });
+
+  const totalWarns = [...registry.values()].filter(e => e.warnings.length > 0).length;
+  statsEl.textContent = `共 ${registry.size} 個線索・${stories.length} 條故事${totalWarns > 0 ? `・⚠ ${totalWarns} 個警告` : ''}`;
+
+  if (entries.length === 0) {
+    listEl.innerHTML = `<div class="fact-empty">${query ? '沒有符合的搜尋結果。' : '目前沒有任何線索，請在節點效果中新增「新增線索」。'}</div>`;
+    return;
+  }
+
+  listEl.innerHTML = '';
+  for (const entry of entries) {
+    const isCross = entry.warnings.includes('CROSS_STORY');
+    const hasMissingWriter = entry.warnings.includes('MISSING_WRITER');
+    const hasUnused = entry.warnings.includes('UNUSED_WRITE');
+    const hasDuplicate = entry.warnings.includes('DUPLICATE_WRITER');
+
+    const cardClasses = ['fact-card',
+      hasMissingWriter ? 'warn-missing-writer' : '',
+      hasUnused && !hasMissingWriter ? 'warn-unused-write' : '',
+      isCross ? 'is-cross-story' : ''
+    ].filter(Boolean).join(' ');
+
+    const badges = [
+      entry.writers.length > 0 ? `<span class="fact-badge write">設定 ${entry.writers.length}</span>` : '',
+      entry.readers.length > 0 ? `<span class="fact-badge read">讀取 ${entry.readers.length}</span>` : '',
+      isCross ? `<span class="fact-badge cross">跨故事</span>` : '',
+      hasDuplicate ? `<span class="fact-badge warn">重複寫入</span>` : '',
+      hasMissingWriter ? `<span class="fact-badge warn">⚠ 無來源</span>` : '',
+      hasUnused ? `<span class="fact-badge warn">⚠ 未使用</span>` : '',
+    ].filter(Boolean).join('');
+
+    const writersHtml = entry.writers.length > 0 ? `
+      <div class="fact-ref-group">
+        <div class="fact-ref-group-title write-title">✏ 設定此線索的節點</div>
+        ${entry.writers.map(w => `
+          <div class="fact-ref-item" data-jump-story="${escapeHtml(w.storyId)}" data-jump-node="${escapeHtml(w.nodeId)}">
+            <span class="fact-ref-story">${escapeHtml(w.storyTitle)}</span>
+            <span class="fact-ref-node">${escapeHtml(w.nodeTitle)}</span>
+          </div>`).join('')}
+      </div>` : '';
+
+    const conditionLabel: Record<string, string> = {
+      FACT_EXISTS: '需要存在', FACT_MISSING: '需要不存在', DAYS_SINCE_FACT: '取得後等待'
+    };
+    const readersHtml = entry.readers.length > 0 ? `
+      <div class="fact-ref-group">
+        <div class="fact-ref-group-title read-title">👁 使用此線索的條件</div>
+        ${entry.readers.map(r => `
+          <div class="fact-ref-item" data-jump-story="${escapeHtml(r.storyId)}" data-jump-node="${escapeHtml(r.nodeId)}">
+            <span class="fact-ref-story">${escapeHtml(r.storyTitle)}</span>
+            <span class="fact-ref-node">${escapeHtml(r.nodeTitle)}</span>
+            <span class="fact-ref-condition">${conditionLabel[r.conditionType] ?? r.conditionType}</span>
+          </div>`).join('')}
+      </div>` : '';
+
+    const warnHtml = [
+      hasMissingWriter ? `<div class="fact-warn-box missing-writer">⚠ 此線索在條件中被使用，但從未有任何節點透過「新增線索」效果來設定它。</div>` : '',
+      hasUnused ? `<div class="fact-warn-box unused-write">⚠ 此線索已被設定，但目前沒有任何節點的條件用到它。</div>` : '',
+      hasDuplicate ? `<div class="fact-warn-box unused-write">⚠ 多個節點都會設定此線索。</div>` : '',
+    ].filter(Boolean).join('');
+
+    const card = document.createElement('div');
+    card.className = cardClasses;
+    card.innerHTML = `
+      <div class="fact-card-header">
+        <span class="fact-name">${escapeHtml(entry.fact)}</span>
+        <div class="fact-badges">${badges}</div>
+      </div>
+      <div class="fact-card-body">
+        ${writersHtml}${readersHtml}${warnHtml}
+      </div>`;
+
+    card.querySelector('.fact-card-header')!.addEventListener('click', () => card.classList.toggle('expanded'));
+
+    card.querySelectorAll<HTMLElement>('[data-jump-story]').forEach(item => {
+      item.addEventListener('click', event => {
+        event.stopPropagation();
+        selectedStoryId = item.dataset.jumpStory!;
+        selectedNodeId = item.dataset.jumpNode!;
+        switchTab('node-editor');
+        render();
+        selectNode(selectedNodeId, true);
+      });
+    });
+
+    listEl.appendChild(card);
+  }
+}
+
+// ── Tab 切換 ──
 
 function switchTab(tabName: string): void {
   byId('tab-node-editor').hidden = tabName !== 'node-editor';
   byId('tab-fact-registry').hidden = tabName !== 'fact-registry';
-  byId('tab-graph-canvas').hidden = tabName !== 'graph-canvas';
   document.querySelectorAll('.story-tab').forEach(btn => {
     (btn as HTMLElement).classList.toggle('active', (btn as HTMLElement).dataset.tab === tabName);
   });
-  if (tabName === 'fact-registry') renderFactRegistry((byId<HTMLInputElement>('fact-registry-search')).value);
-  if (tabName === 'graph-canvas') renderGraphCanvas();
+  if (tabName === 'fact-registry') renderFactRegistry(byId<HTMLInputElement>('fact-registry-search').value);
 }
 
 function bindTabEvents(): void {
   document.querySelectorAll('.story-tab').forEach(btn => {
     btn.addEventListener('click', () => switchTab((btn as HTMLElement).dataset.tab!));
   });
-  byId('fact-registry-search').addEventListener('input', event => {
+  byId('fact-registry-search')?.addEventListener('input', event => {
     renderFactRegistry((event.target as HTMLInputElement).value);
   });
 }
 
 function bindEvents(): void {
-  byId('story-editor-story-select').addEventListener('change', event => { selectedStoryId = (event.target as HTMLSelectElement).value; selectedNodeId = activeStory()?.nodes[0]?.id ?? ''; render(); });
-  ['story-editor-story-title', 'story-editor-story-summary', 'story-editor-story-enabled'].forEach(id => byId(id).addEventListener('input', syncStory));
-  byId('story-editor-node-form').addEventListener('input', syncNode);
-  byId('btn-story-add-condition').addEventListener('click', () => {
+  byId('story-editor-story-search')?.addEventListener('input', event => {
+    storySearchQuery = (event.target as HTMLInputElement).value;
+    renderStoryList();
+  });
+
+  ['story-editor-story-title', 'story-editor-story-summary', 'story-editor-story-enabled'].forEach(id => byId(id)?.addEventListener('input', syncStory));
+  byId('story-editor-node-form')?.addEventListener('input', syncNode);
+
+  byId('btn-story-add-condition')?.addEventListener('click', () => {
     const node = activeNode(); if (!node) return;
     node.conditions.push(defaultCondition());
     renderConditionList(node); refreshEffectSummary();
   });
-  byId('btn-story-add-effect').addEventListener('click', () => {
+
+  byId('btn-story-add-effect')?.addEventListener('click', () => {
     const node = activeNode(); if (!node) return;
     node.completionEffects.push(defaultEffect());
     renderForm(); refreshEffectSummary();
   });
-  for (const choiceNumber of [1, 2]) {
-    byId(`btn-story-add-choice-effect-${choiceNumber}`).addEventListener('click', () => {
-      const node = activeNode(); if (!node) return;
-      const index = choiceNumber - 1;
-      const effects = [...(node.choices[index]?.effects ?? []), defaultEffect()];
-      updateChoiceEffects(index, effects);
-      renderForm();
-    });
-  }
-  byId('btn-story-new').addEventListener('click', () => {
+
+  byId('btn-story-add-choice')?.addEventListener('click', () => {
+    const node = activeNode(); if (!node) return;
+    if (!node.choices) node.choices = [];
+    const nextIndex = node.choices.length + 1;
+    node.choices.push({ id: `choice_${nextIndex}`, text: `新選項 ${nextIndex}`, resultText: '', effects: [] });
+    renderChoicesList(node);
+    refreshEffectSummary();
+  });
+
+  byId('btn-story-new')?.addEventListener('click', () => {
     const id = uniqueId('new_story', stories.map(story => story.id));
     stories.push({ id, title: '新故事', summary: '', version: 1, enabled: false, nodes: [makeNode('opening')] });
-    selectedStoryId = id; selectedNodeId = 'opening'; render();
+    selectedStoryId = id; selectedNodeId = 'opening';
+    graphPositions = {};
+    render();
+    fitGraphView();
   });
-  byId('btn-story-add-node').addEventListener('click', () => {
+
+  byId('btn-story-add-node')?.addEventListener('click', () => {
     const story = activeStory(); if (!story) return;
     const id = uniqueId('new_node', story.nodes.map(node => node.id));
-    story.nodes.push(makeNode(id)); selectedNodeId = id; render();
+    story.nodes.push(makeNode(id));
+    selectedNodeId = id;
+    autoLayoutMissing(story.nodes);
+    saveGraphPos(story.id);
+    render();
+    selectNode(id, true);
   });
-  byId('btn-story-delete-node').addEventListener('click', () => {
+
+  byId('btn-story-delete-node')?.addEventListener('click', () => {
     const story = activeStory(); if (!story || !activeNode() || !confirm(`刪除節點「${activeNode()!.title}」？`)) return;
-    story.nodes = story.nodes.filter(node => node.id !== selectedNodeId); selectedNodeId = story.nodes[0]?.id ?? ''; render();
+    story.nodes = story.nodes.filter(node => node.id !== selectedNodeId);
+    selectedNodeId = story.nodes[0]?.id ?? '';
+    render();
   });
-  byId('btn-story-publish').addEventListener('click', () => void saveProject().catch(error => alert(error.message)));
-  byId('btn-story-test-node').addEventListener('click', testNode);
-  byId('btn-story-history').addEventListener('click', () => void showHistory().catch(error => alert(error.message)));
-  byId('btn-story-reset-progress').addEventListener('click', () => { if (confirm('放棄尚未寫入專案的修改，重新讀取磁碟？')) void loadFromProject(); });
-  byId('btn-story-export').addEventListener('click', () => {
+
+  byId('btn-story-publish')?.addEventListener('click', () => void saveProject().catch(error => alert(error.message)));
+  byId('btn-story-test-node')?.addEventListener('click', testNode);
+  byId('btn-story-history')?.addEventListener('click', () => void showHistory().catch(error => alert(error.message)));
+  byId('btn-story-reset-progress')?.addEventListener('click', () => { if (confirm('放棄尚未寫入專案的修改，重新讀取磁碟？')) void loadFromProject(); });
+  
+  byId('btn-story-export')?.addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(stories, null, 2)], { type: 'application/json' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'stories.json'; link.click(); URL.revokeObjectURL(link.href);
   });
-  byId('btn-close-story-editor').addEventListener('click', () => { window.close(); location.href = new URL('../', location.href).href; });
+
+  byId('btn-close-story-editor')?.addEventListener('click', () => { window.close(); location.href = new URL('../', location.href).href; });
 }
 
 function setValue(id: string, next: string | number): void { byId<HTMLInputElement>(id).value = String(next); }
 function uniqueId(prefix: string, used: string[]): string { let id = prefix; let index = 2; while (used.includes(id)) id = `${prefix}_${index++}`; return id; }
 function describeConditions(conditions: NarrativeCondition[]): string { return conditions.length ? `觸發條件：${conditions.map(item => item.type).join('、')}` : '此節點沒有額外觸發條件。'; }
-function channelName(channel: NarrativeNode['channel']): string { return ({ BOUNTY_BOARD: '懸賞板', TAVERN_RUMOR: '酒館傳聞', TERRITORY_EVENT: '領地事件', EXPLORATION: '發現據點時', SUBJUGATION: '討伐後', SUBJUGATION_JOURNEY: '討伐途中', STORY_NODE: '解鎖預設據點' } as const)[channel]; }
+function channelName(channel: NarrativeNode['channel']): string {
+  return ({
+    BOUNTY_BOARD: '懸賞板', TAVERN_RUMOR: '酒館傳聞', TERRITORY_EVENT: '領地事件',
+    TODO_LIST: '待辦清單', EXPLORATION: '發現據點時', SUBJUGATION: '討伐後',
+    SUBJUGATION_JOURNEY: '討伐途中', STORY_NODE: '解鎖預設據點'
+  } as const)[channel] ?? channel;
+}
 function escapeHtml(text: string): string { const span = document.createElement('span'); span.textContent = text; return span.innerHTML; }
 
-async function bootstrap(): Promise<void> { await loadTemplate(); bindTabEvents(); bindEvents(); await loadFromProject(); }
-bootstrap().catch(error => { document.body.innerHTML = `<pre class="story-studio-error">故事工坊啟動失敗：${escapeHtml(error.message)}</pre>`; });
+async function bootstrap(): Promise<void> {
+  await loadTemplate();
+  bindTabEvents();
+  bindEvents();
+  initGraphInteractions();
+  await loadFromProject();
+  fitGraphView();
+}
+
+bootstrap().catch(error => {
+  document.body.innerHTML = `<pre class="story-studio-error">故事工坊啟動失敗：${escapeHtml(error.message)}</pre>`;
+});

@@ -2,69 +2,109 @@
   <div class="story-editor-shell glass-panel">
     <header class="story-editor-header">
       <div>
-        <h2>🧭 故事編排器</h2>
-        <p>把故事節點發布到懸賞、酒館、領地事件、探索與固定據點。</p>
+        <h2>🧭 故事工坊</h2>
+        <p>開發工具：視覺化編排故事流程圖、配置獎勵與條件，支援一鍵專案寫入與遊戲測試。</p>
       </div>
       <div class="story-editor-header-actions">
+        <button id="btn-story-history" class="action-btn">歷史快照</button>
         <button id="btn-story-export" class="action-btn">匯出 JSON</button>
-        <button id="btn-story-publish" class="action-btn story-primary">發布到遊戲</button>
+        <button id="btn-story-publish" class="action-btn story-primary">寫入專案</button>
         <button id="btn-close-story-editor" class="close-btn">×</button>
       </div>
     </header>
 
     <!-- Tab Bar -->
     <nav class="story-tab-bar">
-      <button class="story-tab active" data-tab="node-editor">📋 節點編輯</button>
+      <button class="story-tab active" data-tab="node-editor">📋 故事工坊工作台</button>
       <button class="story-tab" data-tab="fact-registry">🔗 線索登錄表</button>
-      <button class="story-tab" data-tab="graph-canvas">🗺 流程圖</button>
     </nav>
 
-    <!-- Tab 1: 節點編輯（現有三欄） -->
+    <!-- Tab 1: 一體化工作台（三欄） -->
     <div id="tab-node-editor" class="story-tab-panel active">
       <div class="story-editor-workspace">
+        
+        <!-- 左欄：故事庫清單與設定 -->
         <aside class="story-editor-sidebar">
-          <div class="story-editor-section-title">故事</div>
-          <select id="story-editor-story-select"></select>
-          <button id="btn-story-new" class="action-btn">＋ 新增故事</button>
-          <label>故事名稱<input id="story-editor-story-title" type="text"></label>
-          <label>故事摘要<textarea id="story-editor-story-summary" rows="3"></textarea></label>
-          <label class="story-editor-check"><input id="story-editor-story-enabled" type="checkbox"> 啟用這條故事</label>
-          <div class="story-editor-divider"></div>
-          <div class="story-editor-section-title">遊戲狀態</div>
-          <div id="story-editor-facts" class="story-editor-facts"></div>
-          <button id="btn-story-reset-progress" class="action-btn">重置本故事進度</button>
+          <div class="story-list-header">
+            <div class="story-editor-section-title">故事庫</div>
+            <button id="btn-story-new" class="action-btn">＋ 新增故事</button>
+          </div>
+          <input id="story-editor-story-search" type="search" placeholder="搜尋故事名稱或代號…">
+          <div id="story-editor-story-list" class="story-editor-story-list"></div>
+
+          <details open class="story-sidebar-details">
+            <summary>故事設定</summary>
+            <label>故事名稱<input id="story-editor-story-title" type="text"></label>
+            <label>故事摘要<textarea id="story-editor-story-summary" rows="2"></textarea></label>
+            <label class="story-editor-check"><input id="story-editor-story-enabled" type="checkbox"> 啟用這條故事</label>
+          </details>
+
+          <details class="story-sidebar-details">
+            <summary>故事線索索引</summary>
+            <div id="story-editor-facts" class="story-editor-facts"></div>
+          </details>
+
+          <div class="story-sidebar-footer">
+            <button id="btn-story-reset-progress" class="action-btn">重新讀取磁碟</button>
+          </div>
         </aside>
 
+        <!-- 中欄：一體化節點導航與流程圖畫布 -->
         <main class="story-editor-canvas">
-          <div class="story-editor-canvas-toolbar">
-            <div>
-              <strong>故事節點</strong>
-              <span>節點順序由條件決定，不是畫面位置。</span>
+          <div class="graph-toolbar">
+            <div class="graph-toolbar-main">
+              <button id="btn-story-add-node" class="action-btn story-primary">＋ 新增節點</button>
+              <button id="btn-graph-relayout" class="action-btn">🔀 重排</button>
+              <button id="btn-graph-fit" class="action-btn">🔍 適應全景</button>
+              <div class="graph-zoom-controls">
+                <button id="btn-graph-zoom-out" class="zoom-btn" title="縮小">−</button>
+                <span id="graph-zoom-val">100%</span>
+                <button id="btn-graph-zoom-in" class="zoom-btn" title="放大">＋</button>
+                <button id="btn-graph-zoom-reset" class="zoom-btn" title="重設縮放 1:1">1:1</button>
+              </div>
             </div>
-            <button id="btn-story-add-node" class="action-btn">＋ 新增節點</button>
+            <div class="graph-toolbar-legend">
+              <span class="graph-legend-item legend-fact">── Fact 依賴</span>
+              <span class="graph-legend-item legend-schedule">── 排程</span>
+              <span class="graph-legend-item legend-victory">── 勝利</span>
+              <span class="graph-legend-item legend-defeat">── 失敗</span>
+              <span class="graph-legend-item legend-journey">╌╌ 途中</span>
+            </div>
+            <span id="graph-wire-hint" class="graph-wire-hint" hidden>🔌 點擊目標節點建立「排程」連線，或再點輸出埠取消</span>
           </div>
-          <div id="story-editor-node-list" class="story-editor-node-list"></div>
+
+          <!-- 緊湊節點選取列 -->
+          <div id="story-editor-node-pills" class="story-editor-node-pills"></div>
+
+          <!-- 流程圖 SVG 畫布 -->
+          <div id="story-graph-wrapper" class="graph-scroll-wrapper">
+            <svg id="story-graph-svg"></svg>
+          </div>
+
+          <!-- 結構檢查狀態條 -->
           <div id="story-editor-validation" class="story-editor-validation"></div>
         </main>
 
+        <!-- 右欄：節點屬性 Inspector -->
         <aside class="story-editor-inspector">
-          <div id="story-editor-empty">選擇一個節點開始編輯。</div>
+          <div id="story-editor-empty">在流程圖或上方列表選擇一個節點開始編輯。</div>
           <div id="story-editor-node-form" hidden>
             <div class="story-editor-section-title">節點內容</div>
             <label>節點代號<input id="story-node-id" type="text" placeholder="小寫英文＋底線，例：quest_dragon"></label>
             <label>出現機制
               <select id="story-node-channel">
-                <option value="BOUNTY_BOARD">懸賞板</option>
-                <option value="TAVERN_RUMOR">酒館傳聞</option>
-                <option value="TERRITORY_EVENT">領地突發事件</option>
-                <option value="EXPLORATION">發現據點時</option>
-                <option value="SUBJUGATION">討伐結束後</option>
-                <option value="SUBJUGATION_JOURNEY">討伐途中</option>
-                <option value="STORY_NODE">解鎖預設故事據點</option>
+                <option value="BOUNTY_BOARD">懸賞板 (BOUNTY_BOARD)</option>
+                <option value="TAVERN_RUMOR">酒館傳聞 (TAVERN_RUMOR)</option>
+                <option value="TERRITORY_EVENT">領地突發事件 (TERRITORY_EVENT)</option>
+                <option value="TODO_LIST">領地待辦清單 (TODO_LIST)</option>
+                <option value="EXPLORATION">發現據點時 (EXPLORATION)</option>
+                <option value="SUBJUGATION">討伐結束後 (SUBJUGATION)</option>
+                <option value="SUBJUGATION_JOURNEY">討伐途中 (SUBJUGATION_JOURNEY)</option>
+                <option value="STORY_NODE">解鎖預設故事據點 (STORY_NODE)</option>
               </select>
             </label>
             <label>標題<input id="story-node-title" type="text"></label>
-            <label>故事敘述<textarea id="story-node-description" rows="5"></textarea></label>
+            <label>故事敘述<textarea id="story-node-description" rows="4"></textarea></label>
 
             <details open>
               <summary>出現條件</summary>
@@ -73,7 +113,7 @@
             </details>
 
             <details open>
-              <summary>完成後結果</summary>
+              <summary>完成後結果／獎勵</summary>
               <div id="story-node-effects-list" class="story-effect-list"></div>
               <button id="btn-story-add-effect" type="button" class="action-btn">＋ 新增結果／獎勵</button>
             </details>
@@ -95,16 +135,10 @@
               </div>
             </details>
 
-            <details>
-              <summary>玩家選項（最多兩項）</summary>
-              <label>選項一<input id="story-node-choice-1" type="text"></label>
-              <label>選項一結果文字<textarea id="story-node-choice-result-1" rows="2"></textarea></label>
-              <div id="story-node-choice-effects-1" class="story-effect-list compact"></div>
-              <button id="btn-story-add-choice-effect-1" type="button" class="action-btn">＋ 選項一結果</button>
-              <label>選項二<input id="story-node-choice-2" type="text"></label>
-              <label>選項二結果文字<textarea id="story-node-choice-result-2" rows="2"></textarea></label>
-              <div id="story-node-choice-effects-2" class="story-effect-list compact"></div>
-              <button id="btn-story-add-choice-effect-2" type="button" class="action-btn">＋ 選項二結果</button>
+            <details open>
+              <summary>玩家決策選項（支援自由多選項）</summary>
+              <div id="story-node-choices-list" class="story-choices-list"></div>
+              <button id="btn-story-add-choice" type="button" class="action-btn">＋ 新增決策選項</button>
             </details>
 
             <div class="story-editor-node-actions">
@@ -126,14 +160,6 @@
         <div class="fact-registry-stats" id="fact-registry-stats"></div>
       </div>
       <div id="fact-registry-list" class="fact-registry-list"></div>
-    </div>
-
-    <!-- Tab 3: 流程圖畫布（Phase 3 預留） -->
-    <div id="tab-graph-canvas" class="story-tab-panel" hidden>
-      <div class="graph-canvas-placeholder">
-        <span>🗺</span>
-        <p>流程圖畫布 — 即將推出</p>
-      </div>
     </div>
 
   </div>

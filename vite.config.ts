@@ -6,7 +6,7 @@ function developmentStudioPlugin(): Plugin {
   return {
     name: 'development-studio-api',
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
+      server.middlewares.use((req: any, res: any, next: any) => {
         const url = req.url || '';
 
         const storyFile = path.resolve(__dirname, 'src/data/custom_stories.json');
@@ -19,7 +19,7 @@ function developmentStudioPlugin(): Plugin {
 
         if (url === '/api/save-story-definitions' && req.method === 'POST') {
           let body = '';
-          req.on('data', chunk => { body += chunk; });
+          req.on('data', (chunk: any) => { body += chunk; });
           req.on('end', () => {
             try {
               const payload = JSON.parse(body);
@@ -62,7 +62,7 @@ function developmentStudioPlugin(): Plugin {
 
         if (url === '/api/restore-story-backup' && req.method === 'POST') {
           let body = '';
-          req.on('data', chunk => { body += chunk; });
+          req.on('data', (chunk: any) => { body += chunk; });
           req.on('end', () => {
             try {
               const { filename } = JSON.parse(body);
@@ -88,38 +88,74 @@ function developmentStudioPlugin(): Plugin {
           return;
         }
         
-        // 1. 取得當前磁碟配置
+        // 1. 讀取專案配置與圖集定義
         if (url === '/api/get-icon-config' && req.method === 'GET') {
-          const filePath = path.resolve(__dirname, 'src/data/custom_icon_config.json');
-          if (fs.existsSync(filePath)) {
-            const data = fs.readFileSync(filePath, 'utf-8');
-            res.setHeader('Content-Type', 'application/json');
-            return res.end(data);
+          const dataDir = path.resolve(__dirname, 'src/data');
+          const configFile = path.resolve(dataDir, 'custom_icon_config.json');
+          const datasetsFile = path.resolve(dataDir, 'custom_icon_datasets.json');
+          
+          let configs = {};
+          let datasets = null;
+
+          if (fs.existsSync(configFile)) {
+            try { configs = JSON.parse(fs.readFileSync(configFile, 'utf-8')); } catch (e) {}
           }
+          if (fs.existsSync(datasetsFile)) {
+            try { datasets = JSON.parse(fs.readFileSync(datasetsFile, 'utf-8')); } catch (e) {}
+          }
+
           res.setHeader('Content-Type', 'application/json');
-          return res.end(JSON.stringify({ weapons: {}, facilities: {}, materials: {}, avatars_male: {}, avatars_female: {} }));
+          return res.end(JSON.stringify({ configs, datasets }));
         }
 
-        // 2. 寫入專案檔案並自動建立歷史快照
+        // 2. 寫入專案檔案並自動建立輕量化歷史快照
         if (url === '/api/save-icon-config' && req.method === 'POST') {
           let body = '';
-          req.on('data', chunk => { body += chunk; });
+          req.on('data', (chunk: any) => { body += chunk; });
           req.on('end', () => {
             try {
               const payload = JSON.parse(body);
               const dataDir = path.resolve(__dirname, 'src/data');
               const backupsDir = path.resolve(dataDir, 'icon_backups');
+              const customIconsDir = path.resolve(__dirname, 'public/assets/custom_icons');
               
               if (!fs.existsSync(backupsDir)) {
                 fs.mkdirSync(backupsDir, { recursive: true });
               }
+              if (!fs.existsSync(customIconsDir)) {
+                fs.mkdirSync(customIconsDir, { recursive: true });
+              }
 
-              // 寫入主檔案
+              // 檢查 datasets 中的 base64 並抽取寫入實體檔案
+              const datasetsToSave = payload.datasets ? JSON.parse(JSON.stringify(payload.datasets)) : null;
+              if (datasetsToSave) {
+                for (const [key, cat] of Object.entries(datasetsToSave as Record<string, any>)) {
+                  if (cat.spriteUrl && cat.spriteUrl.startsWith('data:image')) {
+                    const matches = cat.spriteUrl.match(/^data:image\/([a-zA-Z+]+);base64,(.+)$/);
+                    if (matches) {
+                      const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+                      const buffer = Buffer.from(matches[2], 'base64');
+                      const filename = `${key}.${ext}`;
+                      const filePath = path.resolve(customIconsDir, filename);
+                      fs.writeFileSync(filePath, buffer);
+                      cat.spriteUrl = `../public/assets/custom_icons/${filename}`;
+                    }
+                  }
+                }
+              }
+
+              // 寫入主檔案 custom_icon_config.json
               const mainFile = path.resolve(dataDir, 'custom_icon_config.json');
               const contentToSave = payload.configs ? payload.configs : payload;
               fs.writeFileSync(mainFile, JSON.stringify(contentToSave, null, 2), 'utf-8');
 
-              // 建立歷史快照 (自動保留最近 20 份)
+              // 寫入自訂圖集定義檔案 custom_icon_datasets.json
+              if (datasetsToSave) {
+                const datasetsMainFile = path.resolve(dataDir, 'custom_icon_datasets.json');
+                fs.writeFileSync(datasetsMainFile, JSON.stringify(datasetsToSave, null, 2), 'utf-8');
+              }
+
+              // 建立輕量化歷史快照 (自動保留最近 20 份，完全不含 Base64，單檔 3~25KB)
               const now = new Date();
               const pad = (n: number) => n.toString().padStart(2, '0');
               const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
@@ -130,7 +166,7 @@ function developmentStudioPlugin(): Plugin {
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在圖標工坊儲存',
                 data: contentToSave,
-                datasets: payload.datasets || null
+                datasets: datasetsToSave || null
               }, null, 2), 'utf-8');
 
               // 清理超過 20 份的舊快照
@@ -146,7 +182,8 @@ function developmentStudioPlugin(): Plugin {
                 success: true,
                 message: '已成功寫入硬碟專案檔案！',
                 snapshot: snapshotFile,
-                timestamp: now.toISOString()
+                timestamp: now.toISOString(),
+                datasets: datasetsToSave
               }));
             } catch (err: any) {
               res.statusCode = 500;
@@ -184,32 +221,41 @@ function developmentStudioPlugin(): Plugin {
           return res.end(JSON.stringify({ backups }));
         }
 
-        // 4. 回溯還原特定歷史快照
+        // 4. 從歷史快照還原
         if (url === '/api/restore-icon-backup' && req.method === 'POST') {
           let body = '';
-          req.on('data', chunk => { body += chunk; });
+          req.on('data', (chunk: any) => { body += chunk; });
           req.on('end', () => {
             try {
               const { filename } = JSON.parse(body);
               const backupsDir = path.resolve(__dirname, 'src/data/icon_backups');
               const targetPath = path.resolve(backupsDir, filename);
+
               if (!fs.existsSync(targetPath)) {
                 res.statusCode = 404;
                 return res.end(JSON.stringify({ success: false, error: '找不到該快照檔案' }));
               }
-              const snapshotContent = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+
+              const content = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               const mainFile = path.resolve(__dirname, 'src/data/custom_icon_config.json');
-              fs.writeFileSync(mainFile, JSON.stringify(snapshotContent.data, null, 2), 'utf-8');
+              const configData = content.data || content;
+              fs.writeFileSync(mainFile, JSON.stringify(configData, null, 2), 'utf-8');
+
+              if (content.datasets) {
+                const datasetsMainFile = path.resolve(__dirname, 'src/data/custom_icon_datasets.json');
+                fs.writeFileSync(datasetsMainFile, JSON.stringify(content.datasets, null, 2), 'utf-8');
+              }
 
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({
                 success: true,
-                message: `成功還原快照【${filename}】！`,
-                data: snapshotContent.data,
-                datasets: snapshotContent.datasets
+                message: `已成功還原至快照 ${filename}！`,
+                data: configData,
+                datasets: content.datasets || null
               }));
             } catch (err: any) {
               res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: false, error: err.message }));
             }
           });

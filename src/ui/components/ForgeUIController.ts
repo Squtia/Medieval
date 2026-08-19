@@ -1558,7 +1558,7 @@ export class ForgeUIController {
   
     matKeys.forEach(matId => {
       const count = materials[matId] || 0;
-      const matDef = (materialsJson as Record<string, any>)[matId] || { name: matId, icon: '🧲', description: '強化/附魔素材' };
+      const matDef = DataStore.MaterialDB[matId] || { name: matId, icon: '🧲', description: '強化/附魔素材' };
   
       const card = document.createElement('div');
       card.style.background = 'rgba(30, 24, 20, 0.8)';

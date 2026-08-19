@@ -152,4 +152,35 @@ describe('NarrativeSystem', () => {
     expect(GameState.narrativeState.presentedNodeIds).toContain('test_story:victory');
     expect(GameState.narrativeState.presentedNodeIds).not.toContain('test_story:defeat');
   });
+
+  it('canAffordChoice 正確判定金幣、特產與素材是否足夠支付選項消耗', () => {
+    GameState.myTerritory.gold = 100;
+    GameState.myTerritory.tradeInventory = { tg_spice: 1 };
+    GameState.myTerritory.materials = { mat_stone_brick: 2 };
+
+    const choiceAffordable = {
+      id: 'c1', text: '選項1', resultText: '',
+      effects: [
+        { type: 'ADD_GOLD' as const, value: -50 },
+        { type: 'GRANT_TRADE_GOOD' as const, itemId: 'tg_spice', quantity: -1, mode: 'FIXED' as const }
+      ]
+    };
+    expect(NarrativeSystem.canAffordChoice(choiceAffordable).affordable).toBe(true);
+
+    const choiceGoldShort = {
+      id: 'c2', text: '選項2', resultText: '',
+      effects: [{ type: 'ADD_GOLD' as const, value: -200 }]
+    };
+    const goldRes = NarrativeSystem.canAffordChoice(choiceGoldShort);
+    expect(goldRes.affordable).toBe(false);
+    expect(goldRes.missingReason).toContain('金幣不足');
+
+    const choiceSpiceShort = {
+      id: 'c3', text: '選項3', resultText: '',
+      effects: [{ type: 'GRANT_TRADE_GOOD' as const, itemId: 'tg_spice', quantity: -2, mode: 'FIXED' as const }]
+    };
+    const spiceRes = NarrativeSystem.canAffordChoice(choiceSpiceShort);
+    expect(spiceRes.affordable).toBe(false);
+    expect(spiceRes.missingReason).toContain('缺少特產');
+  });
 });

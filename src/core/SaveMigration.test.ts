@@ -12,7 +12,28 @@ describe('save migration', () => {
   });
 
   it('does not overwrite values already present in a current save, but upgrades schema version', () => {
-    const current = { schemaVersion: 4, totalDays: 99, threat: { daysRemaining: 2 } };
+    const current = { schemaVersion: CURRENT_SAVE_SCHEMA_VERSION, totalDays: 99, threat: { daysRemaining: 2 } };
     expect(migrateSaveData(current)).toEqual(current);
+  });
+
+  it('migrates legacy uppercase material IDs to valid trade goods and crafting materials', () => {
+    const raw = {
+      schemaVersion: 1,
+      myTerritory: {
+        materials: {
+          RAW_HIDE: 3,
+          GRAIN: 5,
+          STONE: 4,
+          mat_iron_ingot: 2
+        },
+        tradeInventory: {}
+      }
+    };
+    const migrated = migrateSaveData(raw);
+    expect(migrated.myTerritory.materials['RAW_HIDE']).toBeUndefined();
+    expect(migrated.myTerritory.tradeInventory['tg_hide']).toBe(3);
+    expect(migrated.myTerritory.tradeInventory['tg_wheat']).toBe(5);
+    expect(migrated.myTerritory.materials['mat_stone_brick']).toBe(4);
+    expect(migrated.myTerritory.materials['mat_iron_ingot']).toBe(2);
   });
 });

@@ -3,6 +3,8 @@ import { GameLog } from '../ui/GameLog';
 import { Adventurer } from '../models/Adventurer';
 import { AdventurerState } from '../models/types';
 import { NarrativeSystem } from './NarrativeSystem';
+import { DataStore } from './DataStore';
+import { TRADE_GOODS } from './MarketSystem';
 
 export interface BountyQuest {
   id: string;
@@ -28,18 +30,18 @@ export class BountySystem {
   // 日常任務模板
   private static readonly QUEST_TEMPLATES = [
     { name: '找尋走失的貓', desc: '鎮上的老奶奶丟失了她心愛的花貓，希望有人能幫忙找回來。', duration: 1, gold: 20, exp: 10, type: 'NORMAL' },
-    { name: '清理下水道老鼠', desc: '酒館老闆抱怨下水道老鼠氾濫，需要有人去清理一下。', duration: 1, gold: 15, exp: 25, items: [{id: 'RAW_HIDE', amount: 1}], type: 'NORMAL' },
+    { name: '清理下水道老鼠', desc: '酒館老闆抱怨下水道老鼠氾濫，需要有人去清理一下。', duration: 1, gold: 15, exp: 25, items: [{id: 'tg_hide', amount: 1}], type: 'NORMAL' },
     { name: '夜間守望巡邏', desc: '守衛長正在招募夜間巡邏的人手，提防鎮外的流寇。', duration: 2, gold: 30, exp: 40, type: 'BANDIT' },
-    { name: '幫忙農夫收割', desc: '收穫季到了，農夫急需人手幫忙收割麥子。', duration: 1, gold: 10, exp: 15, items: [{id: 'GRAIN', amount: 3}], type: 'NORMAL' },
-    { name: '驅趕偷吃穀物的野豬', desc: '一頭野豬頻繁破壞農田，將其驅趕或獵殺。', duration: 2, gold: 25, exp: 35, items: [{id: 'MEAT', amount: 2}], type: 'NORMAL' },
+    { name: '幫忙農夫收割', desc: '收穫季到了，農夫急需人手幫忙收割麥子。', duration: 1, gold: 10, exp: 15, items: [{id: 'tg_wheat', amount: 3}], type: 'NORMAL' },
+    { name: '驅趕偷吃穀物的野豬', desc: '一頭野豬頻繁破壞農田，將其驅趕或獵殺。', duration: 2, gold: 25, exp: 35, items: [{id: 'tg_meat', amount: 2}], type: 'NORMAL' },
     { name: '護送商人到鄰鎮', desc: '一名行商需要護衛，保護他平安抵達鄰近城鎮。', duration: 3, gold: 80, exp: 50, type: 'NORMAL' },
-    { name: '採集稀有藥草', desc: '藥劑師委託採集生長在森林深處的珍貴藥草。', duration: 2, gold: 20, exp: 30, items: [{id: 'COTTON', amount: 2}], type: 'NORMAL' },
+    { name: '採集稀有藥草', desc: '藥劑師委託採集生長在森林深處的珍貴藥草。', duration: 2, gold: 20, exp: 30, items: [{id: 'tg_cotton', amount: 2}], type: 'NORMAL' },
     { name: '教訓地痞流氓', desc: '有幾個小混混在收保護費，去給他們一點教訓。', duration: 1, gold: 40, exp: 20, type: 'BANDIT' },
-    { name: '修補城牆破損', desc: '城牆有一處缺口需要搬運石料並修補。', duration: 2, gold: 15, exp: 15, items: [{id: 'STONE', amount: 3}], type: 'NORMAL' },
-    { name: '協助礦工搬運', desc: '礦場近期產量大增，需要體力充沛的人幫忙搬運礦石。', duration: 2, gold: 20, exp: 20, items: [{id: 'IRON_ORE', amount: 3}], type: 'NORMAL' },
-    { name: '伐木場周邊警戒', desc: '伐木工在森林中感覺被注視，疑似有強盜出沒，請去巡視。', duration: 2, gold: 30, exp: 25, items: [{id: 'WOOD', amount: 3}], type: 'BANDIT' },
+    { name: '修補城牆破損', desc: '城牆有一處缺口需要搬運石料並修補。', duration: 2, gold: 15, exp: 15, items: [{id: 'mat_stone_brick', amount: 3}], type: 'NORMAL' },
+    { name: '協助礦工搬運', desc: '礦場近期產量大增，需要體力充沛的人幫忙搬運礦石。', duration: 2, gold: 20, exp: 20, items: [{id: 'mat_iron_ingot', amount: 3}], type: 'NORMAL' },
+    { name: '伐木場周邊警戒', desc: '伐木工在森林中感覺被注視，疑似有強盜出沒，請去巡視。', duration: 2, gold: 30, exp: 25, items: [{id: 'mat_wood_plank', amount: 3}], type: 'BANDIT' },
     { name: '尋找遺失的傳家寶', desc: '某位貴族在郊外弄丟了戒指，重金懸賞尋回。', duration: 3, gold: 100, exp: 10, type: 'NORMAL' },
-    { name: '捕捉破壞農田的野狼', desc: '一群野狼正在襲擊家畜，需要強者去解決。', duration: 2, gold: 40, exp: 40, items: [{id: 'RAW_HIDE', amount: 2}, {id: 'MEAT', amount: 1}], type: 'NORMAL' },
+    { name: '捕捉破壞農田的野狼', desc: '一群野狼正在襲擊家畜，需要強者去解決。', duration: 2, gold: 40, exp: 40, items: [{id: 'tg_hide', amount: 2}, {id: 'tg_meat', amount: 1}], type: 'NORMAL' },
     { name: '清理廢棄水井的黏液', desc: '鎮外廢棄的水井長滿了奇怪的史萊姆，去清理乾淨。', duration: 1, gold: 25, exp: 30, type: 'NORMAL' },
     { name: '清剿荒野強盜營地', desc: '有一群強盜在荒野紮營並頻繁襲擊旅人，將其徹底清剿。', duration: 3, gold: 60, exp: 60, type: 'BANDIT' }
   ];
@@ -154,11 +156,18 @@ export class BountySystem {
 
     if (bounty.rewards.items) {
       bounty.rewards.items.forEach((item: any) => {
-        gameState.myTerritory.materials = gameState.myTerritory.materials || {};
-        gameState.myTerritory.materials[item.id] = (gameState.myTerritory.materials[item.id] || 0) + item.amount;
-        // 簡單翻譯
-        const names: Record<string, string> = { 'RAW_HIDE': '獸皮', 'GRAIN': '穀物', 'MEAT': '肉類', 'COTTON': '棉花', 'STONE': '石材', 'IRON_ORE': '鐵礦', 'WOOD': '木材' };
-        const itemName = names[item.id] || item.id;
+        let itemName = item.id;
+        if (item.id.startsWith('tg_')) {
+          gameState.myTerritory.tradeInventory = gameState.myTerritory.tradeInventory || {};
+          gameState.myTerritory.tradeInventory[item.id] = (gameState.myTerritory.tradeInventory[item.id] || 0) + item.amount;
+          const tg = TRADE_GOODS.find(g => g.id === item.id);
+          if (tg) itemName = tg.name;
+        } else {
+          gameState.myTerritory.materials = gameState.myTerritory.materials || {};
+          gameState.myTerritory.materials[item.id] = (gameState.myTerritory.materials[item.id] || 0) + item.amount;
+          const mat = DataStore.MaterialDB[item.id];
+          if (mat) itemName = mat.name;
+        }
         rewardText += `、${itemName} x${item.amount}`;
       });
     }

@@ -20,8 +20,10 @@ export const ICON_SIZE = {
 } as const;
 
 import defaultCustomConfig from '../data/custom_icon_config.json';
+import defaultCustomDatasets from '../data/custom_icon_datasets.json';
 
 export const LOCAL_STORAGE_ICON_CONFIG_KEY = 'MEDIEVAL_CUSTOM_ICON_CONFIG';
+export const LOCAL_STORAGE_ICON_DATASETS_KEY = 'MEDIEVAL_CUSTOM_ICON_DATASETS';
 
 /**
  * 取得自訂圖標配置 (優先讀取 LocalStorage 即時微調，無則讀取專案磁碟 custom_icon_config.json)
@@ -38,22 +40,19 @@ export function getCustomIconConfig(): Record<string, Record<string, SpriteCoord
   }
   
   const fileConfig = (defaultCustomConfig || {}) as any;
+  const datasets = (defaultCustomDatasets || {}) as any;
 
-  return {
+  const result: Record<string, Record<string, SpriteCoordConfig>> = {
     ...fileConfig,
     ...storageConfig,
-    weapons: { ...(fileConfig.weapons || {}), ...(storageConfig.weapons || {}) },
-    facilities: { ...(fileConfig.facilities || {}), ...(storageConfig.facilities || {}) },
-    materials: { ...(fileConfig.materials || {}), ...(storageConfig.materials || {}) },
-    avatars_male: { ...(fileConfig.avatars_male || {}), ...(storageConfig.avatars_male || {}) },
-    avatars_female: { ...(fileConfig.avatars_female || {}), ...(storageConfig.avatars_female || {}) },
-    guardian_male: { ...(fileConfig.guardian_male || {}), ...(storageConfig.guardian_male || {}) },
-    guardian_female: { ...(fileConfig.guardian_female || {}), ...(storageConfig.guardian_female || {}) },
-    weapons_t2: { ...(fileConfig.weapons_t2 || {}), ...(storageConfig.weapons_t2 || {}) },
-    weapons_t3: { ...(fileConfig.weapons_t3 || {}), ...(storageConfig.weapons_t3 || {}) },
-    weapons_t4: { ...(fileConfig.weapons_t4 || {}), ...(storageConfig.weapons_t4 || {}) },
-    armors: { ...(fileConfig.armors || {}), ...(storageConfig.armors || {}) },
   };
+
+  // 動態合併所有 datasets 定義的分類
+  Object.keys(datasets).forEach(catKey => {
+    result[catKey] = { ...(fileConfig[catKey] || {}), ...(storageConfig[catKey] || {}) };
+  });
+
+  return result;
 }
 
 /**
@@ -566,5 +565,79 @@ export function detectArmorTypeFromId(id: string): string {
   if (id.includes('leather') || id.includes('scout') || id.includes('hunter') || id.includes('assassin')) return 'LEATHER';
   if (id.includes('heavy') || id.includes('plate') || id.includes('mail') || id.includes('cuirass')) return 'HEAVY';
   return 'CLOTH';
+}
+
+/**
+ * 🌟 全域通用圖標渲染函數 (Universal Icon Renderer)
+ * 支援格式：
+ * 1. "categoryKey:itemId" (例如 "npc_man:npc_man_0", "monsters:goblin", "weapons:GREATSWORD")
+ * 2. "itemId" (自動在所有已註冊圖集中搜尋符合的 ID)
+ */
+export function renderUniversalIcon(identifier: string, sizePx: number = ICON_SIZE.MD, customClass: string = ''): string {
+  if (!identifier) return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; font-size:1.6em;">🛡️</div>`;
+
+  const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
+  const customConfigs = getCustomIconConfig();
+
+  let catKey = '';
+  let itemId = identifier;
+
+  if (identifier.includes(':')) {
+    const parts = identifier.split(':');
+    catKey = parts[0];
+    itemId = parts[1];
+  } else {
+    // 自動尋找所屬分類
+    for (const [k, cat] of Object.entries(allDatasets)) {
+      if (cat.items && cat.items.some((i: any) => i.id === identifier)) {
+        catKey = k;
+        break;
+      }
+    }
+  }
+
+  const catData = allDatasets[catKey];
+  if (!catData) {
+    // Fallback: 如果是 Emoji 或是未知項目
+    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.6em;">${identifier.length <= 4 ? identifier : '📦'}</div>`;
+  }
+
+  const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
+  const config = customConfigs[catKey]?.[itemId] || {};
+
+  if (config.customEmoji) {
+    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.6em;">${config.customEmoji}</div>`;
+  }
+
+  const cols = catData.cols || 4;
+  const rows = catData.rows || 3;
+  const defBgX = cols > 1 ? (config.col ?? itemDef.col ?? 0) * (100 / (cols - 1)) : 0;
+  const defBgY = rows > 1 ? (config.row ?? itemDef.row ?? 0) * (100 / (rows - 1)) : 0;
+
+  const bgX = config.bgX !== undefined ? config.bgX : defBgX;
+  const bgY = config.bgY !== undefined ? config.bgY : defBgY;
+  const zoom = config.zoom || 100;
+
+  const bgSizeX = cols * 100 * (zoom / 100);
+  const bgSizeY = rows * 100 * (zoom / 100);
+
+  let spriteUrl = config.customImage || catData.spriteUrl || '';
+  if (spriteUrl.startsWith('../public/')) {
+    spriteUrl = spriteUrl.replace('../public/', '/');
+  }
+
+  return `<div class="universal-icon-sprite ${customClass}" style="
+    width: ${sizePx}px;
+    height: ${sizePx}px;
+    background-image: url('${spriteUrl}');
+    background-size: ${bgSizeX.toFixed(1)}% ${bgSizeY.toFixed(1)}%;
+    background-position: ${bgX.toFixed(2)}% ${bgY.toFixed(2)}%;
+    background-repeat: no-repeat;
+    border-radius: 6px;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    flex-shrink: 0;
+    display: inline-block;
+  "></div>`;
 }
 

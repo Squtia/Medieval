@@ -1,3 +1,37 @@
+- **[Feature/IconStudio & SnapshotEngine] 圖集定義持久化 (Zero Data Loss)、自訂圖檔實體化、輕量化快照 (44KB) 與全域通用圖標渲染器實裝（2026-08-19）**：
+  - **💾 圖集結構持久化寫入**：在 `src/data/custom_icon_datasets.json` 正式建立圖集定義庫，升級 `/api/save-icon-config` 與 `/api/get-icon-config`，自訂圖集（如 `npc`、`npc_man`）永久寫入專案磁碟，瀏覽器重開、快取清除 100% 永久存在。
+  - **🪶 圖片實體化與快照體積縮小 500 倍**：上傳圖片自動抽取儲存為 `public/assets/custom_icons/` 實體圖檔，快照絕不夾帶 Base64，單檔由 1,720 KB 暴降至 44 KB，並實裝自動保留最近 20 份輪替清理機制。
+  - **🌐 全域通用圖標渲染器 (`renderUniversalIcon`)**：在 `IconSpriteHelper.ts` 擴充通用渲染入口，100% 向下相容既有傭兵隨機頭像與裝備，支援以 `categoryKey:itemId` 在故事、待辦清單、對話、戰鬥中直接隨插即用渲染任何自訂圖標。
+  - **🔒 現有圖標 100% 保留**：包含武器 T1~T4、防具、素材、設施、男女傭兵、誓約守衛等所有已微調座標與自訂圖集無損遷移。
+
+- **[Feature/Narrative] 實裝決策選項消耗智慧檢查 (canAffordChoice) 與按鈕反灰禁用機制（2026-08-19）**：
+  - **🔍 智慧消耗偵測**：自動掃描選項中的負數效果（金幣 `ADD_GOLD < 0`、特產 `GRANT_TRADE_GOOD < 0`、素材 `GRANT_MATERIAL < 0`），精確判定領地當前金庫與倉庫存量。
+  - **🚫 條件不符按鈕反灰**：當玩家持有的特產/素材或金幣不足以支付選項消耗時，按鈕自動禁用（Disabled、半透明與禁行指標），並在按鈕旁以紅字明確提示 `⚠️ (缺少特產：香料 x1)` 或 `⚠️ (金幣不足)`。
+  - **🛡️ 資源安全扣除**：在結算執行時安全扣除庫存，數量歸零時自動移除鍵，徹底杜絕負數或無本獲利問題。
+
+- **[Fix/Inventory & Materials] 全面排查並修復倉庫幽靈物品、註冊 6 大職業轉職信物與存檔自動清洗遷移（2026-08-19）**：
+  - **🧹 懸賞獎勵物品正規化**：修復 `BountySystem.ts` 舊版模板發放全大寫幽靈字串（`RAW_HIDE`, `GRAIN`, `MEAT`, `COTTON`, `STONE`, `IRON_ORE`, `WOOD`）並錯塞入 `materials` 的歷史問題；全面對齊標準特產（`tg_hide`, `tg_wheat`, `tg_meat`, `tg_cotton`）與素材（`mat_stone_brick`, `mat_iron_ingot`, `mat_wood_plank`）並正確歸入 `tradeInventory` 與 `materials`。
+  - **📜 6 大職業進階轉職信物正規註冊**：在 `materials.json` 中正式註冊 `ADVANCE_WARRIOR`（狂怒之鋒）、`ADVANCE_MAGE`（秘法魔典）、`ADVANCE_ARCHER`（鷹隼之眼）、`ADVANCE_KNIGHT`（守護者之盾）、`ADVANCE_THIEF`（幽影之塵）、`ADVANCE_PRAYER`（信仰之證），具備專屬圖標、名稱與說明，徹底解決在倉庫隱形或無法辨識問題。
+  - **🔨 鐵匠鋪素材取值修復**：修復 `ForgeUIController.ts` 使用 Array 取 key 導致永遠取到 `undefined` 且 fallback 成為泛用磁鐵方塊的 Bug。
+  - **🔄 舊存檔自動清洗遷移 (Schema v5)**：在 `SaveMigration.ts` 實裝自動清洗機制，玩家載入舊存檔時會自動將歷史殘留的 `RAW_HIDE` 等幽靈物品無損遷移轉換為合法特產與素材。
+
+- **[Feature/StoryStudio & TodoModal] 收錄既有事件為官方故事集、支援動態多選項、派系外交效果與領地待辦清單深度整合（2026-08-19）**：
+  - **🏛️ 官方故事集全面收錄**：將原本硬編碼的事件轉換並建立三大官方主題故事集（`🏛️ 帝國政局與家族外交 story_feudal_politics`、`🌾 領地民情與突發事件 story_territory_folklore`、`📦 失蹤的商隊 story_missing_caravan`），全數可於故事工坊可視化編輯與測試。
+  - **🔀 動態多選項分支支援**：突破原本 2 項選項限制，工坊升級為「動態增刪選項清單（`＋ 新增決策選項` / `🗑 刪除選項`）」，每個選項皆具備獨立按鈕文字、結果敘述、以及專屬的效果/獎勵清單。
+  - **👑 派系外交效果與好感度條件**：新增 `CHANGE_FACTION_FAVOR`（洛斯加王室、沃爾蒙德大公、赫斯特神聖教廷、瓦萊里烏斯家族、莫凡恩商會好感度增減）與 `FACTION_FAVOR_AT_LEAST / AT_MOST` 及 `GOLD_AT_LEAST` 條件。
+  - **📋 領地待辦事項 (`TodoModalController`) 深度整合**：遊戲端待辦清單支援讀取並渲染所有 `TODO_LIST` 故事卡片，支援多選項抉擇、Toast 結果提示與即時獎勵/外交結算。
+
+- **[Feature/StoryStudio] 一體化三欄工作台、流程圖畫布縮放平移 (Zoom & Pan)、統整型隨機獎勵與待辦清單連動（2026-08-19）**：
+  - **🚀 一體化三欄工作台**：將故事節點導航與 SVG 流程圖畫布整合至中欄核心區域；左欄為簡約故事庫清單（附關鍵字搜尋、啟用 🟢/草稿 ⚪ 狀態與節點計數）；右欄為即時屬性 Inspector，徹底告別頻繁跳頁。
+  - **🗺 流程圖畫布手勢與視角升級**：
+    - **滑鼠左鍵空白處拖動畫布 (Pan)**：點擊無節點之空白處直接平移畫布視角。
+    - **滑鼠滾輪無級縮放 (Zoom)**：以滑鼠指標為錨點自由縮放 (0.3x ~ 2.0x)，並提供 `−` / `＋` / `1:1` / `🔍 適應全景 (Fit View)` 控制鈕。
+    - **單擊節點 100% 保持在畫布視角**：點擊任一節點方框即時金色發光高亮並於右欄載入屬性表單，絕不強制跳轉分頁；牽線模式完成後亦保持在畫布上。
+  - **🎁 統整型獎勵面板（隨機 vs 固定）**：
+    - **裝備獎勵 (`GRANT_EQUIPMENT`)**：支援「固定模板」與「隨機生成（可自選部位：任意/武器/防具/飾品，以及品質階級：T1~T4 或任意）」，底層由 `EquipmentGenerator.generateByFilter` 動態隨機 roll 裝。
+    - **素材與貿易特產**：支援「固定」與「隨機」生成模式。
+  - **📋 領地待辦事項 (`TODO_LIST`) 管道支援**：新增 `TODO_LIST` 出現機制，故事節點可無縫分派至領地待辦清單中供玩家於主城書房審閱。
+
 - **[Fix/CombatUI] 修復戰鬥重播誓約守衛頭像顯示錯誤問題（2026-08-17）**：
   - 修復戰鬥重播介面中，自訂誓約守衛（如金髮女騎士）頭像被誤當作普通女傭兵而顯示錯誤頭像的問題。
   - 在 `CombatParticipantState` 模型與 `CombatSystem.ts` 戰報組裝中加入 `isGuardian` 標記，並在 `CombatUIManager.ts` 渲染血條頭像時傳入 `isGuardian`，精確定位專屬守衛頭像圖集（`avatars_guardians.jpg`）。
