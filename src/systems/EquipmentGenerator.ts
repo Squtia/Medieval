@@ -69,8 +69,25 @@ export class EquipmentGenerator {
       tier: template.tier,
       isVariant: template.isVariant,
       grantedSkill: template.grantedSkill,
+      extraSkills: template.extraSkills ? [...template.extraSkills] : undefined,
+      skillTriggerChances: template.skillTriggerChances ? [...template.skillTriggerChances] : undefined,
+      affixPool: template.affixPool ? [...template.affixPool] : undefined,
+      craftable: template.craftable,
+      droppable: template.droppable,
+      shopBuyable: template.shopBuyable,
       scaling: {}
     };
+
+    // 🌟 若模板定義了浮動戰鬥數值區間 (combatStatRanges)，在此區間內隨機 Roll 點
+    if (template.combatStatRanges) {
+      if (!eq.combatEffects) eq.combatEffects = {};
+      for (const [stat, range] of Object.entries(template.combatStatRanges)) {
+        if (range && range.length === 2 && range[0] <= range[1]) {
+          const rolled = Random.int(range[0], range[1]);
+          eq.combatEffects[stat as keyof CombatStats] = rolled;
+        }
+      }
+    }
 
     // 根據 ItemLevel 計算隨機點數 (原有的固定屬性生成保留)
     if (template.randomPool) {
@@ -127,7 +144,7 @@ export class EquipmentGenerator {
    */
   public static dropRandomEquipment(maxItemLevel: number): Equipment | null {
     const allTemplates = Object.values(DataStore.EquipmentDB);
-    const validTemplates = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && (t.tier === undefined || t.tier <= 3) && !t.isVariant && t.itemLevel <= maxItemLevel);
+    const validTemplates = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && t.droppable !== false && (t.tier === undefined || t.tier <= 3) && !t.isVariant && t.itemLevel <= maxItemLevel);
     if (validTemplates.length === 0) return null;
 
     const selectedTemplate = Random.pick(validTemplates);

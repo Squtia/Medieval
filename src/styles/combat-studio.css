@@ -654,3 +654,58 @@ body {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* 🖼️ 圖標選擇器與 Universal Icon 樣式 */
+.cs-icon-picker-tab {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: #21262d;
+  color: var(--cs-text-muted);
+  border: 1px solid var(--cs-panel-border);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.cs-icon-picker-tab:hover {
+  color: var(--cs-text-main);
+  border-color: #8b949e;
+}
+
+.cs-icon-picker-tab.active {
+  background: var(--cs-gold);
+  color: #000;
+  font-weight: bold;
+  border-color: #ffe899;
+}
+
+.cs-icon-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  border: 1px solid var(--cs-panel-border);
+  border-radius: 6px;
+  background: #1c2128;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cs-icon-picker-item:hover {
+  border-color: var(--cs-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(230, 180, 34, 0.25);
+}
+
+.cs-icon-picker-item-label {
+  font-size: 0.65rem;
+  color: var(--cs-text-muted);
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}

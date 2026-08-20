@@ -155,7 +155,7 @@ export class InventoryUIController {
         padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
       `;
       const matSpriteType = id.replace('mat_', '');
-      const iconDisplay = renderResourceSpriteHtml(matSpriteType, 42);
+      const iconDisplay = def.icon ? renderResourceSpriteHtml(def.icon, 42) : renderResourceSpriteHtml(matSpriteType, 42);
 
       card.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">

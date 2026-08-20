@@ -583,14 +583,21 @@ export interface Equipment {
   combatEffects?: Partial<CombatStats>; // 直接給予的戰鬥數值加成 (例如加HP、攻擊力)
   baseCombatEffects?: Partial<CombatStats>; // 原始固定基底戰鬥數值 (用於強化時準確還原/計算)
   grantedSkill?: string;                // 裝備附帶的額外技能 ID
+  extraSkills?: string[];               // 裝備附帶的額外雙技能 ID 列表
+  skillTriggerChances?: number[];       // 技能觸發機率 (例如 [20, 15] 代表 20% 與 15%)
   scaling?: EquipmentScaling;           // 個體差異化的屬性倍率補正 (S~E級)
   enhancementLevel?: number;            // 強化等級 (預設0)
-  icon?: string;                        // 裝備圖示佔位符(emoji)
+  icon?: string;                        // 裝備圖示佔位符(emoji 或 category:id)
   element?: ElementType;                // 裝備附帶的元素屬性
   secondaryElement?: ElementType;       // 法杖專用第二元素
   armorType?: 'CLOTH' | 'LEATHER' | 'HEAVY'; // 防具類別
   tier?: number;                        // 裝備階級 (1~5)
   isVariant?: boolean;                  // 是否為變異職業專用裝備
+  affixPool?: string[];                 // 隨機屬性詞條池
+  craftable?: boolean;                  // 是否可由鐵匠鋪鍛造 (預設 true)
+  droppable?: boolean;                  // 是否可由怪物/地城掉落 (預設 true)
+  shopBuyable?: boolean;                // 是否可在商店貨架購買 (預設 true)
+  combatStatRanges?: Partial<Record<keyof CombatStats, [number, number]>>; // 戰鬥數值浮動範圍 [min, max]
 }
 
 /**
@@ -609,10 +616,17 @@ export interface EquipmentTemplate {
   icon?: string;              // 裝備圖示
   itemLevel: number;          // 裝備等級 (影響隨機屬性的數值大小)
   baseRequirements: Partial<Attributes>;   // 基礎穿戴條件
-  baseEffects: Partial<Attributes>;        // 固定屬性加成
+  baseEffects: Partial<Attributes>;        // 固定六維屬性加成
   baseCombatEffects: Partial<CombatStats>; // 固定戰鬥數值 (例如武器的基礎攻擊力固定)
-  grantedSkill?: string;                   // 裝備附帶的額外技能 ID (未來預留給法杖/戰鐮等)
+  grantedSkill?: string;                   // 裝備附帶的額外技能 ID
+  extraSkills?: string[];                  // 額外雙技能 ID 列表
+  skillTriggerChances?: number[];          // 技能觸發機率
   element?: ElementType;                   // 裝備附帶的元素屬性
+  affixPool?: string[];                    // 隨機屬性詞條池
+  craftable?: boolean;                     // 是否可鍛造 (預設 true)
+  droppable?: boolean;                     // 是否可掉落 (預設 true)
+  shopBuyable?: boolean;                   // 是否可在商店購買 (預設 true)
+  combatStatRanges?: Partial<Record<keyof CombatStats, [number, number]>>; // 浮動戰鬥數值範圍
   // 決定在生成時，會隨機抽取哪些額外屬性進行加成
   randomPool?: {
     attributes?: (keyof Attributes)[];

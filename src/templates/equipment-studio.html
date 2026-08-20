@@ -32,10 +32,11 @@
       <input type="text" class="es-input" id="es-search-left" placeholder="🔍 搜尋名稱或 ID..." style="flex: 1;">
       <select class="es-select" id="es-filter-left-tier">
         <option value="ALL">全部階級</option>
-        <option value="1">T1 基礎</option>
+        <option value="1">T1 普通</option>
         <option value="2">T2 精良</option>
-        <option value="3">T3 史詩</option>
-        <option value="4">T4 傳奇</option>
+        <option value="3">T3 稀有</option>
+        <option value="4">T4 史詩</option>
+        <option value="5">T5 傳奇</option>
       </select>
     </div>
 
@@ -64,10 +65,11 @@
       </select>
       <select class="es-select" id="es-filter-equip-tier">
         <option value="ALL">全部階級</option>
-        <option value="1">T1 粗製</option>
-        <option value="2">T2 精鐵</option>
-        <option value="3">T3 秘銀</option>
-        <option value="4">T4 龍隕</option>
+        <option value="1">T1 普通</option>
+        <option value="2">T2 精良</option>
+        <option value="3">T3 稀有</option>
+        <option value="4">T4 史詩</option>
+        <option value="5">T5 傳奇</option>
       </select>
     </div>
 
@@ -120,10 +122,11 @@
         <div class="es-form-group">
           <label class="es-label">階級 (Tier)</label>
           <select class="es-select" id="me-tier">
-            <option value="1">T1 (基礎)</option>
-            <option value="2">T2 (精良)</option>
-            <option value="3">T3 (稀有)</option>
-            <option value="4">T4 (傳奇)</option>
+            <option value="1">T1 普通</option>
+            <option value="2">T2 精良</option>
+            <option value="3">T3 稀有</option>
+            <option value="4">T4 史詩</option>
+            <option value="5">T5 傳奇</option>
           </select>
         </div>
         <div class="es-form-group">
@@ -222,12 +225,13 @@
 
 <!-- 彈窗：裝備原型與隨機詞條池編輯器 -->
 <div class="es-modal-overlay" id="modal-equipment-editor">
-  <div class="es-modal" style="max-width: 680px;">
+  <div class="es-modal">
     <div class="es-modal-header">
-      <span id="ee-title">⚔️ 裝備原型與詞條池編輯器</span>
+      <span id="ee-title">⚔️ 裝備原型與詳細屬性設定</span>
       <button class="es-btn es-btn-sm" id="btn-close-ee">✕</button>
     </div>
     <div class="es-modal-body">
+      <!-- 基本資訊列 -->
       <div style="display: flex; gap: 12px; align-items: center;">
         <div class="es-card-avatar" id="ee-icon" style="font-size: 2.2rem; width: 56px; height: 56px;" title="點擊切換圖標">🗡️</div>
         <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -242,6 +246,15 @@
         </div>
       </div>
 
+      <!-- 📦 獲取管道設定 -->
+      <div class="es-checkbox-row">
+        <span style="font-weight: bold; color: var(--es-gold);">📦 獲取管道：</span>
+        <label class="es-checkbox-item"><input type="checkbox" id="ee-craftable" checked> 🔨 允許鐵匠鋪鍛造 (Craftable)</label>
+        <label class="es-checkbox-item"><input type="checkbox" id="ee-droppable" checked> 👾 允許戰鬥與地城掉落 (Droppable)</label>
+        <label class="es-checkbox-item"><input type="checkbox" id="ee-shop-buyable" checked> 🏪 允許商店貨架販售 (Shop Buyable)</label>
+      </div>
+
+      <!-- 部位、類型、階級與元素 -->
       <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px;">
         <div class="es-form-group">
           <label class="es-label">裝備部位</label>
@@ -271,10 +284,11 @@
         <div class="es-form-group">
           <label class="es-label">階級 (Tier)</label>
           <select class="es-select" id="ee-tier">
-            <option value="1">T1 粗製</option>
+            <option value="1">T1 普通</option>
             <option value="2">T2 精良</option>
-            <option value="3">T3 史詩</option>
-            <option value="4">T4 傳奇</option>
+            <option value="3">T3 稀有</option>
+            <option value="4">T4 史詩</option>
+            <option value="5">T5 傳奇</option>
           </select>
         </div>
         <div class="es-form-group">
@@ -290,58 +304,138 @@
         </div>
       </div>
 
-      <!-- 基礎數值面板 -->
-      <div style="background: #11141a; padding: 8px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
-        <div style="font-weight: bold; font-size: 0.75rem; color: var(--es-gold); margin-bottom: 6px;">📊 基礎固定戰鬥數值</div>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-          <div class="es-form-group">
-            <label class="es-label">物攻 (PATK)</label>
-            <input type="number" class="es-input" id="ee-patk" value="60">
+      <!-- 💪 基礎固定六維屬性與隨機六維詞條池 -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="font-weight: bold; font-size: 0.78rem; color: #58a6ff;">💪 基礎固定六維屬性 (Base Attributes) & 隨機抽取池</div>
+          <span style="font-size: 0.7rem; color: var(--es-text-muted);">下方勾選框代表掉落/鍛造時可隨機骰出的六維詞綴</span>
+        </div>
+        <div class="es-six-stats-grid">
+          <div class="es-stat-input-box">
+            <label class="es-label">力量 (STR)</label>
+            <input type="number" id="ee-str" value="0">
+            <label style="font-size: 0.65rem; color: var(--es-text-muted); cursor: pointer;"><input type="checkbox" id="rnd-str"> 隨機池</label>
           </div>
-          <div class="es-form-group">
-            <label class="es-label">魔攻 (MATK)</label>
-            <input type="number" class="es-input" id="ee-matk" value="0">
+          <div class="es-stat-input-box">
+            <label class="es-label">敏捷 (AGI)</label>
+            <input type="number" id="ee-agi" value="0">
+            <label style="font-size: 0.65rem; color: var(--es-text-muted); cursor: pointer;"><input type="checkbox" id="rnd-agi"> 隨機池</label>
           </div>
-          <div class="es-form-group">
-            <label class="es-label">物防 (PDEF)</label>
-            <input type="number" class="es-input" id="ee-pdef" value="0">
+          <div class="es-stat-input-box">
+            <label class="es-label">體質 (CON)</label>
+            <input type="number" id="ee-con" value="0">
+            <label style="font-size: 0.65rem; color: var(--es-text-muted); cursor: pointer;"><input type="checkbox" id="rnd-con"> 隨機池</label>
           </div>
-          <div class="es-form-group">
-            <label class="es-label">魔防 (MDEF)</label>
-            <input type="number" class="es-input" id="ee-mdef" value="0">
+          <div class="es-stat-input-box">
+            <label class="es-label">智慧 (INT)</label>
+            <input type="number" id="ee-int" value="0">
+            <label style="font-size: 0.65rem; color: var(--es-text-muted); cursor: pointer;"><input type="checkbox" id="rnd-int"> 隨機池</label>
           </div>
-          <div class="es-form-group">
-            <label class="es-label">生命 (HP)</label>
-            <input type="number" class="es-input" id="ee-hp" value="0">
+          <div class="es-stat-input-box">
+            <label class="es-label">精神 (SPR)</label>
+            <input type="number" id="ee-spr" value="0">
+            <label style="font-size: 0.65rem; color: var(--es-text-muted); cursor: pointer;"><input type="checkbox" id="rnd-spr"> 隨機池</label>
           </div>
-          <div class="es-form-group">
-            <label class="es-label">魔力 (MP)</label>
-            <input type="number" class="es-input" id="ee-mp" value="0">
-          </div>
-          <div class="es-form-group">
-            <label class="es-label">命中 (HIT)</label>
-            <input type="number" class="es-input" id="ee-hit" value="0">
-          </div>
-          <div class="es-form-group">
-            <label class="es-label">暴擊 (CRIT %)</label>
-            <input type="number" class="es-input" id="ee-crit" value="5">
+          <div class="es-stat-input-box">
+            <label class="es-label">幸運 (LUK)</label>
+            <input type="number" id="ee-luk" value="0">
+            <label style="font-size: 0.65rem; color: var(--es-text-muted); cursor: pointer;"><input type="checkbox" id="rnd-luk"> 隨機池</label>
           </div>
         </div>
       </div>
 
-      <!-- 🎲 可自訂隨機屬性詞條池 -->
-      <div style="background: #11141a; padding: 8px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
+      <!-- 📊 基礎固定戰鬥數值 (支援固定值或區間如 12~18) -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <div style="font-weight: bold; font-size: 0.75rem; color: #58a6ff;">🎲 鍛造隨機屬性詞條池 (Affix Pool)</div>
-          <span style="font-size: 0.7rem; color: var(--es-text-muted);">鍛造時將隨機骰出 1~2 條詞條</span>
+          <div style="font-weight: bold; font-size: 0.78rem; color: var(--es-gold);">📊 基礎固定戰鬥數值 (可填單值如 12 或浮動區間如 12~18)</div>
+          <span style="font-size: 0.7rem; color: var(--es-text-muted);">生成裝備實體時將在區間內隨機 Roll 點</span>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.75rem;">
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-sharp"> 💥 鋒利 (物攻 +5~15)</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-arcane"> 🔮 奧術 (魔攻 +5~15)</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-stalwart"> 🛡️ 堅定 (生命 +40~100)</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-swift"> 💨 疾風 (命中/閃避 +8~20)</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-deadly"> 🎯 致命 (暴擊率 +5~12%)</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-vampire"> 🩸 嗜血 (吸血 +4~8%)</label>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+          <div class="es-form-group">
+            <label class="es-label">物攻 (PATK)</label>
+            <input type="text" class="es-input" id="ee-patk" value="60">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">魔攻 (MATK)</label>
+            <input type="text" class="es-input" id="ee-matk" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">物防 (PDEF)</label>
+            <input type="text" class="es-input" id="ee-pdef" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">魔防 (MDEF)</label>
+            <input type="text" class="es-input" id="ee-mdef" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">生命 (HP)</label>
+            <input type="text" class="es-input" id="ee-hp" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">魔力 (MP)</label>
+            <input type="text" class="es-input" id="ee-mp" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">命中 (HIT)</label>
+            <input type="text" class="es-input" id="ee-hit" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">暴擊 (CRIT %)</label>
+            <input type="text" class="es-input" id="ee-crit" value="5">
+          </div>
+        </div>
+      </div>
+
+      <!-- 🎲 擴充 12+ 款隨機屬性詞條池 (Affix Pool) -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="font-weight: bold; font-size: 0.78rem; color: #a855f7;">🎲 鍛造/掉落隨機屬性詞條池 (Affix Pool)</div>
+          <span style="font-size: 0.7rem; color: var(--es-text-muted);">掉落抽取 0~2 條 / 鍛造保底 1~2 條</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 0.75rem;">
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-sharp"> 💥 鋒利 (物攻)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-arcane"> 🔮 奧術 (魔攻)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-deadly"> 🎯 致命 (暴擊率)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-pierce"> ⚔️ 破甲 (無視防禦)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-vampire"> 🩸 嗜血 (吸血率)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-stalwart"> 🛡️ 堅定 (生命上限)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-ironwall"> 🧱 鐵壁 (物防加成)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-antimagic"> ✨ 抗魔 (魔防加成)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-block"> 🛡️ 格擋 (格擋機率)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-swift"> 💨 疾風 (命中/迴避)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-meditation"> 💧 冥想 (每回合回魔)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-allround"> 🌟 全能 (全六維屬性)</label>
+        </div>
+
+        <!-- 階級數值參考範圍提示框 -->
+        <div class="es-affix-ref-box" style="margin-top: 8px;">
+          <div style="font-weight: bold; color: var(--es-gold); margin-bottom: 2px;">📖 各階級詞條數值參考標準：</div>
+          <div>• <b>T1 普通</b>：攻防 +5~15 ｜ 生命 +30~80 ｜ 六維 +1~3 ｜ 暴擊 +3~5%</div>
+          <div>• <b>T2 精良</b>：攻防 +15~30 ｜ 生命 +80~180 ｜ 六維 +3~6 ｜ 暴擊 +5~8%</div>
+          <div>• <b>T3 稀有</b>：攻防 +30~55 ｜ 生命 +180~350 ｜ 六維 +6~10 ｜ 暴擊 +8~12%</div>
+          <div>• <b>T4 史詩</b>：攻防 +55~90 ｜ 生命 +350~600 ｜ 六維 +10~16 ｜ 暴擊 +12~18%</div>
+          <div>• <b>T5 傳奇</b>：攻防 +90~150 ｜ 生命 +600~1000 ｜ 六維 +16~25 ｜ 暴擊 +18~25%</div>
+        </div>
+      </div>
+
+      <!-- ✨ 武器額外雙技能接口 (Skill Slots) -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
+        <div style="font-weight: bold; font-size: 0.78rem; color: #eab308; margin-bottom: 6px;">✨ 武器額外技能接口 (保留 2 項技能/特技)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="es-form-group">
+            <label class="es-label">特技 1 (技能 ID / 觸發機率 %)</label>
+            <div style="display: flex; gap: 4px;">
+              <input type="text" class="es-input" id="ee-skill-1" placeholder="例: FLAME_SLASH (烈焰斬)" style="flex: 1;">
+              <input type="number" class="es-input" id="ee-skill-rate-1" placeholder="20%" style="width: 65px;" value="20">
+            </div>
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">特技 2 (被動/光環/觸發 %)</label>
+            <div style="display: flex; gap: 4px;">
+              <input type="text" class="es-input" id="ee-skill-2" placeholder="例: VAMPIRIC_AURA (吸血光環)" style="flex: 1;">
+              <input type="number" class="es-input" id="ee-skill-rate-2" placeholder="100%" style="width: 65px;" value="100">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -362,40 +456,36 @@
   </div>
 </div>
 
-<!-- 彈窗：鍛造配方編輯器 -->
+<!-- 彈窗：鍛造配方動態素材編輯器 -->
 <div class="es-modal-overlay" id="modal-recipe-editor">
   <div class="es-modal">
     <div class="es-modal-header">
-      <span id="re-title">🔨 鍛造配方編輯器</span>
+      <span id="re-title">🔨 鍛造配方動態編輯器</span>
       <button class="es-btn es-btn-sm" id="btn-close-re">✕</button>
     </div>
     <div class="es-modal-body">
-      <div class="es-form-group">
-        <label class="es-label">配方 ID</label>
-        <input type="text" class="es-input" id="re-id" placeholder="recipe_dragon_sword">
-      </div>
-      <div class="es-form-group">
-        <label class="es-label">產出裝備</label>
-        <select class="es-select" id="re-target-equip">
-          <!-- 動態載入裝備選項 -->
-        </select>
-      </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div class="es-form-group">
-          <label class="es-label">所需主要素材 1</label>
-          <div style="display: flex; gap: 4px;">
-            <select class="es-select" id="re-mat-1" style="flex: 1;"></select>
-            <input type="number" class="es-input" id="re-mat-count-1" value="3" style="width: 60px;">
-          </div>
+          <label class="es-label">配方 ID</label>
+          <input type="text" class="es-input" id="re-id" placeholder="recipe_dragon_sword">
         </div>
         <div class="es-form-group">
-          <label class="es-label">所需副素材 2 (選填)</label>
-          <div style="display: flex; gap: 4px;">
-            <select class="es-select" id="re-mat-2" style="flex: 1;"><option value="">(無)</option></select>
-            <input type="number" class="es-input" id="re-mat-count-2" value="1" style="width: 60px;">
-          </div>
+          <label class="es-label">產出目標裝備</label>
+          <select class="es-select" id="re-target-equip"></select>
         </div>
       </div>
+
+      <!-- 動態素材清單容器 -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="font-weight: bold; font-size: 0.78rem; color: var(--es-gold);">🧱 所需素材清單 (可自由增減 1~N 種素材)</div>
+          <button class="es-btn es-btn-sm es-btn-gold" id="btn-re-add-mat">➕ 新增所需素材</button>
+        </div>
+        <div id="re-mats-container">
+          <!-- 動態插入素材列 -->
+        </div>
+      </div>
+
       <div class="es-form-group">
         <label class="es-label">鍛造消耗金幣</label>
         <input type="number" class="es-input" id="re-gold" value="200">
@@ -408,15 +498,27 @@
   </div>
 </div>
 
-<!-- 彈窗：通用圖標選擇器 -->
+<!-- 彈窗：全圖集通用圖標選擇器 -->
 <div class="es-modal-overlay" id="modal-icon-picker">
-  <div class="es-modal" style="max-width: 480px;">
+  <div class="es-modal" style="max-width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
     <div class="es-modal-header">
-      <span>🖼️ 選擇圖標 Emoji</span>
+      <span>🖼️ 視覺化全圖集選擇器 (Universal Icon Picker)</span>
       <button class="es-btn es-btn-sm" id="btn-close-icon-picker">✕</button>
     </div>
-    <div class="es-modal-body">
-      <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; text-align: center;" id="icon-picker-grid">
+    <div class="es-modal-body" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+      <!-- 分類標籤列 -->
+      <div id="icon-picker-tabs" style="display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--es-panel-border); padding-bottom: 8px;">
+        <!-- 動態載入各圖集分類標籤 -->
+      </div>
+      
+      <!-- 快捷自訂/搜尋 -->
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" class="es-input" id="icon-picker-custom-input" placeholder="可直接輸入 Emoji 或 category:item (例: materials:mat_iron_ingot)..." style="flex: 1;">
+        <button class="es-btn es-btn-sm es-btn-gold" id="btn-icon-picker-apply-custom">套用手動輸入</button>
+      </div>
+
+      <!-- 圖標展示網格 -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; max-height: 380px; overflow-y: auto; padding: 4px;" id="icon-picker-grid">
         <!-- 動態渲染圖標選擇池 -->
       </div>
     </div>

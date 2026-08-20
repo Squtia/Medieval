@@ -465,24 +465,34 @@
   </div>
 </div>
 
-<!-- 彈窗：全域圖標選擇器 (Universal Icon Picker Modal) -->
+<!-- 彈窗：全圖集通用圖標選擇器 (Universal Icon Picker Modal) -->
 <div class="cs-modal-overlay" id="modal-icon-picker" style="display: none;">
-  <div class="cs-modal-box" style="max-width: 500px;">
+  <div class="cs-modal-box" style="max-width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
     <div class="cs-modal-header">
-      <span class="cs-modal-title">🖼️ 挑選單位/怪物圖標</span>
+      <span class="cs-modal-title">🖼️ 視覺化全圖集選擇器 (Universal Icon Picker)</span>
       <button class="cs-btn cs-btn-sm" id="btn-close-icon-picker">✕</button>
     </div>
-    <div class="cs-modal-body">
-      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+    <div class="cs-modal-body" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+      <!-- 分類標籤列 -->
+      <div id="icon-picker-tabs" style="display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--cs-panel-border); padding-bottom: 8px;">
+        <!-- 動態產生圖集分類標籤 -->
+      </div>
+
+      <!-- 自訂代碼/Emoji 手動輸入列 -->
+      <div style="display: flex; gap: 8px; align-items: center; background: #11141a; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
+        <span style="font-size: 0.75rem; color: var(--cs-text-muted);">手動輸入自訂代碼或 Emoji:</span>
+        <input type="text" class="cs-input" id="icon-picker-custom-input" placeholder="例如: 🐉 或 guardians:g_sword" style="flex: 1; padding: 4px 8px; font-size: 0.82rem;">
+        <button class="cs-btn cs-btn-sm cs-btn-gold" id="btn-apply-custom-icon">選用此圖標</button>
         <button class="cs-btn cs-btn-sm cs-btn-primary" id="btn-quick-open-icon-studio">🎨 在圖標工坊中製作新圖集</button>
       </div>
-      <div class="cs-label" style="margin-bottom: 4px;">推薦圖標池 (點擊即選)：</div>
-      <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; font-size: 1.8rem; text-align: center;" id="icon-picker-grid">
-        <!-- 動態或內建圖標 -->
+
+      <!-- 視覺化縮圖網格 -->
+      <div id="icon-picker-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(68px, 1fr)); gap: 8px; max-height: 48vh; overflow-y: auto; padding: 4px;">
+        <!-- 動態產生 48px 油畫縮圖卡片 -->
       </div>
     </div>
     <div class="cs-modal-footer">
-      <button class="cs-btn" id="btn-close-icon-picker-footer">完成</button>
+      <button class="cs-btn" id="btn-close-icon-picker-footer">關閉</button>
     </div>
   </div>
 </div>

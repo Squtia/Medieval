@@ -356,15 +356,67 @@ function developmentStudioPlugin(): Plugin {
         const materialsFile = path.resolve(__dirname, 'src/data/materials.json');
         const itemsFile = path.resolve(__dirname, 'src/data/items.json');
         const equipmentFile = path.resolve(__dirname, 'src/data/EquipmentTemplates.json');
+        const weaponsFile = path.resolve(__dirname, 'src/data/equipment_weapons.json');
+        const armorsFile = path.resolve(__dirname, 'src/data/equipment_armors.json');
+        const accessoriesFile = path.resolve(__dirname, 'src/data/equipment_accessories.json');
         const recipesFile = path.resolve(__dirname, 'src/data/CraftingRecipes.json');
         const eqStudioBackupsDir = path.resolve(__dirname, 'src/data/equipment_studio_backups');
+
+        const readEquipmentData = () => {
+          let weapons: any[] = [];
+          let armors: any[] = [];
+          let accessories: any[] = [];
+          if (fs.existsSync(weaponsFile)) {
+            try { weapons = JSON.parse(fs.readFileSync(weaponsFile, 'utf-8')); } catch (e) {}
+          }
+          if (fs.existsSync(armorsFile)) {
+            try { armors = JSON.parse(fs.readFileSync(armorsFile, 'utf-8')); } catch (e) {}
+          }
+          if (fs.existsSync(accessoriesFile)) {
+            try { accessories = JSON.parse(fs.readFileSync(accessoriesFile, 'utf-8')); } catch (e) {}
+          }
+          if (weapons.length === 0 && armors.length === 0 && fs.existsSync(equipmentFile)) {
+            try {
+              const legacy = JSON.parse(fs.readFileSync(equipmentFile, 'utf-8'));
+              weapons = legacy.weapons || [];
+              armors = legacy.armors || [];
+              accessories = legacy.accessories || [];
+            } catch (e) {}
+          }
+          return { weapons, armors, accessories };
+        };
+
+        const saveEquipmentData = (rawEquip: any) => {
+          let weapons: any[] = [];
+          let armors: any[] = [];
+          let accessories: any[] = [];
+          if (Array.isArray(rawEquip)) {
+            rawEquip.forEach((item: any) => {
+              if (item.slot === 'ARMOR') {
+                armors.push(item);
+              } else if (item.slot === 'ACCESSORY') {
+                accessories.push(item);
+              } else {
+                weapons.push(item);
+              }
+            });
+          } else if (rawEquip && typeof rawEquip === 'object') {
+            weapons = rawEquip.weapons || [];
+            armors = rawEquip.armors || [];
+            accessories = rawEquip.accessories || [];
+          }
+          fs.writeFileSync(weaponsFile, JSON.stringify(weapons, null, 2), 'utf-8');
+          fs.writeFileSync(armorsFile, JSON.stringify(armors, null, 2), 'utf-8');
+          fs.writeFileSync(accessoriesFile, JSON.stringify(accessories, null, 2), 'utf-8');
+          fs.writeFileSync(equipmentFile, JSON.stringify({ weapons, armors, accessories }, null, 2), 'utf-8');
+        };
 
         if (url === '/api/get-equipment-studio-data' && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
           return res.end(JSON.stringify({
             materials: fs.existsSync(materialsFile) ? JSON.parse(fs.readFileSync(materialsFile, 'utf-8')) : [],
             items: fs.existsSync(itemsFile) ? JSON.parse(fs.readFileSync(itemsFile, 'utf-8')) : [],
-            equipment: fs.existsSync(equipmentFile) ? JSON.parse(fs.readFileSync(equipmentFile, 'utf-8')) : [],
+            equipment: readEquipmentData(),
             recipes: fs.existsSync(recipesFile) ? JSON.parse(fs.readFileSync(recipesFile, 'utf-8')) : []
           }));
         }
@@ -383,8 +435,8 @@ function developmentStudioPlugin(): Plugin {
               if (Array.isArray(payload.items)) {
                 fs.writeFileSync(itemsFile, JSON.stringify(payload.items, null, 2), 'utf-8');
               }
-              if (Array.isArray(payload.equipment)) {
-                fs.writeFileSync(equipmentFile, JSON.stringify(payload.equipment, null, 2), 'utf-8');
+              if (payload.equipment) {
+                saveEquipmentData(payload.equipment);
               }
               if (Array.isArray(payload.recipes)) {
                 fs.writeFileSync(recipesFile, JSON.stringify(payload.recipes, null, 2), 'utf-8');
@@ -447,7 +499,7 @@ function developmentStudioPlugin(): Plugin {
               const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               if (Array.isArray(snapshot.materials)) fs.writeFileSync(materialsFile, JSON.stringify(snapshot.materials, null, 2), 'utf-8');
               if (Array.isArray(snapshot.items)) fs.writeFileSync(itemsFile, JSON.stringify(snapshot.items, null, 2), 'utf-8');
-              if (Array.isArray(snapshot.equipment)) fs.writeFileSync(equipmentFile, JSON.stringify(snapshot.equipment, null, 2), 'utf-8');
+              if (snapshot.equipment) saveEquipmentData(snapshot.equipment);
               if (Array.isArray(snapshot.recipes)) fs.writeFileSync(recipesFile, JSON.stringify(snapshot.recipes, null, 2), 'utf-8');
 
               res.setHeader('Content-Type', 'application/json');

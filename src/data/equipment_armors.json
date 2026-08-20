@@ -1,0 +1,778 @@
+[
+  {
+    "id": "arm_cloth_robe_t1",
+    "name": "粗布長袍",
+    "tier": 1,
+    "armorType": "CLOTH",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
+    "itemLevel": 1,
+    "baseEffects": {
+      "int": 2,
+      "spr": 2
+    },
+    "baseCombatEffects": {
+      "pdef": 2,
+      "mdef": 6,
+      "hp": 15
+    },
+    "randomPool": {
+      "attributes": [
+        "int",
+        "spr",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "mdef": {
+        "guaranteed": {
+          "spr": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_cloth_robe_t2",
+    "name": "學徒法袍",
+    "tier": 2,
+    "armorType": "CLOTH",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
+    "itemLevel": 12,
+    "baseEffects": {
+      "int": 4,
+      "spr": 4
+    },
+    "baseCombatEffects": {
+      "pdef": 5,
+      "mdef": 14,
+      "hp": 40
+    },
+    "randomPool": {
+      "attributes": [
+        "int",
+        "spr",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "mdef": {
+        "guaranteed": {
+          "spr": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_cloth_robe_t3",
+    "name": "祭司長袍",
+    "tier": 3,
+    "armorType": "CLOTH",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
+    "itemLevel": 25,
+    "baseEffects": {
+      "int": 8,
+      "spr": 8
+    },
+    "baseCombatEffects": {
+      "pdef": 10,
+      "mdef": 28,
+      "hp": 90
+    },
+    "randomPool": {
+      "attributes": [
+        "int",
+        "spr",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "mdef": {
+        "guaranteed": {
+          "spr": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_cloth_robe_t4",
+    "name": "大法師法袍",
+    "tier": 4,
+    "armorType": "CLOTH",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
+    "itemLevel": 40,
+    "baseEffects": {
+      "int": 14,
+      "spr": 14
+    },
+    "baseCombatEffects": {
+      "pdef": 18,
+      "mdef": 50,
+      "hp": 170
+    },
+    "randomPool": {
+      "attributes": [
+        "int",
+        "spr",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "mdef": {
+        "guaranteed": {
+          "spr": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_leather_t1",
+    "name": "輕皮甲",
+    "tier": 1,
+    "armorType": "LEATHER",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "盜賊",
+      "弓箭手"
+    ],
+    "itemLevel": 1,
+    "baseEffects": {
+      "agi": 2,
+      "luk": 2
+    },
+    "baseCombatEffects": {
+      "pdef": 4,
+      "mdef": 4,
+      "evade": 2
+    },
+    "randomPool": {
+      "attributes": [
+        "agi",
+        "luk",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef",
+        "evade"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "con",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      },
+      "mdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "spr",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_leather_t2",
+    "name": "硬皮甲",
+    "tier": 2,
+    "armorType": "LEATHER",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "盜賊",
+      "弓箭手"
+    ],
+    "itemLevel": 12,
+    "baseEffects": {
+      "agi": 4,
+      "luk": 4
+    },
+    "baseCombatEffects": {
+      "pdef": 10,
+      "mdef": 10,
+      "evade": 5
+    },
+    "randomPool": {
+      "attributes": [
+        "agi",
+        "luk",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef",
+        "evade"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "con",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      },
+      "mdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "spr",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_leather_t3",
+    "name": "游俠皮甲",
+    "tier": 3,
+    "armorType": "LEATHER",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "盜賊",
+      "弓箭手"
+    ],
+    "itemLevel": 25,
+    "baseEffects": {
+      "agi": 8,
+      "luk": 8
+    },
+    "baseCombatEffects": {
+      "pdef": 20,
+      "mdef": 20,
+      "evade": 10
+    },
+    "randomPool": {
+      "attributes": [
+        "agi",
+        "luk",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef",
+        "evade"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "con",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      },
+      "mdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "spr",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_leather_t4",
+    "name": "影子獵人皮甲",
+    "tier": 4,
+    "armorType": "LEATHER",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "盜賊",
+      "弓箭手"
+    ],
+    "itemLevel": 40,
+    "baseEffects": {
+      "agi": 14,
+      "luk": 14
+    },
+    "baseCombatEffects": {
+      "pdef": 36,
+      "mdef": 36,
+      "evade": 18
+    },
+    "randomPool": {
+      "attributes": [
+        "agi",
+        "luk",
+        "charm"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef",
+        "evade"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "con",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      },
+      "mdef": {
+        "guaranteed": {
+          "luk": [
+            "D",
+            "A"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "spr",
+            "charm"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_heavy_t1",
+    "name": "生鐵環甲",
+    "tier": 1,
+    "armorType": "HEAVY",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
+    "itemLevel": 1,
+    "baseEffects": {
+      "con": 3,
+      "str": 1
+    },
+    "baseCombatEffects": {
+      "pdef": 10,
+      "mdef": 3,
+      "hp": 30
+    },
+    "randomPool": {
+      "attributes": [
+        "con",
+        "str",
+        "command"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "con": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_heavy_t2",
+    "name": "鏈甲",
+    "tier": 2,
+    "armorType": "HEAVY",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
+    "itemLevel": 12,
+    "baseEffects": {
+      "con": 6,
+      "str": 3
+    },
+    "baseCombatEffects": {
+      "pdef": 24,
+      "mdef": 8,
+      "hp": 75
+    },
+    "randomPool": {
+      "attributes": [
+        "con",
+        "str",
+        "command"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "con": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_heavy_t3",
+    "name": "板甲",
+    "tier": 3,
+    "armorType": "HEAVY",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
+    "itemLevel": 25,
+    "baseEffects": {
+      "con": 12,
+      "str": 6
+    },
+    "baseCombatEffects": {
+      "pdef": 48,
+      "mdef": 15,
+      "hp": 160
+    },
+    "randomPool": {
+      "attributes": [
+        "con",
+        "str",
+        "command"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "con": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  },
+  {
+    "id": "arm_heavy_t4",
+    "name": "皇家重鎧",
+    "tier": 4,
+    "armorType": "HEAVY",
+    "slot": "ARMOR",
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
+    "itemLevel": 40,
+    "baseEffects": {
+      "con": 20,
+      "str": 10
+    },
+    "baseCombatEffects": {
+      "pdef": 80,
+      "mdef": 25,
+      "hp": 300
+    },
+    "randomPool": {
+      "attributes": [
+        "con",
+        "str",
+        "command"
+      ],
+      "combatStats": [
+        "hp",
+        "pdef",
+        "mdef"
+      ]
+    },
+    "scalingRules": {
+      "pdef": {
+        "guaranteed": {
+          "con": [
+            "C",
+            "S"
+          ]
+        },
+        "randomPool": {
+          "possibleAttributes": [
+            "luk",
+            "command"
+          ],
+          "rankRange": [
+            "E",
+            "A"
+          ],
+          "count": [
+            0,
+            2
+          ]
+        }
+      }
+    }
+  }
+]

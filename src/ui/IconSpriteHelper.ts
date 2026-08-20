@@ -221,10 +221,12 @@ export function renderWeaponSpriteHtml(weaponType: string | undefined, tier: num
   const bgSizeY = 300 * (zoom / 100);
 
   // 根據階級對應不同的 12 宮格大圖
-  let spriteSheetPath = './assets/icons_weapons_12.jpg';
-  if (safeTier === 2) spriteSheetPath = './assets/icons_weapons_t2_12.jpg';
-  else if (safeTier === 3) spriteSheetPath = './assets/icons_weapons_t3_12.jpg';
-  else if (safeTier === 4) spriteSheetPath = './assets/icons_weapons_t4_12.jpg';
+  let spriteSheetPath = 'assets/icons_weapons_12.jpg';
+  if (safeTier === 2) spriteSheetPath = 'assets/icons_weapons_t2_12.jpg';
+  else if (safeTier === 3) spriteSheetPath = 'assets/icons_weapons_t3_12.jpg';
+  else if (safeTier === 4) spriteSheetPath = 'assets/icons_weapons_t4_12.jpg';
+
+  const resolvedSpriteUrl = resolveSpriteAssetUrl(spriteSheetPath);
 
   return `
     <div class="weapon-sprite-icon" style="
@@ -235,7 +237,7 @@ export function renderWeaponSpriteHtml(weaponType: string | undefined, tier: num
       overflow: hidden;
       flex-shrink: 0;
       ${borderStyle}
-      background-image: url('${spriteSheetPath}');
+      background-image: url('${resolvedSpriteUrl}');
       background-size: ${bgSizeX}% ${bgSizeY}%;
       background-position: ${bgX}% ${bgY}%;
     ">
@@ -276,6 +278,7 @@ export function renderFacilitySpriteHtml(facilityType: string, sizePx: number = 
   const bgY = coord.bgY !== undefined ? coord.bgY : (row * 50.0);
   const bgSizeX = 400 * (zoom / 100);
   const bgSizeY = 300 * (zoom / 100);
+  const resolvedSpriteUrl = resolveSpriteAssetUrl('assets/icons_facilities_parchment_12.jpg');
 
   return `
     <div class="facility-sprite-icon" style="
@@ -286,7 +289,7 @@ export function renderFacilitySpriteHtml(facilityType: string, sizePx: number = 
       flex-shrink: 0;
       border: 1px solid rgba(139, 69, 19, 0.4);
       box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-      background-image: url('./assets/icons_facilities_parchment_12.jpg');
+      background-image: url('${resolvedSpriteUrl}');
       background-size: ${bgSizeX}% ${bgSizeY}%;
       background-position: ${bgX}% ${bgY}%;
     "></div>
@@ -329,6 +332,7 @@ export function renderResourceSpriteHtml(resourceType: string, sizePx: number = 
     const bgY = coord.bgY !== undefined ? coord.bgY : (row * 50.0);
     const bgSizeX = 400 * (zoom / 100);
     const bgSizeY = 300 * (zoom / 100);
+    const resolvedSpriteUrl = resolveSpriteAssetUrl('assets/icons_materials_color_12_1.png');
 
     return `
       <span class="resource-sprite-icon" style="
@@ -339,7 +343,7 @@ export function renderResourceSpriteHtml(resourceType: string, sizePx: number = 
         border-radius: 3px;
         overflow: hidden;
         flex-shrink: 0;
-        background-image: url('./assets/icons_materials_color_12_1.png');
+        background-image: url('${resolvedSpriteUrl}');
         background-size: ${bgSizeX}% ${bgSizeY}%;
         background-position: ${bgX}% ${bgY}%;
         filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
@@ -391,9 +395,10 @@ export function getAvatarSpriteStyle(
     const bgY = customConfig?.bgY !== undefined ? customConfig.bgY : (row * 25);
     const bgSizeX = 500 * (zoom / 100);
     const bgSizeY = 500 * (zoom / 100);
+    const resolvedSpriteUrl = resolveSpriteAssetUrl('assets/avatars_guardians.jpg');
 
     return {
-      backgroundImage: `url('./assets/avatars_guardians.jpg')`,
+      backgroundImage: `url('${resolvedSpriteUrl}')`,
       backgroundSize: `${bgSizeX}% ${bgSizeY}%`,
       backgroundPosition: `${bgX}% ${bgY}%`
     };
@@ -420,9 +425,10 @@ export function getAvatarSpriteStyle(
   const bgY = customConfig?.bgY !== undefined ? customConfig.bgY : (row * 25);
   const bgSizeX = 500 * (zoom / 100);
   const bgSizeY = 500 * (zoom / 100);
+  const resolvedSpriteUrl = resolveSpriteAssetUrl(defaultImg);
 
   return {
-    backgroundImage: `url('./${defaultImg}')`,
+    backgroundImage: `url('${resolvedSpriteUrl}')`,
     backgroundSize: `${bgSizeX}% ${bgSizeY}%`,
     backgroundPosition: `${bgX}% ${bgY}%`
   };
@@ -498,6 +504,7 @@ export function renderArmorSpriteHtml(armorType: string | undefined, tier: numbe
   const bgY = coord.bgY !== undefined ? coord.bgY : (row * 50.0);
   const bgSizeX = 400 * (zoom / 100);
   const bgSizeY = 300 * (zoom / 100);
+  const resolvedSpriteUrl = resolveSpriteAssetUrl('assets/icons_armors_12.jpg');
 
   return `
     <div class="armor-sprite-icon" style="
@@ -523,6 +530,11 @@ export function renderArmorSpriteHtml(armorType: string | undefined, tier: numbe
 export function renderEquipIcon(eq: any, sizePx: number = 38): string {
   if (!eq) return `<div style="font-size:1.6em;">🛡️</div>`;
   
+  // 🌟 0. 優先讀取自訂圖標 (支援圖標工坊圖集 category:itemId 或自訂圖片/Emoji)
+  if (eq.icon) {
+    return renderUniversalIcon(eq.icon, sizePx);
+  }
+
   // 1. 武器類別
   if (eq.slot === EquipmentSlot.WEAPON || (!eq.slot && eq.weaponType)) {
     const wType = eq.weaponType || (eq.id ? detectWeaponTypeFromId(eq.id) : 'GREATSWORD');
@@ -540,8 +552,8 @@ export function renderEquipIcon(eq: any, sizePx: number = 38): string {
     return renderArmorSpriteHtml(aType, eq.tier || 1, sizePx);
   }
 
-  // 其他插槽使用預設 Emoji 或自訂圖標
-  return `<div style="font-size:1.6em; width: ${sizePx}px; height: ${sizePx}px; display: flex; align-items: center; justify-content: center;">${eq.icon || '🛡️'}</div>`;
+  // 其他插槽使用預設 Emoji
+  return `<div style="font-size:1.6em; width: ${sizePx}px; height: ${sizePx}px; display: flex; align-items: center; justify-content: center;">🛡️</div>`;
 }
 
 export function detectWeaponTypeFromId(id: string): string {
@@ -568,13 +580,30 @@ export function detectArmorTypeFromId(id: string): string {
 }
 
 /**
+ * 解析圖片資源路徑，自動適配根目錄、子目錄 (tools/) 與 Vite Base
+ */
+export function resolveSpriteAssetUrl(rawUrl: string): string {
+  if (!rawUrl) return '';
+  if (rawUrl.startsWith('data:') || rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+    return rawUrl;
+  }
+  let clean = rawUrl.replace(/^\.\.\/public\//, '').replace(/^\/public\//, '').replace(/^public\//, '');
+  if (clean.startsWith('/')) clean = clean.substring(1);
+  if (clean.startsWith('./')) clean = clean.substring(2);
+
+  const isSubDir = typeof window !== 'undefined' && window.location && window.location.pathname.includes('/tools/');
+  const prefix = isSubDir ? '../' : './';
+  return prefix + clean;
+}
+
+/**
  * 🌟 全域通用圖標渲染函數 (Universal Icon Renderer)
  * 支援格式：
  * 1. "categoryKey:itemId" (例如 "npc_man:npc_man_0", "monsters:goblin", "weapons:GREATSWORD")
  * 2. "itemId" (自動在所有已註冊圖集中搜尋符合的 ID)
  */
 export function renderUniversalIcon(identifier: string, sizePx: number = ICON_SIZE.MD, customClass: string = ''): string {
-  if (!identifier) return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; font-size:1.6em;">🛡️</div>`;
+  if (!identifier) return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em;">🛡️</div>`;
 
   const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
   const customConfigs = getCustomIconConfig();
@@ -599,14 +628,14 @@ export function renderUniversalIcon(identifier: string, sizePx: number = ICON_SI
   const catData = allDatasets[catKey];
   if (!catData) {
     // Fallback: 如果是 Emoji 或是未知項目
-    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.6em;">${identifier.length <= 4 ? identifier : '📦'}</div>`;
+    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em;">${identifier.length <= 4 ? identifier : '📦'}</div>`;
   }
 
   const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
   const config = customConfigs[catKey]?.[itemId] || {};
 
   if (config.customEmoji) {
-    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.6em;">${config.customEmoji}</div>`;
+    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em;">${config.customEmoji}</div>`;
   }
 
   const cols = catData.cols || 4;
@@ -621,10 +650,8 @@ export function renderUniversalIcon(identifier: string, sizePx: number = ICON_SI
   const bgSizeX = cols * 100 * (zoom / 100);
   const bgSizeY = rows * 100 * (zoom / 100);
 
-  let spriteUrl = config.customImage || catData.spriteUrl || '';
-  if (spriteUrl.startsWith('../public/')) {
-    spriteUrl = spriteUrl.replace('../public/', '/');
-  }
+  const rawSpriteUrl = config.customImage || catData.spriteUrl || '';
+  const spriteUrl = resolveSpriteAssetUrl(rawSpriteUrl);
 
   return `<div class="universal-icon-sprite ${customClass}" style="
     width: ${sizePx}px;

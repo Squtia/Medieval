@@ -209,8 +209,8 @@ body {
 
 .es-card-avatar {
   font-size: 1.4rem;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   background: #161b22;
   border: 1px solid var(--es-panel-border);
   border-radius: 6px;
@@ -218,6 +218,14 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.es-card-avatar:hover {
+  border-color: var(--es-gold);
+  box-shadow: 0 0 8px rgba(230, 180, 34, 0.4);
 }
 
 .es-badge {
@@ -229,10 +237,11 @@ body {
   border: 1px solid var(--es-panel-border);
 }
 
-.es-badge-t1 { color: #8b949e; }
-.es-badge-t2 { color: #3fb950; }
-.es-badge-t3 { color: #58a6ff; }
-.es-badge-t4 { color: #bc8cff; }
+.es-badge-t1 { color: #8b949e; border-color: #30363d; }
+.es-badge-t2 { color: #10b981; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); }
+.es-badge-t3 { color: #3b82f6; border-color: rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.1); }
+.es-badge-t4 { color: #a855f7; border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.1); }
+.es-badge-t5 { color: #f59e0b; border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.15); box-shadow: 0 0 8px rgba(245, 158, 11, 0.35); font-weight: bold; }
 
 .es-card-desc {
   font-size: 0.72rem;
@@ -290,12 +299,13 @@ body {
   background: var(--es-panel-bg);
   border: 1px solid var(--es-panel-border);
   border-radius: 10px;
-  width: 90%;
-  max-width: 600px;
+  width: 95%;
+  max-width: 720px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  box-sizing: border-box;
 }
 
 .es-modal-header {
@@ -312,9 +322,11 @@ body {
 .es-modal-body {
   padding: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-sizing: border-box;
 }
 
 .es-modal-footer {
@@ -335,4 +347,135 @@ body {
 .es-label {
   font-size: 0.75rem;
   color: var(--es-text-muted);
+}
+
+/* 獲取管道與六維屬性格子 */
+.es-checkbox-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #11141a;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--es-panel-border);
+  font-size: 0.82rem;
+}
+
+.es-checkbox-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.es-six-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.es-stat-input-box {
+  background: #0d1117;
+  border: 1px solid var(--es-panel-border);
+  border-radius: 4px;
+  padding: 4px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.es-stat-input-box input {
+  width: 100%;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: var(--es-gold);
+  font-weight: bold;
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* 詞條參考範圍與動態配方素材列表 */
+.es-affix-ref-box {
+  background: #11141a;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.72rem;
+  color: var(--es-text-muted);
+  line-height: 1.5;
+}
+
+.es-recipe-mat-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: #11141a;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--es-panel-border);
+  margin-bottom: 6px;
+}
+
+/* 🖼️ 圖標選擇器與 Universal Icon 樣式 */
+.es-icon-picker-tab {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: #21262d;
+  color: var(--es-text-muted);
+  border: 1px solid var(--es-panel-border);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.es-icon-picker-tab:hover {
+  color: var(--es-text-main);
+  border-color: #8b949e;
+}
+
+.es-icon-picker-tab.active {
+  background: var(--es-gold);
+  color: #000;
+  font-weight: bold;
+  border-color: #ffe899;
+}
+
+.es-icon-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 4px;
+  border: 1px solid var(--es-panel-border);
+  border-radius: 6px;
+  background: #1c2128;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.es-icon-picker-item:hover {
+  border-color: var(--es-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(230, 180, 34, 0.25);
+}
+
+.es-icon-picker-item-label {
+  font-size: 0.65rem;
+  color: var(--es-text-muted);
+  margin-top: 4px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.universal-icon-sprite {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+  vertical-align: middle;
 }

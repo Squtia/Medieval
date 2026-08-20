@@ -1,6 +1,8 @@
 import { EquipmentTemplate, EquipmentSlot, JobConfig, TraitConfig, WeaponType, MaterialItem } from '../models/types';
 import { Random } from '../core/Random';
-import equipmentTemplatesJson from '../data/EquipmentTemplates.json';
+import equipmentWeaponsJson from '../data/equipment_weapons.json';
+import equipmentArmorsJson from '../data/equipment_armors.json';
+import equipmentAccessoriesJson from '../data/equipment_accessories.json';
 import materialsJson from '../data/materials.json';
 import craftingRecipesJson from '../data/CraftingRecipes.json';
 import modificationRecipesJson from '../data/ModificationRecipes.json';
@@ -116,9 +118,9 @@ export class DataStore {
   public static readonly EquipmentDB: Record<string, EquipmentTemplate> = (() => {
     const db: Record<string, EquipmentTemplate> = {};
     const allLists = [
-      equipmentTemplatesJson.weapons,
-      equipmentTemplatesJson.armors,
-      (equipmentTemplatesJson as any).accessories || [],
+      equipmentWeaponsJson,
+      equipmentArmorsJson,
+      equipmentAccessoriesJson || [],
       (secondHandShopDataJson as any).accessories || []
     ];
     allLists.forEach(list => {

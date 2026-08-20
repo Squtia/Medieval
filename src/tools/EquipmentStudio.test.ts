@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import materialsJson from '../data/materials.json';
 import itemsJson from '../data/items.json';
-import equipmentTemplatesJson from '../data/EquipmentTemplates.json';
+import equipmentWeaponsJson from '../data/equipment_weapons.json';
+import equipmentArmorsJson from '../data/equipment_armors.json';
+import equipmentAccessoriesJson from '../data/equipment_accessories.json';
 import craftingRecipesJson from '../data/CraftingRecipes.json';
+import { DataStore } from '../systems/DataStore';
 
 describe('裝備、素材、道具與鍛造工坊核心功能測試 (Equipment Studio Tests)', () => {
   it('素材資料庫包含必要欄位與合法階級 (Tier 1~4)', () => {
@@ -25,14 +28,20 @@ describe('裝備、素材、道具與鍛造工坊核心功能測試 (Equipment S
     });
   });
 
-  it('裝備原型庫能支援 12 種武器、防具與戰鬥數值', () => {
-    const raw: any = equipmentTemplatesJson;
-    const allEq: any[] = Array.isArray(raw) ? raw : [...(raw.weapons || []), ...(raw.armors || []), ...(raw.accessories || [])];
-    expect(allEq.length).toBeGreaterThan(0);
-    const weapons = allEq.filter((e: any) => e.slot === 'WEAPON');
-    const armors = allEq.filter((e: any) => e.slot === 'ARMOR');
-    expect(weapons.length).toBeGreaterThan(0);
-    expect(armors.length).toBeGreaterThan(0);
+  it('拆分後之裝備原型庫 (weapons, armors, accessories) 正確儲存且 DataStore 完美載入', () => {
+    expect(equipmentWeaponsJson.length).toBeGreaterThan(0);
+    expect(equipmentArmorsJson.length).toBeGreaterThan(0);
+    expect(Array.isArray(equipmentAccessoriesJson)).toBe(true);
+
+    const greatsword = DataStore.EquipmentDB['wpn_iron_greatsword'];
+    expect(greatsword).toBeDefined();
+    expect(greatsword.name).toBe('鐵大劍');
+    expect(greatsword.slot).toBe('WEAPON');
+
+    const clothRobe = DataStore.EquipmentDB['arm_cloth_robe_t1'];
+    expect(clothRobe).toBeDefined();
+    expect(clothRobe.name).toBe('粗布長袍');
+    expect(clothRobe.slot).toBe('ARMOR');
   });
 
   it('鍛造配方庫能正確關聯素材與目標裝備', () => {

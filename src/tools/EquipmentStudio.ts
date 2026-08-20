@@ -1,8 +1,12 @@
 import { EquipmentSlot, ElementType, WeaponType, MaterialItem } from '../models/types';
 import materialsJson from '../data/materials.json';
-import equipmentTemplatesJson from '../data/EquipmentTemplates.json';
+import equipmentWeaponsJson from '../data/equipment_weapons.json';
+import equipmentArmorsJson from '../data/equipment_armors.json';
+import equipmentAccessoriesJson from '../data/equipment_accessories.json';
 import craftingRecipesJson from '../data/CraftingRecipes.json';
 import itemsJson from '../data/items.json';
+import defaultCustomDatasets from '../data/custom_icon_datasets.json';
+import { renderUniversalIcon } from '../ui/IconSpriteHelper';
 import '../styles/equipment-studio.css';
 
 const byId = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as unknown as T;
@@ -29,9 +33,11 @@ export interface CustomEquipmentTemplate {
   name: string;
   slot: EquipmentSlot;
   weaponType?: WeaponType;
+  armorType?: 'CLOTH' | 'LEATHER' | 'HEAVY';
   tier: number;
   icon?: string;
   element?: ElementType;
+  baseEffects?: Partial<Record<'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', number>>;
   combatEffects: {
     patk?: number;
     matk?: number;
@@ -43,7 +49,17 @@ export interface CustomEquipmentTemplate {
     evade?: number;
     crit?: number;
   };
+  combatStatRanges?: Partial<Record<string, [number, number]>>;
+  randomPool?: {
+    attributes?: ('str' | 'agi' | 'con' | 'int' | 'spr' | 'luk')[];
+    combatStats?: string[];
+  };
   affixPool?: string[];
+  extraSkills?: string[];
+  skillTriggerChances?: number[];
+  craftable?: boolean;
+  droppable?: boolean;
+  shopBuyable?: boolean;
   description?: string;
   flavorText?: string;
 }
@@ -62,15 +78,14 @@ class EquipmentStudioController {
   private items: ConsumableItem[] = [];
   private equipment: CustomEquipmentTemplate[] = [];
   private recipes: CustomCraftingRecipe[] = [];
+  private iconDatasets: Record<string, any> = defaultCustomDatasets || {};
+  private currentIconPickerTab: string = 'materials';
 
-  // 當前左欄選中標籤 ('materials' | 'items')
   private leftTab: 'materials' | 'items' = 'materials';
 
-  // 當前編輯中的對象與類型
   private activeEditingType: 'material' | 'item' | 'equipment' | 'recipe' = 'material';
   private activeEditingId: string | null = null;
 
-  // 圖標選擇器回呼
   private iconPickerCallback: ((icon: string) => void) | null = null;
 
   public async init(): Promise<void> {
@@ -91,38 +106,89 @@ class EquipmentStudioController {
       const res = await fetch('/api/get-equipment-studio-data');
       if (res.ok) {
         const data = await res.json();
-        this.materials = data.materials?.length ? data.materials : clone(materialsJson);
-        this.items = data.items?.length ? data.items : clone(itemsJson);
-        this.equipment = data.equipment?.length ? data.equipment : clone(equipmentTemplatesJson);
-        this.recipes = data.recipes?.length ? data.recipes : clone(craftingRecipesJson);
+        this.materials = (data.materials?.length ? data.materials : clone(materialsJson)) as MaterialItem[];
+        this.items = (data.items?.length ? data.items : clone(itemsJson)) as ConsumableItem[];
+        this.equipment = data.equipment ? this.normalizeEquipmentList(data.equipment) : this.getFallbackEquipmentList();
+        this.recipes = (data.recipes?.length ? data.recipes : clone(craftingRecipesJson)) as any;
       } else {
         this.fallbackLocalData();
       }
     } catch {
       this.fallbackLocalData();
     }
+
+    try {
+      const iconRes = await fetch('/api/get-icon-config');
+      if (iconRes.ok) {
+        const iconData = await iconRes.json();
+        if (iconData.datasets) {
+          this.iconDatasets = { ...(defaultCustomDatasets || {}), ...iconData.datasets };
+        }
+      }
+    } catch {}
+  }
+
+  private getFallbackEquipmentList(): CustomEquipmentTemplate[] {
+    const list: any[] = [];
+    if (Array.isArray(equipmentWeaponsJson)) list.push(...clone(equipmentWeaponsJson));
+    if (Array.isArray(equipmentArmorsJson)) list.push(...clone(equipmentArmorsJson));
+    if (Array.isArray(equipmentAccessoriesJson)) list.push(...clone(equipmentAccessoriesJson));
+    return this.normalizeEquipmentList(list);
   }
 
   private normalizeEquipmentList(raw: any): CustomEquipmentTemplate[] {
-    if (Array.isArray(raw)) return raw;
-    if (raw && typeof raw === 'object') {
-      const list: any[] = [];
-      if (Array.isArray(raw.weapons)) list.push(...raw.weapons);
-      if (Array.isArray(raw.armors)) list.push(...raw.armors);
-      if (Array.isArray(raw.accessories)) list.push(...raw.accessories);
-      return list;
+    let list: any[] = [];
+    if (Array.isArray(raw)) {
+      list = clone(raw);
+    } else if (raw && typeof raw === 'object') {
+      if (Array.isArray(raw.weapons)) list.push(...clone(raw.weapons));
+      if (Array.isArray(raw.armors)) list.push(...clone(raw.armors));
+      if (Array.isArray(raw.accessories)) list.push(...clone(raw.accessories));
+      if (list.length === 0) {
+        list = Object.values(raw).filter(v => v && typeof v === 'object' && !Array.isArray(v));
+      }
     }
-    return [];
+    return list.map(e => ({
+      id: e.id || `eq_${Date.now()}`,
+      name: e.name || '未知裝備',
+      slot: e.slot || (e.weaponType ? EquipmentSlot.WEAPON : EquipmentSlot.ARMOR),
+      weaponType: e.weaponType,
+      armorType: e.armorType,
+      tier: Number(e.tier) || 1,
+      icon: e.icon || '',
+      element: e.element || ElementType.NONE,
+      baseEffects: e.baseEffects || e.effects || {},
+      combatEffects: {
+        patk: e.combatEffects?.patk ?? e.baseCombatEffects?.patk ?? 0,
+        matk: e.combatEffects?.matk ?? e.baseCombatEffects?.matk ?? 0,
+        pdef: e.combatEffects?.pdef ?? e.baseCombatEffects?.pdef ?? 0,
+        mdef: e.combatEffects?.mdef ?? e.baseCombatEffects?.mdef ?? 0,
+        hp: e.combatEffects?.hp ?? e.baseCombatEffects?.hp ?? 0,
+        mp: e.combatEffects?.mp ?? e.baseCombatEffects?.mp ?? 0,
+        hit: e.combatEffects?.hit ?? e.baseCombatEffects?.hit ?? 0,
+        evade: e.combatEffects?.evade ?? e.baseCombatEffects?.evade ?? 0,
+        crit: e.combatEffects?.crit ?? e.baseCombatEffects?.crit ?? (e.slot === EquipmentSlot.WEAPON ? 5 : 0)
+      },
+      combatStatRanges: e.combatStatRanges || {},
+      randomPool: e.randomPool || {},
+      affixPool: e.affixPool || ['鋒利', '堅定'],
+      extraSkills: e.extraSkills || [],
+      skillTriggerChances: e.skillTriggerChances || [],
+      craftable: e.craftable !== false,
+      droppable: e.droppable !== false,
+      shopBuyable: e.shopBuyable !== false,
+      description: e.description || '',
+      flavorText: e.flavorText || ''
+    }));
   }
 
   private fallbackLocalData(): void {
-    this.materials = clone(materialsJson) as MaterialItem[];
+    this.materials = clone(materialsJson) as any;
     this.items = clone(itemsJson) as ConsumableItem[];
-    this.equipment = this.normalizeEquipmentList(clone(equipmentTemplatesJson));
+    this.equipment = this.getFallbackEquipmentList();
     this.recipes = clone(craftingRecipesJson) as any;
   }
 
-  // ── 畫面渲染 ──
   private render(): void {
     this.renderLeftColumn();
     this.renderEquipColumn();
@@ -154,7 +220,7 @@ class EquipmentStudioController {
         card.innerHTML = `
           <div class="es-card-header">
             <div class="es-card-title">
-              <div class="es-card-avatar" data-open-icon-mat="${m.id}">${icon}</div>
+              <div class="es-card-avatar" data-open-icon-mat="${m.id}" title="點擊切換圖標">${renderUniversalIcon(icon, 36)}</div>
               <div>
                 <div style="font-size: 0.85rem; font-weight: bold;">${m.name}</div>
                 <div style="font-size: 0.7rem; color: var(--es-text-muted);">${m.id}</div>
@@ -185,10 +251,11 @@ class EquipmentStudioController {
       filtered.forEach(it => {
         const card = document.createElement('div');
         card.className = 'es-card';
+        const icon = it.icon || '🧪';
         card.innerHTML = `
           <div class="es-card-header">
             <div class="es-card-title">
-              <div class="es-card-avatar" data-open-icon-item="${it.id}">${it.icon || '🧪'}</div>
+              <div class="es-card-avatar" data-open-icon-item="${it.id}" title="點擊切換圖標">${renderUniversalIcon(icon, 36)}</div>
               <div>
                 <div style="font-size: 0.85rem; font-weight: bold;">${it.name}</div>
                 <div style="font-size: 0.7rem; color: var(--es-text-muted);">${it.id}</div>
@@ -232,7 +299,7 @@ class EquipmentStudioController {
       const card = document.createElement('div');
       card.className = 'es-card';
       const eff = eq.combatEffects || {};
-      const icon = eq.icon || this.getEquipDefaultIcon(eq.slot, eq.weaponType);
+      const icon = eq.icon || this.getEquipDefaultIcon(eq.slot, eq.weaponType, eq.tier);
       const elemText = eq.element && eq.element !== ElementType.NONE ? `<span style="color: var(--es-gold);">[${eq.element}]</span>` : '';
 
       const patk = eff.patk || (eq.slot === EquipmentSlot.WEAPON ? eq.tier * 15 : 0);
@@ -242,11 +309,21 @@ class EquipmentStudioController {
       const hp = eff.hp || (eq.slot === EquipmentSlot.ARMOR ? eq.tier * 30 : 0);
       const crit = eff.crit || (eq.slot === EquipmentSlot.WEAPON ? 5 : 0);
 
-      // +10 強化預估戰力
       const effAtk10 = Math.max(patk, matk) + 40;
       const avgDef10 = Math.floor((pdef + mdef) / 2) + 30;
       const maxHp10 = hp + 50;
       const power10 = effAtk10 + Math.floor(avgDef10 * 0.6) + Math.floor(maxHp10 * 0.2);
+
+      const sourceBadges = [];
+      if (eq.craftable !== false) sourceBadges.push(`<span style="background: rgba(230,180,34,0.15); color: var(--es-gold); padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">🔨鍛造</span>`);
+      if (eq.droppable !== false) sourceBadges.push(`<span style="background: rgba(168,85,247,0.15); color: #c084fc; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">👾掉落</span>`);
+      if (eq.shopBuyable !== false) sourceBadges.push(`<span style="background: rgba(59,130,246,0.15); color: #60a5fa; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">🏪商店</span>`);
+
+      const sixEffects = eq.baseEffects || {};
+      const sixBadges = Object.entries(sixEffects)
+        .filter(([_, val]) => Number(val) > 0)
+        .map(([k, val]) => `<span style="background: #1c2128; color: #58a6ff; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; border: 1px solid rgba(88,166,255,0.3);">${k.toUpperCase()}+${val}</span>`)
+        .join(' ');
 
       const affixesHtml = (eq.affixPool && eq.affixPool.length > 0)
         ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
@@ -254,13 +331,22 @@ class EquipmentStudioController {
            </div>`
         : '';
 
+      const skillsHtml = (eq.extraSkills && eq.extraSkills.length > 0 && eq.extraSkills.some(s => !!s))
+        ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
+            ${eq.extraSkills.filter(Boolean).map((s, idx) => `<span style="background: rgba(234,179,8,0.15); color: #fde047; padding: 1px 5px; border-radius: 3px; font-size: 0.68rem; border: 1px solid rgba(234,179,8,0.4);">✨ ${s} (${eq.skillTriggerChances?.[idx] || 20}%)</span>`).join('')}
+           </div>`
+        : '';
+
       card.innerHTML = `
         <div class="es-card-header">
           <div class="es-card-title">
-            <div class="es-card-avatar" data-open-icon-equip="${eq.id}">${icon}</div>
+            <div class="es-card-avatar" data-open-icon-equip="${eq.id}" title="點擊切換圖標">${renderUniversalIcon(icon, 36)}</div>
             <div>
               <div style="font-size: 0.88rem; font-weight: bold;">${elemText} ${eq.name}</div>
-              <div style="font-size: 0.7rem; color: var(--es-text-muted);">${eq.weaponType || eq.slot} · ${eq.id}</div>
+              <div style="font-size: 0.7rem; color: var(--es-text-muted); display: flex; gap: 4px; align-items: center;">
+                <span>${eq.weaponType || eq.slot} · ${eq.id}</span>
+                ${sourceBadges.join('')}
+              </div>
             </div>
           </div>
           <div style="display: flex; gap: 4px; align-items: center;">
@@ -269,6 +355,8 @@ class EquipmentStudioController {
             <button class="es-btn es-btn-sm es-btn-danger" data-del-equip="${eq.id}">✕</button>
           </div>
         </div>
+
+        ${sixBadges ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px;">${sixBadges}</div>` : ''}
 
         <div class="es-stat-grid">
           <div>⚔️ 物攻 <b>${patk}</b></div>
@@ -281,6 +369,7 @@ class EquipmentStudioController {
         </div>
 
         ${affixesHtml}
+        ${skillsHtml}
         <div class="es-card-desc" style="margin-top: 2px;">${eq.description || '精工打造之中世紀軍械。'}</div>
         ${eq.flavorText ? `<div class="es-card-flavor">${eq.flavorText}</div>` : ''}
       `;
@@ -297,30 +386,55 @@ class EquipmentStudioController {
 
     const filtered = this.recipes.filter(r => {
       const targetEq = this.equipment.find(e => e.id === r.targetEquipmentId);
-      const name = r.name || targetEq?.name || r.id;
+      const targetMat = !targetEq ? this.materials.find(m => m.id === r.targetEquipmentId) : null;
+      const targetIt = !targetEq && !targetMat ? this.items.find(i => i.id === r.targetEquipmentId) : null;
+      const name = r.name || targetEq?.name || targetMat?.name || targetIt?.name || r.id;
       return name.toLowerCase().includes(search) || r.id.toLowerCase().includes(search);
     });
 
     filtered.forEach(r => {
       const card = document.createElement('div');
       card.className = 'es-card';
+
+      // 🧠 全庫智慧自動判讀 (裝備 ➔ 素材 ➔ 道具)
       const targetEq = this.equipment.find(e => e.id === r.targetEquipmentId);
-      const eqName = targetEq?.name || r.targetEquipmentId;
-      const eqIcon = targetEq ? (targetEq.icon || this.getEquipDefaultIcon(targetEq.slot, targetEq.weaponType)) : '📦';
+      const targetMat = !targetEq ? this.materials.find(m => m.id === r.targetEquipmentId) : null;
+      const targetIt = !targetEq && !targetMat ? this.items.find(i => i.id === r.targetEquipmentId) : null;
+
+      let eqName = r.name || r.targetEquipmentId;
+      let eqIcon = '📦';
+      let typeBadge = '';
+
+      if (targetEq) {
+        eqName = r.name || targetEq.name;
+        eqIcon = targetEq.icon || this.getEquipDefaultIcon(targetEq.slot, targetEq.weaponType, targetEq.tier);
+        typeBadge = `<span style="background: rgba(230,180,34,0.15); color: var(--es-gold); padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">⚔️裝備</span>`;
+      } else if (targetMat) {
+        eqName = r.name || targetMat.name;
+        eqIcon = targetMat.icon || this.getMaterialDefaultIcon(targetMat.id);
+        typeBadge = `<span style="background: rgba(16,185,129,0.15); color: #34d399; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">🧱素材提煉</span>`;
+      } else if (targetIt) {
+        eqName = r.name || targetIt.name;
+        eqIcon = targetIt.icon || '🧪';
+        typeBadge = `<span style="background: rgba(59,130,246,0.15); color: #60a5fa; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">🧪道具</span>`;
+      }
 
       const matsHtml = Object.entries(r.requiredMaterials || {}).map(([matId, count]) => {
         const mat = this.materials.find(m => m.id === matId);
         const matName = mat?.name || matId;
-        const matIcon = mat?.icon || '🪵';
-        return `<span style="background: #161b22; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; border: 1px solid var(--es-panel-border);">${matIcon} ${matName} x${count}</span>`;
+        const matIcon = mat?.icon || this.getMaterialDefaultIcon(matId);
+        return `<span style="background: #161b22; padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; border: 1px solid var(--es-panel-border); display: inline-flex; align-items: center; gap: 4px;">${renderUniversalIcon(matIcon, 16)} ${matName} x${count}</span>`;
       }).join(' ');
 
       card.innerHTML = `
         <div class="es-card-header">
           <div class="es-card-title">
-            <div class="es-card-avatar">${eqIcon}</div>
+            <div class="es-card-avatar" data-open-icon-recipe="${r.id}" title="點擊切換產出目標圖標">${renderUniversalIcon(eqIcon, 36)}</div>
             <div>
-              <div style="font-size: 0.85rem; font-weight: bold;">${r.name || eqName} 配方</div>
+              <div style="font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                <span>${eqName} 配方</span>
+                ${typeBadge}
+              </div>
               <div style="font-size: 0.7rem; color: var(--es-text-muted);">${r.id} ➔ ${eqName}</div>
             </div>
           </div>
@@ -337,21 +451,18 @@ class EquipmentStudioController {
 
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.72rem; color: var(--es-gold); margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.08); padding-top: 4px;">
           <span>💰 消耗金幣: <b>${r.goldCost || 100}</b></span>
-          <button class="es-btn es-btn-sm" data-simulate-craft="${r.id}" style="padding: 1px 6px;">🔨 模擬鍛造</button>
+          <button class="es-btn es-btn-sm" data-simulate-craft="${r.id}" style="padding: 1px 6px;">🔨 模擬製作</button>
         </div>
       `;
       list.appendChild(card);
     });
   }
 
-  // ── 事件綁定 ──
   private bindEvents(): void {
-    // 頂部導航
-    byId('btn-nav-combat').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/combat-studio.html`, '_blank');
-    byId('btn-nav-icon').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/icon-studio.html`, '_blank');
-    byId('btn-nav-story').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/story-studio.html`, '_blank');
+    byId('btn-nav-combat').onclick = () => window.open('combat-studio.html', '_blank');
+    byId('btn-nav-icon').onclick = () => window.open('icon-studio.html', '_blank');
+    byId('btn-nav-story').onclick = () => window.open('story-studio.html', '_blank');
 
-    // 左欄標籤切換
     byId('tab-left-materials').onclick = () => {
       this.leftTab = 'materials';
       byId('tab-left-materials').className = 'es-btn es-btn-sm es-btn-gold';
@@ -366,7 +477,6 @@ class EquipmentStudioController {
       this.renderLeftColumn();
     };
 
-    // 搜尋與篩選事件
     byId('es-search-left').oninput = () => this.renderLeftColumn();
     byId('es-filter-left-tier').onchange = () => this.renderLeftColumn();
     byId('es-search-equip').oninput = () => this.renderEquipColumn();
@@ -374,7 +484,6 @@ class EquipmentStudioController {
     byId('es-filter-equip-tier').onchange = () => this.renderEquipColumn();
     byId('es-search-recipe').oninput = () => this.renderRecipeColumn();
 
-    // ➕ 創造按鈕
     byId('btn-create-mat-or-item').onclick = () => {
       if (this.leftTab === 'materials') {
         this.openMaterialEditor(null);
@@ -386,7 +495,6 @@ class EquipmentStudioController {
     byId('btn-create-equipment').onclick = () => this.openEquipmentEditor(null);
     byId('btn-create-recipe').onclick = () => this.openRecipeEditor(null);
 
-    // 磁碟持久化保存
     byId('btn-save-all-disk').onclick = async () => {
       try {
         const res = await fetch('/api/save-equipment-studio-data', {
@@ -411,7 +519,6 @@ class EquipmentStudioController {
       }
     };
 
-    // 時光機歷史快照
     byId('btn-history-backups').onclick = async () => {
       try {
         const res = await fetch('/api/list-equipment-studio-backups');
@@ -442,7 +549,6 @@ class EquipmentStudioController {
 
     byId('btn-close-backups').onclick = () => byId('modal-history-backups').style.display = 'none';
 
-    // 彈窗關閉事件
     byId('btn-close-me').onclick = () => byId('modal-material-editor').style.display = 'none';
     byId('btn-cancel-me').onclick = () => byId('modal-material-editor').style.display = 'none';
     byId('btn-close-ie').onclick = () => byId('modal-item-editor').style.display = 'none';
@@ -453,12 +559,20 @@ class EquipmentStudioController {
     byId('btn-cancel-re').onclick = () => byId('modal-recipe-editor').style.display = 'none';
     byId('btn-close-icon-picker').onclick = () => byId('modal-icon-picker').style.display = 'none';
 
-    // 彈窗保存按鈕
+    byId('btn-re-add-mat').onclick = () => this.addRecipeMatRow();
+
     this.bindSaveHandlers();
 
-    // 委託點擊事件
     document.addEventListener('click', async (e) => {
-      const target = e.target as HTMLElement;
+      const target = (e.target as HTMLElement).closest('[data-edit-mat], [data-del-mat], [data-edit-item], [data-del-item], [data-edit-equip], [data-del-equip], [data-edit-recipe], [data-del-recipe], [data-simulate-craft], [data-open-icon-mat], [data-open-icon-item], [data-open-icon-equip], [data-restore-snap], [data-del-recipe-mat-row]') as HTMLElement;
+      if (!target) return;
+
+      if (target.dataset.delRecipeMatRow !== undefined) {
+        const row = target.closest('.es-recipe-mat-row');
+        if (row) row.remove();
+        return;
+      }
+
       if (target.dataset.editMat) this.openMaterialEditor(target.dataset.editMat);
       if (target.dataset.delMat) {
         const id = target.dataset.delMat;
@@ -534,6 +648,22 @@ class EquipmentStudioController {
         }
       }
 
+      if (target.dataset.openIconRecipe) {
+        const r = this.recipes.find(rec => rec.id === target.dataset.openIconRecipe);
+        if (r) {
+          const eq = this.equipment.find(e => e.id === r.targetEquipmentId);
+          const mat = !eq ? this.materials.find(m => m.id === r.targetEquipmentId) : null;
+          const it = !eq && !mat ? this.items.find(i => i.id === r.targetEquipmentId) : null;
+
+          this.openIconPicker(ic => {
+            if (eq) { eq.icon = ic; this.renderEquipColumn(); }
+            else if (mat) { mat.icon = ic; this.renderLeftColumn(); }
+            else if (it) { it.icon = ic; this.renderLeftColumn(); }
+            this.renderRecipeColumn();
+          });
+        }
+      }
+
       if (target.dataset.restoreSnap) {
         const filename = target.dataset.restoreSnap;
         if (confirm(`確定要還原至歷史快照 ${filename} 嗎？`)) {
@@ -556,17 +686,25 @@ class EquipmentStudioController {
       }
     });
 
-    // 彈窗圖標直接點擊
-    byId('me-icon').onclick = () => this.openIconPicker(ic => byId('me-icon').textContent = ic);
-    byId('ie-icon').onclick = () => this.openIconPicker(ic => byId('ie-icon').textContent = ic);
-    byId('ee-icon').onclick = () => this.openIconPicker(ic => byId('ee-icon').textContent = ic);
+    byId('me-icon').onclick = () => this.openIconPicker(ic => {
+      byId('me-icon').innerHTML = renderUniversalIcon(ic, 40);
+      byId('me-icon').dataset.iconVal = ic;
+    });
+    byId('ie-icon').onclick = () => this.openIconPicker(ic => {
+      byId('ie-icon').innerHTML = renderUniversalIcon(ic, 40);
+      byId('ie-icon').dataset.iconVal = ic;
+    });
+    byId('ee-icon').onclick = () => this.openIconPicker(ic => {
+      byId('ee-icon').innerHTML = renderUniversalIcon(ic, 40);
+      byId('ee-icon').dataset.iconVal = ic;
+    });
   }
 
-  // ── 彈窗開啟與保存邏輯 ──
   private openMaterialEditor(id: string | null): void {
     this.activeEditingType = 'material';
     this.activeEditingId = id;
     const m = id ? this.materials.find(mat => mat.id === id) : null;
+    const icon = m ? (m.icon || this.getMaterialDefaultIcon(m.id)) : 'materials:mat_iron_ingot';
 
     byId('me-title').textContent = m ? `🧱 編輯素材 - ${m.name}` : '🧱 創造新素材';
     (byId('me-id') as HTMLInputElement).value = m ? m.id : `mat_new_${Date.now().toString().slice(-4)}`;
@@ -577,7 +715,8 @@ class EquipmentStudioController {
     (byId('me-value') as HTMLInputElement).value = m ? String(m.basePrice || 20) : '20';
     (byId('me-desc') as HTMLTextAreaElement).value = m ? (m.description || '') : '';
     (byId('me-flavor') as HTMLTextAreaElement).value = m ? (m.flavorText || '') : '';
-    byId('me-icon').textContent = m ? (m.icon || '🪵') : '🪵';
+    byId('me-icon').innerHTML = renderUniversalIcon(icon, 40);
+    byId('me-icon').dataset.iconVal = icon;
 
     byId('modal-material-editor').style.display = 'flex';
   }
@@ -586,6 +725,7 @@ class EquipmentStudioController {
     this.activeEditingType = 'item';
     this.activeEditingId = id;
     const it = id ? this.items.find(item => item.id === id) : null;
+    const icon = it ? (it.icon || '🧪') : '🧪';
 
     byId('ie-title').textContent = it ? `🧪 編輯道具 - ${it.name}` : '🧪 創造新道具';
     (byId('ie-id') as HTMLInputElement).value = it ? it.id : `item_new_${Date.now().toString().slice(-4)}`;
@@ -596,15 +736,38 @@ class EquipmentStudioController {
     (byId('ie-stack') as HTMLInputElement).value = it ? String(it.maxStack || 99) : '99';
     (byId('ie-desc') as HTMLTextAreaElement).value = it ? it.description : '';
     (byId('ie-flavor') as HTMLTextAreaElement).value = it ? (it.flavorText || '') : '';
-    byId('ie-icon').textContent = it ? (it.icon || '🧪') : '🧪';
+    byId('ie-icon').innerHTML = renderUniversalIcon(icon, 40);
+    byId('ie-icon').dataset.iconVal = icon;
 
     byId('modal-item-editor').style.display = 'flex';
+  }
+
+  private formatStatInput(val?: number, range?: [number, number]): string {
+    if (range && range.length === 2 && range[0] !== range[1]) {
+      return `${range[0]}~${range[1]}`;
+    }
+    return String(val || 0);
+  }
+
+  private parseStatInput(raw: string): { base: number; range?: [number, number] } {
+    const trimmed = raw.trim();
+    if (trimmed.includes('~') || trimmed.includes('-')) {
+      const parts = trimmed.split(/[~-]/).map(p => Number(p.trim())).filter(n => !isNaN(n));
+      if (parts.length >= 2) {
+        const min = Math.min(parts[0], parts[1]);
+        const max = Math.max(parts[0], parts[1]);
+        return { base: min, range: [min, max] };
+      }
+    }
+    const num = Number(trimmed) || 0;
+    return { base: num };
   }
 
   private openEquipmentEditor(id: string | null): void {
     this.activeEditingType = 'equipment';
     this.activeEditingId = id;
     const eq = id ? this.equipment.find(e => e.id === id) : null;
+    const icon = eq ? (eq.icon || this.getEquipDefaultIcon(eq.slot, eq.weaponType, eq.tier)) : 'weapons:GREATSWORD';
 
     byId('ee-title').textContent = eq ? `⚔️ 編輯裝備 - ${eq.name}` : '⚔️ 創造新裝備';
     (byId('ee-id') as HTMLInputElement).value = eq ? eq.id : `wpn_new_${Date.now().toString().slice(-4)}`;
@@ -615,27 +778,62 @@ class EquipmentStudioController {
     (byId('ee-tier') as HTMLSelectElement).value = eq ? String(eq.tier) : '1';
     (byId('ee-element') as HTMLSelectElement).value = eq ? (eq.element || 'NONE') : 'NONE';
 
+    (byId('ee-craftable') as HTMLInputElement).checked = eq ? (eq.craftable !== false) : true;
+    (byId('ee-droppable') as HTMLInputElement).checked = eq ? (eq.droppable !== false) : true;
+    (byId('ee-shop-buyable') as HTMLInputElement).checked = eq ? (eq.shopBuyable !== false) : true;
+
+    const six = eq?.baseEffects || {};
+    const rndPoolAttrs = eq?.randomPool?.attributes || [];
+    (byId('ee-str') as HTMLInputElement).value = String(six.str || 0);
+    (byId('ee-agi') as HTMLInputElement).value = String(six.agi || 0);
+    (byId('ee-con') as HTMLInputElement).value = String(six.con || 0);
+    (byId('ee-int') as HTMLInputElement).value = String(six.int || 0);
+    (byId('ee-spr') as HTMLInputElement).value = String(six.spr || 0);
+    (byId('ee-luk') as HTMLInputElement).value = String(six.luk || 0);
+
+    (byId('rnd-str') as HTMLInputElement).checked = rndPoolAttrs.includes('str');
+    (byId('rnd-agi') as HTMLInputElement).checked = rndPoolAttrs.includes('agi');
+    (byId('rnd-con') as HTMLInputElement).checked = rndPoolAttrs.includes('con');
+    (byId('rnd-int') as HTMLInputElement).checked = rndPoolAttrs.includes('int');
+    (byId('rnd-spr') as HTMLInputElement).checked = rndPoolAttrs.includes('spr');
+    (byId('rnd-luk') as HTMLInputElement).checked = rndPoolAttrs.includes('luk');
+
     const eff = eq?.combatEffects || {};
-    (byId('ee-patk') as HTMLInputElement).value = String(eff.patk || 0);
-    (byId('ee-matk') as HTMLInputElement).value = String(eff.matk || 0);
-    (byId('ee-pdef') as HTMLInputElement).value = String(eff.pdef || 0);
-    (byId('ee-mdef') as HTMLInputElement).value = String(eff.mdef || 0);
-    (byId('ee-hp') as HTMLInputElement).value = String(eff.hp || 0);
-    (byId('ee-mp') as HTMLInputElement).value = String(eff.mp || 0);
-    (byId('ee-hit') as HTMLInputElement).value = String(eff.hit || 0);
-    (byId('ee-crit') as HTMLInputElement).value = String(eff.crit || 5);
+    const ranges = eq?.combatStatRanges || {};
+    (byId('ee-patk') as HTMLInputElement).value = this.formatStatInput(eff.patk, ranges.patk);
+    (byId('ee-matk') as HTMLInputElement).value = this.formatStatInput(eff.matk, ranges.matk);
+    (byId('ee-pdef') as HTMLInputElement).value = this.formatStatInput(eff.pdef, ranges.pdef);
+    (byId('ee-mdef') as HTMLInputElement).value = this.formatStatInput(eff.mdef, ranges.mdef);
+    (byId('ee-hp') as HTMLInputElement).value = this.formatStatInput(eff.hp, ranges.hp);
+    (byId('ee-mp') as HTMLInputElement).value = this.formatStatInput(eff.mp, ranges.mp);
+    (byId('ee-hit') as HTMLInputElement).value = this.formatStatInput(eff.hit, ranges.hit);
+    (byId('ee-crit') as HTMLInputElement).value = this.formatStatInput(eff.crit ?? (eq?.slot === EquipmentSlot.WEAPON ? 5 : 0), ranges.crit);
 
     const pool = eq?.affixPool || [];
     (byId('affix-sharp') as HTMLInputElement).checked = pool.includes('鋒利');
     (byId('affix-arcane') as HTMLInputElement).checked = pool.includes('奧術');
-    (byId('affix-stalwart') as HTMLInputElement).checked = pool.includes('堅定');
-    (byId('affix-swift') as HTMLInputElement).checked = pool.includes('疾風');
     (byId('affix-deadly') as HTMLInputElement).checked = pool.includes('致命');
+    (byId('affix-pierce') as HTMLInputElement).checked = pool.includes('破甲');
     (byId('affix-vampire') as HTMLInputElement).checked = pool.includes('嗜血');
+    (byId('affix-stalwart') as HTMLInputElement).checked = pool.includes('堅定');
+    (byId('affix-ironwall') as HTMLInputElement).checked = pool.includes('鐵壁');
+    (byId('affix-antimagic') as HTMLInputElement).checked = pool.includes('抗魔');
+    (byId('affix-block') as HTMLInputElement).checked = pool.includes('格擋');
+    (byId('affix-swift') as HTMLInputElement).checked = pool.includes('疾風');
+    (byId('affix-meditation') as HTMLInputElement).checked = pool.includes('冥想');
+    (byId('affix-allround') as HTMLInputElement).checked = pool.includes('全能');
+
+    const skills = eq?.extraSkills || [];
+    const chances = eq?.skillTriggerChances || [];
+    (byId('ee-skill-1') as HTMLInputElement).value = skills[0] || '';
+    (byId('ee-skill-rate-1') as HTMLInputElement).value = String(chances[0] ?? 20);
+    (byId('ee-skill-2') as HTMLInputElement).value = skills[1] || '';
+    (byId('ee-skill-rate-2') as HTMLInputElement).value = String(chances[1] ?? 100);
 
     (byId('ee-desc') as HTMLTextAreaElement).value = eq ? (eq.description || '') : '';
     (byId('ee-flavor') as HTMLTextAreaElement).value = eq ? (eq.flavorText || '') : '';
-    byId('ee-icon').textContent = eq ? (eq.icon || '🗡️') : '🗡️';
+    byId('ee-icon').innerHTML = renderUniversalIcon(icon, 40);
+    byId('ee-icon').dataset.iconVal = icon;
 
     byId('modal-equipment-editor').style.display = 'flex';
   }
@@ -651,26 +849,50 @@ class EquipmentStudioController {
     (byId('re-gold') as HTMLInputElement).value = r ? String(r.goldCost || 100) : '150';
 
     const targetSel = byId<HTMLSelectElement>('re-target-equip');
-    targetSel.innerHTML = this.equipment.map(e => `<option value="${e.id}" ${r && r.targetEquipmentId === e.id ? 'selected' : ''}>${e.name} (${e.id})</option>`).join('');
+    const targetEquipOpts = this.equipment.map(e => `<option value="${e.id}" ${r && r.targetEquipmentId === e.id ? 'selected' : ''}>⚔️ ${e.name} (${e.id})</option>`).join('');
+    const targetMatOpts = this.materials.map(m => `<option value="${m.id}" ${r && r.targetEquipmentId === m.id ? 'selected' : ''}>🧱 ${m.name} (${m.id})</option>`).join('');
+    const targetItemOpts = this.items.map(i => `<option value="${i.id}" ${r && r.targetEquipmentId === i.id ? 'selected' : ''}>🧪 ${i.name} (${i.id})</option>`).join('');
 
-    const mat1Sel = byId<HTMLSelectElement>('re-mat-1');
-    const mat2Sel = byId<HTMLSelectElement>('re-mat-2');
-    const matOpts = this.materials.map(m => `<option value="${m.id}">${m.name} (${m.id})</option>`).join('');
+    targetSel.innerHTML = `
+      <optgroup label="⚔️ 裝備與武器 (${this.equipment.length} 款)">
+        ${targetEquipOpts}
+      </optgroup>
+      <optgroup label="🧱 素材與錠材 (素材提煉/加工) (${this.materials.length} 種)">
+        ${targetMatOpts}
+      </optgroup>
+      <optgroup label="🧪 消耗道具 (${this.items.length} 款)">
+        ${targetItemOpts}
+      </optgroup>
+    `;
 
-    mat1Sel.innerHTML = matOpts;
-    mat2Sel.innerHTML = `<option value="">(無)</option>` + matOpts;
+    const container = byId('re-mats-container');
+    container.innerHTML = '';
 
-    const req = r ? Object.entries(r.requiredMaterials || {}) : [];
-    if (req[0]) {
-      mat1Sel.value = req[0][0];
-      (byId('re-mat-count-1') as HTMLInputElement).value = String(req[0][1]);
-    }
-    if (req[1]) {
-      mat2Sel.value = req[1][0];
-      (byId('re-mat-count-2') as HTMLInputElement).value = String(req[1][1]);
+    const mats = r ? Object.entries(r.requiredMaterials || {}) : [];
+    if (mats.length === 0) {
+      this.addRecipeMatRow(this.materials[0]?.id || 'mat_iron_ingot', 3);
+    } else {
+      mats.forEach(([matId, count]) => this.addRecipeMatRow(matId, count));
     }
 
     byId('modal-recipe-editor').style.display = 'flex';
+  }
+
+  private addRecipeMatRow(selectedMatId: string = '', defaultCount: number = 1): void {
+    const container = byId('re-mats-container');
+    const row = document.createElement('div');
+    row.className = 'es-recipe-mat-row';
+
+    const matOpts = this.materials.map(m => `<option value="${m.id}" ${m.id === selectedMatId ? 'selected' : ''}>${m.name} (${m.id})</option>`).join('');
+
+    row.innerHTML = `
+      <select class="es-select es-re-mat-select" style="flex: 1;">
+        ${matOpts}
+      </select>
+      <input type="number" class="es-input es-re-mat-count" value="${defaultCount}" min="1" style="width: 70px;">
+      <button class="es-btn es-btn-sm es-btn-danger" data-del-recipe-mat-row="1">✕</button>
+    `;
+    container.appendChild(row);
   }
 
   private bindSaveHandlers(): void {
@@ -687,7 +909,7 @@ class EquipmentStudioController {
         basePrice: Number((byId('me-value') as HTMLInputElement).value) || 20,
         description: (byId('me-desc') as HTMLTextAreaElement).value.trim(),
         flavorText: (byId('me-flavor') as HTMLTextAreaElement).value.trim(),
-        icon: byId('me-icon').textContent || '🪵'
+        icon: byId('me-icon').dataset.iconVal || 'materials:mat_iron_ingot'
       };
 
       const existingIdx = this.materials.findIndex(m => m.id === id);
@@ -707,7 +929,7 @@ class EquipmentStudioController {
         id,
         name,
         category: 'CONSUMABLE',
-        icon: byId('ie-icon').textContent || '🧪',
+        icon: byId('ie-icon').dataset.iconVal || '🧪',
         tier: 1,
         effectType: (byId('ie-effect-type') as HTMLSelectElement).value,
         effectValue: Number((byId('ie-effect-val') as HTMLInputElement).value) || 100,
@@ -734,10 +956,70 @@ class EquipmentStudioController {
       const pool: string[] = [];
       if ((byId('affix-sharp') as HTMLInputElement).checked) pool.push('鋒利');
       if ((byId('affix-arcane') as HTMLInputElement).checked) pool.push('奧術');
-      if ((byId('affix-stalwart') as HTMLInputElement).checked) pool.push('堅定');
-      if ((byId('affix-swift') as HTMLInputElement).checked) pool.push('疾風');
       if ((byId('affix-deadly') as HTMLInputElement).checked) pool.push('致命');
+      if ((byId('affix-pierce') as HTMLInputElement).checked) pool.push('破甲');
       if ((byId('affix-vampire') as HTMLInputElement).checked) pool.push('嗜血');
+      if ((byId('affix-stalwart') as HTMLInputElement).checked) pool.push('堅定');
+      if ((byId('affix-ironwall') as HTMLInputElement).checked) pool.push('鐵壁');
+      if ((byId('affix-antimagic') as HTMLInputElement).checked) pool.push('抗魔');
+      if ((byId('affix-block') as HTMLInputElement).checked) pool.push('格擋');
+      if ((byId('affix-swift') as HTMLInputElement).checked) pool.push('疾風');
+      if ((byId('affix-meditation') as HTMLInputElement).checked) pool.push('冥想');
+      if ((byId('affix-allround') as HTMLInputElement).checked) pool.push('全能');
+
+      const baseEffects: Partial<Record<'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', number>> = {};
+      const str = Number((byId('ee-str') as HTMLInputElement).value) || 0;
+      const agi = Number((byId('ee-agi') as HTMLInputElement).value) || 0;
+      const con = Number((byId('ee-con') as HTMLInputElement).value) || 0;
+      const int = Number((byId('ee-int') as HTMLInputElement).value) || 0;
+      const spr = Number((byId('ee-spr') as HTMLInputElement).value) || 0;
+      const luk = Number((byId('ee-luk') as HTMLInputElement).value) || 0;
+      if (str) baseEffects.str = str;
+      if (agi) baseEffects.agi = agi;
+      if (con) baseEffects.con = con;
+      if (int) baseEffects.int = int;
+      if (spr) baseEffects.spr = spr;
+      if (luk) baseEffects.luk = luk;
+
+      const rndAttrs: ('str' | 'agi' | 'con' | 'int' | 'spr' | 'luk')[] = [];
+      if ((byId('rnd-str') as HTMLInputElement).checked) rndAttrs.push('str');
+      if ((byId('rnd-agi') as HTMLInputElement).checked) rndAttrs.push('agi');
+      if ((byId('rnd-con') as HTMLInputElement).checked) rndAttrs.push('con');
+      if ((byId('rnd-int') as HTMLInputElement).checked) rndAttrs.push('int');
+      if ((byId('rnd-spr') as HTMLInputElement).checked) rndAttrs.push('spr');
+      if ((byId('rnd-luk') as HTMLInputElement).checked) rndAttrs.push('luk');
+
+      const patkParsed = this.parseStatInput((byId('ee-patk') as HTMLInputElement).value);
+      const matkParsed = this.parseStatInput((byId('ee-matk') as HTMLInputElement).value);
+      const pdefParsed = this.parseStatInput((byId('ee-pdef') as HTMLInputElement).value);
+      const mdefParsed = this.parseStatInput((byId('ee-mdef') as HTMLInputElement).value);
+      const hpParsed = this.parseStatInput((byId('ee-hp') as HTMLInputElement).value);
+      const mpParsed = this.parseStatInput((byId('ee-mp') as HTMLInputElement).value);
+      const hitParsed = this.parseStatInput((byId('ee-hit') as HTMLInputElement).value);
+      const critParsed = this.parseStatInput((byId('ee-crit') as HTMLInputElement).value);
+
+      const combatStatRanges: Partial<Record<string, [number, number]>> = {};
+      if (patkParsed.range) combatStatRanges.patk = patkParsed.range;
+      if (matkParsed.range) combatStatRanges.matk = matkParsed.range;
+      if (pdefParsed.range) combatStatRanges.pdef = pdefParsed.range;
+      if (mdefParsed.range) combatStatRanges.mdef = mdefParsed.range;
+      if (hpParsed.range) combatStatRanges.hp = hpParsed.range;
+      if (mpParsed.range) combatStatRanges.mp = mpParsed.range;
+      if (hitParsed.range) combatStatRanges.hit = hitParsed.range;
+      if (critParsed.range) combatStatRanges.crit = critParsed.range;
+
+      const extraSkills: string[] = [];
+      const skillTriggerChances: number[] = [];
+      const s1 = (byId('ee-skill-1') as HTMLInputElement).value.trim();
+      const s2 = (byId('ee-skill-2') as HTMLInputElement).value.trim();
+      if (s1) {
+        extraSkills.push(s1);
+        skillTriggerChances.push(Number((byId('ee-skill-rate-1') as HTMLInputElement).value) || 20);
+      }
+      if (s2) {
+        extraSkills.push(s2);
+        skillTriggerChances.push(Number((byId('ee-skill-rate-2') as HTMLInputElement).value) || 100);
+      }
 
       const eq: CustomEquipmentTemplate = {
         id,
@@ -746,18 +1028,29 @@ class EquipmentStudioController {
         weaponType: (byId('ee-weapon-type') as HTMLSelectElement).value as any,
         tier: Number((byId('ee-tier') as HTMLSelectElement).value) || 1,
         element: (byId('ee-element') as HTMLSelectElement).value as any,
-        icon: byId('ee-icon').textContent || '🗡️',
+        icon: byId('ee-icon').dataset.iconVal || 'weapons:GREATSWORD',
+        craftable: (byId('ee-craftable') as HTMLInputElement).checked,
+        droppable: (byId('ee-droppable') as HTMLInputElement).checked,
+        shopBuyable: (byId('ee-shop-buyable') as HTMLInputElement).checked,
+        baseEffects,
         combatEffects: {
-          patk: Number((byId('ee-patk') as HTMLInputElement).value) || 0,
-          matk: Number((byId('ee-matk') as HTMLInputElement).value) || 0,
-          pdef: Number((byId('ee-pdef') as HTMLInputElement).value) || 0,
-          mdef: Number((byId('ee-mdef') as HTMLInputElement).value) || 0,
-          hp: Number((byId('ee-hp') as HTMLInputElement).value) || 0,
-          mp: Number((byId('ee-mp') as HTMLInputElement).value) || 0,
-          hit: Number((byId('ee-hit') as HTMLInputElement).value) || 0,
-          crit: Number((byId('ee-crit') as HTMLInputElement).value) || 5
+          patk: patkParsed.base,
+          matk: matkParsed.base,
+          pdef: pdefParsed.base,
+          mdef: mdefParsed.base,
+          hp: hpParsed.base,
+          mp: mpParsed.base,
+          hit: hitParsed.base,
+          crit: critParsed.base
+        },
+        combatStatRanges,
+        randomPool: {
+          attributes: rndAttrs,
+          combatStats: ['patk', 'matk', 'pdef', 'mdef', 'hit', 'crit']
         },
         affixPool: pool,
+        extraSkills,
+        skillTriggerChances,
         description: (byId('ee-desc') as HTMLTextAreaElement).value.trim(),
         flavorText: (byId('ee-flavor') as HTMLTextAreaElement).value.trim()
       };
@@ -775,13 +1068,26 @@ class EquipmentStudioController {
       if (!id) return alert('請填寫配方 ID');
 
       const targetId = (byId('re-target-equip') as HTMLSelectElement).value;
-      const mat1 = (byId('re-mat-1') as HTMLSelectElement).value;
-      const count1 = Number((byId('re-mat-count-1') as HTMLInputElement).value) || 1;
-      const mat2 = (byId('re-mat-2') as HTMLSelectElement).value;
-      const count2 = Number((byId('re-mat-count-2') as HTMLInputElement).value) || 1;
 
-      const reqMats: Record<string, number> = { [mat1]: count1 };
-      if (mat2) reqMats[mat2] = count2;
+      // 遍歷動態素材列
+      const rows = document.querySelectorAll('#re-mats-container .es-recipe-mat-row');
+      const reqMats: Record<string, number> = {};
+
+      rows.forEach(row => {
+        const matSel = row.querySelector('.es-re-mat-select') as HTMLSelectElement;
+        const countInp = row.querySelector('.es-re-mat-count') as HTMLInputElement;
+        if (matSel && countInp) {
+          const matId = matSel.value;
+          const count = Number(countInp.value) || 1;
+          if (matId) {
+            reqMats[matId] = (reqMats[matId] || 0) + count;
+          }
+        }
+      });
+
+      if (Object.keys(reqMats).length === 0) {
+        return alert('請至少加入一種所需素材');
+      }
 
       const rec: CustomCraftingRecipe = {
         id,
@@ -800,33 +1106,99 @@ class EquipmentStudioController {
     };
   }
 
-  // ── 通用圖標選擇器 ──
+  // ── 全圖集通用圖標選擇器 ──
   private openIconPicker(callback: (icon: string) => void): void {
     this.iconPickerCallback = callback;
-    const candidates = [
-      '🪵', '🪨', '⛓️', '🧵', '🧶', '🪙', '💎', '🩸', '🦴', '🧪', '💧', '🌿', '🍃', '🔥', '❄️', '⚡', '☀️', '🌑',
-      '🗡️', '⚔️', '🏹', '🪄', '🛡️', '👑', '💍', '📿', '📜', '📖', '🪓', '🔨', '⚙️', '💨', '🎯', '✨'
-    ];
-    const grid = byId('icon-picker-grid');
-    grid.innerHTML = '';
+    const tabsContainer = byId('icon-picker-tabs');
+    const customInput = byId('icon-picker-custom-input') as HTMLInputElement;
+    
+    tabsContainer.innerHTML = '';
+    customInput.value = '';
 
-    candidates.forEach(ic => {
-      const btn = document.createElement('div');
-      btn.style.cssText = 'padding: 6px; border: 1px solid var(--es-panel-border); border-radius: 6px; cursor: pointer; font-size: 1.8rem;';
-      btn.textContent = ic;
-      btn.onmouseenter = () => btn.style.borderColor = 'var(--es-gold)';
-      btn.onmouseleave = () => btn.style.borderColor = 'var(--es-panel-border)';
-      btn.onclick = () => {
-        if (this.iconPickerCallback) this.iconPickerCallback(ic);
-        byId('modal-icon-picker').style.display = 'none';
+    const datasets = this.iconDatasets || {};
+    const catKeys = Object.keys(datasets);
+
+    // 動態標籤清單：所有圖集 + Emoji
+    const allTabs = [
+      ...catKeys.map(k => ({ key: k, title: datasets[k]?.title || k })),
+      { key: 'emoji', title: '😀 常用 Emoji' }
+    ];
+
+    if (!this.currentIconPickerTab || !allTabs.some(t => t.key === this.currentIconPickerTab)) {
+      this.currentIconPickerTab = allTabs[0]?.key || 'materials';
+    }
+
+    allTabs.forEach(tab => {
+      const tabBtn = document.createElement('button');
+      tabBtn.className = `es-icon-picker-tab ${tab.key === this.currentIconPickerTab ? 'active' : ''}`;
+      tabBtn.textContent = tab.title;
+      tabBtn.onclick = () => {
+        this.currentIconPickerTab = tab.key;
+        tabsContainer.querySelectorAll('.es-icon-picker-tab').forEach(b => b.classList.remove('active'));
+        tabBtn.classList.add('active');
+        this.renderIconPickerItems(tab.key);
       };
-      grid.appendChild(btn);
+      tabsContainer.appendChild(tabBtn);
     });
 
+    byId('btn-icon-picker-apply-custom').onclick = () => {
+      const val = customInput.value.trim();
+      if (val && this.iconPickerCallback) {
+        this.iconPickerCallback(val);
+        byId('modal-icon-picker').style.display = 'none';
+      }
+    };
+
+    this.renderIconPickerItems(this.currentIconPickerTab);
     byId('modal-icon-picker').style.display = 'flex';
   }
 
+  private renderIconPickerItems(tabKey: string): void {
+    const grid = byId('icon-picker-grid');
+    grid.innerHTML = '';
+
+    if (tabKey === 'emoji') {
+      const candidates = [
+        '🪵', '🪨', '⛓️', '🧵', '🧶', '🪙', '💎', '🩸', '🦴', '🧪', '💧', '🌿', '🍃', '🔥', '❄️', '⚡', '☀️', '🌑',
+        '🗡️', '⚔️', '🏹', '🪄', '🛡️', '👑', '💍', '📿', '📜', '📖', '🪓', '🔨', '⚙️', '💨', '🎯', '✨'
+      ];
+      candidates.forEach(emoji => {
+        const item = document.createElement('div');
+        item.className = 'es-icon-picker-item';
+        item.innerHTML = `<div style="font-size: 1.8rem; line-height: 1.2;">${emoji}</div>`;
+        item.onclick = () => {
+          if (this.iconPickerCallback) this.iconPickerCallback(emoji);
+          byId('modal-icon-picker').style.display = 'none';
+        };
+        grid.appendChild(item);
+      });
+      return;
+    }
+
+    const catData = this.iconDatasets[tabKey];
+    if (!catData || !catData.items) return;
+
+    catData.items.forEach((it: any) => {
+      const fullId = `${tabKey}:${it.id}`;
+      const item = document.createElement('div');
+      item.className = 'es-icon-picker-item';
+      item.innerHTML = `
+        ${renderUniversalIcon(fullId, 44)}
+        <div class="es-icon-picker-item-label">${it.name || it.id}</div>
+      `;
+      item.onclick = () => {
+        if (this.iconPickerCallback) this.iconPickerCallback(fullId);
+        byId('modal-icon-picker').style.display = 'none';
+      };
+      grid.appendChild(item);
+    });
+  }
+
   private getMaterialDefaultIcon(id: string): string {
+    const matCat = this.iconDatasets['materials'];
+    if (matCat && matCat.items && matCat.items.some((i: any) => i.id === id)) {
+      return `materials:${id}`;
+    }
     if (id.includes('iron') || id.includes('ore') || id.includes('metal')) return '🪨';
     if (id.includes('wood')) return '🪵';
     if (id.includes('cloth')) return '🧵';
@@ -835,14 +1207,16 @@ class EquipmentStudioController {
     return '🧱';
   }
 
-  private getEquipDefaultIcon(slot: EquipmentSlot, weaponType?: WeaponType): string {
-    if (slot === EquipmentSlot.ARMOR) return '🛡️';
-    if (slot === EquipmentSlot.ACCESSORY) return '💍';
-    if (weaponType === WeaponType.BOW || weaponType === WeaponType.MAGIC_BOW) return '🏹';
-    if (weaponType === WeaponType.STAFF) return '🪄';
-    if (weaponType === WeaponType.HOLY_BOOK) return '📖';
-    if (weaponType === WeaponType.HAMMER) return '🔨';
-    return '⚔️';
+  private getEquipDefaultIcon(slot: EquipmentSlot, weaponType?: WeaponType, tier: number = 1): string {
+    if (slot === EquipmentSlot.WEAPON) {
+      const cat = tier === 2 ? 'weapons_t2' : tier === 3 ? 'weapons_t3' : tier === 4 ? 'weapons_t4' : 'weapons';
+      return `${cat}:${weaponType || 'GREATSWORD'}`;
+    }
+    if (slot === EquipmentSlot.ARMOR) {
+      const safeTier = Math.min(4, Math.max(1, tier));
+      return `armors:CLOTH_T${safeTier}`;
+    }
+    return '💍';
   }
 }
 

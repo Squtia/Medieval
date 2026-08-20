@@ -5,6 +5,8 @@ import { MonsterSystem } from '../systems/MonsterSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { GameState } from '../core/GameState';
 import monstersJson from '../data/monsters.json';
+import defaultCustomDatasets from '../data/custom_icon_datasets.json';
+import { renderUniversalIcon } from '../ui/IconSpriteHelper';
 import '../styles/combat-studio.css';
 
 // 工具函式
@@ -66,6 +68,9 @@ class CombatStudioController {
   private monstersDb: MonsterData[] = [];
   private monsterSystem = new MonsterSystem();
   private customStrongholds: Record<string, CustomStrongholdConfig> = {};
+  private iconDatasets: Record<string, any> = defaultCustomDatasets;
+  private currentIconPickerTab: string = 'monsters';
+  private iconPickerCallback: ((icon: string) => void) | null = null;
 
   // 我方隊伍狀態
   private playerTeam: PlayerUnitConfig[] = [];
@@ -75,8 +80,8 @@ class CombatStudioController {
 
   // 當前裝備編輯中的傭兵索引
   private activeEditingPlayerIdx = 0;
-  // 當前更換頭像中的對象 ('creator' 或 敵方陣容 index)
-  private activeIconPickerTarget: 'creator' | number = 'creator';
+  // 當前更換頭像中的對象 ('creator' 或 敵方陣容 index 或 傭兵 index)
+  private activeIconPickerTarget: 'creator' | { type: 'enemy'; idx: number } | { type: 'player'; idx: number } = 'creator';
 
   // 戰鬥播放器狀態
   private currentReport: CombatReport | null = null;
@@ -91,10 +96,25 @@ class CombatStudioController {
   public async init(): Promise<void> {
     await this.loadTemplate();
     await this.loadMonsters();
+    await this.loadIconDatasets();
     this.initDefaultPlayerTeam('balanced');
     this.initDefaultEnemyWaves('node_1');
     this.bindEvents();
     this.render();
+  }
+
+  private async loadIconDatasets(): Promise<void> {
+    try {
+      const response = await fetch('/api/get-icon-studio-data');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.customDatasets && Object.keys(data.customDatasets).length > 0) {
+          this.iconDatasets = data.customDatasets;
+        }
+      }
+    } catch {
+      this.iconDatasets = defaultCustomDatasets;
+    }
   }
 
   private async loadTemplate(): Promise<void> {
@@ -428,7 +448,7 @@ class CombatStudioController {
 
       card.innerHTML = `
         <div class="cs-unit-header">
-          <div class="cs-unit-avatar" title="職業頭像">${this.getJobEmoji(p.jobName)}</div>
+          <div class="cs-unit-avatar" title="點擊更換冒險者頭像" data-change-p-avatar="${idx}" style="cursor: pointer;">${renderUniversalIcon(p.avatarIcon || this.getJobEmoji(p.jobName), 36)}</div>
           <div class="cs-unit-info">
             <div class="cs-unit-name">
               <input type="text" class="cs-input" value="${p.name}" style="padding: 1px 4px; font-size: 0.8rem; width: 85px;" data-p-idx="${idx}" data-field="name">
@@ -626,7 +646,7 @@ class CombatStudioController {
 
       card.innerHTML = `
         <div class="cs-unit-header">
-          <div class="cs-unit-avatar" title="點擊直接挑選此怪物頭像" data-change-e-avatar="${idx}" style="cursor: pointer; font-size: 1.3rem;">${avatar}</div>
+          <div class="cs-unit-avatar" title="點擊直接挑選此怪物頭像" data-change-e-avatar="${idx}" style="cursor: pointer;">${renderUniversalIcon(avatar, 36)}</div>
           <div class="cs-unit-info">
             <div class="cs-unit-name">
               <span>${e.affix || ''}${e.name}</span>
@@ -713,14 +733,14 @@ class CombatStudioController {
       const maxHp = totalCon * 10 + p.armorTier * 30 + (p.accessoryType === 'RING_HP' ? 60 : 0);
       const totalSpr = baseAttr.spr + (p.level - 1) * 2 + p.allocatedStats.spr;
       const maxMp = totalSpr * 5 + (p.accessoryType === 'RING_MP' ? 30 : 0);
-      const avatar = this.getJobEmoji(p.jobName);
+      const avatar = p.avatarIcon || this.getJobEmoji(p.jobName);
       this.arenaHpMp[p.id] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: p.name, avatar };
 
       const card = document.createElement('div');
       card.className = 'cs-arena-card';
       card.id = id;
       card.innerHTML = `
-        <div style="font-size: 1.1rem; margin-right: 4px;">${avatar}</div>
+        <div style="margin-right: 4px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 24)}</div>
         <div style="font-size: 0.78rem; font-weight: bold; width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
         <div class="cs-bars">
           <div class="cs-bar-wrap"><div class="cs-hp-fill" id="hp_${p.id}" style="width: 100%;"></div></div>
@@ -750,7 +770,7 @@ class CombatStudioController {
           <div class="cs-bar-wrap"><div class="cs-mp-fill" id="mp_${eid}" style="width: 100%;"></div></div>
         </div>
         <div style="font-size: 0.78rem; font-weight: bold; width: 70px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${e.name}</div>
-        <div style="font-size: 1.1rem; margin-left: 4px;">${avatar}</div>
+        <div style="margin-left: 4px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 24)}</div>
       `;
       rightContainer.appendChild(card);
     });
@@ -1211,38 +1231,26 @@ class CombatStudioController {
       this.render();
     };
 
-    // 圖標選擇器
-    const iconCandidates = ['👾', '🐺', '🕷️', '🦎', '🦂', '💀', '🧟', '👻', '🐉', '🐲', '👹', '👺', '💂', '🤺', '🏹', '🧙', '🧙‍♂️', '🧝', '🦇', '🐀', '🐗', '🐍', '🦀', '🦁', '🗿', '⚙️', '🔥', '🛡️', '⚔️', '🔮'];
-    const grid = byId('icon-picker-grid');
-    grid.innerHTML = '';
-    iconCandidates.forEach(ic => {
-      const btn = document.createElement('div');
-      btn.style.cssText = 'padding: 6px; border: 1px solid var(--cs-panel-border); border-radius: 6px; cursor: pointer; transition: all 0.2s; font-size: 1.8rem;';
-      btn.textContent = ic;
-      btn.onmouseenter = () => btn.style.borderColor = 'var(--cs-gold)';
-      btn.onmouseleave = () => btn.style.borderColor = 'var(--cs-panel-border)';
-      btn.onclick = () => {
-        if (this.activeIconPickerTarget === 'creator') {
-          byId('mc-avatar-preview').textContent = ic;
-        } else if (typeof this.activeIconPickerTarget === 'number') {
-          const idx = this.activeIconPickerTarget;
-          const curWave = this.enemyWaves[this.currentWaveIdx];
-          if (curWave && curWave[idx]) {
-            curWave[idx].avatarIcon = ic;
-            this.render();
-          }
-        }
-        byId('modal-icon-picker').style.display = 'none';
-      };
-      grid.appendChild(btn);
-    });
-
+    // 全圖集通用圖標選擇器按鈕與綁定
     byId('mc-avatar-preview').onclick = () => {
-      this.activeIconPickerTarget = 'creator';
-      byId('modal-icon-picker').style.display = 'flex';
+      this.openIconPicker(ic => {
+        byId('mc-avatar-preview').innerHTML = renderUniversalIcon(ic, 40);
+        byId('mc-avatar-preview').dataset.iconVal = ic;
+      });
     };
+
     byId('btn-close-icon-picker').onclick = () => byId('modal-icon-picker').style.display = 'none';
     byId('btn-close-icon-picker-footer').onclick = () => byId('modal-icon-picker').style.display = 'none';
+    byId('btn-quick-open-icon-studio').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/icon-studio.html`, '_blank');
+
+    byId('btn-apply-custom-icon').onclick = () => {
+      const input = byId<HTMLInputElement>('icon-picker-custom-input');
+      const val = input ? input.value.trim() : '';
+      if (val && this.iconPickerCallback) {
+        this.iconPickerCallback(val);
+        byId('modal-icon-picker').style.display = 'none';
+      }
+    };
 
     // 怪物創造彈窗
     byId('btn-create-monster').onclick = () => {
@@ -1394,10 +1402,27 @@ class CombatStudioController {
         const idx = Number(el.dataset.openEquip);
         this.openEquipmentEditor(idx);
       }
-      if (target.dataset.changeEAvatar !== undefined) {
-        const idx = Number(target.dataset.changeEAvatar);
-        this.activeIconPickerTarget = idx;
-        byId('modal-icon-picker').style.display = 'flex';
+      if (target.dataset.changeEAvatar !== undefined || target.closest('[data-change-e-avatar]')) {
+        const el = (target.dataset.changeEAvatar !== undefined ? target : target.closest('[data-change-e-avatar]')) as HTMLElement;
+        const idx = Number(el.dataset.changeEAvatar);
+        const curWave = this.enemyWaves[this.currentWaveIdx];
+        if (curWave && curWave[idx]) {
+          this.openIconPicker(ic => {
+            curWave[idx].avatarIcon = ic;
+            this.render();
+          });
+        }
+      }
+
+      if (target.dataset.changePAvatar !== undefined || target.closest('[data-change-p-avatar]')) {
+        const el = (target.dataset.changePAvatar !== undefined ? target : target.closest('[data-change-p-avatar]')) as HTMLElement;
+        const idx = Number(el.dataset.changePAvatar);
+        if (this.playerTeam[idx]) {
+          this.openIconPicker(ic => {
+            this.playerTeam[idx].avatarIcon = ic;
+            this.render();
+          });
+        }
       }
       if (target.dataset.statMod) {
         const [pIdxStr, statKey, deltaStr] = target.dataset.statMod.split(',');
@@ -1535,6 +1560,90 @@ class CombatStudioController {
     if (job.includes('盜賊') || job.includes('暗殺') || job.includes('詭術')) return '🗡️';
     if (job.includes('祈禱') || job.includes('主教') || job.includes('拷問')) return '📖';
     return '👤';
+  }
+
+  // ── 🖼️ 全圖集通用圖標選擇器 (Universal Icon Picker) ──
+  private openIconPicker(callback: (icon: string) => void): void {
+    this.iconPickerCallback = callback;
+    const tabsContainer = byId('icon-picker-tabs');
+    const customInput = byId<HTMLInputElement>('icon-picker-custom-input');
+
+    if (tabsContainer) tabsContainer.innerHTML = '';
+    if (customInput) customInput.value = '';
+
+    const datasets = this.iconDatasets || {};
+    const catKeys = Object.keys(datasets);
+
+    // 動態標籤清單：所有圖集 + Emoji
+    const allTabs = [
+      ...catKeys.map(k => ({ key: k, title: datasets[k]?.title || k })),
+      { key: 'emoji', title: '😀 常用 Emoji' }
+    ];
+
+    if (!this.currentIconPickerTab || !allTabs.some(t => t.key === this.currentIconPickerTab)) {
+      this.currentIconPickerTab = allTabs[0]?.key || 'monsters';
+    }
+
+    if (tabsContainer) {
+      allTabs.forEach(tab => {
+        const tabBtn = document.createElement('button');
+        tabBtn.className = `cs-icon-picker-tab ${tab.key === this.currentIconPickerTab ? 'active' : ''}`;
+        tabBtn.textContent = tab.title;
+        tabBtn.onclick = () => {
+          this.currentIconPickerTab = tab.key;
+          tabsContainer.querySelectorAll('.cs-icon-picker-tab').forEach(b => b.classList.remove('active'));
+          tabBtn.classList.add('active');
+          this.renderIconPickerItems(tab.key);
+        };
+        tabsContainer.appendChild(tabBtn);
+      });
+    }
+
+    this.renderIconPickerItems(this.currentIconPickerTab);
+    byId('modal-icon-picker').style.display = 'flex';
+  }
+
+  private renderIconPickerItems(tabKey: string): void {
+    const grid = byId('icon-picker-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    if (tabKey === 'emoji') {
+      const candidates = [
+        '👾', '🐺', '🕷️', '🦎', '🦂', '💀', '🧟', '👻', '🐉', '🐲', '👹', '👺',
+        '💂', '🤺', '🏹', '🧙', '🧙‍♂️', '🧝', '🦇', '🐀', '🐗', '🐍', '🦀', '🦁',
+        '🗿', '⚙️', '🔥', '🛡️', '⚔️', '🔮', '✨', '🗡️', '🪄', '🩸', '💧', '⚡'
+      ];
+      candidates.forEach(emoji => {
+        const item = document.createElement('div');
+        item.className = 'cs-icon-picker-item';
+        item.innerHTML = `<div style="font-size: 1.8rem; line-height: 1.2;">${emoji}</div>`;
+        item.onclick = () => {
+          if (this.iconPickerCallback) this.iconPickerCallback(emoji);
+          byId('modal-icon-picker').style.display = 'none';
+        };
+        grid.appendChild(item);
+      });
+      return;
+    }
+
+    const catData = this.iconDatasets[tabKey];
+    if (!catData || !catData.items) return;
+
+    catData.items.forEach((it: any) => {
+      const fullId = `${tabKey}:${it.id}`;
+      const item = document.createElement('div');
+      item.className = 'cs-icon-picker-item';
+      item.innerHTML = `
+        ${renderUniversalIcon(fullId, 44)}
+        <div class="cs-icon-picker-item-label">${it.name || it.id}</div>
+      `;
+      item.onclick = () => {
+        if (this.iconPickerCallback) this.iconPickerCallback(fullId);
+        byId('modal-icon-picker').style.display = 'none';
+      };
+      grid.appendChild(item);
+    });
   }
 }
 

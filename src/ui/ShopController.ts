@@ -332,7 +332,7 @@ export function renderWeaponShop() {
   shopList.style.display = 'grid';
 
   const allTemplates = Object.values(DataStore.EquipmentDB);
-  const weapons = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && t.slot === EquipmentSlot.WEAPON && (t.tier === undefined || t.tier <= 2));
+  const weapons = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && t.shopBuyable !== false && t.slot === EquipmentSlot.WEAPON && (t.tier === undefined || t.tier <= 2));
 
   weapons.forEach(wpn => {
     const price = DataStore.EquipmentPriceDB[wpn.id] || 0;
@@ -412,7 +412,7 @@ export function renderArmorShop() {
   shopList.style.display = 'grid';
 
   const allTemplates = Object.values(DataStore.EquipmentDB);
-  const armors = allTemplates.filter(t => t.slot === EquipmentSlot.ARMOR && (t.tier === undefined || t.tier <= 2));
+  const armors = allTemplates.filter(t => t.shopBuyable !== false && t.slot === EquipmentSlot.ARMOR && (t.tier === undefined || t.tier <= 2));
 
   armors.forEach(arm => {
     const price = DataStore.EquipmentPriceDB[arm.id] || 0;
