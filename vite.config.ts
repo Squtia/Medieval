@@ -35,7 +35,7 @@ function developmentStudioPlugin(): Plugin {
                 note: payload.note || '使用者在故事工坊儲存',
                 stories: payload.stories
               }, null, 2), 'utf-8');
-              const backups = fs.readdirSync(storyBackupsDir).filter(file => file.startsWith('snapshot_')).sort().reverse();
+              const backups = fs.readdirSync(storyBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(storyBackupsDir, oldFile));
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: true, snapshot }));
@@ -50,7 +50,7 @@ function developmentStudioPlugin(): Plugin {
 
         if (url === '/api/list-story-backups' && req.method === 'GET') {
           const backups = fs.existsSync(storyBackupsDir)
-            ? fs.readdirSync(storyBackupsDir).filter(file => file.startsWith('snapshot_')).sort().reverse().map(filename => {
+            ? fs.readdirSync(storyBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse().map((filename: string) => {
               const fullPath = path.resolve(storyBackupsDir, filename);
               const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
               return { filename, timestamp: data.timestamp, note: data.note, size: fs.statSync(fullPath).size };
@@ -170,9 +170,9 @@ function developmentStudioPlugin(): Plugin {
               }, null, 2), 'utf-8');
 
               // 清理超過 20 份的舊快照
-              const allSnapshots = fs.readdirSync(backupsDir).filter(f => f.startsWith('snapshot_')).sort().reverse();
+              const allSnapshots = fs.readdirSync(backupsDir).filter((f: string) => f.startsWith('snapshot_')).sort().reverse();
               if (allSnapshots.length > 20) {
-                allSnapshots.slice(20).forEach(oldFile => {
+                allSnapshots.slice(20).forEach((oldFile: string) => {
                   try { fs.unlinkSync(path.resolve(backupsDir, oldFile)); } catch (e) {}
                 });
               }
@@ -201,8 +201,8 @@ function developmentStudioPlugin(): Plugin {
             res.setHeader('Content-Type', 'application/json');
             return res.end(JSON.stringify({ backups: [] }));
           }
-          const files = fs.readdirSync(backupsDir).filter(f => f.startsWith('snapshot_')).sort().reverse();
-          const backups = files.map(file => {
+          const files = fs.readdirSync(backupsDir).filter((f: string) => f.startsWith('snapshot_')).sort().reverse();
+          const backups = files.map((file: string) => {
             try {
               const fullPath = path.resolve(backupsDir, file);
               const stat = fs.statSync(fullPath);
@@ -255,6 +255,211 @@ function developmentStudioPlugin(): Plugin {
               }));
             } catch (err: any) {
               res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        // ==========================================
+        // 怪物與單位資料庫 (Monster & Unit Definitions API)
+        // ==========================================
+        const monsterFile = path.resolve(__dirname, 'src/data/monsters.json');
+        const monsterBackupsDir = path.resolve(__dirname, 'src/data/monster_backups');
+
+        if (url === '/api/get-monster-definitions' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(fs.existsSync(monsterFile) ? fs.readFileSync(monsterFile, 'utf-8') : '[]');
+        }
+
+        if (url === '/api/save-monster-definitions' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              const monsterList = Array.isArray(payload) ? payload : payload.monsters;
+              if (!Array.isArray(monsterList)) throw new Error('monsters 必須是陣列');
+
+              fs.mkdirSync(monsterBackupsDir, { recursive: true });
+              fs.writeFileSync(monsterFile, JSON.stringify(monsterList, null, 2), 'utf-8');
+
+              const now = new Date();
+              const pad = (value: number) => value.toString().padStart(2, '0');
+              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const snapshot = `snapshot_${stamp}.json`;
+
+              fs.writeFileSync(path.resolve(monsterBackupsDir, snapshot), JSON.stringify({
+                timestamp: now.toISOString(),
+                note: payload.note || '使用者在戰術平衡工坊儲存怪物資料庫',
+                monsters: monsterList
+              }, null, 2), 'utf-8');
+
+              const backups = fs.readdirSync(monsterBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
+              for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(monsterBackupsDir, oldFile));
+
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, snapshot, total: monsterList.length }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if (url === '/api/list-monster-backups' && req.method === 'GET') {
+          const backups = fs.existsSync(monsterBackupsDir)
+            ? fs.readdirSync(monsterBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse().map((filename: string) => {
+              const fullPath = path.resolve(monsterBackupsDir, filename);
+              const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
+              return { filename, timestamp: data.timestamp, note: data.note, size: fs.statSync(fullPath).size };
+            })
+            : [];
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ backups }));
+        }
+
+        if (url === '/api/restore-monster-backup' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const { filename } = JSON.parse(body);
+              if (typeof filename !== 'string' || path.basename(filename) !== filename || !filename.startsWith('snapshot_')) {
+                throw new Error('快照檔名不合法');
+              }
+              const targetPath = path.resolve(monsterBackupsDir, filename);
+              if (!fs.existsSync(targetPath)) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ success: false, error: '找不到該快照' }));
+              }
+              const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+              if (!Array.isArray(snapshot.monsters)) throw new Error('快照內容不合法');
+              fs.writeFileSync(monsterFile, JSON.stringify(snapshot.monsters, null, 2), 'utf-8');
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, monsters: snapshot.monsters }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        // ==========================================
+        // 裝備、素材、道具與鍛造配方 API (Equipment & Material Studio API)
+        // ==========================================
+        const materialsFile = path.resolve(__dirname, 'src/data/materials.json');
+        const itemsFile = path.resolve(__dirname, 'src/data/items.json');
+        const equipmentFile = path.resolve(__dirname, 'src/data/EquipmentTemplates.json');
+        const recipesFile = path.resolve(__dirname, 'src/data/CraftingRecipes.json');
+        const eqStudioBackupsDir = path.resolve(__dirname, 'src/data/equipment_studio_backups');
+
+        if (url === '/api/get-equipment-studio-data' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({
+            materials: fs.existsSync(materialsFile) ? JSON.parse(fs.readFileSync(materialsFile, 'utf-8')) : [],
+            items: fs.existsSync(itemsFile) ? JSON.parse(fs.readFileSync(itemsFile, 'utf-8')) : [],
+            equipment: fs.existsSync(equipmentFile) ? JSON.parse(fs.readFileSync(equipmentFile, 'utf-8')) : [],
+            recipes: fs.existsSync(recipesFile) ? JSON.parse(fs.readFileSync(recipesFile, 'utf-8')) : []
+          }));
+        }
+
+        if (url === '/api/save-equipment-studio-data' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              fs.mkdirSync(eqStudioBackupsDir, { recursive: true });
+
+              if (Array.isArray(payload.materials)) {
+                fs.writeFileSync(materialsFile, JSON.stringify(payload.materials, null, 2), 'utf-8');
+              }
+              if (Array.isArray(payload.items)) {
+                fs.writeFileSync(itemsFile, JSON.stringify(payload.items, null, 2), 'utf-8');
+              }
+              if (Array.isArray(payload.equipment)) {
+                fs.writeFileSync(equipmentFile, JSON.stringify(payload.equipment, null, 2), 'utf-8');
+              }
+              if (Array.isArray(payload.recipes)) {
+                fs.writeFileSync(recipesFile, JSON.stringify(payload.recipes, null, 2), 'utf-8');
+              }
+
+              const now = new Date();
+              const pad = (value: number) => value.toString().padStart(2, '0');
+              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const snapshot = `snapshot_${stamp}.json`;
+
+              fs.writeFileSync(path.resolve(eqStudioBackupsDir, snapshot), JSON.stringify({
+                timestamp: now.toISOString(),
+                note: payload.note || '使用者在裝備與素材工坊儲存',
+                materials: payload.materials,
+                items: payload.items,
+                equipment: payload.equipment,
+                recipes: payload.recipes
+              }, null, 2), 'utf-8');
+
+              const backups = fs.readdirSync(eqStudioBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
+              for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(eqStudioBackupsDir, oldFile));
+
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, snapshot }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if (url === '/api/list-equipment-studio-backups' && req.method === 'GET') {
+          const backups = fs.existsSync(eqStudioBackupsDir)
+            ? fs.readdirSync(eqStudioBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse().map((filename: string) => {
+              const fullPath = path.resolve(eqStudioBackupsDir, filename);
+              const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
+              return { filename, timestamp: data.timestamp, note: data.note, size: fs.statSync(fullPath).size };
+            })
+            : [];
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ backups }));
+        }
+
+        if (url === '/api/restore-equipment-studio-backup' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const { filename } = JSON.parse(body);
+              if (typeof filename !== 'string' || path.basename(filename) !== filename || !filename.startsWith('snapshot_')) {
+                throw new Error('快照檔名不合法');
+              }
+              const targetPath = path.resolve(eqStudioBackupsDir, filename);
+              if (!fs.existsSync(targetPath)) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ success: false, error: '找不到該快照' }));
+              }
+              const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+              if (Array.isArray(snapshot.materials)) fs.writeFileSync(materialsFile, JSON.stringify(snapshot.materials, null, 2), 'utf-8');
+              if (Array.isArray(snapshot.items)) fs.writeFileSync(itemsFile, JSON.stringify(snapshot.items, null, 2), 'utf-8');
+              if (Array.isArray(snapshot.equipment)) fs.writeFileSync(equipmentFile, JSON.stringify(snapshot.equipment, null, 2), 'utf-8');
+              if (Array.isArray(snapshot.recipes)) fs.writeFileSync(recipesFile, JSON.stringify(snapshot.recipes, null, 2), 'utf-8');
+
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({
+                success: true,
+                materials: snapshot.materials,
+                items: snapshot.items,
+                equipment: snapshot.equipment,
+                recipes: snapshot.recipes
+              }));
+            } catch (err: any) {
+              res.statusCode = 400;
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: false, error: err.message }));
             }

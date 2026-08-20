@@ -1,0 +1,71 @@
+[
+  {
+    "id": "item_healing_potion_s",
+    "name": "小型生命藥水",
+    "category": "CONSUMABLE",
+    "icon": "🧪",
+    "tier": 1,
+    "effectType": "HEAL_HP",
+    "effectValue": 80,
+    "description": "消耗品。在戰鬥中或領地使用，立即恢復目標 80 點生命值。",
+    "flavorText": "用基礎草藥混合蒸餾水製成的簡易傷藥，傭兵外出冒險的必備品。",
+    "maxStack": 99,
+    "buyPrice": 25,
+    "sellPrice": 10
+  },
+  {
+    "id": "item_mana_potion_s",
+    "name": "小型魔力藥水",
+    "category": "CONSUMABLE",
+    "icon": "💧",
+    "tier": 1,
+    "effectType": "HEAL_MP",
+    "effectValue": 40,
+    "description": "消耗品。在戰鬥中或領地使用，立即恢復目標 40 點魔力值。",
+    "flavorText": "散發微弱藍光的神秘藥劑，能稍微刺激使用者的精神脈絡。",
+    "maxStack": 99,
+    "buyPrice": 35,
+    "sellPrice": 15
+  },
+  {
+    "id": "item_antidote",
+    "name": "解毒劑",
+    "category": "CONSUMABLE",
+    "icon": "🌿",
+    "tier": 1,
+    "effectType": "REMOVE_STATUS",
+    "targetStatus": "POISON",
+    "description": "消耗品。立即解除目標的中毒狀態。",
+    "flavorText": "以蛇毒血清與解毒草提煉的苦味藥劑，能迅速中和毒蜥與巨蛛的劇毒。",
+    "maxStack": 99,
+    "buyPrice": 20,
+    "sellPrice": 8
+  },
+  {
+    "id": "item_smoke_bomb",
+    "name": "戰術煙霧彈",
+    "category": "TACTICAL",
+    "icon": "💨",
+    "tier": 2,
+    "effectType": "TACTICAL_ESCAPE",
+    "description": "戰術道具。在戰鬥中引爆，使全體隊伍本回合迴避率提升 50%。",
+    "flavorText": "盜賊工會秘製的快速煙幕發生裝置，關鍵時刻能救人一命。",
+    "maxStack": 20,
+    "buyPrice": 60,
+    "sellPrice": 25
+  },
+  {
+    "id": "item_whetstone",
+    "name": "附魔磨刀石",
+    "category": "BUFF",
+    "icon": "🪨",
+    "tier": 2,
+    "effectType": "BUFF_PATK",
+    "effectValue": 15,
+    "description": "消耗品。為武器塗抹微量魔力粉末，使下一場戰鬥物理攻擊力提升 15 點。",
+    "flavorText": "含有細微剛玉微粒的砥石，能讓劍刃更加銳利奪目。",
+    "maxStack": 50,
+    "buyPrice": 45,
+    "sellPrice": 18
+  }
+]

@@ -65,10 +65,12 @@
 │   │   ├── TemplateLoader.ts # [核心] 動態 HTML 模板載入器
 │   │   ├── NarrativeTestController.ts # 僅 DEV + storyTest 查詢參數載入的遊戲測試面板
 │   ├── tools/
-│   │   └── StoryStudio.ts    # 獨立故事內容編輯、驗證、快照與測試啟動器
+│   │   ├── StoryStudio.ts    # 獨立故事內容編輯、驗證、快照與測試啟動器
+│   │   └── CombatStudio.ts   # 獨立戰術遭遇、戰鬥平衡模擬、單位創造與數據大盤控制器
 ├── tools/
 │   ├── icon-studio.html      # 獨立圖標工坊
-│   └── story-studio.html     # 獨立故事工坊入口，不納入正式建置
+│   ├── story-studio.html     # 獨立故事工坊
+│   └── combat-studio.html    # 獨立戰術遭遇與戰鬥平衡工坊入口，不納入正式建置
 │   │   ├── modals/          # [Phase 4] 獨立的彈窗面版控制器 (Facade 拆分)
 │   │   │   ├── DispatchModalController.ts  # 派遣/出征設定面板
 │   │   │   ├── NodeDetailModalController.ts# 節點詳細資訊與圓形選單

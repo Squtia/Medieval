@@ -1,0 +1,437 @@
+<!-- 頂部導航列 -->
+<div class="es-topbar">
+  <div class="es-title">
+    <span>🛠️</span>
+    <span>裝備、素材、道具與鍛造工坊</span>
+    <span class="es-badge" style="color: var(--es-gold); border-color: var(--es-gold);">Studio 2.0</span>
+  </div>
+  <div class="es-topbar-actions">
+    <button class="es-btn es-btn-sm" id="btn-nav-combat">⚔️ 戰鬥工坊</button>
+    <button class="es-btn es-btn-sm" id="btn-nav-icon">🎨 圖標工坊</button>
+    <button class="es-btn es-btn-sm" id="btn-nav-story">📜 故事工坊</button>
+    <button class="es-btn es-btn-sm" id="btn-history-backups">🕒 歷史快照</button>
+    <button class="es-btn es-btn-primary" id="btn-save-all-disk">💾 永久寫入專案磁碟</button>
+  </div>
+</div>
+
+<!-- 主工作台三欄 -->
+<div class="es-workspace">
+  
+  <!-- 左欄：素材庫與一般道具庫 -->
+  <div class="es-col">
+    <div class="es-col-header">
+      <div style="display: flex; gap: 4px;">
+        <button class="es-btn es-btn-sm es-btn-gold" id="tab-left-materials">🧱 素材庫 (<span id="es-mat-count">0</span>)</button>
+        <button class="es-btn es-btn-sm" id="tab-left-items">🧪 消耗道具 (<span id="es-item-count">0</span>)</button>
+      </div>
+      <button class="es-btn es-btn-sm es-btn-primary" id="btn-create-mat-or-item">➕ 創造</button>
+    </div>
+    
+    <!-- 篩選列 -->
+    <div class="es-filter-bar">
+      <input type="text" class="es-input" id="es-search-left" placeholder="🔍 搜尋名稱或 ID..." style="flex: 1;">
+      <select class="es-select" id="es-filter-left-tier">
+        <option value="ALL">全部階級</option>
+        <option value="1">T1 基礎</option>
+        <option value="2">T2 精良</option>
+        <option value="3">T3 史詩</option>
+        <option value="4">T4 傳奇</option>
+      </select>
+    </div>
+
+    <div class="es-col-body" id="es-left-list">
+      <!-- 動態載入素材或道具卡片 -->
+    </div>
+  </div>
+
+  <!-- 中欄：裝備與飾品設計器 -->
+  <div class="es-col">
+    <div class="es-col-header">
+      <span>⚔️ 裝備、武器與飾品原型庫 (<span id="es-equip-count">0</span>)</span>
+      <div style="display: flex; gap: 6px;">
+        <button class="es-btn es-btn-sm es-btn-gold" id="btn-create-equipment">➕ 創造裝備</button>
+      </div>
+    </div>
+
+    <!-- 篩選列 -->
+    <div class="es-filter-bar">
+      <input type="text" class="es-input" id="es-search-equip" placeholder="🔍 搜尋裝備名稱..." style="flex: 1;">
+      <select class="es-select" id="es-filter-equip-slot">
+        <option value="ALL">全部部位</option>
+        <option value="WEAPON">⚔️ 武器</option>
+        <option value="ARMOR">🛡️ 防具</option>
+        <option value="ACCESSORY">💍 飾品</option>
+      </select>
+      <select class="es-select" id="es-filter-equip-tier">
+        <option value="ALL">全部階級</option>
+        <option value="1">T1 粗製</option>
+        <option value="2">T2 精鐵</option>
+        <option value="3">T3 秘銀</option>
+        <option value="4">T4 龍隕</option>
+      </select>
+    </div>
+
+    <div class="es-col-body" id="es-equip-list">
+      <!-- 動態載入裝備原型卡片 -->
+    </div>
+  </div>
+
+  <!-- 右欄：鍛造與改造配方實驗室 -->
+  <div class="es-col">
+    <div class="es-col-header">
+      <span>🔨 鍛造配方庫 (<span id="es-recipe-count">0</span>)</span>
+      <button class="es-btn es-btn-sm es-btn-primary" id="btn-create-recipe">➕ 新增配方</button>
+    </div>
+
+    <div class="es-filter-bar">
+      <input type="text" class="es-input" id="es-search-recipe" placeholder="🔍 搜尋配方或產出裝備..." style="flex: 1;">
+    </div>
+
+    <div class="es-col-body" id="es-recipe-list">
+      <!-- 動態載入鍛造配方卡片 -->
+    </div>
+  </div>
+
+</div>
+
+<!-- 彈窗：素材創造/編輯器 -->
+<div class="es-modal-overlay" id="modal-material-editor">
+  <div class="es-modal">
+    <div class="es-modal-header">
+      <span id="me-title">🧱 素材創造/編輯器</span>
+      <button class="es-btn es-btn-sm" id="btn-close-me">✕</button>
+    </div>
+    <div class="es-modal-body">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <div class="es-card-avatar" id="me-icon" style="font-size: 2.2rem; width: 56px; height: 56px;" title="點擊切換圖標">🪵</div>
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="es-form-group">
+            <label class="es-label">素材 ID (英數底線)</label>
+            <input type="text" class="es-input" id="me-id" placeholder="mat_iron_ore">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">素材名稱</label>
+            <input type="text" class="es-input" id="me-name" placeholder="鐵礦石">
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+        <div class="es-form-group">
+          <label class="es-label">階級 (Tier)</label>
+          <select class="es-select" id="me-tier">
+            <option value="1">T1 (基礎)</option>
+            <option value="2">T2 (精良)</option>
+            <option value="3">T3 (稀有)</option>
+            <option value="4">T4 (傳奇)</option>
+          </select>
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">分類</label>
+          <select class="es-select" id="me-category">
+            <option value="METAL">金屬礦錠</option>
+            <option value="WOOD">木材</option>
+            <option value="CLOTH">布料紡織</option>
+            <option value="LEATHER">魔物皮革</option>
+            <option value="GEM">元素寶石</option>
+            <option value="MONSTER_PART">魔物掉落</option>
+          </select>
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">基礎價值 (金幣)</label>
+          <input type="number" class="es-input" id="me-value" value="20">
+        </div>
+      </div>
+
+      <div class="es-form-group">
+        <label class="es-label">功能說明描述 (Description)</label>
+        <textarea class="es-input" id="me-desc" rows="2" placeholder="用於鍛造各類鐵製武器與防具的基礎金屬。"></textarea>
+      </div>
+
+      <div class="es-form-group">
+        <label class="es-label">📜 背景風味文字 (Flavor Lore Text)</label>
+        <textarea class="es-input" id="me-flavor" rows="2" placeholder="從赤砂丘陵深處開採的未加工礦石，散發著沉重的鐵鏽氣味。"></textarea>
+      </div>
+    </div>
+    <div class="es-modal-footer">
+      <button class="es-btn" id="btn-cancel-me">取消</button>
+      <button class="es-btn es-btn-primary" id="btn-save-me">💾 保存素材</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：一般道具/消耗品編輯器 -->
+<div class="es-modal-overlay" id="modal-item-editor">
+  <div class="es-modal">
+    <div class="es-modal-header">
+      <span id="ie-title">🧪 道具創造/編輯器</span>
+      <button class="es-btn es-btn-sm" id="btn-close-ie">✕</button>
+    </div>
+    <div class="es-modal-body">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <div class="es-card-avatar" id="ie-icon" style="font-size: 2.2rem; width: 56px; height: 56px;" title="點擊切換圖標">🧪</div>
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="es-form-group">
+            <label class="es-label">道具 ID</label>
+            <input type="text" class="es-input" id="ie-id" placeholder="item_healing_potion">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">道具名稱</label>
+            <input type="text" class="es-input" id="ie-name" placeholder="強力生命藥水">
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+        <div class="es-form-group">
+          <label class="es-label">效果類型</label>
+          <select class="es-select" id="ie-effect-type">
+            <option value="HEAL_HP">❤️ 恢復生命 (HP)</option>
+            <option value="HEAL_MP">💧 恢復魔力 (MP)</option>
+            <option value="REMOVE_STATUS">🌿 解除異常狀態</option>
+            <option value="BUFF_PATK">⚔️ 增加物理攻擊</option>
+            <option value="TACTICAL_ESCAPE">💨 煙幕脫離/迴避</option>
+          </select>
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">效果數值</label>
+          <input type="number" class="es-input" id="ie-effect-val" value="150">
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">最大堆疊數</label>
+          <input type="number" class="es-input" id="ie-stack" value="99">
+        </div>
+      </div>
+
+      <div class="es-form-group">
+        <label class="es-label">功能說明描述</label>
+        <textarea class="es-input" id="ie-desc" rows="2" placeholder="在戰鬥中或領地使用，立即恢復目標 150 點生命值。"></textarea>
+      </div>
+
+      <div class="es-form-group">
+        <label class="es-label">📜 背景風味文字</label>
+        <textarea class="es-input" id="ie-flavor" rows="2" placeholder="以晨露與生命之花精煉而成的濃縮藥劑。"></textarea>
+      </div>
+    </div>
+    <div class="es-modal-footer">
+      <button class="es-btn" id="btn-cancel-ie">取消</button>
+      <button class="es-btn es-btn-primary" id="btn-save-ie">💾 保存道具</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：裝備原型與隨機詞條池編輯器 -->
+<div class="es-modal-overlay" id="modal-equipment-editor">
+  <div class="es-modal" style="max-width: 680px;">
+    <div class="es-modal-header">
+      <span id="ee-title">⚔️ 裝備原型與詞條池編輯器</span>
+      <button class="es-btn es-btn-sm" id="btn-close-ee">✕</button>
+    </div>
+    <div class="es-modal-body">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <div class="es-card-avatar" id="ee-icon" style="font-size: 2.2rem; width: 56px; height: 56px;" title="點擊切換圖標">🗡️</div>
+        <div style="flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="es-form-group">
+            <label class="es-label">裝備 ID</label>
+            <input type="text" class="es-input" id="ee-id" placeholder="wpn_dragon_greatsword">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">裝備名稱</label>
+            <input type="text" class="es-input" id="ee-name" placeholder="龍牙滅世大劍">
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px;">
+        <div class="es-form-group">
+          <label class="es-label">裝備部位</label>
+          <select class="es-select" id="ee-slot">
+            <option value="WEAPON">⚔️ 武器</option>
+            <option value="ARMOR">🛡️ 防具</option>
+            <option value="ACCESSORY">💍 飾品</option>
+          </select>
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">武器類型 (若為武器)</label>
+          <select class="es-select" id="ee-weapon-type">
+            <option value="GREATSWORD">巨劍 (戰士/狂戰)</option>
+            <option value="DUAL_SWORDS">雙劍 (魔劍士)</option>
+            <option value="STAFF">法杖 (法師/大魔導)</option>
+            <option value="SCYTHE">戰鐮 (死靈法師)</option>
+            <option value="BOW">戰弓 (弓手/神射)</option>
+            <option value="MAGIC_BOW">魔法弓 (精靈使)</option>
+            <option value="SWORD_AND_SHIELD">劍盾 (騎士/聖騎)</option>
+            <option value="RUNE_SHIELD">符文盾 (符文騎士)</option>
+            <option value="DAGGERS">雙匕首 (盜賊/暗殺)</option>
+            <option value="MAGIC_RING">魔法戒指 (詭術師)</option>
+            <option value="HOLY_BOOK">聖典 (祈禱/主教)</option>
+            <option value="HAMMER">戰鎚 (異端拷問官)</option>
+          </select>
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">階級 (Tier)</label>
+          <select class="es-select" id="ee-tier">
+            <option value="1">T1 粗製</option>
+            <option value="2">T2 精良</option>
+            <option value="3">T3 史詩</option>
+            <option value="4">T4 傳奇</option>
+          </select>
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">元素附魔</label>
+          <select class="es-select" id="ee-element">
+            <option value="NONE">無元素</option>
+            <option value="FIRE">🔥 火</option>
+            <option value="ICE">❄️ 冰</option>
+            <option value="LIGHTNING">⚡ 雷</option>
+            <option value="HOLY">☀️ 光</option>
+            <option value="DARK">🌑 暗</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 基礎數值面板 -->
+      <div style="background: #11141a; padding: 8px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
+        <div style="font-weight: bold; font-size: 0.75rem; color: var(--es-gold); margin-bottom: 6px;">📊 基礎固定戰鬥數值</div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+          <div class="es-form-group">
+            <label class="es-label">物攻 (PATK)</label>
+            <input type="number" class="es-input" id="ee-patk" value="60">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">魔攻 (MATK)</label>
+            <input type="number" class="es-input" id="ee-matk" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">物防 (PDEF)</label>
+            <input type="number" class="es-input" id="ee-pdef" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">魔防 (MDEF)</label>
+            <input type="number" class="es-input" id="ee-mdef" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">生命 (HP)</label>
+            <input type="number" class="es-input" id="ee-hp" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">魔力 (MP)</label>
+            <input type="number" class="es-input" id="ee-mp" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">命中 (HIT)</label>
+            <input type="number" class="es-input" id="ee-hit" value="0">
+          </div>
+          <div class="es-form-group">
+            <label class="es-label">暴擊 (CRIT %)</label>
+            <input type="number" class="es-input" id="ee-crit" value="5">
+          </div>
+        </div>
+      </div>
+
+      <!-- 🎲 可自訂隨機屬性詞條池 -->
+      <div style="background: #11141a; padding: 8px; border-radius: 6px; border: 1px solid var(--es-panel-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="font-weight: bold; font-size: 0.75rem; color: #58a6ff;">🎲 鍛造隨機屬性詞條池 (Affix Pool)</div>
+          <span style="font-size: 0.7rem; color: var(--es-text-muted);">鍛造時將隨機骰出 1~2 條詞條</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 0.75rem;">
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-sharp"> 💥 鋒利 (物攻 +5~15)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-arcane"> 🔮 奧術 (魔攻 +5~15)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-stalwart"> 🛡️ 堅定 (生命 +40~100)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-swift"> 💨 疾風 (命中/閃避 +8~20)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-deadly"> 🎯 致命 (暴擊率 +5~12%)</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="affix-vampire"> 🩸 嗜血 (吸血 +4~8%)</label>
+        </div>
+      </div>
+
+      <div class="es-form-group">
+        <label class="es-label">功能說明描述</label>
+        <textarea class="es-input" id="ee-desc" rows="2" placeholder="以成年火龍獠牙鍛造成的雙手大劍，揮舞時伴隨灼熱氣浪。"></textarea>
+      </div>
+
+      <div class="es-form-group">
+        <label class="es-label">📜 背景風味文字</label>
+        <textarea class="es-input" id="ee-flavor" rows="2" placeholder="傳說此劍曾斬斷過洛斯加帝國的攻城戰旗。"></textarea>
+      </div>
+    </div>
+    <div class="es-modal-footer">
+      <button class="es-btn" id="btn-cancel-ee">取消</button>
+      <button class="es-btn es-btn-primary" id="btn-save-ee">💾 保存裝備</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：鍛造配方編輯器 -->
+<div class="es-modal-overlay" id="modal-recipe-editor">
+  <div class="es-modal">
+    <div class="es-modal-header">
+      <span id="re-title">🔨 鍛造配方編輯器</span>
+      <button class="es-btn es-btn-sm" id="btn-close-re">✕</button>
+    </div>
+    <div class="es-modal-body">
+      <div class="es-form-group">
+        <label class="es-label">配方 ID</label>
+        <input type="text" class="es-input" id="re-id" placeholder="recipe_dragon_sword">
+      </div>
+      <div class="es-form-group">
+        <label class="es-label">產出裝備</label>
+        <select class="es-select" id="re-target-equip">
+          <!-- 動態載入裝備選項 -->
+        </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="es-form-group">
+          <label class="es-label">所需主要素材 1</label>
+          <div style="display: flex; gap: 4px;">
+            <select class="es-select" id="re-mat-1" style="flex: 1;"></select>
+            <input type="number" class="es-input" id="re-mat-count-1" value="3" style="width: 60px;">
+          </div>
+        </div>
+        <div class="es-form-group">
+          <label class="es-label">所需副素材 2 (選填)</label>
+          <div style="display: flex; gap: 4px;">
+            <select class="es-select" id="re-mat-2" style="flex: 1;"><option value="">(無)</option></select>
+            <input type="number" class="es-input" id="re-mat-count-2" value="1" style="width: 60px;">
+          </div>
+        </div>
+      </div>
+      <div class="es-form-group">
+        <label class="es-label">鍛造消耗金幣</label>
+        <input type="number" class="es-input" id="re-gold" value="200">
+      </div>
+    </div>
+    <div class="es-modal-footer">
+      <button class="es-btn" id="btn-cancel-re">取消</button>
+      <button class="es-btn es-btn-primary" id="btn-save-re">💾 保存配方</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：通用圖標選擇器 -->
+<div class="es-modal-overlay" id="modal-icon-picker">
+  <div class="es-modal" style="max-width: 480px;">
+    <div class="es-modal-header">
+      <span>🖼️ 選擇圖標 Emoji</span>
+      <button class="es-btn es-btn-sm" id="btn-close-icon-picker">✕</button>
+    </div>
+    <div class="es-modal-body">
+      <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; text-align: center;" id="icon-picker-grid">
+        <!-- 動態渲染圖標選擇池 -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：時光機歷史快照 -->
+<div class="es-modal-overlay" id="modal-history-backups">
+  <div class="es-modal" style="max-width: 550px;">
+    <div class="es-modal-header">
+      <span>🕒 裝備與素材歷史快照 (時光機)</span>
+      <button class="es-btn es-btn-sm" id="btn-close-backups">✕</button>
+    </div>
+    <div class="es-modal-body" id="es-backups-list">
+      <!-- 動態載入歷史快照 -->
+    </div>
+  </div>
+</div>

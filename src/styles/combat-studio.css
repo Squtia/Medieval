@@ -1,0 +1,656 @@
+/* 戰術遭遇與戰鬥平衡工坊專屬樣式 (Combat & Encounter Studio) */
+
+:root {
+  --cs-bg: #0e1117;
+  --cs-panel-bg: #161b22;
+  --cs-panel-border: #30363d;
+  --cs-gold: #c9a96e;
+  --cs-gold-light: #f0d799;
+  --cs-gold-dark: #8c6d37;
+  --cs-text-main: #e6edf3;
+  --cs-text-muted: #8b949e;
+  --cs-text-bright: #ffffff;
+  --cs-red: #f85149;
+  --cs-green: #3fb950;
+  --cs-blue: #58a6ff;
+  --cs-purple: #bc8cff;
+  --cs-orange: #d29922;
+  --cs-hp-red: #e63946;
+  --cs-mp-blue: #00b4d8;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background-color: var(--cs-bg);
+  color: var(--cs-text-main);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+#combat-studio-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 頂部導航列 */
+.cs-header {
+  height: 52px;
+  background: #13171e;
+  border-bottom: 1px solid var(--cs-panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.cs-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cs-title {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--cs-gold-light);
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-badge {
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(201, 169, 110, 0.15);
+  color: var(--cs-gold);
+  border: 1px solid rgba(201, 169, 110, 0.3);
+}
+
+.cs-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 基礎按鈕 */
+.cs-btn {
+  background: #21262d;
+  color: var(--cs-text-main);
+  border: 1px solid var(--cs-panel-border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.cs-btn:hover {
+  background: #30363d;
+  border-color: #8b949e;
+}
+
+.cs-btn-primary {
+  background: linear-gradient(180deg, #c9a96e, #8c6d37);
+  color: #1a1208;
+  border-color: #f0d799;
+  font-weight: bold;
+}
+
+.cs-btn-primary:hover {
+  background: linear-gradient(180deg, #f0d799, #c9a96e);
+  box-shadow: 0 0 12px rgba(201, 169, 110, 0.4);
+}
+
+.cs-btn-danger {
+  background: rgba(248, 81, 73, 0.15);
+  color: var(--cs-red);
+  border-color: rgba(248, 81, 73, 0.4);
+}
+
+.cs-btn-danger:hover {
+  background: var(--cs-red);
+  color: #fff;
+}
+
+.cs-btn-sm {
+  padding: 3px 8px;
+  font-size: 0.75rem;
+}
+
+/* 主工作區三欄佈局 */
+.cs-workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 340px 1fr 340px;
+  height: calc(100vh - 52px);
+  overflow: hidden;
+}
+
+.cs-col {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--cs-panel-bg);
+  border-right: 1px solid var(--cs-panel-border);
+  overflow: hidden;
+}
+
+.cs-col:last-child {
+  border-right: none;
+  border-left: 1px solid var(--cs-panel-border);
+}
+
+.cs-col-header {
+  padding: 10px 14px;
+  background: #11141a;
+  border-bottom: 1px solid var(--cs-panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.cs-col-title {
+  font-size: 0.92rem;
+  font-weight: bold;
+  color: var(--cs-gold);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cs-col-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 單位卡片清單 (隊員 / 怪物) */
+.cs-unit-card {
+  background: #181f2a;
+  border: 1px solid var(--cs-panel-border);
+  border-radius: 8px;
+  padding: 10px;
+  position: relative;
+  transition: border-color 0.15s;
+}
+
+.cs-unit-card:hover {
+  border-color: #4a5568;
+}
+
+.cs-unit-card.active {
+  border-color: var(--cs-gold);
+  box-shadow: 0 0 8px rgba(201, 169, 110, 0.2);
+}
+
+.cs-unit-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cs-unit-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  border: 1px solid var(--cs-gold-dark);
+  background-color: #0b0e14;
+  background-position: center;
+  background-size: cover;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  cursor: pointer;
+  position: relative;
+}
+
+.cs-unit-avatar:hover::after {
+  content: '✏️';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  border-radius: 5px;
+}
+
+.cs-unit-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs-unit-name {
+  font-size: 0.88rem;
+  font-weight: bold;
+  color: var(--cs-text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cs-unit-sub {
+  font-size: 0.75rem;
+  color: var(--cs-text-muted);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cs-unit-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  background: #0f141c;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+.cs-stat-item {
+  color: var(--cs-text-muted);
+}
+.cs-stat-val {
+  color: var(--cs-text-main);
+  font-weight: bold;
+}
+
+/* 裝備槽列 */
+.cs-equip-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cs-equip-slot {
+  flex: 1;
+  background: #111620;
+  border: 1px dashed var(--cs-panel-border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--cs-text-muted);
+  transition: all 0.15s;
+}
+
+.cs-equip-slot:hover {
+  border-color: var(--cs-gold);
+  color: var(--cs-text-main);
+  background: #1a2230;
+}
+
+.cs-equip-slot.has-item {
+  border-style: solid;
+  border-color: #3b4758;
+  color: var(--cs-gold-light);
+}
+
+/* 中欄戰鬥與模擬大盤 */
+.cs-battle-center {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+.cs-battle-toolbar {
+  padding: 10px 16px;
+  background: #141922;
+  border-bottom: 1px solid var(--cs-panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.cs-tabs {
+  display: flex;
+  gap: 4px;
+  background: #090c10;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid var(--cs-panel-border);
+}
+
+.cs-tab-btn {
+  background: transparent;
+  color: var(--cs-text-muted);
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.cs-tab-btn.active {
+  background: #21262d;
+  color: var(--cs-gold-light);
+  font-weight: bold;
+}
+
+/* 戰鬥對抗擂台 (Arena) */
+.cs-arena {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  gap: 12px;
+  align-items: center;
+  background: radial-gradient(circle at center, #1b2432 0%, #0d1117 70%);
+  border-bottom: 1px solid var(--cs-panel-border);
+  flex-shrink: 0;
+}
+
+.cs-arena-team {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cs-arena-vs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: var(--cs-gold);
+  text-shadow: 0 0 10px rgba(201, 169, 110, 0.5);
+}
+
+.cs-arena-card {
+  background: rgba(22, 27, 34, 0.9);
+  border: 1px solid var(--cs-panel-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cs-arena-card.dead {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.cs-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cs-bar-wrap {
+  height: 6px;
+  background: #21262d;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.cs-hp-fill {
+  height: 100%;
+  background: var(--cs-hp-red);
+  transition: width 0.3s ease;
+}
+
+.cs-mp-fill {
+  height: 100%;
+  background: var(--cs-mp-blue);
+  transition: width 0.3s ease;
+}
+
+/* 戰報動態日誌區 */
+.cs-log-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  background: #090c10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: monospace;
+  font-size: 0.82rem;
+}
+
+.cs-log-entry {
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1.4;
+  animation: fadeIn 0.2s ease;
+}
+
+.cs-log-entry.crit {
+  background: rgba(248, 81, 73, 0.15);
+  border-left: 3px solid var(--cs-red);
+}
+
+.cs-log-entry.heal {
+  background: rgba(63, 185, 80, 0.15);
+  border-left: 3px solid var(--cs-green);
+}
+
+.cs-log-entry.status {
+  background: rgba(188, 140, 255, 0.15);
+  border-left: 3px solid var(--cs-purple);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 蒙地卡羅平衡大盤面板 */
+.cs-metrics-panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cs-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.cs-kpi-card {
+  background: #161b22;
+  border: 1px solid var(--cs-panel-border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-kpi-label {
+  font-size: 0.75rem;
+  color: var(--cs-text-muted);
+}
+
+.cs-kpi-val {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--cs-gold-light);
+}
+
+.cs-bar-chart-card {
+  background: #161b22;
+  border: 1px solid var(--cs-panel-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.cs-chart-title {
+  font-size: 0.88rem;
+  font-weight: bold;
+  color: var(--cs-text-main);
+  margin-bottom: 12px;
+}
+
+.cs-chart-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 0.78rem;
+}
+
+.cs-chart-label {
+  width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--cs-text-muted);
+}
+
+.cs-chart-bar-bg {
+  flex: 1;
+  height: 14px;
+  background: #0b0e14;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cs-chart-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c9a96e, #f0d799);
+  border-radius: 3px;
+}
+
+.cs-chart-val {
+  width: 60px;
+  text-align: right;
+  font-weight: bold;
+  color: var(--cs-text-main);
+}
+
+/* Modal 彈窗通用 */
+.cs-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.cs-modal-box {
+  background: #161b22;
+  border: 1px solid var(--cs-gold-dark);
+  border-radius: 10px;
+  width: 90%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+}
+
+.cs-modal-header {
+  padding: 14px 18px;
+  background: #11141a;
+  border-bottom: 1px solid var(--cs-panel-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cs-modal-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--cs-gold-light);
+}
+
+.cs-modal-body {
+  padding: 16px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cs-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cs-form-row-h {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.cs-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--cs-text-muted);
+}
+
+.cs-input, .cs-select, .cs-textarea {
+  background: #0d1117;
+  border: 1px solid var(--cs-panel-border);
+  color: var(--cs-text-main);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.cs-input:focus, .cs-select:focus, .cs-textarea:focus {
+  border-color: var(--cs-gold);
+}
+
+.cs-modal-footer {
+  padding: 12px 18px;
+  background: #11141a;
+  border-top: 1px solid var(--cs-panel-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

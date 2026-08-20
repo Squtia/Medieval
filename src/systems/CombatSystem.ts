@@ -21,7 +21,8 @@ export class CombatSystem {
     enemyLineup?: import('../models/types').MonsterInstance[],
     formationId?: string,
     gridMap?: Record<string, string>,
-    initialHpMpOverride?: { hp: Record<string, number>, mp: Record<string, number> }
+    initialHpMpOverride?: { hp: Record<string, number>, mp: Record<string, number> },
+    waveEnemyLineups?: import('../models/types').MonsterInstance[][]
   ): CombatReport {
     const events: CombatEvent[] = [];
     const playerTeam: CombatParticipant[] = [];
@@ -57,25 +58,47 @@ export class CombatSystem {
         const isAdv = adv.isAdvanced && adv.level >= 10;
         
         const lvl = adv.level || 1;
-        if (jobName.includes('戰士')) {
+        const isWarrior = ['戰士', '狂戰士', '魔劍士', '狂戰', '魔劍'].some(j => jobName.includes(j));
+        const isMage = ['法師', '大魔導士', '死靈法師', '魔導', '死靈'].some(j => jobName.includes(j));
+        const isArcher = ['弓箭手', '神射手', '精靈使', '弓手', '神射', '精靈'].some(j => jobName.includes(j));
+        const isThief = ['盜賊', '暗殺者', '詭術師', '刺客', '暗殺', '詭術'].some(j => jobName.includes(j));
+        const isKnight = ['騎士', '聖騎士', '符文騎士', '聖騎', '符文'].some(j => jobName.includes(j));
+        const isPrayer = ['祈禱者', '大主教', '異端拷問官', '神官', '主教', '拷問官'].some(j => jobName.includes(j));
+
+        if (isWarrior) {
           if (lvl >= 2) skills.push('FIGHTER_HEAVY_STRIKE');
           if (lvl >= 5) skills.push('FIGHTER_ARMOR_BREAK');
           if (isAdv && weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
           if (isAdv && weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
         }
-        if (jobName.includes('法師')) {
-          if (lvl >= 2) skills.push('MAGE_ARCANE_MISSILES');
+        if (isMage) {
+          if (lvl >= 2) {
+            // 元素法杖轉化機制
+            const elem = weapon?.element;
+            if (weaponType === 'STAFF' && elem && elem !== ElementType.NONE) {
+              switch (elem) {
+                case ElementType.FIRE: skills.push('MAGE_FIRE_BOLT'); break;
+                case ElementType.ICE: skills.push('MAGE_ICE_SPIKE'); break;
+                case ElementType.LIGHTNING: skills.push('MAGE_LIGHTNING_BOLT'); break;
+                case ElementType.HOLY: skills.push('MAGE_HOLY_SMITE'); break;
+                case ElementType.DARK: skills.push('MAGE_DARK_ORB'); break;
+                default: skills.push('MAGE_ARCANE_MISSILES'); break;
+              }
+            } else {
+              skills.push('MAGE_ARCANE_MISSILES');
+            }
+          }
           if (lvl >= 5) skills.push('MAGE_STATIC_FIELD');
           if (isAdv && weaponType === 'STAFF') skills.push('STAFF_METEOR');
           if (isAdv && weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
         }
-        if (jobName.includes('弓箭手')) {
+        if (isArcher) {
           if (lvl >= 2) skills.push('ARCHER_PIERCING_SHOT');
           if (lvl >= 5) skills.push('ARCHER_AIMED_SHOT');
           if (isAdv && weaponType === 'BOW') skills.push('SNIPER_FATAL_SNIPE');
           if (isAdv && weaponType === 'MAGIC_BOW') skills.push('SPIRIT_ARCHER_SPIRIT_CHAIN');
         }
-        if (jobName.includes('盜賊')) {
+        if (isThief) {
           if (lvl >= 2) skills.push('THIEF_SURPRISE_ATTACK');
           if (lvl >= 5) skills.push('THIEF_POISON_BLADE');
           if (isAdv && weaponType === 'DAGGERS') {
@@ -83,13 +106,13 @@ export class CombatSystem {
           }
           if (isAdv && weaponType === 'MAGIC_RING') skills.push('TRICKSTER_TRICK_MAGIC');
         }
-        if (jobName.includes('騎士')) {
+        if (isKnight) {
           if (lvl >= 2) skills.push('KNIGHT_SHIELD_BASH');
           if (lvl >= 5) skills.push('KNIGHT_TAUNT');
           if (isAdv && weaponType === 'SWORD_AND_SHIELD') skills.push('KNIGHT_PALADIN_AEGIS');
           if (isAdv && weaponType === 'RUNE_SHIELD') skills.push('KNIGHT_RUNE_REFLECTION');
         }
-        if (jobName.includes('祈禱者')) {
+        if (isPrayer) {
           if (lvl >= 2) skills.push('PRAYER_HEAL');
           if (lvl >= 5) skills.push('PRAYER_HOLY_LIGHT');
           if (isAdv && weaponType === 'HOLY_BOOK') skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
@@ -217,13 +240,28 @@ export class CombatSystem {
       const enemyTeam: CombatParticipant[] = [];
       const occupiedEnemyGrids = new Set<string>();
       const currentWaveDiff = taskDifficulty + (wave - 1) * 5;
-      const enemyCount = (enemyLineup && enemyLineup.length > 0) ? enemyLineup.length : Random.int(1, 3);
+      
+      // 判斷當前波次的敵人陣容
+      let currentWaveLineup: import('../models/types').MonsterInstance[] | undefined = undefined;
+      if (waveEnemyLineups && waveEnemyLineups[wave - 1]) {
+        currentWaveLineup = waveEnemyLineups[wave - 1];
+      } else if (enemyLineup && enemyLineup.length > 0) {
+        if (totalWaves > 1 && wave < totalWaves) {
+          // 非最終波：過濾掉首領/Boss，改由普通小怪/護衛出場
+          const minions = enemyLineup.filter(m => !m.name.includes('👑') && !m.name.includes('首領') && !m.name.includes('Boss') && (m.powerTier || 1.0) < 2.0);
+          currentWaveLineup = minions.length > 0 ? minions : enemyLineup;
+        } else {
+          // 最終決戰波：全員到齊 (含 Boss)
+          currentWaveLineup = enemyLineup;
+        }
+      }
+
+      const enemyCount = (currentWaveLineup && currentWaveLineup.length > 0) ? currentWaveLineup.length : Random.int(1, 3);
       
       for (let i = 0; i < enemyCount; i++) {
-        // 若有具體敵方名單，從中依序取用
         let lineupMonster = undefined;
-        if (enemyLineup && enemyLineup.length > 0) {
-           lineupMonster = enemyLineup[Math.min(i, enemyLineup.length - 1)];
+        if (currentWaveLineup && currentWaveLineup.length > 0) {
+           lineupMonster = currentWaveLineup[Math.min(i, currentWaveLineup.length - 1)];
         }
         
         const eHp = lineupMonster ? lineupMonster.hp : (50 + currentWaveDiff * 5);

@@ -319,6 +319,7 @@ export interface MaterialItem {
   tier: number;
   description: string;
   basePrice: number;
+  flavorText?: string;
 }
 
 export interface NodeMarketData {

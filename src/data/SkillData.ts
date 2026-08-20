@@ -190,6 +190,156 @@ export const SKILLS: Record<string, Skill> = {
       return events;
     }
   },
+  'MAGE_FIRE_BOLT': {
+    id: 'MAGE_FIRE_BOLT',
+    name: '熾炎飛彈',
+    mpCost: 8,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 8 MP。【熾火法杖】轉化。隨機發射 3 枚熾熱火球，每枚造成 65% 火屬性魔法傷害。',
+    aiWeight: () => 70,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      const enemies = allEnemies || targets;
+      const aliveEnemies = enemies.filter(e => e.currentHp > 0);
+      if (aliveEnemies.length === 0) return events;
+      for (let i = 0; i < 3; i++) {
+        const currentAlive = enemies.filter(e => e.currentHp > 0);
+        if (currentAlive.length === 0) break;
+        const target = Random.pick(currentAlive);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.65, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '熾炎飛彈',
+          text: `${caster.name} 召喚 🔥熾炎飛彈 轟炸 ${target.name}，造成 ${damage} 點火焰傷害！`
+        });
+      }
+      return events;
+    }
+  },
+  'MAGE_ICE_SPIKE': {
+    id: 'MAGE_ICE_SPIKE',
+    name: '極寒飛彈',
+    mpCost: 8,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 8 MP。【霜冰法杖】轉化。隨機發射 3 枚極寒冰錐，每枚造成 65% 冰屬性魔法傷害。',
+    aiWeight: () => 70,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      const enemies = allEnemies || targets;
+      const aliveEnemies = enemies.filter(e => e.currentHp > 0);
+      if (aliveEnemies.length === 0) return events;
+      for (let i = 0; i < 3; i++) {
+        const currentAlive = enemies.filter(e => e.currentHp > 0);
+        if (currentAlive.length === 0) break;
+        const target = Random.pick(currentAlive);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.65, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '極寒飛彈',
+          text: `${caster.name} 凝聚 ❄️極寒飛彈 貫穿 ${target.name}，造成 ${damage} 點冰霜傷害！`
+        });
+      }
+      return events;
+    }
+  },
+  'MAGE_LIGHTNING_BOLT': {
+    id: 'MAGE_LIGHTNING_BOLT',
+    name: '雷霆飛彈',
+    mpCost: 8,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 8 MP。【雷霆法杖】轉化。隨機發射 3 枚連鎖電弧，每枚造成 65% 雷屬性魔法傷害。',
+    aiWeight: () => 70,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      const enemies = allEnemies || targets;
+      const aliveEnemies = enemies.filter(e => e.currentHp > 0);
+      if (aliveEnemies.length === 0) return events;
+      for (let i = 0; i < 3; i++) {
+        const currentAlive = enemies.filter(e => e.currentHp > 0);
+        if (currentAlive.length === 0) break;
+        const target = Random.pick(currentAlive);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.65, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '雷霆飛彈',
+          text: `${caster.name} 迸發 ⚡雷霆飛彈 電擊 ${target.name}，造成 ${damage} 點雷電傷害！`
+        });
+      }
+      return events;
+    }
+  },
+  'MAGE_HOLY_SMITE': {
+    id: 'MAGE_HOLY_SMITE',
+    name: '聖光飛彈',
+    mpCost: 8,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 8 MP。【神聖法杖】轉化。隨機發射 3 枚聖耀光彈，每枚造成 65% 光屬性魔法傷害。',
+    aiWeight: () => 70,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      const enemies = allEnemies || targets;
+      const aliveEnemies = enemies.filter(e => e.currentHp > 0);
+      if (aliveEnemies.length === 0) return events;
+      for (let i = 0; i < 3; i++) {
+        const currentAlive = enemies.filter(e => e.currentHp > 0);
+        if (currentAlive.length === 0) break;
+        const target = Random.pick(currentAlive);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.65, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '聖光飛彈',
+          text: `${caster.name} 釋放 ☀️聖光飛彈 淨化 ${target.name}，造成 ${damage} 點神聖傷害！`
+        });
+      }
+      return events;
+    }
+  },
+  'MAGE_DARK_ORB': {
+    id: 'MAGE_DARK_ORB',
+    name: '暗影飛彈',
+    mpCost: 8,
+    targetType: TargetType.SINGLE_ENEMY,
+    description: '消耗 8 MP。【暗影法杖】轉化。隨機發射 3 枚幽冥暗球，每枚造成 65% 暗屬性魔法傷害。',
+    aiWeight: () => 70,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      const enemies = allEnemies || targets;
+      const aliveEnemies = enemies.filter(e => e.currentHp > 0);
+      if (aliveEnemies.length === 0) return events;
+      for (let i = 0; i < 3; i++) {
+        const currentAlive = enemies.filter(e => e.currentHp > 0);
+        if (currentAlive.length === 0) break;
+        const target = Random.pick(currentAlive);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, getMatk(caster) * 0.65, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '暗影飛彈',
+          text: `${caster.name} 射出 🌑暗影飛彈 吞噬 ${target.name}，造成 ${damage} 點暗黑傷害！`
+        });
+      }
+      return events;
+    }
+  },
   'MAGE_STATIC_FIELD': {
     id: 'MAGE_STATIC_FIELD',
     name: '靜電新星',

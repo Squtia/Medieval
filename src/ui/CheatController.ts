@@ -121,6 +121,26 @@ export function initCheatController(): void {
     'story': { name: '開啟故事工坊', noPrompt: true, setter: () => {
         window.open('./tools/story-studio.html', '_blank');
         ToastManager.show(`🧭 已在新分頁開啟「故事工坊」！`);
+    }},
+    'combat': { name: '開啟戰鬥平衡工坊', noPrompt: true, setter: () => {
+        window.open('./tools/combat-studio.html', '_blank');
+        ToastManager.show(`⚔️ 已在新分頁開啟「戰術遭遇與戰鬥平衡工坊 (Combat Studio)」！`);
+    }},
+    'battle': { name: '開啟戰鬥平衡工坊', noPrompt: true, setter: () => {
+        window.open('./tools/combat-studio.html', '_blank');
+        ToastManager.show(`⚔️ 已在新分頁開啟「戰術遭遇與戰鬥平衡工坊 (Combat Studio)」！`);
+    }},
+    'equip': { name: '開啟裝備與素材工坊', noPrompt: true, setter: () => {
+        window.open('./tools/equipment-studio.html', '_blank');
+        ToastManager.show(`🛠️ 已在新分頁開啟「裝備、素材與配方工坊 (Equipment Studio)」！`);
+    }},
+    'material': { name: '開啟裝備與素材工坊', noPrompt: true, setter: () => {
+        window.open('./tools/equipment-studio.html', '_blank');
+        ToastManager.show(`🧱 已在新分頁開啟「裝備、素材與配方工坊 (Equipment Studio)」！`);
+    }},
+    'forge': { name: '開啟裝備與素材工坊', noPrompt: true, setter: () => {
+        window.open('./tools/equipment-studio.html', '_blank');
+        ToastManager.show(`🔨 已在新分頁開啟「裝備、素材與配方工坊 (Equipment Studio)」！`);
     }}
   });
 
@@ -130,6 +150,14 @@ export function initCheatController(): void {
 
   (window as any).openStoryStudio = () => {
     window.open('./tools/story-studio.html', '_blank');
+  };
+
+  (window as any).openCombatStudio = () => {
+    window.open('./tools/combat-studio.html', '_blank');
+  };
+
+  (window as any).openEquipmentStudio = () => {
+    window.open('./tools/equipment-studio.html', '_blank');
   };
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {
