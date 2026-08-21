@@ -6,7 +6,7 @@
     {
       "id": "acc_brave_ring",
       "name": "勇氣指環",
-      "icon": "💍",
+      "icon": "2_icons_materials:2_icons_materials_32",
       "slot": "ACCESSORY",
       "tier": 1,
       "allowedJobs": [],
@@ -18,7 +18,7 @@
     {
       "id": "acc_wind_amulet",
       "name": "風行者護符",
-      "icon": "🧿",
+      "icon": "2_icons_materials:2_icons_materials_42",
       "slot": "ACCESSORY",
       "tier": 1,
       "allowedJobs": [],
@@ -30,7 +30,7 @@
     {
       "id": "acc_scholar_pendant",
       "name": "學者智慧墜飾",
-      "icon": "📿",
+      "icon": "2_icons_materials:2_icons_materials_40",
       "slot": "ACCESSORY",
       "tier": 1,
       "allowedJobs": [],
@@ -42,7 +42,7 @@
     {
       "id": "acc_guardian_medal",
       "name": "守護者青銅勳章",
-      "icon": "🎖️",
+      "icon": "2_icons_materials:2_icons_materials_48",
       "slot": "ACCESSORY",
       "tier": 2,
       "allowedJobs": [],
@@ -54,7 +54,7 @@
     {
       "id": "acc_thief_band",
       "name": "暗影夜行手鐲",
-      "icon": "💫",
+      "icon": "2_icons_materials:2_icons_materials_50",
       "slot": "ACCESSORY",
       "tier": 2,
       "allowedJobs": [],
@@ -66,7 +66,7 @@
     {
       "id": "acc_holy_relic_cross",
       "name": "神聖救贖十字",
-      "icon": "✝️",
+      "icon": "2_icons_materials:2_icons_materials_57",
       "slot": "ACCESSORY",
       "tier": 3,
       "allowedJobs": [],

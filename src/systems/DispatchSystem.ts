@@ -55,6 +55,13 @@ export class DispatchSystem {
       }
     }
 
+    // 戰鬥規則防線：每場戰鬥隊伍最多只能編入 1 位 UR 品質傭兵
+    const urCount = adventurers.filter(a => a.quality === 'UR').length;
+    if (urCount > 1) {
+      console.warn('⚠️ 派遣失敗：隊伍中最多只能編入 1 名 UR 品質傭兵！');
+      return;
+    }
+
     if (task.type === TaskType.TRADE) normalizeTradeTask(task);
     const remainingDays = task.requiredDays;
 

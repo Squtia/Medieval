@@ -3,7 +3,7 @@ import { UIManager } from '../UIManager';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
 import { renderEquipIcon, ICON_SIZE, attachTooltip, getEquipTooltipHtml } from '../ShopController';
-import { renderResourceSpriteHtml } from '../IconSpriteHelper';
+import { renderResourceSpriteHtml, renderUniversalIcon } from '../IconSpriteHelper';
 
 export class InventoryUIController {
   private panel: HTMLElement | null;
@@ -192,7 +192,7 @@ export class InventoryUIController {
       `;
       card.innerHTML = `
         <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 1.5em;">${def.icon}</span>
+          <div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(def.icon || '📦', 32)}</div>
           <div>
             <div style="font-weight: bold; color: #cbd5e1;">${def.name}</div>
             <div style="font-size: 0.8em; color: #94a3b8;">${def.description}</div>

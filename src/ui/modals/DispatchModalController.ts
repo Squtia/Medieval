@@ -328,6 +328,23 @@ export class DispatchModalController {
       this.dragSourceSlot = null;
       return;
     }
+
+    // 拖曳編隊防線：每場戰鬥隊伍最多只能編入 1 位 UR 品質傭兵
+    const draggedAdv = GameState.adventurers.find(a => a.id === this.dragDraggedAdvId);
+    if (draggedAdv && draggedAdv.quality === 'UR') {
+      const hasOtherUR = Array.from(this.selectedAdventurersForDispatch).some(id => {
+        if (id === existingAdvInTarget) return false;
+        const member = GameState.adventurers.find(a => a.id === id);
+        return member?.quality === 'UR';
+      });
+      if (hasOtherUR) {
+        ToastManager.show('⚠️ 戰鬥隊伍限制：每場戰鬥最多只能編入 1 位 UR 品質傭兵！');
+        this.dragDraggedAdvId = null;
+        this.dragSourceSlot = null;
+        return;
+      }
+    }
+
     if (existingAdvInTarget) {
       this.selectedAdventurersForDispatch.delete(existingAdvInTarget);
     }
@@ -404,6 +421,19 @@ export class DispatchModalController {
           ToastManager.show('隊伍最多只能派出 5 名傭兵！');
           return;
         }
+
+        // 戰鬥規則防線：每場戰鬥隊伍最多只能編入 1 位 UR 品質傭兵
+        if (adv.quality === 'UR') {
+          const hasUR = Array.from(this.selectedAdventurersForDispatch).some(id => {
+            const member = GameState.adventurers.find(a => a.id === id);
+            return member?.quality === 'UR';
+          });
+          if (hasUR) {
+            ToastManager.show('⚠️ 戰鬥隊伍限制：每場戰鬥最多只能編入 1 位 UR 品質傭兵！');
+            return;
+          }
+        }
+
         let found = false;
         for (let r=0; r<3; r++) {
           for (let c=0; c<3; c++) {
@@ -626,6 +656,11 @@ export class DispatchModalController {
       return;
     }
     const team = GameState.adventurers.filter(a => this.selectedAdventurersForDispatch.has(a.id));
+    const urCount = team.filter(a => a.quality === 'UR').length;
+    if (urCount > 1) {
+      ToastManager.show('⚠️ 戰鬥隊伍限制：每場戰鬥最多只能編入 1 位 UR 品質傭兵！');
+      return;
+    }
     if (this.pendingDispatchTask) {
       const totalPower = team.reduce((sum, adventurer) => sum + adventurer.power, 0);
       if (

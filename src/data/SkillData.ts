@@ -1279,6 +1279,308 @@ export const SKILLS: Record<string, Skill> = {
       }
       return events;
     }
+  },
+
+  // ==========================================
+  // 👾 通用魔物技能庫 (Generic Monster Skills)
+  // ==========================================
+
+  'SKILL_TOXIC_SPRAY': {
+    id: 'SKILL_TOXIC_SPRAY',
+    name: '劇毒噴吐',
+    mpCost: 15,
+    targetType: TargetType.FRONT_ENEMIES,
+    category: 'MONSTER',
+    icon: '🦎',
+    description: '消耗 15 MP。對敵方前排全體噴射毒液，造成 100% 魔法傷害並附加【中毒】2 回合。',
+    cooldown: 2,
+    aiWeight: (caster, targets) => targets.length * 40,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      targets.forEach(target => {
+        const matk = getMatk(caster);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, matk * 1.0, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '劇毒噴吐',
+          text: `${caster.name} 施放 劇毒噴吐！對 ${target.name} 造成了 ${damage} 點魔法傷害！`
+        });
+        if (target.currentHp > 0) {
+          events.push(tryApplyStatus(target, { type: StatusEffectType.POISON, duration: 2, stacks: 1, value: 10 }, caster.name, '劇毒噴吐', `${target.name} 陷入了中毒狀態！`, allEnemies));
+        }
+      });
+      return events;
+    }
+  },
+
+  'SKILL_SAVAGE_REND': {
+    id: 'SKILL_SAVAGE_REND',
+    name: '撕裂爪擊',
+    mpCost: 12,
+    targetType: TargetType.SINGLE_ENEMY,
+    category: 'MONSTER',
+    icon: '🐾',
+    description: '消耗 12 MP。以狂暴之勢撕裂目標，造成 140% 物理傷害並附加【流血】2 回合。',
+    cooldown: 1,
+    aiWeight: (caster, targets) => targets[0].statusEffects.some(s => s.type === StatusEffectType.BLEED) ? 30 : 65,
+    execute: (caster, targets, allEnemies) => {
+      const target = targets[0];
+      const patk = getPatk(caster);
+      const { damage, isCrit } = calculateSkillDamage(caster, target, patk * 1.4, DamageType.PHYSICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      const events: CombatEvent[] = [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name,
+        targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '撕裂爪擊',
+        text: `${caster.name} 使出 撕裂爪擊！重創 ${target.name} 造成 ${damage} 點傷害！`
+      }];
+      if (target.currentHp > 0) {
+        events.push(tryApplyStatus(target, { type: StatusEffectType.BLEED, duration: 2, stacks: 1, value: 12 }, caster.name, '撕裂爪擊', `${target.name} 開始大量流血！`, allEnemies));
+      }
+      return events;
+    }
+  },
+
+  'SKILL_CRUSHING_SLAM': {
+    id: 'SKILL_CRUSHING_SLAM',
+    name: '粉碎重擊',
+    mpCost: 18,
+    targetType: TargetType.SINGLE_ENEMY,
+    category: 'MONSTER',
+    icon: '🔨',
+    description: '消耗 18 MP。猛烈敲擊目標護甲，造成 150% 物理傷害並必定附加【破甲】(-20% 物防) 2 回合。',
+    cooldown: 2,
+    aiWeight: (caster, targets) => targets[0].statusEffects.some(s => s.type === StatusEffectType.ARMOR_BREAK) ? 20 : 80,
+    execute: (caster, targets, allEnemies) => {
+      const target = targets[0];
+      const patk = getPatk(caster);
+      const { damage, isCrit } = calculateSkillDamage(caster, target, patk * 1.5, DamageType.PHYSICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      const events: CombatEvent[] = [{
+        type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+        actorId: caster.id, actorName: caster.name,
+        targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '粉碎重擊',
+        text: `${caster.name} 發動 粉碎重擊！撼動大地對 ${target.name} 造成 ${damage} 點毀滅性打擊！`
+      }];
+      if (target.currentHp > 0) {
+        events.push(tryApplyStatus(target, { type: StatusEffectType.ARMOR_BREAK, duration: 2 }, caster.name, '粉碎重擊', `${target.name} 的護甲被粉碎了！`, allEnemies));
+      }
+      return events;
+    }
+  },
+
+  'SKILL_BLOOD_DRAIN': {
+    id: 'SKILL_BLOOD_DRAIN',
+    name: '嗜血打擊',
+    mpCost: 16,
+    targetType: TargetType.SINGLE_ENEMY,
+    category: 'MONSTER',
+    icon: '🩸',
+    description: '消耗 16 MP。吸取目標生命精華，造成 120% 傷害並將 50% 傷害轉化為自身 HP 恢復。',
+    cooldown: 2,
+    aiWeight: (caster) => (caster.maxHp - caster.currentHp > 30) ? 90 : 40,
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const atk = Math.max(getPatk(caster), getMatk(caster));
+      const { damage, isCrit } = calculateSkillDamage(caster, target, atk * 1.2, caster.isMagicalAttacker ? DamageType.MAGICAL : DamageType.PHYSICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      const healAmount = Math.max(1, Math.floor(damage * 0.5));
+      caster.currentHp = Math.min(caster.maxHp, caster.currentHp + healAmount);
+
+      return [
+        {
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '嗜血打擊',
+          text: `${caster.name} 發動 嗜血打擊！對 ${target.name} 造成 ${damage} 點傷害！`
+        },
+        {
+          type: CombatEventType.HEAL,
+          actorId: caster.id, actorName: caster.name,
+          targetId: caster.id, targetName: caster.name,
+          damage: healAmount, targetHp: caster.currentHp, targetMaxHp: caster.maxHp,
+          healType: 'HP',
+          skillName: '嗜血打擊',
+          text: `${caster.name} 汲取了生命精華，恢復了 ${healAmount} 點 HP！`
+        }
+      ];
+    }
+  },
+
+  'SKILL_TERROR_SCREECH': {
+    id: 'SKILL_TERROR_SCREECH',
+    name: '尖嘯震懾',
+    mpCost: 20,
+    targetType: TargetType.ALL_ENEMIES,
+    category: 'MONSTER',
+    icon: '🦅',
+    description: '消耗 20 MP。發出撕心裂肺的刺耳尖嘯，對全體敵人造成 60% 魔法傷害並有 30% 機率附加【暈眩】1 回合。',
+    cooldown: 3,
+    aiWeight: () => 70,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      targets.forEach(target => {
+        const matk = getMatk(caster);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, matk * 0.6, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '尖嘯震懾',
+          text: `${caster.name} 發出 尖嘯震懾！對 ${target.name} 造成 ${damage} 點聲波傷害！`
+        });
+        if (target.currentHp > 0 && Random.next() < 0.3) {
+          events.push(tryApplyStatus(target, { type: StatusEffectType.STUN, duration: 1 }, caster.name, '尖嘯震懾', `${target.name} 被尖嘯震懾得無法動彈！`, allEnemies));
+        }
+      });
+      return events;
+    }
+  },
+
+  'SKILL_SHADOW_ASSAULT': {
+    id: 'SKILL_SHADOW_ASSAULT',
+    name: '暗影突襲',
+    mpCost: 15,
+    targetType: TargetType.BACK_ENEMY,
+    category: 'MONSTER',
+    icon: '🗡️',
+    description: '消耗 15 MP。潛入陰影精確突襲敵方後排目標，造成 130% 物理傷害且必定暴擊。',
+    cooldown: 2,
+    aiWeight: () => 85,
+    execute: (caster, targets) => {
+      const target = targets[0];
+      const patk = getPatk(caster);
+      // 必定暴擊
+      const { damage } = calculateSkillDamage(caster, target, patk * 1.3 * 1.5, DamageType.PHYSICAL);
+      target.currentHp = Math.max(0, target.currentHp - damage);
+      return [{
+        type: CombatEventType.CRIT,
+        actorId: caster.id, actorName: caster.name,
+        targetId: target.id, targetName: target.name,
+        damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+        skillName: '暗影突襲',
+        text: `${caster.name} 穿透陰影發動 暗影突襲！暴擊後排 ${target.name} 造成 ${damage} 點致命傷害！`
+      }];
+    }
+  },
+
+  'SKILL_FLAME_BURST': {
+    id: 'SKILL_FLAME_BURST',
+    name: '烈焰轟爆',
+    mpCost: 20,
+    targetType: TargetType.FRONT_ENEMIES,
+    category: 'MONSTER',
+    icon: '🔥',
+    description: '消耗 20 MP。召喚熾熱烈焰轟擊敵方前排，造成 120% 火屬性魔法傷害並附加【灼燒】2 回合。',
+    cooldown: 2,
+    aiWeight: (caster, targets) => targets.length * 45,
+    execute: (caster, targets, allEnemies) => {
+      const events: CombatEvent[] = [];
+      targets.forEach(target => {
+        const matk = getMatk(caster);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, matk * 1.2, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '烈焰轟爆',
+          text: `${caster.name} 釋放 烈焰轟爆！熾熱火焰灼燒 ${target.name} 造成 ${damage} 點火傷！`
+        });
+        if (target.currentHp > 0) {
+          events.push(tryApplyStatus(target, { type: StatusEffectType.BURN, duration: 2, stacks: 1, value: 15 }, caster.name, '烈焰轟爆', `${target.name} 身上燃起了熾焰！`, allEnemies));
+        }
+      });
+      return events;
+    }
+  },
+
+  'SKILL_FROST_BREATH': {
+    id: 'SKILL_FROST_BREATH',
+    name: '冰霜吐息',
+    mpCost: 18,
+    targetType: TargetType.FRONT_ENEMIES,
+    category: 'MONSTER',
+    icon: '❄️',
+    description: '消耗 18 MP。噴吐極寒冰息席捲前排，造成 110% 冰屬性魔法傷害並凍結降低目標反應。',
+    cooldown: 2,
+    aiWeight: (caster, targets) => targets.length * 40,
+    execute: (caster, targets) => {
+      const events: CombatEvent[] = [];
+      targets.forEach(target => {
+        const matk = getMatk(caster);
+        const { damage, isCrit } = calculateSkillDamage(caster, target, matk * 1.1, DamageType.MAGICAL);
+        target.currentHp = Math.max(0, target.currentHp - damage);
+        events.push({
+          type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+          actorId: caster.id, actorName: caster.name,
+          targetId: target.id, targetName: target.name,
+          damage, targetHp: target.currentHp, targetMaxHp: target.maxHp,
+          skillName: '冰霜吐息',
+          text: `${caster.name} 吐出 冰霜吐息！刺骨寒霜凍結 ${target.name} 造成 ${damage} 點冰傷！`
+        });
+      });
+      return events;
+    }
+  },
+
+  'SKILL_IRON_DEFENSE': {
+    id: 'SKILL_IRON_DEFENSE',
+    name: '堅石甲殼',
+    mpCost: 10,
+    targetType: TargetType.SELF,
+    category: 'MONSTER',
+    icon: '🛡️',
+    description: '消耗 10 MP。硬化全身外皮或甲殼，自身物理防禦大幅提升 (+40% PDEF) 持續 2 回合。',
+    cooldown: 3,
+    aiWeight: (caster) => caster.statusEffects.some(s => s.type === StatusEffectType.BUFF_DEF) ? 0 : 75,
+    execute: (caster) => {
+      caster.statusEffects.push({ type: StatusEffectType.BUFF_DEF, duration: 2, value: 40 });
+      return [{
+        type: CombatEventType.STATUS_APPLY,
+        actorId: caster.id, actorName: caster.name,
+        targetId: caster.id, targetName: caster.name,
+        statusType: StatusEffectType.BUFF_DEF,
+        skillName: '堅石甲殼',
+        text: `${caster.name} 硬化了身軀，物理防禦大幅提升 +40% (2回合)！`
+      }];
+    }
+  },
+
+  'SKILL_FRENZY_ROAR': {
+    id: 'SKILL_FRENZY_ROAR',
+    name: '狂暴怒吼',
+    mpCost: 12,
+    targetType: TargetType.SELF,
+    category: 'MONSTER',
+    icon: '🦁',
+    description: '消耗 12 MP。激發遠古凶性咆哮，自身物理攻擊力提升 (+30% PATK) 持續 2 回合。',
+    cooldown: 3,
+    aiWeight: (caster) => caster.statusEffects.some(s => s.type === StatusEffectType.BUFF_PATK) ? 0 : 70,
+    execute: (caster) => {
+      caster.statusEffects.push({ type: StatusEffectType.BUFF_PATK, duration: 2, value: 30 });
+      return [{
+        type: CombatEventType.STATUS_APPLY,
+        actorId: caster.id, actorName: caster.name,
+        targetId: caster.id, targetName: caster.name,
+        statusType: StatusEffectType.BUFF_PATK,
+        skillName: '狂暴怒吼',
+        text: `${caster.name} 發出狂暴怒吼！自身物理攻擊提升 +30% (2回合)！`
+      }];
+    }
   }
 };
 

@@ -270,6 +270,16 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
             ToastManager.show('商隊護衛最多只能指派 5 名傭兵！');
             return;
           }
+          if (adv.quality === 'UR') {
+            const hasUR = Array.from(selectedAdventurersForCaravan).some(id => {
+              const m = GameState.adventurers.find(a => a.id === id);
+              return m?.quality === 'UR';
+            });
+            if (hasUR) {
+              ToastManager.show('⚠️ 戰鬥隊伍限制：每場戰鬥最多只能編入 1 位 UR 品質傭兵！');
+              return;
+            }
+          }
           selectedAdventurersForCaravan.add(adv.id);
         }
         renderAdvList();
@@ -306,6 +316,13 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
 
     if (selectedAdventurersForCaravan.size === 0) {
       ToastManager.show('請至少指派一名傭兵來護送商隊！');
+      return;
+    }
+
+    const assignedAdvs = GameState.adventurers.filter(a => selectedAdventurersForCaravan.has(a.id));
+    const urCount = assignedAdvs.filter(a => a.quality === 'UR').length;
+    if (urCount > 1) {
+      ToastManager.show('⚠️ 戰鬥隊伍限制：每場戰鬥最多只能編入 1 位 UR 品質傭兵！');
       return;
     }
 
@@ -372,7 +389,6 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     task.initialCaravanGold = inputGold;
     task.caravanCargo = finalCargoOut;
 
-    const assignedAdvs = GameState.adventurers.filter(a => selectedAdventurersForCaravan.has(a.id));
     GameState.system.dispatchAdventurers(assignedAdvs, task);
 
     modal.style.display = 'none';

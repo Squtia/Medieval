@@ -3,6 +3,7 @@ import { CombatStats, FormationRow, TerrainType, Attributes } from './types';
 export enum StatusEffectType {
   BLEED = 'BLEED',
   POISON = 'POISON',
+  BURN = 'BURN', // 灼燒 (火系 DOT)
   STUN = 'STUN',
   TAUNT = 'TAUNT',
   FEAR = 'FEAR',
@@ -12,6 +13,8 @@ export enum StatusEffectType {
   REGEN_MP = 'REGEN_MP',  // 魔力恢復
   BUFF_PATK = 'BUFF_PATK', // 物理攻擊增益 (%)
   BUFF_MATK = 'BUFF_MATK', // 魔法攻擊增益 (%)
+  BUFF_PDEF = 'BUFF_PDEF', // 物理防禦增益 (%)
+  BUFF_DEF = 'BUFF_DEF',   // 通用防禦增益 (%)
   BUFF_EVADE = 'BUFF_EVADE' // 閃避率增益 (點數)
 }
 
@@ -51,6 +54,7 @@ export interface CombatParticipant {
   atkElement?: import('./types').ElementType; // 攻擊元素 (來自武器或怪物原生)
   defElement?: import('./types').ElementType; // 防禦元素 (來自防具或怪物原生)
   isMagicalAttacker?: boolean; // 是否為法系攻擊者 (普攻造成魔法傷害)
+  avatarIcon?: string;        // 專屬 Sprite 圖標 (如 icons_monsters:goblin)
 
   // 動態戰利品 (供怪獸使用)
   goldReward?: number;
@@ -109,6 +113,7 @@ export interface CombatParticipantState {
   avatarIndex?: number;
   gender?: string; // or Gender, but we can just use string to avoid import
   isGuardian?: boolean;
+  avatarIcon?: string; // 怪物或特定單位的專屬 Sprite
 }
 
 export interface CombatReport {
@@ -152,6 +157,8 @@ export function tryApplyStatus(
     StatusEffectType.REGEN_MP,
     StatusEffectType.BUFF_PATK,
     StatusEffectType.BUFF_MATK,
+    StatusEffectType.BUFF_PDEF,
+    StatusEffectType.BUFF_DEF,
     StatusEffectType.BUFF_EVADE
   ].includes(effect.type);
 

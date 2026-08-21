@@ -7,6 +7,7 @@ import { CombatStats, ElementType, Equipment, EquipmentSlot, EquipmentTemplate }
 import { MarketSystem } from '../../systems/MarketSystem';
 import { positionFloatingElement } from '../FloatingPosition';
 import { renderEquipIcon, ICON_SIZE, formatStatsTags, getElementBadge, consumeMaterial, attachTooltip, getEquipTooltipHtml, getMaterialCount } from '../ShopController';
+import { renderUniversalIcon } from '../IconSpriteHelper';
 import { ToastManager } from '../ToastManager';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
@@ -604,7 +605,7 @@ export class ForgeUIController {
         card.style.opacity = isLockedByFacility ? '0.75' : '1';
 
         const iconHtml = mode === 'smelt' 
-          ? `<div style="font-size:1.8em; flex-shrink:0;">${matTpl?.icon || '📦'}</div>`
+          ? `<div style="flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(matTpl?.icon || '📦', 36)}</div>`
           : `<div style="flex-shrink:0;">${renderEquipIcon(targetTpl, ICON_SIZE.SM)}</div>`;
 
         card.innerHTML = `
@@ -704,8 +705,8 @@ export class ForgeUIController {
       if (recipe.isVariant && recipe.requireTomeId) {
         matCardsHtml.push(`
           <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px;">
-            <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${hasTome ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:2.2em; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
-              ${tomeDef?.icon || '📜'}
+            <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${hasTome ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
+              ${renderUniversalIcon(tomeDef?.icon || '📜', 44)}
             </div>
             <div style="font-size:0.78em; color:#e2e8f0; margin-top:4px; font-weight:bold; text-align:center; height:28px; overflow:hidden;">${tomeDef?.name || '重鑄書'}</div>
             <div style="font-size:0.82em; color:${hasTome ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasTome ? '1/1' : '0/1'}</div>
@@ -724,8 +725,8 @@ export class ForgeUIController {
 
         matCardsHtml.push(`
           <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px;">
-            <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${isEnough ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; font-size:2.2em; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
-              ${icon}
+            <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${isEnough ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
+              ${renderUniversalIcon(icon, 44)}
             </div>
             <div style="font-size:0.78em; color:#e2e8f0; margin-top:4px; font-weight:bold; text-align:center; height:28px; overflow:hidden;">${name}</div>
             <div style="font-size:0.82em; color:${isEnough ? '#22c55e' : '#ef4444'}; font-weight:bold; margin-top:2px;">${hasCount}/${totalReq}</div>
@@ -750,7 +751,7 @@ export class ForgeUIController {
       if (mode === 'smelt' && targetMat) {
         targetHtml = `
           <div style="display:flex; gap:16px; align-items:center; background:rgba(30, 24, 20, 0.85); padding:16px; border-radius:8px; border:1px solid rgba(217,119,6,0.35);">
-            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size: 3em;">${targetMat.icon}</div>
+            <div style="background:rgba(0,0,0,0.5); padding:10px; border-radius:8px; border:1px solid rgba(217,119,6,0.3); flex-shrink:0; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(targetMat.icon, 54)}</div>
             <div style="flex:1;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0; color:#eab308; font-size:1.4em;">${targetMat.name}</h3>
@@ -1113,12 +1114,12 @@ export class ForgeUIController {
       const selStone = elemStones.find(s => s.matId === selectedStoneMatId) || elemStones[0];
       const stoneCount = getMaterialCount(territory, selStone.matId);
 
-      const stoneCardsHtml = elemStones.map(stone => {
+        const stoneCardsHtml = elemStones.map(stone => {
         const count = getMaterialCount(territory, stone.matId);
         const isSel = stone.matId === selectedStoneMatId;
         return `
           <div class="stone-opt-box-altar" data-id="${stone.matId}" style="background:${isSel ? 'rgba(234,179,8,0.25)' : 'rgba(35, 28, 22, 0.85)'}; border:2px solid ${isSel ? '#eab308' : 'rgba(217,119,6,0.3)'}; border-radius:8px; padding:12px; display:flex; flex-direction:column; align-items:center; text-align:center; cursor:pointer; width:110px;">
-            <div style="font-size:2.4em;">${stone.icon}</div>
+            <div style="width:48px; height:48px; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(stone.icon, 44)}</div>
             <div style="font-size:0.85em; color:${stone.color}; font-weight:bold; margin-top:4px;">${stone.name}</div>
             <div style="font-size:0.78em; color:${count > 0 ? '#22c55e' : '#ef4444'}; margin-top:4px; font-weight:bold;">擁有 x${count}</div>
           </div>
@@ -1158,7 +1159,7 @@ export class ForgeUIController {
         <!-- 下方按鈕 -->
         <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:14px; text-align:center;">
           <div style="font-size:0.9em; color:#cbd5e1; margin-bottom:10px;">
-            注入 <strong style="color:${selStone.color};">${selStone.name} (${selStone.icon})</strong> 覆蓋注入元素
+            注入 <strong style="color:${selStone.color};">${selStone.name} (${renderUniversalIcon(selStone.icon, 20)})</strong> 覆蓋注入元素
           </div>
           <button id="btn-exec-enchant-furnace" class="action-btn" style="width:220px; padding:9px; font-size:1.05em; font-weight:bold; background:${stoneCount > 0 ? 'linear-gradient(135deg, #7c3aed, #5b21b6)' : 'rgba(255,255,255,0.1)'}; color:${stoneCount > 0 ? '#fff' : '#64748b'};" ${stoneCount > 0 ? '' : 'disabled'}>
             注入元素
@@ -1177,7 +1178,7 @@ export class ForgeUIController {
         if (stoneCount <= 0) return;
         consumeMaterial(territory, selStone.matId, 1);
         eq.element = selStone.element;
-        ToastManager.show(`✨ 附魔成功！【${eq.name}】已成功注入 ${selStone.name} (${selStone.icon})！`, 'success');
+        ToastManager.show(`✨ 附魔成功！【${eq.name}】已成功注入 ${selStone.name}！`, 'success');
         UIManager.updateUI();
         renderLeftGrid();
         renderRightPanel();
@@ -1330,7 +1331,7 @@ export class ForgeUIController {
   
       let resultCards = `
         <div style="background:rgba(0,0,0,0.6); border:1px solid #10b981; border-radius:8px; padding:12px; display:flex; align-items:center; gap:12px;">
-          <div style="font-size:2em; width:48px; height:48px; display:flex; justify-content:center; align-items:center;">${retMatDef?.icon || '📦'}</div>
+          <div style="width:48px; height:48px; display:flex; justify-content:center; align-items:center;">${renderUniversalIcon(retMatDef?.icon || '📦', 44)}</div>
           <div>
             <div style="font-weight:bold; color:#a7f3d0;">${retMatDef?.name || returnMatId}</div>
             <div style="font-size:0.85em; color:#10b981;">x ${returnCount}</div>
@@ -1341,7 +1342,7 @@ export class ForgeUIController {
       if (enhanceRetCount > 0) {
         resultCards += `
           <div style="background:rgba(0,0,0,0.6); border:1px solid #10b981; border-radius:8px; padding:12px; display:flex; align-items:center; gap:12px;">
-            <div style="font-size:2em; width:48px; height:48px; display:flex; justify-content:center; align-items:center;">${enhanceMatDef?.icon || '📦'}</div>
+            <div style="width:48px; height:48px; display:flex; justify-content:center; align-items:center;">${renderUniversalIcon(enhanceMatDef?.icon || '📦', 44)}</div>
             <div>
               <div style="font-weight:bold; color:#a7f3d0;">${enhanceMatDef?.name || enhanceRetMatId}</div>
               <div style="font-size:0.85em; color:#10b981;">x ${enhanceRetCount}</div>
@@ -1572,13 +1573,12 @@ export class ForgeUIController {
       card.style.justifyContent = 'space-between';
       card.style.cursor = 'pointer';
       card.style.width = '85px';
-      card.style.height = '85px';
-      card.style.aspectRatio = '1 / 1';
+      card.style.height = '94px';
       card.style.flexShrink = '0';
       card.style.boxSizing = 'border-box';
   
       card.innerHTML = `
-        <div style="flex:1; display:flex; align-items:center; justify-content:center; font-size:1.8em;">${matDef.icon || '🧲'}</div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(matDef.icon || '🧲', 36)}</div>
         <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
           <span style="color:#e2e8f0; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45px;">${matDef.name}</span>
           <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
@@ -1587,8 +1587,8 @@ export class ForgeUIController {
   
       attachTooltip(card, () => `
         <div style="padding:8px; max-width:200px;">
-          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px;">
-            ${matDef.icon || '🧲'} ${matDef.name}
+          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            ${renderUniversalIcon(matDef.icon || '🧲', 20)} <span>${matDef.name}</span>
           </div>
           <div style="font-size:0.8em; color:#cbd5e1;">${matDef.description || '鍛造與附魔必備物資'}</div>
           <div style="font-size:0.8em; color:#e2e8f0; margin-top:4px;">擁有數量：${count}</div>
@@ -1635,7 +1635,7 @@ export class ForgeUIController {
       card.style.boxSizing = 'border-box';
   
       card.innerHTML = `
-        <div style="flex:1; display:flex; align-items:center; justify-content:center; font-size:1.8em;">${icon}</div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(icon, 36)}</div>
         <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
           <span style="color:#e2e8f0; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45px;">${name}</span>
           <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
@@ -1644,8 +1644,8 @@ export class ForgeUIController {
   
       attachTooltip(card, () => `
         <div style="padding:8px; max-width:200px;">
-          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px;">
-            ${icon} ${name}
+          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            ${renderUniversalIcon(icon, 20)} <span>${name}</span>
           </div>
           <div style="font-size:0.8em; color:#cbd5e1;">用於城鎮商隊貿易與物資輸送</div>
           <div style="font-size:0.8em; color:#e2e8f0; margin-top:4px;">庫存數量：${count} 單位</div>

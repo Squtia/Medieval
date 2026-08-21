@@ -320,6 +320,7 @@ export interface MaterialItem {
   description: string;
   basePrice: number;
   flavorText?: string;
+  isLocked?: boolean;
 }
 
 export interface NodeMarketData {
@@ -627,6 +628,7 @@ export interface EquipmentTemplate {
   droppable?: boolean;                     // 是否可掉落 (預設 true)
   shopBuyable?: boolean;                   // 是否可在商店購買 (預設 true)
   combatStatRanges?: Partial<Record<keyof CombatStats, [number, number]>>; // 浮動戰鬥數值範圍
+  isLocked?: boolean;                      // 防誤刪上鎖標記
   // 決定在生成時，會隨機抽取哪些額外屬性進行加成
   randomPool?: {
     attributes?: (keyof Attributes)[];
@@ -646,6 +648,21 @@ export enum MonsterRace {
 }
 
 /**
+ * 八大魔物戰鬥定位 (Stat Profiles)
+ * 用於總預算鎖死下的正規化屬性分配
+ */
+export enum MonsterProfile {
+  TANK = 'TANK',             // 鐵壁肉盾：高HP、超高物防、低速低攻
+  ASSASSIN = 'ASSASSIN',     // 疾風刺客：高攻、高速、高暴擊高閃避、極脆皮
+  MAGE = 'MAGE',             // 奧術法師：高魔攻、高魔防、魔法普攻、低血量
+  BERSERKER = 'BERSERKER',   // 嗜血狂戰：極致高物理攻擊、中高血量、低雙防
+  RANGER = 'RANGER',         // 遠程狙擊：高命中、高暴擊、狙擊後排、中等速度
+  JUGGERNAUT = 'JUGGERNAUT', // 亡靈泥沼：巨量HP、中雙防、零閃低速
+  BOSS = 'BOSS',             // 史詩首領：全能高維度屬性
+  BALANCED = 'BALANCED'      // 常規均衡：標準平穩分配
+}
+
+/**
  * 魔物原型資料結構
  */
 export interface MonsterData {
@@ -655,9 +672,12 @@ export interface MonsterData {
   compatibleRaces: MonsterRace[];       // 允許冠上的種族標籤 (例如 ['MONSTER', 'UNDEAD'])
   terrains: TerrainType[];              // 出沒地形
   powerTier: number;                    // 基礎戰力係數
+  profile?: MonsterProfile;             // 戰鬥定位模板 (預設 BALANCED)
+  skills?: string[];                    // 預設掛載的通用技能 ID 清單
   defaultElement?: ElementType;         // 預設元素
   isBoss?: boolean;                     // 是否為 Boss
   isMagicalAttacker?: boolean;          // 是否為法系攻擊者 (普攻造成魔法傷害)
+  avatarIcon?: string;                  // 怪物專屬 Sprite / Emoji 圖標
   lootConfig?: {
     goldBase: number;
     expBase: number;
@@ -683,6 +703,7 @@ export interface MonsterInstance extends MonsterData {
   expReward?: number;
   equipmentDropRate?: number;
   appliedRaceTag: MonsterRace;          // 實體抽到的最終種族標籤
+  skills?: string[];                    // 實體最終掛載的技能
 }
 
 

@@ -26,6 +26,7 @@ export interface ConsumableItem {
   maxStack: number;
   buyPrice: number;
   sellPrice: number;
+  isLocked?: boolean;
 }
 
 export interface CustomEquipmentTemplate {
@@ -62,6 +63,7 @@ export interface CustomEquipmentTemplate {
   shopBuyable?: boolean;
   description?: string;
   flavorText?: string;
+  isLocked?: boolean;
 }
 
 export interface CustomCraftingRecipe {
@@ -71,6 +73,7 @@ export interface CustomCraftingRecipe {
   targetEquipmentId: string;
   requiredMaterials: Record<string, number>;
   goldCost: number;
+  isLocked?: boolean;
 }
 
 class EquipmentStudioController {
@@ -178,7 +181,8 @@ class EquipmentStudioController {
       droppable: e.droppable !== false,
       shopBuyable: e.shopBuyable !== false,
       description: e.description || '',
-      flavorText: e.flavorText || ''
+      flavorText: e.flavorText || '',
+      isLocked: !!e.isLocked
     }));
   }
 
@@ -222,14 +226,18 @@ class EquipmentStudioController {
             <div class="es-card-title">
               <div class="es-card-avatar" data-open-icon-mat="${m.id}" title="點擊切換圖標">${renderUniversalIcon(icon, 36)}</div>
               <div>
-                <div style="font-size: 0.85rem; font-weight: bold;">${m.name}</div>
+                <div style="font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                  <span>${m.name}</span>
+                  ${m.isLocked ? '<span title="已上鎖保護" style="font-size: 0.75rem;">🔒</span>' : ''}
+                </div>
                 <div style="font-size: 0.7rem; color: var(--es-text-muted);">${m.id}</div>
               </div>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
               <span class="es-badge es-badge-t${m.tier}">T${m.tier}</span>
+              <button class="es-btn es-btn-sm" data-toggle-lock-mat="${m.id}" title="${m.isLocked ? '🔒 已上鎖保護 (點擊解鎖)' : '🔓 未上鎖 (點擊上鎖防誤刪)'}">${m.isLocked ? '🔒' : '🔓'}</button>
               <button class="es-btn es-btn-sm" data-edit-mat="${m.id}">✎</button>
-              <button class="es-btn es-btn-sm es-btn-danger" data-del-mat="${m.id}">✕</button>
+              <button class="es-btn es-btn-sm es-btn-danger" data-del-mat="${m.id}" ${m.isLocked ? 'style="opacity: 0.35; cursor: not-allowed;" title="🔒 已上鎖保護，請先解鎖再刪除"' : ''}>✕</button>
             </div>
           </div>
           <div class="es-card-desc">${m.description || '用於鍛造與改造之基礎素材。'}</div>
@@ -257,14 +265,18 @@ class EquipmentStudioController {
             <div class="es-card-title">
               <div class="es-card-avatar" data-open-icon-item="${it.id}" title="點擊切換圖標">${renderUniversalIcon(icon, 36)}</div>
               <div>
-                <div style="font-size: 0.85rem; font-weight: bold;">${it.name}</div>
+                <div style="font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                  <span>${it.name}</span>
+                  ${it.isLocked ? '<span title="已上鎖保護" style="font-size: 0.75rem;">🔒</span>' : ''}
+                </div>
                 <div style="font-size: 0.7rem; color: var(--es-text-muted);">${it.id}</div>
               </div>
             </div>
             <div style="display: flex; gap: 4px; align-items: center;">
               <span class="es-badge es-badge-t${it.tier}">T${it.tier}</span>
+              <button class="es-btn es-btn-sm" data-toggle-lock-item="${it.id}" title="${it.isLocked ? '🔒 已上鎖保護 (點擊解鎖)' : '🔓 未上鎖 (點擊上鎖防誤刪)'}">${it.isLocked ? '🔒' : '🔓'}</button>
               <button class="es-btn es-btn-sm" data-edit-item="${it.id}">✎</button>
-              <button class="es-btn es-btn-sm es-btn-danger" data-del-item="${it.id}">✕</button>
+              <button class="es-btn es-btn-sm es-btn-danger" data-del-item="${it.id}" ${it.isLocked ? 'style="opacity: 0.35; cursor: not-allowed;" title="🔒 已上鎖保護，請先解鎖再刪除"' : ''}>✕</button>
             </div>
           </div>
           <div class="es-card-desc">${it.description}</div>
@@ -325,9 +337,40 @@ class EquipmentStudioController {
         .map(([k, val]) => `<span style="background: #1c2128; color: #58a6ff; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem; border: 1px solid rgba(88,166,255,0.3);">${k.toUpperCase()}+${val}</span>`)
         .join(' ');
 
+      const AFFIX_META_MAP: Record<string, { name: string; desc: string }> = {
+        AFFIX_SHARP: { name: '鋒利', desc: '物理攻擊力加成 (+PATK)' },
+        AFFIX_ARCANE: { name: '奧術', desc: '魔法攻擊力加成 (+MATK)' },
+        AFFIX_DEADLY: { name: '致命', desc: '暴擊率加成 (+Crit Rate)' },
+        AFFIX_ARMOR_PIERCING: { name: '破甲', desc: '無視部分防禦與提升命中 (+Hit)' },
+        AFFIX_BLOODTHIRSTY: { name: '嗜血', desc: '物理吸血與傷害加成' },
+        AFFIX_STALWART: { name: '堅定', desc: '生命上限與耐力加成 (+HP)' },
+        AFFIX_STURDY: { name: '堅定', desc: '生命上限與防禦加成 (+HP/PDEF)' },
+        AFFIX_IRON_WALL: { name: '鐵壁', desc: '物理防禦力加成 (+PDEF)' },
+        AFFIX_MAGIC_RESIST: { name: '抗魔', desc: '魔法防禦力加成 (+MDEF)' },
+        AFFIX_BLOCK: { name: '格擋', desc: '格擋率與減傷加成' },
+        AFFIX_SWIFT: { name: '疾風', desc: '命中率與閃避率加成 (+Hit/Evade)' },
+        AFFIX_MEDITATION: { name: '冥想', desc: '魔力上限與魔力回復 (+MP)' },
+        AFFIX_ALMIGHTY: { name: '全能', desc: '全基礎六維屬性小幅加成' },
+        '鋒利': { name: '鋒利', desc: '物理攻擊力加成 (+PATK)' },
+        '奧術': { name: '奧術', desc: '魔法攻擊力加成 (+MATK)' },
+        '致命': { name: '致命', desc: '暴擊率加成 (+Crit Rate)' },
+        '破甲': { name: '破甲', desc: '無視部分防禦與提升命中 (+Hit)' },
+        '嗜血': { name: '嗜血', desc: '物理吸血與傷害加成' },
+        '堅定': { name: '堅定', desc: '生命上限與耐力加成 (+HP)' },
+        '鐵壁': { name: '鐵壁', desc: '物理防禦力加成 (+PDEF)' },
+        '抗魔': { name: '抗魔', desc: '魔法防禦力加成 (+MDEF)' },
+        '格擋': { name: '格擋', desc: '格擋率與減傷加成' },
+        '疾風': { name: '疾風', desc: '命中率與閃避率加成 (+Hit/Evade)' },
+        '冥想': { name: '冥想', desc: '魔力上限與魔力回復 (+MP)' },
+        '全能': { name: '全能', desc: '全基礎六維屬性小幅加成' }
+      };
+
       const affixesHtml = (eq.affixPool && eq.affixPool.length > 0)
         ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
-            ${eq.affixPool.map(af => `<span class="es-affix-tag">🎲 ${af}</span>`).join('')}
+            ${eq.affixPool.map(af => {
+              const meta = AFFIX_META_MAP[af] || { name: af, desc: af };
+              return `<span class="es-affix-tag" title="${meta.name}: ${meta.desc}" style="cursor: help;">🎲 ${meta.name}</span>`;
+            }).join('')}
            </div>`
         : '';
 
@@ -342,7 +385,10 @@ class EquipmentStudioController {
           <div class="es-card-title">
             <div class="es-card-avatar" data-open-icon-equip="${eq.id}" title="點擊切換圖標">${renderUniversalIcon(icon, 36)}</div>
             <div>
-              <div style="font-size: 0.88rem; font-weight: bold;">${elemText} ${eq.name}</div>
+              <div style="font-size: 0.88rem; font-weight: bold; display: flex; align-items: center; gap: 4px;">
+                <span>${elemText} ${eq.name}</span>
+                ${eq.isLocked ? '<span title="已上鎖保護" style="font-size: 0.75rem;">🔒</span>' : ''}
+              </div>
               <div style="font-size: 0.7rem; color: var(--es-text-muted); display: flex; gap: 4px; align-items: center;">
                 <span>${eq.weaponType || eq.slot} · ${eq.id}</span>
                 ${sourceBadges.join('')}
@@ -351,8 +397,9 @@ class EquipmentStudioController {
           </div>
           <div style="display: flex; gap: 4px; align-items: center;">
             <span class="es-badge es-badge-t${eq.tier}">T${eq.tier}</span>
+            <button class="es-btn es-btn-sm" data-toggle-lock-equip="${eq.id}" title="${eq.isLocked ? '🔒 已上鎖保護 (點擊解鎖)' : '🔓 未上鎖 (點擊上鎖防誤刪)'}">${eq.isLocked ? '🔒' : '🔓'}</button>
             <button class="es-btn es-btn-sm" data-edit-equip="${eq.id}">✎</button>
-            <button class="es-btn es-btn-sm es-btn-danger" data-del-equip="${eq.id}">✕</button>
+            <button class="es-btn es-btn-sm es-btn-danger" data-del-equip="${eq.id}" ${eq.isLocked ? 'style="opacity: 0.35; cursor: not-allowed;" title="🔒 已上鎖保護，請先解鎖再刪除"' : ''}>✕</button>
           </div>
         </div>
 
@@ -434,14 +481,16 @@ class EquipmentStudioController {
               <div style="font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 4px;">
                 <span>${eqName} 配方</span>
                 ${typeBadge}
+                ${r.isLocked ? '<span title="已上鎖保護" style="font-size: 0.75rem;">🔒</span>' : ''}
               </div>
               <div style="font-size: 0.7rem; color: var(--es-text-muted);">${r.id} ➔ ${eqName}</div>
             </div>
           </div>
           <div style="display: flex; gap: 4px; align-items: center;">
             <span class="es-badge es-badge-t${r.tier || 1}">T${r.tier || 1}</span>
+            <button class="es-btn es-btn-sm" data-toggle-lock-recipe="${r.id}" title="${r.isLocked ? '🔒 已上鎖保護 (點擊解鎖)' : '🔓 未上鎖 (點擊上鎖防誤刪)'}">${r.isLocked ? '🔒' : '🔓'}</button>
             <button class="es-btn es-btn-sm" data-edit-recipe="${r.id}">✎</button>
-            <button class="es-btn es-btn-sm es-btn-danger" data-del-recipe="${r.id}">✕</button>
+            <button class="es-btn es-btn-sm es-btn-danger" data-del-recipe="${r.id}" ${r.isLocked ? 'style="opacity: 0.35; cursor: not-allowed;" title="🔒 已上鎖保護，請先解鎖再刪除"' : ''}>✕</button>
           </div>
         </div>
 
@@ -564,8 +613,33 @@ class EquipmentStudioController {
     this.bindSaveHandlers();
 
     document.addEventListener('click', async (e) => {
-      const target = (e.target as HTMLElement).closest('[data-edit-mat], [data-del-mat], [data-edit-item], [data-del-item], [data-edit-equip], [data-del-equip], [data-edit-recipe], [data-del-recipe], [data-simulate-craft], [data-open-icon-mat], [data-open-icon-item], [data-open-icon-equip], [data-restore-snap], [data-del-recipe-mat-row]') as HTMLElement;
+      const target = (e.target as HTMLElement).closest('[data-toggle-lock-mat], [data-toggle-lock-item], [data-toggle-lock-equip], [data-toggle-lock-recipe], [data-edit-mat], [data-del-mat], [data-edit-item], [data-del-item], [data-edit-equip], [data-del-equip], [data-edit-recipe], [data-del-recipe], [data-simulate-craft], [data-open-icon-mat], [data-open-icon-item], [data-open-icon-equip], [data-restore-snap], [data-del-recipe-mat-row]') as HTMLElement;
       if (!target) return;
+
+      if (target.dataset.toggleLockMat) {
+        const id = target.dataset.toggleLockMat;
+        const m = this.materials.find(mat => mat.id === id);
+        if (m) { m.isLocked = !m.isLocked; this.renderLeftColumn(); }
+        return;
+      }
+      if (target.dataset.toggleLockItem) {
+        const id = target.dataset.toggleLockItem;
+        const it = this.items.find(item => item.id === id);
+        if (it) { it.isLocked = !it.isLocked; this.renderLeftColumn(); }
+        return;
+      }
+      if (target.dataset.toggleLockEquip) {
+        const id = target.dataset.toggleLockEquip;
+        const eq = this.equipment.find(e => e.id === id);
+        if (eq) { eq.isLocked = !eq.isLocked; this.renderEquipColumn(); }
+        return;
+      }
+      if (target.dataset.toggleLockRecipe) {
+        const id = target.dataset.toggleLockRecipe;
+        const r = this.recipes.find(rec => rec.id === id);
+        if (r) { r.isLocked = !r.isLocked; this.renderRecipeColumn(); }
+        return;
+      }
 
       if (target.dataset.delRecipeMatRow !== undefined) {
         const row = target.closest('.es-recipe-mat-row');
@@ -576,6 +650,8 @@ class EquipmentStudioController {
       if (target.dataset.editMat) this.openMaterialEditor(target.dataset.editMat);
       if (target.dataset.delMat) {
         const id = target.dataset.delMat;
+        const m = this.materials.find(mat => mat.id === id);
+        if (m?.isLocked) { alert(`🔒 素材 [${m.name}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除素材 [${id}] 嗎？`)) {
           this.materials = this.materials.filter(m => m.id !== id);
           this.renderLeftColumn();
@@ -585,6 +661,8 @@ class EquipmentStudioController {
       if (target.dataset.editItem) this.openItemEditor(target.dataset.editItem);
       if (target.dataset.delItem) {
         const id = target.dataset.delItem;
+        const it = this.items.find(item => item.id === id);
+        if (it?.isLocked) { alert(`🔒 道具 [${it.name}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除道具 [${id}] 嗎？`)) {
           this.items = this.items.filter(it => it.id !== id);
           this.renderLeftColumn();
@@ -594,6 +672,8 @@ class EquipmentStudioController {
       if (target.dataset.editEquip) this.openEquipmentEditor(target.dataset.editEquip);
       if (target.dataset.delEquip) {
         const id = target.dataset.delEquip;
+        const eq = this.equipment.find(e => e.id === id);
+        if (eq?.isLocked) { alert(`🔒 裝備 [${eq.name}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除裝備 [${id}] 嗎？`)) {
           this.equipment = this.equipment.filter(eq => eq.id !== id);
           this.renderEquipColumn();
@@ -603,6 +683,8 @@ class EquipmentStudioController {
       if (target.dataset.editRecipe) this.openRecipeEditor(target.dataset.editRecipe);
       if (target.dataset.delRecipe) {
         const id = target.dataset.delRecipe;
+        const r = this.recipes.find(rec => rec.id === id);
+        if (r?.isLocked) { alert(`🔒 鍛造配方 [${r.name || id}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除配方 [${id}] 嗎？`)) {
           this.recipes = this.recipes.filter(r => r.id !== id);
           this.renderRecipeColumn();

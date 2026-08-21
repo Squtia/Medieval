@@ -1,0 +1,960 @@
+{
+  "timestamp": "2026-08-21T07:58:31.064Z",
+  "note": "在戰鬥工坊中儲存",
+  "monsters": [
+    {
+      "id": "goblin",
+      "name": "哥布林",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "FOREST",
+        "PLAINS",
+        "WILDERNESS"
+      ],
+      "powerTier": 0.5,
+      "profile": "BALANCED",
+      "skills": []
+    },
+    {
+      "id": "wild_wolf",
+      "name": "野狼",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "FOREST",
+        "SNOW_MOUNTAIN",
+        "PLAINS"
+      ],
+      "powerTier": 0.6,
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "skeleton",
+      "name": "骷髏",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "CAVE",
+        "WILDERNESS"
+      ],
+      "powerTier": 0.7,
+      "defaultElement": "DARK",
+      "profile": "BALANCED",
+      "skills": []
+    },
+    {
+      "id": "ghoul",
+      "name": "食屍鬼",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "FOREST"
+      ],
+      "powerTier": 1,
+      "defaultElement": "DARK",
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_BLOOD_DRAIN"
+      ]
+    },
+    {
+      "id": "bandit",
+      "name": "流寇",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "PLAINS",
+        "WILDERNESS",
+        "DESERT"
+      ],
+      "powerTier": 0.8,
+      "profile": "BALANCED",
+      "skills": []
+    },
+    {
+      "id": "spider",
+      "name": "巨蛛",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "CAVE",
+        "FOREST",
+        "RUINS"
+      ],
+      "powerTier": 0.9,
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_TOXIC_SPRAY"
+      ]
+    },
+    {
+      "id": "orc",
+      "name": "半獸人",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "FOREST",
+        "WILDERNESS"
+      ],
+      "powerTier": 1.2,
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_FRENZY_ROAR"
+      ]
+    },
+    {
+      "id": "lizard",
+      "name": "毒蜥",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "DESERT",
+        "VOLCANO",
+        "CAVE"
+      ],
+      "powerTier": 1.1,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_TOXIC_SPRAY"
+      ]
+    },
+    {
+      "id": "crossbowman",
+      "name": "弩手",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "PLAINS",
+        "WILDERNESS",
+        "FOREST"
+      ],
+      "powerTier": 1,
+      "profile": "RANGER",
+      "skills": [
+        "SKILL_SHADOW_ASSAULT"
+      ]
+    },
+    {
+      "id": "shaman",
+      "name": "薩滿",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "RUINS",
+        "WILDERNESS",
+        "CAVE"
+      ],
+      "powerTier": 1.3,
+      "isMagicalAttacker": true,
+      "profile": "MAGE",
+      "skills": [
+        "SKILL_FLAME_BURST"
+      ]
+    },
+    {
+      "id": "golem",
+      "name": "傀儡",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "VOLCANO",
+        "CAVE",
+        "RUINS"
+      ],
+      "powerTier": 1.8,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_CRUSHING_SLAM",
+        "SKILL_IRON_DEFENSE"
+      ]
+    },
+    {
+      "id": "wraith",
+      "name": "幽魂",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "DESERT",
+        "CAVE"
+      ],
+      "powerTier": 1.4,
+      "defaultElement": "DARK",
+      "isMagicalAttacker": true,
+      "profile": "MAGE",
+      "skills": [
+        "SKILL_TERROR_SCREECH"
+      ]
+    },
+    {
+      "id": "rebel",
+      "name": "叛軍",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "RUINS",
+        "PLAINS"
+      ],
+      "powerTier": 1.7,
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_FRENZY_ROAR"
+      ]
+    },
+    {
+      "id": "death_knight",
+      "name": "死靈騎士",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "VOLCANO"
+      ],
+      "powerTier": 2.5,
+      "defaultElement": "DARK",
+      "profile": "BOSS",
+      "skills": [
+        "SKILL_BLOOD_DRAIN",
+        "SKILL_CRUSHING_SLAM"
+      ]
+    },
+    {
+      "id": "assassin",
+      "name": "刺客",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "RUINS",
+        "DESERT"
+      ],
+      "powerTier": 2,
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_SHADOW_ASSAULT",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "bear",
+      "name": "狂熊",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "FOREST",
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 1.5,
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_SAVAGE_REND",
+        "SKILL_FRENZY_ROAR"
+      ]
+    },
+    {
+      "id": "troll",
+      "name": "巨魔",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "CAVE",
+        "VOLCANO",
+        "WILDERNESS"
+      ],
+      "powerTier": 2.2,
+      "profile": "JUGGERNAUT",
+      "skills": [
+        "SKILL_CRUSHING_SLAM"
+      ]
+    },
+    {
+      "id": "gargoyle",
+      "name": "石像鬼",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "RUINS",
+        "CAVE"
+      ],
+      "powerTier": 1.6,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_IRON_DEFENSE",
+        "SKILL_TERROR_SCREECH"
+      ]
+    },
+    {
+      "id": "scorpion",
+      "name": "蠍魔",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "DESERT",
+        "VOLCANO"
+      ],
+      "powerTier": 1.1,
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_TOXIC_SPRAY",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "bat",
+      "name": "吸血蝠",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "CAVE",
+        "RUINS"
+      ],
+      "powerTier": 0.6,
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_BLOOD_DRAIN"
+      ]
+    },
+    {
+      "id": "harpy",
+      "name": "鷹身女郎",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "SNOW_MOUNTAIN",
+        "PLAINS"
+      ],
+      "powerTier": 1.3,
+      "profile": "RANGER",
+      "skills": [
+        "SKILL_TERROR_SCREECH"
+      ]
+    },
+    {
+      "id": "treant",
+      "name": "樹精",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "FOREST"
+      ],
+      "powerTier": 1.4,
+      "profile": "JUGGERNAUT",
+      "skills": [
+        "SKILL_CRUSHING_SLAM"
+      ]
+    },
+    {
+      "id": "beetle",
+      "name": "甲蟲",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "DESERT",
+        "CAVE"
+      ],
+      "powerTier": 0.7,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_IRON_DEFENSE"
+      ]
+    },
+    {
+      "id": "yeti",
+      "name": "雪怪",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 1.9,
+      "profile": "JUGGERNAUT",
+      "skills": [
+        "SKILL_FROST_BREATH",
+        "SKILL_CRUSHING_SLAM"
+      ]
+    },
+    {
+      "id": "naga",
+      "name": "蛇人",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "DESERT",
+        "RUINS"
+      ],
+      "powerTier": 1.5,
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_TOXIC_SPRAY",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "specter",
+      "name": "怨靈",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 1.3,
+      "defaultElement": "DARK",
+      "isMagicalAttacker": true,
+      "profile": "MAGE",
+      "skills": [
+        "SKILL_TERROR_SCREECH"
+      ]
+    },
+    {
+      "id": "hellhound",
+      "name": "惡魔犬",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "VOLCANO",
+        "RUINS"
+      ],
+      "powerTier": 1.4,
+      "defaultElement": "FIRE",
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_FLAME_BURST",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "zombie",
+      "name": "殭屍",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "CAVE",
+        "WILDERNESS"
+      ],
+      "powerTier": 0.6,
+      "defaultElement": "DARK",
+      "profile": "JUGGERNAUT",
+      "skills": []
+    },
+    {
+      "id": "wight",
+      "name": "屍魔",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 1.8,
+      "defaultElement": "DARK",
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_BLOOD_DRAIN"
+      ]
+    },
+    {
+      "id": "iron_guard",
+      "name": "鐵甲衛",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "RUINS",
+        "PLAINS"
+      ],
+      "powerTier": 1.9,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_IRON_DEFENSE",
+        "SKILL_CRUSHING_SLAM"
+      ]
+    },
+    {
+      "id": "barbarian",
+      "name": "蠻兵",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "WILDERNESS",
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 1.2,
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_FRENZY_ROAR"
+      ]
+    },
+    {
+      "id": "minotaur",
+      "name": "牛頭人",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "CAVE",
+        "RUINS",
+        "WILDERNESS"
+      ],
+      "powerTier": 2.4,
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_CRUSHING_SLAM",
+        "SKILL_FRENZY_ROAR"
+      ]
+    },
+    {
+      "id": "basilisk",
+      "name": "蜥蜴王",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON"
+      ],
+      "terrains": [
+        "DESERT",
+        "CAVE"
+      ],
+      "powerTier": 2.1,
+      "profile": "BOSS",
+      "skills": [
+        "SKILL_TOXIC_SPRAY",
+        "SKILL_CRUSHING_SLAM"
+      ]
+    },
+    {
+      "id": "shadow_blade",
+      "name": "暗影刃",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "RUINS",
+        "FOREST"
+      ],
+      "powerTier": 1.6,
+      "defaultElement": "DARK",
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_SHADOW_ASSAULT",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "cultist",
+      "name": "狂熱者",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [
+        "RUINS",
+        "CAVE"
+      ],
+      "powerTier": 1.1,
+      "isMagicalAttacker": true,
+      "profile": "MAGE",
+      "skills": [
+        "SKILL_FLAME_BURST"
+      ]
+    },
+    {
+      "id": "elemental_golem",
+      "name": "元素石像",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "VOLCANO",
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 2.3,
+      "isMagicalAttacker": true,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_FLAME_BURST",
+        "SKILL_IRON_DEFENSE"
+      ]
+    },
+    {
+      "id": "slime",
+      "name": "史萊姆",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "FOREST",
+        "PLAINS",
+        "CAVE"
+      ],
+      "powerTier": 0.4,
+      "profile": "BALANCED",
+      "skills": []
+    },
+    {
+      "id": "sand_worm",
+      "name": "沙蠕蟲",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "DESERT"
+      ],
+      "powerTier": 1.7,
+      "profile": "JUGGERNAUT",
+      "skills": [
+        "SKILL_CRUSHING_SLAM"
+      ]
+    },
+    {
+      "id": "phantom_warrior",
+      "name": "幻影武士",
+      "race": "UNDEAD",
+      "compatibleRaces": [
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS"
+      ],
+      "powerTier": 2.2,
+      "defaultElement": "DARK",
+      "isMagicalAttacker": true,
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_SHADOW_ASSAULT",
+        "SKILL_BLOOD_DRAIN"
+      ]
+    },
+    {
+      "id": "frost_wolf",
+      "name": "冰原狼",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 1.2,
+      "defaultElement": "ICE",
+      "profile": "ASSASSIN",
+      "skills": [
+        "SKILL_FROST_BREATH",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "drake",
+      "name": "雙足幼龍",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON"
+      ],
+      "terrains": [
+        "VOLCANO",
+        "SNOW_MOUNTAIN",
+        "RUINS"
+      ],
+      "powerTier": 1.8,
+      "defaultElement": "FIRE",
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_FLAME_BURST",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "wyvern",
+      "name": "飛龍",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON"
+      ],
+      "terrains": [
+        "VOLCANO",
+        "SNOW_MOUNTAIN"
+      ],
+      "powerTier": 2.3,
+      "defaultElement": "ICE",
+      "profile": "BOSS",
+      "skills": [
+        "SKILL_FROST_BREATH",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "draconic_lizard",
+      "name": "巨角蜥",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "DESERT",
+        "VOLCANO"
+      ],
+      "powerTier": 1.4,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_CRUSHING_SLAM",
+        "SKILL_IRON_DEFENSE"
+      ]
+    },
+    {
+      "id": "skeleton_drake",
+      "name": "骨龍獸",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "RUINS",
+        "VOLCANO",
+        "CAVE"
+      ],
+      "powerTier": 2,
+      "defaultElement": "DARK",
+      "profile": "BOSS",
+      "skills": [
+        "SKILL_BLOOD_DRAIN",
+        "SKILL_TERROR_SCREECH"
+      ]
+    },
+    {
+      "id": "hydra_spawn",
+      "name": "幼九頭蛇",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON"
+      ],
+      "terrains": [
+        "FOREST",
+        "CAVE"
+      ],
+      "powerTier": 2.4,
+      "profile": "BOSS",
+      "skills": [
+        "SKILL_TOXIC_SPRAY",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "salamander",
+      "name": "熔岩蜥",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON"
+      ],
+      "terrains": [
+        "VOLCANO"
+      ],
+      "powerTier": 1.5,
+      "defaultElement": "FIRE",
+      "profile": "BERSERKER",
+      "skills": [
+        "SKILL_FLAME_BURST"
+      ]
+    },
+    {
+      "id": "thunder_drake",
+      "name": "迅雷飛龍",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON"
+      ],
+      "terrains": [
+        "SNOW_MOUNTAIN",
+        "PLAINS"
+      ],
+      "powerTier": 2.2,
+      "defaultElement": "LIGHTNING",
+      "profile": "BOSS",
+      "skills": [
+        "SKILL_SAVAGE_REND",
+        "SKILL_TERROR_SCREECH"
+      ]
+    },
+    {
+      "id": "swamp_drake",
+      "name": "沼澤毒龍",
+      "race": "DRAGON",
+      "compatibleRaces": [
+        "DRAGON",
+        "UNDEAD"
+      ],
+      "terrains": [
+        "FOREST",
+        "RUINS"
+      ],
+      "powerTier": 1.9,
+      "profile": "BOSS",
+      "skills": [
+        "SKILL_TOXIC_SPRAY",
+        "SKILL_SAVAGE_REND"
+      ]
+    },
+    {
+      "id": "faction_infantry",
+      "name": "步兵",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [],
+      "powerTier": 1,
+      "profile": "BALANCED",
+      "skills": []
+    },
+    {
+      "id": "faction_spearman",
+      "name": "長槍兵",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [],
+      "powerTier": 1.1,
+      "profile": "BALANCED",
+      "skills": []
+    },
+    {
+      "id": "faction_crossbowman",
+      "name": "弩兵",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [],
+      "powerTier": 1.2,
+      "profile": "RANGER",
+      "skills": [
+        "SKILL_SHADOW_ASSAULT"
+      ]
+    },
+    {
+      "id": "faction_knight",
+      "name": "騎士",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [],
+      "powerTier": 1.8,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_IRON_DEFENSE"
+      ]
+    },
+    {
+      "id": "faction_mage",
+      "name": "隨軍法師",
+      "race": "HUMAN",
+      "compatibleRaces": [
+        "HUMAN"
+      ],
+      "terrains": [],
+      "powerTier": 1.6,
+      "isMagicalAttacker": true,
+      "profile": "MAGE",
+      "skills": [
+        "SKILL_FLAME_BURST"
+      ]
+    },
+    {
+      "id": "faction_siege_weapon",
+      "name": "攻城器械",
+      "race": "MONSTER",
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [],
+      "powerTier": 2.5,
+      "profile": "TANK",
+      "skills": [
+        "SKILL_CRUSHING_SLAM"
+      ]
+    }
+  ]
+}

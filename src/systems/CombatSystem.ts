@@ -5,6 +5,7 @@ import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType, 
 import { Random } from '../core/Random';
 import { TargetType } from '../models/Skill';
 import { SKILLS } from '../data/SkillData';
+import { SkillRegistry } from './combat/SkillRegistry';
 import { GambitEvaluator } from './combat/GambitEvaluator';
 import { calculateSkillDamage, getEvade } from '../utils/CombatMath';
 import { FormationDB } from '../systems/FormationDB';
@@ -290,6 +291,8 @@ export class CombatSystem {
         } while (occupiedEnemyGrids.has(`${eGridR}_${eGridC}`) && attempts < 10);
         occupiedEnemyGrids.add(`${eGridR}_${eGridC}`);
         
+        const avatarIcon = lineupMonster?.avatarIcon || (lineupMonster?.id ? `icons_monsters:${lineupMonster.id}` : 'icons_monsters:goblin');
+
         enemyTeam.push({
           id: `enemy_${wave}_${i}`,
           name: lineupMonster ? lineupMonster.name : `野外魔物 ${String.fromCharCode(65 + i)}`,
@@ -305,6 +308,7 @@ export class CombatSystem {
           defElement: lineupMonster?.element || ElementType.NONE,
           element: lineupMonster?.element || ElementType.NONE,
           isMagicalAttacker: lineupMonster?.isMagicalAttacker || false,
+          avatarIcon: avatarIcon,
           stats: { hp: eHp, mp: 50 + currentWaveDiff * 5, patk: eAtk, matk: eAtk, pdef: ePdef, mdef: eMdef, hit: 20 + currentWaveDiff, evade: eEvade, speed: 10 + currentWaveDiff, critRate: 5, critDmg: 150, atk: eAtk, def: eDef },
           attributes: { 
             con: 5 + currentWaveDiff, 
@@ -317,6 +321,7 @@ export class CombatSystem {
             command: 1 
           },
           statusEffects: [],
+          skills: lineupMonster?.skills ? [...lineupMonster.skills] : [],
           goldReward: lineupMonster?.goldReward,
           expReward: lineupMonster?.expReward,
           equipmentDropRate: lineupMonster?.equipmentDropRate
@@ -335,7 +340,8 @@ export class CombatSystem {
           gridC: e.gridC,
           maxHp: e.maxHp,
           maxMp: e.maxMp || 50,
-          currentMp: e.currentMp || 50
+          currentMp: e.currentMp || 50,
+          avatarIcon: e.avatarIcon
         })),
         text: `--- 第 ${wave} 波戰鬥開始！遭遇了 ${enemyCount} 名敵人。 ---` 
       });
@@ -458,15 +464,15 @@ export class CombatSystem {
 
         if (gambitResult) {
           if (gambitResult.skillId !== 'DEFAULT_ATTACK') {
-             selectedSkill = SKILLS[gambitResult.skillId];
+             selectedSkill = SkillRegistry.getSkill(gambitResult.skillId);
           }
           skillTargets = gambitResult.targets;
         } else {
           // 選擇技能 (Smart Casting AI - 只有在沒觸發 Gambit 時執行)
           if (actor.skills && actor.skills.length > 0) {
           const availableSkills = actor.skills
-            .map(id => SKILLS[id])
-            .filter(s => s && actor.currentMp !== undefined && actor.currentMp >= s.mpCost && !(actor.cooldowns && actor.cooldowns[s.id] > 0));
+            .map(id => SkillRegistry.getSkill(id))
+            .filter((s): s is import('../models/Skill').Skill => !!s && actor.currentMp !== undefined && actor.currentMp >= s.mpCost && !(actor.cooldowns && actor.cooldowns[s.id] > 0));
           
           if (availableSkills.length > 0) {
             let bestWeight = -1;
@@ -715,6 +721,12 @@ export class CombatSystem {
           const dmg = (effect.value || 5) * stacks;
           actor.currentHp -= dmg;
           events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 因中毒 (${stacks}層) 受到 ${dmg} 點傷害。`});
+        }
+      } else if (effect.type === StatusEffectType.BURN) {
+        if (!isInvuln) {
+          const dmg = (effect.value || 8);
+          actor.currentHp -= dmg;
+          events.push({ type: CombatEventType.STATUS_DAMAGE, targetName: actor.name, damage: dmg, targetHp: actor.currentHp, text: `${actor.name} 受到灼燒燃燒，承受 ${dmg} 點火焰傷害。`});
         }
       } else if (effect.type === StatusEffectType.REGEN_HP) {
         const heal = effect.value || 10;

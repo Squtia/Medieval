@@ -1,4 +1,4 @@
-import { TerrainType, MonsterData, MonsterRace, MonsterInstance, ElementType, MapNode, StrongholdAffix } from '../models/types';
+import { TerrainType, MonsterData, MonsterRace, MonsterProfile, MonsterInstance, ElementType, MapNode, StrongholdAffix } from '../models/types';
 import { Random } from '../core/Random';
 import monstersJson from '../data/monsters.json';
 
@@ -69,42 +69,65 @@ export class MonsterSystem {
 
     const baseBudget = Math.max(15, Math.round(baseDifficulty * baseMonster.powerTier * raceMult * 55));
 
-    // 根據種族分配數值傾向 (區分物防 pdefRatio 與魔防 mdefRatio)
-    let hpRatio = 0.45;
-    let atkRatio = 0.35;
-    let pdefRatio = 0.15;
-    let mdefRatio = 0.15;
-    let evaRatio = 0.05;
+    // 根據 8 大戰鬥定位 (Profile) 決定基準屬性權重 (總預算鎖死下正規化分配)
+    const profile = baseMonster.profile || (baseMonster.isBoss ? MonsterProfile.BOSS : MonsterProfile.BALANCED);
+    let hpW = 40, atkW = 35, pdefW = 16, mdefW = 14, spdW = 10, evaW = 6;
 
-    switch (appliedRaceTag) {
-      case MonsterRace.UNDEAD:
-        hpRatio = 0.55; atkRatio = 0.25; pdefRatio = 0.20; mdefRatio = 0.20; evaRatio = 0.0; break; // 高體質高物魔雙防低攻零閃
-      case MonsterRace.MONSTER:
-        hpRatio = 0.45; atkRatio = 0.38; pdefRatio = 0.12; mdefRatio = 0.08; evaRatio = 0.05; break; // 高攻中血中物防低魔防
-      case MonsterRace.HUMAN:
-        hpRatio = 0.40; atkRatio = 0.35; pdefRatio = 0.15; mdefRatio = 0.15; evaRatio = 0.08; break;  // 均衡型
-      case MonsterRace.DRAGON:
-        hpRatio = 0.45; atkRatio = 0.38; pdefRatio = 0.18; mdefRatio = 0.14; evaRatio = 0.05; break;   // 史詩高攻高物防中魔防
+    switch (profile) {
+      case MonsterProfile.TANK:
+        hpW = 45; atkW = 24; pdefW = 32; mdefW = 16; spdW = 6; evaW = 0; break;
+      case MonsterProfile.ASSASSIN:
+        hpW = 22; atkW = 44; pdefW = 8; mdefW = 8; spdW = 20; evaW = 16; break;
+      case MonsterProfile.MAGE:
+        hpW = 25; atkW = 45; pdefW = 8; mdefW = 28; spdW = 10; evaW = 6; break;
+      case MonsterProfile.BERSERKER:
+        hpW = 34; atkW = 50; pdefW = 10; mdefW = 8; spdW = 12; evaW = 4; break;
+      case MonsterProfile.RANGER:
+        hpW = 26; atkW = 40; pdefW = 10; mdefW = 12; spdW = 18; evaW = 12; break;
+      case MonsterProfile.JUGGERNAUT:
+        hpW = 50; atkW = 36; pdefW = 20; mdefW = 16; spdW = 6; evaW = 0; break;
+      case MonsterProfile.BOSS:
+        hpW = 42; atkW = 38; pdefW = 20; mdefW = 18; spdW = 14; evaW = 8; break;
+      case MonsterProfile.BALANCED:
+      default:
+        hpW = 38; atkW = 34; pdefW = 16; mdefW = 14; spdW = 10; evaW = 6; break;
     }
+
+    // 種族微調 (不死族降低閃避增強生存，龍族強化全能)
+    if (appliedRaceTag === MonsterRace.UNDEAD) {
+      hpW += 6; pdefW += 4; mdefW += 4; evaW = 0;
+    }
+
+    const totalWeight = hpW + atkW + pdefW + mdefW + spdW + evaW;
+    const hpRatio = hpW / totalWeight;
+    const atkRatio = atkW / totalWeight;
+    const pdefRatio = pdefW / totalWeight;
+    const mdefRatio = mdefW / totalWeight;
+    const spdRatio = spdW / totalWeight;
+    const evaRatio = evaW / totalWeight;
 
     const hp = Math.max(45, Math.floor(baseBudget * hpRatio * 2.8));
     const damage = Math.max(12, Math.floor(baseBudget * atkRatio * 1.15));
     const pdef = Math.floor(baseBudget * pdefRatio * 1.2);
     const mdef = Math.floor(baseBudget * mdefRatio * 1.2);
     const defense = pdef; // 相容舊版欄位
-    const speed = Math.max(4, Math.floor(baseBudget * 0.12));
-    const evade = Math.min(500, Math.floor(baseBudget * evaRatio * 0.2));
+    const speed = Math.max(4, Math.floor(baseBudget * spdRatio * 1.2));
+    const evade = Math.min(500, Math.floor(baseBudget * evaRatio * 1.5));
 
     // 大一統戰力計分公式 (與冒險者完全對齊：有效攻擊 + 平均防禦*0.6 + HP*0.2 + 速度*0.5)
     const effAtk = damage;
     const avgDef = Math.floor((pdef + mdef) / 2);
     const calculatedPowerScore = effAtk + Math.floor(avgDef * 0.6) + Math.floor(hp * 0.2) + Math.floor(speed * 0.5);
 
+    // 技能清單 (直接繼承原型或預設技能)
+    const skills = baseMonster.skills ? [...baseMonster.skills] : [];
+
     return {
       ...baseMonster,
       name: fullName,
       race: appliedRaceTag,
       appliedRaceTag,
+      profile,
       element,
       hp,
       maxHp: hp,
@@ -115,7 +138,8 @@ export class MonsterSystem {
       speed,
       evade,
       calculatedPowerScore,
-      isMagicalAttacker: baseMonster.isMagicalAttacker || false,
+      skills,
+      isMagicalAttacker: baseMonster.isMagicalAttacker || profile === MonsterProfile.MAGE,
       
       // 動態戰利品配置 (金幣: 戰力 * 1.0, 經驗: 戰力 * 0.25)
       goldReward: Math.floor(calculatedPowerScore * 1.0),

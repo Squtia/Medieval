@@ -36,10 +36,10 @@ export class Adventurer {
   public locationNodeId: string | null; // 目前實際所在的據點 ID
   public avatarIndex: number; // 0-24, 對應 5x5 的半身像 Spritesheet
 
-  public quality: 'N' | 'R' | 'SR' | 'SSR';
+  public quality: 'N' | 'R' | 'SR' | 'SSR' | 'UR';
   public isGuardian: boolean = false;
 
-  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' = 'N', gender?: Gender, isGuardian: boolean = false) {
+  constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' | 'UR' = 'N', gender?: Gender, isGuardian: boolean = false) {
     this.id = id;
     this.name = name;
     this.level = 1;
@@ -60,6 +60,7 @@ export class Adventurer {
       case 'R': minSum = 45; maxSum = 65; break;
       case 'SR': minSum = 58; maxSum = 78; break;
       case 'SSR': minSum = 72; maxSum = 95; break;
+      case 'UR': minSum = 90; maxSum = 115; break;
     }
 
     // 權重隨機分布抽取 X

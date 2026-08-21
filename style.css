@@ -861,73 +861,219 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   position: fixed;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 860px;
-  height: 640px;
+  width: 960px;
+  height: 720px;
   max-width: 96vw;
-  max-height: 92vh;
-  background: rgba(20, 20, 20, 0.95);
+  max-height: 94vh;
+  background: rgba(18, 20, 26, 0.98);
   border: 2px solid #8b4513;
-  border-radius: 8px;
+  border-radius: 10px;
   z-index: 3000;
   display: none;
   flex-direction: column;
-  box-shadow: 0 0 50px rgba(0,0,0,0.9);
+  box-shadow: 0 0 60px rgba(0,0,0,0.95);
   color: #ebdcb6;
 }
 #combat-modal.active { display: flex; }
 
 .combat-stage {
-  flex: 0 0 300px; /* 固定高度，避免擠壓 */
-  padding: 12px 16px;
+  flex: 0 0 500px; /* 超大比例史詩戰鬥舞台 (~70%) */
+  padding: 20px 36px;
   border-bottom: 2px solid #8b4513;
   display: flex;
   justify-content: space-between;
-  align-items: stretch;
+  align-items: center;
   background: linear-gradient(to bottom, #1e293b, #0f172a);
   position: relative;
   overflow: hidden;
 }
 .combat-team { 
-  flex: 1; 
+  flex: 0 0 320px; 
+  width: 320px;
+  height: 100%;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  gap: 5px;
-  align-items: stretch;
-  /* 玩家在左，前排在最右；敵軍在右，前排在最左 */
+  gap: 14px;
+  align-items: center;
+  justify-items: center;
+  /* 玩家在左，前排在最右；敵軍在右，前排在最左；中央保持寬闊對峙戰場空間 */
 }
 
-.combat-participant { display: flex; flex-direction: column; gap: 2px; position: relative; padding: 5px 6px; background: rgba(0,0,0,0.4); border-radius: 6px; border: 1px solid #333; overflow: hidden; min-height: 0; }
-.combat-hp-bg { width: 100%; height: 7px; background: #333; border-radius: 4px; overflow: hidden; border: 1px solid #000; flex-shrink: 0; }
-.combat-hp-fill { height: 100%; background: #22c55e; transition: width 0.3s ease-out, background-color 0.3s ease; }
-.combat-hp-fill.low { background: #ef4444; }
-.combat-mp-bg { width: 100%; height: 5px; background: #0f172a; border-radius: 2px; overflow: hidden; border: 1px solid #000; margin-top: 1px; flex-shrink: 0; }
-.combat-mp-fill { height: 100%; background: #38bdf8; transition: width 0.3s ease-out; }
+/* 戰鬥單位卡片：Full-Art 滿版卡牌式 (1:1.33 經典比例，尺寸精緻有間距) */
+.combat-participant {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0d1117;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+  transition: all 0.2s ease;
+  min-height: 0;
+  width: 84px;
+  height: 112px;
+  justify-self: center;
+  align-self: center;
+}
 
+.combat-participant.player-side {
+  border-color: #facc15;
+  box-shadow: 0 0 10px rgba(250, 204, 21, 0.35);
+}
+
+.combat-participant.enemy-side {
+  border-color: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+}
+
+/* 滿版背景肖像 (Full-Art Avatar) - 內部置中且保持 1:1 正方形不失真 */
+.combat-p-avatar-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0b0f17;
+  overflow: hidden;
+}
+
+.combat-p-avatar-sq {
+  position: absolute;
+  width: 112px;
+  height: 112px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-repeat: no-repeat;
+}
+
+/* 頂部懸浮名稱與站位標籤 (半透明漸層遮罩) */
+.combat-p-top-bar {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 3;
+  padding: 3px 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0) 100%);
+  pointer-events: none;
+}
+
+.combat-p-name-text {
+  font-size: 0.78rem;
+  font-weight: bold;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 75%;
+  text-shadow: 0 1px 3px #000, 0 0 4px #000;
+}
+
+.combat-p-row-tag {
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #cbd5e1;
+  padding: 1px 4px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* 底部懸浮 HP / MP 條 (半透明漸層遮罩) */
+.combat-p-bottom-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 3;
+  padding: 4px 6px 5px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 65%, rgba(0,0,0,0) 100%);
+  pointer-events: none;
+}
+
+.combat-hp-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.9);
+  flex-shrink: 0;
+}
+.combat-hp-fill { height: 100%; background: linear-gradient(to right, #22c55e, #4ade80); transition: width 0.25s ease-out; }
+.combat-hp-fill.low { background: linear-gradient(to right, #ef4444, #f87171); }
+
+.combat-mp-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.9);
+  flex-shrink: 0;
+}
+.combat-mp-fill { height: 100%; background: linear-gradient(to right, #0284c7, #38bdf8); transition: width 0.25s ease-out; }
+
+/* 下方戰報文字區：範圍縮小、字體縮小 */
 .combat-log-area {
-  flex: 1; /* 佔 1/3 */
-  padding: 20px;
+  flex: 1; /* 縮小佔比 */
+  padding: 10px 16px;
   overflow-y: auto;
-  font-size: 1.1em;
-  line-height: 1.6;
-  background: rgba(0, 0, 0, 0.85);
-  color: #f8f9fa; /* 深色背景配亮色字 */
+  font-size: 0.8rem;
+  line-height: 1.45;
+  background: rgba(0, 0, 0, 0.92);
+  color: #f8f9fa;
   text-shadow: 1px 1px 2px #000;
 }
 
-.combat-participant { position: relative; display: flex; flex-direction: column; gap: 5px; margin-bottom: 5px; }
+/* 打擊反饋動畫 */
+@keyframes hitShake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, -1px); }
+  80% { transform: translate(3px, 1px); }
+}
 
-@keyframes attackBumpPlayer { 0% { transform: translateX(0); } 50% { transform: translateX(20px) scale(1.1); } 100% { transform: translateX(0); } }
-@keyframes attackBumpEnemy { 0% { transform: translateX(0); } 50% { transform: translateX(-20px) scale(1.1); } 100% { transform: translateX(0); } }
+@keyframes hitFlash {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(2) drop-shadow(0 0 12px #ef4444); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes skillCastGlow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0px #fbbf24); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 16px #fbbf24) brightness(1.3); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0px #fbbf24); }
+}
+
+.hit-shake { animation: hitShake 0.3s ease-out; }
+.hit-flash { animation: hitFlash 0.3s ease-out; }
+.skill-cast-glow { animation: skillCastGlow 0.45s ease-out; }
+
+/* 陣亡狀態 */
+.combat-participant.is-dead {
+  filter: grayscale(100%) opacity(0.35);
+  transform: scale(0.95);
+  pointer-events: none;
+}
+
+@keyframes attackBumpPlayer { 0% { transform: translateX(0); } 50% { transform: translateX(18px) scale(1.05); } 100% { transform: translateX(0); } }
+@keyframes attackBumpEnemy { 0% { transform: translateX(0); } 50% { transform: translateX(-18px) scale(1.05); } 100% { transform: translateX(0); } }
 .attack-bump-player { animation: attackBumpPlayer 0.2s ease-out; }
 .attack-bump-enemy { animation: attackBumpEnemy 0.2s ease-out; }
 
-@keyframes hitFlash { 0% { filter: brightness(1); } 50% { filter: brightness(2) drop-shadow(0 0 10px red); color: #ef4444; } 100% { filter: brightness(1); } }
-.hit-flash { animation: hitFlash 0.3s; }
-
 .floating-dmg {
   position: absolute;
-  top: -20px;
+  top: -18px;
   left: 50%;
   transform: translateX(-50%);
   font-weight: bold;
@@ -937,15 +1083,15 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   pointer-events: none;
   z-index: 100;
 }
-.floating-dmg.crit { color: #f59e0b; font-size: 1.5em; }
-@keyframes floatUp { 0% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -40px) scale(1.2); } }
+.floating-dmg.crit { color: #f59e0b; font-size: 1.3em; }
+@keyframes floatUp { 0% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(-50%, -35px) scale(1.15); } }
 
 .combat-footer {
-  padding: 15px;
+  padding: 12px 18px;
   border-top: 2px solid #8b4513;
   display: flex;
   justify-content: flex-end;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.85);
 }
 
 .combat-log-entry { margin-bottom: 8px; opacity: 0; animation: fadeInLog 0.3s forwards; }

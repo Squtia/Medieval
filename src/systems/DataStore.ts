@@ -31,9 +31,19 @@ export class DataStore {
   public static readonly ModificationRecipeDB = modificationRecipesJson;
 
   // ============================
-  // 二手商人與飾品庫 (SecondHandShopDB)
+  // 二手商人與飾品庫 (SecondHandShopDB - 動態對齊 equipment_accessories.json 唯一真實來源)
   // ============================
-  public static readonly SecondHandShopDB = secondHandShopDataJson;
+  public static readonly SecondHandShopDB = (() => {
+    const raw = secondHandShopDataJson;
+    const accList = (raw.accessories || []).map((secAcc: any) => {
+      const authAcc = (equipmentAccessoriesJson as any[]).find(a => a.id === secAcc.id);
+      return authAcc ? { ...authAcc, basePrice: secAcc.basePrice ?? authAcc.basePrice } : secAcc;
+    });
+    return {
+      ...raw,
+      accessories: accList
+    };
+  })();
 
   // ============================
   // 職業庫 (JobDB)
@@ -120,8 +130,7 @@ export class DataStore {
     const allLists = [
       equipmentWeaponsJson,
       equipmentArmorsJson,
-      equipmentAccessoriesJson || [],
-      (secondHandShopDataJson as any).accessories || []
+      equipmentAccessoriesJson || []
     ];
     allLists.forEach(list => {
       (list as any[]).forEach(item => {

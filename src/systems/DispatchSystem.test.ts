@@ -52,6 +52,24 @@ describe('trade mission lifecycle', () => {
     expect(changes).toEqual(['DISPATCHED', 'PROGRESSED', 'PROGRESSED', 'COMPLETED']);
   });
 
+  it('blocks dispatch when team contains more than 1 UR quality adventurer', () => {
+    const territory = new Territory('測試領地', 'home');
+    const advUR1 = new Adventurer('ur1', '英雄1', DataStore.JobDB.WARRIOR, DataStore.TraitDB.BRAVE, 'UR');
+    const advUR2 = new Adventurer('ur2', '英雄2', DataStore.JobDB.MAGE, DataStore.TraitDB.BRAVE, 'UR');
+    const advSSR = new Adventurer('ssr1', '英雄3', DataStore.JobDB.ARCHER, DataStore.TraitDB.BRAVE, 'SSR');
+
+    const system = new DispatchSystem(territory);
+    const task = new DispatchTask('討伐魔王', TaskType.COMBAT, 1, 10, 100, 10, 10, EnemyFeature.BALANCED);
+
+    // 超過 1 位 UR 派遣失敗
+    system.dispatchAdventurers([advUR1, advUR2, advSSR], task);
+    expect(system.getActiveMissions().length).toBe(0);
+
+    // 只有 1 位 UR + 其他品質 派遣成功
+    system.dispatchAdventurers([advUR1, advSSR], task);
+    expect(system.getActiveMissions().length).toBe(1);
+  });
+
   it('uses completed roads for outbound and return travel time', () => {
     const territory = new Territory('道路測試領', 'home');
     const adventurer = new Adventurer(

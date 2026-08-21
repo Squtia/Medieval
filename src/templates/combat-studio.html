@@ -1,7 +1,12 @@
 <!-- 戰術遭遇與戰鬥平衡工坊 HTML 模板 -->
 <div class="cs-header">
-  <div class="cs-header-left">
+  <div class="cs-header-left" style="display: flex; align-items: center; gap: 16px;">
     <span class="cs-title">⚔️ 戰術遭遇與戰鬥平衡工坊 <span class="cs-badge">DEV STUDIO</span></span>
+    <div class="cs-tabs" style="margin-bottom: 0;">
+      <button class="cs-tab-btn active" id="btn-studio-tab-battle">⚔️ 戰鬥模擬沙盒</button>
+      <button class="cs-tab-btn" id="btn-studio-tab-heroes">👑 英雄與傭兵設計工坊</button>
+      <button class="cs-tab-btn" id="btn-studio-tab-monsters">👾 怪物資料庫與設計工坊</button>
+    </div>
   </div>
   <div class="cs-header-actions">
     <button class="cs-btn cs-btn-sm" id="btn-open-equipment-studio">🛠️ 裝備素材工坊</button>
@@ -12,7 +17,8 @@
   </div>
 </div>
 
-<div class="cs-workspace">
+<!-- 視圖 1：戰鬥模擬沙盒 -->
+<div class="cs-workspace" id="cs-view-battle">
   <!-- 左欄：我方傭兵小隊配置 -->
   <div class="cs-col">
     <div class="cs-col-header">
@@ -20,6 +26,7 @@
       <div style="display: flex; gap: 4px;">
         <select class="cs-select" id="cs-player-preset-select" style="padding: 2px 6px; font-size: 0.75rem;">
           <option value="balanced">標準五行隊</option>
+          <option value="oath_guardian">👑 誓約騎士神聖隊 (我的誓約騎士)</option>
           <option value="melee_rush">物理狂戰隊</option>
           <option value="mage_burst">奧術法爆隊</option>
           <option value="chaos_reap">混沌死靈隊</option>
@@ -177,6 +184,64 @@
   </div>
 </div>
 
+<!-- 視圖 2：怪物資料庫與設計工坊 (Monster Database & Designer) -->
+<div id="cs-view-monsters" style="display: none; flex: 1; flex-direction: column; overflow: hidden; padding: 14px 18px; gap: 12px; background: #0b0e14;">
+  <!-- 頂部過濾與操作列 -->
+  <div style="background: #121722; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--cs-panel-border); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+    <!-- 左側篩選工具 -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+      <input type="text" id="cs-monster-search" class="cs-input" placeholder="🔍 搜尋怪物名稱、ID、元素..." style="width: 220px; padding: 5px 10px; font-size: 0.82rem;">
+      
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span style="font-size: 0.75rem; color: var(--cs-text-muted);">種族:</span>
+        <select id="cs-monster-filter-race" class="cs-select" style="padding: 4px 8px; font-size: 0.78rem;">
+          <option value="ALL">全部種族</option>
+          <option value="MONSTER">魔物/異獸 (MONSTER)</option>
+          <option value="UNDEAD">不死族 (UNDEAD)</option>
+          <option value="HUMAN">人類/兵種 (HUMAN)</option>
+          <option value="DRAGON">龍族 (DRAGON)</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span style="font-size: 0.75rem; color: var(--cs-text-muted);">地形:</span>
+        <select id="cs-monster-filter-terrain" class="cs-select" style="padding: 4px 8px; font-size: 0.78rem;">
+          <option value="ALL">全部地形</option>
+          <option value="PLAINS">平原</option>
+          <option value="FOREST">森林</option>
+          <option value="WILDERNESS">荒野</option>
+          <option value="RUINS">遺跡</option>
+          <option value="CAVE">洞穴</option>
+          <option value="SNOW_MOUNTAIN">雪山</option>
+          <option value="VOLCANO">火山</option>
+          <option value="DESERT">沙漠</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span style="font-size: 0.75rem; color: var(--cs-text-muted);">類型:</span>
+        <select id="cs-monster-filter-boss" class="cs-select" style="padding: 4px 8px; font-size: 0.78rem;">
+          <option value="ALL">全部怪物</option>
+          <option value="NORMAL">一般小怪</option>
+          <option value="BOSS">首領 / Boss</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 右側動作按鈕 -->
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span style="font-size: 0.78rem; color: var(--cs-gold); font-weight: bold;" id="cs-monster-count-badge">共 0 隻怪物</span>
+      <button class="cs-btn cs-btn-sm cs-btn-gold" id="btn-db-create-monster">➕ 新增怪物設計</button>
+      <button class="cs-btn cs-btn-sm cs-btn-primary" id="btn-db-save-monsters">💾 寫入專案硬碟 (monsters.json)</button>
+    </div>
+  </div>
+
+  <!-- 怪物卡片流動網格區 -->
+  <div id="cs-monster-db-grid" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; padding: 4px; align-content: flex-start;">
+    <!-- 動態載入 64+ 隻怪物卡片 -->
+  </div>
+</div>
+
 <!-- 彈窗：怪物/兵種創造器 (Monster/Unit Creator Modal) -->
 <div class="cs-modal-overlay" id="modal-monster-creator" style="display: none;">
   <div class="cs-modal-box">
@@ -230,11 +295,31 @@
           <input type="number" step="0.1" class="cs-input" id="mc-powertier" value="1.0">
         </div>
         <div class="cs-form-row">
+          <label class="cs-label">戰鬥定位 (Stat Profile)</label>
+          <select class="cs-select" id="mc-profile">
+            <option value="BALANCED">⚖️ 常規均衡 (BALANCED)</option>
+            <option value="TANK">🛡️ 鐵壁肉盾 (TANK - 超高HP/物防)</option>
+            <option value="ASSASSIN">⚡ 疾風刺客 (ASSASSIN - 先手/高爆/高速)</option>
+            <option value="MAGE">🔮 奧術法師 (MAGE - 高魔傷/高魔防)</option>
+            <option value="BERSERKER">🩸 嗜血狂戰 (BERSERKER - 超高物傷/中血)</option>
+            <option value="RANGER">🏹 遠程狙擊 (RANGER - 高命中/狙擊後排)</option>
+            <option value="JUGGERNAUT">💀 亡靈泥沼 (JUGGERNAUT - 巨量HP/低速)</option>
+            <option value="BOSS">👑 史詩首領 (BOSS - 全能高屬性)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cs-form-row-h">
+        <div class="cs-form-row">
           <label class="cs-label">攻擊模式</label>
           <select class="cs-select" id="mc-attack-type">
             <option value="physical">物理攻擊 (結算 PDEF)</option>
             <option value="magical">魔法攻擊 (結算 MDEF)</option>
           </select>
+        </div>
+        <div class="cs-form-row">
+          <label class="cs-label">預設掛載技能 (選填，多個以逗號隔開)</label>
+          <input type="text" class="cs-input" id="mc-skills" placeholder="如: SKILL_TOXIC_SPRAY, SKILL_SAVAGE_REND">
         </div>
       </div>
 
@@ -512,3 +597,197 @@
     </div>
   </div>
 </div>
+
+<!-- 視圖 3：英雄與傭兵設計工坊 (Hero Database & Designer) -->
+<div id="cs-view-heroes" style="display: none; flex: 1; flex-direction: column; overflow: hidden; padding: 14px 18px; gap: 12px; background: #0b0e14;">
+  <!-- 頂部過濾與操作列 -->
+  <div style="background: #121722; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--cs-panel-border); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;">
+    <!-- 左側篩選工具 -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+      <input type="text" id="cs-hero-search" class="cs-input" placeholder="🔍 搜尋英雄名稱、尊號、職業..." style="width: 220px; padding: 5px 10px; font-size: 0.82rem;">
+      
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span style="font-size: 0.75rem; color: var(--cs-text-muted);">品質:</span>
+        <select id="cs-hero-filter-quality" class="cs-select" style="padding: 4px 8px; font-size: 0.78rem;">
+          <option value="ALL">全部品質</option>
+          <option value="UR">神話 (UR)</option>
+          <option value="SSR">傳奇 (SSR)</option>
+          <option value="SR">史詩 (SR)</option>
+          <option value="R">稀有 (R)</option>
+          <option value="N">普通 (N)</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span style="font-size: 0.75rem; color: var(--cs-text-muted);">基礎職業:</span>
+        <select id="cs-hero-filter-job" class="cs-select" style="padding: 4px 8px; font-size: 0.78rem;">
+          <option value="ALL">全部職業</option>
+          <option value="WARRIOR">戰士 (狂戰/魔劍)</option>
+          <option value="KNIGHT">騎士 (聖騎/符文)</option>
+          <option value="MAGE">法師 (大魔導/死靈)</option>
+          <option value="ARCHER">弓手 (神射/精靈)</option>
+          <option value="THIEF">盜賊 (暗殺/詭術)</option>
+          <option value="PRAYER">祈禱者 (主教/拷問)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 右側動作按鈕 -->
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span style="font-size: 0.78rem; color: var(--cs-gold); font-weight: bold;" id="cs-hero-count-badge">共 0 位英雄</span>
+      <button class="cs-btn cs-btn-sm cs-btn-gold" id="btn-create-hero">➕ 新增英雄設計</button>
+    </div>
+  </div>
+
+  <!-- 英雄卡片流動網格區 -->
+  <div id="cs-hero-db-grid" style="flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; padding: 4px; align-content: flex-start;">
+    <!-- 動態載入英雄卡片 -->
+  </div>
+</div>
+
+<!-- 彈窗：英雄創造/編輯器 (Hero Creator Modal) -->
+<div class="cs-modal-overlay" id="modal-hero-creator" style="display: none;">
+  <div class="cs-modal-box" style="max-width: 640px;">
+    <div class="cs-modal-header">
+      <span class="cs-modal-title" id="hero-creator-title">👑 創造/編輯傳奇英雄</span>
+      <button class="cs-btn cs-btn-sm" id="btn-close-hero-creator">✕</button>
+    </div>
+    <div class="cs-modal-body" style="display: flex; flex-direction: column; gap: 10px; max-height: 75vh; overflow-y: auto;">
+      <input type="hidden" id="hc-edit-id">
+      
+      <!-- 基礎資訊 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div>
+          <label class="cs-label">尊號 / 稱號:</label>
+          <input type="text" id="hc-title" class="cs-input" placeholder="例如: 【赤焰戰神】">
+        </div>
+        <div>
+          <label class="cs-label">英雄本名:</label>
+          <input type="text" id="hc-name" class="cs-input" placeholder="例如: 雷恩·瓦倫泰">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+        <div>
+          <label class="cs-label">品質稀有度:</label>
+          <select id="hc-quality" class="cs-select">
+            <option value="UR">UR (神話)</option>
+            <option value="SSR">SSR (傳奇)</option>
+            <option value="SR">SR (史詩)</option>
+            <option value="R">R (稀有)</option>
+            <option value="N">N (普通)</option>
+          </select>
+        </div>
+        <div>
+          <label class="cs-label">性別:</label>
+          <select id="hc-gender" class="cs-select">
+            <option value="MALE">男性 (MALE)</option>
+            <option value="FEMALE">女性 (FEMALE)</option>
+          </select>
+        </div>
+        <div>
+          <label class="cs-label">基礎職業:</label>
+          <select id="hc-job" class="cs-select">
+            <option value="WARRIOR">戰士</option>
+            <option value="KNIGHT">騎士</option>
+            <option value="MAGE">法師</option>
+            <option value="ARCHER">弓箭手</option>
+            <option value="THIEF">盜賊</option>
+            <option value="PRAYER">祈禱者</option>
+          </select>
+        </div>
+        <div>
+          <label class="cs-label">滿等進階狀態:</label>
+          <select id="hc-is-advanced" class="cs-select">
+            <option value="true">⭐ 已滿等轉職 (Lv.10)</option>
+            <option value="false">見習成長期 (Lv.1~9)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 誓約守衛立繪開關與索引 -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #141a24; padding: 8px; border-radius: 6px;">
+        <div>
+          <label class="cs-label">肖像體系:</label>
+          <select id="hc-is-guardian" class="cs-select">
+            <option value="false">一般傭兵圖集 (25款)</option>
+            <option value="true">🛡️ 誓約男女守衛大圖集 (20款)</option>
+          </select>
+        </div>
+        <div>
+          <label class="cs-label">肖像編號 (0~24 / 0~9):</label>
+          <input type="number" id="hc-avatar-index" class="cs-input" min="0" max="24" value="0">
+        </div>
+      </div>
+
+      <!-- 六維屬性自由配點 -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
+        <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">📊 六維屬性極限配點</span>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 6px;">
+          <div><label class="cs-label">STR 力量</label><input type="number" id="hc-str" class="cs-input" min="0" value="20"></div>
+          <div><label class="cs-label">AGI 敏捷</label><input type="number" id="hc-agi" class="cs-input" min="0" value="10"></div>
+          <div><label class="cs-label">CON 體質</label><input type="number" id="hc-con" class="cs-input" min="0" value="20"></div>
+          <div><label class="cs-label">INT 智慧</label><input type="number" id="hc-int" class="cs-input" min="0" value="5"></div>
+          <div><label class="cs-label">SPR 精神</label><input type="number" id="hc-spr" class="cs-input" min="0" value="10"></div>
+          <div><label class="cs-label">LUK 幸運</label><input type="number" id="hc-luk" class="cs-input" min="0" value="5"></div>
+        </div>
+      </div>
+
+      <!-- 專屬神裝設定 -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
+        <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">⚔️ 專屬神裝配給</span>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 6px;">
+          <div>
+            <label class="cs-label">武器附魔元素:</label>
+            <select id="hc-weapon-element" class="cs-select">
+              <option value="NONE">無附魔 (NONE)</option>
+              <option value="FIRE">🔥 火焰 (FIRE)</option>
+              <option value="ICE">❄️ 冰霜 (ICE)</option>
+              <option value="LIGHTNING">⚡ 雷電 (LIGHTNING)</option>
+              <option value="DARK">🌑 黑暗 (DARK)</option>
+              <option value="HOLY">✨ 神聖 (HOLY)</option>
+            </select>
+          </div>
+          <div>
+            <label class="cs-label">武器強化等級:</label>
+            <input type="number" id="hc-weapon-enhance" class="cs-input" min="0" max="10" value="7">
+          </div>
+          <div>
+            <label class="cs-label">防具強化等級:</label>
+            <input type="number" id="hc-armor-enhance" class="cs-input" min="0" max="10" value="7">
+          </div>
+        </div>
+      </div>
+
+      <!-- 傳奇傳記 -->
+      <div>
+        <label class="cs-label">傳奇傳記 / 歷史故事:</label>
+        <textarea id="hc-biography" class="cs-input" style="height: 60px; resize: vertical;" placeholder="描述這位傳奇英雄的生平與傳奇戰役..."></textarea>
+      </div>
+    </div>
+    <div class="cs-modal-footer">
+      <button class="cs-btn" id="btn-cancel-hero-creator">取消</button>
+      <button class="cs-btn cs-btn-gold" id="btn-save-hero-creator">💾 儲存英雄</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：左側隊伍快速選擇英雄 (Hero Picker Modal) -->
+<div class="cs-modal-overlay" id="modal-hero-picker" style="display: none;">
+  <div class="cs-modal-box" style="max-width: 600px;">
+    <div class="cs-modal-header">
+      <span class="cs-modal-title">👤 為 <span id="hero-picker-slot-title" style="color: var(--cs-gold);">1 號位</span> 挑選英雄</span>
+      <button class="cs-btn cs-btn-sm" id="btn-close-hero-picker">✕</button>
+    </div>
+    <div class="cs-modal-body" style="display: flex; flex-direction: column; gap: 8px; max-height: 65vh; overflow-y: auto;">
+      <input type="text" id="cs-picker-search" class="cs-input" placeholder="🔍 快速搜尋英雄..." style="margin-bottom: 6px;">
+      <div id="cs-hero-picker-list" style="display: flex; flex-direction: column; gap: 6px;">
+        <!-- 動態產生可選擇的英雄項目 -->
+      </div>
+    </div>
+    <div class="cs-modal-footer">
+      <button class="cs-btn" id="btn-close-hero-picker-footer">關閉</button>
+    </div>
+  </div>
+</div>
+

@@ -2,19 +2,26 @@
   {
     "id": "wpn_iron_greatsword",
     "name": "鐵大劍",
-    "tier": 1,
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
-    "allowedJobs": [
-      "戰士"
-    ],
-    "itemLevel": 1,
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "str": 3
     },
-    "baseCombatEffects": {
-      "patk": 12
+    "combatEffects": {
+      "patk": 12,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "str",
@@ -25,48 +32,42 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "str": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "agi",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_horse_chopper",
     "name": "斬馬劍",
-    "tier": 2,
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
-    "allowedJobs": [
-      "戰士"
-    ],
-    "itemLevel": 12,
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "str": 6
     },
-    "baseCombatEffects": {
-      "patk": 25
+    "combatEffects": {
+      "patk": 25,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "str",
@@ -77,49 +78,43 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "str": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "agi",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_knight_greatsword",
     "name": "騎士巨劍",
-    "tier": 3,
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
-    "allowedJobs": [
-      "戰士"
-    ],
-    "itemLevel": 25,
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "str": 10,
       "con": 4
     },
-    "baseCombatEffects": {
-      "patk": 45
+    "combatEffects": {
+      "patk": 45,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "str",
@@ -130,49 +125,43 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "str": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "agi",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_meteoric_greatsword",
     "name": "隕鐵巨劍",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
-    "allowedJobs": [
-      "戰士"
-    ],
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "str": 18,
       "con": 8
     },
-    "baseCombatEffects": {
-      "patk": 75
+    "combatEffects": {
+      "patk": 75,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "str",
@@ -183,52 +172,43 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "str": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "agi",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_mithril_dual_swords",
     "name": "秘銀重鑄雙劍",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "DUAL_SWORDS",
-    "allowedJobs": [
-      "戰士"
-    ],
-    "isVariant": true,
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "str": 12,
       "int": 12
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 40,
       "matk": 40,
-      "hit": 10
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 10,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "str",
@@ -240,72 +220,42 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "str": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "agi",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_wooden_staff",
     "name": "木杖",
-    "tier": 1,
     "slot": "WEAPON",
     "weaponType": "STAFF",
-    "allowedJobs": [
-      "法師"
-    ],
-    "itemLevel": 1,
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 3
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 10,
-      "mp": 15
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 15,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -316,49 +266,42 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_apprentice_staff",
     "name": "學徒法杖",
-    "tier": 2,
     "slot": "WEAPON",
     "weaponType": "STAFF",
-    "allowedJobs": [
-      "法師"
-    ],
-    "itemLevel": 12,
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 6
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 22,
-      "mp": 35
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 35,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -369,50 +312,43 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_elemental_staff",
     "name": "元素法杖",
-    "tier": 3,
     "slot": "WEAPON",
     "weaponType": "STAFF",
-    "allowedJobs": [
-      "法師"
-    ],
-    "itemLevel": 25,
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 10,
       "spr": 4
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 42,
-      "mp": 60
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 60,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -423,50 +359,43 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_archmage_staff",
     "name": "賢者法杖",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "STAFF",
-    "allowedJobs": [
-      "法師"
-    ],
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 18,
       "spr": 8
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 72,
-      "mp": 100
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 100,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -477,52 +406,43 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_reaper_scythe",
     "name": "死靈收割戰鐮",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "SCYTHE",
-    "allowedJobs": [
-      "法師"
-    ],
-    "isVariant": true,
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 15,
       "spr": 8
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 35,
       "matk": 45,
-      "mp": 80
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 80,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -533,48 +453,42 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_short_bow",
     "name": "短弓",
-    "tier": 1,
     "slot": "WEAPON",
     "weaponType": "BOW",
-    "allowedJobs": [
-      "弓箭手"
-    ],
-    "itemLevel": 1,
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 3
     },
-    "baseCombatEffects": {
-      "patk": 10
+    "combatEffects": {
+      "patk": 10,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -585,48 +499,42 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_long_bow",
     "name": "長弓",
-    "tier": 2,
     "slot": "WEAPON",
     "weaponType": "BOW",
-    "allowedJobs": [
-      "弓箭手"
-    ],
-    "itemLevel": 12,
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 6
     },
-    "baseCombatEffects": {
-      "patk": 22
+    "combatEffects": {
+      "patk": 22,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -637,49 +545,43 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_hunter_bow",
     "name": "精鋼獵弓",
-    "tier": 3,
     "slot": "WEAPON",
     "weaponType": "BOW",
-    "allowedJobs": [
-      "弓箭手"
-    ],
-    "itemLevel": 25,
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 10,
       "luk": 4
     },
-    "baseCombatEffects": {
-      "patk": 40
+    "combatEffects": {
+      "patk": 40,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -690,49 +592,43 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_composite_bow",
     "name": "複合強弓",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "BOW",
-    "allowedJobs": [
-      "弓箭手"
-    ],
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 18,
       "luk": 8
     },
-    "baseCombatEffects": {
-      "patk": 70
+    "combatEffects": {
+      "patk": 70,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -743,52 +639,43 @@
         "hit"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_spirit_magic_bow",
     "name": "精靈使魔法弓",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "MAGIC_BOW",
-    "allowedJobs": [
-      "弓箭手"
-    ],
-    "isVariant": true,
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 12,
       "int": 10
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 40,
       "matk": 35,
-      "critRate": 5
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -800,73 +687,42 @@
         "critRate"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_wooden_shield_sword",
     "name": "木盾長劍",
-    "tier": 1,
     "slot": "WEAPON",
     "weaponType": "SWORD_AND_SHIELD",
-    "allowedJobs": [
-      "騎士"
-    ],
-    "itemLevel": 1,
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 3
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 8,
+      "matk": 0,
       "pdef": 4,
-      "mdef": 2
+      "mdef": 2,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -877,50 +733,42 @@
         "pdef"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "agi",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_steel_shield_sword",
     "name": "鋼盾長劍",
-    "tier": 2,
     "slot": "WEAPON",
     "weaponType": "SWORD_AND_SHIELD",
-    "allowedJobs": [
-      "騎士"
-    ],
-    "itemLevel": 12,
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 6
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 18,
+      "matk": 0,
       "pdef": 10,
-      "mdef": 5
+      "mdef": 5,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -931,51 +779,43 @@
         "pdef"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "agi",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_tower_shield_sword",
     "name": "塔盾長劍",
-    "tier": 3,
     "slot": "WEAPON",
     "weaponType": "SWORD_AND_SHIELD",
-    "allowedJobs": [
-      "騎士"
-    ],
-    "itemLevel": 25,
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 10,
       "str": 4
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 32,
+      "matk": 0,
       "pdef": 20,
-      "mdef": 10
+      "mdef": 10,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -986,51 +826,43 @@
         "pdef"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "agi",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_royal_paladin_sword",
     "name": "皇家聖騎士劍盾",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "SWORD_AND_SHIELD",
-    "allowedJobs": [
-      "騎士"
-    ],
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 18,
       "str": 8
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 58,
+      "matk": 0,
       "pdef": 38,
-      "mdef": 18
+      "mdef": 18,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -1041,52 +873,43 @@
         "pdef"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "agi",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_rune_counter_shield",
     "name": "破魔符文巨盾",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "RUNE_SHIELD",
-    "allowedJobs": [
-      "騎士"
-    ],
-    "isVariant": true,
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 15,
       "spr": 10
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 45,
+      "matk": 0,
       "pdef": 25,
-      "mdef": 35
+      "mdef": 35,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -1097,72 +920,42 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "agi",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "matk": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "int",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_iron_daggers",
     "name": "鐵匕首",
-    "tier": 1,
     "slot": "WEAPON",
     "weaponType": "DAGGERS",
-    "allowedJobs": [
-      "盜賊"
-    ],
-    "itemLevel": 1,
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 3
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 9,
-      "evade": 2
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 2,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -1173,49 +966,42 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_hunter_daggers",
     "name": "獵人雙刃",
-    "tier": 2,
     "slot": "WEAPON",
     "weaponType": "DAGGERS",
-    "allowedJobs": [
-      "盜賊"
-    ],
-    "itemLevel": 12,
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 6
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 20,
-      "evade": 5
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 5,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -1226,50 +1012,43 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_shadow_daggers",
     "name": "暗影雙匕",
-    "tier": 3,
     "slot": "WEAPON",
     "weaponType": "DAGGERS",
-    "allowedJobs": [
-      "盜賊"
-    ],
-    "itemLevel": 25,
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 10,
       "luk": 4
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 36,
-      "evade": 9
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 9,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -1280,50 +1059,43 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_poison_fanged_daggers",
     "name": "毒牙雙刃",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "DAGGERS",
-    "allowedJobs": [
-      "盜賊"
-    ],
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 18,
       "luk": 8
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 66,
-      "evade": 15
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 15,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -1334,52 +1106,43 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "agi": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "str",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_trickster_ring",
     "name": "詭術魔導戒",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "MAGIC_RING",
-    "allowedJobs": [
-      "盜賊"
-    ],
-    "isVariant": true,
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 14,
       "int": 10
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 30,
       "matk": 40,
-      "evade": 18
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 18,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -1391,49 +1154,42 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "int": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_prayer_handbook",
     "name": "祈禱手札",
-    "tier": 1,
     "slot": "WEAPON",
     "weaponType": "HOLY_BOOK",
-    "allowedJobs": [
-      "祈禱者"
-    ],
-    "itemLevel": 1,
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "spr": 3
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 8,
-      "mp": 20
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 20,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -1444,49 +1200,42 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "int",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_gospel_tome",
     "name": "福音書",
-    "tier": 2,
     "slot": "WEAPON",
     "weaponType": "HOLY_BOOK",
-    "allowedJobs": [
-      "祈禱者"
-    ],
-    "itemLevel": 12,
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "spr": 6
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 18,
-      "mp": 40
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 40,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -1497,50 +1246,43 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "int",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_archbishop_tome",
     "name": "主教聖典",
-    "tier": 3,
     "slot": "WEAPON",
     "weaponType": "HOLY_BOOK",
-    "allowedJobs": [
-      "祈禱者"
-    ],
-    "itemLevel": 25,
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "spr": 10,
       "int": 4
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 36,
-      "mp": 70
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 70,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -1551,50 +1293,43 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "int",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_grace_tome",
     "name": "恩典聖典",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "HOLY_BOOK",
-    "allowedJobs": [
-      "祈禱者"
-    ],
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "spr": 18,
       "int": 8
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
       "matk": 68,
-      "mp": 120
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 120,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -1605,53 +1340,43 @@
         "mp"
       ]
     },
-    "scalingRules": {
-      "matk": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "int",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "wpn_holy_war_hammer",
     "name": "破空聖鎚",
-    "tier": 4,
     "slot": "WEAPON",
     "weaponType": "HAMMER",
-    "allowedJobs": [
-      "祈禱者"
-    ],
-    "isVariant": true,
-    "itemLevel": 40,
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "str": 12,
       "spr": 12
     },
-    "baseCombatEffects": {
+    "combatEffects": {
       "patk": 40,
       "matk": 35,
       "pdef": 15,
-      "mdef": 10
+      "mdef": 10,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 5
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "str",
@@ -1663,53 +1388,17 @@
         "pdef"
       ]
     },
-    "scalingRules": {
-      "patk": {
-        "guaranteed": {
-          "str": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "agi",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "matk": {
-        "guaranteed": {
-          "spr": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "int",
-            "con",
-            "luk"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   }
 ]

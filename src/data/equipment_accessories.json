@@ -1,1 +1,420 @@
-[]
+[
+  {
+    "id": "acc_brave_ring",
+    "name": "勇氣指環",
+    "slot": "ACCESSORY",
+    "tier": 1,
+    "icon": "2_icons_materials:2_icons_materials_32",
+    "element": "NONE",
+    "baseEffects": {
+      "str": 2,
+      "con": 1
+    },
+    "combatEffects": {
+      "patk": 4,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 20,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "堅定",
+      "鋒利",
+      "嗜血"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "鐫刻著猛獅圖騰的厚重銅戒，給予佩戴者不屈的勇氣。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_wind_amulet",
+    "name": "風行者護符",
+    "slot": "ACCESSORY",
+    "tier": 1,
+    "icon": "2_icons_materials:2_icons_materials_42",
+    "element": "NONE",
+    "baseEffects": {
+      "agi": 2,
+      "luk": 1
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 4,
+      "evade": 3,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "疾風",
+      "致命",
+      "破甲"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "以風靈鳥羽毛編織的精緻護符，腳步如林間疾風般輕盈。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_scholar_pendant",
+    "name": "學者智慧墜飾",
+    "slot": "ACCESSORY",
+    "tier": 1,
+    "icon": "2_icons_materials:2_icons_materials_40",
+    "element": "NONE",
+    "baseEffects": {
+      "int": 2,
+      "spr": 1
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 5,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 15,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "奧術",
+      "冥想",
+      "全能"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "鑲嵌微型紫水晶的銀質吊墜，時刻保持心靈澄澈清明。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_guardian_medal",
+    "name": "守護者青銅勳章",
+    "slot": "ACCESSORY",
+    "tier": 2,
+    "icon": "2_icons_materials:2_icons_materials_48",
+    "element": "NONE",
+    "baseEffects": {
+      "con": 3,
+      "command": 2
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
+      "pdef": 6,
+      "mdef": 4,
+      "hp": 40,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "鐵壁",
+      "堅定",
+      "格擋"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "王國退役老衛士流出的榮譽勳章，散發著沉穩的護衛氣息。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_thief_band",
+    "name": "暗影夜行手鐲",
+    "slot": "ACCESSORY",
+    "tier": 2,
+    "icon": "3_icons_materials:3_icons_materials_50",
+    "element": "NONE",
+    "baseEffects": {
+      "agi": 3,
+      "luk": 2
+    },
+    "combatEffects": {
+      "patk": 4,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 5,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "致命",
+      "疾風",
+      "鋒利"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "黑市流通的漆黑手鐲，能在月光下隱匿身影與行蹤。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_holy_relic_cross",
+    "name": "神聖救贖十字",
+    "slot": "ACCESSORY",
+    "tier": 3,
+    "icon": "3_icons_materials:3_icons_materials_57",
+    "element": "NONE",
+    "baseEffects": {
+      "spr": 4,
+      "con": 2,
+      "charm": 2
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 10,
+      "hp": 50,
+      "mp": 30,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "抗魔",
+      "冥想",
+      "全能"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": false,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "古老修道院典藏之神聖遺物，受聖光長久庇佑。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_ruby_ring",
+    "name": "紅寶石生命之戒",
+    "slot": "ACCESSORY",
+    "tier": 2,
+    "icon": "2_icons_materials:2_icons_materials_33",
+    "element": "NONE",
+    "baseEffects": {
+      "con": 3
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 60,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "堅定",
+      "嗜血",
+      "鐵壁"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "以璀璨紅寶石鍛造之指環，源源不絕注入充沛的生命元氣。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_sapphire_necklace",
+    "name": "藍寶石魔力項鍊",
+    "slot": "ACCESSORY",
+    "tier": 2,
+    "icon": "2_icons_materials:2_icons_materials_41",
+    "element": "NONE",
+    "baseEffects": {
+      "spr": 3,
+      "int": 2
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 8,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 30,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "奧術",
+      "冥想",
+      "抗魔"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "沉澱著海洋魔力的藍寶石吊墜，能穩定引導奧術能量流通。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_berserk_badge",
+    "name": "狂暴暴擊徽章",
+    "slot": "ACCESSORY",
+    "tier": 2,
+    "icon": "2_icons_materials:2_icons_materials_49",
+    "element": "NONE",
+    "baseEffects": {
+      "str": 2,
+      "luk": 2
+    },
+    "combatEffects": {
+      "patk": 6,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "致命",
+      "鋒利",
+      "破甲"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "刻有狂戰士面具的鋼鐵徽章，大幅提升打擊要害的致命機率。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_gale_amulet",
+    "name": "疾風敏捷護符",
+    "slot": "ACCESSORY",
+    "tier": 2,
+    "icon": "2_icons_materials:2_icons_materials_43",
+    "element": "NONE",
+    "baseEffects": {
+      "agi": 3,
+      "luk": 1
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 15,
+      "evade": 15,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "疾風",
+      "致命",
+      "格擋"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "蘊含暴風核心的輕盈墜飾，給予佩戴者迅捷身法與精準視力。",
+    "flavorText": "",
+    "isLocked": true
+  },
+  {
+    "id": "acc_holy_cross",
+    "name": "神聖祈禱十字架",
+    "slot": "ACCESSORY",
+    "tier": 2,
+    "icon": "2_icons_materials:2_icons_materials_56",
+    "element": "NONE",
+    "baseEffects": {
+      "spr": 4,
+      "con": 1
+    },
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 20,
+      "hp": 0,
+      "mp": 20,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
+    },
+    "combatStatRanges": {},
+    "randomPool": {},
+    "affixPool": [
+      "抗魔",
+      "冥想",
+      "全能"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "純銀打造的教廷十字架，具備極強的魔法防禦與精神庇佑效果。",
+    "flavorText": "",
+    "isLocked": true
+  }
+]

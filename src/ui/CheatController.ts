@@ -4,6 +4,7 @@ import { ToastManager } from './ToastManager';
 import { renderBaseBuildings } from './SceneController';
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
+import { createUniqueAdventurer } from '../data/UniqueAdventurers';
 
 export function initCheatController(): void {
   if (!(import.meta as any).env?.DEV) return;
@@ -141,6 +142,27 @@ export function initCheatController(): void {
     'forge': { name: '開啟裝備與素材工坊', noPrompt: true, setter: () => {
         window.open('./tools/equipment-studio.html', '_blank');
         ToastManager.show(`🔨 已在新分頁開啟「裝備、素材與配方工坊 (Equipment Studio)」！`);
+    }},
+    'addur': { name: '召喚唯一 UR【赤焰戰神】', noPrompt: true, setter: () => {
+        const hero = createUniqueAdventurer('reyn');
+        if (hero) {
+          GameState.adventurers.push(hero);
+          ToastManager.show(`👑 唯一 UR 傭兵【${hero.name}】已加入您的隊伍！`, 'success');
+        }
+    }},
+    'addssr': { name: '召喚唯一 SSR【霜語大魔導】', noPrompt: true, setter: () => {
+        const hero = createUniqueAdventurer('luna');
+        if (hero) {
+          GameState.adventurers.push(hero);
+          ToastManager.show(`🌟 唯一 SSR 傭兵【${hero.name}】已加入您的隊伍！`, 'success');
+        }
+    }},
+    'addoath': { name: '召喚唯一 UR【神聖誓約騎士】', noPrompt: true, setter: () => {
+        const hero = createUniqueAdventurer('oath');
+        if (hero) {
+          GameState.adventurers.push(hero);
+          ToastManager.show(`🛡️ 唯一 UR 傭兵【${hero.name}】已加入您的隊伍！`, 'success');
+        }
     }}
   });
 

@@ -11,6 +11,8 @@ export enum TargetType {
   ALL_ALLIES = 'ALL_ALLIES'
 }
 
+export type SkillCategory = 'HERO_BASE' | 'HERO_ADVANCED' | 'MONSTER' | 'EQUIPMENT';
+
 export interface Skill {
   id: string;
   name: string;
@@ -18,6 +20,8 @@ export interface Skill {
   targetType: TargetType;
   description: string;
   cooldown?: number;
+  category?: SkillCategory;
+  icon?: string;
   aiWeight?: (caster: CombatParticipant, skillTargets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => number;
   execute: (caster: CombatParticipant, targets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => CombatEvent[];
 }

@@ -2,23 +2,27 @@
   {
     "id": "arm_cloth_robe_t1",
     "name": "粗布長袍",
-    "tier": 1,
-    "armorType": "CLOTH",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "法師",
-      "祈禱者"
-    ],
-    "itemLevel": 1,
+    "armorType": "CLOTH",
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 2,
       "spr": 2
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 2,
       "mdef": 6,
-      "hp": 15
+      "hp": 15,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -31,51 +35,43 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "mdef": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_cloth_robe_t2",
     "name": "學徒法袍",
-    "tier": 2,
-    "armorType": "CLOTH",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "法師",
-      "祈禱者"
-    ],
-    "itemLevel": 12,
+    "armorType": "CLOTH",
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 4,
       "spr": 4
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 5,
       "mdef": 14,
-      "hp": 40
+      "hp": 40,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -88,51 +84,43 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "mdef": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_cloth_robe_t3",
     "name": "祭司長袍",
-    "tier": 3,
-    "armorType": "CLOTH",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "法師",
-      "祈禱者"
-    ],
-    "itemLevel": 25,
+    "armorType": "CLOTH",
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 8,
       "spr": 8
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 10,
       "mdef": 28,
-      "hp": 90
+      "hp": 90,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -145,51 +133,43 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "mdef": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_cloth_robe_t4",
     "name": "大法師法袍",
-    "tier": 4,
-    "armorType": "CLOTH",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "法師",
-      "祈禱者"
-    ],
-    "itemLevel": 40,
+    "armorType": "CLOTH",
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "int": 14,
       "spr": 14
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 18,
       "mdef": 50,
-      "hp": 170
+      "hp": 170,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "int",
@@ -202,51 +182,43 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "mdef": {
-        "guaranteed": {
-          "spr": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_leather_t1",
     "name": "輕皮甲",
-    "tier": 1,
-    "armorType": "LEATHER",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "盜賊",
-      "弓箭手"
-    ],
-    "itemLevel": 1,
+    "armorType": "LEATHER",
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 2,
       "luk": 2
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 4,
       "mdef": 4,
-      "evade": 2
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 2,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -260,73 +232,43 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "con",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "mdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_leather_t2",
     "name": "硬皮甲",
-    "tier": 2,
-    "armorType": "LEATHER",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "盜賊",
-      "弓箭手"
-    ],
-    "itemLevel": 12,
+    "armorType": "LEATHER",
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 4,
       "luk": 4
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 10,
       "mdef": 10,
-      "evade": 5
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 5,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -340,73 +282,43 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "con",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "mdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_leather_t3",
     "name": "游俠皮甲",
-    "tier": 3,
-    "armorType": "LEATHER",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "盜賊",
-      "弓箭手"
-    ],
-    "itemLevel": 25,
+    "armorType": "LEATHER",
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 8,
       "luk": 8
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 20,
       "mdef": 20,
-      "evade": 10
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 10,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -420,73 +332,43 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "con",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "mdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_leather_t4",
     "name": "影子獵人皮甲",
-    "tier": 4,
-    "armorType": "LEATHER",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "盜賊",
-      "弓箭手"
-    ],
-    "itemLevel": 40,
+    "armorType": "LEATHER",
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "agi": 14,
       "luk": 14
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 36,
       "mdef": 36,
-      "evade": 18
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "evade": 18,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "agi",
@@ -500,73 +382,43 @@
         "evade"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "con",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      },
-      "mdef": {
-        "guaranteed": {
-          "luk": [
-            "D",
-            "A"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "spr",
-            "charm"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_heavy_t1",
     "name": "生鐵環甲",
-    "tier": 1,
-    "armorType": "HEAVY",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "戰士",
-      "騎士"
-    ],
-    "itemLevel": 1,
+    "armorType": "HEAVY",
+    "tier": 1,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 3,
       "str": 1
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 10,
       "mdef": 3,
-      "hp": 30
+      "hp": 30,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -579,51 +431,43 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_heavy_t2",
     "name": "鏈甲",
-    "tier": 2,
-    "armorType": "HEAVY",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "戰士",
-      "騎士"
-    ],
-    "itemLevel": 12,
+    "armorType": "HEAVY",
+    "tier": 2,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 6,
       "str": 3
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 24,
       "mdef": 8,
-      "hp": 75
+      "hp": 75,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -636,51 +480,43 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_heavy_t3",
     "name": "板甲",
-    "tier": 3,
-    "armorType": "HEAVY",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "戰士",
-      "騎士"
-    ],
-    "itemLevel": 25,
+    "armorType": "HEAVY",
+    "tier": 3,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 12,
       "str": 6
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 48,
       "mdef": 15,
-      "hp": 160
+      "hp": 160,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -693,51 +529,43 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   },
   {
     "id": "arm_heavy_t4",
     "name": "皇家重鎧",
-    "tier": 4,
-    "armorType": "HEAVY",
     "slot": "ARMOR",
-    "allowedJobs": [
-      "戰士",
-      "騎士"
-    ],
-    "itemLevel": 40,
+    "armorType": "HEAVY",
+    "tier": 4,
+    "icon": "",
+    "element": "NONE",
     "baseEffects": {
       "con": 20,
       "str": 10
     },
-    "baseCombatEffects": {
+    "combatEffects": {
+      "patk": 0,
+      "matk": 0,
       "pdef": 80,
       "mdef": 25,
-      "hp": 300
+      "hp": 300,
+      "mp": 0,
+      "hit": 0,
+      "evade": 0,
+      "crit": 0
     },
+    "combatStatRanges": {},
     "randomPool": {
       "attributes": [
         "con",
@@ -750,29 +578,17 @@
         "mdef"
       ]
     },
-    "scalingRules": {
-      "pdef": {
-        "guaranteed": {
-          "con": [
-            "C",
-            "S"
-          ]
-        },
-        "randomPool": {
-          "possibleAttributes": [
-            "luk",
-            "command"
-          ],
-          "rankRange": [
-            "E",
-            "A"
-          ],
-          "count": [
-            0,
-            2
-          ]
-        }
-      }
-    }
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": true
   }
 ]

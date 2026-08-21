@@ -2,7 +2,7 @@ import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipantState } from '../models/Combat';
 import { FormationRow, TerrainType } from '../models/types';
-import { getAvatarSpriteStyle } from './IconSpriteHelper';
+import { getAvatarSpriteStyle, renderUniversalIcon } from './IconSpriteHelper';
 
 export class CombatUIManager {
   // DOM 引用：延遲到 init() 時才初始化，避免 template 尚未注入時取得 null
@@ -18,11 +18,12 @@ export class CombatUIManager {
   private static btnResultClose: HTMLElement;
   private static btnSpeed1x: HTMLElement;
   private static btnSpeed2x: HTMLElement;
+  private static btnSpeed3x: HTMLElement;
   
   private static currentReport: CombatReport | null = null;
   private static playInterval: number | null = null;
   private static finishTimeout: ReturnType<typeof setTimeout> | null = null;
-  private static currentSpeed = 1200; // 1x 預設較慢
+  private static currentSpeed = 1000; // 1x 預設 1000ms
   private static eventIndex = 0;
   private static hpMap: Record<string, number> = {};
   private static fallbackPlayerCount = 0;
@@ -44,13 +45,15 @@ export class CombatUIManager {
     this.btnResultClose      = document.getElementById('btn-combat-result-close')!;
     this.btnSpeed1x          = document.getElementById('btn-combat-speed-1x')!;
     this.btnSpeed2x          = document.getElementById('btn-combat-speed-2x')!;
+    this.btnSpeed3x          = document.getElementById('btn-combat-speed-3x')!;
 
     if (!this.isInitialized) {
       this.btnSkip.addEventListener('click', () => this.skipPlayback());
       this.btnClose.addEventListener('click', () => this.closeCombat());
       this.btnResultClose.addEventListener('click', () => this.closeCombat());
-      this.btnSpeed1x.addEventListener('click', () => this.setSpeed(1));
-      this.btnSpeed2x.addEventListener('click', () => this.setSpeed(2));
+      this.btnSpeed1x?.addEventListener('click', () => this.setSpeed(1));
+      this.btnSpeed2x?.addEventListener('click', () => this.setSpeed(2));
+      this.btnSpeed3x?.addEventListener('click', () => this.setSpeed(3));
       this.isInitialized = true;
     }
   }
@@ -61,23 +64,20 @@ export class CombatUIManager {
   }
 
   private static setSpeed(multiplier: number) {
-    this.currentSpeed = multiplier === 1 ? 1200 : 500;
+    this.currentSpeed = multiplier === 1 ? 1000 : (multiplier === 2 ? 450 : 180);
     
-    if (multiplier === 1) {
-      this.btnSpeed1x.classList.add('active');
-      this.btnSpeed1x.style.borderColor = '#eab308';
-      this.btnSpeed1x.style.color = '#eab308';
-      this.btnSpeed2x.classList.remove('active');
-      this.btnSpeed2x.style.borderColor = '#64748b';
-      this.btnSpeed2x.style.color = '#64748b';
-    } else {
-      this.btnSpeed2x.classList.add('active');
-      this.btnSpeed2x.style.borderColor = '#eab308';
-      this.btnSpeed2x.style.color = '#eab308';
-      this.btnSpeed1x.classList.remove('active');
-      this.btnSpeed1x.style.borderColor = '#64748b';
-      this.btnSpeed1x.style.color = '#64748b';
-    }
+    [this.btnSpeed1x, this.btnSpeed2x, this.btnSpeed3x].forEach((btn, idx) => {
+      if (!btn) return;
+      if (idx + 1 === multiplier) {
+        btn.classList.add('active');
+        btn.style.borderColor = '#eab308';
+        btn.style.color = '#eab308';
+      } else {
+        btn.classList.remove('active');
+        btn.style.borderColor = '#64748b';
+        btn.style.color = '#64748b';
+      }
+    });
 
     if (this.playInterval) {
       clearInterval(this.playInterval);
@@ -123,19 +123,24 @@ export class CombatUIManager {
     this.playInterval = window.setInterval(() => this.playNextEvent(), this.currentSpeed);
   }
   
+  // ── 建立單位戰鬥卡片（Full-Art 滿版卡牌式）──
   private static createHpBar(state: CombatParticipantState) {
     const div = document.createElement('div');
-    div.className = 'combat-participant';
+    div.className = `combat-participant ${state.isPlayer ? 'player-side' : 'enemy-side'}`;
     div.id = `combat-p-${state.id}`;
     
-    let avatarHtml = '<span style="font-size: 1.4em;">👺</span>';
+    let avatarHtml = '';
     if (state.isPlayer) {
       if (state.avatarIndex !== undefined) {
         const avatarStyle = getAvatarSpriteStyle((state.gender as any) || 'MALE', state.avatarIndex, state.isGuardian);
-        avatarHtml = `<div style="width: 34px; height: 34px; border-radius: 4px; overflow: hidden; border: 1.5px solid rgba(234, 179, 8, 0.7); flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.5); background-image: ${avatarStyle.backgroundImage}; background-size: ${avatarStyle.backgroundSize}; background-position: ${avatarStyle.backgroundPosition};"></div>`;
+        avatarHtml = `<div class="combat-p-avatar-sq" style="background-image: ${avatarStyle.backgroundImage}; background-size: ${avatarStyle.backgroundSize}; background-position: ${avatarStyle.backgroundPosition};"></div>`;
       } else {
-        avatarHtml = '<span style="font-size: 1.4em;">🦸</span>';
+        avatarHtml = '<span style="font-size: 2.5rem;">🦸</span>';
       }
+    } else {
+      // 敵方怪物肖像：大尺寸渲染 8x8 寫實精靈圖
+      const iconKey = state.avatarIcon || 'icons_monsters:goblin';
+      avatarHtml = renderUniversalIcon(iconKey, 84);
     }
     
     let gridColumn = 1;
@@ -143,8 +148,8 @@ export class CombatUIManager {
 
     if (state.isPlayer) {
       if (state.gridR !== undefined && state.gridC !== undefined) {
-         gridColumn = 3 - state.gridR; // r=0(Front) -> col=3, r=1(Mid) -> col=2, r=2(Back) -> col=1
-         gridRow = state.gridC + 1;    // c=0(Top) -> row=1, c=1(Mid) -> row=2, c=2(Bottom) -> row=3
+         gridColumn = 3 - state.gridR; 
+         gridRow = state.gridC + 1;    
       } else {
          const fallbackIndex = this.fallbackPlayerCount++;
          gridColumn = state.row === 'FRONT' ? 3 : (state.row === 'MIDDLE' ? 2 : 1);
@@ -152,7 +157,7 @@ export class CombatUIManager {
       }
     } else {
       if (state.gridR !== undefined && state.gridC !== undefined) {
-         gridColumn = state.gridR + 1; // r=0(Front) -> col=1, r=1(Mid) -> col=2, r=2(Back) -> col=3
+         gridColumn = state.gridR + 1; 
          gridRow = state.gridC + 1;
       } else {
          const fallbackIndex = this.fallbackEnemyCount++;
@@ -163,26 +168,34 @@ export class CombatUIManager {
     div.style.gridColumn = gridColumn.toString();
     div.style.gridRow = gridRow.toString();
 
-    let rowLabel = '前排';
-    if (state.row === 'BACK') rowLabel = '後排';
-    else if (state.row === 'MIDDLE') rowLabel = '中排';
+    let rowLabel = '前';
+    if (state.row === 'BACK') rowLabel = '後';
+    else if (state.row === 'MIDDLE') rowLabel = '中';
 
     const maxMp = state.maxMp || 100;
     const curMp = state.currentMp !== undefined ? state.currentMp : maxMp;
     const mpPct = Math.max(0, Math.min(100, (curMp / maxMp) * 100));
 
     div.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 4px; ${state.isPlayer ? '' : 'flex-direction: row-reverse;'} flex-shrink: 0; min-height: 0;">
+      <!-- 滿版背景肖像 (取消內層小框) -->
+      <div class="combat-p-avatar-bg">
         ${avatarHtml}
-        <div style="flex: 1; min-width: 0;">
-          <div style="font-size: 0.55em; line-height: 1.2; font-weight: bold; color: ${state.isPlayer ? '#fbbf24' : '#f87171'}; word-break: break-all; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${state.name} <span style="font-size: 0.85em; color: #94a3b8; white-space: nowrap;">${rowLabel}</span></div>
+      </div>
+
+      <!-- 頂部懸浮名稱與站位標籤 -->
+      <div class="combat-p-top-bar">
+        <span class="combat-p-name-text" style="color: ${state.isPlayer ? '#fde047' : '#fca5a5'};">${state.name}</span>
+        <span class="combat-p-row-tag">${rowLabel}</span>
+      </div>
+
+      <!-- 底部懸浮血條與魔力條 -->
+      <div class="combat-p-bottom-bar">
+        <div class="combat-hp-bg">
+          <div id="hp-fill-${state.id}" class="combat-hp-fill" style="width: 100%;"></div>
         </div>
-      </div>
-      <div class="combat-hp-bg">
-        <div id="hp-fill-${state.id}" class="combat-hp-fill" style="width: 100%;"></div>
-      </div>
-      <div class="combat-mp-bg">
-        <div id="mp-fill-${state.id}" class="combat-mp-fill" style="width: ${mpPct}%;"></div>
+        <div class="combat-mp-bg">
+          <div id="mp-fill-${state.id}" class="combat-mp-fill" style="width: ${mpPct}%;"></div>
+        </div>
       </div>
     `;
     
@@ -190,7 +203,6 @@ export class CombatUIManager {
       this.playerTeamContainer.appendChild(div);
     } else {
       this.enemyTeamContainer.appendChild(div);
-      div.style.textAlign = 'right';
     }
   }
 
@@ -203,7 +215,7 @@ export class CombatUIManager {
         this.playInterval = null;
       }
       if (!this.finishTimeout) {
-        this.finishTimeout = setTimeout(() => this.finishPlayback(), 800);
+        this.finishTimeout = setTimeout(() => this.finishPlayback(), 600);
       }
       return;
     }
@@ -225,7 +237,7 @@ export class CombatUIManager {
         logEl.style.color = '#eab308';
         logEl.style.fontWeight = 'bold';
         logEl.style.textAlign = 'center';
-        logEl.style.margin = '15px 0';
+        logEl.style.margin = '12px 0';
         
         // 生成該波次敵人
         this.enemyTeamContainer.innerHTML = '';
@@ -238,7 +250,7 @@ export class CombatUIManager {
       } else if (event.type === CombatEventType.CRIT) {
         logEl.classList.add('log-crit');
         this.modal.classList.add('shake');
-        setTimeout(() => this.modal.classList.remove('shake'), 400);
+        setTimeout(() => this.modal.classList.remove('shake'), 350);
       } else if (event.type === CombatEventType.MISS) {
         logEl.classList.add('log-miss');
       } else if (event.type === CombatEventType.STATUS_APPLY) {
@@ -251,6 +263,24 @@ export class CombatUIManager {
       this.logArea.scrollTop = this.logArea.scrollHeight;
     }
     
+    // 技能施放光暈反饋
+    if (event.type === CombatEventType.SKILL_CAST && event.actorId) {
+      const actorEl = document.getElementById(`combat-p-${event.actorId}`);
+      if (actorEl) {
+        actorEl.classList.add('skill-cast-glow');
+        setTimeout(() => actorEl.classList.remove('skill-cast-glow'), 450);
+      }
+    }
+
+    // 受擊震動與閃紅反饋
+    if (event.targetId && (event.damage !== undefined || event.type === CombatEventType.HIT || event.type === CombatEventType.CRIT || event.type === CombatEventType.STATUS_DAMAGE)) {
+      const targetEl = document.getElementById(`combat-p-${event.targetId}`);
+      if (targetEl) {
+        targetEl.classList.add('hit-shake', 'hit-flash');
+        setTimeout(() => targetEl.classList.remove('hit-shake', 'hit-flash'), 300);
+      }
+    }
+    
     // 更新血量與動畫
     if (event.targetHp !== undefined && event.targetId !== undefined && event.targetMaxHp !== undefined) {
       this.hpMap[event.targetId] = event.targetHp;
@@ -260,6 +290,19 @@ export class CombatUIManager {
         fillEl.style.width = `${pct}%`;
         if (pct < 30) fillEl.classList.add('low');
       }
+
+      // 陣亡標記
+      if (event.targetHp <= 0) {
+        const targetEl = document.getElementById(`combat-p-${event.targetId}`);
+        if (targetEl) targetEl.classList.add('is-dead');
+      }
+    }
+
+    // 死亡事件直接暗化
+    if (event.type === CombatEventType.DEATH && (event.targetId || event.actorId)) {
+      const deadId = event.targetId || event.actorId;
+      const deadEl = document.getElementById(`combat-p-${deadId}`);
+      if (deadEl) deadEl.classList.add('is-dead');
     }
 
     // 更新 MP 能量條與動畫
@@ -279,13 +322,10 @@ export class CombatUIManager {
         const isMp = event.healType === 'MP';
         const floatEl = document.createElement('div');
         floatEl.className = 'floating-dmg';
-        floatEl.style.color = isMp ? '#38bdf8' : '#4ade80';
-        floatEl.style.textShadow = '0 0 5px rgba(0,0,0,0.9)';
-        floatEl.style.fontSize = '1.1em';
-        floatEl.style.fontWeight = 'bold';
+        floatEl.style.color = isMp ? '#38bdf8' : '#22c55e';
         floatEl.textContent = `+${event.damage} ${isMp ? 'MP' : 'HP'}`;
         targetEl.appendChild(floatEl);
-        setTimeout(() => { if (floatEl.parentNode) floatEl.remove(); }, 1000);
+        setTimeout(() => { if (floatEl.parentNode) floatEl.remove(); }, 800);
       }
     }
 
@@ -309,9 +349,9 @@ export class CombatUIManager {
         if (event.damage !== undefined) {
           const dmgEl = document.createElement('div');
           dmgEl.className = `floating-dmg ${event.type === CombatEventType.CRIT ? 'crit' : ''}`;
-          dmgEl.textContent = `-${event.damage}`;
+          dmgEl.textContent = `${event.type === CombatEventType.CRIT ? '💥 ' : ''}-${event.damage}`;
           targetEl.appendChild(dmgEl);
-          setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 1000);
+          setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 800);
         }
       }
     }

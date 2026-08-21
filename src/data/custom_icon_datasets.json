@@ -1241,5 +1241,1829 @@
         "zoom": 100
       }
     ]
+  },
+  "icons_materials": {
+    "title": "素材ICON",
+    "spriteUrl": "../public/assets/custom_icons/icons_materials.png",
+    "cols": 8,
+    "rows": 8,
+    "items": [
+      {
+        "id": "icons_materials_0",
+        "name": "素材ICON #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_1",
+        "name": "素材ICON #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_2",
+        "name": "素材ICON #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_3",
+        "name": "素材ICON #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_4",
+        "name": "素材ICON #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_5",
+        "name": "素材ICON #06",
+        "col": 5,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_6",
+        "name": "素材ICON #07",
+        "col": 6,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_7",
+        "name": "素材ICON #08",
+        "col": 7,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_8",
+        "name": "素材ICON #09",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_9",
+        "name": "素材ICON #10",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_10",
+        "name": "素材ICON #11",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_11",
+        "name": "素材ICON #12",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_12",
+        "name": "素材ICON #13",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_13",
+        "name": "素材ICON #14",
+        "col": 5,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_14",
+        "name": "素材ICON #15",
+        "col": 6,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_15",
+        "name": "素材ICON #16",
+        "col": 7,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_16",
+        "name": "素材ICON #17",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_17",
+        "name": "素材ICON #18",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_18",
+        "name": "素材ICON #19",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_19",
+        "name": "素材ICON #20",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_20",
+        "name": "素材ICON #21",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_21",
+        "name": "素材ICON #22",
+        "col": 5,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_22",
+        "name": "素材ICON #23",
+        "col": 6,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_23",
+        "name": "素材ICON #24",
+        "col": 7,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_24",
+        "name": "素材ICON #25",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_25",
+        "name": "素材ICON #26",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_26",
+        "name": "素材ICON #27",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_27",
+        "name": "素材ICON #28",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_28",
+        "name": "素材ICON #29",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_29",
+        "name": "素材ICON #30",
+        "col": 5,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_30",
+        "name": "素材ICON #31",
+        "col": 6,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_31",
+        "name": "素材ICON #32",
+        "col": 7,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_32",
+        "name": "素材ICON #33",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_33",
+        "name": "素材ICON #34",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_34",
+        "name": "素材ICON #35",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_35",
+        "name": "素材ICON #36",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_36",
+        "name": "素材ICON #37",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_37",
+        "name": "素材ICON #38",
+        "col": 5,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_38",
+        "name": "素材ICON #39",
+        "col": 6,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_39",
+        "name": "素材ICON #40",
+        "col": 7,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_40",
+        "name": "素材ICON #41",
+        "col": 0,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_41",
+        "name": "素材ICON #42",
+        "col": 1,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_42",
+        "name": "素材ICON #43",
+        "col": 2,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_43",
+        "name": "素材ICON #44",
+        "col": 3,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_44",
+        "name": "素材ICON #45",
+        "col": 4,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_45",
+        "name": "素材ICON #46",
+        "col": 5,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_46",
+        "name": "素材ICON #47",
+        "col": 6,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_47",
+        "name": "素材ICON #48",
+        "col": 7,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_48",
+        "name": "素材ICON #49",
+        "col": 0,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_49",
+        "name": "素材ICON #50",
+        "col": 1,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_50",
+        "name": "素材ICON #51",
+        "col": 2,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_51",
+        "name": "素材ICON #52",
+        "col": 3,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_52",
+        "name": "素材ICON #53",
+        "col": 4,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_53",
+        "name": "素材ICON #54",
+        "col": 5,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_54",
+        "name": "素材ICON #55",
+        "col": 6,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_55",
+        "name": "素材ICON #56",
+        "col": 7,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_56",
+        "name": "素材ICON #57",
+        "col": 0,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_57",
+        "name": "素材ICON #58",
+        "col": 1,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_58",
+        "name": "素材ICON #59",
+        "col": 2,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_59",
+        "name": "素材ICON #60",
+        "col": 3,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_60",
+        "name": "素材ICON #61",
+        "col": 4,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_61",
+        "name": "素材ICON #62",
+        "col": 5,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_62",
+        "name": "素材ICON #63",
+        "col": 6,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "icons_materials_63",
+        "name": "素材ICON #64",
+        "col": 7,
+        "row": 7,
+        "zoom": 100
+      }
+    ]
+  },
+  "2_icons_materials": {
+    "title": "ICON素材2",
+    "spriteUrl": "../public/assets/custom_icons/2_icons_materials.png",
+    "cols": 8,
+    "rows": 8,
+    "items": [
+      {
+        "id": "2_icons_materials_0",
+        "name": "ICON素材2 #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_1",
+        "name": "ICON素材2 #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_2",
+        "name": "ICON素材2 #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_3",
+        "name": "ICON素材2 #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_4",
+        "name": "ICON素材2 #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_5",
+        "name": "ICON素材2 #06",
+        "col": 5,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_6",
+        "name": "ICON素材2 #07",
+        "col": 6,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_7",
+        "name": "ICON素材2 #08",
+        "col": 7,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_8",
+        "name": "ICON素材2 #09",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_9",
+        "name": "ICON素材2 #10",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_10",
+        "name": "ICON素材2 #11",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_11",
+        "name": "ICON素材2 #12",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_12",
+        "name": "ICON素材2 #13",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_13",
+        "name": "ICON素材2 #14",
+        "col": 5,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_14",
+        "name": "ICON素材2 #15",
+        "col": 6,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_15",
+        "name": "ICON素材2 #16",
+        "col": 7,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_16",
+        "name": "ICON素材2 #17",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_17",
+        "name": "ICON素材2 #18",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_18",
+        "name": "ICON素材2 #19",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_19",
+        "name": "ICON素材2 #20",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_20",
+        "name": "ICON素材2 #21",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_21",
+        "name": "ICON素材2 #22",
+        "col": 5,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_22",
+        "name": "ICON素材2 #23",
+        "col": 6,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_23",
+        "name": "ICON素材2 #24",
+        "col": 7,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_24",
+        "name": "ICON素材2 #25",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_25",
+        "name": "ICON素材2 #26",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_26",
+        "name": "ICON素材2 #27",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_27",
+        "name": "ICON素材2 #28",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_28",
+        "name": "ICON素材2 #29",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_29",
+        "name": "ICON素材2 #30",
+        "col": 5,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_30",
+        "name": "ICON素材2 #31",
+        "col": 6,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_31",
+        "name": "ICON素材2 #32",
+        "col": 7,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_32",
+        "name": "ICON素材2 #33",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_33",
+        "name": "ICON素材2 #34",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_34",
+        "name": "ICON素材2 #35",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_35",
+        "name": "ICON素材2 #36",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_36",
+        "name": "ICON素材2 #37",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_37",
+        "name": "ICON素材2 #38",
+        "col": 5,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_38",
+        "name": "ICON素材2 #39",
+        "col": 6,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_39",
+        "name": "ICON素材2 #40",
+        "col": 7,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_40",
+        "name": "ICON素材2 #41",
+        "col": 0,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_41",
+        "name": "ICON素材2 #42",
+        "col": 1,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_42",
+        "name": "ICON素材2 #43",
+        "col": 2,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_43",
+        "name": "ICON素材2 #44",
+        "col": 3,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_44",
+        "name": "ICON素材2 #45",
+        "col": 4,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_45",
+        "name": "ICON素材2 #46",
+        "col": 5,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_46",
+        "name": "ICON素材2 #47",
+        "col": 6,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_47",
+        "name": "ICON素材2 #48",
+        "col": 7,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_48",
+        "name": "ICON素材2 #49",
+        "col": 0,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_49",
+        "name": "ICON素材2 #50",
+        "col": 1,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_50",
+        "name": "ICON素材2 #51",
+        "col": 2,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_51",
+        "name": "ICON素材2 #52",
+        "col": 3,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_52",
+        "name": "ICON素材2 #53",
+        "col": 4,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_53",
+        "name": "ICON素材2 #54",
+        "col": 5,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_54",
+        "name": "ICON素材2 #55",
+        "col": 6,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_55",
+        "name": "ICON素材2 #56",
+        "col": 7,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_56",
+        "name": "ICON素材2 #57",
+        "col": 0,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_57",
+        "name": "ICON素材2 #58",
+        "col": 1,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_58",
+        "name": "ICON素材2 #59",
+        "col": 2,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_59",
+        "name": "ICON素材2 #60",
+        "col": 3,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_60",
+        "name": "ICON素材2 #61",
+        "col": 4,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_61",
+        "name": "ICON素材2 #62",
+        "col": 5,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_62",
+        "name": "ICON素材2 #63",
+        "col": 6,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "2_icons_materials_63",
+        "name": "ICON素材2 #64",
+        "col": 7,
+        "row": 7,
+        "zoom": 100
+      }
+    ]
+  },
+  "3_icons_materials": {
+    "title": "ICON素材3",
+    "spriteUrl": "../public/assets/custom_icons/3_icons_materials.png",
+    "cols": 8,
+    "rows": 8,
+    "items": [
+      {
+        "id": "3_icons_materials_0",
+        "name": "ICON素材3 #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_1",
+        "name": "ICON素材3 #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_2",
+        "name": "ICON素材3 #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_3",
+        "name": "ICON素材3 #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_4",
+        "name": "ICON素材3 #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_5",
+        "name": "ICON素材3 #06",
+        "col": 5,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_6",
+        "name": "ICON素材3 #07",
+        "col": 6,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_7",
+        "name": "ICON素材3 #08",
+        "col": 7,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_8",
+        "name": "ICON素材3 #09",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_9",
+        "name": "ICON素材3 #10",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_10",
+        "name": "ICON素材3 #11",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_11",
+        "name": "ICON素材3 #12",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_12",
+        "name": "ICON素材3 #13",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_13",
+        "name": "ICON素材3 #14",
+        "col": 5,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_14",
+        "name": "ICON素材3 #15",
+        "col": 6,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_15",
+        "name": "ICON素材3 #16",
+        "col": 7,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_16",
+        "name": "ICON素材3 #17",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_17",
+        "name": "ICON素材3 #18",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_18",
+        "name": "ICON素材3 #19",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_19",
+        "name": "ICON素材3 #20",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_20",
+        "name": "ICON素材3 #21",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_21",
+        "name": "ICON素材3 #22",
+        "col": 5,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_22",
+        "name": "ICON素材3 #23",
+        "col": 6,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_23",
+        "name": "ICON素材3 #24",
+        "col": 7,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_24",
+        "name": "ICON素材3 #25",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_25",
+        "name": "ICON素材3 #26",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_26",
+        "name": "ICON素材3 #27",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_27",
+        "name": "ICON素材3 #28",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_28",
+        "name": "ICON素材3 #29",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_29",
+        "name": "ICON素材3 #30",
+        "col": 5,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_30",
+        "name": "ICON素材3 #31",
+        "col": 6,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_31",
+        "name": "ICON素材3 #32",
+        "col": 7,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_32",
+        "name": "ICON素材3 #33",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_33",
+        "name": "ICON素材3 #34",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_34",
+        "name": "ICON素材3 #35",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_35",
+        "name": "ICON素材3 #36",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_36",
+        "name": "ICON素材3 #37",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_37",
+        "name": "ICON素材3 #38",
+        "col": 5,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_38",
+        "name": "ICON素材3 #39",
+        "col": 6,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_39",
+        "name": "ICON素材3 #40",
+        "col": 7,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_40",
+        "name": "ICON素材3 #41",
+        "col": 0,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_41",
+        "name": "ICON素材3 #42",
+        "col": 1,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_42",
+        "name": "ICON素材3 #43",
+        "col": 2,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_43",
+        "name": "ICON素材3 #44",
+        "col": 3,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_44",
+        "name": "ICON素材3 #45",
+        "col": 4,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_45",
+        "name": "ICON素材3 #46",
+        "col": 5,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_46",
+        "name": "ICON素材3 #47",
+        "col": 6,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_47",
+        "name": "ICON素材3 #48",
+        "col": 7,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_48",
+        "name": "ICON素材3 #49",
+        "col": 0,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_49",
+        "name": "ICON素材3 #50",
+        "col": 1,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_50",
+        "name": "ICON素材3 #51",
+        "col": 2,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_51",
+        "name": "ICON素材3 #52",
+        "col": 3,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_52",
+        "name": "ICON素材3 #53",
+        "col": 4,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_53",
+        "name": "ICON素材3 #54",
+        "col": 5,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_54",
+        "name": "ICON素材3 #55",
+        "col": 6,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_55",
+        "name": "ICON素材3 #56",
+        "col": 7,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_56",
+        "name": "ICON素材3 #57",
+        "col": 0,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_57",
+        "name": "ICON素材3 #58",
+        "col": 1,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_58",
+        "name": "ICON素材3 #59",
+        "col": 2,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_59",
+        "name": "ICON素材3 #60",
+        "col": 3,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_60",
+        "name": "ICON素材3 #61",
+        "col": 4,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_61",
+        "name": "ICON素材3 #62",
+        "col": 5,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_62",
+        "name": "ICON素材3 #63",
+        "col": 6,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "3_icons_materials_63",
+        "name": "ICON素材3 #64",
+        "col": 7,
+        "row": 7,
+        "zoom": 100
+      }
+    ]
+  },
+  "monster_icon1": {
+    "title": "怪物圖標1",
+    "spriteUrl": "../public/assets/custom_icons/monster_icon1.png",
+    "cols": 8,
+    "rows": 8,
+    "items": [
+      {
+        "id": "monster_icon1_0",
+        "name": "怪物圖標1 #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_1",
+        "name": "怪物圖標1 #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_2",
+        "name": "怪物圖標1 #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_3",
+        "name": "怪物圖標1 #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_4",
+        "name": "怪物圖標1 #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_5",
+        "name": "怪物圖標1 #06",
+        "col": 5,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_6",
+        "name": "怪物圖標1 #07",
+        "col": 6,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_7",
+        "name": "怪物圖標1 #08",
+        "col": 7,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_8",
+        "name": "怪物圖標1 #09",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_9",
+        "name": "怪物圖標1 #10",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_10",
+        "name": "怪物圖標1 #11",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_11",
+        "name": "怪物圖標1 #12",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_12",
+        "name": "怪物圖標1 #13",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_13",
+        "name": "怪物圖標1 #14",
+        "col": 5,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_14",
+        "name": "怪物圖標1 #15",
+        "col": 6,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_15",
+        "name": "怪物圖標1 #16",
+        "col": 7,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_16",
+        "name": "怪物圖標1 #17",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_17",
+        "name": "怪物圖標1 #18",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_18",
+        "name": "怪物圖標1 #19",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_19",
+        "name": "怪物圖標1 #20",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_20",
+        "name": "怪物圖標1 #21",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_21",
+        "name": "怪物圖標1 #22",
+        "col": 5,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_22",
+        "name": "怪物圖標1 #23",
+        "col": 6,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_23",
+        "name": "怪物圖標1 #24",
+        "col": 7,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_24",
+        "name": "怪物圖標1 #25",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_25",
+        "name": "怪物圖標1 #26",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_26",
+        "name": "怪物圖標1 #27",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_27",
+        "name": "怪物圖標1 #28",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_28",
+        "name": "怪物圖標1 #29",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_29",
+        "name": "怪物圖標1 #30",
+        "col": 5,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_30",
+        "name": "怪物圖標1 #31",
+        "col": 6,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_31",
+        "name": "怪物圖標1 #32",
+        "col": 7,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_32",
+        "name": "怪物圖標1 #33",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_33",
+        "name": "怪物圖標1 #34",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_34",
+        "name": "怪物圖標1 #35",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_35",
+        "name": "怪物圖標1 #36",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_36",
+        "name": "怪物圖標1 #37",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_37",
+        "name": "怪物圖標1 #38",
+        "col": 5,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_38",
+        "name": "怪物圖標1 #39",
+        "col": 6,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_39",
+        "name": "怪物圖標1 #40",
+        "col": 7,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_40",
+        "name": "怪物圖標1 #41",
+        "col": 0,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_41",
+        "name": "怪物圖標1 #42",
+        "col": 1,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_42",
+        "name": "怪物圖標1 #43",
+        "col": 2,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_43",
+        "name": "怪物圖標1 #44",
+        "col": 3,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_44",
+        "name": "怪物圖標1 #45",
+        "col": 4,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_45",
+        "name": "怪物圖標1 #46",
+        "col": 5,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_46",
+        "name": "怪物圖標1 #47",
+        "col": 6,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_47",
+        "name": "怪物圖標1 #48",
+        "col": 7,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_48",
+        "name": "怪物圖標1 #49",
+        "col": 0,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_49",
+        "name": "怪物圖標1 #50",
+        "col": 1,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_50",
+        "name": "怪物圖標1 #51",
+        "col": 2,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_51",
+        "name": "怪物圖標1 #52",
+        "col": 3,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_52",
+        "name": "怪物圖標1 #53",
+        "col": 4,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_53",
+        "name": "怪物圖標1 #54",
+        "col": 5,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_54",
+        "name": "怪物圖標1 #55",
+        "col": 6,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_55",
+        "name": "怪物圖標1 #56",
+        "col": 7,
+        "row": 6,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_56",
+        "name": "怪物圖標1 #57",
+        "col": 0,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_57",
+        "name": "怪物圖標1 #58",
+        "col": 1,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_58",
+        "name": "怪物圖標1 #59",
+        "col": 2,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_59",
+        "name": "怪物圖標1 #60",
+        "col": 3,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_60",
+        "name": "怪物圖標1 #61",
+        "col": 4,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_61",
+        "name": "怪物圖標1 #62",
+        "col": 5,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_62",
+        "name": "怪物圖標1 #63",
+        "col": 6,
+        "row": 7,
+        "zoom": 100
+      },
+      {
+        "id": "monster_icon1_63",
+        "name": "怪物圖標1 #64",
+        "col": 7,
+        "row": 7,
+        "zoom": 100
+      }
+    ]
   }
 }
