@@ -82,20 +82,21 @@
                 "definition": {
                   "nodeId": "smuggler_checkpoint",
                   "name": "走私者的廢棄關卡",
-                  "description": "被刮去家徽的弩矢指向這座荒廢關卡。附近仍有無徽馬車與武裝人員出沒。",
+                  "description": "廢棄的石砌關卡被走私販與僱傭流寇佔據，裡面藏有未及轉運的走私物資與軍械。",
                   "placement": "NEAR_PLAYER",
                   "radius": 9,
                   "terrain": "RUINS",
                   "difficulty": 2,
                   "enemyFeature": "BALANCED",
                   "monsterId": "bandit",
-                  "requiresScouting": true,
+                  "requiresScouting": false,
                   "removeOnVictory": true,
                   "journeyNodeIds": [
                     "checkpoint_approach"
                   ],
                   "victoryNodeId": "checkpoint_victory",
-                  "defeatNodeId": "checkpoint_defeat"
+                  "defeatNodeId": "checkpoint_defeat",
+                  "templateId": "smuggler_checkpoint"
                 }
               }
             ]
@@ -591,6 +592,523 @@
                 "itemId": "mat_stone_brick",
                 "quantity": 3,
                 "mode": "FIXED"
+              }
+            ]
+          }
+        ],
+        "completionEffects": []
+      }
+    ]
+  },
+  {
+    "id": "story_daily_routine",
+    "title": "領地日常與居民委託",
+    "summary": "領地居民張貼的各類日常打工、採集巡邏與治安懸賞公事，可重複輪替刷新。",
+    "version": 1,
+    "enabled": true,
+    "nodes": [
+      {
+        "id": "routine_lost_cat",
+        "title": "找尋走失的貓",
+        "description": "鎮上的老奶奶丟失了她心愛的花貓，希望有人能幫忙找回來。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "bounty": {
+          "duration": 1,
+          "expireDays": 4,
+          "gold": 20,
+          "exp": 10,
+          "type": "NORMAL"
+        }
+      },
+      {
+        "id": "routine_sewer_rats",
+        "title": "清理下水道老鼠",
+        "description": "酒館老闆抱怨下水道老鼠氾濫，需要有人去清理一下。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_TRADE_GOOD",
+            "itemId": "tg_hide",
+            "quantity": 1,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 1,
+          "expireDays": 4,
+          "gold": 15,
+          "exp": 25,
+          "type": "NORMAL",
+          "items": [
+            {
+              "id": "tg_hide",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_night_patrol",
+        "title": "夜間守望巡邏",
+        "description": "守衛長正在招募夜間巡邏的人手，提防鎮外的流寇。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "bounty": {
+          "duration": 2,
+          "expireDays": 3,
+          "gold": 30,
+          "exp": 40,
+          "type": "BANDIT"
+        }
+      },
+      {
+        "id": "routine_farmer_harvest",
+        "title": "幫忙農夫收割",
+        "description": "收穫季到了，農夫急需人手幫忙收割麥子。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_TRADE_GOOD",
+            "itemId": "tg_wheat",
+            "quantity": 3,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 1,
+          "expireDays": 4,
+          "gold": 10,
+          "exp": 15,
+          "type": "NORMAL",
+          "items": [
+            {
+              "id": "tg_wheat",
+              "amount": 3
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_wild_boar",
+        "title": "驅趕偷吃穀物的野豬",
+        "description": "一頭野豬頻繁破壞農田，將其驅趕或獵殺。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_TRADE_GOOD",
+            "itemId": "tg_meat",
+            "quantity": 2,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 2,
+          "expireDays": 4,
+          "gold": 25,
+          "exp": 35,
+          "type": "NORMAL",
+          "items": [
+            {
+              "id": "tg_meat",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_escort_merchant",
+        "title": "護送商人到鄰鎮",
+        "description": "一名行商需要護衛，保護他平安抵達鄰近城鎮。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 4,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "bounty": {
+          "duration": 3,
+          "expireDays": 5,
+          "gold": 80,
+          "exp": 50,
+          "type": "NORMAL"
+        }
+      },
+      {
+        "id": "routine_rare_herbs",
+        "title": "採集稀有藥草",
+        "description": "藥劑師委託採集生長在森林深處的珍貴藥草。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_TRADE_GOOD",
+            "itemId": "tg_cotton",
+            "quantity": 2,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 2,
+          "expireDays": 4,
+          "gold": 20,
+          "exp": 30,
+          "type": "NORMAL",
+          "items": [
+            {
+              "id": "tg_cotton",
+              "amount": 2
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_thugs_lesson",
+        "title": "教訓地痞流氓",
+        "description": "有幾個小混混在收保護費，去給他們一點教訓。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "bounty": {
+          "duration": 1,
+          "expireDays": 3,
+          "gold": 40,
+          "exp": 20,
+          "type": "BANDIT"
+        }
+      },
+      {
+        "id": "routine_repair_wall",
+        "title": "修補城牆破損",
+        "description": "城牆有一處缺口需要搬運石料並修補。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_MATERIAL",
+            "itemId": "mat_stone_brick",
+            "quantity": 3,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 2,
+          "expireDays": 4,
+          "gold": 15,
+          "exp": 15,
+          "type": "NORMAL",
+          "items": [
+            {
+              "id": "mat_stone_brick",
+              "amount": 3
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_mine_haul",
+        "title": "協助礦工搬運",
+        "description": "礦場近期產量大增，需要體力充沛的人幫忙搬運礦石。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_MATERIAL",
+            "itemId": "mat_iron_ingot",
+            "quantity": 3,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 2,
+          "expireDays": 4,
+          "gold": 20,
+          "exp": 20,
+          "type": "NORMAL",
+          "items": [
+            {
+              "id": "mat_iron_ingot",
+              "amount": 3
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_lumber_guard",
+        "title": "伐木場周邊警戒",
+        "description": "伐木工在森林中感覺被注視，疑似有強盜出沒，請去巡視。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_MATERIAL",
+            "itemId": "mat_wood_plank",
+            "quantity": 3,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 2,
+          "expireDays": 3,
+          "gold": 30,
+          "exp": 25,
+          "type": "BANDIT",
+          "items": [
+            {
+              "id": "mat_wood_plank",
+              "amount": 3
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_heirloom_ring",
+        "title": "尋找遺失的傳家寶",
+        "description": "某位貴族在郊外弄丟了戒指，重金懸賞尋回。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 5,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "bounty": {
+          "duration": 3,
+          "expireDays": 5,
+          "gold": 100,
+          "exp": 10,
+          "type": "NORMAL"
+        }
+      },
+      {
+        "id": "routine_hunt_wolves",
+        "title": "捕捉破壞農田的野狼",
+        "description": "一群野狼正在襲擊家畜，需要強者去解決。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "GRANT_TRADE_GOOD",
+            "itemId": "tg_hide",
+            "quantity": 2,
+            "mode": "FIXED"
+          },
+          {
+            "type": "GRANT_TRADE_GOOD",
+            "itemId": "tg_meat",
+            "quantity": 1,
+            "mode": "FIXED"
+          }
+        ],
+        "bounty": {
+          "duration": 2,
+          "expireDays": 4,
+          "gold": 40,
+          "exp": 40,
+          "type": "NORMAL",
+          "items": [
+            {
+              "id": "tg_hide",
+              "amount": 2
+            },
+            {
+              "id": "tg_meat",
+              "amount": 1
+            }
+          ]
+        }
+      },
+      {
+        "id": "routine_well_slime",
+        "title": "清理廢棄水井的黏液",
+        "description": "鎮外廢棄的水井長滿了奇怪的史萊姆，去清理乾淨。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 3,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "bounty": {
+          "duration": 1,
+          "expireDays": 4,
+          "gold": 25,
+          "exp": 30,
+          "type": "NORMAL"
+        }
+      },
+      {
+        "id": "routine_bandit_camp",
+        "title": "清剿荒野強盜營地",
+        "description": "有一群強盜在荒野紮營並頻繁襲擊旅人，將其徹底清剿。",
+        "channel": "BOUNTY_BOARD",
+        "repeatable": true,
+        "cooldownDays": 4,
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "bounty": {
+          "duration": 3,
+          "expireDays": 3,
+          "gold": 60,
+          "exp": 60,
+          "type": "BANDIT"
+        }
+      }
+    ]
+  },
+  {
+    "id": "new_story",
+    "title": "最後的龍裔",
+    "summary": "龍裔只存在於傳說。",
+    "version": 1,
+    "enabled": true,
+    "nodes": [
+      {
+        "id": "dragon_fam",
+        "title": "隱藏的龍裔",
+        "description": "前幾日有個來買醉的傭兵，他看起來雖然瘋瘋癲癲的，出手卻很闊綽。不過講話依然瘋言瘋語說附近有個藏寶庫，只要他願意，他可以任意地拿寶物出來揮霍，你說有趣吧?",
+        "channel": "TAVERN_RUMOR",
+        "conditions": [
+          {
+            "type": "PRESTIGE_AT_LEAST",
+            "value": 1500
+          }
+        ],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "SET_FACT",
+            "fact": "dragom_fam_01A",
+            "value": true
+          }
+        ]
+      },
+      {
+        "id": "new_node",
+        "title": "對於瘋癲客人的好奇",
+        "description": "酒店老闆的敘述讓領主產生好奇，是否讓人去探聽傳聞的真實性，畢竟領地正在處於發展時期。",
+        "channel": "TODO_LIST",
+        "conditions": [
+          {
+            "type": "FACT_EXISTS",
+            "fact": "dragom_fam_01A"
+          }
+        ],
+        "choices": [
+          {
+            "id": "choice_1",
+            "text": "讓人去探聽那位客人是誰。",
+            "resultText": "",
+            "effects": []
+          }
+        ],
+        "completionEffects": []
+      }
+    ]
+  },
+  {
+    "id": "story_street_visitors",
+    "title": "城鎮街角的訪客們",
+    "summary": "在領地街道通道旁，經常有來自各地的旅人、學者與行商前來拜訪領主。",
+    "version": 1,
+    "enabled": true,
+    "nodes": [
+      {
+        "id": "visitor_elena_apothecary",
+        "title": "流浪草藥師的拜訪",
+        "description": "一名身披斗篷的年輕草藥師在街道巷口等待著，身旁擺著裝滿乾燥藥草的行囊。",
+        "channel": "STREET_EVENT",
+        "npcName": "草藥師 艾蓮娜",
+        "npcAvatar": "npc:npc_1",
+        "conditions": [],
+        "dialoguePages": [
+          {
+            "speakerType": "NPC",
+            "speakerName": "草藥師 艾蓮娜",
+            "speakerTitle": "【流浪草藥師】",
+            "speakerAvatar": "npc:npc_1",
+            "text": "領主大人，向您致敬！我在附近的黑霧森林採集到了珍稀的靈藥草，聽聞您的領地正在欣欣向榮地發展，特地前來求見。"
+          },
+          {
+            "speakerType": "PLAYER_GUARDIAN",
+            "speakerTitle": "【領地守衛者】",
+            "text": "這批藥草色澤鮮潤，確實是上等品質。不知草藥師此番前來，有何打算？"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "草藥師 艾蓮娜",
+            "speakerTitle": "【流浪草藥師】",
+            "speakerAvatar": "npc:npc_1",
+            "text": "若領地願意資助我 150 金幣作為研磨器具的費用，我願將隨身調製的精煉秘藥獻給領地的騎士們，並在此長期提供醫藥協助！"
+          }
+        ],
+        "choices": [
+          {
+            "id": "choice_support_elena",
+            "text": "資助 150 金幣，歡迎草藥師常駐領地。",
+            "resultText": "艾蓮娜感激地收下金幣，領地獲得了珍貴的秘藥支援，繁榮度有所提升！",
+            "effects": [
+              {
+                "type": "ADD_GOLD",
+                "value": -150
+              },
+              {
+                "type": "ADD_PRESTIGE",
+                "value": 30
+              },
+              {
+                "type": "SET_FACT",
+                "fact": "elena_apothecary_settled",
+                "value": true
+              }
+            ]
+          },
+          {
+            "id": "choice_decline_elena",
+            "text": "領地目前預算吃緊，暫時無法資助。",
+            "resultText": "艾蓮娜微微行禮，表示理解，並期待未來能有合作機會。",
+            "effects": [
+              {
+                "type": "SET_FACT",
+                "fact": "elena_apothecary_declined",
+                "value": true
               }
             ]
           }

@@ -530,9 +530,35 @@ export function renderArmorSpriteHtml(armorType: string | undefined, tier: numbe
 export function renderEquipIcon(eq: any, sizePx: number = 38): string {
   if (!eq) return `<div style="font-size:1.6em;">🛡️</div>`;
   
-  // 🌟 0. 優先讀取自訂圖標 (支援圖標工坊圖集 category:itemId 或自訂圖片/Emoji)
-  if (eq.icon) {
-    return renderUniversalIcon(eq.icon, sizePx);
+  // 🌟 0. 優先讀取自訂圖標 (支援圖標工坊圖集 category:itemId 或自訂圖片/Emoji，排除舊版 Emoji 佔位符)
+  if (eq.icon && eq.icon !== '🗡️' && eq.icon !== '🛡️' && eq.icon !== '📦') {
+    const tier = eq.tier || (eq.id && eq.id.includes('_t4') ? 4 : (eq.id && eq.id.includes('_t3') ? 3 : (eq.id && eq.id.includes('_t2') ? 2 : 1)));
+    const quality = getTierQualityStyle(tier);
+    const borderStyle = tier > 1 
+      ? `border: 1.5px solid ${quality.borderColor}; box-shadow: 0 0 8px ${quality.glowColor};` 
+      : `border: 1px solid rgba(255,255,255,0.15);`;
+    const tierBadge = tier > 1 
+      ? `<span style="position: absolute; bottom: 1px; right: 2px; font-size: 9px; font-weight: bold; color: ${quality.borderColor}; text-shadow: 0 1px 2px #000, 0 0 2px #000; line-height: 1; pointer-events: none;">T${tier}</span>` 
+      : '';
+
+    return `
+      <div class="equip-custom-icon-wrap" style="
+        width: ${sizePx}px;
+        height: ${sizePx}px;
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #0d1117;
+        ${borderStyle}
+      ">
+        ${renderUniversalIcon(eq.icon, sizePx)}
+        ${tierBadge}
+      </div>
+    `;
   }
 
   // 1. 武器類別
@@ -661,6 +687,83 @@ export function renderUniversalIcon(identifier: string, sizePx: number = ICON_SI
     background-position: ${bgX.toFixed(2)}% ${bgY.toFixed(2)}%;
     background-repeat: no-repeat;
     border-radius: 6px;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    flex-shrink: 0;
+    display: inline-block;
+  "></div>`;
+}
+
+/**
+ * 🌟 通用直立肖像渲染器 (Universal Portrait Renderer)
+ * 專為 NPC、英雄等直立肖像設計，鎖定真實長寬比 (1:1.853 或自訂比例)，絕不壓扁、零黑邊
+ */
+export function renderUniversalPortrait(
+  identifier: string,
+  widthPx: number = 44,
+  customClass: string = '',
+  aspectRatio: number = 1.853
+): string {
+  if (!identifier) {
+    const heightPx = Math.round(widthPx * aspectRatio);
+    return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px;">👤</div>`;
+  }
+
+  const heightPx = Math.round(widthPx * aspectRatio);
+  const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
+  const customConfigs = getCustomIconConfig();
+
+  let catKey = '';
+  let itemId = identifier;
+
+  if (identifier.includes(':')) {
+    const parts = identifier.split(':');
+    catKey = parts[0];
+    itemId = parts[1];
+  } else {
+    for (const [k, cat] of Object.entries(allDatasets)) {
+      if (cat.items && cat.items.some((i: any) => i.id === identifier)) {
+        catKey = k;
+        break;
+      }
+    }
+  }
+
+  const catData = allDatasets[catKey];
+  if (!catData) {
+    return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px;">${identifier.length <= 4 ? identifier : '👤'}</div>`;
+  }
+
+  const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
+  const config = customConfigs[catKey]?.[itemId] || {};
+
+  if (config.customEmoji) {
+    return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px;">${config.customEmoji}</div>`;
+  }
+
+  const cols = catData.cols || 5;
+  const rows = catData.rows || 1;
+  const defBgX = cols > 1 ? (config.col ?? itemDef.col ?? 0) * (100 / (cols - 1)) : 0;
+  const defBgY = rows > 1 ? (config.row ?? itemDef.row ?? 0) * (100 / (rows - 1)) : 0;
+
+  const bgX = config.bgX !== undefined ? config.bgX : defBgX;
+  const bgY = config.bgY !== undefined ? config.bgY : defBgY;
+  const zoom = config.zoom || 100;
+
+  const bgSizeX = cols * 100 * (zoom / 100);
+  const bgSizeY = rows * 100 * (zoom / 100);
+
+  const rawSpriteUrl = config.customImage || catData.spriteUrl || '';
+  const spriteUrl = resolveSpriteAssetUrl(rawSpriteUrl);
+
+  return `<div class="universal-portrait-sprite ${customClass}" style="
+    width: ${widthPx}px;
+    height: ${heightPx}px;
+    background-image: url('${spriteUrl}');
+    background-size: ${bgSizeX.toFixed(1)}% ${bgSizeY.toFixed(1)}%;
+    background-position: ${bgX.toFixed(2)}% ${bgY.toFixed(2)}%;
+    background-repeat: no-repeat;
+    border-radius: 4px;
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
     flex-shrink: 0;

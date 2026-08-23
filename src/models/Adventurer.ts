@@ -523,8 +523,8 @@ export class Adventurer {
     const attr = this.getEffectiveAttributes();
     // 魅力加智慧的總和乘上 5 作為基礎載重
     const maxCargoWeight = (attr.charm + attr.int) * 5;
-    // BAL-02: 分母改為 100，譲議價加成真正可感知
-    const negotiationBonus = Math.min(0.2, (attr.charm + attr.int) / 100); 
+    // BAL-02: 魅力與智慧提供 1%~5% 議價特長 (單人上限 5%)
+    const negotiationBonus = Math.min(0.05, Number(((attr.charm + attr.int) / 400).toFixed(3))); 
     return { maxCargoWeight, negotiationBonus };
   }
 }

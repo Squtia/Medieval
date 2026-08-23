@@ -1,5 +1,6 @@
 import { GameState } from '../../core/GameState';
 import { BountyQuest, BountySystem } from '../../systems/BountySystem';
+import { NarrativeSystem } from '../../systems/NarrativeSystem';
 import { Adventurer } from '../../models/Adventurer';
 import { AdventurerState } from '../../models/types';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
@@ -26,13 +27,15 @@ export class BountyModalController {
   private bindEvents() {
     if (this.isBound) return;
 
-    // 開啟懸賞欄 (綁定在酒館內的按鈕)
-    const btnOpen = document.getElementById('btn-bounty-board');
-    if (btnOpen) {
-      btnOpen.addEventListener('click', () => {
-        this.show();
-      });
-    }
+    // 開啟懸賞欄 (酒館內按鈕 + 街道快捷按鈕 + 街道告示板地標)
+    ['btn-bounty-board', 'btn-street-bounty', 'btn-enter-bounty-board'].forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          this.show();
+        });
+      }
+    });
 
     // 關閉 Modal
     const btnClose = document.getElementById('btn-close-bounty-board');
@@ -95,6 +98,7 @@ export class BountyModalController {
   }
 
   public show() {
+    NarrativeSystem.ensureStoryBounties();
     const modal = document.getElementById('modal-bounty-board');
     if (modal) {
       modal.style.display = 'flex';

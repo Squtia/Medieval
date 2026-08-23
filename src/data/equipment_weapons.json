@@ -97,7 +97,7 @@
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
     "tier": 3,
-    "icon": "",
+    "icon": "2_icons_materials:2_icons_materials_0",
     "element": "NONE",
     "baseEffects": {
       "str": 10,
@@ -144,7 +144,7 @@
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
     "tier": 4,
-    "icon": "",
+    "icon": "weapons_t3:GREATSWORD",
     "element": "NONE",
     "baseEffects": {
       "str": 18,
@@ -169,7 +169,11 @@
       ],
       "combatStats": [
         "patk",
-        "hit"
+        "matk",
+        "pdef",
+        "mdef",
+        "hit",
+        "crit"
       ]
     },
     "affixPool": [
@@ -183,7 +187,7 @@
     "shopBuyable": true,
     "description": "",
     "flavorText": "",
-    "isLocked": true
+    "isLocked": false
   },
   {
     "id": "wpn_mithril_dual_swords",
@@ -702,11 +706,11 @@
   },
   {
     "id": "wpn_wooden_shield_sword",
-    "name": "木盾長劍",
+    "name": "鐵盾長劍",
     "slot": "WEAPON",
     "weaponType": "SWORD_AND_SHIELD",
     "tier": 1,
-    "icon": "",
+    "icon": "weapons:SWORD_AND_SHIELD",
     "element": "NONE",
     "baseEffects": {
       "con": 3
@@ -725,12 +729,16 @@
     "combatStatRanges": {},
     "randomPool": {
       "attributes": [
-        "con",
-        "str"
+        "str",
+        "con"
       ],
       "combatStats": [
         "patk",
-        "pdef"
+        "matk",
+        "pdef",
+        "mdef",
+        "hit",
+        "crit"
       ]
     },
     "affixPool": [
@@ -744,7 +752,7 @@
     "shopBuyable": true,
     "description": "",
     "flavorText": "",
-    "isLocked": true
+    "isLocked": false
   },
   {
     "id": "wpn_steel_shield_sword",
@@ -1400,5 +1408,56 @@
     "description": "",
     "flavorText": "",
     "isLocked": true
+  },
+  {
+    "id": "wpn_T5_greatsword_0001",
+    "name": "炎魔巨刃",
+    "slot": "WEAPON",
+    "weaponType": "GREATSWORD",
+    "tier": 5,
+    "icon": "3_icons_materials:3_icons_materials_1",
+    "element": "FIRE",
+    "baseEffects": {
+      "str": 25,
+      "luk": 5
+    },
+    "combatEffects": {
+      "patk": 90,
+      "matk": 10,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 50,
+      "mp": 0,
+      "hit": 10,
+      "evade": 0,
+      "crit": 10
+    },
+    "combatStatRanges": {},
+    "randomPool": {
+      "attributes": [
+        "str",
+        "luk"
+      ],
+      "combatStats": [
+        "patk",
+        "matk",
+        "pdef",
+        "mdef",
+        "hit",
+        "crit"
+      ]
+    },
+    "affixPool": [
+      "鋒利",
+      "致命"
+    ],
+    "extraSkills": [],
+    "skillTriggerChances": [],
+    "craftable": true,
+    "droppable": true,
+    "shopBuyable": true,
+    "description": "",
+    "flavorText": "",
+    "isLocked": false
   }
 ]

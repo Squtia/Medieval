@@ -2,7 +2,11 @@ import { GameState } from '../core/GameState';
 import { MapNode, NodeLevel, getNodeMaxFacilityLevel } from '../models/types';
 import { UIManager } from './UIManager';
 import { renderMap } from './MapController';
-import { renderFacilitySpriteHtml } from './IconSpriteHelper';
+import { renderFacilitySpriteHtml, renderUniversalIcon, renderUniversalPortrait } from './IconSpriteHelper';
+import { NarrativeSystem } from '../systems/NarrativeSystem';
+import { NpcDialogueModalController } from './modals/NpcDialogueModalController';
+import { EventBus } from '../core/EventBus';
+import { GameEventType } from '../core/GameEvents';
 
 export function renderCampTraining() {
   const campTrainList = document.getElementById('camp-train-list')!;
@@ -98,6 +102,8 @@ export function enterScene(node: MapNode) {
     
     btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
     
+    renderStreetNpcEvents();
+
     setTimeout(() => {
       if ((window as any).__updateStreetScrollArrows) {
         (window as any).__updateStreetScrollArrows();
@@ -420,3 +426,127 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     }
   }
 }
+
+/**
+ * 🏰 渲染街道訪客 NPC 事件按鈕列 (紅框區域：無事件時 100% 透明無痕，支援拖曳左右滑動)
+ */
+export function renderStreetNpcEvents() {
+  const container = document.getElementById('street-npc-events-bar');
+  const tooltip = document.getElementById('street-npc-floating-tooltip');
+  const ttName = document.getElementById('street-npc-tt-name');
+  const ttDesc = document.getElementById('street-npc-tt-desc');
+  if (!container) return;
+
+  container.innerHTML = '';
+  const events = NarrativeSystem.getEligibleStreetEvents();
+
+  if (events.length === 0) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'flex';
+
+  // 綁定拖曳滑動支援 (Drag to scroll)
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+  let isDragging = false;
+
+  container.onmousedown = (e) => {
+    isDown = true;
+    isDragging = false;
+    startX = e.pageX - container.offsetLeft;
+    scrollLeft = container.scrollLeft;
+  };
+
+  container.onmouseleave = () => {
+    isDown = false;
+    if (tooltip) tooltip.style.display = 'none';
+  };
+
+  container.onmouseup = () => {
+    isDown = false;
+  };
+
+  container.onmousemove = (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - container.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    if (Math.abs(walk) > 3) isDragging = true;
+    container.scrollLeft = scrollLeft - walk;
+  };
+
+  // 支援滑輪橫向捲動
+  container.onwheel = (e) => {
+    if (e.deltaY !== 0) {
+      container.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+  };
+
+  events.forEach(ref => {
+    const btn = document.createElement('div');
+    btn.className = 'street-npc-btn';
+    btn.style.cssText = `
+      width: 44px;
+      height: 82px;
+      min-width: 44px;
+      border-radius: 4px;
+      border: 1.5px solid #d97706;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 0 8px rgba(217,119,6,0.35);
+      cursor: pointer;
+      overflow: hidden;
+      flex-shrink: 0;
+      background-color: #0c0a09;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+      position: relative;
+    `;
+
+    const avatar = ref.node.npcAvatar || 'npc:npc_0';
+    btn.innerHTML = renderUniversalPortrait(avatar, 44);
+
+    // 滑鼠懸停與跟隨 Tooltip
+    btn.onmouseenter = (e) => {
+      if (tooltip && ttName && ttDesc) {
+        ttName.textContent = ref.node.npcName || ref.node.title || '神秘訪客';
+        ttDesc.textContent = ref.node.title || ref.node.description || '點擊展開對話';
+        tooltip.style.display = 'block';
+        tooltip.style.left = `${e.clientX}px`;
+        tooltip.style.top = `${e.clientY}px`;
+      }
+      btn.style.transform = 'translateY(-2px) scale(1.05)';
+      btn.style.borderColor = '#fbbf24';
+    };
+
+    btn.onmousemove = (e) => {
+      if (tooltip) {
+        tooltip.style.left = `${e.clientX}px`;
+        tooltip.style.top = `${e.clientY}px`;
+      }
+    };
+
+    btn.onmouseleave = () => {
+      if (tooltip) tooltip.style.display = 'none';
+      btn.style.transform = 'translateY(0) scale(1)';
+      btn.style.borderColor = '#d97706';
+    };
+
+    btn.onclick = () => {
+      if (isDragging) return;
+      if (tooltip) tooltip.style.display = 'none';
+      NpcDialogueModalController.getInstance().open(ref);
+    };
+
+    container.appendChild(btn);
+  });
+}
+
+// 監聽任務/劇情狀態變更，即時刷新街道訪客按鈕 (設定為 'ui' scope，防止被 clearAll('system') 意外清除)
+EventBus.getInstance().subscribe(GameEventType.MISSIONS_CHANGED, () => {
+  renderStreetNpcEvents();
+}, 'ui');

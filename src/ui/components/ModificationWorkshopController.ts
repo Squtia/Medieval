@@ -3,7 +3,8 @@ import { DataStore } from '../../systems/DataStore';
 import { ToastManager } from '../ToastManager';
 import { UIManager } from '../UIManager';
 import { renderEquipIcon, ICON_SIZE, formatStatsTags, attachTooltip, getEquipTooltipHtml, getMaterialCount, consumeMaterial } from '../ShopController';
-import { EquipmentSlot, Equipment } from '../../models/types';
+import { renderUniversalIcon } from '../IconSpriteHelper';
+import { EquipmentSlot, Equipment, AdventurerState } from '../../models/types';
 
 export class ModificationWorkshopController {
   private static activeSource: 'WAREHOUSE' | 'ADVENTURER' = 'WAREHOUSE';
@@ -23,7 +24,7 @@ export class ModificationWorkshopController {
         return (territory.warehouse || []).map(eq => ({ eq }));
       } else {
         const items: { eq: Equipment; label?: string; advName?: string }[] = [];
-        (GameState.adventurers || []).forEach(adv => {
+        (GameState.adventurers || []).filter(adv => adv.currentState === AdventurerState.IDLE).forEach(adv => {
           if (!adv.equipment) return;
           const slots: EquipmentSlot[] = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
           slots.forEach(slot => {
@@ -315,7 +316,9 @@ export class ModificationWorkshopController {
         recCard.innerHTML = `
           <div>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-              <span style="font-weight:bold; color:#fbbf24; font-size:0.92em;">${rec.icon || '🔨'} ${rec.name}</span>
+              <span style="font-weight:bold; color:#fbbf24; font-size:0.92em; display:flex; align-items:center; gap:6px;">
+                ${renderUniversalIcon(rec.icon || '🔨', 20)} ${rec.name}
+              </span>
               <span style="font-size:0.78em; color:#fbbf24; font-weight:bold;">💰 ${rec.goldCost}G</span>
             </div>
             <div style="font-size:0.78em; color:#cbd5e1; margin-bottom:6px; line-height:1.3;">

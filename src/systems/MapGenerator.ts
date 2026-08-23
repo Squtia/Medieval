@@ -2,6 +2,7 @@ import { MapNode, NodeFeature, NodeLevel } from '../models/types';
 import { GeneratedWorld, GameDifficulty } from '../models/WorldGeneration';
 import { MapMaskData } from '../data/MapMaskData';
 import { getDifficultyConfig } from '../data/DifficultyData';
+import { calculateNodeLevel } from '../data/BalanceData';
 import { createSeededRandom, Random, RandomSource } from '../core/Random';
 
 const MIN_NODE_DISTANCE = 6;
@@ -48,13 +49,20 @@ export class MapGenerator {
     this.assignDynamicCoordinates(nodes, nodePositionRandom);
     const playerBase = this.findOriginalPlayerBase(nodes, normalizedSeed, difficulty);
     if (!playerBase) throw new Error('No original map node can serve as the player base.');
+    const startingPop = difficultyConfig.startingResources.population;
+    const initialProsperity = startingPop;
+    const initialLevel = calculateNodeLevel({ prosperity: initialProsperity, minimumNodeLevel: NodeLevel.WILDERNESS }, false);
+
     Object.assign(playerBase, {
       ownerFactionId: 'player',
       isPlayerBase: true,
       isDiscovered: true,
       isScouted: true,
       scoutExpiryDate: null,
-      population: difficultyConfig.startingResources.population
+      population: startingPop,
+      prosperity: initialProsperity,
+      nodeLevel: initialLevel,
+      minimumNodeLevel: initialLevel
     });
 
     const validationErrors = this.validateWorld(nodes);

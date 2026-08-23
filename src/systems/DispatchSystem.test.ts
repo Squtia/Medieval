@@ -129,7 +129,7 @@ describe('trade mission lifecycle', () => {
     expect(task.tradePhase).toBe(TradePhase.RETURNING);
     expect(system.getActiveMissions()[0].remainingDays).toBe(2);
     const negotiationBonus = adventurer.getTradeStats().negotiationBonus;
-    const roadBuyPrice = Math.max(1, Math.floor(100 * (1 - negotiationBonus) * 0.95));
+    const roadBuyPrice = Math.max(1, Math.round(100 * (1 - negotiationBonus) * 0.95));
     expect(task.caravanGold).toBe(100 - roadBuyPrice);
     expect(task.caravanCargo?.grain).toBe(1);
     system.updateDays(2);

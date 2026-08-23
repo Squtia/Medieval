@@ -2,14 +2,53 @@ export type NarrativeChannel =
   | 'BOUNTY_BOARD'
   | 'TAVERN_RUMOR'
   | 'TERRITORY_EVENT'
+  | 'STREET_EVENT'
   | 'TODO_LIST'
   | 'EXPLORATION'
   | 'SUBJUGATION'
   | 'SUBJUGATION_JOURNEY'
   | 'STORY_NODE';
 
+export interface NarrativeDialoguePage {
+  speakerType: 'NPC' | 'PLAYER_GUARDIAN';
+  speakerName?: string;
+  speakerTitle?: string;
+  speakerAvatar?: string; // 如 "npc:npc_0" 或自訂圖標
+  text: string;
+}
+
+export interface SubjugationWaveMonster {
+  monsterId: string;
+  count?: number;
+  powerTier?: number;
+}
+
+export interface SubjugationWave {
+  name?: string;
+  monsters: SubjugationWaveMonster[];
+}
+
+export interface SubjugationTemplate {
+  id: string;
+  name: string;
+  description: string;
+  terrain: 'PLAINS' | 'FOREST' | 'SNOW_MOUNTAIN' | 'VOLCANO' | 'DESERT' | 'CAVE' | 'RUINS' | 'WILDERNESS';
+  icon?: string;
+  difficulty: number;
+  requiresScouting?: boolean;
+  removeOnVictory?: boolean;
+  waves?: SubjugationWave[];
+  rewards?: {
+    gold?: number;
+    exp?: number;
+    prestige?: number;
+    items?: { id: string; amount: number }[];
+  };
+}
+
 export interface NarrativeSubjugationDefinition {
   nodeId: string;
+  templateId?: string;
   name: string;
   description: string;
   placement: 'NEAR_PLAYER' | 'NEAR_NODE' | 'FIXED';
@@ -73,11 +112,18 @@ export interface NarrativeNode {
   choices: NarrativeChoice[];
   completionEffects: NarrativeEffect[];
   targetNodeId?: string;
+  repeatable?: boolean;
+  cooldownDays?: number;
+  npcAvatar?: string;
+  npcName?: string;
+  dialoguePages?: NarrativeDialoguePage[];
   bounty?: {
     duration: number;
     expireDays: number;
     gold: number;
     exp: number;
+    type?: 'NORMAL' | 'BANDIT';
+    items?: { id: string; amount: number }[];
   };
 }
 
@@ -101,6 +147,7 @@ export interface NarrativeRuntimeState {
   presentedNodeIds: string[];
   scheduledNodes: Record<string, number>;
   exploredNodeIds: string[];
+  nodeLastCompletedDay?: Record<string, number>;
 }
 
 export function createEmptyNarrativeState(): NarrativeRuntimeState {
@@ -109,6 +156,7 @@ export function createEmptyNarrativeState(): NarrativeRuntimeState {
     completedNodeIds: [],
     presentedNodeIds: [],
     scheduledNodes: {},
-    exploredNodeIds: []
+    exploredNodeIds: [],
+    nodeLastCompletedDay: {}
   };
 }

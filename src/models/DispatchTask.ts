@@ -78,6 +78,7 @@ export class DispatchTask {
   public narrativeSubjugation?: {
     storyId: string;
     sourceNodeId: string;
+    templateId?: string;
     journeyNodeIds: string[];
     victoryNodeId?: string;
     defeatNodeId?: string;

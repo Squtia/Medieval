@@ -273,64 +273,66 @@ export class DispatchSystem {
 
     if (task.tradeInstructions && task.caravanCargo && task.caravanGold !== undefined) {
       const instruction = task.tradeInstructions.find(i => i.nodeId === currentNodeId);
-      if (instruction && currentNode.marketData) {
-         let totalCargoWeight = Object.values(task.caravanCargo).reduce((a,b)=>a+b, 0);
-         
-         let totalCapacity = 0;
-         let totalNegotiation = 0;
-         adventurers.forEach(a => {
-            const ts = a.getTradeStats();
-            totalCapacity += ts.maxCargoWeight;
-            totalNegotiation += ts.negotiationBonus;
-         });
-         
-         for (const sellGoodId of instruction.sell) {
-             const amountToSell = task.caravanCargo![sellGoodId] || 0;
-             if (amountToSell > 0) {
-                 const marketItem = currentNode.marketData.goods.find(g => g.goodId === sellGoodId);
-                 if (marketItem) {
-                     const sellPrice = Math.max(
-                       1,
-                       Math.floor(marketItem.sellPrice * (1 + totalNegotiation) * tradeModifiers.sellPriceMultiplier)
-                     );
-                     const goldGained = sellPrice * amountToSell;
-                     task.caravanGold! += goldGained;
-                     task.caravanCargo![sellGoodId] = 0;
-                     totalCargoWeight -= amountToSell;
-                     
-                     const goodRef = TRADE_GOODS.find(g => g.id === sellGoodId);
-                     const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : sellGoodId;
-                     console.log(`💰 [商隊交易] 在 ${currentNode.name} 賣出了 ${amountToSell} 單位 ${goodName}，獲得 ${goldGained} 金幣。`);
-                 }
-             }
-         }
-         
-         for (const buyItem of instruction.buy) {
-             const marketItem = currentNode.marketData.goods.find(g => g.goodId === buyItem.goodId);
-             if (marketItem && marketItem.stock > 0) {
-                 const buyPrice = Math.max(
-                   1,
-                   Math.floor(marketItem.buyPrice * (1 - totalNegotiation) * tradeModifiers.buyPriceMultiplier)
-                 );
-                 const affordableAmount = Math.floor(task.caravanGold / buyPrice);
-                 const capacityLeft = totalCapacity - totalCargoWeight;
-                 const buyAmount = Math.min(buyItem.maxAmount, marketItem.stock, affordableAmount, capacityLeft);
-                 
-                 const goodRef = TRADE_GOODS.find(g => g.id === buyItem.goodId);
-                 const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : buyItem.goodId;
+      if (instruction) {
+          let totalCargoWeight = Object.values(task.caravanCargo).reduce((a,b)=>a+b, 0);
+          
+          let totalCapacity = 0;
+          let totalNegotiation = 0;
+          adventurers.forEach(a => {
+             const ts = a.getTradeStats();
+             totalCapacity += ts.maxCargoWeight;
+             totalNegotiation += ts.negotiationBonus;
+          });
+          totalNegotiation = Math.min(0.20, totalNegotiation);
+          
+          for (const sellGoodId of instruction.sell) {
+              const amountToSell = task.caravanCargo![sellGoodId] || 0;
+              if (amountToSell > 0) {
+                  const goodRef = TRADE_GOODS.find(g => g.id === sellGoodId);
+                  const marketItem = currentNode.marketData?.goods?.find(g => g.goodId === sellGoodId);
+                  const baseSellPrice = marketItem ? marketItem.sellPrice : (goodRef?.basePrice || 10);
+                  const sellPrice = Math.max(
+                    1,
+                    Math.round(baseSellPrice * (1 + totalNegotiation) * tradeModifiers.sellPriceMultiplier)
+                  );
+                  const goldGained = sellPrice * amountToSell;
+                  task.caravanGold! += goldGained;
+                  task.caravanCargo![sellGoodId] = 0;
+                  totalCargoWeight -= amountToSell;
+                  
+                  const goodName = goodRef ? goodRef.name : sellGoodId;
+                  console.log(`💰 [商隊交易] 在 ${currentNode.name} 賣出了 ${amountToSell} 單位 ${goodName}，獲得 ${goldGained} 金幣。`);
+              }
+          }
+          
+          if (currentNode.marketData?.goods) {
+              for (const buyItem of instruction.buy) {
+                  const marketItem = currentNode.marketData.goods.find(g => g.goodId === buyItem.goodId);
+                  if (marketItem && marketItem.stock > 0) {
+                      const buyPrice = Math.max(
+                        1,
+                        Math.round(marketItem.buyPrice * (1 - totalNegotiation) * tradeModifiers.buyPriceMultiplier)
+                      );
+                      const affordableAmount = Math.floor(task.caravanGold / buyPrice);
+                      const capacityLeft = totalCapacity - totalCargoWeight;
+                      const buyAmount = Math.min(buyItem.maxAmount, marketItem.stock, affordableAmount, capacityLeft);
+                      
+                      const goodRef = TRADE_GOODS.find(g => g.id === buyItem.goodId);
+                      const goodName = goodRef ? goodRef.name : buyItem.goodId;
 
-                 if (buyAmount > 0) {
-                     task.caravanGold! -= buyPrice * buyAmount;
-                     task.caravanCargo![buyItem.goodId] = (task.caravanCargo![buyItem.goodId] || 0) + buyAmount;
-                     totalCargoWeight += buyAmount;
-                     marketItem.stock -= buyAmount;
-                     console.log(`🛒 [商隊交易] 在 ${currentNode.name} 買入了 ${buyAmount} 單位 ${goodName}，花費 ${buyPrice * buyAmount} 金幣。`);
-                 } else {
-                     if (affordableAmount <= 0) console.log(`❌ [商隊交易] 在 ${currentNode.name} 資金不足，無法購買 ${goodName}。`);
-                     else if (capacityLeft <= 0) console.log(`📦 [商隊交易] 在 ${currentNode.name} 馬車已滿，無法裝載 ${goodName}。`);
-                 }
-             }
-         }
+                      if (buyAmount > 0) {
+                          task.caravanGold! -= buyPrice * buyAmount;
+                          task.caravanCargo![buyItem.goodId] = (task.caravanCargo![buyItem.goodId] || 0) + buyAmount;
+                          totalCargoWeight += buyAmount;
+                          marketItem.stock -= buyAmount;
+                          console.log(`🛒 [商隊交易] 在 ${currentNode.name} 買入了 ${buyAmount} 單位 ${goodName}，花費 ${buyPrice * buyAmount} 金幣。`);
+                      } else {
+                          if (affordableAmount <= 0) console.log(`❌ [商隊交易] 在 ${currentNode.name} 資金不足，無法購買 ${goodName}。`);
+                          else if (capacityLeft <= 0) console.log(`📦 [商隊交易] 在 ${currentNode.name} 馬車已滿，無法裝載 ${goodName}。`);
+                      }
+                  }
+              }
+          }
       }
     }
 
@@ -408,9 +410,16 @@ export class DispatchSystem {
       if (task.caravanCargo) {
         for (const [goodId, amount] of Object.entries(task.caravanCargo)) {
           if (amount > 0) {
-             this.territory.tradeInventory[goodId] = (this.territory.tradeInventory[goodId] || 0) + amount;
+             if (goodId === 'tg_timber') this.territory.wood = (this.territory.wood || 0) + amount;
+             else if (goodId === 'tg_iron') this.territory.iron = (this.territory.iron || 0) + amount;
+             else if (goodId === 'tg_stone') this.territory.stone = (this.territory.stone || 0) + amount;
+             else if (goodId === 'tg_wheat') this.territory.food = (this.territory.food || 0) + amount;
+             else {
+               if (!this.territory.tradeInventory) this.territory.tradeInventory = {};
+               this.territory.tradeInventory[goodId] = (this.territory.tradeInventory[goodId] || 0) + amount;
+             }
              const goodRef = TRADE_GOODS.find(g => g.id === goodId);
-             const goodName = goodRef ? `${goodRef.icon || '📦'}${goodRef.name}` : goodId;
+             const goodName = goodRef ? goodRef.name : goodId;
              logCargo += `${goodName}x${amount} `;
           }
         }
@@ -434,10 +443,13 @@ export class DispatchSystem {
         for (const buyItem of task.tradeBuyList) {
           const goodId = buyItem.goodId;
           const amount = buyItem.amount;
-          if (this.territory.tradeInventory[goodId]) {
-            this.territory.tradeInventory[goodId] += amount;
-          } else {
-            this.territory.tradeInventory[goodId] = amount;
+          if (goodId === 'tg_timber') this.territory.wood = (this.territory.wood || 0) + amount;
+          else if (goodId === 'tg_iron') this.territory.iron = (this.territory.iron || 0) + amount;
+          else if (goodId === 'tg_stone') this.territory.stone = (this.territory.stone || 0) + amount;
+          else if (goodId === 'tg_wheat') this.territory.food = (this.territory.food || 0) + amount;
+          else {
+            if (!this.territory.tradeInventory) this.territory.tradeInventory = {};
+            this.territory.tradeInventory[goodId] = (this.territory.tradeInventory[goodId] || 0) + amount;
           }
         }
         console.log(`✅ [商隊歸來] 傭兵小隊 (${advNames}) 成功完成「${task.name}」！買入了物資並存入領地倉庫。`);
@@ -492,8 +504,8 @@ export class DispatchSystem {
     adventurers.forEach(a => {
       a.currentState = isVictory ? AdventurerState.IDLE : AdventurerState.RESTING;
       a.dispatchEndTime = null;
-      // 若戰敗，則加上一回合(天)恢復時間
-      a.restingDaysLeft = isVictory ? 0 : 1; 
+      // 若戰敗，則需休養 4 天
+      a.restingDaysLeft = isVictory ? 0 : 4; 
     });
     
     // 發放懸賞金與聲望獎勵

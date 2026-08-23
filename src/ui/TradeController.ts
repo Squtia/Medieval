@@ -10,6 +10,8 @@ import { MapNode, AdventurerState, getMaxCaravansLimit, TradeTreaty } from '../m
 import { GameState } from '../core/GameState';
 import { DispatchTask, EnemyFeature, TaskType, TradeInstruction, TradePhase } from '../models/DispatchTask';
 import { TRADE_GOODS } from '../systems/MarketSystem';
+import { renderUniversalIcon } from './IconSpriteHelper';
+import { getTradeGoodStock, consumeTradeGoodStock } from './ShopController';
 import { closeNodeDetailPanel } from './ModalController';
 import { UIManager } from './UIManager';
 
@@ -77,7 +79,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
   if (targetNode.marketData && targetNode.marketData.goods) {
     targetNode.marketData.goods.forEach(item => {
       const goodRef = TRADE_GOODS.find(g => g.id === item.goodId);
-      const name = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : item.goodId;
+      const name = goodRef ? goodRef.name : item.goodId;
       const actualBuyPrice = Math.max(1, Math.floor(item.buyPrice * tradeModifiers.buyPriceMultiplier));
       const opt = document.createElement('option');
       opt.value = item.goodId;
@@ -90,23 +92,26 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
   }
 
   // 3. 動態更新計算函數
-  const updatePlannerSummary = () => {
+  const updatePlannerSummary = (autoSyncGold: boolean = false) => {
     // 計算護衛總戰力、總載重與議價加成
     let totalPower = 0;
     let totalCapacity = 0;
-    let totalNegotiation = 0;
+    let rawNegotiation = 0;
     GameState.adventurers.forEach(adv => {
       if (selectedAdventurersForCaravan.has(adv.id)) {
         totalPower += adv.power;
         const stats = adv.getTradeStats();
         totalCapacity += stats.maxCargoWeight;
-        totalNegotiation += stats.negotiationBonus;
+        rawNegotiation += stats.negotiationBonus;
       }
     });
 
+    // 小隊總議價上限鎖定為 20%
+    const totalNegotiation = Math.min(0.20, rawNegotiation);
+
     if (advCountText) advCountText.textContent = `(已選 ${selectedAdventurersForCaravan.size} / 5 人)`;
     if (totalPowerText) totalPowerText.textContent = `${totalPower}`;
-    if (negotiationText) negotiationText.textContent = `+${(totalNegotiation * 100).toFixed(1)}%`;
+    if (negotiationText) negotiationText.textContent = `+${(totalNegotiation * 100).toFixed(1)}%${rawNegotiation > 0.20 ? ' (已達上限20%)' : ''}`;
 
     // 載出貨物重量與預計賣出收益
     let cargoWeightOut = 0;
@@ -116,28 +121,38 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
         cargoWeightOut += amount;
         const marketItem = targetNode.marketData?.goods.find(g => g.goodId === gId);
         const baseSellPrice = marketItem ? marketItem.sellPrice : (TRADE_GOODS.find(x => x.id === gId)?.basePrice || 10);
-        const actualSellPrice = Math.max(1, Math.floor(baseSellPrice * (1 + totalNegotiation) * tradeModifiers.sellPriceMultiplier));
+        const actualSellPrice = Math.max(1, Math.round(baseSellPrice * (1 + totalNegotiation) * tradeModifiers.sellPriceMultiplier));
         expectedSellGold += actualSellPrice * amount;
       }
     }
 
     // 採購計算
     const selBuyGoodId = buySelect.value;
-    const wantBuyAmount = parseInt(buyAmountInput.value) || 0;
-    const inputGold = parseInt(goldInput.value) || 0;
+    const marketItem = targetNode.marketData?.goods.find(g => g.goodId === selBuyGoodId);
+    const maxStock = marketItem ? marketItem.stock : 0;
+
+    let wantBuyAmount = parseInt(buyAmountInput.value) || 0;
+    if (wantBuyAmount > maxStock) {
+      wantBuyAmount = maxStock;
+      buyAmountInput.value = maxStock.toString();
+    }
+    buyAmountInput.max = maxStock.toString();
 
     let expectedBuyCost = 0;
-    let actualBuyCapacityNeed = wantBuyAmount;
-    if (selBuyGoodId && wantBuyAmount > 0) {
-      const marketItem = targetNode.marketData?.goods.find(g => g.goodId === selBuyGoodId);
-      if (marketItem) {
-        const actualBuyPrice = Math.max(1, Math.floor(marketItem.buyPrice * (1 - totalNegotiation) * tradeModifiers.buyPriceMultiplier));
-        expectedBuyCost = actualBuyPrice * wantBuyAmount;
-      }
+    let actualBuyPrice = 0;
+    if (selBuyGoodId && wantBuyAmount > 0 && marketItem) {
+      actualBuyPrice = Math.max(1, Math.round(marketItem.buyPrice * (1 - totalNegotiation) * tradeModifiers.buyPriceMultiplier));
+      expectedBuyCost = actualBuyPrice * wantBuyAmount;
     }
 
+    if (autoSyncGold && expectedBuyCost > 0) {
+      goldInput.value = expectedBuyCost.toString();
+    }
+
+    const inputGold = parseInt(goldInput.value) || 0;
+
     // 載重檢定
-    const maxTripWeight = Math.max(cargoWeightOut, actualBuyCapacityNeed);
+    const maxTripWeight = Math.max(cargoWeightOut, wantBuyAmount);
     capacityText.textContent = `${maxTripWeight} / ${totalCapacity} 單位`;
     if (maxTripWeight > totalCapacity || totalCapacity === 0) {
       capacityText.style.color = '#ef4444';
@@ -147,7 +162,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
 
     sellSummaryText.textContent = `出發載重: ${cargoWeightOut} 單位 | 預計收益: +${expectedSellGold}G`;
     if (selBuyGoodId && wantBuyAmount > 0) {
-      buySummaryText.innerHTML = `預計採購花費: <span style="color:#fbbf24; font-weight:bold;">${expectedBuyCost}</span> 金幣 ${expectedBuyCost > inputGold ? '<span style="color:#ef4444; font-weight:bold;">(⚠️ 投入本金不足！)</span>' : ''} (享議價 -${(totalNegotiation * 100).toFixed(1)}%)`;
+      buySummaryText.innerHTML = `預計採購花費: <span style="color:#fbbf24; font-weight:bold;">${expectedBuyCost}</span> 金幣 (單價 ${actualBuyPrice}G × ${wantBuyAmount}件) ${expectedBuyCost > inputGold ? '<span style="color:#ef4444; font-weight:bold;">(⚠️ 投入本金不足！)</span>' : ''} (享議價 -${(totalNegotiation * 100).toFixed(1)}%)`;
     } else {
       buySummaryText.textContent = '未設定採購目標 (僅將出發貨物賣出換錢)';
     }
@@ -161,13 +176,13 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
 
   // 4. 渲染領地特產裝載列 (支援手打輸入 + 步進快捷鍵 + MAX)
   cargoContainer.innerHTML = '';
-  const availableGoods = TRADE_GOODS.filter(g => (tradeInventory[g.id] || 0) > 0);
+  const availableGoods = TRADE_GOODS.filter(g => getTradeGoodStock(territory, g.id) > 0);
 
   if (availableGoods.length === 0) {
     cargoContainer.innerHTML = '<div style="color:#94a3b8; font-size:0.88em; text-align:center; padding:12px; background:rgba(0,0,0,0.2); border-radius:6px;">領地倉庫目前無特產貨物可供裝載 (可純投入金幣前往採購)</div>';
   } else {
     availableGoods.forEach(g => {
-      const owned = tradeInventory[g.id] || 0;
+      const owned = getTradeGoodStock(territory, g.id);
       const marketItem = targetNode.marketData?.goods.find(x => x.goodId === g.id);
       const estPrice = marketItem ? Math.floor(marketItem.sellPrice * tradeModifiers.sellPriceMultiplier) : Math.floor(g.basePrice * 0.8);
 
@@ -181,9 +196,14 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
       row.style.border = '1px solid rgba(255,255,255,0.05)';
 
       row.innerHTML = `
-        <div style="flex: 1.2; min-width: 150px;">
-          <span style="font-size:0.92em; color:#e2e8f0; font-weight:bold;">${g.icon || '📦'} ${g.name}</span>
-          <div style="font-size:0.75em; color:#94a3b8; margin-top:1px;">庫存: <b style="color:#fbbf24;">${owned}</b> | 當地收購: <b style="color:#34d399;">${estPrice}G</b></div>
+        <div style="flex: 1.2; min-width: 150px; display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${renderUniversalIcon(g.icon || g.id, 28)}
+          </div>
+          <div>
+            <div style="font-size:0.92em; color:#e2e8f0; font-weight:bold;">${g.name}</div>
+            <div style="font-size:0.75em; color:#94a3b8; margin-top:1px;">庫存: <b style="color:#fbbf24;">${owned}</b> | 當地收購: <b style="color:#34d399;">${estPrice}G</b></div>
+          </div>
         </div>
         <div style="display:flex; align-items:center; gap:4px;">
           <button class="cargo-btn-sub10" style="padding:3px 6px; font-size:0.75em; background:#334155; border:1px solid rgba(255,255,255,0.1); color:#cbd5e1; border-radius:3px; cursor:pointer;" title="減少10">-10</button>
@@ -291,9 +311,9 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
   };
 
   // 綁定輸入與選單變更
-  goldInput.oninput = updatePlannerSummary;
-  buySelect.onchange = updatePlannerSummary;
-  buyAmountInput.oninput = updatePlannerSummary;
+  goldInput.oninput = () => updatePlannerSummary(false);
+  buySelect.onchange = () => updatePlannerSummary(true);
+  buyAmountInput.oninput = () => updatePlannerSummary(true);
 
   renderAdvList();
   updatePlannerSummary();
@@ -337,7 +357,8 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     const finalCargoOut: Record<string, number> = {};
     for (const [gId, amount] of Object.entries(selectedCargoToSell)) {
       if (amount > 0) {
-        if ((tradeInventory[gId] || 0) < amount) {
+        const owned = getTradeGoodStock(territory, gId);
+        if (owned < amount) {
           ToastManager.show(`領地內的【${gId}】庫存不足！`);
           return;
         }
@@ -364,7 +385,7 @@ export function openTradePlanner(plannedRouteNodeIds: string[]) {
     // 扣除領地裝載的貨物與採購金幣
     territory.gold -= inputGold;
     for (const [gId, amt] of Object.entries(finalCargoOut)) {
-      territory.tradeInventory[gId] -= amt;
+      consumeTradeGoodStock(territory, gId, amt);
     }
 
     // 建立指令
@@ -404,13 +425,17 @@ export function openTradeModal(node: MapNode) {
   const marketContainer = (document.getElementById('target-market-goods') || document.getElementById('trade-market'))!;
 
   const territory = GameState.myTerritory;
-  const inventoryHtml = Object.entries(territory.tradeInventory || {})
-    .filter(([_, count]) => count > 0)
-    .map(([goodId, count]) => {
-      const goodRef = TRADE_GOODS.find(g => g.id === goodId);
-      const name = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : goodId;
-      return `<div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-                <span>${name}</span>
+  const inventoryHtml = TRADE_GOODS
+    .map(g => ({ g, count: getTradeGoodStock(territory, g.id) }))
+    .filter(item => item.count > 0)
+    .map(({ g, count }) => {
+      const name = g.name;
+      const icon = g.icon || '📦';
+      return `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  ${renderUniversalIcon(icon, 20)}
+                  <span>${name}</span>
+                </div>
                 <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
               </div>`;
     }).join('');
@@ -428,12 +453,16 @@ export function openTradeModal(node: MapNode) {
     
     html += node.marketData.goods.map(item => {
       const goodRef = TRADE_GOODS.find(g => g.id === item.goodId);
-      const goodName = goodRef ? `${goodRef.icon || '📦'} ${goodRef.name}` : item.goodId;
+      const name = goodRef ? goodRef.name : item.goodId;
+      const icon = goodRef?.icon || '📦';
       const isDemanded = node.marketData!.demandEvent?.goodId === item.goodId;
       const highlight = isDemanded ? 'color: #f87171; font-weight: bold;' : '';
       
-      return `<div style="display: flex; justify-content: space-between; margin-bottom: 5px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
-                <span style="${highlight}">${goodName}${isDemanded ? ' (熱銷中)' : ''}</span>
+      return `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding: 6px 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  ${renderUniversalIcon(icon, 20)}
+                  <span style="${highlight}">${name}${isDemanded ? ' (熱銷中)' : ''}</span>
+                </div>
                 <span style="${highlight}">買入: ${item.buyPrice}G / 賣出: ${item.sellPrice}G / 庫存: ${item.stock}</span>
               </div>`;
     }).join('');

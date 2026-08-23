@@ -6,7 +6,7 @@ import { EnhancementSystem } from '../../systems/EnhancementSystem';
 import { CombatStats, ElementType, Equipment, EquipmentSlot, EquipmentTemplate } from '../../models/types';
 import { MarketSystem } from '../../systems/MarketSystem';
 import { positionFloatingElement } from '../FloatingPosition';
-import { renderEquipIcon, ICON_SIZE, formatStatsTags, getElementBadge, consumeMaterial, attachTooltip, getEquipTooltipHtml, getMaterialCount } from '../ShopController';
+import { renderEquipIcon, ICON_SIZE, formatStatsTags, getElementBadge, consumeMaterial, attachTooltip, getEquipTooltipHtml, getMaterialCount, getTradeGoodStock } from '../ShopController';
 import { renderUniversalIcon } from '../IconSpriteHelper';
 import { ToastManager } from '../ToastManager';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
@@ -612,7 +612,7 @@ export class ForgeUIController {
           ${iconHtml}
           <div style="flex:1; overflow:hidden;">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-              <strong style="color:${isSel ? '#fbbf24' : (isLockedByFacility ? '#94a3b8' : '#e2e8f0')}; font-size:0.9em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.name}</strong>
+              <strong style="color:${isSel ? '#fbbf24' : (isLockedByFacility ? '#94a3b8' : '#e2e8f0')}; font-size:0.9em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${targetTpl?.name || matTpl?.name || r.name}</strong>
               <span style="font-size:0.75em; padding:1px 4px; border-radius:3px; background:${isLockedByFacility ? 'rgba(239, 68, 68, 0.2)' : 'rgba(217, 119, 6, 0.25)'}; color:${isLockedByFacility ? '#ef4444' : '#fbbf24'}; font-weight:bold;">
                 ${isLockedByFacility ? `🔒 Lv.${requiredForgeLevel}` : `T${recipeTier}`}
               </span>
@@ -886,11 +886,11 @@ export class ForgeUIController {
     workspace.innerHTML = '';
 
     const elemStones = [
-      { matId: 'mat_element_fire', element: ElementType.FIRE, name: '熾炎附魔石', icon: '🔥', color: '#ef4444' },
-      { matId: 'mat_element_ice', element: ElementType.ICE, name: '霜冰附魔石', icon: '❄️', color: '#38bdf8' },
-      { matId: 'mat_element_lightning', element: ElementType.LIGHTNING, name: '疾雷附魔石', icon: '⚡', color: '#eab308' },
-      { matId: 'mat_element_holy', element: ElementType.HOLY, name: '聖光附魔石', icon: '☀️', color: '#fef08a' },
-      { matId: 'mat_element_dark', element: ElementType.DARK, name: '暗影附魔石', icon: '🌙', color: '#a855f7' }
+      { matId: 'mat_element_fire', element: ElementType.FIRE, name: '熾炎附魔石', icon: 'icons_materials:icons_materials_30', color: '#ef4444' },
+      { matId: 'mat_element_ice', element: ElementType.ICE, name: '霜冰附魔石', icon: 'icons_materials:icons_materials_31', color: '#38bdf8' },
+      { matId: 'mat_element_lightning', element: ElementType.LIGHTNING, name: '疾雷附魔石', icon: 'icons_materials:icons_materials_32', color: '#eab308' },
+      { matId: 'mat_element_holy', element: ElementType.HOLY, name: '聖光附魔石', icon: 'icons_materials:icons_materials_33', color: '#fef08a' },
+      { matId: 'mat_element_dark', element: ElementType.DARK, name: '暗影附魔石', icon: 'icons_materials:icons_materials_34', color: '#a855f7' }
     ];
 
     let selectedStoneMatId = elemStones[0].matId;
@@ -1603,19 +1603,21 @@ export class ForgeUIController {
     if (!grid) return;
     grid.innerHTML = '';
   
-    const inventory = GameState.myTerritory.tradeInventory;
-    const goodKeys = Object.keys(inventory).filter(k => (inventory[k] || 0) > 0);
+    const territory = GameState.myTerritory;
+    const goodsWithStock = TRADE_GOODS
+      .map(g => ({ g, count: getTradeGoodStock(territory, g.id) }))
+      .filter(item => item.count > 0);
   
-    if (goodKeys.length === 0) {
+    if (goodsWithStock.length === 0) {
       grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:30px;">倉庫內暫無交易品物資</div>';
       return;
     }
   
-    goodKeys.forEach(goodId => {
-      const count = inventory[goodId] || 0;
-      const goodRef = TRADE_GOODS.find(g => g.id === goodId);
-      const name = goodRef ? goodRef.name : goodId;
-      const icon = goodRef ? (goodRef.icon || '📦') : '📦';
+    goodsWithStock.forEach(({ g, count }) => {
+      const goodId = g.id;
+      const matDef = materialsJson.find(m => m.id === goodId);
+      const name = matDef ? matDef.name : g.name;
+      const icon = matDef?.icon || g.icon || '📦';
   
       const card = document.createElement('div');
       card.style.background = 'rgba(30, 24, 20, 0.8)';

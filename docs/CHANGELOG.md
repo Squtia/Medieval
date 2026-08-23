@@ -1,3 +1,183 @@
+- **[Feature/Narrative/UI] NPC 街道訪客事件與沉浸式視覺化對話系統實裝（2026-08-23）**：
+  - **對話完成即時刷新與事件監聽持久化修復 (`NpcDialogueModalController.ts` & `SceneController.ts`)**：
+    - 修復開局/讀檔時 `clearAll('system')` 意外清除街道訪客事件監聽器，導致點擊「資助 150 金幣」後 NPC 按鈕未從街道上移除、重複索要金幣的問題。
+    - 將街道訪客監聽器設定為 `'ui'` 持久 scope，並在對話選項結算後主動調用 `renderStreetNpcEvents()` 與 `UIManager.updateUI()` 即時移除 NPC 圖標與刷新頂部資源。
+    - 在選項按鈕實裝 `canAffordChoice` 負擔能力判定與安全阻擋提示，防止金幣不足時誤觸扣款。
+  - **通用直立肖像渲染器 (`IconSpriteHelper.renderUniversalPortrait`)**：
+    - 重構直立肖像渲染架構，徹底解決從 1:1 正方形拉伸導致人物被縱向壓扁與上下留黑的問題。
+    - 鎖定圖庫真實長寬比（**`1 : 1.853`**），圖片 100% 飽滿填滿容器，人物身材、五官與雕花畫框 100% 正確還原，0 壓扁、0 變形。
+  - **街道紅框訪客列升級 (`SceneController.ts` & `views-main.html`)**：
+    - 訪客按鈕尺寸加大升級為 **`44px × 82px`**（容器高 `92px`），極具視覺存在感且自然融入小巷通道。
+    - 無事件時 100% 透明無痕、零邊框底色；支援滑鼠拖曳與滑輪左右滑動，隨滑鼠游標移動 Floating Tooltip。
+  - **沉浸式對話彈窗立繪加大 (`NpcDialogueModalController.ts` & `modals-game.html`)**：
+    - 左側大立繪展位升級為 **`140px × 260px`** 超大肖像畫框，高解析度呈現立繪與頭銜。
+    - 支援多段對話切換說話者（NPC vs 玩家誓約守衛/領主）、左下角精緻繼續按鈕與最後分支選項。
+  - **故事工坊「NPC 肖像視覺化挑選彈窗」(`StoryStudio.ts` & `story-editor.html`)**：
+    - 移除純文字輸入框，改為「🖼️ 即時預覽卡片 ＋ ［🔍 挑選肖像］按鈕」。
+    - 建立 `#modal-story-avatar-picker` 肖像挑選彈窗，動態讀取專案所有圖庫分類（`npc`、`npc_man`、`guardian` 等），支援即時搜尋與分類過濾，保證未來在圖庫新增任何肖像均能即時在此挑選！
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試、P0 遭遇測試、經濟平衡模擬與端到端 Smoke Test 全數通過。
+- **[Feature/CombatStudio/StoryStudio] 討伐據點設計工坊重構與故事工坊模板化一鍵選取整合（2026-08-23）**：
+  - **戰鬥工坊【🏰 討伐據點設計工坊】全面重構 (`CombatStudio.ts` & `combat-studio.html`)**：
+    - 頂部導航欄新增第 4 分頁【🏰 討伐據點設計工坊】，三欄式專業工作台架構：
+      - **左欄（據點清單與搜尋過濾）**：即時搜尋名稱/ID、地形過濾、波次與守軍數量標籤、新增/複製/刪除據點。
+      - **中欄（據點屬性與 1~3 波守軍編制）**：視覺化配置據點代號、名稱、地形、難度等級（Lv.1~10）、專屬圖標、情報偵查要求、通關獎勵（金幣/EXP/聲望）；每一波次支援 1~5 隻守軍增減，並內建「怪物挑選彈窗 (`#modal-sh-monster-picker`)」。
+      - **右欄（戰力評估與沙盒測試大盤）**：即時計算所有波次怪物之預估總戰力（Total Power）、推薦隊伍陣容等級；提供「⚡ 載入至戰鬥沙盒測試」，一鍵將該據點守軍陣容全數帶入戰鬥模擬沙盒即時開戰驗證！
+  - **獨立討伐據點資料庫與持久化 (`subjugation_nodes.json` & `DataStore.SubjugationNodeDB`)**：
+    - 建立官方討伐據點資料庫，收錄走私者關卡、哥布林洞穴、古代地下墓穴、霜風冰龍巢穴等經典據點。
+    - 掛載至 `DataStore.SubjugationNodeDB`；工坊支援「💾 寫入專案硬碟」，自動寫入 `src/data/subjugation_nodes.json` 並生成歷史快照備份。
+  - **故事工坊一鍵模板化選取整合 (`StoryStudio.ts` & `NarrativeSystem.ts`)**：
+    - 在故事工坊 `CREATE_SUBJUGATION_NODE` 效果中，新增「🏰 選擇討伐據點模板」下拉選單，選擇模板後自動同步帶入名稱、描述、地形、難度與屬性，作者僅需設定生成位置與綁定故事後續節點（途中事件、勝利、失敗）。
+    - 遊戲運行時 `NarrativeSystem.createSubjugationNode` 支援讀取 `templateId` 生成動態大世界討伐據點。
+  - **驗證**：TypeScript 型別檢查、81 項單元測試、P0 遭遇測試、經濟模擬與自動化 Smoke Test 100% 綠燈通過。
+- **[Feature/Narrative/Bounty] 懸賞任務全面整合進故事工坊與條件引擎過濾升級（2026-08-23）**：
+  - **日常懸賞故事化與官方日常故事集 (`custom_stories.json`)**：
+    - 建立官方日常故事集《領地日常與居民委託》（`story_daily_routine`），收錄 15 個日常任務（找貓、下水道老鼠、夜間巡邏、收割小麥、採集藥草、教訓流氓、修補城牆等）。
+    - 徹底移除 `BountySystem.ts` 中的寫死靜態陣列，全面改由 `NarrativeSystem` 統一驅動。
+  - **可重複輪替與冷卻機制 (`NarrativeNode.repeatable` & `cooldownDays`)**：
+    - 故事節點支援 `repeatable: true`（允許日常重複輪替）與 `cooldownDays`（冷卻天數，預設 3 天）。
+    - 在 `NarrativeRuntimeState.nodeLastCompletedDay` 記錄節點完成天數，冷卻期內自動隱藏，冷卻結束後再次合資格。
+  - **條件動態過濾 (Conditions Support for Bounties)**：
+    - 日常懸賞完整繼承故事工坊全部條件判定（天數、線索 Fact、領地規模、聲望、金幣、派系好感度等），只要條件不滿足立即自動排除在懸賞告示板候選名單外。
+  - **故事工坊 UI 編輯支援 (`StoryStudio.ts` & `story-editor.html`)**：
+    - 懸賞面板新增 `☑️ 允許日常重複輪替 (Repeatable)`、`刷新冷卻天數` 與 `任務類型 (NORMAL/BANDIT)` 視覺化輸入。
+    - 節點列表卡片即時標註 `[🔄日常]` 標籤。
+  - **驗證**：新增專屬單元測試，81 項單元測試、TypeScript 型別檢查與 P0 自動化驗證（戰鬥遭遇、經濟模擬、Smoke）100% 綠燈通過。
+- **[Fix/System/Trade] 商隊全品類貨物正常收購變現機制修復（2026-08-23）**：
+  - **根本原因排查**：商隊抵達目標城後，先前代碼限制只有當商品屬於目標城當地的 `marketData.goods` 特產清單時才會收購；若載運非特產物資（例如載小麥去礦場、載生皮去平原），會被系統直接略過不賣，導致貨物整車原封不動被運回領地。
+  - **修復（`DispatchSystem.ts`）**：移除嚴格的特產清單限制，實裝全品類收購機制。非特產商品按基準收購價（疊加傭兵議價與道路加成）正常全額收購，貨物成功變現為金幣帶回領地。
+- **[Fix/UI/Settlement] 開局/讀檔誤觸發據點規模擴張通知修復（2026-08-22）**：
+  - **根本原因排查**：世界生成與存檔還原時，玩家主據點節點的 `nodeLevel` 預設停留在荒野（`WILDERNESS`，0），但在 UI 初次渲染時計算當前人口與建築繁榮度已達到村莊（`VILLAGE`，2），導致每次開局或讀檔時誤判為「剛剛發生了升級擴張」而反覆彈出通知。
+  - **修復（`MapGenerator.ts` & `SaveManager.ts`）**：在世界生成與讀檔還原時，立即預先計算並對齊主據點的 `prosperity` 與 `nodeLevel`，消除初始化時的數值落差，確保擴張通知只會在真正的繁榮度跨越時觸發一次。
+- **[Feature/Economy/Sync] 跑商特產與領地基礎資源（木材/鐵礦/石材/糧食）全面一體化打通（2026-08-22）**：
+  - **庫存與讀取消耗一體化 (`ShopController.ts` & `TradeController.ts`)**：
+    - 建立全域統一的特產與資源讀取/消耗/入庫方法 `getTradeGoodStock`、`consumeTradeGoodStock`、`addTradeGoodStock`。
+    - 木材（`tg_timber`）、鐵礦石（`tg_iron`）、石材（`tg_stone`）、小麥（`tg_wheat`）直接雙向連動領地頂部資源 `territory.wood/iron/stone/food`。
+    - 單線商隊載貨與倉庫介面 100% 反映領地真實總資源庫存；商隊載貨出發扣除對應基礎物資，買貨返程全額自動入庫至領地頂部資源。
+  - **舊存檔自動無縫合併遷移 (`SaveManager.ts`)**：
+    - 讀檔時自動將存檔中 `tradeInventory` 殘留的木材與鐵礦石合併回領地頂部總庫存，徹底消除系統間資源割裂。
+- **[Fix/UI/Trade] 跑商規劃與市場面板圖標字串外溢徹底修復（2026-08-22）**：
+  - **圖標與文字分離渲染 (`TradeController.ts`)**：
+    - 修復在下拉選單 `<option>`、出發載貨清單與市場行情面板中直接文字插值 `${goodRef.icon}` 導致輸出 `icons_materials:icons_materials_8` 英文串的問題。
+    - 下拉選單純文字呈現乾淨中文名稱；列表與行情卡片全面使用 `renderUniversalIcon` 正確渲染為獨立的高解析 Sprite 精靈圖標。
+- **[Fix/UI/Icons] 領主總倉庫交易品與商隊特產圖標全面升級高解析 Sprite（2026-08-22）**：
+  - **TRADE_GOODS 圖標定義升級 (`MarketSystem.ts`)**：
+    - 將棉麻、生皮、獸肉、木材、鐵礦石、黑曜石、冰晶、絲綢等所有特產的 `icon` 由舊版 Emoji（如 `🦬`、`🌿`、`💎`，其中生皮在 Windows 上會顯示為破損方框 `▯`）全面升級為專屬高解析度 Sprite 圖集標籤（如 `icons_materials:icons_materials_0`~`8`）。
+  - **領主總倉庫渲染同步 (`ForgeUIController.ts` & `TradeController.ts`)**：
+    - 領主總倉庫中的【交易品物資】與目標城鎮交易面板 100% 連結至精美素材 Sprite 圖標，告別 Emoji 與字體破圖問題。
+- **[Fix/Forge/Materials] 領地鍛造屋與冶煉系統全面支援特產/交易品庫存讀取與扣除（2026-08-22）**：
+  - **全特產庫存識別 (`ShopController.getMaterialCount` & `consumeMaterial`)**：
+    - 修復先前材料庫存判定僅對硬編碼的 `tg_hide` 與 `tg_cotton` 有效，導致黑曜石（`tg_obsidian`）、冰晶（`tg_ice_crystal`）、絲綢（`tg_silk`）等透過跑商買回的特產在冶煉秘銀錠或鍛造進階裝備時顯示為 0 的問題。
+    - 全面打通 `tradeInventory` 與 `materials`，鍛造屋與改造工作臺 100% 正確識別並消耗黑曜石等所有特產與交易品。
+- **[Balance/Economy/Trade] 傭兵跑商議價體系重塑與採購本金庫存連動修復（2026-08-22）**：
+  - **傭兵議價特長微調與上限保護 (`Adventurer.ts` & `TradeController.ts`)**：
+    - 單人議價加成調整為 `1% ~ 5%`（依魅力與智慧成長，上限 5%）。
+    - 小隊總議價上限嚴格鎖定為 **20%**，杜絕多名法師/祈禱者疊加至 100% 造成 1 塊錢零元購破壞經濟系統的嚴重 Bug。
+  - **採購本金與庫存雙向智能連動 (`TradeController.ts`)**：
+    - 單線商隊介面中，採購數量輸入框自動鎖定目標據點的「最大實際庫存」。
+    - 當調整採購數量時，自動計算並同步填入所需採購本金（折後單價 × 數量）；當手動輸入本金時，提供即時不足警示。
+  - **商隊交易收購保底與精準結算 (`DispatchSystem.ts`)**：
+    - 據點收購所有常規特產，若市場未隨機列出該特產，則以該商品之基準行情市價收購，不再拒收或原封不動運回。
+    - 抵達結算時精確扣款與採購指定特產，未花完的本金全額安全帶回領地並在結算日誌中清楚列示。
+- **[Fix/UI/Icons] 全域倉庫素材與各介面高解析圖標全面修復與連結（2026-08-22）**：
+  - **全域倉庫素材/交易品圖標修復 (`InventoryUIController.ts`)**：
+    - 將舊版 `renderResourceSpriteHtml` 替換為全域通用渲染器 `renderUniversalIcon`，木板、粗布、鐵錠、石磚、皮革、磨刀石、鋼錠等素材及所有交易品正式連結至專屬精美 Sprite 圖標，徹底告別 📦 紙箱佔位圖。
+  - **各模組圖標渲染統一升級**：
+    - **防具商店 (`ShopController.ts`)**：在防具卡片名稱旁補上 `renderEquipIcon`，使武器與防具店視覺一致。
+    - **改造工作臺 (`ModificationWorkshopController.ts`)**：在改造方案與配方中全面整合 `renderUniversalIcon` 高清圖標。
+- **[Feature/Narrative/Bounty] 故事懸賞即時同步與條件檢查優化（2026-08-22）**：
+  - **即時入榜檢查 (`BountyModalController.show`)**：在玩家點擊開啟懸賞告示板 UI 時，主動呼叫 `NarrativeSystem.ensureStoryBounties()`，確保只要達成第 2 天（`DAY_AT_LEAST: 2`）與故事前置條件，主線故事委託「◆ 尋找失蹤的丈夫」必定即時刷新並陳列在懸賞清單中。
+- **[Feature/Equipment/ClassSystem] 實裝職業專屬裝備限制智能推導與工坊防漏保護機制（2026-08-22）**：
+  - **職業與武器/防具天然綁定推導 (`DataStore.getDefaultAllowedJobs`)**：
+    - 嚴格對齊 [docs/CLASS_SYSTEM.md](file:///i:/gameproject/Medieval/docs/CLASS_SYSTEM.md)，所有武器與防具自動智能推導其職業穿戴限制（例如戰弓/短弓限弓箭手、巨劍/雙劍限戰士、法杖/戰鐮限法師、重鎧限戰士/騎士等）。
+    - 換裝面板對非本職裝備即時呈現紅框反灰與 not-allowed 防呆提示。
+  - **裝備工坊全自動防漏保護 (`EquipmentStudio.ts`)**：
+    - 在 `CustomEquipmentTemplate` 補齊 `allowedJobs` 介面，無論在工坊中如何編輯、新建、複製或保存裝備，皆自動保留並繼承正確的職業限制，永不再發生覆蓋丟失問題。
+  - **存檔自動對齊修復 (`SaveManager.ts`)**：
+    - 讀檔瞬間自動刷新現有冒險者與領地倉庫中裝備的 `allowedJobs`，所有舊存檔立即恢復嚴格職業限制。
+- **[Feature/Equipment/Scaling] 實裝 T1~T5 指定階級補正範圍與職業武器專屬隨機 Scaling 規則引擎（2026-08-22）**：
+  - **精確階級補正範圍實裝 (`EquipmentGenerator.getTierScalingRange`)**：
+    - **T1 基礎裝**：`D ~ B` 級補正
+    - **T2 精良裝**：`C ~ A` 級補正
+    - **T3 稀有裝**：`B ~ A` 級補正
+    - **T4、T5 史詩與神話裝**：`B ~ S` 級補正
+  - **職業武器專屬主屬性與隨機副屬性抽池 (`getDefaultScalingRules`)**：
+    - **短弓／戰弓 / 雙匕首**：保底 `AGI` 主補正，隨機副屬性池抽 0~2 條額外屬性補正。
+    - **法杖 / 魔法戒指**：保底 `INT` 主補正，隨機副屬性池抽 0~2 條。
+    - **巨劍 / 戰士武器**：保底 `STR` 主補正，隨機副屬性池抽 0~2 條。
+    - **聖典**：保底 `SPR` 主補正；**劍盾**：保底 `STR + CON`；**雙劍 / 魔法弓**：保底雙修雙主屬性。
+    - **防具**：布甲保底 `SPR`、皮甲保底 `LUK/AGI`、重鎧保底 `CON`，隨機池抽 0~1 條。
+  - **舊存檔自動洗鍊對齊 (`SaveManager.ts`)**：讀檔時自動偵測並洗鍊舊版誤寫死為 `STR(E) INT(E)` 的裝備，立即恢復專屬主屬性與隨機副屬性。
+- **[Feature/System/UI] 統一全域戰敗休養 CD（4 天）與實裝傭兵忙碌/休養中全操作鎖定防呆（2026-08-22）**：
+  - **戰敗休養 CD 統一大一統 (`DispatchSystem.ts` & `GameLoop.ts`)**：將外出討伐戰敗與領地受襲重傷的休養時間全面統一為 **4 天**（`restingDaysLeft = 4`），徹底解決舊版討伐戰敗僅設定 1 天且在換日結算時被即時歸零導致看似無 CD 的時序缺陷。
+  - **傭兵忙碌全面鎖定防呆 (`PartyModalController.ts`)**：凡是處於 `DISPATCHED`（派遣中）、`RESTING`（休養中）或 `CAPTURED`（被俘虜）的傭兵：
+    - 🔒 **裝備更換/卸下鎖定**：裝備槽位呈半透明鎖定樣式，點擊彈出 Warning Toast「⚠️ 該傭兵正在任務/休養中，無法更換或卸下裝備！」。
+    - 🔒 **自由屬性配點鎖定**：加點與減點按鈕隱藏/禁用，下方顯示紅色提示「🔒 傭兵目前處於任務/休養中，無法分配屬性點」。
+    - 🔒 **進階轉職與退休鎖定**：轉職與退休按鈕置灰禁用，防止戰場上隔空轉職與退休。
+  - **改造所來源防呆 (`ModificationWorkshopController.ts`)**：改造所的冒險者裝備來源僅展示 `IDLE` 閒置中傭兵的裝備，外出中傭兵裝備不可隔空改造。
+- **[Fix/UI] 修正街道懸賞欄按鈕層級（z-index: 20），避免覆蓋領主書房等建築室內視圖（2026-08-22）**：
+  - 將 `#btn-street-bounty` 的層級調整至街道層（`z-index: 20`，低於 `.facility-view` 的 `z-index: 50`），確保進入領主書房、謁見廳、酒館或鍛造屋時，按鈕正常被建築視圖遮蔽，不再遮擋書房左上角的「⬅ 返回街道」按鈕。
+- **[Feature/UI] 優化街道視圖懸賞欄入口：僅保留左上角快捷按鈕（2026-08-22）**：
+  - 移除街道建物滾動列中的告示板佔位地標，保留純淨的街道建築風貌。
+  - 保留街道左上角常駐按鈕（`#btn-street-bounty`），在街道畫面上隨時一鍵開啟全功能懸賞 UI。
+- **[Fix/DataStore/Equipment] 修復 DataStore 載入裝備庫時遺漏 combatEffects 導致武器物攻/防禦未生效的缺陷（2026-08-22）**：
+  - **根本原因**：裝備工坊將固定數值儲存於 `combatEffects`，但 `DataStore.ts` 僅讀取了 `baseCombatEffects`，導致生成實體與舊存檔中的裝備遺失了 `patk: 8`、`pdef: 4` 等戰鬥效果，畫面上只顯示了六維屬性 `CON+3`。
+  - **修復機制**：在 `DataStore.ts` 中加入 `item.baseCombatEffects || item.combatEffects` 雙向相容讀取，並在 `SaveManager.ts` 自動對齊中補齊現有裝備缺失的 `combatEffects`，重新整理讀檔後鐵盾長劍立刻正確顯示 `⚔️物攻+8 | 🛡️物防+4 | ✨魔防+2 | 💥爆擊+5% | CON+3`。
+- **[Architecture/Equipment] 實裝裝備「單一真實來源」一勞永逸全域自動同步機制（2026-08-22）**：
+  - **存檔讀取全自動同步 (`SaveManager.autoSyncAllEquipmentWithTemplates`)**：在讀取存檔時自動遍歷傭兵身上與領地倉庫內的所有裝備實例，只要模板在 JSON 或裝備工坊中被改名/更新圖標，讀檔瞬間 100% 全自動對齊最新名稱與屬性，徹底告別舊存檔殘留舊名稱的問題。
+  - **鍛造配方動態關聯 (`ForgeUIController` & `EquipmentStudio`)**：鍛造屋與工坊配方名稱改為動態優先讀取目標裝備/素材的最新官方名稱（`targetTpl.name`），修改裝備名稱後配方名稱自動即時生效。
+  - **同步修訂配方庫**：將 `CraftingRecipes.json` 中的 `recipe_wooden_shield_sword` 同步更正為「鐵盾長劍」。
+- **[Fix/EquipmentStudio] 修復裝備工坊卡片屬性數值為 0 時被誤覆蓋為階級保底數值的缺陷（2026-08-22）**：
+  - 將卡片屬性渲染邏輯中的 `||` 運算子全面重構為 `??`（Nullish Coalescing），解決純物理武器（如斬馬劍）魔攻設為 0 時被錯誤覆蓋為 30 的問題，恢復 100% 精確的真實數值與戰力計算。
+- **[Fix/Forge/Icons] 修復附魔台五大元素附魔石與破敗傳家寶劍圖標連結（2026-08-22）**：
+  - **五大元素附魔石圖標對接 (`ForgeUIController.ts`)**：將附魔台選擇石框體的硬編碼 Emoji（🔥❄️⚡☀️🌙）替換為 `materials.json` 中的正式素材圖集代號（`icons_materials_30` ~ `icons_materials_34`），完美呈現高解析度附魔晶石。
+  - **破敗傳家寶劍圖標對接 (`DataStore.ts` & `IconSpriteHelper.ts`)**：移除舊版寫死的單一 Emoji `🗡️`，使其正常對接武器 Sprite 切片（T1 巨劍），並支援全域階級邊框。
+- **[Fix/UI/Icons] 修復自訂圖標裝備全域階級邊框（T1~T4/藍框）與品質角標遺失問題（2026-08-22）**：
+  - **全域階級品質邊框包裹 (`renderEquipIcon`)**：在 `IconSpriteHelper.ts` 的 `renderEquipIcon` 入口為所有設定了 `eq.icon` 的自訂裝備自動包裹專屬的階級容器（`equip-custom-icon-wrap`），包含對應階級發光邊框（如 T3 藍色 `#3b82f6`、T4 紫色 `#a855f7`）與右下角 `T3` 品質文字角標。
+  - **全介面外觀完全統一**：徹底消除自訂圖標裝備與預設裝備外觀樣式不一致的瑕疵。
+- **[Feature/Fix/CombatStudio] 英雄設計工坊六維排版重構與誓約守衛原創設定全面對齊（2026-08-22）**：
+  - **六維屬性排版重構（3x2 網格）**：
+    - 將六維屬性由擁擠的單行 6 欄改為寬裕的 **3 欄 x 2 列（`repeat(3, 1fr)`）**，輸入框設定 `box-sizing: border-box; width: 100%`，徹底解決 STR/AGI/CON/INT/SPR/LUK 溢出彈窗面板邊界的問題。
+    - 加入六維屬性總點數即時計算徽章（`#hc-total-stats`）。
+  - **誓約守衛原創體系全面對齊 (`OathCreationController`)**：
+    - **20 款專屬男女守衛立繪連動**：切換為誓約守衛時，肖像選單自動列出「銀髮雄獅騎士 (2/10)」、「金髮璀璨聖騎 (1/10)」等具體立繪名稱，並生成正確圖標代號（如 `guardian_m_1`），徹底修復舊有包裹 📦 破圖問題。
+    - **誓約守衛 5 大專屬特質**：整合 `GUARDIAN_LOYAL`（忠誠護衛）、`GUARDIAN_PRUDENT`（沉著參謀）、`GUARDIAN_VALIANT`（熱血戰魂）、`GUARDIAN_DEVOUT`（堅毅信仰）、`GUARDIAN_SCOUT`（敏銳斥候）與通用特質選單。
+- **[Fix/CombatStudio] 修復英雄設計圖標自訂儲存與讀取優先級（2026-08-22）**：
+  - **讀取優先級修正 (`getAllHeroes`)**：修正預設英雄修改後被靜態程式碼覆蓋的問題，優先讀取 `customHeroesDb` 中的最新自訂圖標與數值。
+  - **卡片點擊換圖標全鏈條寫入**：於英雄大盤卡片直接點選頭像更換圖標時，自動複製並推入本機儲存庫（`localStorage: MEDIEVAL_CUSTOM_HEROES`），徹底解決重繪後還原的問題。
+- **[Feature/CombatStudio] 英雄設計工坊圖標系統升級（Hero Studio Universal Icon Support）（2026-08-22）**：
+  - **英雄定義擴充 (`UniqueHeroDef`)**：新增 `avatarIcon?: string` 欄位，支援全圖集通用圖標（誓約騎士、神話英雄、職業精靈圖或自訂代號）。
+  - **英雄創造/編輯彈窗視覺化升級 (`#modal-hero-creator`)**：
+    - 頂部加入 48px 頭像預覽框，點擊直接開啟【全圖集通用圖標選擇器】。
+    - 支援手動輸入自訂圖標代號或即時點選挑選。
+  - **英雄大盤與挑選器視覺升級**：
+    - 英雄大盤卡片清單與英雄挑選器展示高解析精靈圖標（`renderUniversalIcon`）。
+    - 支援在英雄大盤卡片上直接點擊頭像快速更換圖標。
+  - **沙盒與戰場全鏈條連動**：套用英雄時，專屬圖標即時連動至沙盒左側卡片與戰鬥擂台動畫。
+- **[Feature/CombatStudio] 實裝怪物特技自訂配置器（Monster Skill Configurator）（2026-08-22）**：
+  - **右側怪物卡片即時配置**：怪物技能標籤欄新增「⚙️ 配置」按鈕，點擊立即開啟【✨ 怪物特技配置彈窗 (`#modal-monster-skills`)】。
+  - **全特技庫分類與搜尋挑選**：
+    - 支援即時搜尋關鍵字（技能名稱/說明/效果）。
+    - 完整呈現 50+ 款物理戰技、奧術魔法、暗影刺殺、神聖祈禱與怪物專屬特技，支援即時查看 MP 消耗與詳細說明。
+    - 單一怪物最多可自訂配置 4 招特技，支援 `✕` 一鍵卸除與 `＋` 加入。
+  - **戰鬥即時生效**：配置後於單場戰鬥動畫播放與 100 場蒙地卡羅極速模擬中即時依 AI 權重釋放指定特技。
+- **[Feature/Fix/CombatStudio] 戰鬥工坊深度體驗優化：獨特英雄鎖定、全品項換裝彈窗、單一UR防呆、戰鬥定位與排版修復（2026-08-22）**：
+  - **獨特英雄身分保護 & 誓約守衛自由轉職**：
+    - 獨特英雄（如 UR 赤焰戰神雷恩、SSR 霜語大魔導露娜）在沙盒卡片中將品質與職業選單鎖定為專屬唯讀徽章，保護傳奇身分。
+    - 誓約守衛（`isGuardian: true`）與一般傭兵維持完整下拉選單，可自由測試 17 大職業與 N~UR 各階數值。
+  - **裝備與飾品「全品項庫選擇」＋ 圖標與 Tooltip 懸浮說明**：
+    - 徹底升級換裝彈窗（`#modal-equipment-editor`），支援從武器庫（30+ 款各職業神兵）、防具庫（重甲/皮甲/布袍）與飾品庫（11+ 款專案飾品）具體挑選品項。
+    - 換裝介面即時連動 48px 精靈圖標（`renderUniversalIcon`）與詳細戰鬥數值/詞條 Tooltip 摘要。
+    - 卡片上的 3 格裝備欄位同步展示品項真實名稱與 Tooltip。
+  - **單一 UR 全鏈條防呆**：
+    - 卡片切換品質為 UR 或在挑選器選用 UR 英雄時，若隊伍已存在其他 UR 傭兵，即時警告並阻擋。
+  - **怪物 8 大戰鬥定位與技能標籤恢復**：
+    - 右側陣容卡片恢復戰鬥定位選單（`⚖️ 常規均衡`、`🛡️ 鐵壁肉盾`、`⚡ 疾風刺客`、`🔮 奧術法師`、`🩸 嗜血狂戰`、`🏹 遠程狙擊`、`💀 亡靈泥沼`、`👑 史詩首領`）與特技標籤清單。
+  - **介面排版修復與精簡**：
+    - 調整據點情境列樣式（`min-width: 0`, `flex-shrink: 0`），徹底解決「🎲 隨機遭遇」按鈕被擠壓切掉問題。
+    - 移除沙盒右側重複的「➕ 創造單位」按鈕，保持介面簡潔乾淨。
+- **[Fix/CombatStudio] 修復戰鬥工坊切換分頁沙盒佈局損壞與右側怪物頭像動態解析（2026-08-22）**：
+  - **Grid 三欄佈局保護**：修復 `switchStudioTab` 將沙盒視圖 `#cs-view-battle` 誤設為 `flex` 的問題，恢復原生 `display: grid`（`340px 1fr 340px`），確保標籤頁往返切換時三欄排版完好穩定。
+  - **怪物圖標全鏈條動態連動**：實作 `getMonsterAvatar` 統一大圖標解析器，於敵方陣容卡片、戰鬥擂台即時狀態、預設遭遇與切換怪物原型時，100% 自動連動母庫 `monstersDb` 的 `avatarIcon`（8x8 精靈圖），消除舊 Emoji 覆蓋與圖標遺失問題。
 - **[Fix/CSS] 修復 combat-studio.css 血條類別選擇器語法錯誤（2026-08-21）**：
   - 補齊遺漏的 `.cs-hp-fill` 選擇器宣告，消除 IDE CSS 語法報錯。
 - **[Fix/Studio] 完整補齊「怪物資料庫與設計工坊」分頁渲染、卡片編輯、寫入磁碟與搜尋過濾（2026-08-21）**：

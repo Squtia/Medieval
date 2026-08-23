@@ -1,4 +1,5 @@
 import { EquipmentSlot, ElementType, WeaponType, MaterialItem } from '../models/types';
+import { DataStore } from '../systems/DataStore';
 import materialsJson from '../data/materials.json';
 import equipmentWeaponsJson from '../data/equipment_weapons.json';
 import equipmentArmorsJson from '../data/equipment_armors.json';
@@ -36,6 +37,7 @@ export interface CustomEquipmentTemplate {
   weaponType?: WeaponType;
   armorType?: 'CLOTH' | 'LEATHER' | 'HEAVY';
   tier: number;
+  allowedJobs?: string[];
   icon?: string;
   element?: ElementType;
   baseEffects?: Partial<Record<'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', number>>;
@@ -177,6 +179,9 @@ class EquipmentStudioController {
       affixPool: e.affixPool || ['鋒利', '堅定'],
       extraSkills: e.extraSkills || [],
       skillTriggerChances: e.skillTriggerChances || [],
+      allowedJobs: (e.allowedJobs && e.allowedJobs.length > 0)
+        ? e.allowedJobs
+        : DataStore.getDefaultAllowedJobs(e.slot || (e.weaponType ? EquipmentSlot.WEAPON : EquipmentSlot.ARMOR), e.weaponType, e.armorType),
       craftable: e.craftable !== false,
       droppable: e.droppable !== false,
       shopBuyable: e.shopBuyable !== false,
@@ -314,12 +319,12 @@ class EquipmentStudioController {
       const icon = eq.icon || this.getEquipDefaultIcon(eq.slot, eq.weaponType, eq.tier);
       const elemText = eq.element && eq.element !== ElementType.NONE ? `<span style="color: var(--es-gold);">[${eq.element}]</span>` : '';
 
-      const patk = eff.patk || (eq.slot === EquipmentSlot.WEAPON ? eq.tier * 15 : 0);
-      const matk = eff.matk || (eq.slot === EquipmentSlot.WEAPON ? eq.tier * 15 : 0);
-      const pdef = eff.pdef || (eq.slot === EquipmentSlot.ARMOR ? eq.tier * 10 : 0);
-      const mdef = eff.mdef || (eq.slot === EquipmentSlot.ARMOR ? eq.tier * 10 : 0);
-      const hp = eff.hp || (eq.slot === EquipmentSlot.ARMOR ? eq.tier * 30 : 0);
-      const crit = eff.crit || (eq.slot === EquipmentSlot.WEAPON ? 5 : 0);
+      const patk = eff.patk ?? (eq.slot === EquipmentSlot.WEAPON ? eq.tier * 15 : 0);
+      const matk = eff.matk ?? 0;
+      const pdef = eff.pdef ?? (eq.slot === EquipmentSlot.ARMOR ? eq.tier * 10 : 0);
+      const mdef = eff.mdef ?? 0;
+      const hp = eff.hp ?? (eq.slot === EquipmentSlot.ARMOR ? eq.tier * 30 : 0);
+      const crit = eff.crit ?? (eq.slot === EquipmentSlot.WEAPON ? 5 : 0);
 
       const effAtk10 = Math.max(patk, matk) + 40;
       const avgDef10 = Math.floor((pdef + mdef) / 2) + 30;
@@ -448,20 +453,20 @@ class EquipmentStudioController {
       const targetMat = !targetEq ? this.materials.find(m => m.id === r.targetEquipmentId) : null;
       const targetIt = !targetEq && !targetMat ? this.items.find(i => i.id === r.targetEquipmentId) : null;
 
-      let eqName = r.name || r.targetEquipmentId;
+      let eqName = r.targetEquipmentId;
       let eqIcon = '📦';
       let typeBadge = '';
 
       if (targetEq) {
-        eqName = r.name || targetEq.name;
+        eqName = targetEq.name || r.name || r.targetEquipmentId;
         eqIcon = targetEq.icon || this.getEquipDefaultIcon(targetEq.slot, targetEq.weaponType, targetEq.tier);
         typeBadge = `<span style="background: rgba(230,180,34,0.15); color: var(--es-gold); padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">⚔️裝備</span>`;
       } else if (targetMat) {
-        eqName = r.name || targetMat.name;
+        eqName = targetMat.name || r.name || r.targetEquipmentId;
         eqIcon = targetMat.icon || this.getMaterialDefaultIcon(targetMat.id);
         typeBadge = `<span style="background: rgba(16,185,129,0.15); color: #34d399; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">🧱素材提煉</span>`;
       } else if (targetIt) {
-        eqName = r.name || targetIt.name;
+        eqName = targetIt.name || r.name || r.targetEquipmentId;
         eqIcon = targetIt.icon || '🧪';
         typeBadge = `<span style="background: rgba(59,130,246,0.15); color: #60a5fa; padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">🧪道具</span>`;
       }
@@ -1103,13 +1108,21 @@ class EquipmentStudioController {
         skillTriggerChances.push(Number((byId('ee-skill-rate-2') as HTMLInputElement).value) || 100);
       }
 
+      const slotVal = (byId('ee-slot') as HTMLSelectElement).value as any;
+      const wpnTypeVal = (byId('ee-weapon-type') as HTMLSelectElement).value as any;
+      const existingItem = this.equipment.find(e => e.id === id);
+      const derivedAllowedJobs = (existingItem?.allowedJobs && existingItem.allowedJobs.length > 0)
+        ? existingItem.allowedJobs
+        : DataStore.getDefaultAllowedJobs(slotVal, wpnTypeVal, existingItem?.armorType);
+
       const eq: CustomEquipmentTemplate = {
         id,
         name,
-        slot: (byId('ee-slot') as HTMLSelectElement).value as any,
-        weaponType: (byId('ee-weapon-type') as HTMLSelectElement).value as any,
+        slot: slotVal,
+        weaponType: wpnTypeVal,
         tier: Number((byId('ee-tier') as HTMLSelectElement).value) || 1,
         element: (byId('ee-element') as HTMLSelectElement).value as any,
+        allowedJobs: derivedAllowedJobs,
         icon: byId('ee-icon').dataset.iconVal || 'weapons:GREATSWORD',
         craftable: (byId('ee-craftable') as HTMLInputElement).checked,
         droppable: (byId('ee-droppable') as HTMLInputElement).checked,

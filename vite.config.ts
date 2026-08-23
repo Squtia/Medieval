@@ -351,6 +351,48 @@ function developmentStudioPlugin(): Plugin {
         }
 
         // ==========================================
+        // 討伐據點工坊 API (Subjugation Node Studio API)
+        // ==========================================
+        const subjugationFile = path.resolve(__dirname, 'src/data/subjugation_nodes.json');
+        const subjugationBackupsDir = path.resolve(__dirname, 'src/data/subjugation_backups');
+
+        if (url === '/api/get-subjugation-nodes' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(fs.existsSync(subjugationFile) ? fs.readFileSync(subjugationFile, 'utf-8') : '[]');
+        }
+
+        if (url === '/api/save-subjugation-nodes' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              if (!Array.isArray(payload.strongholds)) throw new Error('strongholds 必須是陣列');
+              fs.mkdirSync(subjugationBackupsDir, { recursive: true });
+              fs.writeFileSync(subjugationFile, JSON.stringify(payload.strongholds, null, 2), 'utf-8');
+              const now = new Date();
+              const pad = (value: number) => value.toString().padStart(2, '0');
+              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const snapshot = `snapshot_${stamp}.json`;
+              fs.writeFileSync(path.resolve(subjugationBackupsDir, snapshot), JSON.stringify({
+                timestamp: now.toISOString(),
+                note: payload.note || '使用者在戰鬥工坊儲存據點',
+                strongholds: payload.strongholds
+              }, null, 2), 'utf-8');
+              const backups = fs.readdirSync(subjugationBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
+              for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(subjugationBackupsDir, oldFile));
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, snapshot, total: payload.strongholds.length }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        // ==========================================
         // 裝備、素材、道具與鍛造配方 API (Equipment & Material Studio API)
         // ==========================================
         const materialsFile = path.resolve(__dirname, 'src/data/materials.json');

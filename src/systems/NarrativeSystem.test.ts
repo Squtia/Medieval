@@ -183,4 +183,53 @@ describe('NarrativeSystem', () => {
     expect(spiceRes.affordable).toBe(false);
     expect(spiceRes.missingReason).toContain('缺少特產');
   });
+
+  it('支援 repeatable 日常懸賞：條件符合可多次輪替，冷卻中或條件不符會被排除', () => {
+    const routineStory: NarrativeStory = {
+      id: 'story_daily',
+      title: '日常故事',
+      summary: '',
+      version: 1,
+      enabled: true,
+      nodes: [
+        {
+          id: 'routine_cat',
+          title: '找貓',
+          description: '找貓',
+          channel: 'BOUNTY_BOARD',
+          repeatable: true,
+          cooldownDays: 3,
+          conditions: [{ type: 'FACT_MISSING', fact: 'cat_extinct' }],
+          choices: [],
+          completionEffects: [{ type: 'ADD_GOLD', value: 20 }],
+          bounty: { duration: 1, expireDays: 4, gold: 20, exp: 10, type: 'NORMAL' }
+        }
+      ]
+    };
+    NarrativeSystem.setDefinitionsForTesting([routineStory]);
+
+    // 1. 初始第 1 天，合資格
+    let routines = NarrativeSystem.getEligibleRoutineBounties();
+    expect(routines).toHaveLength(1);
+    expect(routines[0].node.id).toBe('routine_cat');
+
+    // 2. 完成該任務，第 1 天完成
+    NarrativeSystem.completeNode('story_daily', 'routine_cat');
+    expect(GameState.narrativeState.nodeLastCompletedDay?.['story_daily:routine_cat']).toBe(1);
+
+    // 3. 第 2 天在 3 天冷卻中，應被排除
+    GameState.totalDays = 2;
+    routines = NarrativeSystem.getEligibleRoutineBounties();
+    expect(routines).toHaveLength(0);
+
+    // 4. 第 4 天冷卻結束 (4 - 1 >= 3)，再次合資格
+    GameState.totalDays = 4;
+    routines = NarrativeSystem.getEligibleRoutineBounties();
+    expect(routines).toHaveLength(1);
+
+    // 5. 若條件不滿足 (出現 cat_extinct Fact)，則立即被過濾排除
+    GameState.narrativeState.facts['cat_extinct'] = { value: true, day: 4 };
+    routines = NarrativeSystem.getEligibleRoutineBounties();
+    expect(routines).toHaveLength(0);
+  });
 });

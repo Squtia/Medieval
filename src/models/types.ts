@@ -252,6 +252,7 @@ export interface MapNode {
   narrativeSubjugation?: {
     storyId: string;
     sourceNodeId: string;
+    templateId?: string;
     journeyNodeIds: string[];
     victoryNodeId?: string;
     defeatNodeId?: string;

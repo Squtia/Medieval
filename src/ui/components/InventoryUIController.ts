@@ -4,6 +4,7 @@ import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
 import { renderEquipIcon, ICON_SIZE, attachTooltip, getEquipTooltipHtml } from '../ShopController';
 import { renderResourceSpriteHtml, renderUniversalIcon } from '../IconSpriteHelper';
+import { getTradeGoodStock } from '../ShopController';
 
 export class InventoryUIController {
   private panel: HTMLElement | null;
@@ -154,12 +155,13 @@ export class InventoryUIController {
         display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4);
         padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
       `;
-      const matSpriteType = id.replace('mat_', '');
-      const iconDisplay = def.icon ? renderResourceSpriteHtml(def.icon, 42) : renderResourceSpriteHtml(matSpriteType, 42);
+      const iconDisplay = renderUniversalIcon(def.icon || def.id, 42);
 
       card.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
-          ${iconDisplay}
+          <div style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${iconDisplay}
+          </div>
           <div>
             <div style="font-weight: bold; color: #cbd5e1;">${def.name}</div>
             <div style="font-size: 0.8em; color: #94a3b8;">${def.description}</div>
@@ -172,18 +174,19 @@ export class InventoryUIController {
   }
 
   private renderTradeList() {
-    const tradeInv = GameState.myTerritory.tradeInventory;
-    const ids = Object.keys(tradeInv).filter(id => tradeInv[id] > 0);
+    const territory = GameState.myTerritory;
+    const goodsWithStock = TRADE_GOODS
+      .map(g => ({ g, count: getTradeGoodStock(territory, g.id) }))
+      .filter(item => item.count > 0);
 
-    if (ids.length === 0) {
+    if (goodsWithStock.length === 0) {
       this.listContainer!.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 20px;">沒有任何交易品。</div>`;
       return;
     }
 
-    ids.forEach(id => {
-      const def = TRADE_GOODS.find(g => g.id === id);
-      if (!def) return;
-      const count = tradeInv[id];
+    goodsWithStock.forEach(({ g, count }) => {
+      const matDef = (materialsJson as any[]).find(m => m.id === g.id);
+      const iconToUse = matDef?.icon || g.icon || '📦';
 
       const card = document.createElement('div');
       card.style.cssText = `
@@ -191,11 +194,13 @@ export class InventoryUIController {
         padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
       `;
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(def.icon || '📦', 32)}</div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width:42px; height:42px; display:flex; align-items:center; justify-content:center; flex-shrink: 0;">
+            ${renderUniversalIcon(iconToUse, 42)}
+          </div>
           <div>
-            <div style="font-weight: bold; color: #cbd5e1;">${def.name}</div>
-            <div style="font-size: 0.8em; color: #94a3b8;">${def.description}</div>
+            <div style="font-weight: bold; color: #cbd5e1;">${g.name}</div>
+            <div style="font-size: 0.8em; color: #94a3b8;">${g.description}</div>
           </div>
         </div>
         <div style="font-weight: bold; font-size: 1.2em; color: #fff;">x${count}</div>

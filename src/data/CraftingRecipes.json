@@ -37,7 +37,7 @@
   },
   {
     "id": "recipe_wooden_shield_sword",
-    "name": "木盾長劍",
+    "name": "鐵盾長劍",
     "tier": 1,
     "targetEquipmentId": "wpn_wooden_shield_sword",
     "requiredMaterials": {

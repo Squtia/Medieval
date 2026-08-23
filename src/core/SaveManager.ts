@@ -13,9 +13,12 @@ import { calendarToTotalDays } from './Calendar';
 import { CURRENT_SAVE_SCHEMA_VERSION, migrateSaveData } from './SaveMigration';
 import { ExplorationSystem } from '../systems/ExplorationSystem';
 import { RoadSystem } from '../systems/RoadSystem';
-import { getTitleConfig, ThreatType } from '../models/types';
 import { MapGenerator } from '../systems/MapGenerator';
 import { GameDifficulty } from '../models/WorldGeneration';
+import { getTitleConfig, ThreatType } from '../models/types';
+import { DataStore } from '../systems/DataStore';
+import { EquipmentGenerator } from '../systems/EquipmentGenerator';
+import { calculateNodeLevel } from '../data/BalanceData';
 
 export function restoreOriginalPlayerBaseInSave(data: any): boolean {
   const nodes = Array.isArray(data?.mapNodes) ? data.mapNodes : [];
@@ -223,8 +226,15 @@ export class SaveManager {
       GameState.mapSystem = new MapDynamicsSystem(restoredMapNodes, data.factions);
       GameState.explorationSystem = new ExplorationSystem(data.exploration);
       GameState.roadSystem = new RoadSystem(data.roads);
+      const playerBase = GameState.mapSystem.getNodes().find(node => node.isPlayerBase);
+      if (playerBase && GameState.myTerritory?.getRealtimeProsperity) {
+        playerBase.prosperity = GameState.myTerritory.getRealtimeProsperity(
+          GameState.roadSystem.getRoads().length,
+          GameState.mapSystem.getNodes().filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length
+        );
+        playerBase.nodeLevel = calculateNodeLevel(playerBase, false);
+      }
       if (!data.exploration || restoredLegacyBase) {
-        const playerBase = GameState.mapSystem.getNodes().find(node => node.isPlayerBase);
         if (playerBase) GameState.explorationSystem.revealCircle(playerBase.x, playerBase.y, 90);
       }
       new TownManagementSystem();
@@ -281,6 +291,9 @@ export class SaveManager {
       // 成功載入後，確保市場資料有被初始化 (相容舊存檔)
       MarketSystem.updateMarkets(GameState.mapSystem.getNodes(), GameState.totalDays);
 
+      // 🌟 一勞永逸：全域自動同步所有裝備實例至最新資料庫模板 (名稱、圖標、屬性)
+      autoSyncAllEquipmentWithTemplates();
+
       // 成功載入不需使用 console.log 印出以免污染遊戲日誌
       return true;
     } catch (e) {
@@ -301,5 +314,85 @@ export class SaveManager {
       return `${minutes}分 ${seconds}秒`;
     }
   }
+}
 
+/**
+ * 全域自動對齊裝備實例至最新資料庫模板 (一勞永逸機制)
+ * 當開發者在 JSON/裝備工坊修改裝備名稱、圖標或屬性時，讀檔瞬間自動刷新所有實例
+ */
+export function autoSyncAllEquipmentWithTemplates(): void {
+  const syncEq = (eq: any) => {
+    if (!eq || !eq.id) return;
+    const template = DataStore.getEquipmentTemplate(eq.id);
+    if (!template) return;
+
+    // 1. 同步最新官方名稱
+    if (template.name && eq.name !== template.name) {
+      eq.name = template.name;
+    }
+    // 2. 同步最新圖標
+    if (template.icon && eq.icon !== template.icon) {
+      eq.icon = template.icon;
+    }
+    // 3. 同步基礎插槽與武器/防具類型及職業限制
+    if (template.slot) eq.slot = template.slot;
+    if (template.weaponType) eq.weaponType = template.weaponType;
+    if (template.armorType) eq.armorType = template.armorType;
+    if (template.tier) eq.tier = template.tier;
+    if (template.allowedJobs) eq.allowedJobs = [...template.allowedJobs];
+
+    // 4. 同步戰鬥屬性 (若裝備實體缺失 patk/pdef 等戰鬥效果，自動從最新模板補齊)
+    const tplCombat = template.baseCombatEffects || (template as any).combatEffects || {};
+    if (Object.keys(tplCombat).length > 0) {
+      if (!eq.combatEffects || Object.keys(eq.combatEffects).length === 0) {
+        eq.combatEffects = { ...tplCombat };
+      } else {
+        for (const [stat, val] of Object.entries(tplCombat)) {
+          if ((eq.combatEffects as any)[stat] === undefined && val !== undefined) {
+            (eq.combatEffects as any)[stat] = val;
+          }
+        }
+      }
+    }
+
+    // 5. 同步/洗鍊 Scaling 屬性補正 (若裝備為舊版殘留的 STR(E)/INT(E) 或缺失，自動洗鍊至最新標準)
+    const isOldBrokenScaling = !eq.scaling || 
+      (eq.slot === 'WEAPON' && eq.scaling.patk?.str === 'E' && eq.scaling.matk?.int === 'E' && Object.keys(eq.scaling.patk || {}).length === 1 && Object.keys(eq.scaling.matk || {}).length === 1 && template.weaponType !== 'GREATSWORD') ||
+      (eq.slot === 'ARMOR' && eq.scaling.pdef?.con === 'E' && eq.scaling.mdef?.spr === 'E');
+
+    if (isOldBrokenScaling) {
+      eq.scaling = EquipmentGenerator.generateEquipmentScaling(template);
+    }
+  };
+
+  // 1. 同步冒險者身上的裝備
+  (GameState.adventurers || []).forEach(adv => {
+    if (adv.equipment) {
+      Object.values(adv.equipment).forEach(syncEq);
+    }
+  });
+
+  // 2. 同步領地倉庫中的裝備
+  (GameState.myTerritory?.warehouse || []).forEach(syncEq);
+
+  // 3. 自動合併舊存檔 tradeInventory 殘留的四大基礎物資至領地頂部資源庫存
+  const t = GameState.myTerritory;
+  if (t && t.tradeInventory) {
+    if (t.tradeInventory['tg_timber']) {
+      t.wood = (t.wood || 0) + t.tradeInventory['tg_timber'];
+      delete t.tradeInventory['tg_timber'];
+    }
+    if (t.tradeInventory['tg_iron']) {
+      t.iron = (t.iron || 0) + t.tradeInventory['tg_iron'];
+      delete t.tradeInventory['tg_iron'];
+    }
+    if (t.tradeInventory['tg_stone']) {
+      t.stone = (t.stone || 0) + t.tradeInventory['tg_stone'];
+      delete t.tradeInventory['tg_stone'];
+    }
+    if (t.tradeInventory['tg_wheat']) {
+      t.food = (t.food || 0) + t.tradeInventory['tg_wheat'];
+      delete t.tradeInventory['tg_wheat'];
+    }
+  }
 }

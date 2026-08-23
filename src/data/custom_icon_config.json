@@ -1,64 +1,64 @@
 {
   "weapons": {
     "GREATSWORD": {
-      "bgX": 3.5,
-      "bgY": 5.1,
-      "zoom": 131
+      "bgX": 2.4,
+      "bgY": 2.7,
+      "zoom": 115
     },
     "DUAL_SWORDS": {
-      "zoom": 131,
-      "bgX": 34.63,
-      "bgY": 5.32
+      "zoom": 115,
+      "bgX": 34.08,
+      "bgY": 2.9400000000000004
     },
     "STAFF": {
-      "zoom": 130,
-      "bgX": 65.49,
-      "bgY": 5.08
+      "zoom": 115,
+      "bgX": 66.04,
+      "bgY": 3.49
     },
     "SCYTHE": {
-      "zoom": 130,
-      "bgX": 96.84,
-      "bgY": 5.47
+      "zoom": 116,
+      "bgX": 97.93,
+      "bgY": 3.38
     },
     "BOW": {
-      "zoom": 131,
-      "bgX": 4.140000000000001,
-      "bgY": 50.52
+      "zoom": 115,
+      "bgX": 2,
+      "bgY": 50.28
     },
     "MAGIC_BOW": {
-      "zoom": 132,
+      "zoom": 115,
       "bgX": 34.333333333333336,
-      "bgY": 50.5
+      "bgY": 50
     },
     "DAGGERS": {
-      "zoom": 131,
-      "bgX": 65.6,
+      "zoom": 115,
+      "bgX": 66.1,
       "bgY": 50
     },
     "MAGIC_RING": {
-      "zoom": 131,
-      "bgX": 96.5,
+      "zoom": 115,
+      "bgX": 98,
       "bgY": 50
     },
     "SWORD_AND_SHIELD": {
-      "zoom": 131,
-      "bgX": 3.4000000000000004,
-      "bgY": 94.84
+      "zoom": 116,
+      "bgX": 2.4,
+      "bgY": 96.34
     },
     "RUNE_SHIELD": {
-      "zoom": 131,
-      "bgX": 34.65,
-      "bgY": 94.58
+      "zoom": 116,
+      "bgX": 34.15,
+      "bgY": 96.58
     },
     "HOLY_BOOK": {
-      "zoom": 132,
-      "bgX": 65.6,
-      "bgY": 94.34
+      "zoom": 115,
+      "bgX": 66.1,
+      "bgY": 96.34
     },
     "HAMMER": {
-      "zoom": 132,
-      "bgX": 96.49,
-      "bgY": 94.34
+      "zoom": 115,
+      "bgX": 97.99,
+      "bgY": 96.34
     }
   },
   "facilities": {
@@ -2621,6 +2621,614 @@
     "monster_icon1_63": {
       "col": 7,
       "row": 7,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    }
+  },
+  "heroes_male": {
+    "heroes_male_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "heroes_male_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 0
+    },
+    "heroes_male_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 0
+    },
+    "heroes_male_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 0
+    },
+    "heroes_male_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "heroes_male_5": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 25
+    },
+    "heroes_male_6": {
+      "col": 1,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 25
+    },
+    "heroes_male_7": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 25
+    },
+    "heroes_male_8": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 25
+    },
+    "heroes_male_9": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 25
+    },
+    "heroes_male_10": {
+      "col": 0,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 50
+    },
+    "heroes_male_11": {
+      "col": 1,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 50
+    },
+    "heroes_male_12": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 50
+    },
+    "heroes_male_13": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 50
+    },
+    "heroes_male_14": {
+      "col": 4,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 50
+    },
+    "heroes_male_15": {
+      "col": 0,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 75
+    },
+    "heroes_male_16": {
+      "col": 1,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 75
+    },
+    "heroes_male_17": {
+      "col": 2,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 75
+    },
+    "heroes_male_18": {
+      "col": 3,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 75
+    },
+    "heroes_male_19": {
+      "col": 4,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 75
+    },
+    "heroes_male_20": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "heroes_male_21": {
+      "col": 1,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 100
+    },
+    "heroes_male_22": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 100
+    },
+    "heroes_male_23": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 100
+    },
+    "heroes_male_24": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    }
+  },
+  "heroes_female": {
+    "heroes_female_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "heroes_female_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 0
+    },
+    "heroes_female_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 0
+    },
+    "heroes_female_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 0
+    },
+    "heroes_female_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "heroes_female_5": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 25
+    },
+    "heroes_female_6": {
+      "col": 1,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 25
+    },
+    "heroes_female_7": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 25
+    },
+    "heroes_female_8": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 25
+    },
+    "heroes_female_9": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 25
+    },
+    "heroes_female_10": {
+      "col": 0,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 50
+    },
+    "heroes_female_11": {
+      "col": 1,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 50
+    },
+    "heroes_female_12": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 50
+    },
+    "heroes_female_13": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 50
+    },
+    "heroes_female_14": {
+      "col": 4,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 50
+    },
+    "heroes_female_15": {
+      "col": 0,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 75
+    },
+    "heroes_female_16": {
+      "col": 1,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 75
+    },
+    "heroes_female_17": {
+      "col": 2,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 75
+    },
+    "heroes_female_18": {
+      "col": 3,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 75
+    },
+    "heroes_female_19": {
+      "col": 4,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 75
+    },
+    "heroes_female_20": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "heroes_female_21": {
+      "col": 1,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 25,
+      "bgY": 100
+    },
+    "heroes_female_22": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 50,
+      "bgY": 100
+    },
+    "heroes_female_23": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 75,
+      "bgY": 100
+    },
+    "heroes_female_24": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    }
+  },
+  "armors_t4_t5_icon": {
+    "armors_t4_t5_icon_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "armors_t4_t5_icon_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 20,
+      "bgY": 0
+    },
+    "armors_t4_t5_icon_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 40,
+      "bgY": 0
+    },
+    "armors_t4_t5_icon_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 60,
+      "bgY": 0
+    },
+    "armors_t4_t5_icon_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 80,
+      "bgY": 0
+    },
+    "armors_t4_t5_icon_5": {
+      "col": 5,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "armors_t4_t5_icon_6": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 20
+    },
+    "armors_t4_t5_icon_7": {
+      "col": 1,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 20,
+      "bgY": 20
+    },
+    "armors_t4_t5_icon_8": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 40,
+      "bgY": 20
+    },
+    "armors_t4_t5_icon_9": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 60,
+      "bgY": 20
+    },
+    "armors_t4_t5_icon_10": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 80,
+      "bgY": 20
+    },
+    "armors_t4_t5_icon_11": {
+      "col": 5,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 20
+    },
+    "armors_t4_t5_icon_12": {
+      "col": 0,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 40
+    },
+    "armors_t4_t5_icon_13": {
+      "col": 1,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 20,
+      "bgY": 40
+    },
+    "armors_t4_t5_icon_14": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 40,
+      "bgY": 40
+    },
+    "armors_t4_t5_icon_15": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 60,
+      "bgY": 40
+    },
+    "armors_t4_t5_icon_16": {
+      "col": 4,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 80,
+      "bgY": 40
+    },
+    "armors_t4_t5_icon_17": {
+      "col": 5,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 40
+    },
+    "armors_t4_t5_icon_18": {
+      "col": 0,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 60
+    },
+    "armors_t4_t5_icon_19": {
+      "col": 1,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 20,
+      "bgY": 60
+    },
+    "armors_t4_t5_icon_20": {
+      "col": 2,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 40,
+      "bgY": 60
+    },
+    "armors_t4_t5_icon_21": {
+      "col": 3,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 60,
+      "bgY": 60
+    },
+    "armors_t4_t5_icon_22": {
+      "col": 4,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 80,
+      "bgY": 60
+    },
+    "armors_t4_t5_icon_23": {
+      "col": 5,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 60
+    },
+    "armors_t4_t5_icon_24": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 80
+    },
+    "armors_t4_t5_icon_25": {
+      "col": 1,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 20,
+      "bgY": 80
+    },
+    "armors_t4_t5_icon_26": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 40,
+      "bgY": 80
+    },
+    "armors_t4_t5_icon_27": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 60,
+      "bgY": 80
+    },
+    "armors_t4_t5_icon_28": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 80,
+      "bgY": 80
+    },
+    "armors_t4_t5_icon_29": {
+      "col": 5,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 80
+    },
+    "armors_t4_t5_icon_30": {
+      "col": 0,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "armors_t4_t5_icon_31": {
+      "col": 1,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 20,
+      "bgY": 100
+    },
+    "armors_t4_t5_icon_32": {
+      "col": 2,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 40,
+      "bgY": 100
+    },
+    "armors_t4_t5_icon_33": {
+      "col": 3,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 60,
+      "bgY": 100
+    },
+    "armors_t4_t5_icon_34": {
+      "col": 4,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 80,
+      "bgY": 100
+    },
+    "armors_t4_t5_icon_35": {
+      "col": 5,
+      "row": 5,
       "zoom": 100,
       "bgX": 100,
       "bgY": 100

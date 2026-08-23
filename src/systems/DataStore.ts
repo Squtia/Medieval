@@ -1,4 +1,5 @@
 import { EquipmentTemplate, EquipmentSlot, JobConfig, TraitConfig, WeaponType, MaterialItem } from '../models/types';
+import { SubjugationTemplate } from '../models/Narrative';
 import { Random } from '../core/Random';
 import equipmentWeaponsJson from '../data/equipment_weapons.json';
 import equipmentArmorsJson from '../data/equipment_armors.json';
@@ -7,8 +8,14 @@ import materialsJson from '../data/materials.json';
 import craftingRecipesJson from '../data/CraftingRecipes.json';
 import modificationRecipesJson from '../data/ModificationRecipes.json';
 import secondHandShopDataJson from '../data/SecondHandShopData.json';
+import subjugationNodesJson from '../data/subjugation_nodes.json';
 
 export class DataStore {
+  // ============================
+  // 討伐據點模板庫 (SubjugationNodeDB)
+  // ============================
+  public static readonly SubjugationNodeDB: SubjugationTemplate[] = subjugationNodesJson as SubjugationTemplate[];
+
   // ============================
   // 素材庫 (MaterialDB)
   // ============================
@@ -122,6 +129,51 @@ export class DataStore {
     return this.TraitDB[Random.pick(keys)];
   }
 
+  /**
+   * 根據裝備部位、武器類型、防具類型推導標準職業限制（對齊 CLASS_SYSTEM.md 權威規範）
+   */
+  public static getDefaultAllowedJobs(slot: EquipmentSlot | string, weaponType?: string, armorType?: string): string[] | undefined {
+    const slotStr = (slot || '').toUpperCase();
+    if (slotStr === 'WEAPON') {
+      const wType = (weaponType || '').toUpperCase();
+      switch (wType) {
+        case 'GREATSWORD':
+        case 'DUAL_SWORDS':
+          return ['戰士'];
+        case 'STAFF':
+        case 'SCYTHE':
+          return ['法師'];
+        case 'BOW':
+        case 'MAGIC_BOW':
+          return ['弓箭手'];
+        case 'SWORD_AND_SHIELD':
+        case 'RUNE_SHIELD':
+          return ['騎士'];
+        case 'DAGGERS':
+        case 'MAGIC_RING':
+          return ['盜賊'];
+        case 'HOLY_BOOK':
+        case 'HAMMER':
+          return ['祈禱者'];
+        default:
+          return undefined;
+      }
+    } else if (slotStr === 'ARMOR') {
+      const aType = (armorType || '').toUpperCase();
+      switch (aType) {
+        case 'CLOTH':
+          return ['法師', '祈禱者'];
+        case 'LEATHER':
+          return ['弓箭手', '盜賊'];
+        case 'HEAVY':
+          return ['戰士', '騎士'];
+        default:
+          return undefined;
+      }
+    }
+    return undefined;
+  }
+
   // ============================
   // 裝備模板庫 (EquipmentTemplateDB)
   // ============================
@@ -141,12 +193,14 @@ export class DataStore {
           weaponType: item.weaponType as any,
           armorType: item.armorType as any,
           tier: item.tier,
-          allowedJobs: item.allowedJobs,
+          allowedJobs: (item.allowedJobs && item.allowedJobs.length > 0)
+            ? item.allowedJobs
+            : DataStore.getDefaultAllowedJobs(item.slot, item.weaponType, item.armorType),
           icon: item.icon,
           itemLevel: item.itemLevel,
-          baseRequirements: item.baseRequirements || {},
-          baseEffects: item.baseEffects || {},
-          baseCombatEffects: item.baseCombatEffects || {},
+          baseRequirements: item.baseRequirements || item.requirements || {},
+          baseEffects: item.baseEffects || item.effects || {},
+          baseCombatEffects: item.baseCombatEffects || item.combatEffects || {},
           randomPool: item.randomPool || {},
           scalingRules: item.scalingRules
         };
@@ -155,7 +209,7 @@ export class DataStore {
 
     // 傳家寶劍保留
     db['wpn_heirloom_sword'] = {
-      id: 'wpn_heirloom_sword', name: '破敗的傳家寶劍', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.GREATSWORD, allowedJobs: ['戰士', '騎士'], icon: '🗡️',
+      id: 'wpn_heirloom_sword', name: '破敗的傳家寶劍', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.GREATSWORD, allowedJobs: ['戰士', '騎士'],
       itemLevel: 1, tier: 1,
       baseRequirements: { str: 1 }, 
       baseEffects: { str: 5, con: 5 }, 

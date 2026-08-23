@@ -201,7 +201,7 @@
     "slot": "ARMOR",
     "armorType": "LEATHER",
     "tier": 1,
-    "icon": "",
+    "icon": "armors:LEATHER_T1",
     "element": "NONE",
     "baseEffects": {
       "agi": 2,
@@ -251,7 +251,7 @@
     "slot": "ARMOR",
     "armorType": "LEATHER",
     "tier": 2,
-    "icon": "",
+    "icon": "armors:LEATHER_T2",
     "element": "NONE",
     "baseEffects": {
       "agi": 4,
@@ -301,7 +301,7 @@
     "slot": "ARMOR",
     "armorType": "LEATHER",
     "tier": 3,
-    "icon": "",
+    "icon": "armors:LEATHER_T3",
     "element": "NONE",
     "baseEffects": {
       "agi": 8,
@@ -351,7 +351,7 @@
     "slot": "ARMOR",
     "armorType": "LEATHER",
     "tier": 4,
-    "icon": "",
+    "icon": "armors:LEATHER_T4",
     "element": "NONE",
     "baseEffects": {
       "agi": 14,
@@ -401,7 +401,7 @@
     "slot": "ARMOR",
     "armorType": "HEAVY",
     "tier": 1,
-    "icon": "",
+    "icon": "armors:HEAVY_T1",
     "element": "NONE",
     "baseEffects": {
       "con": 3,
@@ -450,7 +450,7 @@
     "slot": "ARMOR",
     "armorType": "HEAVY",
     "tier": 2,
-    "icon": "",
+    "icon": "armors:HEAVY_T2",
     "element": "NONE",
     "baseEffects": {
       "con": 6,
@@ -499,7 +499,7 @@
     "slot": "ARMOR",
     "armorType": "HEAVY",
     "tier": 3,
-    "icon": "",
+    "icon": "armors:HEAVY_T3",
     "element": "NONE",
     "baseEffects": {
       "con": 12,

@@ -2,6 +2,8 @@ import { BUILTIN_STORIES } from '../data/StoryData';
 import type { NarrativeChoice, NarrativeCondition, NarrativeEffect, NarrativeEquipmentSlot, NarrativeEquipmentTier, NarrativeNode, NarrativeStory } from '../models/Narrative';
 import { DataStore } from '../systems/DataStore';
 import { TRADE_GOODS } from '../systems/MarketSystem';
+import { renderUniversalPortrait } from '../ui/IconSpriteHelper';
+import defaultCustomDatasets from '../data/custom_icon_datasets.json';
 import '../styles/story-editor.css';
 
 const TEST_STORAGE_KEY = 'MEDIEVAL_STORY_TEST_PAYLOAD';
@@ -142,7 +144,8 @@ function renderNodePills(): void {
     const pill = document.createElement('button');
     pill.type = 'button';
     pill.className = `sn-pill${node.id === selectedNodeId ? ' selected' : ''}`;
-    pill.innerHTML = `<span class="sn-pill-channel">${channelName(node.channel)}</span><span>${escapeHtml(node.title)}</span>`;
+    const repeatBadge = node.repeatable ? '<span style="color:#60a5fa; font-size:0.7rem; margin-right:3px;">🔄</span>' : '';
+    pill.innerHTML = `<span class="sn-pill-channel">${channelName(node.channel)}</span><span>${repeatBadge}${escapeHtml(node.title)}</span>`;
     pill.addEventListener('click', () => {
       selectNode(node.id, true);
     });
@@ -194,11 +197,23 @@ function renderForm(): void {
   setValue('story-node-title', node.title);
   setValue('story-node-description', node.description);
   setValue('story-node-target-map', node.targetNodeId ?? '');
+  setValue('story-node-npc-name', node.npcName ?? '');
+  setValue('story-node-npc-avatar', node.npcAvatar ?? 'npc:npc_0');
+  
+  const nodeAvatarPreview = byId('story-node-npc-avatar-preview');
+  if (nodeAvatarPreview) {
+    nodeAvatarPreview.innerHTML = renderUniversalPortrait(node.npcAvatar || 'npc:npc_0', 32);
+  }
+
+  byId<HTMLInputElement>('story-node-bounty-repeatable').checked = !!node.repeatable;
+  setValue('story-node-bounty-cooldown', node.cooldownDays ?? 3);
   setValue('story-node-bounty-duration', node.bounty?.duration ?? 2);
-  setValue('story-node-bounty-expire', node.bounty?.expireDays ?? 30);
+  setValue('story-node-bounty-expire', node.bounty?.expireDays ?? 4);
   setValue('story-node-bounty-gold', node.bounty?.gold ?? 50);
   setValue('story-node-bounty-exp', node.bounty?.exp ?? 30);
+  setValue('story-node-bounty-type', node.bounty?.type ?? 'NORMAL');
 
+  renderDialoguePagesList(node);
   renderConditionList(node);
   renderEffectList('story-node-effects-list', node.completionEffects, effects => { node.completionEffects = effects; refreshEffectSummary(); });
   renderChoicesList(node);
@@ -206,6 +221,79 @@ function renderForm(): void {
   byId('story-editor-bounty-fields').hidden = node.channel !== 'BOUNTY_BOARD';
   byId('story-editor-map-target-fields').hidden = node.channel !== 'STORY_NODE';
   byId('story-editor-blocked-reasons').textContent = describeConditions(node.conditions);
+}
+
+function renderDialoguePagesList(node: NarrativeNode): void {
+  const container = document.getElementById('story-node-dialogue-pages-list');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!node.dialoguePages) node.dialoguePages = [];
+
+  if (node.dialoguePages.length === 0) {
+    container.innerHTML = '<div style="color:#857560; font-size:.78rem; padding:4px 0;">目前無多段對話（將預設播放上方「故事敘述」）。點擊下方按鈕可新增分段對話與切換說話者。</div>';
+    return;
+  }
+
+  node.dialoguePages.forEach((page, index) => {
+    const card = document.createElement('div');
+    card.className = 'story-choice-card';
+    card.style.cssText = 'background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 10px; margin-bottom: 6px;';
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-weight: bold; font-size: 0.82rem; color: #fde68a;">第 ${index + 1} 段對話</span>
+        <button type="button" class="action-btn story-danger" data-remove-page style="padding: 2px 8px; font-size: 0.72rem;">刪除</button>
+      </div>
+      <div class="story-editor-pair">
+        <label>說話者類型
+          <select data-speaker-type>
+            <option value="NPC"${page.speakerType === 'NPC' ? ' selected' : ''}>💬 NPC 訪客</option>
+            <option value="PLAYER_GUARDIAN"${page.speakerType === 'PLAYER_GUARDIAN' ? ' selected' : ''}>👑 玩家誓約守衛/領主</option>
+          </select>
+        </label>
+        <label>說話者稱號/身份<input data-speaker-title type="text" value="${escapeHtml(page.speakerTitle ?? '')}" placeholder="例：【街角遇見的旅人】"></label>
+      </div>
+      <div class="story-editor-pair" data-npc-fields style="${page.speakerType === 'PLAYER_GUARDIAN' ? 'display:none;' : ''}">
+        <label>說話者名稱<input data-speaker-name type="text" value="${escapeHtml(page.speakerName ?? '')}" placeholder="例：神秘學者"></label>
+        <label>肖像圖標
+          <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+            <div data-page-avatar-preview style="width: 28px; height: 52px; border-radius: 4px; border: 1px solid #d97706; overflow: hidden; background: #0c0a09; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              ${renderUniversalPortrait(page.speakerAvatar || 'npc:npc_0', 28)}
+            </div>
+            <button type="button" class="action-btn" data-btn-pick-page-avatar style="flex: 1; padding: 5px 8px; font-size: 0.75rem; background: rgba(217, 119, 6, 0.2); border-color: rgba(217, 119, 6, 0.4); color: #fbbf24;">🔍 挑選肖像</button>
+          </div>
+        </label>
+      </div>
+      <label style="margin-top: 6px;">對話內容<textarea data-page-text rows="2">${escapeHtml(page.text)}</textarea></label>
+    `;
+
+    card.querySelector<HTMLSelectElement>('[data-speaker-type]')!.addEventListener('change', e => {
+      page.speakerType = (e.target as HTMLSelectElement).value as any;
+      const npcFields = card.querySelector<HTMLElement>('[data-npc-fields]');
+      if (npcFields) npcFields.style.display = page.speakerType === 'PLAYER_GUARDIAN' ? 'none' : 'grid';
+    });
+    card.querySelector<HTMLInputElement>('[data-speaker-name]')!.addEventListener('input', e => {
+      page.speakerName = (e.target as HTMLInputElement).value;
+    });
+    card.querySelector<HTMLInputElement>('[data-speaker-title]')!.addEventListener('input', e => {
+      page.speakerTitle = (e.target as HTMLInputElement).value;
+    });
+    card.querySelector('[data-btn-pick-page-avatar]')!.addEventListener('click', () => {
+      openAvatarPicker(avatarId => {
+        page.speakerAvatar = avatarId;
+        const prev = card.querySelector<HTMLElement>('[data-page-avatar-preview]');
+        if (prev) prev.innerHTML = renderUniversalPortrait(avatarId, 28);
+      });
+    });
+    card.querySelector<HTMLTextAreaElement>('[data-page-text]')!.addEventListener('input', e => {
+      page.text = (e.target as HTMLTextAreaElement).value;
+    });
+    card.querySelector('[data-remove-page]')!.addEventListener('click', () => {
+      node.dialoguePages!.splice(index, 1);
+      renderDialoguePagesList(node);
+    });
+
+    container.appendChild(card);
+  });
 }
 
 function renderChoicesList(node: NarrativeNode): void {
@@ -286,12 +374,17 @@ function syncNode(): void {
   node.channel = byId<HTMLSelectElement>('story-node-channel').value as NarrativeNode['channel'];
   node.title = value('story-node-title') || node.id;
   node.description = value('story-node-description');
+  node.npcName = value('story-node-npc-name') || undefined;
+  node.npcAvatar = value('story-node-npc-avatar') || undefined;
   node.targetNodeId = node.channel === 'STORY_NODE' ? value('story-node-target-map') || undefined : undefined;
+  node.repeatable = node.channel === 'BOUNTY_BOARD' ? byId<HTMLInputElement>('story-node-bounty-repeatable')?.checked : undefined;
+  node.cooldownDays = node.channel === 'BOUNTY_BOARD' && node.repeatable ? Math.max(0, numberValue('story-node-bounty-cooldown')) : undefined;
   node.bounty = node.channel === 'BOUNTY_BOARD' ? {
     duration: Math.max(1, numberValue('story-node-bounty-duration')),
     expireDays: Math.max(1, numberValue('story-node-bounty-expire')),
     gold: Math.max(0, numberValue('story-node-bounty-gold')),
-    exp: Math.max(0, numberValue('story-node-bounty-exp'))
+    exp: Math.max(0, numberValue('story-node-bounty-exp')),
+    type: (byId<HTMLSelectElement>('story-node-bounty-type')?.value || 'NORMAL') as 'NORMAL' | 'BANDIT'
   } : undefined;
 
   renderFacts();
@@ -441,6 +534,20 @@ function renderEffectList(id: string, effects: NarrativeEffect[], setter: (effec
             : property === 'journeyNodeIds'
               ? field.value.split(',').map(item => item.trim()).filter(Boolean)
               : field.value;
+
+        if (property === 'templateId') {
+          const tpl = DataStore.SubjugationNodeDB.find(s => s.id === field.value);
+          if (tpl) {
+            target.name = tpl.name;
+            target.description = tpl.description;
+            target.terrain = tpl.terrain;
+            target.difficulty = tpl.difficulty;
+            target.requiresScouting = !!tpl.requiresScouting;
+            target.removeOnVictory = tpl.removeOnVictory !== false;
+          }
+          renderEffectList(id, effects, setter);
+        }
+
         setter([...effects]);
         if (property === 'mode') renderEffectList(id, effects, setter);
         refreshEffectSummary();
@@ -539,9 +646,26 @@ function effectFields(effect: NarrativeEffect): string {
     case 'UNLOCK_MAP_NODE': return input('既有地圖節點 ID', 'nodeId', effect.nodeId);
     case 'CREATE_SUBJUGATION_NODE': {
       const definition = effect.definition;
+      const tplOptions = [
+        { value: '', label: '🛠️ [自訂據點參數 (Custom)]' },
+        ...DataStore.SubjugationNodeDB.map(s => ({
+          value: s.id,
+          label: `🏰 ${s.name} (Lv.${s.difficulty} · ${s.terrain})`
+        }))
+      ];
+      const tplSelect = select('選擇討伐據點模板', 'definition.templateId', definition.templateId ?? '', tplOptions);
       const enumSelect = (label: string, field: string, current: string, choices: string[]) =>
         `<label>${label}<select data-field="definition.${field}">${choices.map(c => `<option value="${c}"${c === current ? ' selected' : ''}>${c}</option>`).join('')}</select></label>`;
+      
+      const curTpl = DataStore.SubjugationNodeDB.find(s => s.id === definition.templateId);
+      const tplInfo = curTpl ? `
+        <div style="grid-column: span 2; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 4px; padding: 6px 10px; font-size: 0.75rem; color: #93c5fd; margin-bottom: 4px;">
+          ✨ 已綁定據點模板：<b>${escapeHtml(curTpl.name)}</b>（${curTpl.waves?.length || 0} 波守軍，通關報酬: ${curTpl.rewards?.gold || 0} G, ${curTpl.rewards?.exp || 0} EXP）
+        </div>` : '';
+
       return `<div class="story-subjugation-grid">
+        <div style="grid-column: span 2;">${tplSelect}</div>
+        ${tplInfo}
         ${input('據點代號', 'definition.nodeId', definition.nodeId)}${input('據點名稱', 'definition.name', definition.name)}
         <label class="wide">據點描述<textarea data-field="definition.description" rows="2">${escapeHtml(definition.description)}</textarea></label>
         ${enumSelect('生成位置', 'placement', definition.placement, ['NEAR_PLAYER', 'NEAR_NODE', 'FIXED'])}${input('錨點地圖 ID', 'definition.anchorNodeId', definition.anchorNodeId ?? '')}
@@ -1207,6 +1331,31 @@ function bindEvents(): void {
     renderConditionList(node); refreshEffectSummary();
   });
 
+  byId('btn-pick-node-npc-avatar')?.addEventListener('click', () => {
+    const node = activeNode(); if (!node) return;
+    openAvatarPicker(avatarId => {
+      node.npcAvatar = avatarId;
+      setValue('story-node-npc-avatar', avatarId);
+      const prev = byId('story-node-npc-avatar-preview');
+      if (prev) prev.innerHTML = renderUniversalPortrait(avatarId, 32);
+      syncNode();
+    });
+  });
+
+  byId('btn-story-add-dialogue-page')?.addEventListener('click', () => {
+    const node = activeNode(); if (!node) return;
+    if (!node.dialoguePages) node.dialoguePages = [];
+    const nextIdx = node.dialoguePages.length + 1;
+    node.dialoguePages.push({
+      speakerType: 'NPC',
+      speakerName: node.npcName || '神秘訪客',
+      speakerTitle: '【街角遇見的旅人】',
+      speakerAvatar: node.npcAvatar || 'npc:npc_0',
+      text: `第 ${nextIdx} 段對話內容...`
+    });
+    renderDialoguePagesList(node);
+  });
+
   byId('btn-story-add-effect')?.addEventListener('click', () => {
     const node = activeNode(); if (!node) return;
     node.completionEffects.push(defaultEffect());
@@ -1267,12 +1416,122 @@ function uniqueId(prefix: string, used: string[]): string { let id = prefix; let
 function describeConditions(conditions: NarrativeCondition[]): string { return conditions.length ? `觸發條件：${conditions.map(item => item.type).join('、')}` : '此節點沒有額外觸發條件。'; }
 function channelName(channel: NarrativeNode['channel']): string {
   return ({
-    BOUNTY_BOARD: '懸賞板', TAVERN_RUMOR: '酒館傳聞', TERRITORY_EVENT: '領地事件',
+    BOUNTY_BOARD: '懸賞板', STREET_EVENT: '街道訪客', TAVERN_RUMOR: '酒館傳聞', TERRITORY_EVENT: '領地事件',
     TODO_LIST: '待辦清單', EXPLORATION: '發現據點時', SUBJUGATION: '討伐後',
     SUBJUGATION_JOURNEY: '討伐途中', STORY_NODE: '解鎖預設據點'
   } as const)[channel] ?? channel;
 }
 function escapeHtml(text: string): string { const span = document.createElement('span'); span.textContent = text; return span.innerHTML; }
+
+/**
+ * 🖼️ 開啟 NPC 肖像視覺化選擇器彈窗 (支援所有現有與未來新增的圖庫分類)
+ */
+function openAvatarPicker(onSelect: (avatarId: string) => void): void {
+  const modal = byId('modal-story-avatar-picker');
+  const catSelect = byId<HTMLSelectElement>('story-avatar-category-filter');
+  const searchInput = byId<HTMLInputElement>('story-avatar-search-input');
+  const grid = byId('story-avatar-picker-grid');
+  const btnClose = byId('btn-close-story-avatar-picker');
+  if (!modal || !catSelect || !searchInput || !grid) return;
+
+  const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
+  const catKeys = Object.keys(allDatasets);
+
+  // 初始化分類下拉選單
+  catSelect.innerHTML = `<option value="ALL">🌟 全部肖像圖庫 (${catKeys.length} 大分類)</option>`;
+  catKeys.forEach(k => {
+    const cat = allDatasets[k];
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = `${cat.title || k} (${cat.items?.length || 0} 張)`;
+    catSelect.appendChild(opt);
+  });
+
+  const renderGrid = () => {
+    grid.innerHTML = '';
+    const selectedCat = catSelect.value;
+    const query = searchInput.value.trim().toLowerCase();
+
+    let itemsToShow: { catKey: string; item: any }[] = [];
+
+    catKeys.forEach(k => {
+      if (selectedCat !== 'ALL' && selectedCat !== k) return;
+      const cat = allDatasets[k];
+      if (!cat || !cat.items) return;
+      cat.items.forEach((item: any) => {
+        const fullName = `${item.name || ''} ${item.id} ${k}`.toLowerCase();
+        if (query && !fullName.includes(query)) return;
+        itemsToShow.push({ catKey: k, item });
+      });
+    });
+
+    if (itemsToShow.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #857560; padding: 30px 0;">沒有找到相符的肖像圖標。</div>';
+      return;
+    }
+
+    itemsToShow.forEach(({ catKey, item }) => {
+      const fullId = `${catKey}:${item.id}`;
+      const card = document.createElement('div');
+      card.style.cssText = `
+        background: rgba(0,0,0,0.5);
+        border: 1.5px solid rgba(217, 119, 6, 0.3);
+        border-radius: 6px;
+        padding: 8px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      `;
+
+      card.innerHTML = `
+        <div style="width: 44px; height: 82px; border-radius: 4px; overflow: hidden; border: 1px solid #d97706; background: #0c0a09; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.6);">
+          ${renderUniversalPortrait(fullId, 44)}
+        </div>
+        <div style="font-size: 0.72rem; color: #fbbf24; font-weight: bold; margin-top: 6px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+          ${escapeHtml(item.name || item.id)}
+        </div>
+        <div style="font-size: 0.65rem; color: #94a3b8; text-align: center;">
+          ${escapeHtml(item.id)}
+        </div>
+      `;
+
+      card.onmouseenter = () => {
+        card.style.borderColor = '#fbbf24';
+        card.style.transform = 'translateY(-2px) scale(1.03)';
+        card.style.background = 'rgba(70, 52, 34, 0.7)';
+      };
+      card.onmouseleave = () => {
+        card.style.borderColor = 'rgba(217, 119, 6, 0.3)';
+        card.style.transform = 'translateY(0) scale(1)';
+        card.style.background = 'rgba(0,0,0,0.5)';
+      };
+
+      card.onclick = () => {
+        onSelect(fullId);
+        modal.style.display = 'none';
+      };
+
+      grid.appendChild(card);
+    });
+  };
+
+  catSelect.onchange = renderGrid;
+  searchInput.oninput = renderGrid;
+
+  const closeModal = () => {
+    modal.style.display = 'none';
+  };
+
+  if (btnClose) btnClose.onclick = closeModal;
+  modal.onclick = (e) => {
+    if (e.target === modal) closeModal();
+  };
+
+  renderGrid();
+  modal.style.display = 'flex';
+}
 
 async function bootstrap(): Promise<void> {
   await loadTemplate();

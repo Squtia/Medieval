@@ -1,13 +1,17 @@
 import { Adventurer } from '../models/Adventurer';
 import { CombatEvent, CombatEventType, CombatReport } from '../models/Combat';
-import { ElementType, Equipment, EquipmentSlot, FormationRow, Gender, JobConfig, MonsterData, MonsterInstance, MonsterRace, TerrainType, TraitConfig, WeaponType } from '../models/types';
+import { ElementType, Equipment, EquipmentSlot, FormationRow, Gender, JobConfig, MonsterData, MonsterInstance, MonsterProfile, MonsterRace, TerrainType, TraitConfig, WeaponType } from '../models/types';
+import { SubjugationTemplate, SubjugationWave, SubjugationWaveMonster } from '../models/Narrative';
 import { MonsterSystem } from '../systems/MonsterSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { GameState } from '../core/GameState';
 import monstersJson from '../data/monsters.json';
 import defaultCustomDatasets from '../data/custom_icon_datasets.json';
+import subjugationNodesJson from '../data/subjugation_nodes.json';
 import { renderUniversalIcon } from '../ui/IconSpriteHelper';
 import { UNIQUE_HEROES, UniqueHeroDef } from '../data/UniqueAdventurers';
+import { SkillRegistry } from '../systems/combat/SkillRegistry';
+import { DataStore } from '../systems/DataStore';
 import '../styles/combat-studio.css';
 
 // 工具函式
@@ -39,6 +43,10 @@ interface PlayerUnitConfig {
   armorTier: number;
   armorEnhance: number;
   accessoryType: string;
+  weaponTemplateId?: string;
+  armorTemplateId?: string;
+  accessoryId?: string;
+  isUnique?: boolean;
   formationRow: FormationRow | 'MIDDLE';
   avatarIcon?: string;
   gender?: Gender;
@@ -56,6 +64,8 @@ interface EnemyUnitConfig {
   formationRow: FormationRow;
   affix?: string;
   avatarIcon?: string;
+  profile?: MonsterProfile;
+  skills?: string[];
 }
 
 interface CustomStrongholdConfig {
@@ -77,12 +87,19 @@ class CombatStudioController {
   private iconPickerCallback: ((icon: string) => void) | null = null;
 
   // 工坊分頁狀態
-  private currentStudioTab: 'battle' | 'heroes' | 'monsters' = 'battle';
+  private currentStudioTab: 'battle' | 'heroes' | 'monsters' | 'strongholds' = 'battle';
   private monsterSearchQuery: string = '';
   private monsterFilterRace: string = 'ALL';
   private monsterFilterTerrain: string = 'ALL';
   private monsterFilterBoss: string = 'ALL';
   private editingMonsterId: string | null = null;
+
+  // 討伐據點工坊狀態
+  private strongholdsDb: SubjugationTemplate[] = [];
+  private strongholdSearchQuery: string = '';
+  private strongholdFilterTerrain: string = 'ALL';
+  private editingStrongholdId: string | null = null;
+  private currentPickerWaveIdx: number = 0;
 
   // 英雄工坊狀態
   private customHeroesDb: UniqueHeroDef[] = [];
@@ -100,6 +117,11 @@ class CombatStudioController {
 
   // 當前裝備編輯中的傭兵索引
   private activeEditingPlayerIdx = 0;
+
+  // 怪物技能自訂狀態
+  private activeEditingMonsterWaveIdx = 0;
+  private activeEditingMonsterIdx = 0;
+  private tempMonsterSkills: string[] = [];
   // 當前更換頭像中的對象 ('creator' 或 敵方陣容 index 或 傭兵 index)
   private activeIconPickerTarget: 'creator' | { type: 'enemy'; idx: number } | { type: 'player'; idx: number } = 'creator';
 
@@ -118,10 +140,33 @@ class CombatStudioController {
     await this.loadMonsters();
     await this.loadIconDatasets();
     this.loadCustomHeroes();
+    this.loadStrongholds();
     this.initDefaultPlayerTeam('balanced');
     this.initDefaultEnemyWaves('node_1');
     this.bindEvents();
+    this.bindStrongholdEvents();
     this.render();
+  }
+
+  private loadStrongholds(): void {
+    const saved = localStorage.getItem('MEDIEVAL_CUSTOM_STRONGHOLDS_V2');
+    if (saved) {
+      try {
+        this.strongholdsDb = JSON.parse(saved);
+        if (this.strongholdsDb.length > 0) {
+          if (!this.editingStrongholdId) this.editingStrongholdId = this.strongholdsDb[0].id;
+          return;
+        }
+      } catch {}
+    }
+    this.strongholdsDb = clone(subjugationNodesJson) as SubjugationTemplate[];
+    if (this.strongholdsDb.length > 0 && !this.editingStrongholdId) {
+      this.editingStrongholdId = this.strongholdsDb[0].id;
+    }
+  }
+
+  private saveStrongholdsToStorage(): void {
+    localStorage.setItem('MEDIEVAL_CUSTOM_STRONGHOLDS_V2', JSON.stringify(this.strongholdsDb));
   }
 
   private loadCustomHeroes(): void {
@@ -139,9 +184,16 @@ class CombatStudioController {
 
   private getAllHeroes(): UniqueHeroDef[] {
     const list: UniqueHeroDef[] = [];
-    // 1. 預設唯一英雄
-    Object.values(UNIQUE_HEROES).forEach(h => list.push(h));
-    // 2. 自訂英雄
+    // 1. 預設唯一英雄 (若 customHeroesDb 內有覆蓋版本，優先讀取自訂儲存庫)
+    Object.values(UNIQUE_HEROES).forEach(h => {
+      const customOverride = this.customHeroesDb.find(c => c.id === h.id);
+      if (customOverride) {
+        list.push(customOverride);
+      } else {
+        list.push(h);
+      }
+    });
+    // 2. 自訂英雄 (全新建立的角色)
     this.customHeroesDb.forEach(h => {
       if (!list.some(item => item.id === h.id)) list.push(h);
     });
@@ -322,43 +374,43 @@ class CombatStudioController {
       // 熔火巨龍巢 (標準 3 波：小怪 ➔ 精英 ➔ 骨龍 Boss 壓軸！)
       this.enemyWaves = [
         [
-          { monsterId: 'lizard', name: '烈焰毒蜥', difficulty: diff, element: ElementType.FIRE, isUndead: false, avatarIcon: '🦎', formationRow: FormationRow.FRONT },
-          { monsterId: 'scorpion', name: '火尾蠍', difficulty: diff, element: ElementType.FIRE, isUndead: false, avatarIcon: '🦂', formationRow: FormationRow.FRONT }
+          { monsterId: 'lizard', name: '烈焰毒蜥', difficulty: diff, element: ElementType.FIRE, isUndead: false, avatarIcon: this.getMonsterAvatar('lizard', '烈焰毒蜥'), formationRow: FormationRow.FRONT },
+          { monsterId: 'scorpion', name: '火尾蠍', difficulty: diff, element: ElementType.FIRE, isUndead: false, avatarIcon: this.getMonsterAvatar('scorpion', '火尾蠍'), formationRow: FormationRow.FRONT }
         ],
         [
-          { monsterId: 'golem', name: '熔岩傀儡', difficulty: diff + 1, element: ElementType.FIRE, isUndead: false, avatarIcon: '🗿', formationRow: FormationRow.FRONT },
-          { monsterId: 'drake', name: '雙足幼龍', difficulty: diff + 1, element: ElementType.FIRE, isUndead: false, avatarIcon: '🐉', formationRow: FormationRow.FRONT }
+          { monsterId: 'golem', name: '熔岩傀儡', difficulty: diff + 1, element: ElementType.FIRE, isUndead: false, avatarIcon: this.getMonsterAvatar('golem', '熔岩傀儡'), formationRow: FormationRow.FRONT },
+          { monsterId: 'drake', name: '雙足幼龍', difficulty: diff + 1, element: ElementType.FIRE, isUndead: false, avatarIcon: this.getMonsterAvatar('drake', '雙足幼龍'), formationRow: FormationRow.FRONT }
         ],
         [
-          { monsterId: 'golem', name: '熔岩傀儡', difficulty: diff + 1, element: ElementType.FIRE, isUndead: false, avatarIcon: '🗿', formationRow: FormationRow.FRONT },
-          { monsterId: 'skeleton_drake', name: '骨龍獸', difficulty: diff + 2, element: ElementType.DARK, isUndead: true, avatarIcon: '🐲', affix: '👑[首領]', formationRow: FormationRow.BACK }
+          { monsterId: 'golem', name: '熔岩傀儡', difficulty: diff + 1, element: ElementType.FIRE, isUndead: false, avatarIcon: this.getMonsterAvatar('golem', '熔岩傀儡'), formationRow: FormationRow.FRONT },
+          { monsterId: 'skeleton_drake', name: '骨龍獸', difficulty: diff + 2, element: ElementType.DARK, isUndead: true, avatarIcon: this.getMonsterAvatar('skeleton_drake', '骨龍獸'), affix: '👑[首領]', formationRow: FormationRow.BACK }
         ]
       ];
     } else if (stronghold === 'faction_siege') {
       // 洛斯加攻城戰 (3 波：先鋒 ➔ 皇家騎士 ➔ 總指揮官)
       this.enemyWaves = [
         [
-          { monsterId: 'faction_infantry', name: '[洛斯加] 前鋒步兵', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: '💂', formationRow: FormationRow.FRONT },
-          { monsterId: 'faction_crossbowman', name: '[洛斯加] 軍團弩手', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: '🏹', formationRow: FormationRow.BACK }
+          { monsterId: 'faction_infantry', name: '[洛斯加] 前鋒步兵', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_infantry', '前鋒步兵'), formationRow: FormationRow.FRONT },
+          { monsterId: 'faction_crossbowman', name: '[洛斯加] 軍團弩手', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_crossbowman', '軍團弩手'), formationRow: FormationRow.BACK }
         ],
         [
-          { monsterId: 'faction_knight', name: '[洛斯加] 皇家騎士', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: '🛡️', formationRow: FormationRow.FRONT },
-          { monsterId: 'faction_siege_weapon', name: '[洛斯加] 攻城重弩砲', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: '⚙️', formationRow: FormationRow.BACK }
+          { monsterId: 'faction_knight', name: '[洛斯加] 皇家騎士', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_knight', '皇家騎士'), formationRow: FormationRow.FRONT },
+          { monsterId: 'faction_siege_weapon', name: '[洛斯加] 攻城重弩砲', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_siege_weapon', '攻城重弩砲'), formationRow: FormationRow.BACK }
         ],
         [
-          { monsterId: 'faction_knight', name: '[洛斯加] 禁衛騎士', difficulty: diff + 2, element: ElementType.NONE, isUndead: false, avatarIcon: '🛡️', formationRow: FormationRow.FRONT },
-          { monsterId: 'faction_knight', name: '[洛斯加] 軍團大將軍', difficulty: diff + 3, element: ElementType.NONE, isUndead: false, avatarIcon: '👑', affix: '👑[總帥]', formationRow: FormationRow.FRONT }
+          { monsterId: 'faction_knight', name: '[洛斯加] 禁衛騎士', difficulty: diff + 2, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_knight', '禁衛騎士'), formationRow: FormationRow.FRONT },
+          { monsterId: 'faction_knight', name: '[洛斯加] 軍團大將軍', difficulty: diff + 3, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_knight', '軍團大將軍'), affix: '👑[總帥]', formationRow: FormationRow.FRONT }
         ]
       ];
     } else {
       // 標準 1~2 波
       this.enemyWaves = [
         [
-          { monsterId: 'slime', name: '史萊姆', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: '🟢', formationRow: FormationRow.FRONT },
-          { monsterId: 'goblin', name: '哥布林', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: '👺', formationRow: FormationRow.FRONT }
+          { monsterId: 'slime', name: '史萊姆', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('slime', '史萊姆'), formationRow: FormationRow.FRONT },
+          { monsterId: 'goblin', name: '哥布林', difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('goblin', '哥布林'), formationRow: FormationRow.FRONT }
         ],
         [
-          { monsterId: 'orc', name: '半獸人隊長', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: '👹', affix: '👑[頭目]', formationRow: FormationRow.FRONT }
+          { monsterId: 'orc', name: '半獸人隊長', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('orc', '半獸人隊長'), affix: '👑[頭目]', formationRow: FormationRow.FRONT }
         ]
       ];
     }
@@ -456,7 +508,12 @@ class CombatStudioController {
       wave.forEach(cfg => {
         const baseMonster = this.monstersDb.find(m => m.id === cfg.monsterId) || this.monstersDb[0] || (monstersJson[0] as any);
         const appliedRace = cfg.isUndead ? MonsterRace.UNDEAD : (baseMonster.race || MonsterRace.MONSTER);
-        const inst = this.monsterSystem.createMonsterInstance(baseMonster, appliedRace, cfg.element, cfg.difficulty);
+        const monsterDef = {
+          ...baseMonster,
+          profile: cfg.profile || baseMonster.profile || MonsterProfile.BALANCED,
+          skills: cfg.skills || baseMonster.skills || []
+        };
+        const inst = this.monsterSystem.createMonsterInstance(monsterDef, appliedRace, cfg.element, cfg.difficulty);
         if (cfg.affix) {
           inst.name = `${cfg.affix}${inst.name}`;
         }
@@ -476,6 +533,10 @@ class CombatStudioController {
       this.renderMonsterDatabase();
       return;
     }
+    if (this.currentStudioTab === 'strongholds') {
+      this.renderStrongholdStudio();
+      return;
+    }
     this.renderPlayerList();
     this.renderWaveTabs();
     this.renderEnemyList();
@@ -483,23 +544,27 @@ class CombatStudioController {
     this.updateStrongholdGarrisonOptions();
   }
 
-  // ── 三分頁模式切換 ──
-  private switchStudioTab(tab: 'battle' | 'heroes' | 'monsters'): void {
+  // ── 四分頁模式切換 ──
+  private switchStudioTab(tab: 'battle' | 'heroes' | 'monsters' | 'strongholds'): void {
     this.currentStudioTab = tab;
     const btnBattle = byId('btn-studio-tab-battle');
     const btnHeroes = byId('btn-studio-tab-heroes');
     const btnMonsters = byId('btn-studio-tab-monsters');
+    const btnStrongholds = byId('btn-studio-tab-strongholds');
     const viewBattle = byId('cs-view-battle');
     const viewHeroes = byId('cs-view-heroes');
     const viewMonsters = byId('cs-view-monsters');
+    const viewStrongholds = byId('cs-view-strongholds');
 
     btnBattle?.classList.toggle('active', tab === 'battle');
     btnHeroes?.classList.toggle('active', tab === 'heroes');
     btnMonsters?.classList.toggle('active', tab === 'monsters');
+    btnStrongholds?.classList.toggle('active', tab === 'strongholds');
 
-    if (viewBattle) viewBattle.style.display = tab === 'battle' ? 'flex' : 'none';
+    if (viewBattle) viewBattle.style.display = tab === 'battle' ? 'grid' : 'none';
     if (viewHeroes) viewHeroes.style.display = tab === 'heroes' ? 'flex' : 'none';
     if (viewMonsters) viewMonsters.style.display = tab === 'monsters' ? 'flex' : 'none';
+    if (viewStrongholds) viewStrongholds.style.display = tab === 'strongholds' ? 'flex' : 'none';
 
     this.render();
   }
@@ -534,11 +599,12 @@ class CombatStudioController {
 
       const attrSum = h.customAttributes.str + h.customAttributes.agi + h.customAttributes.con + h.customAttributes.int + h.customAttributes.spr + h.customAttributes.luk;
       const qColor = h.quality === 'UR' ? '#ef4444' : h.quality === 'SSR' ? '#f59e0b' : h.quality === 'SR' ? '#a855f7' : '#3b82f6';
+      const heroAvatar = h.avatarIcon || (h.isGuardian ? (h.gender === Gender.FEMALE ? 'guardian_f_0' : 'guardian_m_1') : (h.id.includes('reyn') ? 'heroes:reyn' : (h.id.includes('luna') ? 'heroes:luna' : this.getJobEmoji(this.mapJobKeyToName(h.jobKey, true)))));
 
       card.innerHTML = `
         <div style="display: flex; gap: 10px; align-items: flex-start;">
-          <div style="width: 56px; height: 56px; min-width: 56px; border-radius: 6px; background: #131720; border: 1px solid ${qColor}; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; overflow: hidden;">
-            ${h.isGuardian ? '🛡️' : this.getJobEmoji(this.mapJobKeyToName(h.jobKey, true))}
+          <div class="cs-monster-avatar-box" title="點擊切換英雄圖標" data-avatar-hero-id="${h.id}" style="width: 56px; height: 56px; min-width: 56px; border-radius: 6px; background: #131720; border: 1.5px solid ${qColor}; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer;">
+            ${renderUniversalIcon(heroAvatar, 44)}
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -702,23 +768,539 @@ class CombatStudioController {
     modal.style.display = 'flex';
   }
 
-  // ── 一鍵永久寫入專案磁碟 (monsters.json) ──
+  // ── 一鍵永久寫入專案磁碟 (monsters.json & subjugation_nodes.json) ──
   private async saveMonstersToDisk(): Promise<void> {
     try {
-      const res = await fetch('/api/save-monster-definitions', {
+      const resMon = await fetch('/api/save-monster-definitions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ monsters: this.monstersDb, note: '在戰鬥工坊中儲存' })
       });
-      if (res.ok) {
-        const data = await res.json();
-        alert(`💾 成功永久寫入專案磁碟 (src/data/monsters.json)！\n共 ${data.total} 隻單位，歷史快照：${data.snapshot}`);
+      const resSh = await fetch('/api/save-subjugation-nodes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ strongholds: this.strongholdsDb, note: '在戰鬥工坊中儲存' })
+      });
+
+      if (resMon.ok && resSh.ok) {
+        const dataMon = await resMon.json();
+        const dataSh = await resSh.json();
+        alert(`💾 成功永久寫入專案磁碟！\n- 👾 怪物庫：共 ${dataMon.total} 隻單位\n- 🏰 討伐據點庫：共 ${dataSh.total} 處據點`);
       } else {
         alert('寫入磁碟失敗，請確認 Vite 開發伺服器正常運行中');
       }
     } catch (err: any) {
       alert(`寫入失敗: ${err.message}`);
     }
+  }
+
+  // ══════════════════════════════════════════
+  // 🏰 討伐據點設計工坊 (Subjugation Node Studio)
+  // ══════════════════════════════════════════
+
+  private getActiveStronghold(): SubjugationTemplate | null {
+    if (!this.editingStrongholdId && this.strongholdsDb.length > 0) {
+      this.editingStrongholdId = this.strongholdsDb[0].id;
+    }
+    return this.strongholdsDb.find(s => s.id === this.editingStrongholdId) || this.strongholdsDb[0] || null;
+  }
+
+  private renderStrongholdStudio(): void {
+    this.renderStrongholdList();
+    this.renderStrongholdForm();
+    this.renderStrongholdAnalytics();
+  }
+
+  private renderStrongholdList(): void {
+    const listEl = byId('sh-list-container');
+    const countEl = byId('sh-count');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const q = this.strongholdSearchQuery.toLowerCase();
+    const filtered = this.strongholdsDb.filter(s => {
+      if (q && !s.name.toLowerCase().includes(q) && !s.id.toLowerCase().includes(q)) return false;
+      if (this.strongholdFilterTerrain !== 'ALL' && s.terrain !== this.strongholdFilterTerrain) return false;
+      return true;
+    });
+
+    if (countEl) countEl.textContent = String(filtered.length);
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div style="color: var(--cs-text-muted); font-size: 0.78rem; padding: 12px; text-align: center;">查無符合條件的討伐據點</div>';
+      return;
+    }
+
+    filtered.forEach(s => {
+      const isSelected = s.id === this.editingStrongholdId;
+      const card = document.createElement('div');
+      card.style.cssText = `
+        padding: 10px 12px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+        background: ${isSelected ? 'rgba(234, 179, 8, 0.12)' : '#141822'};
+        border: 1.5px solid ${isSelected ? 'var(--cs-gold)' : 'var(--cs-panel-border)'};
+        transition: all 0.15s ease;
+      `;
+      const waveCount = s.waves?.length || 0;
+      const totalMonsters = (s.waves || []).reduce((sum, w) => sum + (w.monsters?.length || 0), 0);
+
+      card.innerHTML = `
+        <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 6px; background: #0e121a; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;">
+          ${renderUniversalIcon(s.icon || 'icons_buildings:icons_buildings_3', 34)}
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; font-size: 0.85rem; color: ${isSelected ? 'var(--cs-gold-light)' : '#f8fafc'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.name}</span>
+            <span class="cs-badge" style="font-size: 0.68rem; color: var(--cs-orange); background: rgba(249,115,22,0.15); flex-shrink: 0;">Lv.${s.difficulty}</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--cs-text-muted); margin-top: 2px; display: flex; justify-content: space-between;">
+            <span>${s.terrain}</span>
+            <span>⚔️ ${waveCount} 波 (${totalMonsters} 隻)</span>
+          </div>
+        </div>
+      `;
+
+      card.onclick = () => {
+        this.editingStrongholdId = s.id;
+        this.renderStrongholdStudio();
+      };
+
+      listEl.appendChild(card);
+    });
+  }
+
+  private renderStrongholdForm(): void {
+    const sh = this.getActiveStronghold();
+    if (!sh) return;
+
+    const badgeEl = byId('sh-edit-badge');
+    const titleEl = byId('sh-edit-title');
+    if (badgeEl) badgeEl.textContent = sh.id;
+    if (titleEl) titleEl.textContent = sh.name;
+
+    const idInput = byId<HTMLInputElement>('sh-id');
+    const nameInput = byId<HTMLInputElement>('sh-name');
+    const terrainSelect = byId<HTMLSelectElement>('sh-terrain');
+    const diffSlider = byId<HTMLInputElement>('sh-difficulty');
+    const diffDisplay = byId('sh-diff-display');
+    const iconInput = byId<HTMLInputElement>('sh-icon');
+    const scoutingCheckbox = byId<HTMLInputElement>('sh-requires-scouting');
+    const removeCheckbox = byId<HTMLInputElement>('sh-remove-on-victory');
+    const descTextarea = byId<HTMLTextAreaElement>('sh-description');
+
+    const goldInput = byId<HTMLInputElement>('sh-reward-gold');
+    const expInput = byId<HTMLInputElement>('sh-reward-exp');
+    const prestigeInput = byId<HTMLInputElement>('sh-reward-prestige');
+
+    if (idInput) idInput.value = sh.id;
+    if (nameInput) nameInput.value = sh.name;
+    if (terrainSelect) terrainSelect.value = sh.terrain || 'RUINS';
+    if (diffSlider) diffSlider.value = String(sh.difficulty || 2);
+    if (diffDisplay) diffDisplay.textContent = `Lv.${sh.difficulty || 2}`;
+    if (iconInput) iconInput.value = sh.icon || 'icons_buildings:icons_buildings_3';
+    if (scoutingCheckbox) scoutingCheckbox.checked = !!sh.requiresScouting;
+    if (removeCheckbox) removeCheckbox.checked = sh.removeOnVictory !== false;
+    if (descTextarea) descTextarea.value = sh.description || '';
+
+    if (goldInput) goldInput.value = String(sh.rewards?.gold ?? 100);
+    if (expInput) expInput.value = String(sh.rewards?.exp ?? 120);
+    if (prestigeInput) prestigeInput.value = String(sh.rewards?.prestige ?? 15);
+
+    this.renderStrongholdWaves(sh);
+  }
+
+  private renderStrongholdWaves(sh: SubjugationTemplate): void {
+    const container = byId('sh-waves-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!sh.waves || sh.waves.length === 0) {
+      sh.waves = [
+        { name: '第 1 波：前哨守軍', monsters: [{ monsterId: 'goblin', powerTier: 1.0 }] }
+      ];
+    }
+
+    sh.waves.forEach((w, wIdx) => {
+      const isBoss = wIdx === sh.waves!.length - 1 && sh.waves!.length > 1;
+      const waveCard = document.createElement('div');
+      waveCard.style.cssText = 'background: #0f131a; padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px;';
+
+      waveCard.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 6px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-weight: bold; font-size: 0.82rem; color: ${isBoss ? 'var(--cs-gold)' : '#93c5fd'};">${isBoss ? '👑' : '🚩'} ${w.name || `第 ${wIdx + 1} 波`}</span>
+            <span class="cs-badge" style="font-size: 0.68rem; color: var(--cs-text-muted);">${w.monsters?.length || 0}/5 隻</span>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button class="cs-btn cs-btn-sm cs-btn-gold" data-sh-add-monster="${wIdx}">＋ 增派怪物</button>
+            ${sh.waves!.length > 1 ? `<button class="cs-btn cs-btn-sm cs-btn-danger" data-sh-del-wave="${wIdx}" title="刪除此波">🗑️</button>` : ''}
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px;" id="sh-wave-monsters-${wIdx}">
+          <!-- 怪物卡片 -->
+        </div>
+      `;
+
+      const monstersList = waveCard.querySelector(`#sh-wave-monsters-${wIdx}`);
+      if (monstersList) {
+        if (!w.monsters || w.monsters.length === 0) {
+          monstersList.innerHTML = '<span style="color: var(--cs-text-muted); font-size: 0.72rem;">目前無怪物，點擊「增派怪物」加入</span>';
+        } else {
+          w.monsters.forEach((mRef, mIdx) => {
+            const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
+            const mName = mon?.name || mRef.monsterId;
+            const mAvatar = mon?.avatarIcon || this.getMonsterAvatar(mRef.monsterId, mName);
+            const mCard = document.createElement('div');
+            mCard.style.cssText = 'background: #141822; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--cs-panel-border); display: flex; align-items: center; justify-content: space-between; gap: 6px;';
+
+            mCard.innerHTML = `
+              <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 4px; background: #0c1017; display: flex; align-items: center; justify-content: center;">
+                  ${renderUniversalIcon(mAvatar, 28)}
+                </div>
+                <div style="min-width: 0;">
+                  <div style="font-weight: bold; font-size: 0.78rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mName}</div>
+                  <div style="font-size: 0.68rem; color: var(--cs-text-muted);">強化: <b>${mRef.powerTier || mon?.powerTier || 1.0}x</b></div>
+                </div>
+              </div>
+              <button class="cs-btn cs-btn-sm cs-btn-danger" style="padding: 1px 4px; font-size: 0.65rem;" data-sh-del-monster="${wIdx},${mIdx}">✕</button>
+            `;
+            monstersList.appendChild(mCard);
+          });
+        }
+      }
+
+      container.appendChild(waveCard);
+    });
+  }
+
+  private renderStrongholdAnalytics(): void {
+    const sh = this.getActiveStronghold();
+    if (!sh) return;
+
+    let totalPower = 0;
+    (sh.waves || []).forEach((w, wIdx) => {
+      (w.monsters || []).forEach(mRef => {
+        const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
+        const tier = mRef.powerTier || mon?.powerTier || 1.0;
+        const diffMultiplier = 1 + (sh.difficulty || 2) * 0.2 + wIdx * 0.15;
+        totalPower += Math.round(tier * 40 * diffMultiplier);
+      });
+    });
+
+    const powerEl = byId('sh-kpi-power');
+    const recEl = byId('sh-kpi-rec');
+    if (powerEl) powerEl.textContent = `⚔️ ${totalPower}`;
+
+    let recText = '1~2 人 Lv.1~3 小隊';
+    if (sh.difficulty >= 6 || totalPower >= 450) recText = '5 人滿編 Lv.8~10 (神裝/UR隊)';
+    else if (sh.difficulty >= 4 || totalPower >= 280) recText = '4~5 人 Lv.5~7 精英小隊';
+    else if (sh.difficulty >= 2 || totalPower >= 140) recText = '3~4 人 Lv.3~5 標準小隊';
+
+    if (recEl) recEl.textContent = recText;
+  }
+
+  private openSubjugationMonsterPicker(waveIdx: number): void {
+    this.currentPickerWaveIdx = waveIdx;
+    const titleEl = byId('sh-picker-wave-title');
+    if (titleEl) titleEl.textContent = `第 ${waveIdx + 1} 波`;
+
+    const searchInput = byId<HTMLInputElement>('sh-monster-picker-search');
+    const raceSelect = byId<HTMLSelectElement>('sh-monster-picker-race');
+    if (searchInput) searchInput.value = '';
+    if (raceSelect) raceSelect.value = 'ALL';
+
+    this.renderSubjugationMonsterPickerList(waveIdx, '', 'ALL');
+    byId('modal-sh-monster-picker').style.display = 'flex';
+  }
+
+  private renderSubjugationMonsterPickerList(waveIdx: number, query: string, raceFilter: string): void {
+    const grid = byId('sh-monster-picker-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const q = query.toLowerCase();
+    const filtered = this.monstersDb.filter(m => {
+      if (q && !m.name.toLowerCase().includes(q) && !m.id.toLowerCase().includes(q)) return false;
+      if (raceFilter !== 'ALL' && m.race !== raceFilter) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="grid-column: span 2; color: var(--cs-text-muted); font-size: 0.78rem; padding: 12px; text-align: center;">查無符合的怪物</div>';
+      return;
+    }
+
+    filtered.forEach(m => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background: #141822; padding: 6px 10px; border-radius: 5px; border: 1px solid var(--cs-panel-border); display: flex; align-items: center; justify-content: space-between; cursor: pointer; gap: 8px;';
+      const mAvatar = m.avatarIcon || this.getMonsterAvatar(m.id, m.name);
+
+      card.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+          <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 4px; background: #0c1017; display: flex; align-items: center; justify-content: center;">
+            ${renderUniversalIcon(mAvatar, 28)}
+          </div>
+          <div style="min-width: 0;">
+            <div style="font-weight: bold; font-size: 0.8rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${m.name}</div>
+            <div style="font-size: 0.68rem; color: var(--cs-text-muted);">${m.race} · 係數: ${m.powerTier || 1.0}x</div>
+          </div>
+        </div>
+        <button class="cs-btn cs-btn-sm cs-btn-gold" style="padding: 2px 8px; font-size: 0.72rem; flex-shrink: 0;">＋ 選用</button>
+      `;
+
+      card.onclick = () => {
+        const sh = this.getActiveStronghold();
+        if (sh && sh.waves && sh.waves[waveIdx]) {
+          if (!sh.waves[waveIdx].monsters) sh.waves[waveIdx].monsters = [];
+          if (sh.waves[waveIdx].monsters.length >= 5) {
+            alert('單一波次最多支援 5 隻守軍！');
+            return;
+          }
+          sh.waves[waveIdx].monsters.push({
+            monsterId: m.id,
+            powerTier: m.powerTier || 1.0
+          });
+          this.saveStrongholdsToStorage();
+          this.renderStrongholdStudio();
+          byId('modal-sh-monster-picker').style.display = 'none';
+        }
+      };
+
+      grid.appendChild(card);
+    });
+  }
+
+  private loadStrongholdToBattleSandbox(sh: SubjugationTemplate): void {
+    if (!sh || !sh.waves || sh.waves.length === 0) return;
+
+    this.enemyWaves = [];
+    sh.waves.forEach((w, wIdx) => {
+      const isBossWave = wIdx === sh.waves!.length - 1 && sh.waves!.length > 1;
+      const waveUnits: EnemyUnitConfig[] = [];
+
+      (w.monsters || []).forEach((mRef, mIdx) => {
+        const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
+        const mName = mon?.name || mRef.monsterId;
+        const isBoss = isBossWave && mIdx === w.monsters.length - 1;
+        waveUnits.push({
+          monsterId: mRef.monsterId,
+          name: mName,
+          difficulty: (sh.difficulty || 2) + wIdx,
+          element: mon?.defaultElement || ElementType.NONE,
+          isUndead: mon?.race === MonsterRace.UNDEAD,
+          avatarIcon: mon?.avatarIcon || this.getMonsterAvatar(mRef.monsterId, mName),
+          affix: isBoss ? '👑[守將]' : undefined,
+          formationRow: mIdx < 2 ? FormationRow.FRONT : FormationRow.BACK
+        });
+      });
+
+      if (waveUnits.length > 0) this.enemyWaves.push(waveUnits);
+    });
+
+    if (this.enemyWaves.length === 0) {
+      this.enemyWaves = [[
+        { monsterId: 'goblin', name: '哥布林', difficulty: sh.difficulty || 2, element: ElementType.NONE, isUndead: false, avatarIcon: '👺', formationRow: FormationRow.FRONT }
+      ]];
+    }
+
+    this.currentWaveIdx = 0;
+    this.switchStudioTab('battle');
+    alert(`⚡ 已成功將據點【${sh.name}】的 ${this.enemyWaves.length} 波守軍陣容載入至戰鬥沙盒！`);
+  }
+
+  private createNewStronghold(): void {
+    const nextIdx = this.strongholdsDb.length + 1;
+    const newSh: SubjugationTemplate = {
+      id: `custom_stronghold_${Date.now()}`,
+      name: `新討伐據點 ${nextIdx}`,
+      description: '描述此據點的敵方勢力與地理環境...',
+      terrain: 'RUINS',
+      icon: 'icons_buildings:icons_buildings_3',
+      difficulty: 2,
+      requiresScouting: false,
+      removeOnVictory: true,
+      waves: [
+        {
+          name: '第 1 波：先鋒部隊',
+          monsters: [
+            { monsterId: 'goblin', powerTier: 0.8 },
+            { monsterId: 'wild_wolf', powerTier: 0.8 }
+          ]
+        },
+        {
+          name: '第 2 波：據點首領',
+          monsters: [
+            { monsterId: 'orc', powerTier: 1.5 }
+          ]
+        }
+      ],
+      rewards: {
+        gold: 100,
+        exp: 120,
+        prestige: 15
+      }
+    };
+
+    this.strongholdsDb.unshift(newSh);
+    this.editingStrongholdId = newSh.id;
+    this.saveStrongholdsToStorage();
+    this.renderStrongholdStudio();
+  }
+
+  private duplicateCurrentStronghold(): void {
+    const cur = this.getActiveStronghold();
+    if (!cur) return;
+    const dup = clone(cur) as SubjugationTemplate;
+    dup.id = `${cur.id}_copy_${Date.now().toString().slice(-4)}`;
+    dup.name = `${cur.name} (副本)`;
+    this.strongholdsDb.unshift(dup);
+    this.editingStrongholdId = dup.id;
+    this.saveStrongholdsToStorage();
+    this.renderStrongholdStudio();
+  }
+
+  private deleteCurrentStronghold(): void {
+    const cur = this.getActiveStronghold();
+    if (!cur) return;
+    if (confirm(`確定要刪除據點【${cur.name}】嗎？`)) {
+      this.strongholdsDb = this.strongholdsDb.filter(s => s.id !== cur.id);
+      this.editingStrongholdId = this.strongholdsDb[0]?.id || null;
+      this.saveStrongholdsToStorage();
+      this.renderStrongholdStudio();
+    }
+  }
+
+  private bindStrongholdEvents(): void {
+    byId('btn-studio-tab-strongholds')?.addEventListener('click', () => this.switchStudioTab('strongholds'));
+    byId('btn-sh-add')?.addEventListener('click', () => this.createNewStronghold());
+    byId('btn-sh-duplicate')?.addEventListener('click', () => this.duplicateCurrentStronghold());
+    byId('btn-sh-delete')?.addEventListener('click', () => this.deleteCurrentStronghold());
+
+    byId<HTMLInputElement>('sh-search')?.addEventListener('input', e => {
+      this.strongholdSearchQuery = (e.target as HTMLInputElement).value;
+      this.renderStrongholdList();
+    });
+
+    byId<HTMLSelectElement>('sh-filter-terrain')?.addEventListener('change', e => {
+      this.strongholdFilterTerrain = (e.target as HTMLSelectElement).value;
+      this.renderStrongholdList();
+    });
+
+    byId('btn-sh-load-to-battle')?.addEventListener('click', () => {
+      const sh = this.getActiveStronghold();
+      if (sh) this.loadStrongholdToBattleSandbox(sh);
+    });
+
+    byId('btn-sh-add-wave')?.addEventListener('click', () => {
+      const sh = this.getActiveStronghold();
+      if (sh) {
+        if (!sh.waves) sh.waves = [];
+        if (sh.waves.length >= 5) {
+          alert('最多支援 5 波敵軍！');
+          return;
+        }
+        sh.waves.push({
+          name: `第 ${sh.waves.length + 1} 波`,
+          monsters: [{ monsterId: 'goblin', powerTier: 1.0 }]
+        });
+        this.saveStrongholdsToStorage();
+        this.renderStrongholdStudio();
+      }
+    });
+
+    // 據點欄位即時綁定
+    const syncField = () => {
+      const sh = this.getActiveStronghold();
+      if (!sh) return;
+
+      const idVal = byId<HTMLInputElement>('sh-id')?.value.trim();
+      const nameVal = byId<HTMLInputElement>('sh-name')?.value.trim();
+      const terrainVal = byId<HTMLSelectElement>('sh-terrain')?.value as any;
+      const diffVal = Number(byId<HTMLInputElement>('sh-difficulty')?.value || 2);
+      const iconVal = byId<HTMLInputElement>('sh-icon')?.value.trim();
+      const scoutingVal = byId<HTMLInputElement>('sh-requires-scouting')?.checked;
+      const removeVal = byId<HTMLInputElement>('sh-remove-on-victory')?.checked;
+      const descVal = byId<HTMLTextAreaElement>('sh-description')?.value;
+
+      const goldVal = Number(byId<HTMLInputElement>('sh-reward-gold')?.value || 0);
+      const expVal = Number(byId<HTMLInputElement>('sh-reward-exp')?.value || 0);
+      const prestigeVal = Number(byId<HTMLInputElement>('sh-reward-prestige')?.value || 0);
+
+      if (idVal) sh.id = idVal;
+      if (nameVal) sh.name = nameVal;
+      if (terrainVal) sh.terrain = terrainVal;
+      sh.difficulty = diffVal;
+      if (iconVal) sh.icon = iconVal;
+      sh.requiresScouting = scoutingVal;
+      sh.removeOnVictory = removeVal;
+      sh.description = descVal;
+
+      sh.rewards = {
+        gold: goldVal,
+        exp: expVal,
+        prestige: prestigeVal
+      };
+
+      byId('sh-diff-display').textContent = `Lv.${diffVal}`;
+      byId('sh-edit-badge').textContent = sh.id;
+      byId('sh-edit-title').textContent = sh.name;
+
+      this.saveStrongholdsToStorage();
+      this.renderStrongholdList();
+      this.renderStrongholdAnalytics();
+    };
+
+    ['sh-id', 'sh-name', 'sh-terrain', 'sh-difficulty', 'sh-icon', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige']
+      .forEach(id => {
+        const el = byId(id);
+        if (el) {
+          el.addEventListener('input', syncField);
+          el.addEventListener('change', syncField);
+        }
+      });
+
+    // 波次卡片事件委派 (增派怪物 / 刪除波次 / 刪除怪物)
+    document.addEventListener('click', e => {
+      const target = e.target as HTMLElement;
+      if (target.dataset.shAddMonster !== undefined) {
+        const wIdx = Number(target.dataset.shAddMonster);
+        this.openSubjugationMonsterPicker(wIdx);
+      }
+      if (target.dataset.shDelWave !== undefined) {
+        const wIdx = Number(target.dataset.shDelWave);
+        const sh = this.getActiveStronghold();
+        if (sh && sh.waves && sh.waves.length > 1) {
+          sh.waves.splice(wIdx, 1);
+          this.saveStrongholdsToStorage();
+          this.renderStrongholdStudio();
+        }
+      }
+      if (target.dataset.shDelMonster !== undefined) {
+        const [wIdxStr, mIdxStr] = target.dataset.shDelMonster.split(',');
+        const wIdx = Number(wIdxStr);
+        const mIdx = Number(mIdxStr);
+        const sh = this.getActiveStronghold();
+        if (sh && sh.waves && sh.waves[wIdx] && sh.waves[wIdx].monsters) {
+          sh.waves[wIdx].monsters.splice(mIdx, 1);
+          this.saveStrongholdsToStorage();
+          this.renderStrongholdStudio();
+        }
+      }
+    });
+
+    // 怪物挑選彈窗事件
+    byId('btn-close-sh-monster-picker')?.addEventListener('click', () => byId('modal-sh-monster-picker').style.display = 'none');
+    byId('btn-close-sh-monster-picker-footer')?.addEventListener('click', () => byId('modal-sh-monster-picker').style.display = 'none');
+    byId<HTMLInputElement>('sh-monster-picker-search')?.addEventListener('input', e => {
+      const q = (e.target as HTMLInputElement).value;
+      const race = byId<HTMLSelectElement>('sh-monster-picker-race')?.value || 'ALL';
+      this.renderSubjugationMonsterPickerList(this.currentPickerWaveIdx, q, race);
+    });
+    byId<HTMLSelectElement>('sh-monster-picker-race')?.addEventListener('change', e => {
+      const race = (e.target as HTMLSelectElement).value;
+      const q = byId<HTMLInputElement>('sh-monster-picker-search')?.value || '';
+      this.renderSubjugationMonsterPickerList(this.currentPickerWaveIdx, q, race);
+    });
   }
 
   private mapJobKeyToName(jobKey: string, isAdvanced: boolean): string {
@@ -740,6 +1322,14 @@ class CombatStudioController {
       else slotIdx = 0;
     }
 
+    if (hero.quality === 'UR') {
+      const existingUr = this.playerTeam.find((m, i) => i !== slotIdx && m.quality === 'UR');
+      if (existingUr) {
+        alert(`⚠️ 隊伍中最多只能編入 1 位 UR 品質傭兵！(目前隊伍中已有 ${existingUr.name})`);
+        return;
+      }
+    }
+
     const jobName = this.mapJobKeyToName(hero.jobKey, true);
     const weaponTypeMap: Record<string, WeaponType> = {
       WARRIOR: WeaponType.GREATSWORD,
@@ -752,6 +1342,8 @@ class CombatStudioController {
 
     const wpnType = weaponTypeMap[hero.jobKey] || WeaponType.GREATSWORD;
 
+    const heroAvatar = hero.avatarIcon || (hero.isGuardian ? (hero.gender === Gender.FEMALE ? 'guardian_f_0' : 'guardian_m_1') : (hero.id.includes('reyn') ? 'heroes:reyn' : (hero.id.includes('luna') ? 'heroes:luna' : this.getJobEmoji(jobName))));
+
     this.playerTeam[slotIdx] = {
       id: `p_${hero.id}_${Date.now()}`,
       name: `${hero.title}${hero.name}`,
@@ -759,13 +1351,18 @@ class CombatStudioController {
       quality: hero.quality,
       jobName: jobName,
       isAdvanced: true,
+      isUnique: !hero.isGuardian,
+      avatarIcon: heroAvatar,
       weaponType: wpnType,
       weaponElement: hero.equipment.weaponElement || ElementType.NONE,
       weaponTier: 4,
       weaponEnhance: hero.equipment.weaponEnhance,
+      weaponTemplateId: hero.equipment.weaponTemplateId,
       armorTier: 4,
       armorEnhance: hero.equipment.armorEnhance,
+      armorTemplateId: hero.equipment.armorTemplateId,
       accessoryType: hero.equipment.accessoryId,
+      accessoryId: hero.equipment.accessoryId,
       formationRow: slotIdx === 0 ? FormationRow.FRONT : FormationRow.FRONT,
       gender: hero.gender,
       isGuardian: hero.isGuardian,
@@ -818,11 +1415,12 @@ class CombatStudioController {
       
       const qColor = h.quality === 'UR' ? '#ef4444' : h.quality === 'SSR' ? '#f59e0b' : h.quality === 'SR' ? '#a855f7' : '#3b82f6';
       const attrSum = h.customAttributes.str + h.customAttributes.agi + h.customAttributes.con + h.customAttributes.int + h.customAttributes.spr + h.customAttributes.luk;
+      const heroAvatar = h.avatarIcon || (h.isGuardian ? (h.gender === Gender.FEMALE ? 'guardian_f_0' : 'guardian_m_1') : (h.id.includes('reyn') ? 'heroes:reyn' : (h.id.includes('luna') ? 'heroes:luna' : this.getJobEmoji(this.mapJobKeyToName(h.jobKey, true)))));
 
       item.innerHTML = `
         <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 40px; height: 40px; border-radius: 4px; background: #0f131a; border: 1px solid ${qColor}; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-            ${h.isGuardian ? '🛡️' : this.getJobEmoji(this.mapJobKeyToName(h.jobKey, true))}
+          <div style="width: 44px; height: 44px; border-radius: 4px; background: #0f131a; border: 1.5px solid ${qColor}; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            ${renderUniversalIcon(heroAvatar, 36)}
           </div>
           <div>
             <div style="display: flex; align-items: center; gap: 6px;">
@@ -841,6 +1439,32 @@ class CombatStudioController {
     });
   }
 
+  private readonly GUARDIAN_AVATARS_MALE = [
+    '滄桑老兵隊長 (1/10)',
+    '銀髮雄獅騎士 (2/10)',
+    '忠誠青年侍從 (3/10)',
+    '金紋重甲將軍 (4/10)',
+    '神秘兜帽遊俠 (5/10)',
+    '狂怒戰斧勇士 (6/10)',
+    '莊嚴黑袍神官 (7/10)',
+    '堅毅歷戰傭兵 (8/10)',
+    '森林長弓獵手 (9/10)',
+    '全罩重裝步兵 (10/10)'
+  ];
+
+  private readonly GUARDIAN_AVATARS_FEMALE = [
+    '金髮璀璨聖騎 (1/10)',
+    '聖潔修道神官 (2/10)',
+    '颯爽赤髮劍士 (3/10)',
+    '短髮英姿女騎 (4/10)',
+    '暗影兜帽俠女 (5/10)',
+    '紫袍秘術法師 (6/10)',
+    '宮廷貴族女爵 (7/10)',
+    '夜行黑皮刺客 (8/10)',
+    '雙辮長弓射手 (9/10)',
+    '重裝板金女戰 (10/10)'
+  ];
+
   // ── 英雄創造器彈窗邏輯 ──
   private openHeroCreator(heroDef?: UniqueHeroDef): void {
     const modal = byId('modal-hero-creator');
@@ -855,7 +1479,8 @@ class CombatStudioController {
     const jobSelect = byId<HTMLSelectElement>('hc-job');
     const isAdvSelect = byId<HTMLSelectElement>('hc-is-advanced');
     const isGuardianSelect = byId<HTMLSelectElement>('hc-is-guardian');
-    const avatarIndexInput = byId<HTMLInputElement>('hc-avatar-index');
+    const avatarSelect = byId<HTMLSelectElement>('hc-avatar-select');
+    const traitSelect = byId<HTMLSelectElement>('hc-trait');
 
     const strInput = byId<HTMLInputElement>('hc-str');
     const agiInput = byId<HTMLInputElement>('hc-agi');
@@ -863,11 +1488,106 @@ class CombatStudioController {
     const intInput = byId<HTMLInputElement>('hc-int');
     const sprInput = byId<HTMLInputElement>('hc-spr');
     const lukInput = byId<HTMLInputElement>('hc-luk');
+    const totalStatsEl = byId('hc-total-stats');
 
     const wpnElementSelect = byId<HTMLSelectElement>('hc-weapon-element');
     const wpnEnhanceInput = byId<HTMLInputElement>('hc-weapon-enhance');
     const armEnhanceInput = byId<HTMLInputElement>('hc-armor-enhance');
     const bioTextarea = byId<HTMLTextAreaElement>('hc-biography');
+
+    const avatarPreview = byId('hc-avatar-preview');
+    const customIconInput = byId<HTMLInputElement>('hc-avatar-icon-custom');
+
+    // 六維屬性總計即時連動
+    const updateTotalStats = () => {
+      const total = (Number(strInput?.value) || 0) + (Number(agiInput?.value) || 0) + (Number(conInput?.value) || 0) +
+                    (Number(intInput?.value) || 0) + (Number(sprInput?.value) || 0) + (Number(lukInput?.value) || 0);
+      if (totalStatsEl) totalStatsEl.textContent = String(total);
+    };
+    [strInput, agiInput, conInput, intInput, sprInput, lukInput].forEach(ipt => {
+      if (ipt) ipt.oninput = updateTotalStats;
+    });
+
+    // 肖像選單動態更新器
+    const updateAvatarSelectOptions = (selectedIdx: number = 0) => {
+      if (!avatarSelect) return;
+      avatarSelect.innerHTML = '';
+      const isG = isGuardianSelect?.value === 'true';
+      const isFem = genderSelect?.value === Gender.FEMALE;
+
+      if (isG) {
+        const list = isFem ? this.GUARDIAN_AVATARS_FEMALE : this.GUARDIAN_AVATARS_MALE;
+        list.forEach((name, idx) => {
+          const opt = document.createElement('option');
+          opt.value = String(idx);
+          opt.textContent = name;
+          if (idx === selectedIdx) opt.selected = true;
+          avatarSelect.appendChild(opt);
+        });
+      } else {
+        for (let i = 0; i < 25; i++) {
+          const opt = document.createElement('option');
+          opt.value = String(i);
+          opt.textContent = `傭兵立繪 #${i + 1}`;
+          if (i === selectedIdx) opt.selected = true;
+          avatarSelect.appendChild(opt);
+        }
+      }
+    };
+
+    const applySelectedAvatar = () => {
+      const isG = isGuardianSelect?.value === 'true';
+      const isFem = genderSelect?.value === Gender.FEMALE;
+      const idx = Number(avatarSelect?.value) || 0;
+      let iconCode = '';
+
+      if (isG) {
+        iconCode = `guardian_${isFem ? 'f' : 'm'}_${idx}`;
+      } else {
+        iconCode = isFem ? `female_${idx}` : `male_${idx}`;
+      }
+
+      if (avatarPreview) {
+        avatarPreview.innerHTML = renderUniversalIcon(iconCode, 44);
+        avatarPreview.dataset.iconVal = iconCode;
+      }
+      if (customIconInput) customIconInput.value = iconCode;
+    };
+
+    if (isGuardianSelect) {
+      isGuardianSelect.onchange = () => {
+        updateAvatarSelectOptions(0);
+        applySelectedAvatar();
+      };
+    }
+    if (genderSelect) {
+      genderSelect.onchange = () => {
+        updateAvatarSelectOptions(0);
+        applySelectedAvatar();
+      };
+    }
+    if (avatarSelect) {
+      avatarSelect.onchange = applySelectedAvatar;
+    }
+
+    if (avatarPreview) {
+      avatarPreview.onclick = () => {
+        this.openIconPicker(ic => {
+          avatarPreview.innerHTML = renderUniversalIcon(ic, 44);
+          avatarPreview.dataset.iconVal = ic;
+          if (customIconInput) customIconInput.value = ic;
+        });
+      };
+    }
+    if (customIconInput) {
+      customIconInput.oninput = () => {
+        const val = customIconInput.value.trim();
+        if (val && avatarPreview) {
+          avatarPreview.innerHTML = renderUniversalIcon(val, 44);
+          avatarPreview.dataset.iconVal = val;
+        }
+      };
+    }
 
     if (heroDef) {
       if (titleEl) titleEl.textContent = `✏️ 編輯英雄【${heroDef.name}】`;
@@ -879,7 +1599,16 @@ class CombatStudioController {
       if (jobSelect) jobSelect.value = heroDef.jobKey;
       if (isAdvSelect) isAdvSelect.value = 'true';
       if (isGuardianSelect) isGuardianSelect.value = String(heroDef.isGuardian);
-      if (avatarIndexInput) avatarIndexInput.value = String(heroDef.avatarIndex);
+      if (traitSelect) traitSelect.value = heroDef.traitKey || (heroDef.isGuardian ? 'GUARDIAN_LOYAL' : 'BRAVE');
+
+      updateAvatarSelectOptions(heroDef.avatarIndex || 0);
+
+      const curIcon = heroDef.avatarIcon || (heroDef.isGuardian ? (heroDef.gender === Gender.FEMALE ? 'guardian_f_0' : 'guardian_m_1') : (heroDef.id.includes('reyn') ? 'heroes:reyn' : (heroDef.id.includes('luna') ? 'heroes:luna' : 'heroes:reyn')));
+      if (avatarPreview) {
+        avatarPreview.innerHTML = renderUniversalIcon(curIcon, 44);
+        avatarPreview.dataset.iconVal = curIcon;
+      }
+      if (customIconInput) customIconInput.value = heroDef.avatarIcon || curIcon;
 
       if (strInput) strInput.value = String(heroDef.customAttributes.str);
       if (agiInput) agiInput.value = String(heroDef.customAttributes.agi);
@@ -902,7 +1631,16 @@ class CombatStudioController {
       if (jobSelect) jobSelect.value = 'WARRIOR';
       if (isAdvSelect) isAdvSelect.value = 'true';
       if (isGuardianSelect) isGuardianSelect.value = 'false';
-      if (avatarIndexInput) avatarIndexInput.value = '0';
+      if (traitSelect) traitSelect.value = 'BRAVE';
+
+      updateAvatarSelectOptions(0);
+
+      const curIcon = 'heroes:reyn';
+      if (avatarPreview) {
+        avatarPreview.innerHTML = renderUniversalIcon(curIcon, 44);
+        avatarPreview.dataset.iconVal = curIcon;
+      }
+      if (customIconInput) customIconInput.value = '';
 
       if (strInput) strInput.value = '25';
       if (agiInput) agiInput.value = '15';
@@ -917,6 +1655,7 @@ class CombatStudioController {
       if (bioTextarea) bioTextarea.value = '';
     }
 
+    updateTotalStats();
     modal.style.display = 'flex';
   }
 
@@ -928,7 +1667,10 @@ class CombatStudioController {
     const genderSelect = byId<HTMLSelectElement>('hc-gender');
     const jobSelect = byId<HTMLSelectElement>('hc-job');
     const isGuardianSelect = byId<HTMLSelectElement>('hc-is-guardian');
-    const avatarIndexInput = byId<HTMLInputElement>('hc-avatar-index');
+    const avatarSelect = byId<HTMLSelectElement>('hc-avatar-select');
+    const traitSelect = byId<HTMLSelectElement>('hc-trait');
+    const customIconInput = byId<HTMLInputElement>('hc-avatar-icon-custom');
+    const avatarPreview = byId('hc-avatar-preview');
 
     const strInput = byId<HTMLInputElement>('hc-str');
     const agiInput = byId<HTMLInputElement>('hc-agi');
@@ -945,6 +1687,7 @@ class CombatStudioController {
     const id = editIdInput ? editIdInput.value.trim() : `custom_hero_${Date.now()}`;
     const name = nameInput ? nameInput.value.trim() : '';
     const title = titleInput ? titleInput.value.trim() : '';
+    const avatarIcon = customIconInput?.value.trim() || avatarPreview?.dataset?.iconVal || undefined;
 
     if (!name) {
       alert('請填寫英雄名稱！');
@@ -952,9 +1695,10 @@ class CombatStudioController {
     }
 
     const jobKey = jobSelect ? jobSelect.value : 'WARRIOR';
+    const isGuardian = isGuardianSelect?.value === 'true';
     const weaponMap: Record<string, string> = {
       WARRIOR: 'wpn_meteoric_greatsword',
-      KNIGHT: 'wpn_royal_paladin_sword',
+      KNIGHT: isGuardian ? 'wpn_royal_paladin_sword' : 'wpn_royal_paladin_sword',
       MAGE: 'wpn_archmage_staff',
       ARCHER: 'wpn_composite_bow',
       THIEF: 'wpn_daggers_t4',
@@ -967,10 +1711,11 @@ class CombatStudioController {
       title,
       quality: (qualitySelect?.value as any) || 'SSR',
       jobKey,
-      traitKey: 'BRAVE',
+      traitKey: traitSelect?.value || (isGuardian ? 'GUARDIAN_LOYAL' : 'BRAVE'),
       gender: (genderSelect?.value as any) || Gender.MALE,
-      isGuardian: isGuardianSelect?.value === 'true',
-      avatarIndex: Number(avatarIndexInput?.value) || 0,
+      isGuardian,
+      avatarIndex: Number(avatarSelect?.value) || 0,
+      avatarIcon,
       level: 10,
       biography: bioTextarea?.value || '',
       customAttributes: {
@@ -980,8 +1725,8 @@ class CombatStudioController {
         int: Number(intInput?.value) || 10,
         spr: Number(sprInput?.value) || 10,
         luk: Number(lukInput?.value) || 10,
-        charm: 10,
-        command: 10
+        charm: isGuardian ? 15 : 10,
+        command: isGuardian ? 15 : 10
       },
       equipment: {
         weaponTemplateId: weaponMap[jobKey] || 'wpn_meteoric_greatsword',
@@ -989,7 +1734,7 @@ class CombatStudioController {
         weaponElement: (wpnElementSelect?.value as any) || ElementType.NONE,
         armorTemplateId: 'arm_heavy_t4',
         armorEnhance: Number(armEnhanceInput?.value) || 7,
-        accessoryId: 'acc_berserk_badge'
+        accessoryId: isGuardian ? 'acc_guardian_shield' : 'acc_berserk_badge'
       }
     };
 
@@ -1061,45 +1806,71 @@ class CombatStudioController {
       const crit = Math.min(100, 5 + Math.floor(hit / 5) + (p.accessoryType === 'BADGE_CRIT' ? 10 : 0));
       const powerScore = Math.max(patk, matk) + Math.floor((pdef + mdef) * 0.3) + Math.floor(hp * 0.2);
 
+      const isUniqueHero = p.isUnique && !p.isGuardian;
+
+      const qualityHtml = isUniqueHero
+        ? `<span class="cs-badge" style="padding: 1px 6px; font-size: 0.72rem; font-weight: bold; color: ${p.quality === 'UR' ? '#ff4d4f' : '#f59e0b'}; border: 1px solid ${p.quality === 'UR' ? '#ff4d4f' : '#f59e0b'}; background: ${p.quality === 'UR' ? 'rgba(255,77,79,0.15)' : 'rgba(245,158,11,0.15)'};">👑 ${p.quality}</span>`
+        : `
+          <select class="cs-select" data-p-idx="${idx}" data-field="quality" style="padding: 0px 4px; font-size: 0.72rem; font-weight: bold; color: ${p.quality === 'UR' ? '#ff4d4f' : 'var(--cs-gold)'};">
+            <option value="N" ${p.quality === 'N' ? 'selected' : ''}>N</option>
+            <option value="R" ${p.quality === 'R' ? 'selected' : ''}>R</option>
+            <option value="SR" ${p.quality === 'SR' ? 'selected' : ''}>SR</option>
+            <option value="SSR" ${p.quality === 'SSR' ? 'selected' : ''}>SSR</option>
+            <option value="UR" ${p.quality === 'UR' ? 'selected' : ''}>👑 UR (神話)</option>
+          </select>
+        `;
+
+      const jobHtml = isUniqueHero
+        ? `<span style="font-weight: bold; color: var(--cs-gold); font-size: 0.78rem;">${p.jobName}</span>`
+        : `
+          <select class="cs-select" data-p-idx="${idx}" data-field="jobChange" style="padding: 1px 2px; font-size: 0.72rem; max-width: 95px;">
+            <optgroup label="基礎職業">
+              <option value="戰士" ${p.jobName === '戰士' ? 'selected' : ''}>戰士</option>
+              <option value="法師" ${p.jobName === '法師' ? 'selected' : ''}>法師</option>
+              <option value="弓箭手" ${p.jobName === '弓箭手' ? 'selected' : ''}>弓箭手</option>
+              <option value="騎士" ${p.jobName === '騎士' ? 'selected' : ''}>騎士</option>
+              <option value="盜賊" ${p.jobName === '盜賊' ? 'selected' : ''}>盜賊</option>
+              <option value="祈禱者" ${p.jobName === '祈禱者' ? 'selected' : ''}>祈禱者</option>
+            </optgroup>
+            <optgroup label="🌟 進階職業">
+              <option value="狂戰士" ${p.jobName === '狂戰士' ? 'selected' : ''}>狂戰士</option>
+              <option value="魔劍士" ${p.jobName === '魔劍士' ? 'selected' : ''}>魔劍士</option>
+              <option value="大魔導士" ${p.jobName === '大魔導士' ? 'selected' : ''}>大魔導士</option>
+              <option value="死靈法師" ${p.jobName === '死靈法師' ? 'selected' : ''}>死靈法師</option>
+              <option value="神射手" ${p.jobName === '神射手' ? 'selected' : ''}>神射手</option>
+              <option value="精靈使" ${p.jobName === '精靈使' ? 'selected' : ''}>精靈使</option>
+              <option value="聖騎士" ${p.jobName === '聖騎士' ? 'selected' : ''}>聖騎士</option>
+              <option value="符文騎士" ${p.jobName === '符文騎士' ? 'selected' : ''}>符文騎士</option>
+              <option value="暗殺者" ${p.jobName === '暗殺者' ? 'selected' : ''}>暗殺者</option>
+              <option value="詭術師" ${p.jobName === '詭術師' ? 'selected' : ''}>詭術師</option>
+              <option value="異端拷問官" ${p.jobName === '異端拷問官' ? 'selected' : ''}>異端拷問官</option>
+            </optgroup>
+          </select>
+        `;
+
+      const wTpl = p.weaponTemplateId ? DataStore.EquipmentDB[p.weaponTemplateId] : null;
+      const aTpl = p.armorTemplateId ? DataStore.EquipmentDB[p.armorTemplateId] : null;
+      const accTpl = p.accessoryId ? DataStore.EquipmentDB[p.accessoryId] : (p.accessoryType && p.accessoryType !== 'NONE' ? DataStore.EquipmentDB[p.accessoryType] : null);
+
+      const wName = wTpl ? wTpl.name : `T${p.weaponTier} ${p.weaponType}`;
+      const aName = aTpl ? aTpl.name : `T${p.armorTier} 防具`;
+      const accName = accTpl ? accTpl.name : (p.accessoryType && p.accessoryType !== 'NONE' ? this.getAccessoryShortName(p.accessoryType) : '無飾品');
+
+      const wTooltip = wTpl ? `${wTpl.name} (+${p.weaponEnhance}) - 攻+${(wTpl.baseCombatEffects?.atk || p.weaponTier * 15)} ${(wTpl as any).description || (wTpl as any).flavorLore || ''}` : `T${p.weaponTier}+${p.weaponEnhance} ${p.weaponType}`;
+      const aTooltip = aTpl ? `${aTpl.name} (+${p.armorEnhance}) - 防+${(aTpl.baseCombatEffects?.def || p.armorTier * 10)} ${(aTpl as any).description || (aTpl as any).flavorLore || ''}` : `T${p.armorTier}+${p.armorEnhance} 防具`;
+      const accTooltip = accTpl ? `${accTpl.name} - ${(accTpl as any).description || (accTpl as any).flavorLore || JSON.stringify(accTpl.baseCombatEffects || {})}` : accName;
+
       card.innerHTML = `
         <div class="cs-unit-header">
           <div class="cs-unit-avatar" title="點擊更換冒險者頭像" data-change-p-avatar="${idx}" style="cursor: pointer;">${renderUniversalIcon(p.avatarIcon || this.getJobEmoji(p.jobName), 36)}</div>
           <div class="cs-unit-info">
             <div class="cs-unit-name">
               <input type="text" class="cs-input" value="${p.name}" style="padding: 1px 4px; font-size: 0.8rem; width: 85px;" data-p-idx="${idx}" data-field="name">
-              <select class="cs-select" data-p-idx="${idx}" data-field="quality" style="padding: 0px 4px; font-size: 0.72rem; font-weight: bold; color: ${p.quality === 'UR' ? '#ff4d4f' : 'var(--cs-gold)'};">
-                <option value="N" ${p.quality === 'N' ? 'selected' : ''}>N</option>
-                <option value="R" ${p.quality === 'R' ? 'selected' : ''}>R</option>
-                <option value="SR" ${p.quality === 'SR' ? 'selected' : ''}>SR</option>
-                <option value="SSR" ${p.quality === 'SSR' ? 'selected' : ''}>SSR</option>
-                <option value="UR" ${p.quality === 'UR' ? 'selected' : ''}>👑 UR (神話)</option>
-              </select>
+              ${qualityHtml}
             </div>
             <div class="cs-unit-sub">
               <span>Lv.${p.level}</span>
-              <select class="cs-select" data-p-idx="${idx}" data-field="jobChange" style="padding: 1px 2px; font-size: 0.72rem; max-width: 95px;">
-                <optgroup label="基礎職業">
-                  <option value="戰士" ${p.jobName === '戰士' ? 'selected' : ''}>戰士</option>
-                  <option value="法師" ${p.jobName === '法師' ? 'selected' : ''}>法師</option>
-                  <option value="弓箭手" ${p.jobName === '弓箭手' ? 'selected' : ''}>弓箭手</option>
-                  <option value="騎士" ${p.jobName === '騎士' ? 'selected' : ''}>騎士</option>
-                  <option value="盜賊" ${p.jobName === '盜賊' ? 'selected' : ''}>盜賊</option>
-                  <option value="祈禱者" ${p.jobName === '祈禱者' ? 'selected' : ''}>祈禱者</option>
-                </optgroup>
-                <optgroup label="🌟 進階職業">
-                  <option value="狂戰士" ${p.jobName === '狂戰士' ? 'selected' : ''}>狂戰士</option>
-                  <option value="魔劍士" ${p.jobName === '魔劍士' ? 'selected' : ''}>魔劍士</option>
-                  <option value="大魔導士" ${p.jobName === '大魔導士' ? 'selected' : ''}>大魔導士</option>
-                  <option value="死靈法師" ${p.jobName === '死靈法師' ? 'selected' : ''}>死靈法師</option>
-                  <option value="神射手" ${p.jobName === '神射手' ? 'selected' : ''}>神射手</option>
-                  <option value="精靈使" ${p.jobName === '精靈使' ? 'selected' : ''}>精靈使</option>
-                  <option value="聖騎士" ${p.jobName === '聖騎士' ? 'selected' : ''}>聖騎士</option>
-                  <option value="符文騎士" ${p.jobName === '符文騎士' ? 'selected' : ''}>符文騎士</option>
-                  <option value="暗殺者" ${p.jobName === '暗殺者' ? 'selected' : ''}>暗殺者</option>
-                  <option value="詭術師" ${p.jobName === '詭術師' ? 'selected' : ''}>詭術師</option>
-                  <option value="異端拷問官" ${p.jobName === '異端拷問官' ? 'selected' : ''}>異端拷問官</option>
-                </optgroup>
-              </select>
+              ${jobHtml}
               <span>(${p.formationRow === FormationRow.FRONT ? '前排' : p.formationRow === 'MIDDLE' ? '中排' : '後排'})</span>
             </div>
           </div>
@@ -1128,16 +1899,16 @@ class CombatStudioController {
           </div>
         </div>
 
-        <!-- 3 槽位裝備欄 -->
+        <!-- 3 槽位裝備欄 (全品項名稱 + Tooltip) -->
         <div class="cs-equip-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 4px;">
-          <div class="cs-equip-slot has-item" title="點擊修改裝備" data-open-equip="${idx}">
-            <span style="font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">⚔️ T${p.weaponTier}+${p.weaponEnhance} ${elemBadge}</span>
+          <div class="cs-equip-slot has-item" title="${wTooltip}" data-open-equip="${idx}">
+            <span style="font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">⚔️ ${wName}+${p.weaponEnhance} ${elemBadge}</span>
           </div>
-          <div class="cs-equip-slot has-item" title="點擊修改防具" data-open-equip="${idx}">
-            <span style="font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">🛡️ T${p.armorTier}+${p.armorEnhance}</span>
+          <div class="cs-equip-slot has-item" title="${aTooltip}" data-open-equip="${idx}">
+            <span style="font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">🛡️ ${aName}+${p.armorEnhance}</span>
           </div>
-          <div class="cs-equip-slot has-item" title="點擊修改飾品" data-open-equip="${idx}">
-            <span style="font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${accText}</span>
+          <div class="cs-equip-slot has-item" title="${accTooltip}" data-open-equip="${idx}">
+            <span style="font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">💍 ${accName}</span>
           </div>
         </div>
 
@@ -1254,12 +2025,34 @@ class CombatStudioController {
       const card = document.createElement('div');
       card.className = 'cs-unit-card';
       const elemText = e.element !== ElementType.NONE ? `[${e.element}]` : '';
-      const avatar = e.avatarIcon || '👾';
+      const avatar = e.avatarIcon || this.getMonsterAvatar(e.monsterId, e.name);
 
-      // 即時實例化計算該魔物的真實戰鬥數值
       const baseMonster = this.monstersDb.find(m => m.id === e.monsterId) || this.monstersDb[0] || (monstersJson[0] as any);
       const appliedRace = e.isUndead ? MonsterRace.UNDEAD : (baseMonster.race || MonsterRace.MONSTER);
-      const inst = this.monsterSystem.createMonsterInstance(baseMonster, appliedRace, e.element, e.difficulty);
+      const curProfile = (e.profile || baseMonster.profile || MonsterProfile.BALANCED) as MonsterProfile;
+      const curSkills = (e.skills || baseMonster.skills || []);
+
+      const monsterDef = {
+        ...baseMonster,
+        profile: curProfile,
+        skills: curSkills
+      };
+      const inst = this.monsterSystem.createMonsterInstance(monsterDef, appliedRace, e.element, e.difficulty);
+
+      const profileNameMap: Record<string, string> = {
+        BALANCED: '⚖️ 常規均衡',
+        TANK: '🛡️ 鐵壁肉盾',
+        ASSASSIN: '⚡ 疾風刺客',
+        MAGE: '🔮 奧術法師',
+        BERSERKER: '🩸 嗜血狂戰',
+        RANGER: '🏹 遠程狙擊',
+        JUGGERNAUT: '💀 亡靈泥沼',
+        BOSS: '👑 史詩首領'
+      };
+
+      const profileOptions = Object.entries(profileNameMap).map(([k, label]) =>
+        `<option value="${k}" ${k === curProfile ? 'selected' : ''}>${label}</option>`
+      ).join('');
 
       card.innerHTML = `
         <div class="cs-unit-header">
@@ -1286,6 +2079,15 @@ class CombatStudioController {
             </select>
           </div>
           <div>
+            <label class="cs-label">戰鬥定位</label>
+            <select class="cs-select" data-e-idx="${idx}" data-field="profile" style="width: 100%; padding: 2px 4px;">
+              ${profileOptions}
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 0.75rem; margin-top: 4px;">
+          <div>
             <label class="cs-label">元素屬性</label>
             <select class="cs-select" data-e-idx="${idx}" data-field="element" style="width: 100%; padding: 2px 4px;">
               <option value="NONE" ${e.element === ElementType.NONE ? 'selected' : ''}>無屬性</option>
@@ -1296,6 +2098,23 @@ class CombatStudioController {
               <option value="DARK" ${e.element === ElementType.DARK ? 'selected' : ''}>🌑暗</option>
             </select>
           </div>
+          <div>
+            <label class="cs-label">站位</label>
+            <select class="cs-select" data-e-idx="${idx}" data-field="formationRow" style="width: 100%; padding: 2px 4px;">
+              <option value="${FormationRow.FRONT}" ${e.formationRow === FormationRow.FRONT ? 'selected' : ''}>前排</option>
+              <option value="${FormationRow.BACK}" ${e.formationRow === FormationRow.BACK ? 'selected' : ''}>後排</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 技能欄位標籤與配置按鈕 -->
+        <div style="margin-top: 4px; padding: 3px 6px; background: #0e131b; border: 1px solid var(--cs-panel-border); border-radius: 4px; display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+          <span class="cs-label" style="margin-bottom: 0; font-size: 0.68rem;">技能:</span>
+          ${curSkills.length > 0 ? curSkills.map(skId => {
+            const sk = SkillRegistry.getSkill(skId);
+            return `<span class="cs-badge" style="background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); font-size: 0.65rem;" title="${sk?.description || ''}">✨ ${sk?.name || skId}</span>`;
+          }).join('') : '<span style="font-size: 0.68rem; color: var(--cs-text-muted);">無特技 (普攻)</span>'}
+          <button class="cs-btn cs-btn-sm cs-btn-gold" style="padding: 1px 6px; font-size: 0.65rem; margin-left: auto;" data-edit-e-skills="${idx}" title="點擊自訂與挑選此怪物的特技">⚙️ 配置</button>
         </div>
 
         <!-- 👾 怪物真實數值面板 -->
@@ -1327,7 +2146,7 @@ class CombatStudioController {
           difficulty: diff,
           element: ElementType.NONE,
           isUndead: false,
-          avatarIcon: '👺',
+          avatarIcon: this.getMonsterAvatar('goblin', '哥布林'),
           formationRow: FormationRow.FRONT
         });
         this.render();
@@ -1375,7 +2194,7 @@ class CombatStudioController {
       const inst = this.monsterSystem.createMonsterInstance(baseMonster, appliedRace, e.element, e.difficulty);
       const maxHp = inst.hp;
       const maxMp = 50;
-      const avatar = e.avatarIcon || '👾';
+      const avatar = e.avatarIcon || this.getMonsterAvatar(e.monsterId, e.name);
       this.arenaHpMp[eid] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: e.name, avatar };
 
       const card = document.createElement('div');
@@ -1614,15 +2433,249 @@ class CombatStudioController {
     if (!p) return;
 
     byId('eq-editor-unit-name').textContent = p.name;
-    (byId('eq-weapon-type') as HTMLSelectElement).value = p.weaponType;
-    (byId('eq-weapon-element') as HTMLSelectElement).value = p.weaponElement;
-    (byId('eq-weapon-tier') as HTMLSelectElement).value = String(p.weaponTier);
-    (byId('eq-weapon-enhance') as HTMLInputElement).value = String(p.weaponEnhance);
-    (byId('eq-armor-tier') as HTMLSelectElement).value = String(p.armorTier);
-    (byId('eq-armor-enhance') as HTMLInputElement).value = String(p.armorEnhance);
-    (byId('eq-accessory-type') as HTMLSelectElement).value = p.accessoryType || 'NONE';
+
+    const allEq = Object.values(DataStore.EquipmentDB);
+    const weapons = allEq.filter(e => e.slot === EquipmentSlot.WEAPON);
+    const armors = allEq.filter(e => e.slot === EquipmentSlot.ARMOR);
+    const accessories = allEq.filter(e => e.slot === EquipmentSlot.ACCESSORY);
+
+    // 1. 填充武器選單
+    const weaponSelect = byId<HTMLSelectElement>('eq-weapon-template');
+    if (weaponSelect) {
+      const jobGroups: Record<string, typeof weapons> = {
+        '⚔️ 戰士 / 狂戰士 / 魔劍士': weapons.filter(w => w.weaponType === WeaponType.GREATSWORD || w.weaponType === WeaponType.DUAL_SWORDS),
+        '🔮 法師 / 大魔導士 / 死靈法師': weapons.filter(w => w.weaponType === WeaponType.STAFF || w.weaponType === WeaponType.SCYTHE),
+        '🏹 弓手 / 神射手 / 精靈使': weapons.filter(w => w.weaponType === WeaponType.BOW || w.weaponType === WeaponType.MAGIC_BOW),
+        '🛡️ 騎士 / 聖騎士 / 符文騎士': weapons.filter(w => w.weaponType === WeaponType.SWORD_AND_SHIELD || w.weaponType === WeaponType.RUNE_SHIELD || (w.weaponType as any) === 'SHIELD'),
+        '🗡️ 盜賊 / 暗殺者 / 詭術師': weapons.filter(w => w.weaponType === WeaponType.DAGGERS || w.weaponType === WeaponType.MAGIC_RING),
+        '📖 祈禱者 / 大主教 / 異端拷問官': weapons.filter(w => w.weaponType === WeaponType.HOLY_BOOK || w.weaponType === WeaponType.HAMMER)
+      };
+
+      let wHtml = '';
+      Object.entries(jobGroups).forEach(([groupName, list]) => {
+        if (list.length > 0) {
+          wHtml += `<optgroup label="${groupName}">`;
+          list.forEach(w => {
+            const isSel = p.weaponTemplateId ? p.weaponTemplateId === w.id : (p.weaponType === w.weaponType && p.weaponTier === (w.tier || 1));
+            wHtml += `<option value="${w.id}" ${isSel ? 'selected' : ''}>[T${w.tier || 1}] ${w.name} (${w.weaponType})</option>`;
+          });
+          wHtml += `</optgroup>`;
+        }
+      });
+      weaponSelect.innerHTML = wHtml;
+      weaponSelect.onchange = () => this.refreshEquipmentPreview();
+    }
+
+    // 2. 填充防具選單
+    const armorSelect = byId<HTMLSelectElement>('eq-armor-template');
+    if (armorSelect) {
+      const heavy = armors.filter(a => a.id.includes('heavy') || (a.name && a.name.includes('重')));
+      const leather = armors.filter(a => a.id.includes('leather') || (a.name && a.name.includes('皮')));
+      const cloth = armors.filter(a => a.id.includes('cloth') || (a.name && (a.name.includes('布') || a.name.includes('袍'))));
+      const otherArmors = armors.filter(a => !heavy.includes(a) && !leather.includes(a) && !cloth.includes(a));
+
+      let aHtml = '';
+      if (heavy.length > 0) {
+        aHtml += `<optgroup label="🛡️ 重鎧 (HEAVY)">`;
+        heavy.forEach(a => {
+          const isSel = p.armorTemplateId ? p.armorTemplateId === a.id : (p.armorTier === (a.tier || 1));
+          aHtml += `<option value="${a.id}" ${isSel ? 'selected' : ''}>[T${a.tier || 1}] ${a.name}</option>`;
+        });
+        aHtml += `</optgroup>`;
+      }
+      if (leather.length > 0) {
+        aHtml += `<optgroup label="🏹 輕甲/皮甲 (LEATHER)">`;
+        leather.forEach(a => {
+          const isSel = p.armorTemplateId ? p.armorTemplateId === a.id : false;
+          aHtml += `<option value="${a.id}" ${isSel ? 'selected' : ''}>[T${a.tier || 1}] ${a.name}</option>`;
+        });
+        aHtml += `</optgroup>`;
+      }
+      if (cloth.length > 0) {
+        aHtml += `<optgroup label="🔮 法袍/布甲 (CLOTH)">`;
+        cloth.forEach(a => {
+          const isSel = p.armorTemplateId ? p.armorTemplateId === a.id : false;
+          aHtml += `<option value="${a.id}" ${isSel ? 'selected' : ''}>[T${a.tier || 1}] ${a.name}</option>`;
+        });
+        aHtml += `</optgroup>`;
+      }
+      if (otherArmors.length > 0) {
+        aHtml += `<optgroup label="✨ 特殊防具">`;
+        otherArmors.forEach(a => {
+          const isSel = p.armorTemplateId ? p.armorTemplateId === a.id : false;
+          aHtml += `<option value="${a.id}" ${isSel ? 'selected' : ''}>[T${a.tier || 1}] ${a.name}</option>`;
+        });
+        aHtml += `</optgroup>`;
+      }
+      armorSelect.innerHTML = aHtml;
+      armorSelect.onchange = () => this.refreshEquipmentPreview();
+    }
+
+    // 3. 填充飾品選單
+    const accSelect = byId<HTMLSelectElement>('eq-accessory-template');
+    if (accSelect) {
+      let accHtml = '<option value="NONE">無飾品</option>';
+      accessories.forEach(acc => {
+        const isSel = p.accessoryId === acc.id || p.accessoryType === acc.id;
+        accHtml += `<option value="${acc.id}" ${isSel ? 'selected' : ''}>[T${acc.tier || 2}] ${acc.name}</option>`;
+      });
+      accSelect.innerHTML = accHtml;
+      accSelect.onchange = () => this.refreshEquipmentPreview();
+    }
+
+    // 設定數值
+    (byId('eq-weapon-element') as HTMLSelectElement).value = p.weaponElement || ElementType.NONE;
+    (byId('eq-weapon-enhance') as HTMLInputElement).value = String(p.weaponEnhance || 0);
+    (byId('eq-armor-enhance') as HTMLInputElement).value = String(p.armorEnhance || 0);
+
+    // 觸發預覽刷新
+    this.refreshEquipmentPreview();
 
     byId('modal-equipment-editor').style.display = 'flex';
+  }
+
+  private refreshEquipmentPreview(): void {
+    const wId = (byId('eq-weapon-template') as HTMLSelectElement)?.value;
+    const aId = (byId('eq-armor-template') as HTMLSelectElement)?.value;
+    const accId = (byId('eq-accessory-template') as HTMLSelectElement)?.value;
+
+    const wTpl = DataStore.EquipmentDB[wId];
+    if (wTpl) {
+      byId('eq-weapon-icon-preview').innerHTML = renderUniversalIcon(wTpl.icon || wTpl.weaponType || 'GREATSWORD', 44);
+      byId('eq-weapon-tier-badge').textContent = `T${wTpl.tier || 1} ${wTpl.weaponType || ''}`;
+      const atk = (wTpl.baseCombatEffects?.atk || (wTpl.tier || 1) * 15);
+      const desc = (wTpl as any).description || (wTpl as any).flavorLore || `基礎攻擊力 +${atk}`;
+      byId('eq-weapon-desc').textContent = `📊 基礎攻 +${atk} | 類型: ${wTpl.weaponType || '通用'} | 📜 ${desc}`;
+    }
+
+    const aTpl = DataStore.EquipmentDB[aId];
+    if (aTpl) {
+      byId('eq-armor-icon-preview').innerHTML = renderUniversalIcon(aTpl.icon || (aTpl.id.includes('heavy') ? 'HEAVY_T3' : 'CLOTH_T3'), 44);
+      byId('eq-armor-tier-badge').textContent = `T${aTpl.tier || 1} 防具`;
+      const def = aTpl.baseCombatEffects?.def || (aTpl.tier || 1) * 10;
+      const hp = aTpl.baseCombatEffects?.hp || (aTpl.tier || 1) * 30;
+      const desc = (aTpl as any).description || (aTpl as any).flavorLore || `基礎防禦 +${def}, 生命 +${hp}`;
+      byId('eq-armor-desc').textContent = `📊 基礎防 +${def} · HP +${hp} | 📜 ${desc}`;
+    }
+
+    const accTpl = DataStore.EquipmentDB[accId];
+    if (accTpl) {
+      byId('eq-accessory-icon-preview').innerHTML = renderUniversalIcon(accTpl.icon || accTpl.id, 44);
+      byId('eq-accessory-tier-badge').textContent = `T${accTpl.tier || 2} 飾品`;
+      const eff = accTpl.baseCombatEffects ? JSON.stringify(accTpl.baseCombatEffects).replace(/[{"}]/g, '').replace(/:/g, '+') : '特殊加成';
+      const desc = (accTpl as any).description || (accTpl as any).flavorLore || eff;
+      byId('eq-accessory-desc').textContent = `📊 效果: ${eff} | 📜 ${desc}`;
+    } else {
+      byId('eq-accessory-icon-preview').innerHTML = '💍';
+      byId('eq-accessory-tier-badge').textContent = '無飾品';
+      byId('eq-accessory-desc').textContent = '未穿戴飾品';
+    }
+  }
+
+  // ── 👾 怪物技能自訂器 ──
+  private openMonsterSkillsEditor(waveIdx: number, idx: number): void {
+    this.activeEditingMonsterWaveIdx = waveIdx;
+    this.activeEditingMonsterIdx = idx;
+    const curWave = this.enemyWaves[waveIdx];
+    if (!curWave || !curWave[idx]) return;
+
+    const monUnit = curWave[idx];
+    const baseMonster = this.monstersDb.find(m => m.id === monUnit.monsterId);
+    this.tempMonsterSkills = [...(monUnit.skills || baseMonster?.skills || [])];
+
+    const titleEl = byId('ms-editor-unit-name');
+    if (titleEl) titleEl.textContent = `${monUnit.affix || ''}${monUnit.name} (第 ${waveIdx + 1} 波)`;
+
+    this.renderCurrentMonsterSkills();
+    this.renderMonsterSkillLibrary('');
+
+    const searchInput = byId<HTMLInputElement>('ms-skill-search');
+    if (searchInput) {
+      searchInput.value = '';
+      searchInput.oninput = () => this.renderMonsterSkillLibrary(searchInput.value.trim());
+    }
+
+    const modal = byId('modal-monster-skills');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  private renderCurrentMonsterSkills(): void {
+    const listEl = byId('ms-current-skills-list');
+    const countEl = byId('ms-current-count');
+    if (countEl) countEl.textContent = String(this.tempMonsterSkills.length);
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    if (this.tempMonsterSkills.length === 0) {
+      listEl.innerHTML = '<span style="color: var(--cs-text-muted); font-size: 0.75rem;">尚未裝備任何特技 (僅能普攻)</span>';
+      return;
+    }
+
+    this.tempMonsterSkills.forEach((skId, sIdx) => {
+      const sk = SkillRegistry.getSkill(skId);
+      const tag = document.createElement('div');
+      tag.className = 'cs-badge';
+      tag.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 0.75rem; background: rgba(59,130,246,0.2); border: 1px solid #3b82f6; color: #93c5fd; border-radius: 4px;';
+      tag.innerHTML = `
+        <span title="${sk?.description || ''}">✨ ${sk?.name || skId} (MP: ${sk?.mpCost || 0})</span>
+        <button class="cs-btn cs-btn-danger cs-btn-sm" style="padding: 0 4px; font-size: 0.65rem; line-height: 14px; margin-left: 2px;" data-remove-m-skill="${sIdx}" title="移除特技">✕</button>
+      `;
+      listEl.appendChild(tag);
+    });
+  }
+
+  private renderMonsterSkillLibrary(searchQuery: string = ''): void {
+    const listEl = byId('ms-skill-library-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const allSkills = SkillRegistry.getAllSkills();
+    const q = searchQuery.toLowerCase();
+    const filtered = allSkills.filter(s => {
+      if (!q) return true;
+      return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q));
+    });
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div style="color: var(--cs-text-muted); padding: 12px; text-align: center; font-size: 0.75rem;">查無符合條件的技能</div>';
+      return;
+    }
+
+    filtered.forEach(sk => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #131720; border: 1px solid var(--cs-panel-border); border-radius: 5px; gap: 8px;';
+      
+      const isEquipped = this.tempMonsterSkills.includes(sk.id);
+      const isFull = this.tempMonsterSkills.length >= 4;
+
+      item.innerHTML = `
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+            <span style="font-weight: bold; color: var(--cs-gold-light); font-size: 0.8rem;">✨ ${sk.name}</span>
+            <span class="cs-badge" style="font-size: 0.65rem; color: #60a5fa; background: rgba(59,130,246,0.15);">💧 MP ${sk.mpCost || 0}</span>
+            <span class="cs-badge" style="font-size: 0.65rem; color: var(--cs-text-muted);">${sk.category || '通用'}</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--cs-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sk.description || ''}">
+            ${sk.description || ''}
+          </div>
+        </div>
+        <button class="cs-btn cs-btn-sm ${isEquipped ? '' : 'cs-btn-primary'}" style="padding: 2px 8px; font-size: 0.72rem; flex-shrink: 0;" data-add-m-skill="${sk.id}" ${isEquipped || isFull ? 'disabled' : ''}>
+          ${isEquipped ? '已裝備' : isFull ? '已滿4招' : '＋ 加入'}
+        </button>
+      `;
+
+      listEl.appendChild(item);
+    });
+  }
+
+  private saveMonsterSkillsEditor(): void {
+    const curWave = this.enemyWaves[this.activeEditingMonsterWaveIdx];
+    if (curWave && curWave[this.activeEditingMonsterIdx]) {
+      curWave[this.activeEditingMonsterIdx].skills = [...this.tempMonsterSkills];
+    }
+    const modal = byId('modal-monster-skills');
+    if (modal) modal.style.display = 'none';
+    this.render();
   }
 
   // ── 據點守軍選單更新 ──
@@ -1663,7 +2716,7 @@ class CombatStudioController {
           difficulty: diff + w,
           element: mon.defaultElement || ElementType.NONE,
           isUndead: mon.race === MonsterRace.UNDEAD,
-          avatarIcon: this.getMonsterEmoji(mon.name),
+          avatarIcon: this.getMonsterAvatar(mon.id, mon.name),
           affix: isBoss ? '👑[頭目]' : undefined,
           formationRow: i < 2 ? FormationRow.FRONT : FormationRow.BACK
         });
@@ -1797,12 +2850,12 @@ class CombatStudioController {
       // 建立 2 波守軍：第 1 波小怪，第 2 波 Boss 守將
       const garrisonWaves: EnemyUnitConfig[][] = [
         [
-          { monsterId: g1, name: this.getMonsterName(g1), difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterEmoji(this.getMonsterName(g1)), formationRow: FormationRow.FRONT },
-          { monsterId: g2, name: this.getMonsterName(g2), difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterEmoji(this.getMonsterName(g2)), formationRow: FormationRow.FRONT }
+          { monsterId: g1, name: this.getMonsterName(g1), difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar(g1, this.getMonsterName(g1)), formationRow: FormationRow.FRONT },
+          { monsterId: g2, name: this.getMonsterName(g2), difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar(g2, this.getMonsterName(g2)), formationRow: FormationRow.FRONT }
         ],
         [
-          { monsterId: g3, name: this.getMonsterName(g3), difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterEmoji(this.getMonsterName(g3)), formationRow: FormationRow.FRONT },
-          { monsterId: g4, name: this.getMonsterName(g4), difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: '👑', affix: '👑[守將]', formationRow: FormationRow.BACK }
+          { monsterId: g3, name: this.getMonsterName(g3), difficulty: diff, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar(g3, this.getMonsterName(g3)), formationRow: FormationRow.FRONT },
+          { monsterId: g4, name: this.getMonsterName(g4), difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar(g4, this.getMonsterName(g4)), affix: '👑[守將]', formationRow: FormationRow.BACK }
         ]
       ];
 
@@ -1836,17 +2889,40 @@ class CombatStudioController {
       const p = this.playerTeam[this.activeEditingPlayerIdx];
       if (!p) return;
 
-      p.weaponType = (byId('eq-weapon-type') as HTMLSelectElement).value as WeaponType;
+      const wId = (byId('eq-weapon-template') as HTMLSelectElement).value;
+      const aId = (byId('eq-armor-template') as HTMLSelectElement).value;
+      const accId = (byId('eq-accessory-template') as HTMLSelectElement).value;
+
+      const wTpl = DataStore.EquipmentDB[wId];
+      if (wTpl) {
+        p.weaponTemplateId = wId;
+        p.weaponType = wTpl.weaponType || WeaponType.GREATSWORD;
+        p.weaponTier = wTpl.tier || 1;
+      }
       p.weaponElement = (byId('eq-weapon-element') as HTMLSelectElement).value as ElementType;
-      p.weaponTier = Number((byId('eq-weapon-tier') as HTMLSelectElement).value) || 1;
       p.weaponEnhance = Number((byId('eq-weapon-enhance') as HTMLInputElement).value) || 0;
-      p.armorTier = Number((byId('eq-armor-tier') as HTMLSelectElement).value) || 1;
+
+      const aTpl = DataStore.EquipmentDB[aId];
+      if (aTpl) {
+        p.armorTemplateId = aId;
+        p.armorTier = aTpl.tier || 1;
+      }
       p.armorEnhance = Number((byId('eq-armor-enhance') as HTMLInputElement).value) || 0;
-      p.accessoryType = (byId('eq-accessory-type') as HTMLSelectElement).value;
+
+      p.accessoryId = accId !== 'NONE' ? accId : undefined;
+      p.accessoryType = accId;
 
       byId('modal-equipment-editor').style.display = 'none';
       this.render();
     };
+
+    // 怪物特技自訂彈窗事件
+    const btnCloseMSkills = byId('btn-close-monster-skills');
+    if (btnCloseMSkills) btnCloseMSkills.onclick = () => byId('modal-monster-skills').style.display = 'none';
+    const btnCancelMSkills = byId('btn-cancel-monster-skills');
+    if (btnCancelMSkills) btnCancelMSkills.onclick = () => byId('modal-monster-skills').style.display = 'none';
+    const btnSaveMSkills = byId('btn-save-monster-skills');
+    if (btnSaveMSkills) btnSaveMSkills.onclick = () => this.saveMonsterSkillsEditor();
 
     // 全圖集通用圖標選擇器按鈕與綁定
     byId('mc-avatar-preview').onclick = () => {
@@ -1870,11 +2946,16 @@ class CombatStudioController {
     };
 
     // 怪物創造彈窗
-    byId('btn-create-monster').onclick = () => {
-      byId('modal-monster-creator').style.display = 'flex';
-    };
-    byId('btn-close-monster-creator').onclick = () => byId('modal-monster-creator').style.display = 'none';
-    byId('btn-cancel-monster-creator').onclick = () => byId('modal-monster-creator').style.display = 'none';
+    const btnOpenMonsterCreator = byId('btn-open-monster-creator');
+    if (btnOpenMonsterCreator) {
+      btnOpenMonsterCreator.onclick = () => {
+        byId('modal-monster-creator').style.display = 'flex';
+      };
+    }
+    const btnCloseMonsterCreator = byId('btn-close-monster-creator');
+    if (btnCloseMonsterCreator) btnCloseMonsterCreator.onclick = () => byId('modal-monster-creator').style.display = 'none';
+    const btnCancelMonsterCreator = byId('btn-cancel-monster-creator');
+    if (btnCancelMonsterCreator) btnCancelMonsterCreator.onclick = () => byId('modal-monster-creator').style.display = 'none';
 
     byId('btn-save-monster-item').onclick = () => {
       const id = (byId('mc-id') as HTMLInputElement).value.trim();
@@ -1975,7 +3056,17 @@ class CombatStudioController {
           this.applyJobChange(idx, val);
         }
         if (field === 'formationRow') this.playerTeam[idx].formationRow = val as any;
-        if (field === 'quality') this.playerTeam[idx].quality = val as any;
+        if (field === 'quality') {
+          if (val === 'UR') {
+            const existingUr = this.playerTeam.find((m, i) => i !== idx && m.quality === 'UR');
+            if (existingUr) {
+              alert(`⚠️ 隊伍中最多只能編入 1 位 UR 品質傭兵！(目前隊伍中已有 ${existingUr.name})`);
+              this.render();
+              return;
+            }
+          }
+          this.playerTeam[idx].quality = val as any;
+        }
         this.render();
       }
 
@@ -1990,10 +3081,14 @@ class CombatStudioController {
             const mon = this.monstersDb.find(m => m.id === val);
             if (mon) {
               curWave[idx].name = mon.name;
-              curWave[idx].avatarIcon = this.getMonsterEmoji(mon.name);
+              curWave[idx].avatarIcon = this.getMonsterAvatar(mon.id, mon.name);
+              curWave[idx].profile = mon.profile || MonsterProfile.BALANCED;
+              curWave[idx].skills = mon.skills || [];
             }
           }
           if (field === 'element') curWave[idx].element = val as any;
+          if (field === 'profile') curWave[idx].profile = val as any;
+          if (field === 'formationRow') curWave[idx].formationRow = val as any;
         }
         this.render();
       }
@@ -2018,6 +3113,25 @@ class CombatStudioController {
         const el = (target.dataset.openEquip !== undefined ? target : target.closest('[data-open-equip]')) as HTMLElement;
         const idx = Number(el.dataset.openEquip);
         this.openEquipmentEditor(idx);
+      }
+      if (target.dataset.editESkills !== undefined || target.closest('[data-edit-e-skills]')) {
+        const el = (target.dataset.editESkills !== undefined ? target : target.closest('[data-edit-e-skills]')) as HTMLElement;
+        const idx = Number(el.dataset.editESkills);
+        this.openMonsterSkillsEditor(this.currentWaveIdx, idx);
+      }
+      if (target.dataset.removeMSkill !== undefined) {
+        const sIdx = Number(target.dataset.removeMSkill);
+        this.tempMonsterSkills.splice(sIdx, 1);
+        this.renderCurrentMonsterSkills();
+        this.renderMonsterSkillLibrary(byId<HTMLInputElement>('ms-skill-search')?.value.trim() || '');
+      }
+      if (target.dataset.addMSkill !== undefined) {
+        const skId = target.dataset.addMSkill;
+        if (this.tempMonsterSkills.length < 4 && !this.tempMonsterSkills.includes(skId)) {
+          this.tempMonsterSkills.push(skId);
+          this.renderCurrentMonsterSkills();
+          this.renderMonsterSkillLibrary(byId<HTMLInputElement>('ms-skill-search')?.value.trim() || '');
+        }
       }
       if (target.dataset.changeEAvatar !== undefined || target.closest('[data-change-e-avatar]')) {
         const el = (target.dataset.changeEAvatar !== undefined ? target : target.closest('[data-change-e-avatar]')) as HTMLElement;
@@ -2126,6 +3240,36 @@ class CombatStudioController {
           this.switchStudioTab('battle');
         }
         return;
+      }
+      
+      if (target.dataset.avatarMonsterId !== undefined || target.closest('[data-avatar-monster-id]')) {
+        const el = (target.dataset.avatarMonsterId !== undefined ? target : target.closest('[data-avatar-monster-id]')) as HTMLElement;
+        const monId = el.dataset.avatarMonsterId;
+        const mon = this.monstersDb.find(m => m.id === monId);
+        if (mon) {
+          this.openIconPicker(ic => {
+            mon.avatarIcon = ic;
+            this.renderMonsterDatabase();
+          });
+        }
+      }
+      if (target.dataset.avatarHeroId !== undefined || target.closest('[data-avatar-hero-id]')) {
+        const el = (target.dataset.avatarHeroId !== undefined ? target : target.closest('[data-avatar-hero-id]')) as HTMLElement;
+        const heroId = el.dataset.avatarHeroId;
+        const hero = this.getAllHeroes().find(h => h.id === heroId);
+        if (hero) {
+          this.openIconPicker(ic => {
+            hero.avatarIcon = ic;
+            const cIdx = this.customHeroesDb.findIndex(h => h.id === heroId);
+            if (cIdx >= 0) {
+              this.customHeroesDb[cIdx].avatarIcon = ic;
+            } else {
+              this.customHeroesDb.push({ ...hero, avatarIcon: ic });
+            }
+            this.saveCustomHeroesToStorage();
+            this.renderHeroDatabase();
+          });
+        }
       }
       const editHeroBtn = (target.dataset.editHeroId !== undefined ? target : target.closest('[data-edit-hero-id]')) as HTMLElement;
       if (editHeroBtn && editHeroBtn.dataset.editHeroId) {
@@ -2269,6 +3413,14 @@ class CombatStudioController {
 
   private getMonsterName(id: string): string {
     return this.monstersDb.find(m => m.id === id)?.name || id;
+  }
+
+  private getMonsterAvatar(monsterId: string, fallbackName?: string): string {
+    const mon = this.monstersDb.find(m => m.id === monsterId);
+    if (mon && mon.avatarIcon) return mon.avatarIcon;
+    if (mon && (mon as any).icon) return (mon as any).icon;
+    if (fallbackName) return this.getMonsterEmoji(fallbackName);
+    return '👾';
   }
 
   private getMonsterEmoji(name: string): string {

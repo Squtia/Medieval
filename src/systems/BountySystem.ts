@@ -27,25 +27,6 @@ export interface BountyQuest {
 }
 
 export class BountySystem {
-  // 日常任務模板
-  private static readonly QUEST_TEMPLATES = [
-    { name: '找尋走失的貓', desc: '鎮上的老奶奶丟失了她心愛的花貓，希望有人能幫忙找回來。', duration: 1, gold: 20, exp: 10, type: 'NORMAL' },
-    { name: '清理下水道老鼠', desc: '酒館老闆抱怨下水道老鼠氾濫，需要有人去清理一下。', duration: 1, gold: 15, exp: 25, items: [{id: 'tg_hide', amount: 1}], type: 'NORMAL' },
-    { name: '夜間守望巡邏', desc: '守衛長正在招募夜間巡邏的人手，提防鎮外的流寇。', duration: 2, gold: 30, exp: 40, type: 'BANDIT' },
-    { name: '幫忙農夫收割', desc: '收穫季到了，農夫急需人手幫忙收割麥子。', duration: 1, gold: 10, exp: 15, items: [{id: 'tg_wheat', amount: 3}], type: 'NORMAL' },
-    { name: '驅趕偷吃穀物的野豬', desc: '一頭野豬頻繁破壞農田，將其驅趕或獵殺。', duration: 2, gold: 25, exp: 35, items: [{id: 'tg_meat', amount: 2}], type: 'NORMAL' },
-    { name: '護送商人到鄰鎮', desc: '一名行商需要護衛，保護他平安抵達鄰近城鎮。', duration: 3, gold: 80, exp: 50, type: 'NORMAL' },
-    { name: '採集稀有藥草', desc: '藥劑師委託採集生長在森林深處的珍貴藥草。', duration: 2, gold: 20, exp: 30, items: [{id: 'tg_cotton', amount: 2}], type: 'NORMAL' },
-    { name: '教訓地痞流氓', desc: '有幾個小混混在收保護費，去給他們一點教訓。', duration: 1, gold: 40, exp: 20, type: 'BANDIT' },
-    { name: '修補城牆破損', desc: '城牆有一處缺口需要搬運石料並修補。', duration: 2, gold: 15, exp: 15, items: [{id: 'mat_stone_brick', amount: 3}], type: 'NORMAL' },
-    { name: '協助礦工搬運', desc: '礦場近期產量大增，需要體力充沛的人幫忙搬運礦石。', duration: 2, gold: 20, exp: 20, items: [{id: 'mat_iron_ingot', amount: 3}], type: 'NORMAL' },
-    { name: '伐木場周邊警戒', desc: '伐木工在森林中感覺被注視，疑似有強盜出沒，請去巡視。', duration: 2, gold: 30, exp: 25, items: [{id: 'mat_wood_plank', amount: 3}], type: 'BANDIT' },
-    { name: '尋找遺失的傳家寶', desc: '某位貴族在郊外弄丟了戒指，重金懸賞尋回。', duration: 3, gold: 100, exp: 10, type: 'NORMAL' },
-    { name: '捕捉破壞農田的野狼', desc: '一群野狼正在襲擊家畜，需要強者去解決。', duration: 2, gold: 40, exp: 40, items: [{id: 'tg_hide', amount: 2}, {id: 'tg_meat', amount: 1}], type: 'NORMAL' },
-    { name: '清理廢棄水井的黏液', desc: '鎮外廢棄的水井長滿了奇怪的史萊姆，去清理乾淨。', duration: 1, gold: 25, exp: 30, type: 'NORMAL' },
-    { name: '清剿荒野強盜營地', desc: '有一群強盜在荒野紮營並頻繁襲擊旅人，將其徹底清剿。', duration: 3, gold: 60, exp: 60, type: 'BANDIT' }
-  ];
-
   /**
    * 每日回合結算時呼叫
    * 處理生成新懸賞、扣除過期懸賞、推進執行中的懸賞
@@ -79,41 +60,62 @@ export class BountySystem {
       }
     }
 
-    // 2. 隨機生成 1~3 個新任務 (前提是目前總數不超過 10 個)
+    // 2. 從故事工坊/NarrativeSystem 動態取得所有符合條件的日常懸賞節點進行隨機補新 (目前總數不超過 10 個)
     const currentCount = gameState.bounties.length;
     if (currentCount < 10) {
       const maxNew = Math.min(3, 10 - currentCount);
-      const newAmount = Math.floor(Math.random() * maxNew) + 1; // 1 to maxNew
-      const security = (gameState.myTerritory && gameState.myTerritory.security !== undefined) ? gameState.myTerritory.security : 100;
-      const extortionCooldown = (gameState.myTerritory && gameState.myTerritory.extortionCooldown) || 0;
-      const banditChance = extortionCooldown > 0 ? 0 : Math.max(0, 1.0 - (security / 100));
+      const eligibleRefs = NarrativeSystem.getEligibleRoutineBounties();
+      if (eligibleRefs.length > 0) {
+        const security = (gameState.myTerritory && gameState.myTerritory.security !== undefined) ? gameState.myTerritory.security : 100;
+        const extortionCooldown = (gameState.myTerritory && gameState.myTerritory.extortionCooldown) || 0;
+        const banditChance = extortionCooldown > 0 ? 0 : Math.max(0, 1.0 - (security / 100));
 
-      const normalTemplates = this.QUEST_TEMPLATES.filter(q => q.type !== 'BANDIT');
-      const banditTemplates = this.QUEST_TEMPLATES.filter(q => q.type === 'BANDIT');
+        const normalRefs = eligibleRefs.filter(r => r.node.bounty?.type !== 'BANDIT');
+        const banditRefs = eligibleRefs.filter(r => r.node.bounty?.type === 'BANDIT');
 
-      for (let i = 0; i < newAmount; i++) {
-        let template;
-        if (Math.random() < banditChance && banditTemplates.length > 0) {
-          template = banditTemplates[Math.floor(Math.random() * banditTemplates.length)];
-        } else {
-          template = normalTemplates[Math.floor(Math.random() * normalTemplates.length)];
-        }
-        
-        const newBounty: BountyQuest = {
-          id: 'BTY_' + Math.random().toString(36).substring(2, 9),
-          name: template.name,
-          desc: template.desc,
-          duration: template.duration,
-          expireDays: Math.floor(Math.random() * 4) + 3, // 3~6 天過期
-          status: 'PENDING',
-          type: template.type as 'NORMAL' | 'BANDIT',
-          rewards: {
-            gold: template.gold,
-            exp: template.exp,
-            items: template.items ? JSON.parse(JSON.stringify(template.items)) : undefined
+        const candidatePool = [...eligibleRefs];
+        const toPickCount = Math.min(maxNew, candidatePool.length);
+        const pickedRefs: typeof eligibleRefs = [];
+
+        for (let i = 0; i < toPickCount; i++) {
+          let chosen: typeof eligibleRefs[0] | undefined;
+          if (Math.random() < banditChance && banditRefs.length > 0) {
+            const availableBandits = banditRefs.filter(r => !pickedRefs.includes(r));
+            if (availableBandits.length > 0) {
+              chosen = availableBandits[Math.floor(Math.random() * availableBandits.length)];
+            }
           }
-        };
-        gameState.bounties.push(newBounty);
+          if (!chosen) {
+            const availableCandidates = candidatePool.filter(r => !pickedRefs.includes(r));
+            if (availableCandidates.length > 0) {
+              chosen = availableCandidates[Math.floor(Math.random() * availableCandidates.length)];
+            }
+          }
+          if (chosen) {
+            pickedRefs.push(chosen);
+            const { story, node } = chosen;
+            const bountyConfig = node.bounty ?? { duration: 2, expireDays: 4, gold: 30, exp: 20 };
+            const key = NarrativeSystem.getNodeKey(story.id, node.id);
+            const newBounty: BountyQuest = {
+              id: 'BTY_' + Math.random().toString(36).substring(2, 9),
+              name: node.title,
+              desc: node.description,
+              duration: bountyConfig.duration,
+              expireDays: bountyConfig.expireDays || (Math.floor(Math.random() * 4) + 3),
+              status: 'PENDING',
+              type: (bountyConfig.type || 'NORMAL') as 'NORMAL' | 'BANDIT',
+              narrativeNodeKey: key,
+              narrativeStoryId: story.id,
+              narrativeNodeId: node.id,
+              rewards: {
+                gold: bountyConfig.gold,
+                exp: bountyConfig.exp,
+                items: bountyConfig.items ? JSON.parse(JSON.stringify(bountyConfig.items)) : undefined
+              }
+            };
+            gameState.bounties.push(newBounty);
+          }
+        }
       }
     }
   }

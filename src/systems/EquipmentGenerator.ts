@@ -1,4 +1,4 @@
-import { Equipment, EquipmentTemplate, Attributes, CombatStats, ScalingTier, EquipmentScaling, ScalingRuleTarget, EquipmentSlot } from '../models/types';
+import { Equipment, EquipmentTemplate, Attributes, CombatStats, ScalingTier, EquipmentScaling, ScalingRuleTarget, EquipmentSlot, ScalingRules } from '../models/types';
 import { DataStore } from './DataStore';
 import { Random } from '../core/Random';
 
@@ -38,6 +38,183 @@ export class EquipmentGenerator {
     }
     
     return Object.keys(result).length > 0 ? result : undefined;
+  }
+
+  /**
+   * 取得指定階級的屬性補正範圍
+   * T1: D ~ B
+   * T2: C ~ A
+   * T3: B ~ A
+   * T4、T5: B ~ S
+   */
+  public static getTierScalingRange(tier: number = 1): [ScalingTier, ScalingTier] {
+    switch (tier) {
+      case 1:
+        return ['D', 'B'];
+      case 2:
+        return ['C', 'A'];
+      case 3:
+        return ['B', 'A'];
+      case 4:
+      case 5:
+      default:
+        return ['B', 'S'];
+    }
+  }
+
+  /**
+   * 根據裝備部位、武器類型、防具類型與階級，產生專屬的預設 Scaling 規則
+   */
+  public static getDefaultScalingRules(slot: EquipmentSlot, weaponType?: string, armorType?: string, tier: number = 1): ScalingRules {
+    const range = this.getTierScalingRange(tier);
+    const subRankMax = range[1]; // 副屬性上限與主屬性上限一致，下限保底為 E
+
+    if (slot === EquipmentSlot.WEAPON) {
+      const wType = (weaponType || '').toUpperCase();
+      switch (wType) {
+        case 'GREATSWORD':
+          return {
+            patk: {
+              guaranteed: { str: range },
+              randomPool: { possibleAttributes: ['con', 'agi', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'BOW':
+          return {
+            patk: {
+              guaranteed: { agi: range },
+              randomPool: { possibleAttributes: ['str', 'con', 'luk', 'int'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'DAGGERS':
+          return {
+            patk: {
+              guaranteed: { agi: range },
+              randomPool: { possibleAttributes: ['str', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'STAFF':
+          return {
+            matk: {
+              guaranteed: { int: range },
+              randomPool: { possibleAttributes: ['spr', 'agi', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'MAGIC_RING':
+          return {
+            matk: {
+              guaranteed: { int: range },
+              randomPool: { possibleAttributes: ['agi', 'spr', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'HOLY_BOOK':
+          return {
+            matk: {
+              guaranteed: { spr: range },
+              randomPool: { possibleAttributes: ['int', 'con', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'DUAL_SWORDS':
+          return {
+            patk: { guaranteed: { str: range } },
+            matk: { guaranteed: { int: range } },
+            pdef: {
+              randomPool: { possibleAttributes: ['agi', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'MAGIC_BOW':
+          return {
+            patk: { guaranteed: { agi: range } },
+            matk: { guaranteed: { int: range } },
+            pdef: {
+              randomPool: { possibleAttributes: ['luk', 'spr'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'SWORD_AND_SHIELD':
+          return {
+            patk: { guaranteed: { str: range } },
+            pdef: { guaranteed: { con: range } },
+            mdef: {
+              randomPool: { possibleAttributes: ['luk', 'spr'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'RUNE_SHIELD':
+          return {
+            patk: { guaranteed: { con: range } },
+            matk: { guaranteed: { spr: range } },
+            pdef: {
+              randomPool: { possibleAttributes: ['int', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'SCYTHE':
+          return {
+            patk: { guaranteed: { str: range } },
+            matk: { guaranteed: { int: range } },
+            mdef: {
+              randomPool: { possibleAttributes: ['con', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        case 'HAMMER':
+          return {
+            patk: { guaranteed: { str: range } },
+            matk: { guaranteed: { spr: range } },
+            pdef: {
+              randomPool: { possibleAttributes: ['con', 'luk'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+        default:
+          return {
+            patk: {
+              guaranteed: { str: range },
+              randomPool: { possibleAttributes: ['con', 'agi', 'luk', 'int', 'spr'], rankRange: ['E', subRankMax], count: [0, 2] }
+            }
+          };
+      }
+    } else if (slot === EquipmentSlot.ARMOR) {
+      const aType = (armorType || '').toUpperCase();
+      switch (aType) {
+        case 'CLOTH':
+          return {
+            mdef: {
+              guaranteed: { spr: range },
+              randomPool: { possibleAttributes: ['int', 'luk'], rankRange: ['E', subRankMax], count: [0, 1] }
+            }
+          };
+        case 'LEATHER':
+          return {
+            pdef: { guaranteed: { luk: range } },
+            mdef: {
+              guaranteed: { agi: range },
+              randomPool: { possibleAttributes: ['con', 'str'], rankRange: ['E', subRankMax], count: [0, 1] }
+            }
+          };
+        case 'HEAVY':
+        default:
+          return {
+            pdef: {
+              guaranteed: { con: range },
+              randomPool: { possibleAttributes: ['str', 'spr'], rankRange: ['E', subRankMax], count: [0, 1] }
+            }
+          };
+      }
+    }
+
+    return {};
+  }
+
+  /**
+   * 為裝備生成或重新洗鍊 Scaling 屬性
+   */
+  public static generateEquipmentScaling(template: { slot: EquipmentSlot; weaponType?: string; armorType?: string; tier?: number; scalingRules?: ScalingRules }): EquipmentScaling {
+    const rules = template.scalingRules || this.getDefaultScalingRules(template.slot, template.weaponType, template.armorType, template.tier || 1);
+    const scaling: EquipmentScaling = {};
+
+    if (rules.patk) scaling.patk = this.processScalingRule(rules.patk);
+    if (rules.matk) scaling.matk = this.processScalingRule(rules.matk);
+    if (rules.pdef) scaling.pdef = this.processScalingRule(rules.pdef);
+    if (rules.mdef) scaling.mdef = this.processScalingRule(rules.mdef);
+
+    return scaling;
   }
 
   /**
@@ -92,7 +269,7 @@ export class EquipmentGenerator {
     // 根據 ItemLevel 計算隨機點數 (原有的固定屬性生成保留)
     if (template.randomPool) {
       const pool = template.randomPool;
-      let remainingPoints = template.itemLevel;
+      let remainingPoints = template.itemLevel || 1;
 
       while (remainingPoints > 0) {
         const alloc = Math.min(remainingPoints, Random.int(1, 3));
@@ -116,21 +293,7 @@ export class EquipmentGenerator {
     }
     
     // 處理 Scaling Rules (打寶隨機補正倍率)
-    if (template.scalingRules) {
-       if (template.scalingRules.patk) eq.scaling!.patk = this.processScalingRule(template.scalingRules.patk);
-       if (template.scalingRules.matk) eq.scaling!.matk = this.processScalingRule(template.scalingRules.matk);
-       if (template.scalingRules.pdef) eq.scaling!.pdef = this.processScalingRule(template.scalingRules.pdef);
-       if (template.scalingRules.mdef) eq.scaling!.mdef = this.processScalingRule(template.scalingRules.mdef);
-    }
-
-    // 保底默認值處理
-    if (template.slot === EquipmentSlot.WEAPON) {
-       if (!eq.scaling!.patk || Object.keys(eq.scaling!.patk).length === 0) eq.scaling!.patk = { str: 'E' };
-       if (!eq.scaling!.matk || Object.keys(eq.scaling!.matk).length === 0) eq.scaling!.matk = { int: 'E' };
-    } else if (template.slot === EquipmentSlot.ARMOR) {
-       if (!eq.scaling!.pdef || Object.keys(eq.scaling!.pdef).length === 0) eq.scaling!.pdef = { con: 'E' };
-       if (!eq.scaling!.mdef || Object.keys(eq.scaling!.mdef).length === 0) eq.scaling!.mdef = { spr: 'E' };
-    }
+    eq.scaling = this.generateEquipmentScaling(template);
 
     // 複製備份基底數值
     eq.baseCombatEffects = JSON.parse(JSON.stringify(eq.combatEffects || {}));
@@ -144,7 +307,7 @@ export class EquipmentGenerator {
    */
   public static dropRandomEquipment(maxItemLevel: number): Equipment | null {
     const allTemplates = Object.values(DataStore.EquipmentDB);
-    const validTemplates = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && t.droppable !== false && (t.tier === undefined || t.tier <= 3) && !t.isVariant && t.itemLevel <= maxItemLevel);
+    const validTemplates = allTemplates.filter(t => t.id !== 'wpn_heirloom_sword' && t.droppable !== false && (t.tier === undefined || t.tier <= 3) && !t.isVariant && (t.itemLevel || 1) <= maxItemLevel);
     if (validTemplates.length === 0) return null;
 
     const selectedTemplate = Random.pick(validTemplates);
@@ -173,4 +336,3 @@ export class EquipmentGenerator {
     return this.generate(picked.id);
   }
 }
-

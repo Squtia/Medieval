@@ -69,12 +69,30 @@ export class NarrativeSystem {
       for (const node of story.nodes) {
         const key = this.getNodeKey(story.id, node.id);
         if (channel && node.channel !== channel) continue;
-        if (state.completedNodeIds.includes(key)) continue;
-        if (!includePresented && state.presentedNodeIds.includes(key)) continue;
+        if (node.repeatable) {
+          // 可重複輪替節點：檢查冷卻天數
+          if (state.nodeLastCompletedDay && state.nodeLastCompletedDay[key] !== undefined) {
+            const cooldown = node.cooldownDays ?? 3;
+            if (GameState.totalDays - state.nodeLastCompletedDay[key] < cooldown) continue;
+          }
+        } else {
+          if (state.completedNodeIds.includes(key)) continue;
+          if (!includePresented && state.presentedNodeIds.includes(key)) continue;
+        }
         if (this.explainBlocked(story, node).length === 0) result.push({ story, node });
       }
     }
     return result;
+  }
+
+  /** 取得所有當前合資格且未在進行中的日常輪替懸賞節點 */
+  static getEligibleRoutineBounties(): NarrativeNodeRef[] {
+    const activeKeys = new Set((GameState.bounties || []).map((b: any) => b.narrativeNodeKey).filter(Boolean));
+    return this.getEligibleNodes('BOUNTY_BOARD', true).filter(({ story, node }) => {
+      if (!node.repeatable) return false;
+      const key = this.getNodeKey(story.id, node.id);
+      return !activeKeys.has(key);
+    });
   }
 
   static explainBlocked(story: NarrativeStory, node: NarrativeNode): string[] {
@@ -160,6 +178,7 @@ export class NarrativeSystem {
 
   static ensureStoryBounties(): void {
     for (const { story, node } of this.getEligibleNodes('BOUNTY_BOARD')) {
+      if (node.repeatable) continue; // 日常輪替懸賞由 BountySystem 每日隨機抽取
       const key = this.getNodeKey(story.id, node.id);
       if (GameState.bounties.some((bounty: any) => bounty.narrativeNodeKey === key)) continue;
       const bounty = node.bounty ?? { duration: 2, expireDays: 30, gold: 50, exp: 30 };
@@ -170,14 +189,22 @@ export class NarrativeSystem {
         duration: bounty.duration,
         expireDays: bounty.expireDays,
         status: 'PENDING',
-        type: 'NORMAL',
+        type: bounty.type || 'NORMAL',
         narrativeNodeKey: key,
         narrativeStoryId: story.id,
         narrativeNodeId: node.id,
-        rewards: { gold: bounty.gold, exp: bounty.exp }
+        rewards: {
+          gold: bounty.gold,
+          exp: bounty.exp,
+          items: bounty.items
+        }
       });
       this.markPresented(story.id, node.id);
     }
+  }
+
+  static getEligibleStreetEvents(): NarrativeNodeRef[] {
+    return this.getEligibleNodes('STREET_EVENT');
   }
 
   static consumeTavernRumor(): NarrativeNodeRef | null {
@@ -244,6 +271,8 @@ export class NarrativeSystem {
     if (applyCompletionEffects) this.applyEffects(storyId, ref.node.completionEffects);
     const state = this.ensureState();
     const key = this.getNodeKey(storyId, nodeId);
+    if (!state.nodeLastCompletedDay) state.nodeLastCompletedDay = {};
+    state.nodeLastCompletedDay[key] = GameState.totalDays;
     if (!state.completedNodeIds.includes(key)) state.completedNodeIds.push(key);
     GameState.bounties = GameState.bounties.filter((bounty: any) => bounty.narrativeNodeKey !== key);
   }
@@ -370,6 +399,12 @@ export class NarrativeSystem {
     const existing = mapSystem.getNodeById(stableId);
     if (existing) return existing;
 
+    const template = definition.templateId ? DataStore.SubjugationNodeDB.find(t => t.id === definition.templateId) : undefined;
+    const terrainKey = definition.terrain || template?.terrain || 'RUINS';
+    const finalDifficulty = Math.max(1, definition.difficulty ?? template?.difficulty ?? 2);
+    const requiresScouting = definition.requiresScouting ?? template?.requiresScouting ?? false;
+    const removeOnVictory = definition.removeOnVictory ?? (template?.removeOnVictory !== false);
+
     const playerNode = mapSystem.getNodes().find(node => node.isPlayerBase);
     const anchor = definition.placement === 'NEAR_NODE'
       ? mapSystem.getNodeById(definition.anchorNodeId ?? '') ?? playerNode
@@ -392,8 +427,8 @@ export class NarrativeSystem {
 
     const node: MapNode = {
       id: stableId,
-      name: definition.name || definition.nodeId,
-      description: definition.description,
+      name: definition.name || template?.name || definition.nodeId,
+      description: definition.description || template?.description || '',
       x,
       y,
       population: 0,
@@ -402,23 +437,24 @@ export class NarrativeSystem {
       ownerFactionId: null,
       isPlayerBase: false,
       isDiscovered: true,
-      terrain: TerrainType[definition.terrain],
+      terrain: TerrainType[terrainKey as keyof typeof TerrainType] || TerrainType.RUINS,
       feature: NodeFeature.SUBJUGATION,
       isHidden: false,
       isDynamic: true,
-      baseDifficulty: Math.max(1, definition.difficulty),
+      baseDifficulty: finalDifficulty,
       establishedBaseMonsterId: definition.monsterId || undefined,
-      isScouted: !definition.requiresScouting,
+      isScouted: !requiresScouting,
       scoutExpiryDate: null,
       currentWeather: WeatherType.CLEAR,
       weatherDuration: 0,
       narrativeSubjugation: {
         storyId,
         sourceNodeId: definition.nodeId,
+        templateId: definition.templateId,
         journeyNodeIds: definition.journeyNodeIds ?? [],
         victoryNodeId: definition.victoryNodeId,
         defeatNodeId: definition.defeatNodeId,
-        removeOnVictory: definition.removeOnVictory,
+        removeOnVictory,
         enemyFeature: definition.enemyFeature
       }
     };

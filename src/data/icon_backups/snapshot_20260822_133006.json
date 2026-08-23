@@ -1,0 +1,6936 @@
+{
+  "timestamp": "2026-08-22T05:30:06.386Z",
+  "note": "儲存於 2026/8/22 下午1:30:06",
+  "data": {
+    "weapons": {
+      "GREATSWORD": {
+        "bgX": 2.4,
+        "bgY": 2.7,
+        "zoom": 115
+      },
+      "DUAL_SWORDS": {
+        "zoom": 115,
+        "bgX": 34.08,
+        "bgY": 2.9400000000000004
+      },
+      "STAFF": {
+        "zoom": 115,
+        "bgX": 66.04,
+        "bgY": 3.49
+      },
+      "SCYTHE": {
+        "zoom": 116,
+        "bgX": 97.93,
+        "bgY": 3.38
+      },
+      "BOW": {
+        "zoom": 115,
+        "bgX": 2,
+        "bgY": 50.28
+      },
+      "MAGIC_BOW": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 50
+      },
+      "DAGGERS": {
+        "zoom": 115,
+        "bgX": 66.1,
+        "bgY": 50
+      },
+      "MAGIC_RING": {
+        "zoom": 115,
+        "bgX": 98,
+        "bgY": 50
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 116,
+        "bgX": 2.4,
+        "bgY": 96.34
+      },
+      "RUNE_SHIELD": {
+        "zoom": 116,
+        "bgX": 34.15,
+        "bgY": 96.58
+      },
+      "HOLY_BOOK": {
+        "zoom": 115,
+        "bgX": 66.1,
+        "bgY": 96.34
+      },
+      "HAMMER": {
+        "zoom": 115,
+        "bgX": 97.99,
+        "bgY": 96.34
+      }
+    },
+    "facilities": {
+      "tavern": {
+        "bgX": 6.83,
+        "bgY": 9.62,
+        "zoom": 134
+      },
+      "forge": {
+        "zoom": 142,
+        "bgX": 36.13,
+        "bgY": 10.18
+      },
+      "weapon": {
+        "bgX": 64.86,
+        "bgY": 9.12,
+        "zoom": 139
+      },
+      "armor": {
+        "zoom": 142,
+        "bgX": 93.06,
+        "bgY": 9.54
+      },
+      "study": {
+        "zoom": 140,
+        "bgX": 6.85,
+        "bgY": 50.64
+      },
+      "defense": {
+        "bgX": 35.6,
+        "bgY": 50.57,
+        "zoom": 135
+      }
+    },
+    "materials": {
+      "gold": {
+        "zoom": 118,
+        "bgX": 65.73,
+        "bgY": 51.65
+      },
+      "wood": {
+        "zoom": 106,
+        "bgX": 98.46,
+        "bgY": 49.43
+      },
+      "stone": {
+        "zoom": 106,
+        "bgX": 3.08,
+        "bgY": 97.99
+      },
+      "iron": {
+        "zoom": 107,
+        "bgX": 34.48,
+        "bgY": 98.28
+      },
+      "food": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 66.7,
+        "bgY": 100
+      },
+      "essence": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      },
+      "cotton": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "hide": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "cloth": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "leather": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      }
+    },
+    "avatars_male": {
+      "male_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "male_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "male_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "male_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "male_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "male_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "male_6": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 25
+      },
+      "male_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "male_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "male_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      },
+      "male_10": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 50
+      },
+      "male_11": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 50
+      },
+      "male_12": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 50
+      },
+      "male_13": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 50
+      },
+      "male_14": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 50
+      },
+      "male_15": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 75
+      },
+      "male_16": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 75
+      },
+      "male_17": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 75
+      },
+      "male_18": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 75
+      },
+      "male_19": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 75
+      },
+      "male_20": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "male_21": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 100
+      },
+      "male_22": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "male_23": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "male_24": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "avatars_female": {
+      "female_0": {
+        "bgX": 0.37,
+        "bgY": 0.74
+      },
+      "female_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "female_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "female_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "female_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "female_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "female_6": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 25
+      },
+      "female_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "female_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "female_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      },
+      "female_10": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 50
+      },
+      "female_11": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 50
+      },
+      "female_12": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 50
+      },
+      "female_13": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 50
+      },
+      "female_14": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 50
+      },
+      "female_15": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 75
+      },
+      "female_16": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 75
+      },
+      "female_17": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 75
+      },
+      "female_18": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 75
+      },
+      "female_19": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 75
+      },
+      "female_20": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "female_21": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 100
+      },
+      "female_22": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "female_23": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "female_24": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "armors": {
+      "CLOTH_T1": {
+        "bgX": 2,
+        "bgY": 1.81,
+        "zoom": 105
+      },
+      "CLOTH_T2": {
+        "zoom": 105,
+        "bgX": 34.2,
+        "bgY": 1.94
+      },
+      "CLOTH_T3": {
+        "zoom": 105,
+        "bgX": 66.1,
+        "bgY": 2.02
+      },
+      "CLOTH_T4": {
+        "zoom": 105,
+        "bgX": 98.07,
+        "bgY": 1.44
+      },
+      "LEATHER_T1": {
+        "zoom": 105,
+        "bgX": 2,
+        "bgY": 50
+      },
+      "LEATHER_T2": {
+        "zoom": 105,
+        "bgX": 33.833333333333336,
+        "bgY": 50
+      },
+      "LEATHER_T3": {
+        "zoom": 105,
+        "bgX": 66.16666666666667,
+        "bgY": 50
+      },
+      "LEATHER_T4": {
+        "zoom": 105,
+        "bgX": 98.3,
+        "bgY": 50
+      },
+      "HEAVY_T1": {
+        "zoom": 105,
+        "bgX": 2,
+        "bgY": 98.5
+      },
+      "HEAVY_T2": {
+        "zoom": 105,
+        "bgX": 33.833333333333336,
+        "bgY": 98.5
+      },
+      "HEAVY_T3": {
+        "zoom": 105,
+        "bgX": 66.16666666666667,
+        "bgY": 98.5
+      },
+      "HEAVY_T4": {
+        "zoom": 105,
+        "bgX": 98.3,
+        "bgY": 98.5
+      }
+    },
+    "weapons_t2": {
+      "GREATSWORD": {
+        "bgX": 4.54,
+        "bgY": 6,
+        "zoom": 125
+      },
+      "DUAL_SWORDS": {
+        "zoom": 125,
+        "bgX": 34.9,
+        "bgY": 5.6
+      },
+      "STAFF": {
+        "zoom": 125,
+        "bgX": 65.3,
+        "bgY": 5.67
+      },
+      "SCYTHE": {
+        "zoom": 125,
+        "bgX": 96.1,
+        "bgY": 6.1
+      },
+      "BOW": {
+        "zoom": 125,
+        "bgX": 4.59,
+        "bgY": 50.28
+      },
+      "MAGIC_BOW": {
+        "zoom": 125,
+        "bgX": 34.62,
+        "bgY": 49.73
+      },
+      "DAGGERS": {
+        "zoom": 125,
+        "bgX": 65.36,
+        "bgY": 49.73
+      },
+      "MAGIC_RING": {
+        "zoom": 125,
+        "bgX": 95.47,
+        "bgY": 49.77
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 125,
+        "bgX": 4.27,
+        "bgY": 95
+      },
+      "RUNE_SHIELD": {
+        "bgX": 34.93,
+        "bgY": 94.46,
+        "zoom": 125
+      },
+      "HOLY_BOOK": {
+        "zoom": 125,
+        "bgX": 65.17,
+        "bgY": 94.44
+      },
+      "HAMMER": {
+        "zoom": 125,
+        "bgX": 95.47,
+        "bgY": 94.12
+      }
+    },
+    "weapons_t3": {
+      "GREATSWORD": {
+        "zoom": 110,
+        "bgX": 1.5,
+        "bgY": 2
+      },
+      "DUAL_SWORDS": {
+        "zoom": 110,
+        "bgX": 33.833333333333336,
+        "bgY": 2.5
+      },
+      "STAFF": {
+        "zoom": 110,
+        "bgX": 66.16666666666667,
+        "bgY": 2
+      },
+      "SCYTHE": {
+        "zoom": 110,
+        "bgX": 98.5,
+        "bgY": 2
+      },
+      "BOW": {
+        "zoom": 110,
+        "bgX": 1.5,
+        "bgY": 50
+      },
+      "MAGIC_BOW": {
+        "zoom": 110,
+        "bgX": 33.833333333333336,
+        "bgY": 50
+      },
+      "DAGGERS": {
+        "zoom": 110,
+        "bgX": 66.16666666666667,
+        "bgY": 50
+      },
+      "MAGIC_RING": {
+        "zoom": 110,
+        "bgX": 98.5,
+        "bgY": 50
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 110,
+        "bgX": 1.5,
+        "bgY": 98.5
+      },
+      "RUNE_SHIELD": {
+        "zoom": 110,
+        "bgX": 33.833333333333336,
+        "bgY": 98.5
+      },
+      "HOLY_BOOK": {
+        "zoom": 110,
+        "bgX": 66.16666666666667,
+        "bgY": 98
+      },
+      "HAMMER": {
+        "zoom": 110,
+        "bgX": 98.5,
+        "bgY": 98.5
+      }
+    },
+    "weapons_t4": {
+      "GREATSWORD": {
+        "zoom": 115,
+        "bgX": 2.5,
+        "bgY": 3
+      },
+      "DUAL_SWORDS": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 3
+      },
+      "STAFF": {
+        "zoom": 115,
+        "bgX": 65.66666666666667,
+        "bgY": 3
+      },
+      "SCYTHE": {
+        "zoom": 115,
+        "bgX": 97.5,
+        "bgY": 3
+      },
+      "BOW": {
+        "zoom": 115,
+        "bgX": 2.5,
+        "bgY": 50
+      },
+      "MAGIC_BOW": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 50
+      },
+      "DAGGERS": {
+        "zoom": 115,
+        "bgX": 65.66666666666667,
+        "bgY": 50
+      },
+      "MAGIC_RING": {
+        "zoom": 115,
+        "bgX": 97.5,
+        "bgY": 50
+      },
+      "SWORD_AND_SHIELD": {
+        "zoom": 115,
+        "bgX": 2.5,
+        "bgY": 96.5
+      },
+      "RUNE_SHIELD": {
+        "zoom": 115,
+        "bgX": 34.333333333333336,
+        "bgY": 97
+      },
+      "HOLY_BOOK": {
+        "zoom": 115,
+        "bgX": 65.66666666666667,
+        "bgY": 97
+      },
+      "HAMMER": {
+        "zoom": 115,
+        "bgX": 97.5,
+        "bgY": 97
+      }
+    },
+    "guardian_male": {
+      "guardian_m_0": {
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "guardian_m_6": {
+        "bgX": 100,
+        "bgY": 50.2
+      },
+      "guardian_m_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "guardian_m_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "guardian_m_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "guardian_m_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "guardian_m_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "guardian_m_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "guardian_m_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "guardian_m_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      }
+    },
+    "guardian_female": {
+      "guardian_f_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 74.9
+      },
+      "guardian_f_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 74.9
+      },
+      "guardian_f_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 74.9
+      },
+      "guardian_f_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 74.9
+      },
+      "guardian_f_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 74.9
+      },
+      "guardian_f_6": {
+        "bgY": 50.2,
+        "bgX": 50.2
+      },
+      "guardian_f_5": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "guardian_f_7": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "guardian_f_8": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "guardian_f_9": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "npc": {
+      "npc_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "npc_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "npc_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "npc_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "npc_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      }
+    },
+    "npc_man": {
+      "npc_man_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "npc_man_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "npc_man_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "npc_man_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "npc_man_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      }
+    },
+    "icons_materials": {
+      "icons_materials_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "icons_materials_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 13.8,
+        "bgY": 0
+      },
+      "icons_materials_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 0
+      },
+      "icons_materials_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 0
+      },
+      "icons_materials_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 0
+      },
+      "icons_materials_5": {
+        "col": 5,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 0
+      },
+      "icons_materials_6": {
+        "col": 6,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 0
+      },
+      "icons_materials_7": {
+        "col": 7,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "icons_materials_8": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 14.3
+      },
+      "icons_materials_9": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 14.3
+      },
+      "icons_materials_10": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 14.3
+      },
+      "icons_materials_11": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 14.3
+      },
+      "icons_materials_12": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 14.3
+      },
+      "icons_materials_13": {
+        "col": 5,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 14.3
+      },
+      "icons_materials_14": {
+        "col": 6,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 14.3
+      },
+      "icons_materials_15": {
+        "col": 7,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 14.3
+      },
+      "icons_materials_16": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 28.6
+      },
+      "icons_materials_17": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 28.6
+      },
+      "icons_materials_18": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 28.6
+      },
+      "icons_materials_19": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 28.6
+      },
+      "icons_materials_20": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 28.6
+      },
+      "icons_materials_21": {
+        "col": 5,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 28.6
+      },
+      "icons_materials_22": {
+        "col": 6,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 28.6
+      },
+      "icons_materials_23": {
+        "col": 7,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 28.6
+      },
+      "icons_materials_24": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 42.9
+      },
+      "icons_materials_25": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 42.9
+      },
+      "icons_materials_26": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 42.9
+      },
+      "icons_materials_27": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 42.9
+      },
+      "icons_materials_28": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 42.9
+      },
+      "icons_materials_29": {
+        "col": 5,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 42.9
+      },
+      "icons_materials_30": {
+        "col": 6,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 42.9
+      },
+      "icons_materials_31": {
+        "col": 7,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 42.9
+      },
+      "icons_materials_32": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 57.1
+      },
+      "icons_materials_33": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 57.1
+      },
+      "icons_materials_34": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 57.1
+      },
+      "icons_materials_35": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 57.1
+      },
+      "icons_materials_36": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 57.1
+      },
+      "icons_materials_37": {
+        "col": 5,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 57.1
+      },
+      "icons_materials_38": {
+        "col": 6,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 57.1
+      },
+      "icons_materials_39": {
+        "col": 7,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 57.1
+      },
+      "icons_materials_40": {
+        "col": 0,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 71.4
+      },
+      "icons_materials_41": {
+        "col": 1,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 71.4
+      },
+      "icons_materials_42": {
+        "col": 2,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 71.4
+      },
+      "icons_materials_43": {
+        "col": 3,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 71.4
+      },
+      "icons_materials_44": {
+        "col": 4,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 71.4
+      },
+      "icons_materials_45": {
+        "col": 5,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 71.4
+      },
+      "icons_materials_46": {
+        "col": 6,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 71.4
+      },
+      "icons_materials_47": {
+        "col": 7,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 71.4
+      },
+      "icons_materials_48": {
+        "col": 0,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 85.7
+      },
+      "icons_materials_49": {
+        "col": 1,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 85.7
+      },
+      "icons_materials_50": {
+        "col": 2,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 85.7
+      },
+      "icons_materials_51": {
+        "col": 3,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 85.7
+      },
+      "icons_materials_52": {
+        "col": 4,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 85.7
+      },
+      "icons_materials_53": {
+        "col": 5,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 85.7
+      },
+      "icons_materials_54": {
+        "col": 6,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 85.7
+      },
+      "icons_materials_55": {
+        "col": 7,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 85.7
+      },
+      "icons_materials_56": {
+        "col": 0,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "icons_materials_57": {
+        "col": 1,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 100
+      },
+      "icons_materials_58": {
+        "col": 2,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 100
+      },
+      "icons_materials_59": {
+        "col": 3,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 100
+      },
+      "icons_materials_60": {
+        "col": 4,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 100
+      },
+      "icons_materials_61": {
+        "col": 5,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 100
+      },
+      "icons_materials_62": {
+        "col": 6,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 100
+      },
+      "icons_materials_63": {
+        "col": 7,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "2_icons_materials": {
+      "2_icons_materials_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "2_icons_materials_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 0
+      },
+      "2_icons_materials_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 0
+      },
+      "2_icons_materials_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 0
+      },
+      "2_icons_materials_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 0
+      },
+      "2_icons_materials_5": {
+        "col": 5,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 0
+      },
+      "2_icons_materials_6": {
+        "col": 6,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 0
+      },
+      "2_icons_materials_7": {
+        "col": 7,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "2_icons_materials_8": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 14.3
+      },
+      "2_icons_materials_9": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 14.3
+      },
+      "2_icons_materials_10": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 14.3
+      },
+      "2_icons_materials_11": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 14.3
+      },
+      "2_icons_materials_12": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 14.3
+      },
+      "2_icons_materials_13": {
+        "col": 5,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 14.3
+      },
+      "2_icons_materials_14": {
+        "col": 6,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 14.3
+      },
+      "2_icons_materials_15": {
+        "col": 7,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 14.3
+      },
+      "2_icons_materials_16": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 28.6
+      },
+      "2_icons_materials_17": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 28.6
+      },
+      "2_icons_materials_18": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 28.6
+      },
+      "2_icons_materials_19": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 28.6
+      },
+      "2_icons_materials_20": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 28.6
+      },
+      "2_icons_materials_21": {
+        "col": 5,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 28.6
+      },
+      "2_icons_materials_22": {
+        "col": 6,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 28.6
+      },
+      "2_icons_materials_23": {
+        "col": 7,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 28.6
+      },
+      "2_icons_materials_24": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 42.9
+      },
+      "2_icons_materials_25": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 42.9
+      },
+      "2_icons_materials_26": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 42.9
+      },
+      "2_icons_materials_27": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 42.9
+      },
+      "2_icons_materials_28": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 42.9
+      },
+      "2_icons_materials_29": {
+        "col": 5,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 42.9
+      },
+      "2_icons_materials_30": {
+        "col": 6,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 42.9
+      },
+      "2_icons_materials_31": {
+        "col": 7,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 42.9
+      },
+      "2_icons_materials_32": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 57.1
+      },
+      "2_icons_materials_33": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 57.1
+      },
+      "2_icons_materials_34": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 57.1
+      },
+      "2_icons_materials_35": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 57.1
+      },
+      "2_icons_materials_36": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 57.1
+      },
+      "2_icons_materials_37": {
+        "col": 5,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 57.1
+      },
+      "2_icons_materials_38": {
+        "col": 6,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 57.1
+      },
+      "2_icons_materials_39": {
+        "col": 7,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 57.1
+      },
+      "2_icons_materials_40": {
+        "col": 0,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 71.4
+      },
+      "2_icons_materials_41": {
+        "col": 1,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 71.4
+      },
+      "2_icons_materials_42": {
+        "col": 2,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 71.4
+      },
+      "2_icons_materials_43": {
+        "col": 3,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 71.4
+      },
+      "2_icons_materials_44": {
+        "col": 4,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 71.4
+      },
+      "2_icons_materials_45": {
+        "col": 5,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 71.4
+      },
+      "2_icons_materials_46": {
+        "col": 6,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 71.4
+      },
+      "2_icons_materials_47": {
+        "col": 7,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 71.4
+      },
+      "2_icons_materials_48": {
+        "col": 0,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 85.7
+      },
+      "2_icons_materials_49": {
+        "col": 1,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 85.7
+      },
+      "2_icons_materials_50": {
+        "col": 2,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 85.7
+      },
+      "2_icons_materials_51": {
+        "col": 3,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 85.7
+      },
+      "2_icons_materials_52": {
+        "col": 4,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 85.7
+      },
+      "2_icons_materials_53": {
+        "col": 5,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 85.7
+      },
+      "2_icons_materials_54": {
+        "col": 6,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 85.7
+      },
+      "2_icons_materials_55": {
+        "col": 7,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 85.7
+      },
+      "2_icons_materials_56": {
+        "col": 0,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "2_icons_materials_57": {
+        "col": 1,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 100
+      },
+      "2_icons_materials_58": {
+        "col": 2,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 100
+      },
+      "2_icons_materials_59": {
+        "col": 3,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 100
+      },
+      "2_icons_materials_60": {
+        "col": 4,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 100
+      },
+      "2_icons_materials_61": {
+        "col": 5,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 100
+      },
+      "2_icons_materials_62": {
+        "col": 6,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 100
+      },
+      "2_icons_materials_63": {
+        "col": 7,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "3_icons_materials": {
+      "3_icons_materials_0": {
+        "zoom": 110,
+        "bgX": 1,
+        "bgY": 1.33
+      },
+      "3_icons_materials_1": {
+        "zoom": 109,
+        "bgX": 14.9,
+        "bgY": 1
+      },
+      "3_icons_materials_2": {
+        "zoom": 109,
+        "bgX": 29.071428571428573,
+        "bgY": 1
+      },
+      "3_icons_materials_3": {
+        "zoom": 109,
+        "bgX": 42.85714285714286,
+        "bgY": 1
+      },
+      "3_icons_materials_4": {
+        "zoom": 109,
+        "bgX": 56.9,
+        "bgY": 1
+      },
+      "3_icons_materials_5": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 1
+      },
+      "3_icons_materials_6": {
+        "zoom": 110,
+        "bgX": 85.1,
+        "bgY": 1
+      },
+      "3_icons_materials_7": {
+        "zoom": 109,
+        "bgX": 99,
+        "bgY": 1
+      },
+      "3_icons_materials_8": {
+        "zoom": 109,
+        "bgX": 1,
+        "bgY": 15.285714285714286
+      },
+      "3_icons_materials_9": {
+        "zoom": 109,
+        "bgX": 14.9,
+        "bgY": 14.785714285714286
+      },
+      "3_icons_materials_10": {
+        "zoom": 109,
+        "bgX": 29.071428571428573,
+        "bgY": 15.285714285714286
+      },
+      "3_icons_materials_11": {
+        "zoom": 109,
+        "bgX": 42.85714285714286,
+        "bgY": 15.285714285714286
+      },
+      "3_icons_materials_12": {
+        "zoom": 109,
+        "bgX": 56.9,
+        "bgY": 15.3
+      },
+      "3_icons_materials_13": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 15.285714285714286
+      },
+      "3_icons_materials_14": {
+        "zoom": 109,
+        "bgX": 85.21428571428572,
+        "bgY": 15.285714285714286
+      },
+      "3_icons_materials_15": {
+        "zoom": 110,
+        "bgX": 99,
+        "bgY": 15.285714285714286
+      },
+      "3_icons_materials_16": {
+        "zoom": 109,
+        "bgX": 1,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_17": {
+        "zoom": 109,
+        "bgX": 14.785714285714286,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_18": {
+        "zoom": 110,
+        "bgX": 29.071428571428573,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_19": {
+        "zoom": 110,
+        "bgX": 42.85714285714286,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_20": {
+        "zoom": 109,
+        "bgX": 57.142857142857146,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_21": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_22": {
+        "zoom": 110,
+        "bgX": 85.21428571428572,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_23": {
+        "zoom": 110,
+        "bgX": 99,
+        "bgY": 29.071428571428573
+      },
+      "3_icons_materials_24": {
+        "zoom": 134,
+        "bgX": 2,
+        "bgY": 43.35714285714286
+      },
+      "3_icons_materials_25": {
+        "zoom": 132,
+        "bgX": 15.785714285714286,
+        "bgY": 43.35714285714286
+      },
+      "3_icons_materials_26": {
+        "zoom": 110,
+        "bgX": 29.071428571428573,
+        "bgY": 42.85714285714286
+      },
+      "3_icons_materials_27": {
+        "zoom": 110,
+        "bgX": 42.85714285714286,
+        "bgY": 43.35714285714286
+      },
+      "3_icons_materials_28": {
+        "zoom": 110,
+        "bgX": 57.142857142857146,
+        "bgY": 43.35714285714286
+      },
+      "3_icons_materials_29": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 42.85714285714286
+      },
+      "3_icons_materials_30": {
+        "zoom": 110,
+        "bgX": 85.1,
+        "bgY": 43.4
+      },
+      "3_icons_materials_31": {
+        "zoom": 110,
+        "bgX": 99,
+        "bgY": 42.85714285714286
+      },
+      "3_icons_materials_32": {
+        "zoom": 109,
+        "bgX": 1,
+        "bgY": 57.142857142857146
+      },
+      "3_icons_materials_33": {
+        "zoom": 110,
+        "bgX": 14.9,
+        "bgY": 57.142857142857146
+      },
+      "3_icons_materials_34": {
+        "zoom": 110,
+        "bgX": 29.071428571428573,
+        "bgY": 57.142857142857146
+      },
+      "3_icons_materials_35": {
+        "zoom": 109
+      },
+      "3_icons_materials_36": {
+        "zoom": 109
+      },
+      "3_icons_materials_37": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 57.142857142857146
+      },
+      "3_icons_materials_38": {
+        "zoom": 110,
+        "bgX": 85.1,
+        "bgY": 57.142857142857146
+      },
+      "3_icons_materials_39": {
+        "zoom": 109,
+        "bgX": 99,
+        "bgY": 57.142857142857146
+      },
+      "3_icons_materials_40": {
+        "zoom": 110,
+        "bgX": 1,
+        "bgY": 70.92857142857143
+      },
+      "3_icons_materials_41": {
+        "zoom": 110,
+        "bgX": 14.9,
+        "bgY": 70.92857142857143
+      },
+      "3_icons_materials_42": {
+        "zoom": 110,
+        "bgX": 29.071428571428573,
+        "bgY": 70.92857142857143
+      },
+      "3_icons_materials_43": {
+        "zoom": 110,
+        "bgX": 43.1,
+        "bgY": 71.2
+      },
+      "3_icons_materials_44": {
+        "zoom": 110,
+        "bgX": 57.142857142857146,
+        "bgY": 70.92857142857143
+      },
+      "3_icons_materials_45": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 70.92857142857143
+      },
+      "3_icons_materials_46": {
+        "zoom": 110,
+        "bgX": 85.1,
+        "bgY": 71.2
+      },
+      "3_icons_materials_47": {
+        "zoom": 109,
+        "bgX": 99,
+        "bgY": 70.92857142857143
+      },
+      "3_icons_materials_48": {
+        "zoom": 110,
+        "bgX": 1,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_49": {
+        "zoom": 110,
+        "bgX": 14.9,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_50": {
+        "zoom": 110,
+        "bgX": 29.071428571428573,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_51": {
+        "zoom": 110,
+        "bgX": 42.85714285714286,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_52": {
+        "zoom": 110,
+        "bgX": 56.9,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_53": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_54": {
+        "zoom": 110,
+        "bgX": 85.21428571428572,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_55": {
+        "zoom": 110,
+        "bgX": 99,
+        "bgY": 85.21428571428572
+      },
+      "3_icons_materials_56": {
+        "zoom": 110,
+        "bgX": 1,
+        "bgY": 99
+      },
+      "3_icons_materials_57": {
+        "zoom": 110,
+        "bgX": 14.8,
+        "bgY": 99
+      },
+      "3_icons_materials_58": {
+        "zoom": 111,
+        "bgX": 29.071428571428573,
+        "bgY": 99
+      },
+      "3_icons_materials_59": {
+        "zoom": 110,
+        "bgX": 43.1,
+        "bgY": 99
+      },
+      "3_icons_materials_60": {
+        "zoom": 110,
+        "bgX": 57.142857142857146,
+        "bgY": 99.5
+      },
+      "3_icons_materials_61": {
+        "zoom": 110,
+        "bgX": 70.92857142857143,
+        "bgY": 99
+      },
+      "3_icons_materials_62": {
+        "zoom": 110,
+        "bgX": 85.1,
+        "bgY": 99.3
+      },
+      "3_icons_materials_63": {
+        "zoom": 110,
+        "bgX": 99,
+        "bgY": 99.3
+      }
+    },
+    "monster_icon1": {
+      "monster_icon1_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "monster_icon1_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 0
+      },
+      "monster_icon1_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 0
+      },
+      "monster_icon1_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 0
+      },
+      "monster_icon1_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 0
+      },
+      "monster_icon1_5": {
+        "col": 5,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 0
+      },
+      "monster_icon1_6": {
+        "col": 6,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 0
+      },
+      "monster_icon1_7": {
+        "col": 7,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "monster_icon1_8": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 14.3
+      },
+      "monster_icon1_9": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 14.3
+      },
+      "monster_icon1_10": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 14.3
+      },
+      "monster_icon1_11": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 14.3
+      },
+      "monster_icon1_12": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 14.3
+      },
+      "monster_icon1_13": {
+        "col": 5,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 14.3
+      },
+      "monster_icon1_14": {
+        "col": 6,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 14.3
+      },
+      "monster_icon1_15": {
+        "col": 7,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 14.3
+      },
+      "monster_icon1_16": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 28.6
+      },
+      "monster_icon1_17": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 28.6
+      },
+      "monster_icon1_18": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 28.6
+      },
+      "monster_icon1_19": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 28.6
+      },
+      "monster_icon1_20": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 28.6
+      },
+      "monster_icon1_21": {
+        "col": 5,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 28.6
+      },
+      "monster_icon1_22": {
+        "col": 6,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 28.6
+      },
+      "monster_icon1_23": {
+        "col": 7,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 28.6
+      },
+      "monster_icon1_24": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 42.9
+      },
+      "monster_icon1_25": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 42.9
+      },
+      "monster_icon1_26": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 42.9
+      },
+      "monster_icon1_27": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 42.9
+      },
+      "monster_icon1_28": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 42.9
+      },
+      "monster_icon1_29": {
+        "col": 5,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 42.9
+      },
+      "monster_icon1_30": {
+        "col": 6,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 42.9
+      },
+      "monster_icon1_31": {
+        "col": 7,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 42.9
+      },
+      "monster_icon1_32": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 57.1
+      },
+      "monster_icon1_33": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 57.1
+      },
+      "monster_icon1_34": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 57.1
+      },
+      "monster_icon1_35": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 57.1
+      },
+      "monster_icon1_36": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 57.1
+      },
+      "monster_icon1_37": {
+        "col": 5,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 57.1
+      },
+      "monster_icon1_38": {
+        "col": 6,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 57.1
+      },
+      "monster_icon1_39": {
+        "col": 7,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 57.1
+      },
+      "monster_icon1_40": {
+        "col": 0,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 71.4
+      },
+      "monster_icon1_41": {
+        "col": 1,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 71.4
+      },
+      "monster_icon1_42": {
+        "col": 2,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 71.4
+      },
+      "monster_icon1_43": {
+        "col": 3,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 71.4
+      },
+      "monster_icon1_44": {
+        "col": 4,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 71.4
+      },
+      "monster_icon1_45": {
+        "col": 5,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 71.4
+      },
+      "monster_icon1_46": {
+        "col": 6,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 71.4
+      },
+      "monster_icon1_47": {
+        "col": 7,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 71.4
+      },
+      "monster_icon1_48": {
+        "col": 0,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 85.7
+      },
+      "monster_icon1_49": {
+        "col": 1,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 85.7
+      },
+      "monster_icon1_50": {
+        "col": 2,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 85.7
+      },
+      "monster_icon1_51": {
+        "col": 3,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 85.7
+      },
+      "monster_icon1_52": {
+        "col": 4,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 85.7
+      },
+      "monster_icon1_53": {
+        "col": 5,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 85.7
+      },
+      "monster_icon1_54": {
+        "col": 6,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 85.7
+      },
+      "monster_icon1_55": {
+        "col": 7,
+        "row": 6,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 85.7
+      },
+      "monster_icon1_56": {
+        "col": 0,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "monster_icon1_57": {
+        "col": 1,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 14.3,
+        "bgY": 100
+      },
+      "monster_icon1_58": {
+        "col": 2,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 28.6,
+        "bgY": 100
+      },
+      "monster_icon1_59": {
+        "col": 3,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 42.9,
+        "bgY": 100
+      },
+      "monster_icon1_60": {
+        "col": 4,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 57.1,
+        "bgY": 100
+      },
+      "monster_icon1_61": {
+        "col": 5,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 71.4,
+        "bgY": 100
+      },
+      "monster_icon1_62": {
+        "col": 6,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 85.7,
+        "bgY": 100
+      },
+      "monster_icon1_63": {
+        "col": 7,
+        "row": 7,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "heroes_male": {
+      "heroes_male_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "heroes_male_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "heroes_male_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "heroes_male_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "heroes_male_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "heroes_male_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "heroes_male_6": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 25
+      },
+      "heroes_male_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "heroes_male_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "heroes_male_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      },
+      "heroes_male_10": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 50
+      },
+      "heroes_male_11": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 50
+      },
+      "heroes_male_12": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 50
+      },
+      "heroes_male_13": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 50
+      },
+      "heroes_male_14": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 50
+      },
+      "heroes_male_15": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 75
+      },
+      "heroes_male_16": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 75
+      },
+      "heroes_male_17": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 75
+      },
+      "heroes_male_18": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 75
+      },
+      "heroes_male_19": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 75
+      },
+      "heroes_male_20": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "heroes_male_21": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 100
+      },
+      "heroes_male_22": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "heroes_male_23": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "heroes_male_24": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "heroes_female": {
+      "heroes_female_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "heroes_female_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 0
+      },
+      "heroes_female_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 0
+      },
+      "heroes_female_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 0
+      },
+      "heroes_female_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "heroes_female_5": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 25
+      },
+      "heroes_female_6": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 25
+      },
+      "heroes_female_7": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 25
+      },
+      "heroes_female_8": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 25
+      },
+      "heroes_female_9": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 25
+      },
+      "heroes_female_10": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 50
+      },
+      "heroes_female_11": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 50
+      },
+      "heroes_female_12": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 50
+      },
+      "heroes_female_13": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 50
+      },
+      "heroes_female_14": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 50
+      },
+      "heroes_female_15": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 75
+      },
+      "heroes_female_16": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 75
+      },
+      "heroes_female_17": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 75
+      },
+      "heroes_female_18": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 75
+      },
+      "heroes_female_19": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 75
+      },
+      "heroes_female_20": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "heroes_female_21": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 25,
+        "bgY": 100
+      },
+      "heroes_female_22": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 50,
+        "bgY": 100
+      },
+      "heroes_female_23": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 75,
+        "bgY": 100
+      },
+      "heroes_female_24": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    },
+    "armors_t4_t5_icon": {
+      "armors_t4_t5_icon_0": {
+        "col": 0,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 0
+      },
+      "armors_t4_t5_icon_1": {
+        "col": 1,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 20,
+        "bgY": 0
+      },
+      "armors_t4_t5_icon_2": {
+        "col": 2,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 40,
+        "bgY": 0
+      },
+      "armors_t4_t5_icon_3": {
+        "col": 3,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 60,
+        "bgY": 0
+      },
+      "armors_t4_t5_icon_4": {
+        "col": 4,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 80,
+        "bgY": 0
+      },
+      "armors_t4_t5_icon_5": {
+        "col": 5,
+        "row": 0,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 0
+      },
+      "armors_t4_t5_icon_6": {
+        "col": 0,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 20
+      },
+      "armors_t4_t5_icon_7": {
+        "col": 1,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 20,
+        "bgY": 20
+      },
+      "armors_t4_t5_icon_8": {
+        "col": 2,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 40,
+        "bgY": 20
+      },
+      "armors_t4_t5_icon_9": {
+        "col": 3,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 60,
+        "bgY": 20
+      },
+      "armors_t4_t5_icon_10": {
+        "col": 4,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 80,
+        "bgY": 20
+      },
+      "armors_t4_t5_icon_11": {
+        "col": 5,
+        "row": 1,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 20
+      },
+      "armors_t4_t5_icon_12": {
+        "col": 0,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 40
+      },
+      "armors_t4_t5_icon_13": {
+        "col": 1,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 20,
+        "bgY": 40
+      },
+      "armors_t4_t5_icon_14": {
+        "col": 2,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 40,
+        "bgY": 40
+      },
+      "armors_t4_t5_icon_15": {
+        "col": 3,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 60,
+        "bgY": 40
+      },
+      "armors_t4_t5_icon_16": {
+        "col": 4,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 80,
+        "bgY": 40
+      },
+      "armors_t4_t5_icon_17": {
+        "col": 5,
+        "row": 2,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 40
+      },
+      "armors_t4_t5_icon_18": {
+        "col": 0,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 60
+      },
+      "armors_t4_t5_icon_19": {
+        "col": 1,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 20,
+        "bgY": 60
+      },
+      "armors_t4_t5_icon_20": {
+        "col": 2,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 40,
+        "bgY": 60
+      },
+      "armors_t4_t5_icon_21": {
+        "col": 3,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 60,
+        "bgY": 60
+      },
+      "armors_t4_t5_icon_22": {
+        "col": 4,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 80,
+        "bgY": 60
+      },
+      "armors_t4_t5_icon_23": {
+        "col": 5,
+        "row": 3,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 60
+      },
+      "armors_t4_t5_icon_24": {
+        "col": 0,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 80
+      },
+      "armors_t4_t5_icon_25": {
+        "col": 1,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 20,
+        "bgY": 80
+      },
+      "armors_t4_t5_icon_26": {
+        "col": 2,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 40,
+        "bgY": 80
+      },
+      "armors_t4_t5_icon_27": {
+        "col": 3,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 60,
+        "bgY": 80
+      },
+      "armors_t4_t5_icon_28": {
+        "col": 4,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 80,
+        "bgY": 80
+      },
+      "armors_t4_t5_icon_29": {
+        "col": 5,
+        "row": 4,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 80
+      },
+      "armors_t4_t5_icon_30": {
+        "col": 0,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 0,
+        "bgY": 100
+      },
+      "armors_t4_t5_icon_31": {
+        "col": 1,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 20,
+        "bgY": 100
+      },
+      "armors_t4_t5_icon_32": {
+        "col": 2,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 40,
+        "bgY": 100
+      },
+      "armors_t4_t5_icon_33": {
+        "col": 3,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 60,
+        "bgY": 100
+      },
+      "armors_t4_t5_icon_34": {
+        "col": 4,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 80,
+        "bgY": 100
+      },
+      "armors_t4_t5_icon_35": {
+        "col": 5,
+        "row": 5,
+        "zoom": 100,
+        "bgX": 100,
+        "bgY": 100
+      }
+    }
+  },
+  "datasets": {
+    "weapons": {
+      "title": "⚔️ 武器 T1 基礎 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_12.jpg",
+        "./assets/icons_weapons_12.jpg",
+        "/assets/icons_weapons_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "狂戰士巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "魔劍士雙劍",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "大魔導士法杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "死靈法師戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "神射手戰弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "精靈使魔法弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "暗殺者雙匕首",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "詭術師魔戒",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "聖騎士劍盾",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "符文騎士巨盾",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "大主教聖典",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "異端拷問官戰鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "weapons_t2": {
+      "title": "⚔️ 武器 T2 高級 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_t2_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_t2_12.jpg",
+        "./assets/icons_weapons_t2_12.jpg",
+        "/assets/icons_weapons_t2_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "T2 精鋼巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "T2 彎刃雙劍",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "T2 寶珠法杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "T2 鋸齒戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "T2 複合長弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "T2 精靈長弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "T2 刺客短刃",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "T2 紫晶魔戒",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "T2 鋼盾長劍",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "T2 符文方盾",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "T2 鍍金福音書",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "T2 尖刺戰鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "weapons_t3": {
+      "title": "⚔️ 武器 T3 專家 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_t3_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_t3_12.jpg",
+        "./assets/icons_weapons_t3_12.jpg",
+        "/assets/icons_weapons_t3_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "T3 霜焰波刃巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "T3 龍首大馬士革雙刀",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "T3 鈷藍古木大魔導杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "T3 黑曜死翼戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "T3 鐵木名匠重弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "T3 月華精靈弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "T3 毒牙幽冥匕首",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "T3 雷霆真視之戒",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "T3 金獅皇室神聖盾劍",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "T3 秘術符文壁壘",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "T3 太陽聖輝啟示錄",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "T3 審判烈焰戰鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "weapons_t4": {
+      "title": "⚔️ 武器 T4 神兵 (4x3)",
+      "spriteUrl": "../public/assets/icons_weapons_t4_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_weapons_t4_12.jpg",
+        "./assets/icons_weapons_t4_12.jpg",
+        "/assets/icons_weapons_t4_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "GREATSWORD",
+          "name": "T4 滅世熔岩屠龍巨劍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "DUAL_SWORDS",
+          "name": "T4 星穹虛空神刃",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "STAFF",
+          "name": "T4 星系奇點世界樹權杖",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "SCYTHE",
+          "name": "T4 湮滅死神龍骨戰鐮",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "BOW",
+          "name": "T4 不死鳥烈陽神弓",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_BOW",
+          "name": "T4 蒼穹極光精靈神弓",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "DAGGERS",
+          "name": "T4 日蝕深淵嗜血雙刃",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "MAGIC_RING",
+          "name": "T4 永恆星環之眼",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "SWORD_AND_SHIELD",
+          "name": "T4 太陽神王不朽盾劍",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "RUNE_SHIELD",
+          "name": "T4 泰坦始源金符壁壘",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HOLY_BOOK",
+          "name": "T4 終焉救贖啟示真典",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HAMMER",
+          "name": "T4 諸神黃昏滅世雷神鎚",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "armors": {
+      "title": "🛡️ 防具 (4x3)",
+      "spriteUrl": "../public/assets/icons_armors_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_armors_12.jpg",
+        "./assets/icons_armors_12.jpg",
+        "/assets/icons_armors_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "CLOTH_T1",
+          "name": "布甲 T1 粗布長袍",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "CLOTH_T2",
+          "name": "布甲 T2 學徒法袍",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "CLOTH_T3",
+          "name": "布甲 T3 魔導長袍",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "CLOTH_T4",
+          "name": "布甲 T4 大賢者神聖法袍",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T1",
+          "name": "皮甲 T1 輕皮甲",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T2",
+          "name": "皮甲 T2 獵手皮甲",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T3",
+          "name": "皮甲 T3 斥候暗影皮甲",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "LEATHER_T4",
+          "name": "皮甲 T4 刺客龍鱗皮甲",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T1",
+          "name": "重鎧 T1 鏈甲",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T2",
+          "name": "重鎧 T2 鐵胸甲",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T3",
+          "name": "重鎧 T3 騎士板金鎧",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "HEAVY_T4",
+          "name": "重鎧 T4 聖殿騎士神鎧",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        }
+      ]
+    },
+    "facilities": {
+      "title": "🏰 領地設施 (4x3)",
+      "spriteUrl": "../public/assets/icons_facilities_parchment_12.jpg",
+      "fallbackUrls": [
+        "../assets/icons_facilities_parchment_12.jpg",
+        "./assets/icons_facilities_parchment_12.jpg",
+        "/assets/icons_facilities_parchment_12.jpg"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "tavern",
+          "name": "酒館 (Tavern)",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "forge",
+          "name": "鐵匠鋪 (Forge)",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "weapon",
+          "name": "武器店 (Weapon)",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armor",
+          "name": "防具店 (Armor)",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "study",
+          "name": "領主書房 (Study)",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "defense",
+          "name": "城防哨所 (Defense)",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        }
+      ]
+    },
+    "materials": {
+      "title": "💎 素材與資源 (4x3)",
+      "spriteUrl": "../public/assets/icons_materials_color_12_1.png",
+      "fallbackUrls": [
+        "../assets/icons_materials_color_12_1.png",
+        "./assets/icons_materials_color_12_1.png",
+        "/assets/icons_materials_color_12_1.png"
+      ],
+      "cols": 4,
+      "rows": 3,
+      "items": [
+        {
+          "id": "gold",
+          "name": "金幣 (Gold)",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "wood",
+          "name": "木材 (Wood)",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "stone",
+          "name": "石材 (Stone)",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "iron",
+          "name": "鐵礦 (Iron)",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "food",
+          "name": "糧食 (Food)",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "essence",
+          "name": "靈魂精華 (Essence)",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "cotton",
+          "name": "棉麻 (Cotton)",
+          "customEmoji": "🌿"
+        },
+        {
+          "id": "hide",
+          "name": "生皮 (Hide)",
+          "customEmoji": "🦬"
+        },
+        {
+          "id": "cloth",
+          "name": "粗布 (Cloth)",
+          "customEmoji": "🪢"
+        },
+        {
+          "id": "leather",
+          "name": "皮革 (Leather)",
+          "customEmoji": "📜"
+        }
+      ]
+    },
+    "avatars_male": {
+      "title": "👨 男傭兵頭像 (5x5)",
+      "spriteUrl": "../public/assets/avatars_male.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_male.jpg",
+        "./assets/avatars_male.jpg",
+        "/assets/avatars_male.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "male_0",
+          "name": "男傭兵 #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_1",
+          "name": "男傭兵 #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_2",
+          "name": "男傭��� #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_3",
+          "name": "男傭兵 #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_4",
+          "name": "男傭兵 #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "male_5",
+          "name": "男傭兵 #06",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_6",
+          "name": "男傭兵 #07",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_7",
+          "name": "男傭兵 #08",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_8",
+          "name": "男傭兵 #09",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_9",
+          "name": "男傭兵 #10",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "male_10",
+          "name": "男傭兵 #11",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_11",
+          "name": "男傭兵 #12",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_12",
+          "name": "男傭兵 #13",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_13",
+          "name": "男傭兵 #14",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_14",
+          "name": "男傭兵 #15",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "male_15",
+          "name": "男傭兵 #16",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_16",
+          "name": "男傭兵 #17",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_17",
+          "name": "男傭兵 #18",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_18",
+          "name": "男傭兵 #19",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_19",
+          "name": "男傭兵 #20",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "male_20",
+          "name": "男傭兵 #21",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_21",
+          "name": "男傭兵 #22",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_22",
+          "name": "男傭兵 #23",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_23",
+          "name": "男傭兵 #24",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "male_24",
+          "name": "男傭兵 #25",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "avatars_female": {
+      "title": "👩 女傭兵頭像 (5x5)",
+      "spriteUrl": "../public/assets/avatars_female.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_female.jpg",
+        "./assets/avatars_female.jpg",
+        "/assets/avatars_female.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "female_0",
+          "name": "女傭兵 #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_1",
+          "name": "女傭兵 #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_2",
+          "name": "女傭兵 #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_3",
+          "name": "女傭兵 #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_4",
+          "name": "女傭兵 #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "female_5",
+          "name": "女傭兵 #06",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_6",
+          "name": "女傭兵 #07",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_7",
+          "name": "女傭兵 #08",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_8",
+          "name": "女傭兵 #09",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_9",
+          "name": "女傭兵 #10",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "female_10",
+          "name": "女傭兵 #11",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_11",
+          "name": "女傭兵 #12",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_12",
+          "name": "女傭兵 #13",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_13",
+          "name": "女傭兵 #14",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_14",
+          "name": "女傭兵 #15",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "female_15",
+          "name": "女傭兵 #16",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_16",
+          "name": "女傭兵 #17",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_17",
+          "name": "女傭兵 #18",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_18",
+          "name": "女傭兵 #19",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_19",
+          "name": "女傭兵 #20",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "female_20",
+          "name": "女傭兵 #21",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_21",
+          "name": "女傭兵 #22",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_22",
+          "name": "女傭兵 #23",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_23",
+          "name": "女傭兵 #24",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "female_24",
+          "name": "女傭兵 #25",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "guardian_male": {
+      "title": "🛡️ 誓約男守衛 (10款·Row 0~1)",
+      "spriteUrl": "../public/assets/avatars_guardians.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_guardians.jpg",
+        "./assets/avatars_guardians.jpg",
+        "/assets/avatars_guardians.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "guardian_m_0",
+          "name": "滄桑老兵隊長 (1/10)",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_1",
+          "name": "銀髮雄獅騎士 (2/10)",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_2",
+          "name": "忠誠青年侍從 (3/10)",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_3",
+          "name": "金紋重甲將軍 (4/10)",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_4",
+          "name": "神秘兜帽遊俠 (5/10)",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_5",
+          "name": "狂怒戰斧勇士 (6/10)",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_6",
+          "name": "莊嚴黑袍神官 (7/10)",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_7",
+          "name": "堅毅歷戰傭兵 (8/10)",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_8",
+          "name": "森林長弓獵手 (9/10)",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_m_9",
+          "name": "全罩重裝步兵 (10/10)",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        }
+      ]
+    },
+    "guardian_female": {
+      "title": "🛡️ 誓約女守衛 (10款·Row 3~4)",
+      "spriteUrl": "../public/assets/avatars_guardians.jpg",
+      "fallbackUrls": [
+        "../assets/avatars_guardians.jpg",
+        "./assets/avatars_guardians.jpg",
+        "/assets/avatars_guardians.jpg"
+      ],
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "guardian_f_0",
+          "name": "金髮璀璨聖騎 (1/10)",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_1",
+          "name": "聖潔修道神官 (2/10)",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_2",
+          "name": "颯爽赤髮劍士 (3/10)",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_3",
+          "name": "短髮英姿女騎 (4/10)",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_4",
+          "name": "暗影兜帽俠女 (5/10)",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_5",
+          "name": "紫袍秘術法師 (6/10)",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_6",
+          "name": "宮廷貴族女爵 (7/10)",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_7",
+          "name": "夜行黑皮刺客 (8/10)",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_8",
+          "name": "雙辮長弓射手 (9/10)",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "guardian_f_9",
+          "name": "重裝板金女戰 (10/10)",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "npc": {
+      "title": "NPC",
+      "spriteUrl": "../public/assets/custom_icons/npc.jpg",
+      "cols": 5,
+      "rows": 1,
+      "items": [
+        {
+          "id": "npc_0",
+          "name": "NPC #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_1",
+          "name": "NPC #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_2",
+          "name": "NPC #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_3",
+          "name": "NPC #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_4",
+          "name": "NPC #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        }
+      ]
+    },
+    "npc_man": {
+      "title": "NPC_MAN",
+      "spriteUrl": "../public/assets/custom_icons/npc_man.jpg",
+      "cols": 5,
+      "rows": 1,
+      "items": [
+        {
+          "id": "npc_man_0",
+          "name": "NPC_MAN #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_1",
+          "name": "NPC_MAN #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_2",
+          "name": "NPC_MAN #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_3",
+          "name": "NPC_MAN #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "npc_man_4",
+          "name": "NPC_MAN #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        }
+      ]
+    },
+    "icons_materials": {
+      "title": "素材ICON",
+      "spriteUrl": "../public/assets/custom_icons/icons_materials.png",
+      "cols": 8,
+      "rows": 8,
+      "items": [
+        {
+          "id": "icons_materials_0",
+          "name": "素材ICON #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_1",
+          "name": "素材ICON #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_2",
+          "name": "素材ICON #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_3",
+          "name": "素材ICON #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_4",
+          "name": "素材ICON #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_5",
+          "name": "素材ICON #06",
+          "col": 5,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_6",
+          "name": "素材ICON #07",
+          "col": 6,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_7",
+          "name": "素材ICON #08",
+          "col": 7,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_8",
+          "name": "素材ICON #09",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_9",
+          "name": "素材ICON #10",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_10",
+          "name": "素材ICON #11",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_11",
+          "name": "素材ICON #12",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_12",
+          "name": "素材ICON #13",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_13",
+          "name": "素材ICON #14",
+          "col": 5,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_14",
+          "name": "素材ICON #15",
+          "col": 6,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_15",
+          "name": "素材ICON #16",
+          "col": 7,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_16",
+          "name": "素材ICON #17",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_17",
+          "name": "素材ICON #18",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_18",
+          "name": "素材ICON #19",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_19",
+          "name": "素材ICON #20",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_20",
+          "name": "素材ICON #21",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_21",
+          "name": "素材ICON #22",
+          "col": 5,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_22",
+          "name": "素材ICON #23",
+          "col": 6,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_23",
+          "name": "素材ICON #24",
+          "col": 7,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_24",
+          "name": "素材ICON #25",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_25",
+          "name": "素材ICON #26",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_26",
+          "name": "素材ICON #27",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_27",
+          "name": "素材ICON #28",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_28",
+          "name": "素材ICON #29",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_29",
+          "name": "素材ICON #30",
+          "col": 5,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_30",
+          "name": "素材ICON #31",
+          "col": 6,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_31",
+          "name": "素材ICON #32",
+          "col": 7,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_32",
+          "name": "素材ICON #33",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_33",
+          "name": "素材ICON #34",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_34",
+          "name": "素材ICON #35",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_35",
+          "name": "素材ICON #36",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_36",
+          "name": "素材ICON #37",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_37",
+          "name": "素材ICON #38",
+          "col": 5,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_38",
+          "name": "素材ICON #39",
+          "col": 6,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_39",
+          "name": "素材ICON #40",
+          "col": 7,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_40",
+          "name": "素材ICON #41",
+          "col": 0,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_41",
+          "name": "素材ICON #42",
+          "col": 1,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_42",
+          "name": "素材ICON #43",
+          "col": 2,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_43",
+          "name": "素材ICON #44",
+          "col": 3,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_44",
+          "name": "素材ICON #45",
+          "col": 4,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_45",
+          "name": "素材ICON #46",
+          "col": 5,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_46",
+          "name": "素材ICON #47",
+          "col": 6,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_47",
+          "name": "素材ICON #48",
+          "col": 7,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_48",
+          "name": "素材ICON #49",
+          "col": 0,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_49",
+          "name": "素材ICON #50",
+          "col": 1,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_50",
+          "name": "素材ICON #51",
+          "col": 2,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_51",
+          "name": "素材ICON #52",
+          "col": 3,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_52",
+          "name": "素材ICON #53",
+          "col": 4,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_53",
+          "name": "素材ICON #54",
+          "col": 5,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_54",
+          "name": "素材ICON #55",
+          "col": 6,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_55",
+          "name": "素材ICON #56",
+          "col": 7,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_56",
+          "name": "素材ICON #57",
+          "col": 0,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_57",
+          "name": "素材ICON #58",
+          "col": 1,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_58",
+          "name": "素材ICON #59",
+          "col": 2,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_59",
+          "name": "素材ICON #60",
+          "col": 3,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_60",
+          "name": "素材ICON #61",
+          "col": 4,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_61",
+          "name": "素材ICON #62",
+          "col": 5,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_62",
+          "name": "素材ICON #63",
+          "col": 6,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "icons_materials_63",
+          "name": "素材ICON #64",
+          "col": 7,
+          "row": 7,
+          "zoom": 100
+        }
+      ]
+    },
+    "2_icons_materials": {
+      "title": "ICON素材2",
+      "spriteUrl": "../public/assets/custom_icons/2_icons_materials.png",
+      "cols": 8,
+      "rows": 8,
+      "items": [
+        {
+          "id": "2_icons_materials_0",
+          "name": "ICON素材2 #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_1",
+          "name": "ICON素材2 #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_2",
+          "name": "ICON素材2 #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_3",
+          "name": "ICON素材2 #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_4",
+          "name": "ICON素材2 #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_5",
+          "name": "ICON素材2 #06",
+          "col": 5,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_6",
+          "name": "ICON素材2 #07",
+          "col": 6,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_7",
+          "name": "ICON素材2 #08",
+          "col": 7,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_8",
+          "name": "ICON素材2 #09",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_9",
+          "name": "ICON素材2 #10",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_10",
+          "name": "ICON素材2 #11",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_11",
+          "name": "ICON素材2 #12",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_12",
+          "name": "ICON素材2 #13",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_13",
+          "name": "ICON素材2 #14",
+          "col": 5,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_14",
+          "name": "ICON素材2 #15",
+          "col": 6,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_15",
+          "name": "ICON素材2 #16",
+          "col": 7,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_16",
+          "name": "ICON素材2 #17",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_17",
+          "name": "ICON素材2 #18",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_18",
+          "name": "ICON素材2 #19",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_19",
+          "name": "ICON素材2 #20",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_20",
+          "name": "ICON素材2 #21",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_21",
+          "name": "ICON素材2 #22",
+          "col": 5,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_22",
+          "name": "ICON素材2 #23",
+          "col": 6,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_23",
+          "name": "ICON素材2 #24",
+          "col": 7,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_24",
+          "name": "ICON素材2 #25",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_25",
+          "name": "ICON素材2 #26",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_26",
+          "name": "ICON素材2 #27",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_27",
+          "name": "ICON素材2 #28",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_28",
+          "name": "ICON素材2 #29",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_29",
+          "name": "ICON素材2 #30",
+          "col": 5,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_30",
+          "name": "ICON素材2 #31",
+          "col": 6,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_31",
+          "name": "ICON素材2 #32",
+          "col": 7,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_32",
+          "name": "ICON素材2 #33",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_33",
+          "name": "ICON素材2 #34",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_34",
+          "name": "ICON素材2 #35",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_35",
+          "name": "ICON素材2 #36",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_36",
+          "name": "ICON素材2 #37",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_37",
+          "name": "ICON素材2 #38",
+          "col": 5,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_38",
+          "name": "ICON素材2 #39",
+          "col": 6,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_39",
+          "name": "ICON素材2 #40",
+          "col": 7,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_40",
+          "name": "ICON素材2 #41",
+          "col": 0,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_41",
+          "name": "ICON素材2 #42",
+          "col": 1,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_42",
+          "name": "ICON素材2 #43",
+          "col": 2,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_43",
+          "name": "ICON素材2 #44",
+          "col": 3,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_44",
+          "name": "ICON素材2 #45",
+          "col": 4,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_45",
+          "name": "ICON素材2 #46",
+          "col": 5,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_46",
+          "name": "ICON素材2 #47",
+          "col": 6,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_47",
+          "name": "ICON素材2 #48",
+          "col": 7,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_48",
+          "name": "ICON素材2 #49",
+          "col": 0,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_49",
+          "name": "ICON素材2 #50",
+          "col": 1,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_50",
+          "name": "ICON素材2 #51",
+          "col": 2,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_51",
+          "name": "ICON素材2 #52",
+          "col": 3,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_52",
+          "name": "ICON素材2 #53",
+          "col": 4,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_53",
+          "name": "ICON素材2 #54",
+          "col": 5,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_54",
+          "name": "ICON素材2 #55",
+          "col": 6,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_55",
+          "name": "ICON素材2 #56",
+          "col": 7,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_56",
+          "name": "ICON素材2 #57",
+          "col": 0,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_57",
+          "name": "ICON素材2 #58",
+          "col": 1,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_58",
+          "name": "ICON素材2 #59",
+          "col": 2,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_59",
+          "name": "ICON素材2 #60",
+          "col": 3,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_60",
+          "name": "ICON素材2 #61",
+          "col": 4,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_61",
+          "name": "ICON素材2 #62",
+          "col": 5,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_62",
+          "name": "ICON素材2 #63",
+          "col": 6,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "2_icons_materials_63",
+          "name": "ICON素材2 #64",
+          "col": 7,
+          "row": 7,
+          "zoom": 100
+        }
+      ]
+    },
+    "3_icons_materials": {
+      "title": "ICON素材3",
+      "spriteUrl": "../public/assets/custom_icons/3_icons_materials.png",
+      "cols": 8,
+      "rows": 8,
+      "items": [
+        {
+          "id": "3_icons_materials_0",
+          "name": "ICON素材3 #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_1",
+          "name": "ICON素材3 #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_2",
+          "name": "ICON素材3 #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_3",
+          "name": "ICON素材3 #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_4",
+          "name": "ICON素材3 #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_5",
+          "name": "ICON素材3 #06",
+          "col": 5,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_6",
+          "name": "ICON素材3 #07",
+          "col": 6,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_7",
+          "name": "ICON素材3 #08",
+          "col": 7,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_8",
+          "name": "ICON素材3 #09",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_9",
+          "name": "ICON素材3 #10",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_10",
+          "name": "ICON素材3 #11",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_11",
+          "name": "ICON素材3 #12",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_12",
+          "name": "ICON素材3 #13",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_13",
+          "name": "ICON素材3 #14",
+          "col": 5,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_14",
+          "name": "ICON素材3 #15",
+          "col": 6,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_15",
+          "name": "ICON素材3 #16",
+          "col": 7,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_16",
+          "name": "ICON素材3 #17",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_17",
+          "name": "ICON素材3 #18",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_18",
+          "name": "ICON素材3 #19",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_19",
+          "name": "ICON素材3 #20",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_20",
+          "name": "ICON素材3 #21",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_21",
+          "name": "ICON素材3 #22",
+          "col": 5,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_22",
+          "name": "ICON素材3 #23",
+          "col": 6,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_23",
+          "name": "ICON素材3 #24",
+          "col": 7,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_24",
+          "name": "ICON素材3 #25",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_25",
+          "name": "ICON素材3 #26",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_26",
+          "name": "ICON素材3 #27",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_27",
+          "name": "ICON素材3 #28",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_28",
+          "name": "ICON素材3 #29",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_29",
+          "name": "ICON素材3 #30",
+          "col": 5,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_30",
+          "name": "ICON素材3 #31",
+          "col": 6,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_31",
+          "name": "ICON素材3 #32",
+          "col": 7,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_32",
+          "name": "ICON素材3 #33",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_33",
+          "name": "ICON素材3 #34",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_34",
+          "name": "ICON素材3 #35",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_35",
+          "name": "ICON素材3 #36",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_36",
+          "name": "ICON素材3 #37",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_37",
+          "name": "ICON素材3 #38",
+          "col": 5,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_38",
+          "name": "ICON素材3 #39",
+          "col": 6,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_39",
+          "name": "ICON素材3 #40",
+          "col": 7,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_40",
+          "name": "ICON素材3 #41",
+          "col": 0,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_41",
+          "name": "ICON素材3 #42",
+          "col": 1,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_42",
+          "name": "ICON素材3 #43",
+          "col": 2,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_43",
+          "name": "ICON素材3 #44",
+          "col": 3,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_44",
+          "name": "ICON素材3 #45",
+          "col": 4,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_45",
+          "name": "ICON素材3 #46",
+          "col": 5,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_46",
+          "name": "ICON素材3 #47",
+          "col": 6,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_47",
+          "name": "ICON素材3 #48",
+          "col": 7,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_48",
+          "name": "ICON素材3 #49",
+          "col": 0,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_49",
+          "name": "ICON素材3 #50",
+          "col": 1,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_50",
+          "name": "ICON素材3 #51",
+          "col": 2,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_51",
+          "name": "ICON素材3 #52",
+          "col": 3,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_52",
+          "name": "ICON素材3 #53",
+          "col": 4,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_53",
+          "name": "ICON素材3 #54",
+          "col": 5,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_54",
+          "name": "ICON素材3 #55",
+          "col": 6,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_55",
+          "name": "ICON素材3 #56",
+          "col": 7,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_56",
+          "name": "ICON素材3 #57",
+          "col": 0,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_57",
+          "name": "ICON素材3 #58",
+          "col": 1,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_58",
+          "name": "ICON素材3 #59",
+          "col": 2,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_59",
+          "name": "ICON素材3 #60",
+          "col": 3,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_60",
+          "name": "ICON素材3 #61",
+          "col": 4,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_61",
+          "name": "ICON素材3 #62",
+          "col": 5,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_62",
+          "name": "ICON素材3 #63",
+          "col": 6,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "3_icons_materials_63",
+          "name": "ICON素材3 #64",
+          "col": 7,
+          "row": 7,
+          "zoom": 100
+        }
+      ]
+    },
+    "monster_icon1": {
+      "title": "怪物圖標1",
+      "spriteUrl": "../public/assets/custom_icons/monster_icon1.png",
+      "cols": 8,
+      "rows": 8,
+      "items": [
+        {
+          "id": "monster_icon1_0",
+          "name": "怪物圖標1 #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_1",
+          "name": "怪物圖標1 #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_2",
+          "name": "怪物圖標1 #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_3",
+          "name": "怪物圖標1 #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_4",
+          "name": "怪物圖標1 #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_5",
+          "name": "怪物圖標1 #06",
+          "col": 5,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_6",
+          "name": "怪物圖標1 #07",
+          "col": 6,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_7",
+          "name": "怪物圖標1 #08",
+          "col": 7,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_8",
+          "name": "怪物圖標1 #09",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_9",
+          "name": "怪物圖標1 #10",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_10",
+          "name": "怪物圖標1 #11",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_11",
+          "name": "怪物圖標1 #12",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_12",
+          "name": "怪物圖標1 #13",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_13",
+          "name": "怪物圖標1 #14",
+          "col": 5,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_14",
+          "name": "怪物圖標1 #15",
+          "col": 6,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_15",
+          "name": "怪物圖標1 #16",
+          "col": 7,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_16",
+          "name": "怪物圖標1 #17",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_17",
+          "name": "怪物圖標1 #18",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_18",
+          "name": "怪物圖標1 #19",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_19",
+          "name": "怪物圖標1 #20",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_20",
+          "name": "怪物圖標1 #21",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_21",
+          "name": "怪物圖標1 #22",
+          "col": 5,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_22",
+          "name": "怪物圖標1 #23",
+          "col": 6,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_23",
+          "name": "怪物圖標1 #24",
+          "col": 7,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_24",
+          "name": "怪物圖標1 #25",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_25",
+          "name": "怪物圖標1 #26",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_26",
+          "name": "怪物圖標1 #27",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_27",
+          "name": "怪物圖標1 #28",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_28",
+          "name": "怪物圖標1 #29",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_29",
+          "name": "怪物圖標1 #30",
+          "col": 5,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_30",
+          "name": "怪物圖標1 #31",
+          "col": 6,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_31",
+          "name": "怪物圖標1 #32",
+          "col": 7,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_32",
+          "name": "怪物圖標1 #33",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_33",
+          "name": "怪物圖標1 #34",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_34",
+          "name": "怪物圖標1 #35",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_35",
+          "name": "怪物圖標1 #36",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_36",
+          "name": "怪物圖標1 #37",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_37",
+          "name": "怪物圖標1 #38",
+          "col": 5,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_38",
+          "name": "怪物圖標1 #39",
+          "col": 6,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_39",
+          "name": "怪物圖標1 #40",
+          "col": 7,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_40",
+          "name": "怪物圖標1 #41",
+          "col": 0,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_41",
+          "name": "怪物圖標1 #42",
+          "col": 1,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_42",
+          "name": "怪物圖標1 #43",
+          "col": 2,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_43",
+          "name": "怪物圖標1 #44",
+          "col": 3,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_44",
+          "name": "怪物圖標1 #45",
+          "col": 4,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_45",
+          "name": "怪物圖標1 #46",
+          "col": 5,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_46",
+          "name": "怪物圖標1 #47",
+          "col": 6,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_47",
+          "name": "怪物圖標1 #48",
+          "col": 7,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_48",
+          "name": "怪物圖標1 #49",
+          "col": 0,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_49",
+          "name": "怪物圖標1 #50",
+          "col": 1,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_50",
+          "name": "怪物圖標1 #51",
+          "col": 2,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_51",
+          "name": "怪物圖標1 #52",
+          "col": 3,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_52",
+          "name": "怪物圖標1 #53",
+          "col": 4,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_53",
+          "name": "怪物圖標1 #54",
+          "col": 5,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_54",
+          "name": "怪物圖標1 #55",
+          "col": 6,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_55",
+          "name": "怪物圖標1 #56",
+          "col": 7,
+          "row": 6,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_56",
+          "name": "怪物圖標1 #57",
+          "col": 0,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_57",
+          "name": "怪物圖標1 #58",
+          "col": 1,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_58",
+          "name": "怪物圖標1 #59",
+          "col": 2,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_59",
+          "name": "怪物圖標1 #60",
+          "col": 3,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_60",
+          "name": "怪物圖標1 #61",
+          "col": 4,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_61",
+          "name": "怪物圖標1 #62",
+          "col": 5,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_62",
+          "name": "怪物圖標1 #63",
+          "col": 6,
+          "row": 7,
+          "zoom": 100
+        },
+        {
+          "id": "monster_icon1_63",
+          "name": "怪物圖標1 #64",
+          "col": 7,
+          "row": 7,
+          "zoom": 100
+        }
+      ]
+    },
+    "heroes_male": {
+      "title": "男性英雄ICON",
+      "spriteUrl": "../public/assets/custom_icons/heroes_male.jpg",
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "heroes_male_0",
+          "name": "男性英雄ICON #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_1",
+          "name": "男性英雄ICON #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_2",
+          "name": "男性英雄ICON #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_3",
+          "name": "男性英雄ICON #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_4",
+          "name": "男性英雄ICON #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_5",
+          "name": "男性英雄ICON #06",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_6",
+          "name": "男性英雄ICON #07",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_7",
+          "name": "男性英雄ICON #08",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_8",
+          "name": "男性英雄ICON #09",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_9",
+          "name": "男性英雄ICON #10",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_10",
+          "name": "男性英雄ICON #11",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_11",
+          "name": "男性英雄ICON #12",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_12",
+          "name": "男性英雄ICON #13",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_13",
+          "name": "男性英雄ICON #14",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_14",
+          "name": "男性英雄ICON #15",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_15",
+          "name": "男性英雄ICON #16",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_16",
+          "name": "男性英雄ICON #17",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_17",
+          "name": "男性英雄ICON #18",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_18",
+          "name": "男性英雄ICON #19",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_19",
+          "name": "男性英雄ICON #20",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_20",
+          "name": "男性英雄ICON #21",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_21",
+          "name": "男性英雄ICON #22",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_22",
+          "name": "男性英雄ICON #23",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_23",
+          "name": "男性英雄ICON #24",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_male_24",
+          "name": "男性英雄ICON #25",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "heroes_female": {
+      "title": "女性英雄ICON",
+      "spriteUrl": "../public/assets/custom_icons/heroes_female.jpg",
+      "cols": 5,
+      "rows": 5,
+      "items": [
+        {
+          "id": "heroes_female_0",
+          "name": "女性英雄ICON #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_1",
+          "name": "女性英雄ICON #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_2",
+          "name": "女性英雄ICON #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_3",
+          "name": "女性英雄ICON #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_4",
+          "name": "女性英雄ICON #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_5",
+          "name": "女性英雄ICON #06",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_6",
+          "name": "女性英雄ICON #07",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_7",
+          "name": "女性英雄ICON #08",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_8",
+          "name": "女性英雄ICON #09",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_9",
+          "name": "女性英雄ICON #10",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_10",
+          "name": "女性英雄ICON #11",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_11",
+          "name": "女性英雄ICON #12",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_12",
+          "name": "女性英雄ICON #13",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_13",
+          "name": "女性英雄ICON #14",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_14",
+          "name": "女性英雄ICON #15",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_15",
+          "name": "女性英雄ICON #16",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_16",
+          "name": "女性英雄ICON #17",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_17",
+          "name": "女性英雄ICON #18",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_18",
+          "name": "女性英雄ICON #19",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_19",
+          "name": "女性英雄ICON #20",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_20",
+          "name": "女性英雄ICON #21",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_21",
+          "name": "女性英雄ICON #22",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_22",
+          "name": "女性英雄ICON #23",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_23",
+          "name": "女性英雄ICON #24",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "heroes_female_24",
+          "name": "女性英雄ICON #25",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        }
+      ]
+    },
+    "armors_t4_t5_icon": {
+      "title": "T4、T5防具ICON",
+      "spriteUrl": "../public/assets/custom_icons/armors_t4_t5_icon.jpg",
+      "cols": 6,
+      "rows": 6,
+      "items": [
+        {
+          "id": "armors_t4_t5_icon_0",
+          "name": "T4、T5防具ICON #01",
+          "col": 0,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_1",
+          "name": "T4、T5防具ICON #02",
+          "col": 1,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_2",
+          "name": "T4、T5防具ICON #03",
+          "col": 2,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_3",
+          "name": "T4、T5防具ICON #04",
+          "col": 3,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_4",
+          "name": "T4、T5防具ICON #05",
+          "col": 4,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_5",
+          "name": "T4、T5防具ICON #06",
+          "col": 5,
+          "row": 0,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_6",
+          "name": "T4、T5防具ICON #07",
+          "col": 0,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_7",
+          "name": "T4、T5防具ICON #08",
+          "col": 1,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_8",
+          "name": "T4、T5防具ICON #09",
+          "col": 2,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_9",
+          "name": "T4、T5防具ICON #10",
+          "col": 3,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_10",
+          "name": "T4、T5防具ICON #11",
+          "col": 4,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_11",
+          "name": "T4、T5防具ICON #12",
+          "col": 5,
+          "row": 1,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_12",
+          "name": "T4、T5防具ICON #13",
+          "col": 0,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_13",
+          "name": "T4、T5防具ICON #14",
+          "col": 1,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_14",
+          "name": "T4、T5防具ICON #15",
+          "col": 2,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_15",
+          "name": "T4、T5防具ICON #16",
+          "col": 3,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_16",
+          "name": "T4、T5防具ICON #17",
+          "col": 4,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_17",
+          "name": "T4、T5防具ICON #18",
+          "col": 5,
+          "row": 2,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_18",
+          "name": "T4、T5防具ICON #19",
+          "col": 0,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_19",
+          "name": "T4、T5防具ICON #20",
+          "col": 1,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_20",
+          "name": "T4、T5防具ICON #21",
+          "col": 2,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_21",
+          "name": "T4、T5防具ICON #22",
+          "col": 3,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_22",
+          "name": "T4、T5防具ICON #23",
+          "col": 4,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_23",
+          "name": "T4、T5防具ICON #24",
+          "col": 5,
+          "row": 3,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_24",
+          "name": "T4、T5防具ICON #25",
+          "col": 0,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_25",
+          "name": "T4、T5防具ICON #26",
+          "col": 1,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_26",
+          "name": "T4、T5防具ICON #27",
+          "col": 2,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_27",
+          "name": "T4、T5防具ICON #28",
+          "col": 3,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_28",
+          "name": "T4、T5防具ICON #29",
+          "col": 4,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_29",
+          "name": "T4、T5防具ICON #30",
+          "col": 5,
+          "row": 4,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_30",
+          "name": "T4、T5防具ICON #31",
+          "col": 0,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_31",
+          "name": "T4、T5防具ICON #32",
+          "col": 1,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_32",
+          "name": "T4、T5防具ICON #33",
+          "col": 2,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_33",
+          "name": "T4、T5防具ICON #34",
+          "col": 3,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_34",
+          "name": "T4、T5防具ICON #35",
+          "col": 4,
+          "row": 5,
+          "zoom": 100
+        },
+        {
+          "id": "armors_t4_t5_icon_35",
+          "name": "T4、T5防具ICON #36",
+          "col": 5,
+          "row": 5,
+          "zoom": 100
+        }
+      ]
+    }
+  }
+}

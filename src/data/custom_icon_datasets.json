@@ -3065,5 +3065,631 @@
         "zoom": 100
       }
     ]
+  },
+  "heroes_male": {
+    "title": "男性英雄ICON",
+    "spriteUrl": "../public/assets/custom_icons/heroes_male.jpg",
+    "cols": 5,
+    "rows": 5,
+    "items": [
+      {
+        "id": "heroes_male_0",
+        "name": "男性英雄ICON #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_1",
+        "name": "男性英雄ICON #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_2",
+        "name": "男性英雄ICON #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_3",
+        "name": "男性英雄ICON #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_4",
+        "name": "男性英雄ICON #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_5",
+        "name": "男性英雄ICON #06",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_6",
+        "name": "男性英雄ICON #07",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_7",
+        "name": "男性英雄ICON #08",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_8",
+        "name": "男性英雄ICON #09",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_9",
+        "name": "男性英雄ICON #10",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_10",
+        "name": "男性英雄ICON #11",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_11",
+        "name": "男性英雄ICON #12",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_12",
+        "name": "男性英雄ICON #13",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_13",
+        "name": "男性英雄ICON #14",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_14",
+        "name": "男性英雄ICON #15",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_15",
+        "name": "男性英雄ICON #16",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_16",
+        "name": "男性英雄ICON #17",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_17",
+        "name": "男性英雄ICON #18",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_18",
+        "name": "男性英雄ICON #19",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_19",
+        "name": "男性英雄ICON #20",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_20",
+        "name": "男性英雄ICON #21",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_21",
+        "name": "男性英雄ICON #22",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_22",
+        "name": "男性英雄ICON #23",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_23",
+        "name": "男性英雄ICON #24",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_male_24",
+        "name": "男性英雄ICON #25",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      }
+    ]
+  },
+  "heroes_female": {
+    "title": "女性英雄ICON",
+    "spriteUrl": "../public/assets/custom_icons/heroes_female.jpg",
+    "cols": 5,
+    "rows": 5,
+    "items": [
+      {
+        "id": "heroes_female_0",
+        "name": "女性英雄ICON #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_1",
+        "name": "女性英雄ICON #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_2",
+        "name": "女性英雄ICON #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_3",
+        "name": "女性英雄ICON #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_4",
+        "name": "女性英雄ICON #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_5",
+        "name": "女性英雄ICON #06",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_6",
+        "name": "女性英雄ICON #07",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_7",
+        "name": "女性英雄ICON #08",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_8",
+        "name": "女性英雄ICON #09",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_9",
+        "name": "女性英雄ICON #10",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_10",
+        "name": "女性英雄ICON #11",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_11",
+        "name": "女性英雄ICON #12",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_12",
+        "name": "女性英雄ICON #13",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_13",
+        "name": "女性英雄ICON #14",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_14",
+        "name": "女性英雄ICON #15",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_15",
+        "name": "女性英雄ICON #16",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_16",
+        "name": "女性英雄ICON #17",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_17",
+        "name": "女性英雄ICON #18",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_18",
+        "name": "女性英雄ICON #19",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_19",
+        "name": "女性英雄ICON #20",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_20",
+        "name": "女性英雄ICON #21",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_21",
+        "name": "女性英雄ICON #22",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_22",
+        "name": "女性英雄ICON #23",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_23",
+        "name": "女性英雄ICON #24",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "heroes_female_24",
+        "name": "女性英雄ICON #25",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      }
+    ]
+  },
+  "armors_t4_t5_icon": {
+    "title": "T4、T5防具ICON",
+    "spriteUrl": "../public/assets/custom_icons/armors_t4_t5_icon.jpg",
+    "cols": 6,
+    "rows": 6,
+    "items": [
+      {
+        "id": "armors_t4_t5_icon_0",
+        "name": "T4、T5防具ICON #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_1",
+        "name": "T4、T5防具ICON #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_2",
+        "name": "T4、T5防具ICON #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_3",
+        "name": "T4、T5防具ICON #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_4",
+        "name": "T4、T5防具ICON #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_5",
+        "name": "T4、T5防具ICON #06",
+        "col": 5,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_6",
+        "name": "T4、T5防具ICON #07",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_7",
+        "name": "T4、T5防具ICON #08",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_8",
+        "name": "T4、T5防具ICON #09",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_9",
+        "name": "T4、T5防具ICON #10",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_10",
+        "name": "T4、T5防具ICON #11",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_11",
+        "name": "T4、T5防具ICON #12",
+        "col": 5,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_12",
+        "name": "T4、T5防具ICON #13",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_13",
+        "name": "T4、T5防具ICON #14",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_14",
+        "name": "T4、T5防具ICON #15",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_15",
+        "name": "T4、T5防具ICON #16",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_16",
+        "name": "T4、T5防具ICON #17",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_17",
+        "name": "T4、T5防具ICON #18",
+        "col": 5,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_18",
+        "name": "T4、T5防具ICON #19",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_19",
+        "name": "T4、T5防具ICON #20",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_20",
+        "name": "T4、T5防具ICON #21",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_21",
+        "name": "T4、T5防具ICON #22",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_22",
+        "name": "T4、T5防具ICON #23",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_23",
+        "name": "T4、T5防具ICON #24",
+        "col": 5,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_24",
+        "name": "T4、T5防具ICON #25",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_25",
+        "name": "T4、T5防具ICON #26",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_26",
+        "name": "T4、T5防具ICON #27",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_27",
+        "name": "T4、T5防具ICON #28",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_28",
+        "name": "T4、T5防具ICON #29",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_29",
+        "name": "T4、T5防具ICON #30",
+        "col": 5,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_30",
+        "name": "T4、T5防具ICON #31",
+        "col": 0,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_31",
+        "name": "T4、T5防具ICON #32",
+        "col": 1,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_32",
+        "name": "T4、T5防具ICON #33",
+        "col": 2,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_33",
+        "name": "T4、T5防具ICON #34",
+        "col": 3,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_34",
+        "name": "T4、T5防具ICON #35",
+        "col": 4,
+        "row": 5,
+        "zoom": 100
+      },
+      {
+        "id": "armors_t4_t5_icon_35",
+        "name": "T4、T5防具ICON #36",
+        "col": 5,
+        "row": 5,
+        "zoom": 100
+      }
+    ]
   }
 }

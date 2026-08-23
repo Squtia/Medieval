@@ -180,4 +180,25 @@ describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Test
 
     expect(wins).toBe(20);
   });
+
+  it('支援 8 大戰鬥定位 (常規均衡/鐵壁肉盾/疾風刺客/奧術法師/嗜血狂戰/遠程狙擊/亡靈泥沼/史詩首領) 與特技施放', () => {
+    const baseGoblin = (monstersJson as any[]).find(m => m.id === 'goblin') || (monstersJson as any[])[0];
+    
+    // 測試 TANK (鐵壁肉盾)
+    const tankInst = monsterSys.createMonsterInstance({
+      ...baseGoblin,
+      profile: 'TANK',
+      skills: ['skill_shield_slam']
+    } as any, MonsterRace.MONSTER, ElementType.NONE, 2);
+
+    // 測試 ASSASSIN (疾風刺客)
+    const assassinInst = monsterSys.createMonsterInstance({
+      ...baseGoblin,
+      profile: 'ASSASSIN',
+      skills: ['skill_shadow_strike']
+    } as any, MonsterRace.MONSTER, ElementType.NONE, 2);
+
+    expect(tankInst.hp).toBeGreaterThan(assassinInst.hp);
+    expect(assassinInst.speed || 0).toBeGreaterThanOrEqual(tankInst.speed || 0);
+  });
 });

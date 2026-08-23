@@ -285,27 +285,59 @@ export function getElementBadge(elem?: ElementType): string {
 // 5. 素材與背包模式 (半透明雙欄 Layout)
 // ----------------------------------------------------------------------------
 
+/**
+ * 取得特產/交易品庫存 (打通基礎四大資源與交易品特產)
+ */
+export function getTradeGoodStock(territory: any, goodId: string): number {
+  if (goodId === 'tg_timber') return territory.wood || 0;
+  if (goodId === 'tg_iron') return territory.iron || 0;
+  if (goodId === 'tg_stone') return territory.stone || 0;
+  if (goodId === 'tg_wheat') return territory.food || 0;
+  return (territory.tradeInventory && territory.tradeInventory[goodId]) || 0;
+}
+
+/**
+ * 消耗特產/交易品庫存 (打通基礎四大資源與交易品特產)
+ */
+export function consumeTradeGoodStock(territory: any, goodId: string, count: number): void {
+  if (goodId === 'tg_timber') { territory.wood = Math.max(0, (territory.wood || 0) - count); return; }
+  if (goodId === 'tg_iron') { territory.iron = Math.max(0, (territory.iron || 0) - count); return; }
+  if (goodId === 'tg_stone') { territory.stone = Math.max(0, (territory.stone || 0) - count); return; }
+  if (goodId === 'tg_wheat') { territory.food = Math.max(0, (territory.food || 0) - count); return; }
+  if (territory.tradeInventory && territory.tradeInventory[goodId]) {
+    territory.tradeInventory[goodId] = Math.max(0, territory.tradeInventory[goodId] - count);
+  }
+}
+
+/**
+ * 增加特產/交易品庫存 (打通基礎四大資源與交易品特產)
+ */
+export function addTradeGoodStock(territory: any, goodId: string, count: number): void {
+  if (goodId === 'tg_timber') { territory.wood = (territory.wood || 0) + count; return; }
+  if (goodId === 'tg_iron') { territory.iron = (territory.iron || 0) + count; return; }
+  if (goodId === 'tg_stone') { territory.stone = (territory.stone || 0) + count; return; }
+  if (goodId === 'tg_wheat') { territory.food = (territory.food || 0) + count; return; }
+  if (!territory.tradeInventory) territory.tradeInventory = {};
+  territory.tradeInventory[goodId] = (territory.tradeInventory[goodId] || 0) + count;
+}
+
 export function getMaterialCount(territory: any, matId: string): number {
-  if (matId === 'tg_iron') return territory.iron || 0;
-  if (matId === 'tg_timber') return territory.wood || 0;
-  if (matId === 'tg_stone') return territory.stone || 0;
-  if (matId === 'tg_hide' || matId === 'tg_cotton') return (territory.tradeInventory && territory.tradeInventory[matId]) || 0;
-  if (!territory.materials) return 0;
-  return territory.materials[matId] || 0;
+  if (matId.startsWith('tg_')) {
+    return getTradeGoodStock(territory, matId);
+  }
+  // 檢查加工素材庫存 materials
+  if (territory.materials && territory.materials[matId] !== undefined) {
+    return territory.materials[matId] || 0;
+  }
+  return 0;
 }
 
 export function consumeMaterial(territory: any, matId: string, count: number): void {
-  if (matId === 'tg_iron') { territory.iron = Math.max(0, (territory.iron || 0) - count); return; }
-  if (matId === 'tg_timber') { territory.wood = Math.max(0, (territory.wood || 0) - count); return; }
-  if (matId === 'tg_stone') { territory.stone = Math.max(0, (territory.stone || 0) - count); return; }
-  if (matId === 'tg_hide' || matId === 'tg_cotton') {
-    if (territory.tradeInventory && territory.tradeInventory[matId]) {
-      territory.tradeInventory[matId] = Math.max(0, territory.tradeInventory[matId] - count);
-    }
+  if (matId.startsWith('tg_')) {
+    consumeTradeGoodStock(territory, matId, count);
     return;
   }
-  if (!territory.materials) return;
-  if (territory.materials[matId]) {
+  if (territory.materials && territory.materials[matId]) {
     territory.materials[matId] = Math.max(0, territory.materials[matId] - count);
   }
 }
@@ -428,7 +460,10 @@ export function renderArmorShop() {
     card.innerHTML = `
       <div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <strong style="color: #eab308; font-size: 1.1em;">${arm.name}</strong>
+          <div style="display:flex; align-items:center; gap:6px;">
+            ${renderEquipIcon(arm, 28)}
+            <strong style="color: #eab308; font-size: 1.1em;">${arm.name}</strong>
+          </div>
           <span style="font-size:0.8em; color:#94a3b8;">${arm.armorType || '防具'}</span>
         </div>
         <div style="font-size: 0.85em; color: #cbd5e1; margin-bottom: 6px;">

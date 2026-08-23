@@ -110,13 +110,27 @@ export class PartyModalController {
     if (jobTraitEl) jobTraitEl.textContent = `Lv.${adv.level} ${displayClass}`;
     if (traitNameEl) traitNameEl.textContent = adv.trait.name;
 
+    const isBusy = adv.currentState !== AdventurerState.IDLE;
     const btnAdvance = document.getElementById('btn-advance-class') as HTMLButtonElement;
     if (btnAdvance) {
       if (adv.level >= 10 && !adv.isAdvanced) {
         btnAdvance.style.display = 'inline-block';
-        btnAdvance.onclick = () => {
-          this.handleAdvanceClass(adv);
-        };
+        if (isBusy) {
+          btnAdvance.disabled = true;
+          btnAdvance.style.opacity = '0.5';
+          btnAdvance.style.cursor = 'not-allowed';
+          btnAdvance.onclick = () => {
+            const tip = adv.currentState === AdventurerState.RESTING ? '該傭兵正在休養中，無法轉職！' : '該傭兵正在任務中，無法轉職！';
+            ToastManager.show(`⚠️ ${tip}`, 'warning');
+          };
+        } else {
+          btnAdvance.disabled = false;
+          btnAdvance.style.opacity = '1';
+          btnAdvance.style.cursor = 'pointer';
+          btnAdvance.onclick = () => {
+            this.handleAdvanceClass(adv);
+          };
+        }
       } else {
         btnAdvance.style.display = 'none';
         btnAdvance.onclick = null;
@@ -190,12 +204,12 @@ export class PartyModalController {
   
       const getStatRow = (label: string, key: 'str' | 'agi' | 'con' | 'int' | 'spr' | 'luk', val: number) => {
         const tempVal = this.tempAllocations[key] || 0;
-        const btnStyle = "width: 20px; height: 20px; line-height: 16px; text-align: center; border-radius: 4px; cursor: pointer; border: 1px solid; font-weight: bold; font-size: 0.8em;";
-        const plusBtn = tempUnspent > 0 
-          ? `<button class="btn-temp-plus" data-stat="${key}" style="${btnStyle} background:rgba(34,197,94,0.3); border-color:#22c55e; color:#fff;">+</button>` 
+        const btnStyle = "width: 20px; height: 20px; line-height: 16px; text-align: center; border-radius: 4px; border: 1px solid; font-weight: bold; font-size: 0.8em;";
+        const plusBtn = (tempUnspent > 0 && !isBusy)
+          ? `<button class="btn-temp-plus" data-stat="${key}" style="${btnStyle} background:rgba(34,197,94,0.3); border-color:#22c55e; color:#fff; cursor:pointer;">+</button>` 
           : `<div style="width: 20px;"></div>`;
-        const minusBtn = tempVal > 0 
-          ? `<button class="btn-temp-minus" data-stat="${key}" style="${btnStyle} background:rgba(239,68,68,0.3); border-color:#ef4444; color:#fff;">-</button>` 
+        const minusBtn = (tempVal > 0 && !isBusy)
+          ? `<button class="btn-temp-minus" data-stat="${key}" style="${btnStyle} background:rgba(239,68,68,0.3); border-color:#ef4444; color:#fff; cursor:pointer;">-</button>` 
           : `<div style="width: 20px;"></div>`;
         const greenStr = tempVal > 0 ? `<span style="color:#22c55e; font-weight:bold; width: 28px; text-align: left; padding-left: 2px;">(+${tempVal})</span>` : `<span style="width: 28px;"></span>`;
         return `
@@ -207,7 +221,9 @@ export class PartyModalController {
           </div>`;
       };
   
-      const confirmBtnsHtml = `
+      const confirmBtnsHtml = isBusy 
+        ? `<div style="margin-top: 6px; font-size:0.78em; color:#ef4444; text-align:center; padding:4px; background:rgba(239,68,68,0.1); border-radius:4px;">🔒 傭兵目前處於任務/休養中，無法分配屬性點</div>`
+        : `
         <div style="display: flex; gap: 6px; margin-top: 6px; flex-shrink: 0;">
           <button id="btn-confirm-stats" class="action-btn" ${sumAllocated > 0 ? '' : 'disabled'} style="flex:1; ${sumAllocated > 0 ? 'background:linear-gradient(135deg, #059669, #047857); color:#fff; cursor:pointer;' : 'background:rgba(255,255,255,0.05); color:#64748b; border-color:rgba(255,255,255,0.1); opacity:0.35; cursor:not-allowed;'} padding:5px 0; font-size:0.8em; font-weight:bold; transition:all 0.2s;">確認分配</button>
           <button id="btn-reset-stats" class="action-btn" ${sumAllocated > 0 ? '' : 'disabled'} style="flex:1; ${sumAllocated > 0 ? 'background:rgba(255,255,255,0.1); color:#ebdcb6; cursor:pointer;' : 'background:rgba(255,255,255,0.05); color:#64748b; border-color:rgba(255,255,255,0.1); opacity:0.35; cursor:not-allowed;'} padding:5px 0; font-size:0.8em; transition:all 0.2s;">重設</button>
@@ -312,6 +328,7 @@ export class PartyModalController {
       let equipRowsHtml = '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">';
       slots.forEach(s => {
         const eq = adv.equipment[s.key];
+        const lockBorder = isBusy ? 'opacity: 0.6; cursor: not-allowed;' : 'cursor: pointer;';
         if (eq) {
           const lvlStr = eq.enhancementLevel ? `<div style="color:#3b82f6; font-size:0.9em; font-weight:bold;">+${eq.enhancementLevel}</div>` : '';
           const statsHtml = EquipModalController.buildEquipStatsHtml(eq);
@@ -321,7 +338,7 @@ export class PartyModalController {
             : '';
           const tooltipHtml = getEquipTooltipHtml(eq);
           equipRowsHtml += `
-            <div class="equip-card-square tooltip-eq-trigger" data-slot="${s.key}" data-html-tip="${encodeURIComponent(tooltipHtml)}" style="position:relative; background:rgba(15,23,42,0.7); border:1px solid rgba(234,179,8,0.4); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; cursor:pointer; min-height:96px;">
+            <div class="equip-card-square tooltip-eq-trigger" data-slot="${s.key}" data-html-tip="${encodeURIComponent(tooltipHtml)}" style="position:relative; background:rgba(15,23,42,0.7); border:1px solid rgba(234,179,8,0.4); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; min-height:96px; ${lockBorder}">
               <div style="flex:1; display:flex; align-items:center; justify-content:center; margin-bottom:4px;">${iconHtml}</div>
               <div style="font-size:0.82em; font-weight:bold; color:#f1f5f9; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; padding:0 2px;">${eq.name}</div>
               ${lvlStr}
@@ -329,18 +346,20 @@ export class PartyModalController {
           `;
         } else {
           equipRowsHtml += `
-            <div class="equip-card-square" data-slot="${s.key}" style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.2); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 5px; cursor:pointer; color:#64748b; font-size:0.85em; text-align:center; transition: all 0.2s; min-height:96px;">
+            <div class="equip-card-square" data-slot="${s.key}" style="background:rgba(255,255,255,0.03); border:1px dashed rgba(255,255,255,0.2); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 5px; color:#64748b; font-size:0.85em; text-align:center; transition: all 0.2s; min-height:96px; ${lockBorder}">
               <div style="font-size:1.8em; margin-bottom:4px; opacity:0.6;">${s.icon}</div>
               <div style="font-weight:600; color:#cbd5e1;">${s.name}</div>
-              <div style="color:#3b82f6; margin-top:3px; font-size:0.85em; font-weight:bold;">+ 裝備</div>
+              <div style="color:${isBusy ? '#64748b' : '#3b82f6'}; margin-top:3px; font-size:0.85em; font-weight:bold;">${isBusy ? '🔒 鎖定中' : '+ 裝備'}</div>
             </div>
           `;
         }
       });
       equipRowsHtml += '</div>';
   
-      const canRetire = adv.trait.name !== '誓約守衛';
-      const retireBtnHtml = canRetire ? `
+      const canRetire = adv.trait.name !== '誓約守衛' && !isBusy;
+      const retireBtnHtml = isBusy 
+        ? `<span style="font-size: 0.72em; color: #ef4444; font-style: italic;">🔒 任務/休養中不可退休</span>`
+        : (canRetire ? `
           <button id="btn-party-retire-init" class="action-btn" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; padding: 2px 6px; font-size: 0.72em; border-radius: 4px; cursor: pointer;">
             🚪 退休...
           </button>
@@ -352,11 +371,11 @@ export class PartyModalController {
               取消
             </button>
           </div>
-      ` : `<span style="font-size: 0.72em; color: #64748b; font-style: italic;">誓約守衛不可退休</span>`;
+      ` : `<span style="font-size: 0.72em; color: #64748b; font-style: italic;">誓約守衛不可退休</span>`);
   
       viewport.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <span style="font-size:0.85em; color:#eab308; font-weight:bold;">裝備槽位：</span>
+          <span style="font-size:0.85em; color:#eab308; font-weight:bold;">裝備槽位：${isBusy ? '<span style="color:#ef4444; font-size:0.85em; font-weight:normal; margin-left:6px;">(🔒 任務/休養中鎖定更換)</span>' : ''}</span>
           ${retireBtnHtml}
         </div>
         ${equipRowsHtml}
@@ -390,6 +409,13 @@ export class PartyModalController {
         btn.addEventListener('click', (e) => {
           const tEl = document.getElementById('adv-tooltip');
           if (tEl) tEl.style.opacity = '0';
+          if (isBusy) {
+            const busyText = adv.currentState === AdventurerState.RESTING 
+              ? `該傭兵正在休養中 (剩餘 ${adv.restingDaysLeft} 天)，無法更換或卸下裝備！`
+              : `該傭兵正在執行任務中，裝備已被帶離領地，無法更換或卸下！`;
+            ToastManager.show(`⚠️ ${busyText}`, 'warning');
+            return;
+          }
           const slotKey = (e.currentTarget as HTMLElement).getAttribute('data-slot') as EquipmentSlot;
           EquipModalController.open(adv, slotKey);
         });

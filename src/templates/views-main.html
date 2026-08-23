@@ -71,6 +71,26 @@
         <!-- 背景圖片會由 JS 根據繁榮度動態更換 -->
         <div id="street-parallax-bg" class="street-parallax-bg" style="background-image: url('./bg_street_prosperous_1784087131344.png');"></div>
 
+        <!-- 街道快捷按鈕：懸賞欄 -->
+        <button id="btn-street-bounty" class="action-btn" style="
+          position: absolute;
+          top: 12px;
+          left: 20px;
+          z-index: 20;
+          background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+          border: 1px solid rgba(147, 197, 253, 0.4);
+          color: #fff;
+          padding: 7px 14px;
+          font-size: 0.9em;
+          font-weight: bold;
+          border-radius: 8px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        ">📜 懸賞欄</button>
+
         <!-- C3: 繁榮度進度條 -->
         <div id="prosperity-bar-container" style="
           position: absolute;
@@ -106,6 +126,48 @@
             "></div>
           </div>
           <div id="prosperity-next-label" style="font-size: 0.75em; color: #94a3b8; text-align: right;">距升級還差 40 點繁榮度</div>
+        </div>
+
+        <!-- 🏰 街道訪客事件列 (紅框區域：無事件時完全隱形，支援拖曳左右滑動) -->
+        <div id="street-npc-events-bar" class="street-npc-events-bar" style="
+          position: absolute;
+          top: 80px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: min(460px, 85%);
+          height: 92px;
+          z-index: 25;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          background: transparent;
+          border: none;
+          pointer-events: auto;
+          padding: 0 6px;
+          scrollbar-width: none;
+        ">
+          <!-- JS 動態渲染 NPC 訪客肖像按鈕 -->
+        </div>
+
+        <!-- 💬 街道訪客隨滑鼠移動 Tooltip -->
+        <div id="street-npc-floating-tooltip" style="
+          display: none;
+          position: fixed;
+          z-index: 9999;
+          pointer-events: none;
+          background: rgba(15, 12, 10, 0.95);
+          border: 1.5px solid #d97706;
+          border-radius: 6px;
+          padding: 6px 12px;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.85);
+          font-family: 'Cinzel', serif;
+          max-width: 240px;
+          transform: translate(12px, 12px);
+        ">
+          <div id="street-npc-tt-name" style="font-weight: bold; font-size: 0.88em; color: #fbbf24; text-shadow: 0 1px 2px #000;"></div>
+          <div id="street-npc-tt-desc" style="font-size: 0.75em; color: #cbd5e1; margin-top: 2px; line-height: 1.3;"></div>
         </div>
         
         <!-- 街道滾動遮罩 -->

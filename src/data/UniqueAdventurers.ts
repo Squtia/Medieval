@@ -13,6 +13,7 @@ export interface UniqueHeroDef {
   gender: Gender;
   isGuardian: boolean;
   avatarIndex: number;
+  avatarIcon?: string;
   level: number;
   biography: string;
   customAttributes: {
@@ -46,6 +47,7 @@ export const UNIQUE_HEROES: Record<string, UniqueHeroDef> = {
     gender: Gender.MALE,
     isGuardian: false,
     avatarIndex: 0,
+    avatarIcon: 'heroes:reyn',
     level: 10,
     biography: '昔日瓦倫泰王國的護國大將軍，曾於北方焦土隻身斬殺炎魔，巨劍揮舞之處化為熔岩火海。',
     customAttributes: {
@@ -77,6 +79,7 @@ export const UNIQUE_HEROES: Record<string, UniqueHeroDef> = {
     gender: Gender.FEMALE,
     isGuardian: false,
     avatarIndex: 12,
+    avatarIcon: 'heroes:luna',
     level: 10,
     biography: '星界方尖碑的首席守護者，掌握著精確引導極寒魔力的新星魔法，被譽為冰封萬物的霜語者。',
     customAttributes: {
@@ -104,10 +107,11 @@ export const UNIQUE_HEROES: Record<string, UniqueHeroDef> = {
     title: '【不滅誓約】',
     quality: 'UR',
     jobKey: 'KNIGHT',
-    traitKey: 'GUARDIAN',
+    traitKey: 'GUARDIAN_LOYAL',
     gender: Gender.MALE,
     isGuardian: true,
     avatarIndex: 1, // Row 0 col 1: 銀髮雄獅誓約騎士
+    avatarIcon: 'guardian_m_1',
     level: 10,
     biography: '領主身旁最忠誠的守護者，立下神聖誓約的鋼鐵壁壘，其盾牌能抵禦一切黑暗衝擊。',
     customAttributes: {
