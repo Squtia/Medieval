@@ -2,7 +2,7 @@ import { GameState } from '../core/GameState';
 import { AdventurerState, NobleTitle, TITLE_CONFIG, NodeLevel, NodeFeature, getNodeMaxFacilityLevel } from '../models/types';
 import { openAdvDetail, getSelectedPartyAdventurer, selectPartyAdventurer, renderPartyUpperSection } from './ModalController';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from './components/AdventurerCard';
-import { renderBaseBuildings } from './SceneController';
+import { renderBaseBuildings, renderStreetNpcEvents } from './SceneController';
 import { isStartupMode } from './MapController';
 import { SaveManager } from '../core/SaveManager';
 import { positionFloatingElement } from './FloatingPosition';
@@ -457,9 +457,13 @@ class UIManagerClass {
     // 更新待辦事項徽章
     const todoBadge = document.getElementById('todo-badge');
     if (todoBadge) {
-      if (territory.pendingEvents && territory.pendingEvents.length > 0) {
+      const pendingLegacy = territory.pendingEvents?.length || 0;
+      const pendingNarrative = (territory as any).pendingNarrativeNodes?.length || 0;
+      const totalPending = pendingLegacy + pendingNarrative;
+
+      if (totalPending > 0) {
         todoBadge.style.display = 'flex';
-        todoBadge.textContent = territory.pendingEvents.length.toString();
+        todoBadge.textContent = totalPending.toString();
       } else {
         todoBadge.style.display = 'none';
       }
@@ -587,6 +591,11 @@ class UIManagerClass {
         btnExplore.title = '';
       }
     }
+
+    // 隨全域 UI 即時刷新街道訪客 NPC 事件列
+    import('./SceneController').then(({ renderStreetNpcEvents }) => {
+      renderStreetNpcEvents();
+    });
   }
 
   /**
@@ -697,11 +706,13 @@ class UIManagerClass {
 
         const streetBackground = document.getElementById('street-parallax-bg') as HTMLDivElement | null;
         if (streetBackground) {
+          const baseUrl = import.meta.env.BASE_URL || './';
+          const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
           streetBackground.style.backgroundImage = computedLevel >= NodeLevel.TOWN
-            ? `url('./bg_street_prosperous_1784087131344.png')`
+            ? `url('${cleanBase}bg_street_prosperous_1784087131344.png')`
             : computedLevel >= NodeLevel.CAMP
-              ? `url('./bg_street_village_1784087142427.png')`
-              : `url('./bg_street_ruins_1784087152568.png')`;
+              ? `url('${cleanBase}bg_street_village_1784087142427.png')`
+              : `url('${cleanBase}bg_street_ruins_1784087152568.png')`;
         }
       }
     }
@@ -719,6 +730,9 @@ class UIManagerClass {
 
     this.updateProsperityBar(current, nextThreshold, levelLabelText, nextLevelName);
     this.updateActiveMissions();
+    if (document.getElementById('scene-view')?.classList.contains('active')) {
+      renderStreetNpcEvents();
+    }
   }
 
   // 更新活躍任務面板

@@ -19,6 +19,7 @@ import { initExplorationController, refreshExplorationUI } from './ui/Exploratio
 import { initStreetScroller } from './ui/SceneController';
 import { loadAllTemplates } from './ui/TemplateLoader';
 import { NarrativeSystem } from './systems/NarrativeSystem';
+import { NpcDialogueModalController } from './ui/modals/NpcDialogueModalController';
 
 // 全域 UI 事件訂閱 (只需綁定一次，不會因重新開局被清除)
 export function initGlobalUIEvents() {
@@ -55,6 +56,21 @@ export function initGlobalUIEvents() {
   EventBus.getInstance().subscribe(GameEventType.NARRATIVE_NODE_TRIGGERED, ({ storyId, nodeId }) => {
     const ref = NarrativeSystem.findNode(storyId, nodeId);
     if (!ref) return;
+
+    // 優先判斷是否含有 NPC 對話分頁或為街道事件
+    if (ref.node.dialoguePages && ref.node.dialoguePages.length > 0) {
+      const showDialogue = () => {
+        NpcDialogueModalController.getInstance().open(ref);
+      };
+      if ((window as any).isAdvancingDay) {
+        if (!(window as any).eventQueue) (window as any).eventQueue = [];
+        (window as any).eventQueue.push(showDialogue);
+      } else {
+        showDialogue();
+      }
+      return;
+    }
+
     const choices = ref.node.choices.length > 0
       ? ref.node.choices
       : [{ id: 'continue', text: '繼續', effects: [], resultText: '' }];
@@ -124,9 +140,11 @@ async function bootstrap() {
   initExplorationController();
   initStreetScroller();
   NarrativeSystem.reloadDefinitions();
-  if (import.meta.env.DEV && new URLSearchParams(location.search).has('storyTest')) {
+  const searchParams = new URLSearchParams(location.search);
+  if (searchParams.has('storyTest') || searchParams.has('testStory') || searchParams.has('story')) {
     const { initNarrativeTestController } = await import('./ui/NarrativeTestController');
     await initNarrativeTestController();
+    return;
   }
   NarrativeSystem.processDailyTick();
   
@@ -136,7 +154,10 @@ async function bootstrap() {
 
 bootstrap().catch(err => {
   console.error('[main] 遊戲啟動失敗：', err);
-  document.body.innerHTML = `<div style="color:red;padding:40px;font-size:1.2em;">
-    ⚠️ 遊戲初始化失敗，請重新整理頁面。<br><small>${err?.message ?? err}</small>
+  document.body.innerHTML = `<div style="color:#ef4444;background:#18181b;padding:30px;font-family:monospace;border:1px solid #7f1d1d;border-radius:8px;margin:20px;">
+    <h3 style="margin-top:0;">⚠️ 遊戲初始化失敗</h3>
+    <div style="font-size:1.1em;font-weight:bold;margin-bottom:10px;">${err?.message ?? err}</div>
+    <pre style="background:#09090b;padding:15px;border-radius:4px;overflow:auto;color:#fca5a5;font-size:0.85em;line-height:1.4;">${err?.stack ?? '無堆疊資訊'}</pre>
+    <button onclick="location.reload()" style="margin-top:15px;padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;">重新載入</button>
   </div>`;
 });

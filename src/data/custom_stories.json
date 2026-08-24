@@ -44,7 +44,8 @@
           "expireDays": 30,
           "gold": 80,
           "exp": 50
-        }
+        },
+        "dialoguePages": []
       },
       {
         "id": "warehouse_cargo",
@@ -226,7 +227,8 @@
             "type": "ADD_GOLD",
             "value": -100
           }
-        ]
+        ],
+        "dialoguePages": []
       },
       {
         "id": "drunken_guard",
@@ -254,7 +256,8 @@
             "fact": "guard_testimony",
             "value": true
           }
-        ]
+        ],
+        "dialoguePages": []
       }
     ]
   },
@@ -546,7 +549,8 @@
             ]
           }
         ],
-        "completionEffects": []
+        "completionEffects": [],
+        "dialoguePages": []
       },
       {
         "id": "evt_ancient_monolith",
@@ -623,7 +627,8 @@
           "gold": 20,
           "exp": 10,
           "type": "NORMAL"
-        }
+        },
+        "dialoguePages": []
       },
       {
         "id": "routine_sewer_rats",
@@ -1009,6 +1014,10 @@
           {
             "type": "PRESTIGE_AT_LEAST",
             "value": 1500
+          },
+          {
+            "type": "TAVERN_LEVEL_AT_LEAST",
+            "value": 3
           }
         ],
         "choices": [],
@@ -1018,11 +1027,13 @@
             "fact": "dragom_fam_01A",
             "value": true
           }
-        ]
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
       },
       {
-        "id": "new_node",
-        "title": "對於瘋癲客人的好奇",
+        "id": "dragon_fam_1",
+        "title": "領主的好奇心",
         "description": "酒店老闆的敘述讓領主產生好奇，是否讓人去探聽傳聞的真實性，畢竟領地正在處於發展時期。",
         "channel": "TODO_LIST",
         "conditions": [
@@ -1036,10 +1047,92 @@
             "id": "choice_1",
             "text": "讓人去探聽那位客人是誰。",
             "resultText": "",
-            "effects": []
+            "effects": [
+              {
+                "type": "SCHEDULE_NODE",
+                "nodeId": "dragon_fam_2",
+                "delayDays": 3
+              }
+            ]
+          },
+          {
+            "id": "choice_2",
+            "text": "應該只是常見的那種說大話的酒客，不用理他了。",
+            "resultText": "",
+            "effects": [
+              {
+                "type": "SCHEDULE_NODE",
+                "nodeId": "",
+                "delayDays": 1
+              }
+            ]
           }
         ],
-        "completionEffects": []
+        "completionEffects": [],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      },
+      {
+        "id": "dragon_fam_2",
+        "title": "瘋癲的酒客",
+        "description": "",
+        "channel": "STREET_EVENT",
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [],
+        "dialoguePages": [
+          {
+            "speakerType": "PLAYER_GUARDIAN",
+            "speakerName": "瘋癲酒客",
+            "speakerTitle": "【街角遇見的旅人】",
+            "speakerAvatar": "npc_common:npc_drunkard",
+            "text": "酒館老闆說，你喝醉時提到過村裡後面的那個洞窟。把你知道的洞窟狀況說清楚，領主大人希望把狀況探查明白。"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "瘋癲酒客",
+            "speakerTitle": "",
+            "speakerAvatar": "npc_common:npc_drunkard",
+            "text": "弄明白?你們不過就是覬覦那些寶藏，讓你們知道了我還混個屁?"
+          },
+          {
+            "speakerType": "PLAYER_GUARDIAN",
+            "speakerName": "瘋癲酒客",
+            "speakerTitle": "【街角遇見的旅人】",
+            "speakerAvatar": "npc_common:npc_drunkard",
+            "text": "一把按住傭兵酒客的肩胛，冰冷的鐵手套用力捏緊：「你吹噓自己能隨意拿寶物出來揮霍，那裡面到底是什麼狀況？你是怎麼把錢帶出來的？」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "瘋癲酒客",
+            "speakerTitle": "",
+            "speakerAvatar": "npc_common:npc_drunkard",
+            "text": "「痛痛痛……鬆手！」傭兵酒客痛得齜牙咧嘴，抓撓著髒亂的頭髮咆哮，「進去……順著水流聲走！左邊是滿地的人骨，右邊是會發光的苔蘚。洞口被黑色藤蔓纏死了，一點火，牆上的石頭就會『活』過來！」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "瘋癲酒客",
+            "speakerTitle": "",
+            "speakerAvatar": "npc_common:npc_drunkard",
+            "text": "他突然壓低聲音，渾濁的眼睛眨了眨，得意又詭異地低笑：「嘿……想拿錢？只能趁『牠們』沉睡的時候！摸著濕滑的左側岩壁，絕對不能發出聲音，伸手進骨頭堆下面的暗槽……那裏面的金幣隨便抓！但我每次只敢拿一把就跑……去啊！你們去拿啊！看看是寶藏多，還是你們的命多！」"
+          },
+          {
+            "speakerType": "PLAYER_GUARDIAN",
+            "speakerName": "瘋癲酒客",
+            "speakerTitle": "【街角遇見的旅人】",
+            "speakerAvatar": "npc_common:npc_drunkard",
+            "text": "守誓者似乎意識到什麼事情說：「這些錢你拿去，以後不要再去那個洞窟了，也不要跟任何人再提起這件事情。」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "瘋癲酒客",
+            "speakerTitle": "",
+            "speakerAvatar": "npc_common:npc_drunkard",
+            "text": "酒客根本沒看錢袋，只是蜷縮回陰影裡，傻笑著喃喃自語：「拿去吧……都拿去吧……反正進去的人，沒有一個能把影子帶出來……」"
+          }
+        ],
+        "npcName": "瘋癲酒客",
+        "npcAvatar": "npc_common:npc_drunkard"
       }
     ]
   },

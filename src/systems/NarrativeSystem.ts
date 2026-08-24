@@ -95,14 +95,46 @@ export class NarrativeSystem {
     });
   }
 
+  /** 檢查某個節點是否被劇本中其他節點的 SCHEDULE_NODE 指名為目標後續節點 */
+  static isScheduledTargetNode(storyId: string, nodeId: string): boolean {
+    for (const story of this.getStories()) {
+      if (!story.enabled) continue;
+      for (const n of story.nodes) {
+        // 若為自排程（自身完成後重新排程自身）則不視為前置依賴阻擋
+        for (const eff of n.completionEffects || []) {
+          if (eff.type === 'SCHEDULE_NODE' && eff.nodeId === nodeId && (story.id !== storyId || n.id !== nodeId)) {
+            return true;
+          }
+        }
+        for (const choice of n.choices || []) {
+          for (const eff of choice.effects || []) {
+            if (eff.type === 'SCHEDULE_NODE' && eff.nodeId === nodeId && (story.id !== storyId || n.id !== nodeId)) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   static explainBlocked(story: NarrativeStory, node: NarrativeNode): string[] {
     const state = this.ensureState();
     const key = this.getNodeKey(story.id, node.id);
     const scheduledDay = state.scheduledNodes[key];
     const reasons: string[] = [];
-    if (scheduledDay !== undefined && GameState.totalDays < scheduledDay) {
-      reasons.push(`排程於第 ${scheduledDay} 天開放`);
+    
+    // 若該節點是受前置節點 SCHEDULE_NODE 排程的目標節點：
+    if (this.isScheduledTargetNode(story.id, node.id)) {
+      if (scheduledDay === undefined) {
+        reasons.push('尚未被前置劇情決策排程喚醒');
+      } else if (GameState.totalDays < scheduledDay) {
+        reasons.push(`排程於第 ${scheduledDay} 天開放（尚餘 ${scheduledDay - GameState.totalDays} 天）`);
+      }
+    } else if (scheduledDay !== undefined && GameState.totalDays < scheduledDay) {
+      reasons.push(`排程於第 ${scheduledDay} 天開放（尚餘 ${scheduledDay - GameState.totalDays} 天）`);
     }
+
     for (const condition of node.conditions) {
       if (!this.checkCondition(condition)) reasons.push(this.describeCondition(condition));
     }
@@ -204,7 +236,7 @@ export class NarrativeSystem {
   }
 
   static getEligibleStreetEvents(): NarrativeNodeRef[] {
-    return this.getEligibleNodes('STREET_EVENT');
+    return this.getEligibleNodes('STREET_EVENT', true);
   }
 
   static consumeTavernRumor(): NarrativeNodeRef | null {
@@ -399,7 +431,7 @@ export class NarrativeSystem {
     const existing = mapSystem.getNodeById(stableId);
     if (existing) return existing;
 
-    const template = definition.templateId ? DataStore.SubjugationNodeDB.find(t => t.id === definition.templateId) : undefined;
+    const template = definition.templateId ? DataStore.getSubjugationTemplates().find(t => t.id === definition.templateId) : undefined;
     const terrainKey = definition.terrain || template?.terrain || 'RUINS';
     const finalDifficulty = Math.max(1, definition.difficulty ?? template?.difficulty ?? 2);
     const requiresScouting = definition.requiresScouting ?? template?.requiresScouting ?? false;

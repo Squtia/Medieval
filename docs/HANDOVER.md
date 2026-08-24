@@ -2,7 +2,65 @@
 
 這份交接文件記錄了目前的開發進度、已知問題，以及下一步的建議方向，以便未來任何開發者接手時能迅速進入狀況。
 
-- **2026-08-23 NPC 街道訪客事件與沉浸式視覺化對話系統實裝 (New!)**：
+- **2026-08-24 故事工坊動態連動自訂討伐據點庫、據點圖標選擇器升級 (New!)**：
+  - **故事工坊即時讀取戰鬥工坊自訂據點 (`DataStore.ts` & `StoryStudioForm.ts`)**：打通 `DataStore.getSubjugationTemplates()` 動態讀取機制，讓故事工坊在選擇據點範本時，不僅能選擇預設據點，還能**100% 即時讀取您剛在「討伐據點工坊」設計儲存的全新據點（如「詭異的神秘洞穴」）**，並自動秒速帶入名稱、地形、難度與波次配置。
+  - **討伐據點大地圖圖標可視化選擇器 (`CombatStudio.ts` & `combat-studio.html`)**：徹底移除「大地圖圖標 (Sprite)」純文字輸入框，改為即時圖標預覽外框與「🎨 選擇圖標」按鈕，點擊立即彈出視覺化 ICON 選擇器（支援所有建築圖集、怪物圖集、物品圖集與 Emoji），選中後即時預覽並自動同步左側據點清單。
+  - **測試面板透明即時狀態監控 (`NarrativeTestController.ts`)**：測試面板右下方新增 `排程節點` 與 `🏰 街道訪客` 即時名稱清單，並強化「重置測試進度」會一鍵重置天數為第 1 天與全面清空 UI，讓創作者隨時一眼掌控當前引擎底層排程倒數與街道上的 NPC 名單。
+  - **酒館傳聞即時連動待辦清單 (`TavernSystem.ts`)**：打聽傳聞成功揭露故事節點時，立即同步呼叫 `NarrativeSystem.ensureStoryTodos()` 與 `UIManager.updateUI()`，無需等待過天即可瞬間在領地待辦清單中看見後續決策節點。
+  - **全域 UI 統一重繪街道訪客 (`UIManager.ts`)**：在全域主 UI 刷新入口 `UIManager.updateUI()` 末尾全面接入 `renderStreetNpcEvents()`，徹底解決點擊「結束本日」完成天數推進時，因 `updateUI` 漏調用街道重繪而導致訪客卡片未浮現的致命遺漏。
+  - **街道訪客未完成前常駐顯示修復 (`NarrativeSystem.ts`)**：修復 `getEligibleStreetEvents()` 漏帶 `includePresented = true`，導致街道訪客節點一旦被標記為呈現過（例如點擊對話中途關閉或切換頁面）就會被判定已過期而隱形的漏洞；現在只要節點未真正完成（`!completedNodeIds`），訪客都會穩定常駐於街道上。
+  - **強盜勒索事件中斷主循環問題根除 (`GameLoop.ts`)**：徹底排查並修復強盜侵略（`pendingExtortionEvent`）觸發時 `advanceDay()` 錯誤執行 `return true`，導致 `GameFlowController` 將強盜勒索誤判為「Game Over」並強制中斷每日結算、轉場與故事排程的嚴重漏洞；現已改為事件佇列機制，確保天數推進與故事排程 100% 完整結算不中斷。
+  - **侵略與勒索彈窗關閉即時刷新 (`GameLoop.ts` & `ExtortionModalController.ts`)**：修復發生敵意入侵掠奪（Invasion）或盜匪勒索（Extortion）時，彈窗在關閉後未觸發全域 UI 與街道訪客重繪的問題；現在無論侵略勝負或支付勒索，彈窗關閉瞬間立即自動刷新街道訪客。
+  - **街道訪客卡片 2 倍大實裝與版面精確對齊 (`SceneController.ts` & `views-main.html`)**：將街道訪客 NPC 肖像按鈕放大為 2 倍尺寸（寬度 88px × 高度 164px，`renderUniversalPortrait(avatar, 88)`），加強外框金色流光與深邃陰影；容器寬度設為 `min(480px, 90%)` 與上方繁榮度條 100% 精準對齊，並配置 8px 舒適呼吸間距，徹底杜絕畫面重疊。
+  - **結束本日主循環故事結算接入 (`GameLoop.ts` & `UIManager.ts`)**：在遊戲主迴圈 `advanceDay()`（點擊「結束本日」史詩大圓鈕）中正式接入 `NarrativeSystem.processDailyTick()`，徹底解決正常點擊結束本日推進天數時故事排程處於凍結未結算的問題；轉場結束後全域 UI 自動刷新街道訪客。
+  - **受排程目標節點自動防護 (`NarrativeSystem.ts` & `NarrativeTestController.ts`)**：實裝 `isScheduledTargetNode` 自動防護機制：凡是被任何劇情選項或事件之 `SCHEDULE_NODE` 指名為目標的後續節點，在尚未被前置決策喚醒前，引擎全面自動封印，徹底杜絕後續步驟提前在街道或世界中誤觸發；創作者僅需在選項設定 `SCHEDULE_NODE (延遲 N 天)`，後續節點即會自然受保護，不再需要額外手動疊加 Fact 線索條件。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 故事工坊多段對話列表容器 ID 綁定修復**：
+  - **對話清單渲染容器修復 (`StoryStudioForm.ts`)**：修復 HTML 模板容器 ID（`story-node-dialogue-pages-list`）名稱不一致問題，點擊「＋ 新增對話段落」現已可正常即時新增並渲染出對話編輯卡片。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 故事工坊節點 ID 嚴格唯一性防撞保護實裝與節點資料修復**：
+  - **ID 唯一性防撞與失焦重命名校驗 (`StoryStudioForm.ts`)**：節點代號獨立於失焦（`change`）時進行防重複校驗，禁止撞名以杜絕節點同化缺陷；支援 ID 重命名時自動遷移故事內其他節點之關聯引用。
+  - **資料修正 (`custom_stories.json`)**：修復《最後的龍裔》之 `dragon_fam`（酒館傳聞）與 `dragon_fam_todo`（待辦清單）。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 故事工坊 (Story Studio) 全面架構整合與狀態中樞重構實裝**：
+  - **狀態驅動與模組化架構**：建立 `StoryStudioStore.ts` 統一管理狀態與草稿；`StoryStudioGraph.ts` 實裝 5px 拖曳安全門檻（徹底解決節點跳位）；`StoryStudioForm.ts` 實裝安全單向注入鎖定（徹底杜絕名稱覆蓋）。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 故事工坊自動草稿快取機制實裝與《最後的龍裔》對話復原**：
+  - **即時自動草稿快取與無縫還原 (`StoryStudio.ts`)**：實裝 `localStorage` 自動草稿同步機制，任何編輯 0.3 秒內即時寫入本地，瀏覽器重整或熱重載 100% 自動無痛還原。
+  - **資料復原 (`custom_stories.json`)**：已將《最後的龍裔》故事「對於瘋癲客人的好奇」節點對話（誓約守衛台詞：「酒館老闆說，你喝醉時提到過村邊附近隱密的那個洞窟...」）完整復原寫入專案。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 誓約守衛對話名稱動態綁定玩家命名與稱號精簡優化**：
+  - **對話框守衛名稱動態讀取 (`NpcDialogueModalController.ts`)**：發話者為誓約守衛時，100% 動態連結玩家開局為其所取的自訂名字（`guardian.name`），並徹底移除多餘動態稱號行，使版面俐落。
+  - **故事工坊介面精簡 (`StoryStudio.ts`)**：選取「👑 玩家誓約守衛」時自動隱藏名稱、稱號與肖像欄位（避免殘留上一段 NPC 稱號），專注編寫台詞。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 待辦事項紅點提醒徽章遺漏故事待辦節點問題修復**：
+  - **待辦提醒徽章計數修正 (`UIManager.ts`)**：修復先前 `todo-badge` 只計算傳統領地事件（`territory.pendingEvents`）而遺漏故事工坊待辦節點（`territory.pendingNarrativeNodes`）導致有待辦內容卻不顯示紅點的缺陷；改為正確加總兩者數量。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 故事節點前置條件一鍵滿足與全設施升級密技實裝**：
+  - **故事測試模式一鍵補足條件 (`NarrativeTestController.ts`)**：測試面板新增「🪄 一鍵滿足此節點前置條件」按鈕，可自動將領地設施（如酒館等級）、聲望、金幣與線索（Facts）一鍵提升並補齊。
+  - **領地設施除錯密技 (`CheatController.ts` & `docs/CHEATS.md`)**：新增 `buildmax`（全設施滿等）與 `tavern`（自訂酒館等級）指令。
+  - **酒館傳聞沉浸感優化 (`TavernSystem.ts`)**：移除打聽情報時字尾生硬附加的 `(故事線索：...)` 括號標籤，回歸乾淨沉浸的 NPC 台詞。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 市井 NPC 與龍裔 2×5 高解析對話立繪圖集實裝與資料集註冊**：
+  - **2×5 市井 NPC 與龍裔立繪圖集 (`npc_common.jpg`)**：精準繪製 10 款對話專用肖像（龍血女劍客、龍血男戰士、風霜老流浪漢、新手見習傭兵、狡黠街頭女賊、酒館落魄老兵、悍勇女打手、行腳市井貨郎、枯瘦老農夫、重傷包紮傭兵），儲存於 `public/assets/custom_icons/npc_common.jpg`。
+  - **資料集與座標映射**：`custom_icon_datasets.json` 與 `custom_icon_config.json` 正式註冊 `npc_common`（共 10 款肖像），支援故事工坊肖像挑選器與對話彈窗。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 故事工坊 NPC 對話完整測試系統實裝與主迴圈事件路由連通**：
+  - **故事工坊即時預覽彈窗 (`StoryStudio.ts` & `story-editor.html`)**：在對話分頁清單旁提供「💬 即時預覽此對話」按鈕，可即時預覽 1:1.853 NPC 大立繪、多段對話切換、男女守衛立繪即時切換與選項點擊模擬。
+  - **遊戲主迴圈與事件路由連通 (`main.ts`)**：修復 `NARRATIVE_NODE_TRIGGERED` 事件監聽，優先檢查節點是否含有 `dialoguePages` 或為 `STREET_EVENT` 頻道，正確路由至 `NpcDialogueModalController` 沉浸式對話彈窗而非普通純文字事件框。
+  - **故事測試模式面板增強 (`NarrativeTestController.ts`)**：節點選單標註「💬 」，點擊強制測試即可即時喚起完整 NPC 對話演出。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 誓約男女守衛 2×5 全套高解析對話立繪圖集實裝與對話框連動**：
+  - **2×5 誓約女守衛對話立繪圖集 (`guardian_f_talk.jpg`)**：精準還原 10 位女守衛特徵（金髮聖騎、修道神官、赤髮劍士、英姿女騎、暗影俠女、紫袍法師、金紋重甲女將⭐、黑皮刺客、長弓射手、重裝女戰），儲存於 `public/assets/custom_icons/guardian_f_talk.jpg`。
+  - **2×5 誓約男守衛對話立繪圖集 (`guardian_m_talk.jpg`)**：精準還原 10 位男守衛特徵（滄桑老將、銀髮雄獅、青年侍從、金紋將軍、兜帽遊俠、戰斧狂戰、歷戰刀疤重騎⭐、歷戰傭兵、長弓獵手、全罩步兵），儲存於 `public/assets/custom_icons/guardian_m_talk.jpg`。
+  - **資料集與座標映射**：`custom_icon_datasets.json` 與 `custom_icon_config.json` 正式註冊 `guardian_m_talk` 與 `guardian_f_talk`（共 20 款直立肖像）。
+  - **NPC 對話彈窗智慧立繪連動與守衛讀取修復**：`NpcDialogueModalController.ts` 修復先前錯誤讀取 `GameState.myTerritory.oathGuardian` 導致女性守衛永遠判定為 `undefined` 並回退成男性雄獅騎士的問題；改為精準讀取 `GameState.adventurers.find(a => a.isGuardian)`，並依真實性別與頭像索引映射至 `guardian_m_talk_x` 或 `guardian_f_talk_x`。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。
+- **2026-08-24 專案架構文件 (`docs/ARCHITECTURE.md`) 全面同步與目錄樹重構**：
+  - **修復目錄樹排版與格式缺陷**：修復殘留的 `\n` 換行轉義字元，校正 `src/ui/modals/`、`src/ui/components/` 與 `tools/` 的目錄階層關係。
+  - **補齊最新系統與控制器索引**：新增裝備工坊 (`EquipmentStudio.ts`)、技能註冊中樞 (`SkillRegistry.ts`)、GAMBIT 判定器 (`GambitEvaluator.ts`)、派系軍隊生成 (`FactionArmyGenerator.ts`)、NPC 對話彈窗 (`NpcDialogueModalController.ts`)、懸賞告示板 (`BountyModalController.ts`)、誓約創角 (`OathCreationController.ts`)、街道視圖控制器 (`SceneController.ts`)、改造所、二手黑市與官方討伐據點資料庫 (`subjugation_nodes.json`) 等索引。
+  - **擴充最新實裝核心架構章節**：新增「四大獨立開發工坊生態圈」、「戰鬥中樞、怪物 8 大定位與技能註冊系統」、「裝備體系、T1~T5 Scaling 與自動同步機制」、「街道場景與 NPC 訪客對話系統」與「懸賞與討伐據點全面故事化架構」章節。
+- **2026-08-23 NPC 街道訪客事件與沉浸式視覺化對話系統實裝**：
   - **對話完成即時刷新與事件監聽持久化修復 (`NpcDialogueModalController.ts` & `SceneController.ts`)**：
     - 修復開局/讀檔時 `clearAll('system')` 意外清除街道訪客事件監聽器，導致點擊「資助 150 金幣」後 NPC 按鈕未從街道上移除、重複索要金幣的問題。
     - 將街道訪客監聽器設定為 `'ui'` 持久 scope，並在對話選項結算後主動調用 `renderStreetNpcEvents()` 與 `UIManager.updateUI()` 即時移除 NPC 圖標與刷新頂部資源。

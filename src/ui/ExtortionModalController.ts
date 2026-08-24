@@ -3,6 +3,7 @@ import { GameLog } from './GameLog';
 import { UIManager } from './UIManager';
 import { processInvasionCombat } from '../core/GameLoop';
 import { startGameLoop } from '../core/GameLoop';
+import { renderStreetNpcEvents } from './SceneController';
 
 export class ExtortionModalController {
   private static instance: ExtortionModalController;
@@ -69,6 +70,7 @@ export class ExtortionModalController {
     GameLog.add(`💰 支付了保護費：失去了 ${lostGold} 金幣, ${lostFood} 糧食, ${lostWood} 木材, ${lostStone} 石材, ${lostIron} 鐵礦。盜匪承諾未來 7 天內不會再來找麻煩。`, 'warning');
     
     UIManager.updateUI();
+    renderStreetNpcEvents();
     this.hide();
     startGameLoop((window as any).updateUICallback);
   }
@@ -78,6 +80,7 @@ export class ExtortionModalController {
     // 呼叫防禦戰鬥邏輯 (沿用原有的自動結算)
     processInvasionCombat();
     UIManager.updateUI();
+    renderStreetNpcEvents();
     startGameLoop((window as any).updateUICallback);
   }
 }

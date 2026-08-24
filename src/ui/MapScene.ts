@@ -41,20 +41,22 @@ export class MapScene extends Phaser.Scene {
   }
 
   preload() {
+    const base = import.meta.env.BASE_URL || './';
+    const cleanBase = base.endsWith('/') ? base : base + '/';
     // 載入背景圖
-    this.load.image('bg-map', './bg-map.webp');
-    this.load.svg('combat-sword', './assets/combat_sword.svg', { width: 48, height: 96 });
+    this.load.image('bg-map', `${cleanBase}bg-map.webp`);
+    this.load.svg('combat-sword', `${cleanBase}assets/combat_sword.svg`, { width: 48, height: 96 });
 
     // 載入 Isometric 地圖節點圖示 (v2 簡潔高對比風格)
-    this.load.image('node-castle', './assets/node_castle.png');
-    this.load.image('node-town', './assets/node_town.png');
-    this.load.image('node-village', './assets/node_village.png');
-    this.load.image('node-ruins', './assets/node_ruins.png');
-    this.load.image('node-cave', './assets/node_cave.png');
-    this.load.image('node-forest', './assets/node_forest.png');
-    this.load.image('node-port', './assets/node_port.png');
-    this.load.image('node-monastery', './assets/node_monastery.png');
-    this.load.image('node-volcano', './assets/node_volcano.png');
+    this.load.image('node-castle', `${cleanBase}assets/node_castle.png`);
+    this.load.image('node-town', `${cleanBase}assets/node_town.png`);
+    this.load.image('node-village', `${cleanBase}assets/node_village.png`);
+    this.load.image('node-ruins', `${cleanBase}assets/node_ruins.png`);
+    this.load.image('node-cave', `${cleanBase}assets/node_cave.png`);
+    this.load.image('node-forest', `${cleanBase}assets/node_forest.png`);
+    this.load.image('node-port', `${cleanBase}assets/node_port.png`);
+    this.load.image('node-monastery', `${cleanBase}assets/node_monastery.png`);
+    this.load.image('node-volcano', `${cleanBase}assets/node_volcano.png`);
   }
 
   create() {
@@ -169,7 +171,10 @@ export class MapScene extends Phaser.Scene {
       this.cameras.main.setZoom(newZoom);
     });
 
-    // 5. 繪製貿易路線與商隊
+    // 5. 繪製貿易路線與商隊與初始節點
+    this.rebuildNodes();
+    this.renderFog();
+    this.renderRoadNetwork();
     this.updateRoutesAndCaravans();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanupSceneResources());

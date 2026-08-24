@@ -50,13 +50,16 @@ export function renderCampTraining() {
 export function enterScene(node: MapNode) {
   GameState.currentViewNode = node;
   
-  const mapView = document.getElementById('map-view')!;
-  const sceneView = document.getElementById('scene-view')!;
-  const wildernessView = document.getElementById('wilderness-view')!;
-  const uiLocation = document.getElementById('ui-location')!;
+  const mapView = document.getElementById('map-view');
+  const sceneView = document.getElementById('scene-view');
+  const wildernessView = document.getElementById('wilderness-view');
+  const uiLocation = document.getElementById('ui-location');
   
-  mapView.classList.remove('active');
-  uiLocation.textContent = node.name;
+  if (mapView) {
+    mapView.classList.remove('active');
+    mapView.style.display = '';
+  }
+  if (uiLocation) uiLocation.textContent = node.name;
 
   // 關閉所有可能殘留的建築設施視圖
   document.querySelectorAll('.facility-view').forEach(el => {
@@ -69,38 +72,40 @@ export function enterScene(node: MapNode) {
   }
 
   if (node.nodeLevel > NodeLevel.WILDERNESS || node.isPlayerBase) {
-    sceneView.classList.add('active');
-    document.getElementById('scene-country-name')!.textContent = node.name;
+    sceneView?.classList.add('active');
+    const sceneCountryName = document.getElementById('scene-country-name');
+    if (sceneCountryName) sceneCountryName.textContent = node.name;
     const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
-    document.getElementById('scene-country-state')!.textContent = `規模：${levelNames[node.nodeLevel]} | ${node.description}`;
+    const sceneCountryState = document.getElementById('scene-country-state');
+    if (sceneCountryState) sceneCountryState.textContent = `規模：${levelNames[node.nodeLevel]} | ${node.description}`;
     
-    const streetParallaxBg = document.getElementById('street-parallax-bg')!;
-    if (node.nodeLevel >= NodeLevel.TOWN) {
-      streetParallaxBg.style.backgroundImage = `url('./bg_street_prosperous_1784087131344.png')`;
-    } else if (node.nodeLevel >= NodeLevel.CAMP) {
-      streetParallaxBg.style.backgroundImage = `url('./bg_street_village_1784087142427.png')`;
-    } else {
-      streetParallaxBg.style.backgroundImage = `url('./bg_street_ruins_1784087152568.png')`;
+    const streetParallaxBg = document.getElementById('street-parallax-bg');
+    if (streetParallaxBg) {
+      const baseUrl = import.meta.env.BASE_URL || './';
+      const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+      if (node.nodeLevel >= NodeLevel.TOWN) {
+        streetParallaxBg.style.backgroundImage = `url('${cleanBase}bg_street_prosperous_1784087131344.png')`;
+      } else if (node.nodeLevel >= NodeLevel.CAMP) {
+        streetParallaxBg.style.backgroundImage = `url('${cleanBase}bg_street_village_1784087142427.png')`;
+      } else {
+        streetParallaxBg.style.backgroundImage = `url('${cleanBase}bg_street_ruins_1784087152568.png')`;
+      }
     }
     
     const isMyHome = node.isPlayerBase;
     const myTerritory = GameState.myTerritory;
 
-    const btnEnterBase = document.getElementById('btn-enter-base')!;
-    const btnEnterTavern = document.getElementById('btn-enter-tavern');
-    const btnEnterWeaponShop = document.getElementById('btn-enter-weapon-shop');
-    const btnEnterArmorShop = document.getElementById('btn-enter-armor-shop');
-    const btnEnterForge = document.getElementById('btn-enter-forge');
-    const btnEnterDefense = document.getElementById('btn-enter-defense');
-    const btnMigrate = document.getElementById('btn-migrate')!;
-    const btnEnterHall = document.getElementById('btn-enter-hall')!;
+    const btnEnterBase = document.getElementById('btn-enter-base');
+    const btnMigrate = document.getElementById('btn-migrate');
+    const btnEnterHall = document.getElementById('btn-enter-hall');
     
-    btnEnterBase.style.display = isMyHome ? 'block' : 'none';
-    btnMigrate.style.display = isMyHome ? 'none' : 'block';
+    if (btnEnterBase) btnEnterBase.style.display = isMyHome ? 'block' : 'none';
+    if (btnMigrate) btnMigrate.style.display = isMyHome ? 'none' : 'block';
     updateStreetBuildingsVisibility(node, isMyHome, myTerritory);
     
-    
-    btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
+    if (btnEnterHall) {
+      btnEnterHall.style.display = ((isMyHome && myTerritory.title !== 'COMMONER') || (node.nodeLevel === NodeLevel.CAPITAL && node.ownerFactionId !== null)) ? 'block' : 'none';
+    }
     
     renderStreetNpcEvents();
 
@@ -110,12 +115,16 @@ export function enterScene(node: MapNode) {
       }
     }, 100);
   } else {
-    wildernessView.classList.add('active');
-    document.getElementById('wild-name')!.textContent = node.name;
-    document.getElementById('wild-desc')!.textContent = node.description;
+    wildernessView?.classList.add('active');
+    const wildName = document.getElementById('wild-name');
+    if (wildName) wildName.textContent = node.name;
+    const wildDesc = document.getElementById('wild-desc');
+    if (wildDesc) wildDesc.textContent = node.description;
     
-    const btnFoundSettlement = document.getElementById('btn-found-settlement')!;
-    btnFoundSettlement.style.display = (node.ownerFactionId === null && !node.isPlayerBase) ? 'block' : 'none';
+    const btnFoundSettlement = document.getElementById('btn-found-settlement');
+    if (btnFoundSettlement) {
+      btnFoundSettlement.style.display = (node.ownerFactionId === null && !node.isPlayerBase) ? 'block' : 'none';
+    }
   }
   
   UIManager.updateUI();
@@ -135,8 +144,9 @@ export function returnToMap() {
     });
     
     // 返回地圖後，重新顯示 map-view
-    document.getElementById('map-view')!.classList.add('active');
-    document.getElementById('ui-location')!.textContent = '世界地圖';
+    document.getElementById('map-view')?.classList.add('active');
+    const uiLoc = document.getElementById('ui-location');
+    if (uiLoc) uiLoc.textContent = '世界地圖';
     
     const nodeDetailPanel = document.getElementById('node-detail-panel');
     if (nodeDetailPanel) {
@@ -150,14 +160,14 @@ export function returnToMap() {
 
 export function switchFacilityView(facilityId: string) {
   UIManager.playTransition(() => {
-    const sceneView = document.getElementById('scene-view')!;
-    const facilityView = document.getElementById('facility-view')!;
+    const sceneView = document.getElementById('scene-view');
+    const facilityView = document.getElementById('facility-view');
     
-    sceneView.classList.remove('active');
-    facilityView.classList.add('active');
+    sceneView?.classList.remove('active');
+    facilityView?.classList.add('active');
     
     // 根據設施切換背景
-    facilityView.id = `view-${facilityId}`;
+    if (facilityView) facilityView.id = `view-${facilityId}`;
     
     UIManager.updateUI();
   });
@@ -165,11 +175,11 @@ export function switchFacilityView(facilityId: string) {
 
 export function backToScene() {
   UIManager.playTransition(() => {
-    const sceneView = document.getElementById('scene-view')!;
-    const facilityView = document.getElementById('facility-view')!;
+    const sceneView = document.getElementById('scene-view');
+    const facilityView = document.getElementById('facility-view');
     
-    sceneView.classList.add('active');
-    facilityView.classList.remove('active');
+    sceneView?.classList.add('active');
+    facilityView?.classList.remove('active');
     
     UIManager.updateUI();
   });
@@ -490,12 +500,12 @@ export function renderStreetNpcEvents() {
     const btn = document.createElement('div');
     btn.className = 'street-npc-btn';
     btn.style.cssText = `
-      width: 44px;
-      height: 82px;
-      min-width: 44px;
-      border-radius: 4px;
-      border: 1.5px solid #d97706;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.8), 0 0 8px rgba(217,119,6,0.35);
+      width: 88px;
+      height: 164px;
+      min-width: 88px;
+      border-radius: 6px;
+      border: 2px solid #d97706;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.85), 0 0 10px rgba(217,119,6,0.4);
       cursor: pointer;
       overflow: hidden;
       flex-shrink: 0;
@@ -503,12 +513,12 @@ export function renderStreetNpcEvents() {
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: transform 0.15s ease, border-color 0.15s ease;
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
       position: relative;
     `;
 
     const avatar = ref.node.npcAvatar || 'npc:npc_0';
-    btn.innerHTML = renderUniversalPortrait(avatar, 44);
+    btn.innerHTML = renderUniversalPortrait(avatar, 88);
 
     // 滑鼠懸停與跟隨 Tooltip
     btn.onmouseenter = (e) => {

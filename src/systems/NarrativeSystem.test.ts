@@ -232,4 +232,105 @@ describe('NarrativeSystem', () => {
     routines = NarrativeSystem.getEligibleRoutineBounties();
     expect(routines).toHaveLength(0);
   });
+
+  it('runs full player flow for dragon legacy: rumor -> todo choice -> 3 days schedule -> street event', () => {
+    const dragonStory: NarrativeStory = {
+      id: 'new_story',
+      title: '最後的龍裔',
+      summary: '',
+      version: 1,
+      enabled: true,
+      nodes: [
+        {
+          id: 'dragon_fam',
+          title: '隱藏的龍裔',
+          description: '酒客傳聞',
+          channel: 'TAVERN_RUMOR',
+          conditions: [
+            { type: 'PRESTIGE_AT_LEAST', value: 1500 },
+            { type: 'TAVERN_LEVEL_AT_LEAST', value: 3 }
+          ],
+          choices: [],
+          completionEffects: [
+            { type: 'SET_FACT', fact: 'dragom_fam_01A', value: true }
+          ]
+        },
+        {
+          id: 'dragon_fam_1',
+          title: '領主的好奇心',
+          description: '待辦事項',
+          channel: 'TODO_LIST',
+          conditions: [
+            { type: 'FACT_EXISTS', fact: 'dragom_fam_01A' }
+          ],
+          choices: [
+            {
+              id: 'choice_1',
+              text: '讓人去探聽那位客人是誰。',
+              resultText: '',
+              effects: [
+                { type: 'SCHEDULE_NODE', nodeId: 'dragon_fam_2', delayDays: 3 }
+              ]
+            }
+          ],
+          completionEffects: []
+        },
+        {
+          id: 'dragon_fam_2',
+          title: '瘋癲的酒客',
+          description: '街道訪客',
+          channel: 'STREET_EVENT',
+          conditions: [],
+          choices: [],
+          completionEffects: []
+        }
+      ]
+    };
+    NarrativeSystem.setDefinitionsForTesting([dragonStory]);
+
+    GameState.myTerritory = {
+      prestige: 1500,
+      tavernLevel: 3,
+      pendingNarrativeNodes: []
+    } as any;
+    GameState.totalDays = 1;
+
+    // 1. 玩家在酒館點擊打聽傳聞
+    const rumor = NarrativeSystem.consumeTavernRumor();
+    expect(rumor).not.toBeNull();
+    expect(rumor?.node.id).toBe('dragon_fam');
+    expect(GameState.narrativeState.facts['dragom_fam_01A']).toBeDefined();
+
+    // 2. 系統結算待辦事項
+    NarrativeSystem.ensureStoryTodos();
+    expect((GameState.myTerritory as any).pendingNarrativeNodes).toContain('new_story:dragon_fam_1');
+
+    // 3. 玩家在待辦事項中做出決策 (choice_1: SCHEDULE_NODE dragon_fam_2, delayDays: 3)
+    const todoRef = NarrativeSystem.findNode('new_story', 'dragon_fam_1');
+    expect(todoRef).toBeDefined();
+    NarrativeSystem.resolveChoice('new_story', 'dragon_fam_1', todoRef!.node.choices[0]);
+    expect(GameState.narrativeState.scheduledNodes['new_story:dragon_fam_2']).toBe(4);
+
+    // 4. 當前第 1 天，酒客不應出現在街道
+    let streetEvents = NarrativeSystem.getEligibleStreetEvents();
+    expect(streetEvents.map(r => r.node.id)).not.toContain('dragon_fam_2');
+
+    // 5. 推進到第 2 天，酒客不應出現
+    GameState.totalDays = 2;
+    NarrativeSystem.processDailyTick();
+    streetEvents = NarrativeSystem.getEligibleStreetEvents();
+    expect(streetEvents.map(r => r.node.id)).not.toContain('dragon_fam_2');
+
+    // 6. 推進到第 3 天，酒客不應出現
+    GameState.totalDays = 3;
+    NarrativeSystem.processDailyTick();
+    streetEvents = NarrativeSystem.getEligibleStreetEvents();
+    expect(streetEvents.map(r => r.node.id)).not.toContain('dragon_fam_2');
+
+    // 7. 推進到第 4 天（過完 3 天），酒客必須出現！
+    GameState.totalDays = 4;
+    NarrativeSystem.processDailyTick();
+    streetEvents = NarrativeSystem.getEligibleStreetEvents();
+    expect(streetEvents.map(r => r.node.id)).toContain('dragon_fam_2');
+  });
 });

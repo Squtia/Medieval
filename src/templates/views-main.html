@@ -128,24 +128,24 @@
           <div id="prosperity-next-label" style="font-size: 0.75em; color: #94a3b8; text-align: right;">距升級還差 40 點繁榮度</div>
         </div>
 
-        <!-- 🏰 街道訪客事件列 (紅框區域：無事件時完全隱形，支援拖曳左右滑動) -->
+        <!-- 🏰 街道訪客事件列 (無事件時完全隱形，支援拖曳左右滑動，對齊上方繁榮度條) -->
         <div id="street-npc-events-bar" class="street-npc-events-bar" style="
           position: absolute;
-          top: 80px;
+          top: 86px;
           left: 50%;
           transform: translateX(-50%);
-          width: min(460px, 85%);
-          height: 92px;
+          width: min(480px, 90%);
+          height: 176px;
           z-index: 25;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
           overflow-x: auto;
           overflow-y: hidden;
           background: transparent;
           border: none;
           pointer-events: auto;
-          padding: 0 6px;
+          padding: 0 4px;
           scrollbar-width: none;
         ">
           <!-- JS 動態渲染 NPC 訪客肖像按鈕 -->

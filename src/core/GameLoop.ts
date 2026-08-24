@@ -27,6 +27,7 @@ export function startGameLoop(updateUICallback: () => void) {
       SaveManager.saveGame(GameState.currentSaveSlot);
     }
   }, 60000);
+
 }
 
 export function stopGameLoop() {
@@ -95,6 +96,9 @@ export function advanceDay(): boolean {
   // 1. 推進派遣系統 (以天數為基礎)
   GameState.system.updateDays(1);
 
+  // 2. 推進故事敘事系統每日排程與事件結算
+  NarrativeSystem.processDailyTick();
+
   const explorationResults = GameState.explorationSystem?.advanceDay(GameState.mapSystem.getNodes()) ?? [];
   for (const explorationProgress of explorationResults) {
     explorationProgress.discoveredNodeIds.forEach(nodeId => {
@@ -160,14 +164,20 @@ export function advanceDay(): boolean {
   BountySystem.processDailyTick(GameState);
   NarrativeSystem.processDailyTick();
 
-  // 處理盜匪勒索事件暫停
+  // 處理盜匪勒索事件 (排入每日結算轉場佇列，避免誤殺日常結算與中斷故事排程)
   if (GameState.pendingExtortionEvent) {
     GameState.pendingExtortionEvent = false;
-    stopGameLoop();
-    import('../ui/ExtortionModalController').then(({ ExtortionModalController }) => {
-      ExtortionModalController.getInstance().show();
-    });
-    return true; // 暫停迴圈等待玩家決策
+    const showExtortion = () => {
+      import('../ui/ExtortionModalController').then(({ ExtortionModalController }) => {
+        ExtortionModalController.getInstance().show();
+      });
+    };
+    if ((window as any).isAdvancingDay) {
+      if (!(window as any).eventQueue) (window as any).eventQueue = [];
+      (window as any).eventQueue.push(showExtortion);
+    } else {
+      showExtortion();
+    }
   }
 
   // 處理保護期倒數
@@ -343,7 +353,11 @@ function showInvasionReport(title: string, message: string, isError: boolean) {
     btn.className = 'action-btn';
     btn.innerText = '確認並結算';
     btn.style.fontSize = '1.2em';
-    btn.onclick = () => document.body.removeChild(overlay);
+    btn.onclick = () => {
+      document.body.removeChild(overlay);
+      import('../ui/UIManager').then(({ UIManager }) => UIManager.updateUI());
+      import('../ui/SceneController').then(({ renderStreetNpcEvents }) => renderStreetNpcEvents());
+    };
 
     modal.appendChild(titleEl);
     modal.appendChild(msgEl);

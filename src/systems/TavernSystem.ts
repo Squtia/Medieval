@@ -100,7 +100,9 @@ export class TavernSystem {
 
     const storyRumor = NarrativeSystem.consumeTavernRumor();
     if (storyRumor) {
-      return `老爹確認四下無人後壓低聲音：「${storyRumor.node.description}」\n(故事線索：${storyRumor.node.title})`;
+      NarrativeSystem.ensureStoryTodos();
+      import('../ui/UIManager').then(({ UIManager }) => UIManager.updateUI());
+      return `老爹確認四下無人後壓低聲音：「${storyRumor.node.description}」`;
     }
 
     const mapNodes = GameState.mapSystem?.getNodes() || [];

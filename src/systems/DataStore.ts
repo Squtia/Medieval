@@ -16,6 +16,20 @@ export class DataStore {
   // ============================
   public static readonly SubjugationNodeDB: SubjugationTemplate[] = subjugationNodesJson as SubjugationTemplate[];
 
+  /** 動態取得最新討伐據點庫（優先讀取戰鬥工坊中自訂儲存的據點） */
+  public static getSubjugationTemplates(): SubjugationTemplate[] {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('MEDIEVAL_CUSTOM_STRONGHOLDS_V2');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return this.SubjugationNodeDB;
+  }
+
   // ============================
   // 素材庫 (MaterialDB)
   // ============================

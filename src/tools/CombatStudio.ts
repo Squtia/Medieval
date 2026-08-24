@@ -897,6 +897,8 @@ class CombatStudioController {
     if (diffSlider) diffSlider.value = String(sh.difficulty || 2);
     if (diffDisplay) diffDisplay.textContent = `Lv.${sh.difficulty || 2}`;
     if (iconInput) iconInput.value = sh.icon || 'icons_buildings:icons_buildings_3';
+    const iconPreview = byId('sh-icon-preview');
+    if (iconPreview) iconPreview.innerHTML = renderUniversalIcon(sh.icon || 'icons_buildings:icons_buildings_3', 32);
     if (scoutingCheckbox) scoutingCheckbox.checked = !!sh.requiresScouting;
     if (removeCheckbox) removeCheckbox.checked = sh.removeOnVictory !== false;
     if (descTextarea) descTextarea.value = sh.description || '';
@@ -1175,6 +1177,22 @@ class CombatStudioController {
     byId('btn-sh-add')?.addEventListener('click', () => this.createNewStronghold());
     byId('btn-sh-duplicate')?.addEventListener('click', () => this.duplicateCurrentStronghold());
     byId('btn-sh-delete')?.addEventListener('click', () => this.deleteCurrentStronghold());
+
+    const handleIconPick = () => {
+      this.openIconPicker(newIcon => {
+        const sh = this.getActiveStronghold();
+        if (!sh) return;
+        sh.icon = newIcon;
+        const iconInput = byId<HTMLInputElement>('sh-icon');
+        if (iconInput) iconInput.value = newIcon;
+        const iconPreview = byId('sh-icon-preview');
+        if (iconPreview) iconPreview.innerHTML = renderUniversalIcon(newIcon, 32);
+        this.saveStrongholdsToStorage();
+        this.renderStrongholdList();
+      });
+    };
+    byId('btn-sh-select-icon')?.addEventListener('click', handleIconPick);
+    byId('sh-icon-preview')?.addEventListener('click', handleIconPick);
 
     byId<HTMLInputElement>('sh-search')?.addEventListener('input', e => {
       this.strongholdSearchQuery = (e.target as HTMLInputElement).value;

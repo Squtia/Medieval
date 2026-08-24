@@ -48,9 +48,9 @@ export class CombatUIManager {
     this.btnSpeed3x          = document.getElementById('btn-combat-speed-3x')!;
 
     if (!this.isInitialized) {
-      this.btnSkip.addEventListener('click', () => this.skipPlayback());
-      this.btnClose.addEventListener('click', () => this.closeCombat());
-      this.btnResultClose.addEventListener('click', () => this.closeCombat());
+      this.btnSkip?.addEventListener('click', () => this.skipPlayback());
+      this.btnClose?.addEventListener('click', () => this.closeCombat());
+      this.btnResultClose?.addEventListener('click', () => this.closeCombat());
       this.btnSpeed1x?.addEventListener('click', () => this.setSpeed(1));
       this.btnSpeed2x?.addEventListener('click', () => this.setSpeed(2));
       this.btnSpeed3x?.addEventListener('click', () => this.setSpeed(3));

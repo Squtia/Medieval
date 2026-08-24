@@ -3691,5 +3691,440 @@
         "zoom": 100
       }
     ]
+  },
+  "guardian_m_talk": {
+    "title": "🛡️ 誓約男守衛對話立繪 (10款·2x5)",
+    "spriteUrl": "../public/assets/custom_icons/guardian_m_talk.jpg",
+    "fallbackUrls": [
+      "../assets/custom_icons/guardian_m_talk.jpg",
+      "./assets/custom_icons/guardian_m_talk.jpg",
+      "/assets/custom_icons/guardian_m_talk.jpg",
+      "../public/assets/custom_icons/guardian_m_talk.jpg"
+    ],
+    "cols": 5,
+    "rows": 2,
+    "items": [
+      {
+        "id": "guardian_m_talk_0",
+        "name": "滄桑老兵隊長 (對話立繪)",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_1",
+        "name": "銀髮雄獅騎士 (對話立繪)",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_2",
+        "name": "忠誠青年侍從 (對話立繪)",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_3",
+        "name": "金紋重甲將軍 (對話立繪)",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_4",
+        "name": "神秘兜帽遊俠 (對話立繪)",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_5",
+        "name": "狂怒戰斧勇士 (對話立繪)",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_6",
+        "name": "歷戰刀疤重騎 (對話立繪)",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_7",
+        "name": "堅毅歷戰傭兵 (對話立繪)",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_8",
+        "name": "森林長弓獵手 (對話立繪)",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_m_talk_9",
+        "name": "全罩重裝步兵 (對話立繪)",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      }
+    ]
+  },
+  "guardian_f_talk": {
+    "title": "🛡️ 誓約女守衛對話立繪 (10款·2x5)",
+    "spriteUrl": "../public/assets/custom_icons/guardian_f_talk.jpg",
+    "fallbackUrls": [
+      "../assets/custom_icons/guardian_f_talk.jpg",
+      "./assets/custom_icons/guardian_f_talk.jpg",
+      "/assets/custom_icons/guardian_f_talk.jpg",
+      "../public/assets/custom_icons/guardian_f_talk.jpg"
+    ],
+    "cols": 5,
+    "rows": 2,
+    "items": [
+      {
+        "id": "guardian_f_talk_0",
+        "name": "金髮璀璨聖騎 (對話立繪)",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_1",
+        "name": "聖潔修道神官 (對話立繪)",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_2",
+        "name": "颯爽赤髮劍士 (對話立繪)",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_3",
+        "name": "短髮英姿女騎 (對話立繪)",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_4",
+        "name": "暗影兜帽俠女 (對話立繪)",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_5",
+        "name": "紫袍秘術法師 (對話立繪)",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_6",
+        "name": "金紋重甲女將 (對話立繪)",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_7",
+        "name": "夜行黑皮刺客 (對話立繪)",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_8",
+        "name": "雙辮長弓射手 (對話立繪)",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "guardian_f_talk_9",
+        "name": "重裝板金女戰 (對話立繪)",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      }
+    ]
+  },
+  "npc_common": {
+    "title": "👥 市井NPC與流浪者 (10款·2x5)",
+    "spriteUrl": "../public/assets/custom_icons/npc_common.jpg",
+    "fallbackUrls": [
+      "../assets/custom_icons/npc_common.jpg",
+      "./assets/custom_icons/npc_common.jpg",
+      "/assets/custom_icons/npc_common.jpg",
+      "../public/assets/custom_icons/npc_common.jpg"
+    ],
+    "cols": 5,
+    "rows": 2,
+    "items": [
+      {
+        "id": "npc_dragon_f",
+        "name": "龍血女劍客",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "npc_dragon_m",
+        "name": "龍血男戰士",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "npc_vagrant",
+        "name": "風霜老流浪漢",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "npc_rookie_merc",
+        "name": "新手見習傭兵",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "npc_street_thief",
+        "name": "狡黠街頭女賊",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "npc_drunkard",
+        "name": "酒館落魄老兵",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "npc_brawler_f",
+        "name": "悍勇女打手",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "npc_peddler",
+        "name": "行腳市井貨郎",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "npc_old_peasant",
+        "name": "枯瘦老農夫",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "npc_scarred_merc",
+        "name": "重傷包紮傭兵",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      }
+    ]
+  },
+  "cave_node_01": {
+    "title": "討伐節點",
+    "spriteUrl": "../public/assets/custom_icons/cave_node_01.png",
+    "cols": 5,
+    "rows": 5,
+    "items": [
+      {
+        "id": "cave_node_01_0",
+        "name": "討伐節點 #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_1",
+        "name": "討伐節點 #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_2",
+        "name": "討伐節點 #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_3",
+        "name": "討伐節點 #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_4",
+        "name": "討伐節點 #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_5",
+        "name": "討伐節點 #06",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_6",
+        "name": "討伐節點 #07",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_7",
+        "name": "討伐節點 #08",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_8",
+        "name": "討伐節點 #09",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_9",
+        "name": "討伐節點 #10",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_10",
+        "name": "討伐節點 #11",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_11",
+        "name": "討伐節點 #12",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_12",
+        "name": "討伐節點 #13",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_13",
+        "name": "討伐節點 #14",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_14",
+        "name": "討伐節點 #15",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_15",
+        "name": "討伐節點 #16",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_16",
+        "name": "討伐節點 #17",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_17",
+        "name": "討伐節點 #18",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_18",
+        "name": "討伐節點 #19",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_19",
+        "name": "討伐節點 #20",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_20",
+        "name": "討伐節點 #21",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_21",
+        "name": "討伐節點 #22",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_22",
+        "name": "討伐節點 #23",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_23",
+        "name": "討伐節點 #24",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "cave_node_01_24",
+        "name": "討伐節點 #25",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      }
+    ]
   }
 }

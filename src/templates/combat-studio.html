@@ -917,7 +917,14 @@
         </div>
         <div>
           <label class="cs-label">大地圖圖標 (Sprite):</label>
-          <input type="text" id="sh-icon" class="cs-input" style="width: 100%;" value="icons_buildings:icons_buildings_3">
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div id="sh-icon-preview" style="width: 40px; height: 40px; min-width: 40px; border-radius: 6px; background: #0e121a; border: 1.5px solid var(--cs-panel-border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;" title="點擊切換圖標">
+            </div>
+            <button type="button" id="btn-sh-select-icon" class="cs-btn cs-btn-secondary" style="flex: 1; height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.82rem;">
+              🎨 選擇圖標
+            </button>
+            <input type="hidden" id="sh-icon" value="icons_buildings:icons_buildings_3">
+          </div>
         </div>
         <div style="display: flex; flex-direction: column; justify-content: center; gap: 6px;">
           <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #cbd5e1; cursor: pointer;">

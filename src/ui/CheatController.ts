@@ -63,10 +63,34 @@ export function initCheatController(): void {
           type: GameEventType.POPULATION_CHANGED,
           payload: { delta: v * 3, currentPopulation: GameState.myTerritory.population, reason: 'CHEAT' }
         });
+    }},
+    'tavern': { name: '酒館等級 (0~5)', setter: (v) => {
+        GameState.myTerritory.tavernLevel = v;
+        if (v > 0 && !GameState.myTerritory.unlockedBuildings.includes('bld_tavern')) {
+          GameState.myTerritory.unlockedBuildings.push('bld_tavern');
+        }
     }}
   };
 
   Object.assign(CHEAT_MAP, {
+    'buildmax': { name: '全建築設施滿等', noPrompt: true, setter: () => {
+        const blds = ['bld_tavern', 'bld_weapon', 'bld_armor', 'bld_forge', 'bld_defense'];
+        blds.forEach(id => {
+          if (!GameState.myTerritory.unlockedBuildings.includes(id)) {
+            GameState.myTerritory.unlockedBuildings.push(id);
+          }
+        });
+        GameState.myTerritory.tavernLevel = 5;
+        GameState.myTerritory.weaponShopLevel = 5;
+        GameState.myTerritory.armorShopLevel = 5;
+        GameState.myTerritory.forgeLevel = 5;
+        GameState.myTerritory.defenseLevel = 5;
+        GameState.myTerritory.farmlandLevel = 5;
+        GameState.myTerritory.lumberMillLevel = 5;
+        GameState.myTerritory.quarryLevel = 5;
+        GameState.myTerritory.huntingGroundLevel = 5;
+        ToastManager.show(`🏰 領地內所有建築與生產設施已全部升至 5 等滿級！`, 'success');
+    }},
     'lvlmax': { name: '全傭兵滿等', noPrompt: true, setter: () => {
         GameState.adventurers.forEach(adv => {
            if (adv.level < 10) {

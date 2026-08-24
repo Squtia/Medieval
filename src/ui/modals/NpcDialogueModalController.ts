@@ -1,6 +1,7 @@
 import { GameState } from '../../core/GameState';
 import { EventBus } from '../../core/EventBus';
 import { GameEventType } from '../../core/GameEvents';
+import { Gender } from '../../models/types';
 import { NarrativeChoice, NarrativeDialoguePage } from '../../models/Narrative';
 import { NarrativeNodeRef, NarrativeSystem } from '../../systems/NarrativeSystem';
 import { renderUniversalIcon, renderUniversalPortrait } from '../IconSpriteHelper';
@@ -104,15 +105,38 @@ export class NpcDialogueModalController {
 
     if (page.speakerType === 'PLAYER_GUARDIAN') {
       // 讀取當前領主 / 誓約守衛頭像與名稱
-      const territory = GameState.myTerritory as any;
-      const guardian = territory?.oathGuardian;
-      speakerName = guardian?.name || '領主大人';
-      speakerTitle = '【領地守衛者】';
-      avatarIcon = guardian?.avatarIcon || (guardian?.gender === 'FEMALE' ? 'guardian_f_0' : 'guardian_m_1');
+      const guardian = GameState.adventurers?.find(a => a.isGuardian) || GameState.adventurers?.[0];
+      speakerName = guardian?.name || '誓約守衛';
+      speakerTitle = ''; // 誓約守衛直接顯示名稱，不使用額外稱號
+
+      const isFemale = (guardian?.gender as any) === 'FEMALE' || (guardian?.gender as any) === Gender.FEMALE;
+      let curIcon = (guardian as any)?.avatarIcon;
+
+      if (!curIcon) {
+        const idx = (typeof guardian?.avatarIndex === 'number' && guardian.avatarIndex >= 0 && guardian.avatarIndex < 10)
+          ? guardian.avatarIndex
+          : (isFemale ? 0 : 1);
+        curIcon = isFemale ? `guardian_f_talk_${idx}` : `guardian_m_talk_${idx}`;
+      } else {
+        if (curIcon.startsWith('guardian_m_') && !curIcon.includes('talk')) {
+          curIcon = curIcon.replace('guardian_m_', 'guardian_m_talk_');
+        } else if (curIcon.startsWith('guardian_f_') && !curIcon.includes('talk')) {
+          curIcon = curIcon.replace('guardian_f_', 'guardian_f_talk_');
+        }
+      }
+      avatarIcon = curIcon;
     }
 
     if (this.speakerNameEl) this.speakerNameEl.textContent = speakerName;
-    if (this.speakerTitleEl) this.speakerTitleEl.textContent = speakerTitle;
+    if (this.speakerTitleEl) {
+      if (speakerTitle && speakerTitle.trim()) {
+        this.speakerTitleEl.textContent = speakerTitle;
+        this.speakerTitleEl.style.display = 'block';
+      } else {
+        this.speakerTitleEl.textContent = '';
+        this.speakerTitleEl.style.display = 'none';
+      }
+    }
     if (this.textEl) this.textEl.textContent = page.text;
 
     // 渲染 NPC 立繪大肖像 (嚴格鎖定 275.2:510 / 1:1.853 肖像畫框比例)
