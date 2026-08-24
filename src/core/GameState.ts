@@ -94,8 +94,43 @@ export function initGameState(options: NewGameOptions = {
   GameState.system = new DispatchSystem(GameState.myTerritory);
   
   const factionsCopy = JSON.parse(JSON.stringify(factions));
+  
+  // 自動載入討伐據點庫中標記為「開局世界隱藏秘境」的自訂據點
+  const secretStrongholds: MapNode[] = DataStore.getSubjugationTemplates()
+    .filter(tpl => tpl.isWorldSecret)
+    .map(tpl => ({
+      id: `secret_${tpl.id}`,
+      name: tpl.name,
+      description: tpl.description || '',
+      x: 0,
+      y: 0,
+      population: 0,
+      prosperity: 0,
+      nodeLevel: NodeLevel.WILDERNESS,
+      ownerFactionId: null,
+      isPlayerBase: false,
+      isDiscovered: false,
+      terrain: (TerrainType as any)[tpl.terrain] || TerrainType.RUINS,
+      feature: NodeFeature.SUBJUGATION,
+      isHidden: true,
+      isDynamic: true,
+      baseDifficulty: tpl.difficulty || 2,
+      isScouted: !tpl.requiresScouting,
+      customIcon: tpl.icon,
+      fogRumor: tpl.fogRumor,
+      revealRumor: tpl.revealRumor,
+      narrativeSubjugation: {
+        storyId: 'world_secret',
+        sourceNodeId: tpl.id,
+        templateId: tpl.id,
+        journeyNodeIds: [],
+        removeOnVictory: tpl.removeOnVictory !== false
+      }
+    } as unknown as MapNode));
+
+  const allWorldNodes = [...mapNodes, ...secretStrongholds];
   const generatedWorld = MapGenerator.generateWorld(
-    mapNodes,
+    allWorldNodes,
     options.seed,
     options.difficulty
   );

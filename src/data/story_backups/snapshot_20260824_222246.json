@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-23T14:27:29.085Z",
+  "timestamp": "2026-08-24T14:22:46.750Z",
   "note": "故事內容調整",
   "stories": [
     {
@@ -47,7 +47,8 @@
             "expireDays": 30,
             "gold": 80,
             "exp": 50
-          }
+          },
+          "dialoguePages": []
         },
         {
           "id": "warehouse_cargo",
@@ -229,7 +230,8 @@
               "type": "ADD_GOLD",
               "value": -100
             }
-          ]
+          ],
+          "dialoguePages": []
         },
         {
           "id": "drunken_guard",
@@ -257,7 +259,8 @@
               "fact": "guard_testimony",
               "value": true
             }
-          ]
+          ],
+          "dialoguePages": []
         }
       ]
     },
@@ -549,7 +552,8 @@
               ]
             }
           ],
-          "completionEffects": []
+          "completionEffects": [],
+          "dialoguePages": []
         },
         {
           "id": "evt_ancient_monolith",
@@ -626,7 +630,8 @@
             "gold": 20,
             "exp": 10,
             "type": "NORMAL"
-          }
+          },
+          "dialoguePages": []
         },
         {
           "id": "routine_sewer_rats",
@@ -1012,6 +1017,10 @@
             {
               "type": "PRESTIGE_AT_LEAST",
               "value": 1500
+            },
+            {
+              "type": "TAVERN_LEVEL_AT_LEAST",
+              "value": 3
             }
           ],
           "choices": [],
@@ -1021,11 +1030,13 @@
               "fact": "dragom_fam_01A",
               "value": true
             }
-          ]
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
         },
         {
-          "id": "new_node",
-          "title": "對於瘋癲客人的好奇",
+          "id": "dragon_fam_1",
+          "title": "領主的好奇心",
           "description": "酒店老闆的敘述讓領主產生好奇，是否讓人去探聽傳聞的真實性，畢竟領地正在處於發展時期。",
           "channel": "TODO_LIST",
           "conditions": [
@@ -1039,7 +1050,260 @@
               "id": "choice_1",
               "text": "讓人去探聽那位客人是誰。",
               "resultText": "",
-              "effects": []
+              "effects": [
+                {
+                  "type": "SCHEDULE_NODE",
+                  "nodeId": "dragon_fam_2",
+                  "delayDays": 3
+                }
+              ]
+            },
+            {
+              "id": "choice_2",
+              "text": "應該只是常見的那種說大話的酒客，不用理他了。",
+              "resultText": "",
+              "effects": [
+                {
+                  "type": "SCHEDULE_NODE",
+                  "nodeId": "",
+                  "delayDays": 1
+                }
+              ]
+            }
+          ],
+          "completionEffects": [],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "dragon_fam_2",
+          "title": "瘋癲的酒客",
+          "description": "",
+          "channel": "STREET_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "CREATE_SUBJUGATION_NODE",
+              "definition": {
+                "nodeId": "dragon_fam_dun",
+                "name": "充滿龍晶的隱藏洞窟",
+                "description": "",
+                "placement": "NEAR_PLAYER",
+                "radius": 8,
+                "terrain": "RUINS",
+                "difficulty": 5,
+                "enemyFeature": "BALANCED",
+                "requiresScouting": false,
+                "removeOnVictory": true,
+                "journeyNodeIds": [
+                  "dragon_fam_3ing"
+                ],
+                "templateId": "dragon_fam_dun",
+                "monsterId": "",
+                "victoryNodeId": "dragon_fam_3w",
+                "defeatNodeId": "dragon_fam_3l"
+              }
+            }
+          ],
+          "dialoguePages": [
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerName": "瘋癲酒客",
+              "speakerTitle": "【街角遇見的旅人】",
+              "speakerAvatar": "npc_common:npc_drunkard",
+              "text": "酒館老闆說，你喝醉時提到過村裡後面的那個洞窟。把你知道的洞窟狀況說清楚，領主大人希望把狀況探查明白。"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "瘋癲酒客",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_drunkard",
+              "text": "弄明白?你們不過就是覬覦那些寶藏，讓你們知道了我還混個屁?"
+            },
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerName": "瘋癲酒客",
+              "speakerTitle": "【街角遇見的旅人】",
+              "speakerAvatar": "npc_common:npc_drunkard",
+              "text": "一把按住傭兵酒客的肩胛，冰冷的鐵手套用力捏緊：「你吹噓自己能隨意拿寶物出來揮霍，那裡面到底是什麼狀況？你是怎麼把錢帶出來的？」"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "瘋癲酒客",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_drunkard",
+              "text": "「痛痛痛……鬆手！」傭兵酒客痛得齜牙咧嘴，抓撓著髒亂的頭髮咆哮，「進去……順著水流聲走！左邊是滿地的人骨，右邊是會發光的苔蘚。洞口被黑色藤蔓纏死了，一點火，牆上的石頭就會『活』過來！」"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "瘋癲酒客",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_drunkard",
+              "text": "他突然壓低聲音，渾濁的眼睛眨了眨，得意又詭異地低笑：「嘿……想拿錢？只能趁『牠們』沉睡的時候！摸著濕滑的左側岩壁，絕對不能發出聲音，伸手進骨頭堆下面的暗槽……那裏面的金幣隨便抓！但我每次只敢拿一把就跑……去啊！你們去拿啊！看看是寶藏多，還是你們的命多！」"
+            },
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerName": "瘋癲酒客",
+              "speakerTitle": "【街角遇見的旅人】",
+              "speakerAvatar": "npc_common:npc_drunkard",
+              "text": "守誓者似乎意識到什麼事情說：「這些錢你拿去，以後不要再去那個洞窟了，也不要跟任何人再提起這件事情。」"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "瘋癲酒客",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_drunkard",
+              "text": "酒客根本沒看錢袋，只是蜷縮回陰影裡，傻笑著喃喃自語：「拿去吧……都拿去吧……反正進去的人，沒有一個能把影子帶出來……」"
+            }
+          ],
+          "npcName": "瘋癲酒客",
+          "npcAvatar": "npc_common:npc_drunkard"
+        },
+        {
+          "id": "dragon_fam_3w",
+          "title": "新故事節點",
+          "description": "",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [
+            {
+              "type": "FACT_EXISTS",
+              "fact": "new_fact"
+            }
+          ],
+          "choices": [],
+          "completionEffects": [],
+          "dialoguePages": []
+        },
+        {
+          "id": "dragon_fam_3l",
+          "title": "新故事節點",
+          "description": "",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [
+            {
+              "type": "FACT_EXISTS",
+              "fact": "new_fact"
+            }
+          ],
+          "choices": [],
+          "completionEffects": [],
+          "dialoguePages": []
+        },
+        {
+          "id": "dragon_fam_3ing",
+          "title": "突然拜訪的神秘人",
+          "description": "守衛向你匯報一位神秘的女性在領地內等你，希望你盡快去會晤。",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "SCHEDULE_NODE",
+              "nodeId": "dragon_fam_3ing_01",
+              "delayDays": 0
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc_common:npc_dragon_f"
+        },
+        {
+          "id": "dragon_fam_3ing_01",
+          "title": "神秘女性",
+          "description": "",
+          "channel": "STREET_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [],
+          "dialoguePages": [
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerName": "神秘女性",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": "請問你是哪一位?有什麼需要和領主匯報的?"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "神秘女性",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": "你和你的傭兵正在玩火，我希望你可以把他們召喚回來，不要再靠近那裏了。"
+            }
+          ],
+          "npcAvatar": "npc_common:npc_dragon_f",
+          "npcName": "神秘女性"
+        }
+      ]
+    },
+    {
+      "id": "story_street_visitors",
+      "title": "城鎮街角的訪客們",
+      "summary": "在領地街道通道旁，經常有來自各地的旅人、學者與行商前來拜訪領主。",
+      "version": 1,
+      "enabled": true,
+      "nodes": [
+        {
+          "id": "visitor_elena_apothecary",
+          "title": "流浪草藥師的拜訪",
+          "description": "一名身披斗篷的年輕草藥師在街道巷口等待著，身旁擺著裝滿乾燥藥草的行囊。",
+          "channel": "STREET_EVENT",
+          "npcName": "草藥師 艾蓮娜",
+          "npcAvatar": "npc:npc_1",
+          "conditions": [],
+          "dialoguePages": [
+            {
+              "speakerType": "NPC",
+              "speakerName": "草藥師 艾蓮娜",
+              "speakerTitle": "【流浪草藥師】",
+              "speakerAvatar": "npc:npc_1",
+              "text": "領主大人，向您致敬！我在附近的黑霧森林採集到了珍稀的靈藥草，聽聞您的領地正在欣欣向榮地發展，特地前來求見。"
+            },
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerTitle": "【領地守衛者】",
+              "text": "這批藥草色澤鮮潤，確實是上等品質。不知草藥師此番前來，有何打算？"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "草藥師 艾蓮娜",
+              "speakerTitle": "【流浪草藥師】",
+              "speakerAvatar": "npc:npc_1",
+              "text": "若領地願意資助我 150 金幣作為研磨器具的費用，我願將隨身調製的精煉秘藥獻給領地的騎士們，並在此長期提供醫藥協助！"
+            }
+          ],
+          "choices": [
+            {
+              "id": "choice_support_elena",
+              "text": "資助 150 金幣，歡迎草藥師常駐領地。",
+              "resultText": "艾蓮娜感激地收下金幣，領地獲得了珍貴的秘藥支援，繁榮度有所提升！",
+              "effects": [
+                {
+                  "type": "ADD_GOLD",
+                  "value": -150
+                },
+                {
+                  "type": "ADD_PRESTIGE",
+                  "value": 30
+                },
+                {
+                  "type": "SET_FACT",
+                  "fact": "elena_apothecary_settled",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "id": "choice_decline_elena",
+              "text": "領地目前預算吃緊，暫時無法資助。",
+              "resultText": "艾蓮娜微微行禮，表示理解，並期待未來能有合作機會。",
+              "effects": [
+                {
+                  "type": "SET_FACT",
+                  "fact": "elena_apothecary_declined",
+                  "value": true
+                }
+              ]
             }
           ],
           "completionEffects": []

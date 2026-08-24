@@ -362,6 +362,17 @@ class CombatStudioController {
 
   // ── 預設敵方多波次遭遇 ──
   private initDefaultEnemyWaves(stronghold: string): void {
+    if (stronghold === 'custom') {
+      // 保持當前自訂隊伍
+      return;
+    }
+
+    const foundSh = this.strongholdsDb.find(s => s.id === stronghold);
+    if (foundSh) {
+      this.loadStrongholdToBattleSandbox(foundSh, false);
+      return;
+    }
+
     if (this.customStrongholds[stronghold]) {
       const sh = this.customStrongholds[stronghold];
       this.enemyWaves = clone(sh.garrisonWaves);
@@ -447,7 +458,10 @@ class CombatStudioController {
       adv.baseAttributes.spr = baseAttr.spr + (cfg.level - 1) * 2 + cfg.allocatedStats.spr;
       adv.baseAttributes.luk = baseAttr.luk + (cfg.level - 1) * 2 + cfg.allocatedStats.luk;
 
-      // 裝備配置
+      // 裝備配置與標準 (A) 級屬性補正 (Scaling) 計算
+      const scaling = this.calculateWeaponScalingBonus(cfg.weaponType, adv.baseAttributes);
+      const baseWpnAtk = cfg.weaponTier * 15 + cfg.weaponEnhance * 4;
+
       const weaponTpl: Equipment = {
         id: `wpn_${cfg.id}`,
         name: `${cfg.weaponElement !== ElementType.NONE ? '[' + cfg.weaponElement + ']' : ''}${cfg.weaponType}`,
@@ -455,7 +469,12 @@ class CombatStudioController {
         tier: cfg.weaponTier,
         requirements: {},
         effects: {},
-        combatEffects: { atk: cfg.weaponTier * 15 + cfg.weaponEnhance * 4, patk: cfg.weaponTier * 15, matk: cfg.weaponTier * 15 },
+        combatEffects: {
+          atk: baseWpnAtk + Math.max(scaling.patkBonus, scaling.matkBonus),
+          patk: baseWpnAtk + scaling.patkBonus,
+          matk: baseWpnAtk + scaling.matkBonus,
+          def: scaling.defBonus
+        },
         enhancementLevel: cfg.weaponEnhance,
         weaponType: cfg.weaponType,
         element: cfg.weaponElement
@@ -502,6 +521,74 @@ class CombatStudioController {
     return advList;
   }
 
+  /**
+   * 計算戰鬥沙盒中純色與複合武器的標準 (A) 級屬性補正 (總補正倍率 1.2x)
+   * 遵守 docs/CLASS_SYSTEM.md 權威規範
+   */
+  private calculateWeaponScalingBonus(weaponType: WeaponType, attr: { str: number; agi: number; con: number; int: number; spr: number }): { patkBonus: number; matkBonus: number; defBonus: number } {
+    let patkBonus = 0;
+    let matkBonus = 0;
+    let defBonus = 0;
+
+    switch (weaponType) {
+      // 純物理單屬性 (1.2x STR / AGI)
+      case WeaponType.GREATSWORD:
+        patkBonus = Math.floor(attr.str * 1.2);
+        break;
+      case WeaponType.BOW:
+      case WeaponType.DAGGERS:
+        patkBonus = Math.floor(attr.agi * 1.2);
+        break;
+
+      // 純魔法單屬性 (1.2x INT / SPR)
+      case WeaponType.STAFF:
+        matkBonus = Math.floor(attr.int * 1.2);
+        break;
+      case WeaponType.HOLY_BOOK:
+        matkBonus = Math.floor(attr.spr * 1.2);
+        break;
+
+      // 坦克單屬性 (0.6x STR + 0.6x CON)
+      case WeaponType.SWORD_AND_SHIELD:
+        patkBonus = Math.floor(attr.str * 0.6);
+        defBonus = Math.floor(attr.con * 0.6);
+        break;
+
+      // 複合雙屬性武器 (各 0.6x，合計 1.2x 標準 A 級補正)
+      case WeaponType.DUAL_SWORDS: // 魔劍士: STR (0.6) + INT (0.6)
+        patkBonus = Math.floor(attr.str * 0.6);
+        matkBonus = Math.floor(attr.int * 0.6);
+        break;
+      case WeaponType.MAGIC_BOW: // 精靈使: AGI (0.6) + INT (0.6)
+        patkBonus = Math.floor(attr.agi * 0.6);
+        matkBonus = Math.floor(attr.int * 0.6);
+        break;
+      case WeaponType.SCYTHE: // 死靈法師: STR (0.6) + INT (0.6)
+        patkBonus = Math.floor(attr.str * 0.6);
+        matkBonus = Math.floor(attr.int * 0.6);
+        break;
+      case WeaponType.HAMMER: // 異端拷問官: STR (0.6) + SPR (0.6)
+        patkBonus = Math.floor(attr.str * 0.6);
+        matkBonus = Math.floor(attr.spr * 0.6);
+        break;
+      case WeaponType.MAGIC_RING: // 詭術師: AGI (0.6) + INT (0.6)
+        patkBonus = Math.floor(attr.agi * 0.6);
+        matkBonus = Math.floor(attr.int * 0.6);
+        break;
+      case WeaponType.RUNE_SHIELD: // 符文騎士: CON (0.6) + SPR (0.6)
+        defBonus = Math.floor(attr.con * 0.6 + attr.spr * 0.6);
+        matkBonus = Math.floor(attr.spr * 0.6);
+        break;
+
+      default:
+        patkBonus = Math.floor(attr.str * 0.8);
+        matkBonus = Math.floor(attr.int * 0.8);
+        break;
+    }
+
+    return { patkBonus, matkBonus, defBonus };
+  }
+
   private buildMonstersForWaves(): MonsterInstance[][] {
     return this.enemyWaves.map(wave => {
       const instances: MonsterInstance[] = [];
@@ -525,6 +612,7 @@ class CombatStudioController {
 
   // ── 畫面渲染 ──
   private render(): void {
+    this.renderStrongholdScenarioDropdown();
     if (this.currentStudioTab === 'heroes') {
       this.renderHeroDatabase();
       return;
@@ -805,7 +893,28 @@ class CombatStudioController {
     return this.strongholdsDb.find(s => s.id === this.editingStrongholdId) || this.strongholdsDb[0] || null;
   }
 
+  public renderStrongholdScenarioDropdown(): void {
+    const sel = byId<HTMLSelectElement>('cs-stronghold-select');
+    if (!sel) return;
+    const curVal = sel.value;
+    sel.innerHTML = `
+      <option value="custom">-- 自訂怪物小隊 --</option>
+      <optgroup label="🏰 官方與自訂討伐據點庫">
+        ${this.strongholdsDb.map(s => `<option value="${s.id}">🏰 ${s.name} (Lv.${s.difficulty} - ${s.terrain})</option>`).join('')}
+      </optgroup>
+      <optgroup label="⚔️ 特殊戰術情境">
+        <option value="node_5">熔火巨龍巢 (難度 8 - 火山/骨龍Boss)</option>
+        <option value="faction_siege">洛斯加正規軍攻城部隊 (難度 5)</option>
+        <option value="church_crusade">神聖教廷裁決遠征軍 (難度 6)</option>
+      </optgroup>
+    `;
+    if (curVal && (curVal === 'custom' || this.strongholdsDb.some(s => s.id === curVal) || ['node_5', 'faction_siege', 'church_crusade'].includes(curVal))) {
+      sel.value = curVal;
+    }
+  }
+
   private renderStrongholdStudio(): void {
+    this.renderStrongholdScenarioDropdown();
     this.renderStrongholdList();
     this.renderStrongholdForm();
     this.renderStrongholdAnalytics();
@@ -885,6 +994,9 @@ class CombatStudioController {
     const iconInput = byId<HTMLInputElement>('sh-icon');
     const scoutingCheckbox = byId<HTMLInputElement>('sh-requires-scouting');
     const removeCheckbox = byId<HTMLInputElement>('sh-remove-on-victory');
+    const secretCheckbox = byId<HTMLInputElement>('sh-is-world-secret');
+    const fogRumorInput = byId<HTMLInputElement>('sh-fog-rumor');
+    const revealRumorInput = byId<HTMLInputElement>('sh-reveal-rumor');
     const descTextarea = byId<HTMLTextAreaElement>('sh-description');
 
     const goldInput = byId<HTMLInputElement>('sh-reward-gold');
@@ -901,6 +1013,9 @@ class CombatStudioController {
     if (iconPreview) iconPreview.innerHTML = renderUniversalIcon(sh.icon || 'icons_buildings:icons_buildings_3', 32);
     if (scoutingCheckbox) scoutingCheckbox.checked = !!sh.requiresScouting;
     if (removeCheckbox) removeCheckbox.checked = sh.removeOnVictory !== false;
+    if (secretCheckbox) secretCheckbox.checked = !!sh.isWorldSecret;
+    if (fogRumorInput) fogRumorInput.value = sh.fogRumor || '';
+    if (revealRumorInput) revealRumorInput.value = sh.revealRumor || '';
     if (descTextarea) descTextarea.value = sh.description || '';
 
     if (goldInput) goldInput.value = String(sh.rewards?.gold ?? 100);
@@ -1072,7 +1187,7 @@ class CombatStudioController {
     });
   }
 
-  private loadStrongholdToBattleSandbox(sh: SubjugationTemplate): void {
+  private loadStrongholdToBattleSandbox(sh: SubjugationTemplate, showAlert: boolean = true): void {
     if (!sh || !sh.waves || sh.waves.length === 0) return;
 
     this.enemyWaves = [];
@@ -1106,8 +1221,24 @@ class CombatStudioController {
     }
 
     this.currentWaveIdx = 0;
-    this.switchStudioTab('battle');
-    alert(`⚡ 已成功將據點【${sh.name}】的 ${this.enemyWaves.length} 波守軍陣容載入至戰鬥沙盒！`);
+    const diffSlider = byId<HTMLInputElement>('cs-enemy-diff-slider');
+    const diffVal = byId('cs-enemy-diff-val');
+    if (diffSlider && diffVal) {
+      diffSlider.value = String(sh.difficulty || 2);
+      diffVal.textContent = `Lv.${sh.difficulty || 2}`;
+    }
+
+    const strongholdSelect = byId<HTMLSelectElement>('cs-stronghold-select');
+    if (strongholdSelect) {
+      strongholdSelect.value = sh.id;
+    }
+
+    if (showAlert) {
+      this.switchStudioTab('battle');
+      alert(`⚡ 已成功將據點【${sh.name}】的 ${this.enemyWaves.length} 波守軍陣容載入至戰鬥沙盒！`);
+    } else {
+      this.render();
+    }
   }
 
   private createNewStronghold(): void {
@@ -1174,6 +1305,7 @@ class CombatStudioController {
 
   private bindStrongholdEvents(): void {
     byId('btn-studio-tab-strongholds')?.addEventListener('click', () => this.switchStudioTab('strongholds'));
+    byId('btn-sh-save-disk')?.addEventListener('click', () => this.saveMonstersToDisk());
     byId('btn-sh-add')?.addEventListener('click', () => this.createNewStronghold());
     byId('btn-sh-duplicate')?.addEventListener('click', () => this.duplicateCurrentStronghold());
     byId('btn-sh-delete')?.addEventListener('click', () => this.deleteCurrentStronghold());
@@ -1238,6 +1370,9 @@ class CombatStudioController {
       const iconVal = byId<HTMLInputElement>('sh-icon')?.value.trim();
       const scoutingVal = byId<HTMLInputElement>('sh-requires-scouting')?.checked;
       const removeVal = byId<HTMLInputElement>('sh-remove-on-victory')?.checked;
+      const secretVal = byId<HTMLInputElement>('sh-is-world-secret')?.checked;
+      const fogRumorVal = byId<HTMLInputElement>('sh-fog-rumor')?.value.trim();
+      const revealRumorVal = byId<HTMLInputElement>('sh-reveal-rumor')?.value.trim();
       const descVal = byId<HTMLTextAreaElement>('sh-description')?.value;
 
       const goldVal = Number(byId<HTMLInputElement>('sh-reward-gold')?.value || 0);
@@ -1251,6 +1386,9 @@ class CombatStudioController {
       if (iconVal) sh.icon = iconVal;
       sh.requiresScouting = scoutingVal;
       sh.removeOnVictory = removeVal;
+      sh.isWorldSecret = secretVal;
+      sh.fogRumor = fogRumorVal || undefined;
+      sh.revealRumor = revealRumorVal || undefined;
       sh.description = descVal;
 
       sh.rewards = {
@@ -1268,7 +1406,7 @@ class CombatStudioController {
       this.renderStrongholdAnalytics();
     };
 
-    ['sh-id', 'sh-name', 'sh-terrain', 'sh-difficulty', 'sh-icon', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige']
+    ['sh-id', 'sh-name', 'sh-terrain', 'sh-difficulty', 'sh-icon', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-is-world-secret', 'sh-fog-rumor', 'sh-reveal-rumor', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige']
       .forEach(id => {
         const el = byId(id);
         if (el) {
@@ -1861,6 +1999,7 @@ class CombatStudioController {
               <option value="符文騎士" ${p.jobName === '符文騎士' ? 'selected' : ''}>符文騎士</option>
               <option value="暗殺者" ${p.jobName === '暗殺者' ? 'selected' : ''}>暗殺者</option>
               <option value="詭術師" ${p.jobName === '詭術師' ? 'selected' : ''}>詭術師</option>
+              <option value="大主教" ${p.jobName === '大主教' ? 'selected' : ''}>大主教</option>
               <option value="異端拷問官" ${p.jobName === '異端拷問官' ? 'selected' : ''}>異端拷問官</option>
             </optgroup>
           </select>
@@ -2175,9 +2314,8 @@ class CombatStudioController {
 
   private renderArenaInitial(): void {
     const leftContainer = byId('cs-arena-left');
-    const rightContainer = byId('cs-arena-right');
+    if (!leftContainer) return;
     leftContainer.innerHTML = '';
-    rightContainer.innerHTML = '';
     this.arenaHpMp = {};
 
     this.playerTeam.forEach(p => {
@@ -2191,22 +2329,36 @@ class CombatStudioController {
       this.arenaHpMp[p.id] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: p.name, avatar };
 
       const card = document.createElement('div');
-      card.className = 'cs-arena-card';
+      card.className = 'cs-arena-card player-side';
       card.id = id;
       card.innerHTML = `
-        <div style="margin-right: 4px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 24)}</div>
-        <div style="font-size: 0.78rem; font-weight: bold; width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.name}</div>
-        <div class="cs-bars">
-          <div class="cs-bar-wrap"><div class="cs-hp-fill" id="hp_${p.id}" style="width: 100%;"></div></div>
-          <div class="cs-bar-wrap"><div class="cs-mp-fill" id="mp_${p.id}" style="width: 100%;"></div></div>
+        <div style="margin-right: 6px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 26)}</div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span style="font-size: 0.76rem; font-weight: bold; color: var(--cs-gold-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px;">${p.name}</span>
+            <span style="font-size: 0.66rem; color: #a1a1aa; font-family: monospace;" id="hp_txt_${p.id}">${maxHp}/${maxHp}</span>
+          </div>
+          <div class="cs-bars">
+            <div class="cs-bar-wrap"><div class="cs-hp-fill" id="hp_${p.id}" style="width: 100%;"></div></div>
+            <div class="cs-bar-wrap"><div class="cs-mp-fill" id="mp_${p.id}" style="width: 100%;"></div></div>
+          </div>
         </div>
       `;
       leftContainer.appendChild(card);
     });
 
-    const activeWave = this.enemyWaves[this.currentWaveIdx] || [];
+    this.renderArenaWave(1);
+    byId('cs-arena-round').textContent = 'Wave 1';
+  }
+
+  private renderArenaWave(waveNum: number): void {
+    const rightContainer = byId('cs-arena-right');
+    if (!rightContainer) return;
+    rightContainer.innerHTML = '';
+
+    const activeWave = this.enemyWaves[waveNum - 1] || this.enemyWaves[0] || [];
     activeWave.forEach((e, idx) => {
-      const eid = `enemy_${idx}`;
+      const eid = `enemy_${waveNum}_${idx}`;
       const baseMonster = this.monstersDb.find(m => m.id === e.monsterId) || this.monstersDb[0] || (monstersJson[0] as any);
       const appliedRace = e.isUndead ? MonsterRace.UNDEAD : (baseMonster.race || MonsterRace.MONSTER);
       const inst = this.monsterSystem.createMonsterInstance(baseMonster, appliedRace, e.element, e.difficulty);
@@ -2216,20 +2368,23 @@ class CombatStudioController {
       this.arenaHpMp[eid] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: e.name, avatar };
 
       const card = document.createElement('div');
-      card.className = 'cs-arena-card';
+      card.className = 'cs-arena-card enemy-side';
       card.id = `arena_${eid}`;
       card.innerHTML = `
-        <div class="cs-bars">
-          <div class="cs-bar-wrap"><div class="cs-hp-fill" id="hp_${eid}" style="width: 100%;"></div></div>
-          <div class="cs-bar-wrap"><div class="cs-mp-fill" id="mp_${eid}" style="width: 100%;"></div></div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+            <span style="font-size: 0.66rem; color: #a1a1aa; font-family: monospace;" id="hp_txt_${eid}">${maxHp}/${maxHp}</span>
+            <span style="font-size: 0.76rem; font-weight: bold; color: #fca5a5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; text-align: right;">${e.name}</span>
+          </div>
+          <div class="cs-bars">
+            <div class="cs-bar-wrap"><div class="cs-hp-fill" id="hp_${eid}" style="width: 100%;"></div></div>
+            <div class="cs-bar-wrap"><div class="cs-mp-fill" id="mp_${eid}" style="width: 100%;"></div></div>
+          </div>
         </div>
-        <div style="font-size: 0.78rem; font-weight: bold; width: 70px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${e.name}</div>
-        <div style="margin-left: 4px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 24)}</div>
+        <div style="margin-left: 6px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 26)}</div>
       `;
       rightContainer.appendChild(card);
     });
-
-    byId('cs-arena-round').textContent = 'R0';
   }
 
   // ── 戰鬥模擬核心 ──
@@ -2300,17 +2455,54 @@ class CombatStudioController {
     logBox.appendChild(row);
     logBox.scrollTop = logBox.scrollHeight;
 
-    // 更新血條
+    // 波次切換
+    if (ev.type === CombatEventType.WAVE_START && ev.wave) {
+      this.renderArenaWave(ev.wave);
+      byId('cs-arena-round').textContent = `Wave ${ev.wave}`;
+      return;
+    }
+
+    // 回合數顯示 (解析日誌中的回合資訊)
+    const roundMatch = ev.text.match(/── 第 (\d+) 回合 ──/);
+    if (roundMatch) {
+      byId('cs-arena-round').textContent = `R${roundMatch[1]}`;
+    }
+
+    // 更新目標血條 (HP)
     if (ev.targetId && ev.targetHp !== undefined && ev.targetMaxHp) {
       const cleanId = ev.targetId.replace(/^adv_\d+_/, '');
-      const hpBar = document.getElementById(`hp_${cleanId}`) || document.getElementById(`hp_${ev.targetId}`);
+      const hpBar = document.getElementById(`hp_${ev.targetId}`) || document.getElementById(`hp_${cleanId}`);
+      const hpTxt = document.getElementById(`hp_txt_${ev.targetId}`) || document.getElementById(`hp_txt_${cleanId}`);
       if (hpBar) {
-        const pct = Math.max(0, Math.min(100, (ev.targetHp / ev.targetMaxHp) * 100));
+        const curHp = Math.max(0, ev.targetHp);
+        const pct = Math.max(0, Math.min(100, (curHp / ev.targetMaxHp) * 100));
         hpBar.style.width = `${pct}%`;
-        const card = hpBar.closest('.cs-arena-card');
-        if (ev.targetHp <= 0 && card) {
-          card.classList.add('dead');
+        if (hpTxt) hpTxt.textContent = `${curHp}/${ev.targetMaxHp}`;
+        
+        const card = hpBar.closest('.cs-arena-card') as HTMLElement;
+        if (card) {
+          if (ev.damage && ev.damage > 0) {
+            card.classList.remove('cs-hit-shake');
+            void card.offsetWidth;
+            card.classList.add('cs-hit-shake');
+          }
+          if (curHp <= 0) {
+            card.classList.add('dead');
+          }
         }
+      }
+    }
+
+    // 更新目標/行動者魔力條 (MP)
+    if (ev.targetId && ev.targetMp !== undefined && ev.targetMaxMp) {
+      const cleanId = ev.targetId.replace(/^adv_\d+_/, '');
+      const mpBar = document.getElementById(`mp_${ev.targetId}`) || document.getElementById(`mp_${cleanId}`);
+      const mpTxt = document.getElementById(`mp_txt_${ev.targetId}`) || document.getElementById(`mp_txt_${cleanId}`);
+      if (mpBar) {
+        const curMp = Math.max(0, ev.targetMp);
+        const pct = Math.max(0, Math.min(100, (curMp / ev.targetMaxMp) * 100));
+        mpBar.style.width = `${pct}%`;
+        if (mpTxt) mpTxt.textContent = `${curMp}/${ev.targetMaxMp}`;
       }
     }
   }
@@ -3001,24 +3193,8 @@ class CombatStudioController {
       this.renderEnemyList();
     };
 
-    // 磁碟持久化
-    byId('btn-save-monsters').onclick = async () => {
-      try {
-        const res = await fetch('/api/save-monster-definitions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ monsters: this.monstersDb, note: '在戰鬥工坊中儲存' })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          alert(`💾 成功永久寫入專案磁碟！共 ${data.total} 隻單位，快照：${data.snapshot}`);
-        } else {
-          alert('寫入磁碟失敗，請確認 Vite 開發伺服器正常運行中');
-        }
-      } catch (err: any) {
-        alert(`寫入失敗: ${err.message}`);
-      }
-    };
+    // 磁碟持久化 (怪物庫 + 討伐據點庫同步寫入專案硬碟)
+    byId('btn-save-monsters').onclick = () => this.saveMonstersToDisk();
 
     // 時光機歷史快照
     byId('btn-history-backups').onclick = async () => {

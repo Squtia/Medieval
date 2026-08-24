@@ -170,7 +170,7 @@ export class NpcDialogueModalController {
       : [
           {
             id: 'default_leave',
-            text: '了解，願秩序庇佑領地。',
+            text: '結束對話',
             effects: []
           }
         ];

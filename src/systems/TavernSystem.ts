@@ -117,12 +117,12 @@ export class TavernSystem {
       // 判斷迷霧
       if (!targetNode.isScouted) {
         // 未驅散迷霧：只給模糊提示
-        const fogRumor = Random.pick(LOCATION_FOG_RUMORS);
+        const fogRumor = (targetNode as any).fogRumor || Random.pick(LOCATION_FOG_RUMORS);
         return `老爹低聲說道：「${fogRumor}」\n(提示：您打聽到了某個未知區域的線索。)`;
       } else {
         // 已驅散迷霧：直接揭露
         targetNode.isHidden = false;
-        const revealRumor = Random.pick(LOCATION_REVEAL_RUMORS);
+        const revealRumor = (targetNode as any).revealRumor || Random.pick(LOCATION_REVEAL_RUMORS);
         return `老爹擦了擦酒杯：「${revealRumor}」\n(提示：地圖上的「${targetNode.name}」已解鎖！)`;
       }
     }

@@ -1,3 +1,27 @@
+- **[UI/Dialog] 優化 NPC 對話彈窗預設保底按鈕文字（2026-08-24）**：
+  - **移除不合時宜的罐頭台詞 (`NpcDialogueModalController.ts`)**：將故事節點無分支選項時的保底離開按鈕文字從「了解，願秩序庇佑領地。」修改為乾淨通用的「結束對話」，避免在陰暗/恐怖/市井等各類情境對話中產生違和感。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、82 項單元測試全數 PASS。
+- **[Fix/Feature/Balance] 戰鬥工坊補齊「大主教」與純色/複合武器標準 (A) 級 Scaling 補正引擎實裝（2026-08-24）**：
+  - **補齊進階大主教職業 (`CombatStudio.ts`)**：在戰鬥沙盒傭兵卡片的進階職業下拉選單中補上「大主教」，並完整綁定聖典 (`HOLY_BOOK`) 與全體大招【神聖之雨】。
+  - **純色與複合雙屬性武器標準 (A) 級補正實裝 (`calculateWeaponScalingBonus`)**：
+    - **純色單屬性 (1.2x)**：巨劍 (STR)、戰弓/雙匕 (AGI)、法杖 (INT)、聖典 (SPR)、劍盾 (CON)。
+    - **複合雙修雙屬性 (各 0.6x，總和 1.2x)**：魔劍士/雙劍 (STR+INT)、精靈使/魔法弓 (AGI+INT)、符文騎士/符文盾 (CON+SPR)、異端拷問官/戰鎚 (STR+SPR)、死靈法師/戰鐮 (STR+INT)、詭術師/魔戒 (AGI+INT)。
+    - **沙盒完全隔離**：數值只在沙盒記憶體計算生效，100% 不污染正式遊戲裝備資料庫。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、82 項單元測試全數 PASS。
+- **[Feature/Tool/World] 討伐據點工坊自訂「大世界開局隱藏秘境」與酒館老爹專屬雙層傳聞機制實裝（2026-08-24）**：
+  - **自訂世界隱藏秘境開關與雙層傳聞欄位 (`combat-studio.html` & `CombatStudio.ts`)**：在討伐據點設計工坊新增「🗺️ 註冊為開局世界隱藏秘境 (`isWorldSecret`)」開關，並提供「未開迷霧時的曖昧傳聞 (`fogRumor`)」與「已開迷霧時的解鎖情報 (`revealRumor`)」專屬台詞輸入框，支援隨即時同步與持久化存檔。
+  - **大世界開局秘境自動佈署 (`GameState.ts` & `MapGenerator.ts`)**：在開新遊戲或生成世界時，系統自動載入討伐據點庫中所有標記為秘境的據點，以 `isHidden: true` 隱藏狀態自然散佈於大世界對應地形的迷霧深處。
+  - **酒館打聽專屬傳聞播放連動 (`TavernSystem.ts`)**：酒館老爹打聽情報抽中隱藏秘境時，若玩家尚未探開該處迷霧，優先講述創作者自訂的懸疑曖昧台詞；若玩家已探開迷霧，則講述確切解鎖情報並點亮地圖據點。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、82 項單元測試全數 PASS。
+- **[Feature/Tool/UI] 故事工坊據點效果欄位精簡化、戰鬥沙盒動態據點情境與 HP/MP 即時動態扣減實裝（2026-08-24）**：
+  - **故事工坊專職精簡 (`StoryStudioForm.ts`)**：落實「討伐據點專職分工」架構，將故事工坊的「討伐：創造故事討伐據點」效果卡片精簡為 5 大專職欄位（選擇已創作的討伐據點範本、據點名稱、勝利節點 ID、失敗節點 ID、途中事件節點 IDs），敵軍波次、掉落與地形難度全面由討伐據點工坊專職定義與管理。
+  - **戰鬥沙盒「據點情境」動態選單 (`CombatStudio.ts`)**：移除靜態寫死的情境選項，實裝 `renderStrongholdScenarioDropdown()` 動態載入討伐據點庫（包含自訂與官方據點），選取任意據點即可秒速載入對應地形、難度與完整波次守軍。
+  - **戰鬥模擬 HP/MP 即時動態扣減與視覺反饋 (`CombatStudio.ts`)**：修復角色卡片 DOM ID 與事件映射，實裝血量 (HP) 與魔力 (MP) 雙軌即時寬度與數值文字同步（如 `150/200`）、受傷微晃動動畫與陣亡暗化標記。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、82 項單元測試全數 PASS。
+- **[Bugfix/Tool] 戰鬥工坊頂部「寫入專案硬碟」按鈕遺漏討伐據點寫入修復與專屬按鈕實裝（2026-08-24）**：
+  - **頂部主儲存按鈕修復 (CombatStudio.ts)**：修復頂部工具列「💾 寫入專案硬碟」（#btn-save-monsters）事件綁定僅呼叫 /api/save-monster-definitions 而遺漏 /api/save-subjugation-nodes 的缺陷，改為調用 saveMonstersToDisk()，確保每次點擊時怪物庫（monsters.json）與討伐據點庫（subjugation_nodes.json）100% 同步寫入專案磁碟。
+  - **討伐據點工坊專屬寫入按鈕實裝 (combat-studio.html & CombatStudio.ts)**：在討伐據點設計工坊工作區頂部新增「💾 寫入專案硬碟」（#btn-sh-save-disk）按鈕，提供使用者在設計據點時最直接明瞭的保存路徑。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、82 項單元測試全數 PASS。
 - **[Feature/Tool/Test] 故事工坊「強制測試節點」與受排程節點自動封印機制升級（2026-08-24）**：
   - **受排程目標節點自動防護 (`NarrativeSystem.ts` & `NarrativeTestController.ts`)**：
     - 實裝 `isScheduledTargetNode` 自動防護機制：凡是被任何劇情選項或事件之 `SCHEDULE_NODE` 指名為目標的後續節點，在尚未被前置決策喚醒前，引擎全面自動封印，徹底杜絕後續步驟提前在街道或世界中誤觸發。
@@ -6,7 +30,7 @@
   - **自動沙盒世界、BASE_URL 資源路徑對齊、領地街道快速切換與即時重繪 (`NarrativeTestController.ts` & `MapScene.ts` & `SceneController.ts` & `UIManager.ts`)**：
     - 在測試控制面板新增 **「🏰 切換至領地街道 / 🗺️ 返回地圖」** 快捷按鈕，允許創作者一鍵無縫穿梭於世界大地圖與領地街道設施之間。
     - 修復街景背景圖與 Phaser 圖片資源路徑：全面引入 `import.meta.env.BASE_URL`，確保 `/Medieval/` 子路徑下所有街景與節點圖示正確載入。
-  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。��街景背景圖與 Phaser 圖片資源路徑：全面引入 `import.meta.env.BASE_URL`，確保 `/Medieval/` 子路徑下所有街景與節點圖示正確載入。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。��街景背景圖與 Phaser 圖片資源路徑：全面引入 `import.meta.env.BASE_URL`，確保 `/Medieval/` 子路徑下所有街景與節點圖示正確載入。
     - 故事測試與正式存檔徹底解耦：即時生成 100% 獨立、純淨、迷霧全開（`revealAllCells`）的專用測試沙盒世界。
     - 實裝節點所屬故事「智慧雙向反查機制」：無論傳入故事 ID 或節點 ID，均能精準定位《最後的龍裔》（`dragon_fam`）等自訂劇情。
   - **驗證**：TypeScript 型別檢查 0 錯誤、81 項單元測試全數 PASS。

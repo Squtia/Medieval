@@ -37,6 +37,9 @@ export interface SubjugationTemplate {
   difficulty: number;
   requiresScouting?: boolean;
   removeOnVictory?: boolean;
+  isWorldSecret?: boolean;
+  fogRumor?: string;
+  revealRumor?: string;
   waves?: SubjugationWave[];
   rewards?: {
     gold?: number;

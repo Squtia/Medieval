@@ -425,25 +425,15 @@ export class StoryStudioForm {
         const d = effect.definition;
         const allTemplates = DataStore.getSubjugationTemplates();
         const templateOptions = [
-          { value: '', label: '-- 自訂新據點 (手動設定) --' },
+          { value: '', label: '-- 請選擇已創作的討伐據點 --' },
           ...allTemplates.map(tpl => ({
             value: tpl.id,
             label: `🏰 ${tpl.name}（${tpl.id} / 難度 ${tpl.difficulty}）`
           }))
         ];
         return `
-          ${select('選擇已創作的據點範本 (快速帶入)', 'definition.templateId', d.templateId || '', templateOptions)}
-          ${input('據點代號', 'definition.nodeId', d.nodeId)}
-          ${input('據點名稱', 'definition.name', d.name)}
-          ${input('據點說明', 'definition.description', d.description)}
-          ${select('地形', 'definition.terrain', d.terrain, [
-            { value: 'PLAINS', label: '平原' }, { value: 'FOREST', label: '森林' },
-            { value: 'SNOW_MOUNTAIN', label: '雪山' }, { value: 'VOLCANO', label: '火山' },
-            { value: 'DESERT', label: '荒漠' }, { value: 'CAVE', label: '洞窟' },
-            { value: 'RUINS', label: '遺跡' }, { value: 'WILDERNESS', label: '荒野' }
-          ])}
-          ${input('難度 (1~5)', 'definition.difficulty', d.difficulty, 'number')}
-          ${input('主要怪物', 'definition.monsterId', d.monsterId || 'bandit')}
+          ${select('選擇已創作的討伐據點範本', 'definition.templateId', d.templateId || '', templateOptions)}
+          ${input('據點名稱 (自訂或沿用範本)', 'definition.name', d.name)}
           ${input('勝利觸發節點 ID', 'definition.victoryNodeId', d.victoryNodeId || '')}
           ${input('失敗觸發節點 ID', 'definition.defeatNodeId', d.defeatNodeId || '')}
           ${input('途中事件節點 IDs (逗號隔開)', 'definition.journeyNodeIds', (d.journeyNodeIds || []).join(', '))}

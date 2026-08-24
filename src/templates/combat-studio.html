@@ -880,6 +880,7 @@
           <span id="sh-edit-title" style="font-size: 1.1rem; font-weight: bold; color: #f8fafc;">走私者的廢棄關卡</span>
         </div>
         <div style="display: flex; gap: 8px;">
+          <button class="cs-btn cs-btn-sm cs-btn-primary" id="btn-sh-save-disk">💾 寫入專案硬碟</button>
           <button class="cs-btn cs-btn-sm" id="btn-sh-duplicate">📋 複製據點</button>
           <button class="cs-btn cs-btn-sm cs-btn-danger" id="btn-sh-delete">🗑️ 刪除據點</button>
         </div>
@@ -933,10 +934,28 @@
           <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #cbd5e1; cursor: pointer;">
             <input type="checkbox" id="sh-remove-on-victory" checked> 💥 討伐勝利後自動從地圖清除
           </label>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #f59e0b; cursor: pointer; font-weight: bold;">
+            <input type="checkbox" id="sh-is-world-secret"> 🗺️ 註冊為開局世界隱藏秘境 (酒館打聽)
+          </label>
         </div>
         <div style="grid-column: span 3;">
           <label class="cs-label">風味敘述／據點背景:</label>
           <textarea id="sh-description" class="cs-input" rows="2" style="width: 100%; resize: vertical;" placeholder="描述此據點的敵方勢力與地理環境..."></textarea>
+        </div>
+
+        <!-- 專屬酒館傳聞設定 (當勾選為世界隱藏秘境時) -->
+        <div id="sh-rumors-panel" style="grid-column: span 3; background: #0c1017; padding: 10px 12px; border-radius: 6px; border: 1px dashed rgba(245, 158, 11, 0.4); display: flex; flex-direction: column; gap: 8px;">
+          <span style="font-size: 0.78rem; font-weight: bold; color: #f59e0b;">🍺 酒館老爹專屬傳聞台詞 (選填，留空則使用通用模糊/解鎖傳聞)：</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label class="cs-label" style="font-size: 0.72rem; color: #94a3b8;">🌫️ 未開迷霧時（曖昧模糊傳聞）:</label>
+              <input type="text" id="sh-fog-rumor" class="cs-input" style="width: 100%; font-size: 0.78rem;" placeholder="例: 聽說雪山深處的暴風雪中常有藍色幽光閃爍...">
+            </div>
+            <div>
+              <label class="cs-label" style="font-size: 0.72rem; color: #94a3b8;">🗺️ 已開迷霧時（明確解鎖情報）:</label>
+              <input type="text" id="sh-reveal-rumor" class="cs-input" style="width: 100%; font-size: 0.78rem;" placeholder="例: 你之前探過的那座雪山峭壁，終於發現了龍晶洞入口！">
+            </div>
+          </div>
         </div>
       </div>
 
