@@ -443,18 +443,12 @@ export class ForgeUIController {
       ? allRecipes.filter((r: any) => r.isMaterialRecipe === true)
       : allRecipes.filter((r: any) => {
           if (r.isMaterialRecipe) return false;
-          // T4 裝備重鑄：依照設定，沒有配方書或前置裝備就完全隱藏不顯示（包含原生職業與變異職業）
+          // T4 裝備重鑄：依照設定，持有配方書/圖紙即顯示（未持有前置裝備時在右側面板反灰提示）
           if (r.tier === 4 || r.baseEquipmentId) {
             // 需鍛造屋等級 >= 3 才能看見重鑄
             if ((territory.forgeLevel || 0) < 3) return false;
 
-            // 必須在倉庫中擁有對應前置 T3 裝備
-            if (r.baseEquipmentId) {
-              const hasBaseEquip = territory.warehouse.some((eq: any) => eq.id === r.baseEquipmentId);
-              if (!hasBaseEquip) return false;
-            }
-
-            // 必須持有對應重鑄書道具或通用重鑄卷軸
+            // 必須持有對應重鑄書/圖紙道具或通用重鑄卷軸
             const tomeId = r.requireTomeId || `tome_${r.targetEquipmentId}`;
             const hasTome = getMaterialCount(territory, tomeId) > 0 || getMaterialCount(territory, 'mat_reforge_scroll') > 0;
             if (!hasTome) return false;
@@ -678,10 +672,10 @@ export class ForgeUIController {
       const baseEquipInWarehouse = recipe.baseEquipmentId ? territory.warehouse.find(eq => eq.id === recipe.baseEquipmentId) : null;
       const hasBaseEquip = !recipe.baseEquipmentId || !!baseEquipInWarehouse;
 
-      // 檢查變異專用神兵重鑄書
+      // 檢查神兵重鑄圖紙/專屬書
       let hasTome = true;
       let tomeDef: any = null;
-      if (recipe.isVariant && recipe.requireTomeId) {
+      if (recipe.requireTomeId) {
         const tomeCount = getMaterialCount(territory, recipe.requireTomeId) + getMaterialCount(territory, 'mat_reforge_scroll');
         hasTome = tomeCount > 0;
         tomeDef = materialsJson.find(m => m.id === recipe.requireTomeId) || { name: '專屬重鑄書', icon: '📜' };
@@ -702,7 +696,7 @@ export class ForgeUIController {
         `);
       }
 
-      if (recipe.isVariant && recipe.requireTomeId) {
+      if (recipe.requireTomeId) {
         matCardsHtml.push(`
           <div class="mat-slot-box" style="display:flex; flex-direction:column; align-items:center; width:80px;">
             <div style="width:64px; height:64px; background:rgba(0,0,0,0.6); border:2px solid ${hasTome ? '#22c55e' : '#ef4444'}; border-radius:8px; display:flex; justify-content:center; align-items:center; box-shadow:0 3px 10px rgba(0,0,0,0.6);">
@@ -837,8 +831,8 @@ export class ForgeUIController {
           territory.warehouse.splice(baseIndex, 1);
         }
 
-        // 消耗變異專用重鑄書 (如果有的話)
-        if (recipe.isVariant && recipe.requireTomeId) {
+        // 消耗神兵重鑄圖紙/專屬書 (如果有的話)
+        if (recipe.requireTomeId) {
           if (getMaterialCount(territory, recipe.requireTomeId) > 0) {
             consumeMaterial(territory, recipe.requireTomeId, 1);
           } else if (getMaterialCount(territory, 'mat_reforge_scroll') > 0) {

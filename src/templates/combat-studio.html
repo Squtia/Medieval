@@ -880,6 +880,7 @@
           <span id="sh-edit-title" style="font-size: 1.1rem; font-weight: bold; color: #f8fafc;">走私者的廢棄關卡</span>
         </div>
         <div style="display: flex; gap: 8px;">
+          <button class="cs-btn cs-btn-sm cs-btn-secondary" id="btn-sh-reload-disk" title="從專案磁碟重新讀取最新據點檔案">🔄 重新讀取硬碟</button>
           <button class="cs-btn cs-btn-sm cs-btn-primary" id="btn-sh-save-disk">💾 寫入專案硬碟</button>
           <button class="cs-btn cs-btn-sm" id="btn-sh-duplicate">📋 複製據點</button>
           <button class="cs-btn cs-btn-sm cs-btn-danger" id="btn-sh-delete">🗑️ 刪除據點</button>
@@ -1031,4 +1032,93 @@
     </div>
   </div>
 </div>
+
+<!-- 彈窗：據點守軍怪物進階配置 (Subjugation Monster Config Modal) -->
+<div class="cs-modal-overlay" id="modal-sh-monster-config" style="display: none;">
+  <div class="cs-modal-box" style="max-width: 650px; max-height: 88vh; display: flex; flex-direction: column;">
+    <div class="cs-modal-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div id="sh-mc-avatar" style="width: 36px; height: 36px; border-radius: 6px; background: #0e121a; display: flex; align-items: center; justify-content: center; border: 1px solid var(--cs-panel-border);"></div>
+        <span class="cs-modal-title">⚙️ 配置據點守軍：<span id="sh-mc-title" style="color: var(--cs-gold);">太古滅世黑龍</span></span>
+      </div>
+      <button class="cs-btn cs-btn-sm" id="btn-close-sh-monster-config">✕</button>
+    </div>
+    <div class="cs-modal-body" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex: 1;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="cs-form-row">
+          <label class="cs-label">⚡ 戰力強化倍率 (Power Tier)</label>
+          <input type="number" class="cs-input" id="sh-mc-power-tier" min="0.1" max="20" step="0.1" value="1.0" style="width: 100%;">
+          <span style="font-size: 0.7rem; color: var(--cs-text-muted);">例: 1.0 (標準)、1.5 (精英)、5.0 (首領)</span>
+        </div>
+        <div class="cs-form-row">
+          <label class="cs-label">⚖️ 8 大戰鬥定位 (Profile)</label>
+          <select class="cs-select" id="sh-mc-profile" style="width: 100%;">
+            <option value="DEFAULT">⚙️ 沿用怪物預設定位</option>
+            <option value="BALANCED">⚖️ 常規均衡 (BALANCED)</option>
+            <option value="TANK">🛡️ 鐵壁肉盾 (TANK - 超高HP/物防)</option>
+            <option value="ASSASSIN">⚡ 疾風刺客 (ASSASSIN - 先手/高爆/高速)</option>
+            <option value="MAGE">🔮 奧術法師 (MAGE - 高魔傷/高魔防)</option>
+            <option value="BERSERKER">🩸 嗜血狂戰 (BERSERKER - 超高物傷/中血)</option>
+            <option value="RANGER">🏹 遠程狙擊 (RANGER - 高命中/狙擊後排)</option>
+            <option value="JUGGERNAUT">💀 亡靈泥沼 (JUGGERNAUT - 巨量HP/低速)</option>
+            <option value="BOSS">👑 史詩首領 (BOSS - 全能超高屬性)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="cs-form-row">
+          <label class="cs-label">🛡️ 戰鬥站位 (Formation Row)</label>
+          <select class="cs-select" id="sh-mc-formation" style="width: 100%;">
+            <option value="FRONT">🛡️ 前排 (優先吸收物理近戰攻擊)</option>
+            <option value="BACK">🏹 後排 (受前排掩護保護)</option>
+          </select>
+        </div>
+        <div class="cs-form-row">
+          <label class="cs-label">🔮 元素相剋屬性 (Element)</label>
+          <select class="cs-select" id="sh-mc-element" style="width: 100%;">
+            <option value="NONE">⚪ 無屬性 (NONE)</option>
+            <option value="FIRE">🔥 火焰 (FIRE)</option>
+            <option value="ICE">❄️ 冰冷 (ICE)</option>
+            <option value="LIGHTNING">⚡ 雷電 (LIGHTNING)</option>
+            <option value="HOLY">✨ 聖光 (HOLY)</option>
+            <option value="DARK">🌙 黑暗 (DARK)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cs-form-row">
+        <label class="cs-label">🏷️ 自訂頭銜／詞綴前綴 (選填)</label>
+        <input type="text" class="cs-input" id="sh-mc-affix" placeholder="如: 👑[洞窟霸主]、👑[守將]、[狂暴的]" style="width: 100%;">
+      </div>
+
+      <!-- 視覺化已裝備特技清單 -->
+      <div style="background: #0e1219; border: 1px solid var(--cs-panel-border); border-radius: 6px; padding: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span style="font-weight: bold; color: var(--cs-gold); font-size: 0.82rem;">🎯 當前已掛載特技 (<span id="sh-mc-current-count">0</span>/4)</span>
+          <span style="font-size: 0.72rem; color: var(--cs-text-muted);">最多配置 4 招特技，戰鬥時依 AI 權重與 MP 施放</span>
+        </div>
+        <div id="sh-mc-current-skills-list" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; align-items: center;">
+          <!-- 動態渲染已裝備技能標籤 -->
+        </div>
+      </div>
+
+      <!-- 視覺化特技資料庫挑選 -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: bold; color: var(--cs-blue); font-size: 0.82rem;">📚 特技庫挑選 (點擊 ＋ 加入)</span>
+          <input type="text" id="sh-mc-skill-search" class="cs-input" placeholder="🔍 搜尋技能名稱、效果..." style="padding: 2px 8px; font-size: 0.75rem; width: 180px;">
+        </div>
+        <div id="sh-mc-skill-library-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 28vh; overflow-y: auto; padding-right: 4px;">
+          <!-- 動態載入全技能庫卡片 -->
+        </div>
+      </div>
+    </div>
+    <div class="cs-modal-footer">
+      <button class="cs-btn" id="btn-close-sh-monster-config-footer">取消</button>
+      <button class="cs-btn cs-btn-gold" id="btn-save-sh-monster-config">💾 保存怪物配置</button>
+    </div>
+  </div>
+</div>
+
 

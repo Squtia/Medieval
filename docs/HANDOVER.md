@@ -1,3 +1,32 @@
+- **[Optimization/Forge/UI] 鐵匠鋪 T4 神兵重鑄配方顯示與圖紙支援優化（2026-08-25）**：
+  - **優化配方清單過濾條件 (`ForgeUIController.ts`)**：移除原「必須在倉庫持有前置裝備才顯示」的隱藏限制。只要鍛造屋等級達到 Lv.3 且持有對應圖紙（或通用重鑄卷軸），即刻於左側清單展示該神兵配方。
+  - **前置裝備防呆友善提示**：若倉庫尚未打造前置基底武器，於右側火爐面板清楚標示「0/1」紅字狀態並將重鑄按鈕反灰，提供玩家清晰的鍛造指引。
+  - **通用圖紙支援**：統一支援所有具有 `requireTomeId` 的進階與變異配方在右側卡片列出圖紙狀態並在打造時正確扣除。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、22 個測試檔案 85 項單元測試全數 PASS。
+- **[Feature/Tool/Combat] 討伐據點守軍怪物進階配置升級「全視覺化特技資料庫挑選器」（2026-08-25）**：
+  - **解決手動記憶代碼痛點 (`combat-studio.html` & `CombatStudio.ts`)**：將原文字輸入框徹底升級為視覺化清單。包含已裝備特技標籤（含 MP 消耗與 ✕ 一鍵移除），以及下方內建的「📚 全技能庫挑選器」。
+  - **即時搜尋與詳細中文說明**：支援依據中文名稱（如「吐息」、「猛砍」、「毒」）、元素或描述即時過濾；每張卡片清楚標示中文名稱、MP 消耗、技能類別與中文效果，點擊「＋ 加入」即可一鍵裝配（上限 4 招）。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、22 個測試檔案 85 項單元測試全數 PASS。
+- **[Feature/Tool/Combat] 討伐據點設計工坊新增「守軍怪物進階配置（8大定位/特技/前後排站位/強化倍率/詞綴）」實裝（2026-08-25）**：
+  - **資料模型擴充 (`Narrative.ts`)**：擴充 `SubjugationWaveMonster` 支援 `powerTier`、`profile` (8 大戰鬥定位：常規/鐵壁/刺客/法師/狂戰/狙擊/泥沼/首領)、`formationRow` (前後排站位)、`element` (元素相剋)、`affix` (自訂頭銜/前綴) 與 `skills` (自訂掛載特技清單)。
+  - **視覺化進階配置彈窗 (`combat-studio.html` & `CombatStudio.ts`)**：於守軍波次怪物卡片新增「⚙️」進階配置按鈕，點擊彈出專屬設定彈窗，支援即時自訂數值縮放、戰鬥定位、站位、元素、詞綴與常用快捷特技代碼（如巨龍吐息、重擊、奧術飛彈、劇毒噴霧等）。
+  - **波次卡片視覺化狀態徽章 (`CombatStudio.ts`)**：卡片上直觀呈現 `太古滅世黑龍 5.0x | 👑BOSS | 後排 | ✨2技` 等標籤。
+  - **戰鬥沙盒與戰力評估連動 (`CombatStudio.ts`)**：點擊「⚡ 載入至戰鬥沙盒測試」時 100% 完整繼承自訂定位、特技與站位進行蒙地卡羅模擬；戰力預估 KPI 全面納入定位加權與特技評分。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、22 個測試檔案 85 項單元測試全數 PASS。
+- **[Feature/Story/Map] 故事工坊新增「地圖：移除／銷毀地圖據點 (REMOVE_MAP_NODE)」效果實裝（2026-08-25）**：
+  - **資料型別與工坊標籤 (`Narrative.ts` & `StoryStudioTypes.ts`)**：擴充 `NarrativeEffect` 支援 `REMOVE_MAP_NODE` 聯合型別，於故事工坊完成結果與選項效果清單註冊 `地圖：移除／銷毀地圖據點 (REMOVE_MAP_NODE)` 標籤。
+  - **工坊表單快速選取 (`StoryStudioForm.ts`)**：提供「欲移除的地圖據點代號 (Node ID)」手動輸入框與「快速選取討伐據點範本 ID」下拉選單，創作者可一鍵選中故事中創造的動態據點。
+  - **底層引擎智慧移除 (`NarrativeSystem.ts`)**：實裝 `applyEffect` 處理邏輯，支援直接傳入據點 ID 或故事全稱 ID（`story_${storyId}_${nodeId}`），即時透過 `GameState.mapSystem.removeDynamicNode()` 安全抹除該大地圖據點與視野關聯。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、22 個測試檔案 84 項單元測試全數 PASS。
+- **[Fix/Story/Narrative] 實裝討伐專屬目標節點自動封印防護引擎與戰勝精準喚起（2026-08-25）**：
+  - **自動封印防護 (`NarrativeSystem.ts`)**：新增 `isSubjugationTargetNode` 引擎級自動檢查：凡是被任何 `CREATE_SUBJUGATION_NODE` 登記為 `victoryNodeId`（戰勝）、`defeatNodeId`（戰敗）或 `journeyNodeIds`（途中事件）的後續節點，引擎全面自動封印，徹底杜絕其在每日換日（`processDailyTick`）、領地事件池或街道訪客池中被提前誤觸發。
+  - **討伐結算精準喚起 (`NarrativeSystem.ts`)**：於 `handleSubjugationCompleted` 與 `handleSubjugationJourney` 中以強制優先級喚起目標節點，確保勝利/失敗演出 100% 於討伐出征結束結算當下精準觸發。
+  - **資料修正 (`custom_stories.json`)**：清理《最後的龍裔》`dragon_fam_2`（瘋癲的酒客）中殘留的 `SET_FACT: dragon_fam_3w`，回歸由討伐勝利 `victoryNodeId: dragon_fam_3w` 純粹驅動。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、22 個測試檔案 83 項單元測試全數 PASS。
+- **[Fix/Tool/SSOT] 討伐據點工坊載入重構為專案硬碟唯一真實來源 (SSOT) 與一鍵重新讀取實裝（2026-08-25）**：
+  - **根本解決本地快取阻擋 Git Pull 檔案問題 (`CombatStudio.ts`)**：移除過往因 `localStorage` 舊資料而直接 return 忽略硬碟檔案的缺陷；將 `loadStrongholds()` 重構為非同步優先調用 `/api/get-subjugation-nodes` 讀取專案磁碟 `subjugation_nodes.json` 實體檔案，確保跨裝置或 Git Pull 後永遠讀取到最新專案據點庫。
+  - **實裝工坊「🔄 重新讀取硬碟」按鈕 (`combat-studio.html` & `CombatStudio.ts`)**：於討伐據點工作區中欄頂部新增按鈕，支援在不重整瀏覽器分頁的情況下隨時一鍵從硬碟熱重載最新據點。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、82 項單元測試全數 PASS。
 - **[UI/Dialog] 優化 NPC 對話彈窗預設保底按鈕文字（2026-08-24）**：
   - **移除不合時宜的罐頭台詞 (`NpcDialogueModalController.ts`)**：將故事節點無分支選項時的保底離開按鈕文字從「了解，願秩序庇佑領地。」修改為乾淨通用的「結束對話」，避免在陰暗/恐怖/市井等各類情境對話中產生違和感。
   - **驗證**：TypeScript 型別檢查 0 錯誤、82 項單元測試全數 PASS。

@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { GameState } from '../core/GameState';
 import { createEmptyNarrativeState, NarrativeStory } from '../models/Narrative';
 import { NarrativeSystem } from './NarrativeSystem';
+import { EventBus } from '../core/EventBus';
+import { GameEventType } from '../core/GameEvents';
 
 const TEST_STORY: NarrativeStory = {
   id: 'test_story',
@@ -333,4 +335,131 @@ describe('NarrativeSystem', () => {
     streetEvents = NarrativeSystem.getEligibleStreetEvents();
     expect(streetEvents.map(r => r.node.id)).toContain('dragon_fam_2');
   });
+
+  it('automatically seals subjugation victory/defeat/journey target nodes from daily tick and triggers only upon subjugation', () => {
+    NarrativeSystem.setDefinitionsForTesting([
+      {
+        id: 'sub_test_story',
+        title: '討伐測試故事',
+        summary: '',
+        version: 1,
+        enabled: true,
+        nodes: [
+          {
+            id: 'node_start',
+            title: '酒客委託',
+            description: '',
+            channel: 'STREET_EVENT',
+            conditions: [],
+            choices: [],
+            completionEffects: [
+              {
+                type: 'CREATE_SUBJUGATION_NODE',
+                definition: {
+                  nodeId: 'target_stronghold',
+                  name: '神秘洞窟',
+                  placement: 'NEAR_PLAYER',
+                  victoryNodeId: 'node_victory_target',
+                  defeatNodeId: 'node_defeat_target'
+                } as any
+              }
+            ]
+          },
+          {
+            id: 'node_victory_target',
+            title: '突然拜訪的神秘人 (戰勝後續)',
+            description: '',
+            channel: 'TERRITORY_EVENT',
+            conditions: [],
+            choices: [],
+            completionEffects: []
+          },
+          {
+            id: 'node_defeat_target',
+            title: '戰敗生還者 (戰敗後續)',
+            description: '',
+            channel: 'TERRITORY_EVENT',
+            conditions: [],
+            choices: [],
+            completionEffects: []
+          }
+        ]
+      }
+    ]);
+
+    NarrativeSystem.resetStory('sub_test_story');
+    GameState.totalDays = 1;
+
+    // 1. 在換日結算時，勝利節點與失敗節點因受自動保護，絕對不會出現在領地事件中
+    NarrativeSystem.processDailyTick();
+    const eligibleTerritory = NarrativeSystem.getEligibleNodes('TERRITORY_EVENT');
+    expect(eligibleTerritory.map(r => r.node.id)).not.toContain('node_victory_target');
+    expect(eligibleTerritory.map(r => r.node.id)).not.toContain('node_defeat_target');
+
+    // 2. 討伐戰勝時，handleSubjugationCompleted 能精準強制喚起勝利目標節點
+    let triggeredNodeId = '';
+    const sub = EventBus.getInstance().subscribe(GameEventType.NARRATIVE_NODE_TRIGGERED, (payload: any) => {
+      triggeredNodeId = payload.nodeId;
+    });
+
+    NarrativeSystem.handleSubjugationCompleted('target_stronghold', true, {
+      storyId: 'sub_test_story',
+      nodeId: 'target_stronghold',
+      victoryNodeId: 'node_victory_target',
+      defeatNodeId: 'node_defeat_target',
+      journeyNodeIds: []
+    } as any);
+
+    expect(triggeredNodeId).toBe('node_victory_target');
+    sub();
+  });
+
+  it('removes dynamic map node when REMOVE_MAP_NODE effect is applied', () => {
+    const mockNodes: any[] = [
+      { id: 'node_base', isPlayerBase: true, x: 10, y: 10 },
+      { id: 'story_sub_story_temp_cave', isDynamic: true, x: 20, y: 20 }
+    ];
+    GameState.mapSystem = {
+      getNodes: () => mockNodes,
+      getNodeById: (id: string) => mockNodes.find(n => n.id === id),
+      removeDynamicNode: (id: string) => {
+        const idx = mockNodes.findIndex(n => n.id === id);
+        if (idx >= 0) mockNodes.splice(idx, 1);
+      }
+    } as any;
+
+    NarrativeSystem.setDefinitionsForTesting([
+      {
+        id: 'sub_story',
+        title: '移除據點故事',
+        summary: '',
+        version: 1,
+        enabled: true,
+        nodes: [
+          {
+            id: 'node_collapse',
+            title: '洞窟崩塌',
+            description: '',
+            channel: 'TERRITORY_EVENT',
+            conditions: [],
+            choices: [],
+            completionEffects: [
+              {
+                type: 'REMOVE_MAP_NODE',
+                nodeId: 'temp_cave'
+              }
+            ]
+          }
+        ]
+      }
+    ]);
+
+    expect(mockNodes.some(n => n.id === 'story_sub_story_temp_cave')).toBe(true);
+
+    NarrativeSystem.resolveChoice('sub_story', 'node_collapse');
+
+    expect(mockNodes.some(n => n.id === 'story_sub_story_temp_cave')).toBe(false);
+  });
 });
+
+

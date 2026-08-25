@@ -421,6 +421,20 @@ export class StoryStudioForm {
       case 'GRANT_EQUIPMENT': return `${input('裝備代號 (如 wpn_iron_greatsword)', 'templateId', effect.templateId)}${input('數量', 'quantity', effect.quantity, 'number')}`;
       case 'SCHEDULE_NODE': return `${input('目標故事節點 ID', 'nodeId', effect.nodeId)}${input('等待天數', 'delayDays', effect.delayDays, 'number')}`;
       case 'UNLOCK_MAP_NODE': return input('解鎖地圖節點 ID', 'nodeId', effect.nodeId);
+      case 'REMOVE_MAP_NODE': {
+        const allTemplates = DataStore.getSubjugationTemplates();
+        const templateOptions = [
+          { value: '', label: '-- 或選擇討伐據點範本 ID --' },
+          ...allTemplates.map(tpl => ({
+            value: tpl.id,
+            label: `🏰 ${tpl.name}（${tpl.id}）`
+          }))
+        ];
+        return `
+          ${input('欲移除的地圖據點代號 (Node ID)', 'nodeId', effect.nodeId)}
+          ${select('快速選取據點範本 ID', 'nodeId', effect.nodeId, templateOptions)}
+        `;
+      }
       case 'CREATE_SUBJUGATION_NODE': {
         const d = effect.definition;
         const allTemplates = DataStore.getSubjugationTemplates();

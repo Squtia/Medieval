@@ -118,6 +118,32 @@ export class NarrativeSystem {
     return false;
   }
 
+  /** 檢查某個節點是否被劇本中任何節點的 CREATE_SUBJUGATION_NODE 指名為勝利、失敗或途中事件後續節點 */
+  static isSubjugationTargetNode(storyId: string, nodeId: string): boolean {
+    for (const story of this.getStories()) {
+      if (!story.enabled) continue;
+      for (const n of story.nodes) {
+        for (const eff of n.completionEffects || []) {
+          if (eff.type === 'CREATE_SUBJUGATION_NODE' && eff.definition) {
+            const def = eff.definition;
+            if (def.victoryNodeId === nodeId || def.defeatNodeId === nodeId) return true;
+            if (def.journeyNodeIds && def.journeyNodeIds.includes(nodeId)) return true;
+          }
+        }
+        for (const choice of n.choices || []) {
+          for (const eff of choice.effects || []) {
+            if (eff.type === 'CREATE_SUBJUGATION_NODE' && eff.definition) {
+              const def = eff.definition;
+              if (def.victoryNodeId === nodeId || def.defeatNodeId === nodeId) return true;
+              if (def.journeyNodeIds && def.journeyNodeIds.includes(nodeId)) return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   static explainBlocked(story: NarrativeStory, node: NarrativeNode): string[] {
     const state = this.ensureState();
     const key = this.getNodeKey(story.id, node.id);
@@ -133,6 +159,11 @@ export class NarrativeSystem {
       }
     } else if (scheduledDay !== undefined && GameState.totalDays < scheduledDay) {
       reasons.push(`排程於第 ${scheduledDay} 天開放（尚餘 ${scheduledDay - GameState.totalDays} 天）`);
+    }
+
+    // 若該節點是討伐據點專屬後續節點 (勝利/失敗/途中事件)：
+    if (this.isSubjugationTargetNode(story.id, node.id)) {
+      reasons.push('為討伐據點專屬後續節點，需在討伐結算時觸發');
     }
 
     for (const condition of node.conditions) {
@@ -255,7 +286,7 @@ export class NarrativeSystem {
   }
 
   static handleSubjugationJourney(storyId: string, nodeId: string): boolean {
-    return this.presentInteractiveNode(storyId, nodeId);
+    return this.presentInteractiveNode(storyId, nodeId, true);
   }
 
   static handleSubjugationCompleted(
@@ -270,11 +301,11 @@ export class NarrativeSystem {
     };
     const outcomeNodeId = isVictory ? narrative?.victoryNodeId : narrative?.defeatNodeId;
     if (narrative && outcomeNodeId) {
-      this.presentInteractiveNode(narrative.storyId, outcomeNodeId);
+      this.presentInteractiveNode(narrative.storyId, outcomeNodeId, true);
       return;
     }
     const ref = this.getEligibleNodes('SUBJUGATION')[0];
-    if (ref) this.presentInteractiveNode(ref.story.id, ref.node.id);
+    if (ref) this.presentInteractiveNode(ref.story.id, ref.node.id, true);
   }
 
   static presentInteractiveNode(storyId: string, nodeId: string, force = false): boolean {
@@ -414,6 +445,18 @@ export class NarrativeSystem {
           if (target) {
             target.isHidden = false;
             target.isDiscovered = true;
+          }
+          break;
+        }
+        case 'REMOVE_MAP_NODE': {
+          const mapSystem = GameState.mapSystem;
+          const targetId = effect.nodeId;
+          if (mapSystem && targetId) {
+            const stableId = targetId.startsWith('story_') ? targetId : `story_${storyId}_${targetId}`;
+            const target = mapSystem.getNodeById(targetId) || mapSystem.getNodeById(stableId);
+            if (target) {
+              mapSystem.removeDynamicNode(target.id);
+            }
           }
           break;
         }

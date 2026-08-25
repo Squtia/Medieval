@@ -578,5 +578,16 @@
     "description": "祈禱者進階轉職為大主教或異端拷問官所需的認證信物。",
     "basePrice": 300,
     "isLocked": true
+  },
+  {
+    "id": "mat_new_6491",
+    "name": "疫病龍鱗",
+    "tier": 4,
+    "category": "LEATHER",
+    "basePrice": 300000,
+    "description": "一片稀有的龍鱗。",
+    "flavorText": "從人類身上掉落的稀有龍鱗，價值不斐。",
+    "icon": "icons_materials:icons_materials_60",
+    "isLocked": true
   }
 ]

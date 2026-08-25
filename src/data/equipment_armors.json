@@ -41,6 +41,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -90,6 +94,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -139,6 +147,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -188,6 +200,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "法師",
+      "祈禱者"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -238,6 +254,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "弓箭手",
+      "盜賊"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -288,6 +308,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "弓箭手",
+      "盜賊"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -338,6 +362,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "弓箭手",
+      "盜賊"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -388,6 +416,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "弓箭手",
+      "盜賊"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -437,6 +469,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -486,6 +522,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -535,6 +575,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
@@ -584,6 +628,10 @@
     ],
     "extraSkills": [],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "戰士",
+      "騎士"
+    ],
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,

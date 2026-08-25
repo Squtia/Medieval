@@ -1,13 +1,53 @@
 [
   {
+    "id": "dragon_fam_dun_2",
+    "name": "充滿龍晶的洞穴深處",
+    "description": "描述此據點的敵方勢力與地理環境...",
+    "terrain": "RUINS",
+    "icon": "cave_node_01:cave_node_01_16",
+    "difficulty": 5,
+    "requiresScouting": false,
+    "removeOnVictory": true,
+    "waves": [
+      {
+        "name": "第 1 波：先鋒部隊",
+        "monsters": [
+          {
+            "monsterId": "lizard",
+            "powerTier": 1.1
+          },
+          {
+            "monsterId": "lizard",
+            "powerTier": 1.1
+          }
+        ]
+      },
+      {
+        "name": "第 2 波：據點首領",
+        "monsters": [
+          {
+            "monsterId": "ancient_black_dragon",
+            "powerTier": 5
+          }
+        ]
+      }
+    ],
+    "rewards": {
+      "gold": 100,
+      "exp": 120,
+      "prestige": 15
+    },
+    "isWorldSecret": false
+  },
+  {
     "id": "dragon_fam_dun",
-    "name": "充滿龍晶的隱藏洞窟",
+    "name": "神秘的隱藏洞窟",
     "description": "描述此據點的敵方勢力與地理環境...",
     "terrain": "RUINS",
     "icon": "cave_node_01:cave_node_01_6",
     "difficulty": 5,
     "requiresScouting": false,
-    "removeOnVictory": false,
+    "removeOnVictory": true,
     "waves": [
       {
         "name": "第 1 波：先鋒部隊",
@@ -40,7 +80,8 @@
       "gold": 1000,
       "exp": 250,
       "prestige": 50
-    }
+    },
+    "isWorldSecret": false
   },
   {
     "id": "smuggler_checkpoint",

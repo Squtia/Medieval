@@ -122,6 +122,11 @@ class CombatStudioController {
   private activeEditingMonsterWaveIdx = 0;
   private activeEditingMonsterIdx = 0;
   private tempMonsterSkills: string[] = [];
+
+  // 討伐據點怪物進階配置狀態
+  private currentConfiguringWaveIdx = 0;
+  private currentConfiguringMonsterIdx = 0;
+  private tempShMonsterSkills: string[] = [];
   // 當前更換頭像中的對象 ('creator' 或 敵方陣容 index 或 傭兵 index)
   private activeIconPickerTarget: 'creator' | { type: 'enemy'; idx: number } | { type: 'player'; idx: number } = 'creator';
 
@@ -140,7 +145,7 @@ class CombatStudioController {
     await this.loadMonsters();
     await this.loadIconDatasets();
     this.loadCustomHeroes();
-    this.loadStrongholds();
+    await this.loadStrongholds();
     this.initDefaultPlayerTeam('balanced');
     this.initDefaultEnemyWaves('node_1');
     this.bindEvents();
@@ -148,17 +153,21 @@ class CombatStudioController {
     this.render();
   }
 
-  private loadStrongholds(): void {
-    const saved = localStorage.getItem('MEDIEVAL_CUSTOM_STRONGHOLDS_V2');
-    if (saved) {
-      try {
-        this.strongholdsDb = JSON.parse(saved);
-        if (this.strongholdsDb.length > 0) {
-          if (!this.editingStrongholdId) this.editingStrongholdId = this.strongholdsDb[0].id;
+  private async loadStrongholds(): Promise<void> {
+    try {
+      const response = await fetch('/api/get-subjugation-nodes');
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          this.strongholdsDb = data;
+          if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
+            this.editingStrongholdId = this.strongholdsDb[0].id;
+          }
+          this.saveStrongholdsToStorage();
           return;
         }
-      } catch {}
-    }
+      }
+    } catch {}
     this.strongholdsDb = clone(subjugationNodesJson) as SubjugationTemplate[];
     if (this.strongholdsDb.length > 0 && !this.editingStrongholdId) {
       this.editingStrongholdId = this.strongholdsDb[0].id;
@@ -1069,17 +1078,36 @@ class CombatStudioController {
             const mCard = document.createElement('div');
             mCard.style.cssText = 'background: #141822; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--cs-panel-border); display: flex; align-items: center; justify-content: space-between; gap: 6px;';
 
+            const profileBadge = mRef.profile && (mRef.profile as any) !== 'DEFAULT'
+              ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(59,130,246,0.18); color: #60a5fa; padding: 1px 4px;">${mRef.profile}</span>`
+              : '';
+            const formationBadge = mRef.formationRow === FormationRow.BACK
+              ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(168,85,247,0.18); color: #c084fc; padding: 1px 4px;">後排</span>`
+              : (mRef.formationRow === FormationRow.FRONT ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(34,197,94,0.18); color: #4ade80; padding: 1px 4px;">前排</span>` : '');
+            const skillBadge = mRef.skills && mRef.skills.length > 0
+              ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(234,179,8,0.18); color: #fde047; padding: 1px 4px;">✨${mRef.skills.length}技</span>`
+              : '';
+            const affixText = mRef.affix ? `<span style="font-size: 0.68rem; color: #f59e0b; font-weight: bold;">${mRef.affix}</span> ` : '';
+
             mCard.innerHTML = `
-              <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1;">
                 <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 4px; background: #0c1017; display: flex; align-items: center; justify-content: center;">
                   ${renderUniversalIcon(mAvatar, 28)}
                 </div>
-                <div style="min-width: 0;">
-                  <div style="font-weight: bold; font-size: 0.78rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${mName}</div>
-                  <div style="font-size: 0.68rem; color: var(--cs-text-muted);">強化: <b>${mRef.powerTier || mon?.powerTier || 1.0}x</b></div>
+                <div style="min-width: 0; flex: 1;">
+                  <div style="font-weight: bold; font-size: 0.78rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${affixText}${mName}</div>
+                  <div style="font-size: 0.66rem; color: var(--cs-text-muted); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
+                    <span>強化: <b>${mRef.powerTier || mon?.powerTier || 1.0}x</b></span>
+                    ${profileBadge}
+                    ${formationBadge}
+                    ${skillBadge}
+                  </div>
                 </div>
               </div>
-              <button class="cs-btn cs-btn-sm cs-btn-danger" style="padding: 1px 4px; font-size: 0.65rem;" data-sh-del-monster="${wIdx},${mIdx}">✕</button>
+              <div style="display: flex; gap: 4px;">
+                <button class="cs-btn cs-btn-sm cs-btn-secondary" style="padding: 1px 6px; font-size: 0.65rem;" data-sh-config-monster="${wIdx},${mIdx}" title="配置強化倍率、定位與技能">⚙️</button>
+                <button class="cs-btn cs-btn-sm cs-btn-danger" style="padding: 1px 4px; font-size: 0.65rem;" data-sh-del-monster="${wIdx},${mIdx}" title="刪除此怪">✕</button>
+              </div>
             `;
             monstersList.appendChild(mCard);
           });
@@ -1099,8 +1127,10 @@ class CombatStudioController {
       (w.monsters || []).forEach(mRef => {
         const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
         const tier = mRef.powerTier || mon?.powerTier || 1.0;
+        const profileMult = mRef.profile === MonsterProfile.BOSS ? 1.5 : (mRef.profile === MonsterProfile.TANK || mRef.profile === MonsterProfile.BERSERKER ? 1.2 : 1.0);
+        const skillBonus = (mRef.skills?.length || 0) * 15;
         const diffMultiplier = 1 + (sh.difficulty || 2) * 0.2 + wIdx * 0.15;
-        totalPower += Math.round(tier * 40 * diffMultiplier);
+        totalPower += Math.round(tier * 40 * profileMult * diffMultiplier) + skillBonus;
       });
     });
 
@@ -1114,6 +1144,136 @@ class CombatStudioController {
     else if (sh.difficulty >= 2 || totalPower >= 140) recText = '3~4 人 Lv.3~5 標準小隊';
 
     if (recEl) recEl.textContent = recText;
+  }
+
+  private openSubjugationMonsterConfig(waveIdx: number, monsterIdx: number): void {
+    this.currentConfiguringWaveIdx = waveIdx;
+    this.currentConfiguringMonsterIdx = monsterIdx;
+    const sh = this.getActiveStronghold();
+    const mRef = sh?.waves?.[waveIdx]?.monsters?.[monsterIdx];
+    if (!mRef) return;
+
+    const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
+    const mName = mon?.name || mRef.monsterId;
+    const mAvatar = mon?.avatarIcon || this.getMonsterAvatar(mRef.monsterId, mName);
+
+    const avatarEl = byId('sh-mc-avatar');
+    const titleEl = byId('sh-mc-title');
+    if (avatarEl) avatarEl.innerHTML = renderUniversalIcon(mAvatar, 30);
+    if (titleEl) titleEl.textContent = `${mName} (第 ${waveIdx + 1} 波)`;
+
+    const powerInput = byId<HTMLInputElement>('sh-mc-power-tier');
+    const profileSelect = byId<HTMLSelectElement>('sh-mc-profile');
+    const formationSelect = byId<HTMLSelectElement>('sh-mc-formation');
+    const elementSelect = byId<HTMLSelectElement>('sh-mc-element');
+    const affixInput = byId<HTMLInputElement>('sh-mc-affix');
+    const searchInput = byId<HTMLInputElement>('sh-mc-skill-search');
+
+    if (powerInput) powerInput.value = String(mRef.powerTier ?? mon?.powerTier ?? 1.0);
+    if (profileSelect) profileSelect.value = mRef.profile || 'DEFAULT';
+    if (formationSelect) formationSelect.value = mRef.formationRow || (monsterIdx < 2 ? 'FRONT' : 'BACK');
+    if (elementSelect) elementSelect.value = mRef.element || mon?.defaultElement || 'NONE';
+    if (affixInput) affixInput.value = mRef.affix || '';
+    if (searchInput) searchInput.value = '';
+
+    this.tempShMonsterSkills = [...(mRef.skills || mon?.skills || [])];
+    this.renderShMonsterCurrentSkills();
+    this.renderShMonsterSkillLibrary('');
+
+    byId('modal-sh-monster-config').style.display = 'flex';
+  }
+
+  private renderShMonsterCurrentSkills(): void {
+    const listEl = byId('sh-mc-current-skills-list');
+    const countEl = byId('sh-mc-current-count');
+    if (countEl) countEl.textContent = String(this.tempShMonsterSkills.length);
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    if (this.tempShMonsterSkills.length === 0) {
+      listEl.innerHTML = '<span style="color: var(--cs-text-muted); font-size: 0.75rem;">尚未裝備任何特技 (僅能普攻)</span>';
+      return;
+    }
+
+    this.tempShMonsterSkills.forEach((skId, sIdx) => {
+      const sk = SkillRegistry.getSkill(skId);
+      const tag = document.createElement('div');
+      tag.className = 'cs-badge';
+      tag.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; font-size: 0.75rem; background: rgba(59,130,246,0.2); border: 1px solid #3b82f6; color: #93c5fd; border-radius: 4px;';
+      tag.innerHTML = `
+        <span title="${sk?.description || ''}">✨ ${sk?.name || skId} (MP: ${sk?.mpCost || 0})</span>
+        <button type="button" class="cs-btn cs-btn-danger cs-btn-sm" style="padding: 0 4px; font-size: 0.65rem; line-height: 14px; margin-left: 2px;" data-sh-remove-m-skill="${sIdx}" title="移除特技">✕</button>
+      `;
+      listEl.appendChild(tag);
+    });
+  }
+
+  private renderShMonsterSkillLibrary(searchQuery: string = ''): void {
+    const listEl = byId('sh-mc-skill-library-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const allSkills = SkillRegistry.getAllSkills();
+    const q = searchQuery.toLowerCase();
+    const filtered = allSkills.filter(s => {
+      if (!q) return true;
+      return s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || (s.description && s.description.toLowerCase().includes(q));
+    });
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div style="color: var(--cs-text-muted); padding: 12px; text-align: center; font-size: 0.75rem;">查無符合條件的特技</div>';
+      return;
+    }
+
+    filtered.forEach(sk => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #131720; border: 1px solid var(--cs-panel-border); border-radius: 5px; gap: 8px;';
+
+      const isEquipped = this.tempShMonsterSkills.includes(sk.id);
+      const isFull = this.tempShMonsterSkills.length >= 4;
+
+      item.innerHTML = `
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
+            <span style="font-weight: bold; color: var(--cs-gold-light); font-size: 0.8rem;">✨ ${sk.name}</span>
+            <span class="cs-badge" style="font-size: 0.65rem; color: #60a5fa; background: rgba(59,130,246,0.15);">💧 MP ${sk.mpCost || 0}</span>
+            <span class="cs-badge" style="font-size: 0.65rem; color: var(--cs-text-muted);">${sk.category || '通用'}</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--cs-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${sk.description || ''}">
+            ${sk.description || ''}
+          </div>
+        </div>
+        <button type="button" class="cs-btn cs-btn-sm ${isEquipped ? '' : 'cs-btn-primary'}" style="padding: 2px 8px; font-size: 0.72rem; flex-shrink: 0;" data-sh-add-m-skill="${sk.id}" ${isEquipped || isFull ? 'disabled' : ''}>
+          ${isEquipped ? '已裝備' : isFull ? '已滿4招' : '＋ 加入'}
+        </button>
+      `;
+
+      listEl.appendChild(item);
+    });
+  }
+
+  private saveSubjugationMonsterConfig(): void {
+    const sh = this.getActiveStronghold();
+    const mRef = sh?.waves?.[this.currentConfiguringWaveIdx]?.monsters?.[this.currentConfiguringMonsterIdx];
+    if (!mRef) return;
+
+    const powerVal = Number(byId<HTMLInputElement>('sh-mc-power-tier')?.value || 1.0);
+    const profileVal = byId<HTMLSelectElement>('sh-mc-profile')?.value;
+    const formationVal = byId<HTMLSelectElement>('sh-mc-formation')?.value as any;
+    const elementVal = byId<HTMLSelectElement>('sh-mc-element')?.value as any;
+    const affixVal = byId<HTMLInputElement>('sh-mc-affix')?.value.trim();
+
+    mRef.powerTier = Math.max(0.1, powerVal);
+    mRef.profile = profileVal && profileVal !== 'DEFAULT' ? (profileVal as any) : undefined;
+    mRef.formationRow = formationVal || FormationRow.FRONT;
+    mRef.element = elementVal && elementVal !== 'NONE' ? elementVal : undefined;
+    mRef.affix = affixVal || undefined;
+    mRef.skills = this.tempShMonsterSkills.length > 0 ? [...this.tempShMonsterSkills] : undefined;
+
+    this.saveStrongholdsToStorage();
+    byId('modal-sh-monster-config').style.display = 'none';
+    this.renderStrongholdForm();
+    this.renderStrongholdAnalytics();
   }
 
   private openSubjugationMonsterPicker(waveIdx: number): void {
@@ -1199,15 +1359,19 @@ class CombatStudioController {
         const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
         const mName = mon?.name || mRef.monsterId;
         const isBoss = isBossWave && mIdx === w.monsters.length - 1;
+        const diffMultiplier = mRef.powerTier || mon?.powerTier || 1.0;
+        const finalDiff = Math.max(1, Math.round(((sh.difficulty || 2) + wIdx) * diffMultiplier));
         waveUnits.push({
           monsterId: mRef.monsterId,
           name: mName,
-          difficulty: (sh.difficulty || 2) + wIdx,
-          element: mon?.defaultElement || ElementType.NONE,
+          difficulty: finalDiff,
+          element: mRef.element || mon?.defaultElement || ElementType.NONE,
           isUndead: mon?.race === MonsterRace.UNDEAD,
           avatarIcon: mon?.avatarIcon || this.getMonsterAvatar(mRef.monsterId, mName),
-          affix: isBoss ? '👑[守將]' : undefined,
-          formationRow: mIdx < 2 ? FormationRow.FRONT : FormationRow.BACK
+          affix: mRef.affix || (isBoss ? '👑[守將]' : undefined),
+          formationRow: mRef.formationRow || (mIdx < 2 ? FormationRow.FRONT : FormationRow.BACK),
+          profile: mRef.profile && (mRef.profile as any) !== 'DEFAULT' ? mRef.profile : mon?.profile,
+          skills: mRef.skills && mRef.skills.length > 0 ? [...mRef.skills] : (mon?.skills ? [...mon.skills] : undefined)
         });
       });
 
@@ -1305,6 +1469,11 @@ class CombatStudioController {
 
   private bindStrongholdEvents(): void {
     byId('btn-studio-tab-strongholds')?.addEventListener('click', () => this.switchStudioTab('strongholds'));
+    byId('btn-sh-reload-disk')?.addEventListener('click', async () => {
+      await this.loadStrongholds();
+      this.renderStrongholdStudio();
+      alert('🔄 已成功從專案磁碟重新載入最新討伐據點！');
+    });
     byId('btn-sh-save-disk')?.addEventListener('click', () => this.saveMonstersToDisk());
     byId('btn-sh-add')?.addEventListener('click', () => this.createNewStronghold());
     byId('btn-sh-duplicate')?.addEventListener('click', () => this.duplicateCurrentStronghold());
@@ -1431,6 +1600,10 @@ class CombatStudioController {
           this.renderStrongholdStudio();
         }
       }
+      if (target.dataset.shConfigMonster !== undefined) {
+        const [wIdxStr, mIdxStr] = target.dataset.shConfigMonster.split(',');
+        this.openSubjugationMonsterConfig(Number(wIdxStr), Number(mIdxStr));
+      }
       if (target.dataset.shDelMonster !== undefined) {
         const [wIdxStr, mIdxStr] = target.dataset.shDelMonster.split(',');
         const wIdx = Number(wIdxStr);
@@ -1456,6 +1629,41 @@ class CombatStudioController {
       const race = (e.target as HTMLSelectElement).value;
       const q = byId<HTMLInputElement>('sh-monster-picker-search')?.value || '';
       this.renderSubjugationMonsterPickerList(this.currentPickerWaveIdx, q, race);
+    });
+
+    // 據點守軍怪物進階配置彈窗事件
+    byId('btn-close-sh-monster-config')?.addEventListener('click', () => byId('modal-sh-monster-config').style.display = 'none');
+    byId('btn-close-sh-monster-config-footer')?.addEventListener('click', () => byId('modal-sh-monster-config').style.display = 'none');
+    byId('btn-save-sh-monster-config')?.addEventListener('click', () => this.saveSubjugationMonsterConfig());
+
+    // 據點守軍特技搜尋即時過濾
+    byId<HTMLInputElement>('sh-mc-skill-search')?.addEventListener('input', e => {
+      const q = (e.target as HTMLInputElement).value;
+      this.renderShMonsterSkillLibrary(q);
+    });
+
+    // 據點守軍特技加入與移除委派
+    byId('modal-sh-monster-config')?.addEventListener('click', e => {
+      const target = e.target as HTMLElement;
+      const addBtn = target.closest('[data-sh-add-m-skill]') as HTMLElement | null;
+      if (addBtn && addBtn.dataset.shAddMSkill) {
+        const skId = addBtn.dataset.shAddMSkill;
+        if (!this.tempShMonsterSkills.includes(skId) && this.tempShMonsterSkills.length < 4) {
+          this.tempShMonsterSkills.push(skId);
+          const q = byId<HTMLInputElement>('sh-mc-skill-search')?.value || '';
+          this.renderShMonsterCurrentSkills();
+          this.renderShMonsterSkillLibrary(q);
+        }
+      }
+
+      const rmBtn = target.closest('[data-sh-remove-m-skill]') as HTMLElement | null;
+      if (rmBtn && rmBtn.dataset.shRemoveMSkill !== undefined) {
+        const sIdx = Number(rmBtn.dataset.shRemoveMSkill);
+        this.tempShMonsterSkills.splice(sIdx, 1);
+        const q = byId<HTMLInputElement>('sh-mc-skill-search')?.value || '';
+        this.renderShMonsterCurrentSkills();
+        this.renderShMonsterSkillLibrary(q);
+      }
     });
   }
 

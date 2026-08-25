@@ -1,3 +1,5 @@
+import { ElementType, FormationRow, MonsterProfile } from './types';
+
 export type NarrativeChannel =
   | 'BOUNTY_BOARD'
   | 'TAVERN_RUMOR'
@@ -21,6 +23,11 @@ export interface SubjugationWaveMonster {
   monsterId: string;
   count?: number;
   powerTier?: number;
+  profile?: MonsterProfile;
+  skills?: string[];
+  formationRow?: FormationRow;
+  affix?: string;
+  element?: ElementType;
 }
 
 export interface SubjugationWave {
@@ -97,6 +104,7 @@ export type NarrativeEffect =
   | { type: 'GRANT_EQUIPMENT'; templateId?: string; mode?: 'FIXED' | 'RANDOM'; slot?: NarrativeEquipmentSlot; tier?: NarrativeEquipmentTier; quantity: number }
   | { type: 'SCHEDULE_NODE'; nodeId: string; delayDays: number }
   | { type: 'UNLOCK_MAP_NODE'; nodeId: string }
+  | { type: 'REMOVE_MAP_NODE'; nodeId: string }
   | { type: 'CREATE_SUBJUGATION_NODE'; definition: NarrativeSubjugationDefinition };
 
 export interface NarrativeChoice {

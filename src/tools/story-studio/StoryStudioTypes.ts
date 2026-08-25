@@ -51,6 +51,7 @@ export const EFFECT_LABELS: Record<NarrativeEffect['type'], string> = {
   GRANT_TRADE_GOOD: '物品：貿易特產 (GRANT_TRADE_GOOD)',
   SCHEDULE_NODE: '流程：延遲排程節點 (SCHEDULE_NODE)',
   UNLOCK_MAP_NODE: '地圖：解鎖預設地圖據點 (UNLOCK_MAP_NODE)',
+  REMOVE_MAP_NODE: '地圖：移除／銷毀地圖據點 (REMOVE_MAP_NODE)',
   CREATE_SUBJUGATION_NODE: '討伐：創造故事討伐據點 (CREATE_SUBJUGATION_NODE)'
 };
 
@@ -121,6 +122,7 @@ export function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): Narra
     case 'GRANT_EQUIPMENT': return { type, templateId: 'wpn_iron_greatsword', mode: 'FIXED', slot: 'ANY', tier: 'ANY', quantity: 1 };
     case 'SCHEDULE_NODE': return { type, nodeId: '', delayDays: 1 };
     case 'UNLOCK_MAP_NODE': return { type, nodeId: '' };
+    case 'REMOVE_MAP_NODE': return { type, nodeId: '' };
     case 'CREATE_SUBJUGATION_NODE': return {
       type,
       definition: {
