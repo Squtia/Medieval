@@ -203,7 +203,7 @@ describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Test
     expect(assassinInst.speed || 0).toBeGreaterThanOrEqual(tankInst.speed || 0);
   });
 
-  it('支援討伐據點波次守軍自訂 powerTier、8大戰鬥定位、站位與特技', () => {
+  it('支援討伐據點波次守軍自訂 powerTier、8大戰鬥定位、3x3九宮格站位與特技', () => {
     const customStronghold: SubjugationTemplate = {
       id: 'dragon_crystal_cave',
       name: '充滿龍晶的洞穴深處',
@@ -214,23 +214,27 @@ describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Test
         {
           name: '第 1 波：先鋒部隊',
           monsters: [
-            { monsterId: 'lizard', powerTier: 1.2, profile: 'TANK' as any, formationRow: FormationRow.FRONT },
-            { monsterId: 'spider', powerTier: 1.5, profile: 'ASSASSIN' as any, formationRow: FormationRow.BACK, skills: ['SKILL_TOXIC_SPRAY'] }
+            { monsterId: 'lizard', powerTier: 1.2, profile: 'TANK' as any, gridR: 0, gridC: 1, slotId: '0_1', formationRow: FormationRow.FRONT },
+            { monsterId: 'spider', powerTier: 1.5, profile: 'ASSASSIN' as any, gridR: 2, gridC: 0, slotId: '2_0', formationRow: FormationRow.BACK, skills: ['SKILL_TOXIC_SPRAY'] }
           ]
         },
         {
           name: '第 2 波：據點首領',
           monsters: [
-            { monsterId: 'drake', powerTier: 4.0, profile: 'BOSS' as any, formationRow: FormationRow.BACK, affix: '👑[黑龍首領]', skills: ['SKILL_DRAGON_BREATH'] }
+            { monsterId: 'drake', powerTier: 4.0, profile: 'BOSS' as any, gridR: 1, gridC: 1, slotId: '1_1', formationRow: FormationRow.MIDDLE, affix: '👑[黑龍首領]', skills: ['SKILL_DRAGON_BREATH'] }
           ]
         }
       ]
     };
 
     expect(customStronghold.waves![0].monsters[0].profile).toBe('TANK');
+    expect(customStronghold.waves![0].monsters[0].slotId).toBe('0_1');
+    expect(customStronghold.waves![0].monsters[0].gridR).toBe(0);
     expect(customStronghold.waves![0].monsters[1].skills).toContain('SKILL_TOXIC_SPRAY');
     expect(customStronghold.waves![1].monsters[0].powerTier).toBe(4.0);
     expect(customStronghold.waves![1].monsters[0].affix).toBe('👑[黑龍首領]');
+    expect(customStronghold.waves![1].monsters[0].formationRow).toBe(FormationRow.MIDDLE);
+    expect(customStronghold.waves![1].monsters[0].gridC).toBe(1);
   });
 });
 

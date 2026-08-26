@@ -1085,7 +1085,7 @@
             "type": "CREATE_SUBJUGATION_NODE",
             "definition": {
               "nodeId": "dragon_fam_dun",
-              "name": "充滿龍晶的隱藏洞窟",
+              "name": "神秘的隱藏洞窟",
               "description": "",
               "placement": "NEAR_PLAYER",
               "radius": 8,
@@ -1347,7 +1347,7 @@
           {
             "type": "TRIGGER_RAID",
             "raidName": "黑龍軍團圍城戰",
-            "warningDays": 2,
+            "warningDays": 4,
             "waves": [
               {
                 "waveIndex": 1,

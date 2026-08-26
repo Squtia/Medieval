@@ -2,6 +2,7 @@ import { Equipment, NobleTitle, WorkerJob, getNodeMaxFacilityLevel, NodeLevel } 
 import { Adventurer } from './Adventurer';
 import { CombatHistoryRecord } from './Combat';
 import { AdventureLogEntry } from './AdventureLog';
+import { PendingRaidState } from './Narrative';
 
 /**
  * 領地 (Territory) 模型
@@ -60,6 +61,7 @@ export class Territory {
   public armorShopLevel: number;
   public forgeLevel: number;
   public defenseLevel: number;
+  public wallDurability?: number; // 城牆當前耐久度 (若未初始化則自動依等級補滿)
 
   // 四大基礎生產設施等級 (預設 Lv.1)
   public farmlandLevel: number = 1;
@@ -84,6 +86,7 @@ export class Territory {
   // 治安與侵略
   public security: number = 100;
   public extortionCooldown: number = 0; // 繳交保護費後的喘息期
+  public pendingRaids: PendingRaidState[] = []; // 待決戰役/敵軍進逼預警隊列
 
   constructor(name: string, startingCountryId: string | null = null) {
     this.name = name;
@@ -241,10 +244,85 @@ export class Territory {
     };
   }
 
+  /**
+   * 計算城牆最大耐久度 (依照等級階梯)
+   */
+  public getMaxWallDurability(): number {
+    const lvl = this.defenseLevel || 0;
+    const hpTable: Record<number, number> = {
+      0: 0,
+      1: 1000,
+      2: 2500,
+      3: 5000,
+      4: 7000,
+      5: 9000
+    };
+    return hpTable[lvl] ?? (9000 + (lvl - 5) * 2000);
+  }
+
+  /**
+   * 取得當前城牆耐久度 (若未設定則自動補滿)
+   */
+  public getWallDurability(): number {
+    const max = this.getMaxWallDurability();
+    if (this.wallDurability === undefined) {
+      this.wallDurability = max;
+    }
+    return Math.max(0, Math.min(max, this.wallDurability));
+  }
+
+  /**
+   * 計算城牆修繕所需消耗 (依缺損比例分配當前等級成本 * 0.6 優惠)
+   */
+  public getWallRepairCost(): { gold: number; wood: number; stone: number; iron: number; missingDurability: number; damageRatio: number } {
+    const max = this.getMaxWallDurability();
+    const cur = this.getWallDurability();
+    const missing = max - cur;
+    if (missing <= 0 || max <= 0) {
+      return { gold: 0, wood: 0, stone: 0, iron: 0, missingDurability: 0, damageRatio: 0 };
+    }
+
+    const damageRatio = missing / max;
+    const lvlCost = this.getUpgradeCost('defense', Math.max(1, this.defenseLevel || 1));
+    return {
+      gold: Math.max(10, Math.ceil(lvlCost.gold * damageRatio * 0.6)),
+      wood: Math.max(10, Math.ceil(lvlCost.wood * damageRatio * 0.6)),
+      stone: Math.max(10, Math.ceil(lvlCost.stone * damageRatio * 0.6)),
+      iron: Math.ceil((lvlCost.iron || 0) * damageRatio * 0.6),
+      missingDurability: missing,
+      damageRatio: damageRatio
+    };
+  }
+
+  /**
+   * 執行修繕城牆
+   */
+  public repairWall(): boolean {
+    const cost = this.getWallRepairCost();
+    if (cost.missingDurability <= 0) return false;
+    if (this.gold < cost.gold || this.wood < cost.wood || this.stone < cost.stone || this.iron < cost.iron) {
+      return false;
+    }
+
+    this.gold -= cost.gold;
+    this.wood -= cost.wood;
+    this.stone -= cost.stone;
+    this.iron -= cost.iron;
+    this.wallDurability = this.getMaxWallDurability();
+    console.log(`[系統] 🔨 城牆修繕完畢！當前耐久度已恢復至 ${this.wallDurability}/${this.wallDurability}。`);
+    return true;
+  }
+
   public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nodeLevel: NodeLevel = NodeLevel.WILDERNESS): boolean {
     const nextLevel = this.getBuildingLevel(bldType) + 1;
 
-    
+    // 城牆特殊限制：耐久度未滿 100% 不可升級
+    if (bldType === 'defense' && this.defenseLevel > 0) {
+      if (this.getWallDurability() < this.getMaxWallDurability()) {
+        return false;
+      }
+    }
+
     // 據點規模上限卡控
     const maxAllowed = getNodeMaxFacilityLevel(nodeLevel);
     if (nextLevel > maxAllowed) return false;
@@ -270,9 +348,13 @@ export class Territory {
     else if (bldType === 'weapon') this.weaponShopLevel = nextLevel;
     else if (bldType === 'armor') this.armorShopLevel = nextLevel;
     else if (bldType === 'forge') this.forgeLevel = nextLevel;
-    else this.defenseLevel = nextLevel;
+    else {
+      this.defenseLevel = nextLevel;
+      // 升級完成後將耐久度補滿到新等級最大值
+      this.wallDurability = this.getMaxWallDurability();
+    }
     
-    const bldName = bldType === 'tavern' ? '酒館' : bldType === 'weapon' ? '武器店' : bldType === 'armor' ? '防具店' : bldType === 'forge' ? '鍛造屋' : '防禦設施';
+    const bldName = bldType === 'tavern' ? '酒館' : bldType === 'weapon' ? '武器店' : bldType === 'armor' ? '防具店' : bldType === 'forge' ? '鍛造屋' : '城牆';
     console.log(`[系統] 🏛️ 建造/升級成功！您的 ${bldName} 已提升至等級 ${nextLevel}。`);
     return true;
   }

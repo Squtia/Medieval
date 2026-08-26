@@ -330,6 +330,30 @@ export class TownManagementSystem {
       });
     }
 
+    // 6. 推進待決圍城戰役預警倒數 (Pending Raids)
+    if (territory.pendingRaids && territory.pendingRaids.length > 0) {
+      const arrivedRaids: import('../models/Narrative').PendingRaidState[] = [];
+      territory.pendingRaids.forEach(pr => {
+        pr.warningDaysLeft -= 1;
+        if (pr.warningDaysLeft <= 0) {
+          arrivedRaids.push(pr);
+        }
+      });
+
+      if (arrivedRaids.length > 0) {
+        // 過濾已抵達城下的戰役
+        territory.pendingRaids = territory.pendingRaids.filter(pr => pr.warningDaysLeft > 0);
+        // 延遲喚起守城動員部署 (天數已歸零，強制為正規守城戰模式)
+        setTimeout(() => {
+          import('./TerritoryDefenseSystem').then(({ TerritoryDefenseSystem }) => {
+            arrivedRaids.forEach(ar => {
+              TerritoryDefenseSystem.startLiveSiegeDefense(ar.storyId, { ...ar.effect, warningDays: 0 });
+            });
+          });
+        }, 400);
+      }
+    }
+
     // 發布資源變更事件，讓 UI 更新
     EventBus.getInstance().publish({
       type: GameEventType.RESOURCE_CHANGED,

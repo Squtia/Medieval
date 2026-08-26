@@ -1,3 +1,69 @@
+- **[Feature/Combat/FieldInterception/Territory] 野外大軍攔截戰 (Field Interception) 全鏈路實裝：動員部署三大決策、短天數交兵公式、戰況狀態 1:1 繼承與大地圖受攻動態視覺特效（2026-08-26）**：
+  - **領地動員部署彈窗升級 (`TerritoryDefenseModalController.ts` & `modals-combat-trade.html`)**：
+    - 當故事事件觸發 `TRIGGER_RAID` 且 `warningDays > 0` 時，自動切換為「⚠️ 敵軍逼近預警」模式，提供 3 大戰略決策按鈕：
+      1. **【⚔️ 親自出城攔截 (野戰)】**：載入野外遭遇戰舞台，無城牆掩體，常規左右站位，支援軍團調派。
+      2. **【🛡️ 派遣軍團迎擊 (自動作戰)】**：以短天數交兵並在探索/領地日誌自動背景模擬結算。
+      3. **【🏰 堅壁清野 (等待守城)】**：進入臨戰戒備，大地圖主城標記雙劍交鋒標籤，預警天數耗盡兵臨城下開打守城戰。
+    - 當天數歸零時自動轉為正規守城戰模式（【放棄抵抗】 / 【⚔️ 誓死守城】）。
+  - **嚴謹的時間線計算公式 (`TerritoryDefenseSystem.ts`)**：
+    - 交兵天數 $T_{\text{battle}} = \min(T_{\text{enemy}}, T_{\text{march}})$（以短天數一方為主）。
+    - 野戰失利後敵軍抵達天數 $T_{\text{remain}} = \max(1, T_{\text{enemy}} - T_{\text{battle}})$。
+  - **戰況狀態 1:1 繼承 (Battle State Continuity) (`TerritoryDefenseSystem.ts` & `CombatSystem.ts`)**：
+    - 野外攔截戰若未全殲敵軍（或戰敗/撤退），被擊殺的魔物標記死亡、殘血怪物的 HP 與剩餘敵方軍團兵力 100% 持久化存入 `pendingRaid`。
+    - 數天後敵軍兵臨城下守城戰時，1:1 載入這支已被打殘的敵軍陣容，死亡怪不再登場，殘血怪保留殘血，讓出城攔截具有實質戰略削弱價值！
+  - **據點工坊隨行敵方軍團 (Enemy Legion) (`CombatStudio.ts` & `combat-studio.html` & `Narrative.ts`)**：
+    - 據點工坊新增「🛡️ 啟用隨行敵方軍團」勾選框與敵方步兵、弓兵、騎兵數量配置。
+    - 戰鬥引擎支援敵方隨行軍團每 2 回合發動【🏹 漫天箭雨】齊射與每 3 回合發動【🐎 重騎衝鋒】。
+  - **大地圖主城受攻雙劍動畫特效 (`MapScene.ts`)**：
+    - 當領地存在未解決的 `pendingRaids` 預警戰役時，主城上方渲染跳動的「⚔️ 雙劍交鋒標記」與「⚠️ 敵軍逼近 (N天)」警示標籤。
+  - **出城迎擊狀態鎖定與彈窗生命週期修復 (`TerritoryDefenseModalController.ts` & `TerritoryDefenseSystem.ts`)**：
+    - 修復野外攔截戰鬥結算後彈窗重複顯示的問題；當部隊已出城迎擊過一次後（`isFieldInterceptionAttempted = true`），自動隱藏出城迎擊按鈕，切換為「🏰 領地臨戰戒備（敵軍殘部進逼中）」提示，並在戰報關閉時 100% 關閉動員彈窗，回歸大地圖臨戰戒備倒數。
+  - **日結算預警推進 (`TownManagementSystem.ts`)**：
+    - 每日結算推進 `warningDaysLeft -= 1`，當天數耗盡時自動無縫喚起正規守城動員部署。
+  - **派遣迎擊探索日誌 (AdventureLogEntry) 標準結構與戰鬥重播實裝 (`TerritoryDefenseSystem.ts`)**：
+    - 徹底修復派遣迎擊自動結算時寫入非標準結構導致探索日誌顯示「以 undefined 為首的隊伍 / 探索了 undefined / 內文空白」的 Bug。
+    - 現在如實組裝 `squadLeaderName`（出征隊長）、`nodeName`（`🌲 野外迎擊 (戰役名稱)`）、`segments`（出征集結、激戰過程、戰損結算與戰況實況段落），並將戰報寫入 `territory.addCombatRecord` 同步在日誌內文插入 **【⚔️ 戰鬥紀錄】** 重播按鈕，點擊可 100% 觀看完整戰鬥重播！
+  - **驗證**：TypeScript 型別檢查 0 錯誤、25 個測試檔案 106 項單元測試 100% 全部通過。
+- **[Feature/StoryStudio/Sync] 故事工坊「🔄 從專案重載 (Git 同步)」與草稿智慧檢測機制實裝（2026-08-26）**：
+  - **跨電腦 Git 同步快取解鎖 (`StoryStudio.ts`, `story-editor.html`)**：
+    - 頂部操作列新增醒目的「🔄 從專案重載 (Git 同步)」按鈕，點擊即可一鍵清空本機殘留的過期草稿，100% 還原 Git Pull 的專案實體最新故事檔案。
+    - 新增「📝 偵測到本機暫存草稿」智慧提示條（Banner），主動提醒使用者當前內容來自本地暫存，並提供一鍵載入專案最新版。
+- **[Bugfix/Studio/Stronghold] 據點設計工坊自訂據點載入與儲存覆蓋 Bug 修復（2026-08-26）**：
+  - **修復原因**：先前 `CombatStudio.ts` 的 `loadStrongholds()` 每次載入時未先檢查 `localStorage`，直接重置為原生 JSON 檔並寫入儲存，導致使用者在戰鬥工坊自訂的新據點（如「充滿龍晶的洞穴深處」）被覆蓋丟失，故事工坊因而只能回退至預設據點。
+  - **修復方案**：`loadStrongholds()` 設為最高優先級讀取 `localStorage` (`MEDIEVAL_CUSTOM_STRONGHOLDS_V2`)，確保自訂據點持久化安全且在故事工坊與戰鬥系統中 100% 同步可用。
+- **[Feature/Combat/Studio] 怪物 3×3 九宮格陣型體系與據點波次解包全面修復（2026-08-26）**：
+  - **據點多波次解包修復 (`TerritoryDefenseSystem.ts`)**：徹底修復據點模板的多波次怪獸（如 Wave 1 毒蜥、Wave 2 太古黑龍）被錯誤合併為單一波次的 Bug，現在 1:1 如實平鋪獨立展開為多波次戰鬥。
+  - **怪物 3×3 九宮格資料模型 (`Narrative.ts`, `types.ts`, `Combat.ts`)**：`SubjugationWaveMonster` 與 `MonsterInstance` 全面支援 `gridR` (前中後排 0~2)、`gridC` (上中下路 0~2) 與 `slotId` (如 `"0_1"`, `"1_1"`)。
+  - **據點設計工坊 3×3 視覺化戰術九宮格 (`CombatStudio.ts` & `combat-studio.html`)**：
+    - 據點波次編輯器升級為雙欄佈局：左側 3×3 敵軍戰術九宮格（橫向前中後、縱向上中下），右側怪物詳細設定清單。
+    - 支援點擊九宮格空位直接彈出怪物庫選用，並精確指派坐標；支援拖曳/點擊快速配置與移除；怪物配置彈窗提供 9 個九宮格站位下拉選單。
+  - **戰鬥舞台 1:1 精確映射 (`CombatSystem.ts` & `CombatUIManager.ts`)**：戰鬥引擎與 CSS Grid 優先讀取怪物自訂 `gridR` 與 `gridC`，在戰鬥畫面如實還原敵軍站位與前後排層次。
+  - **驗證**：TypeScript 編譯檢查 0 錯誤、25 個測試檔案 104 項單元測試 100% PASS。
+- **[Feature/Combat/Siege/Territory] 領地守城戰與城防體系深度完善：城牆耐久條與修繕升級限制、民兵戰損與遭遇戰人口波及、攻守目標深度重構、動員記憶與專屬防衛戰報（2026-08-26）**：
+  - **守城戰進攻方頭像朝向修復 (`style.css`)**：精確只對 `.combat-p-avatar-sq`（單純頭像圖片）施加水平鏡像翻轉，使左側進攻方魔物正面朝向右側城門衝鋒，名稱、血條、狀態等文字標籤保持 100% 正向無鏡像。
+  - **全技能軍團步兵護盾攔截機制 (`CombatSystem.ts`)**：徹底修復敵方範圍/魔法/單體技能攻擊繞過步兵護盾直接秒殺肉體的問題。現在所有技能傷害優先由步兵護盾吸收並輸出 `🛡️ 部隊護盾吸收了 XXX 點傷害`，破盾後溢出傷害才扣減 HP。
+  - **騎兵衝鋒與弓兵齊射傷害曲線平滑化與 BOSS 抗性 (`CombatSystem.ts` & `TerritoryDefenseModalController.ts`)**：
+    - 廢除純線性無上限倍率，改採平方根平滑曲線（弓兵 $\lfloor \sqrt{\text{count}} \times 35 \rfloor$、騎兵 $\lfloor \sqrt{\text{count}} \times 28 \rfloor$），防止數百民兵一擊秒殺 BOSS。
+    - 首領/BOSS 級魔物（如太古黑龍）免疫直接暈眩，轉化為「受到重裝衝擊，攻擊力降低 20%（持續 2 回合）」。
+  - **城牆耐久度持久化與書房修繕面板 (`Territory.ts` & `SceneController.ts`)**：
+    - 全域正名為「城牆耐久度 (Wall Durability)」，戰後耐久度不再自動回滿，實時寫入 `territory.wallDurability` 持久化儲存。
+    - 書房建築面板城牆卡片新增高質感**「耐久度進度條 (Durability Bar)」**與數值標籤（如 `耐久度: 3,500 / 5,000`）。
+    - 依缺損比例分配金幣、木材、石材消耗，提供「🔨 修繕城牆」按鈕；**耐久度未達 100% 滿值時，升級按鈕自動反灰並提示「需先修繕滿耐久度」**。
+    - 城門徹底被攻破時，城牆降級為 **Lv.1** 且耐久度為 **0**（需重新修繕方可恢復）。
+  - **調派民兵戰損與遭遇戰人口波及 (`TerritoryDefenseSystem.ts`)**：
+    - **步兵**：戰後依剩餘護盾生還人數換算（$\lfloor \text{剩餘護盾} / 50 \rfloor$），陣亡者直接扣減領地 `workers['INFANTRY']`。
+    - **弓兵與騎兵**：守城戰勝亦有合理戰損（弓兵 5%~10%、騎兵 10%~15%），城破時戰損加重至 25%~40%，直接從領地部隊扣除。
+    - **遭遇戰 (`isSiege: false`)**：戰勝波及 1~3 位村民，戰敗遭強盜劫掠損失 15% 人口。
+  - **守城戰鬥目標判定深度重構 (`CombatSystem.ts`)**：
+    - **前排單位**：敵軍近戰可直接攻擊我方前排守軍，前排分擔城門防禦壓力。
+    - **中後排單位**：只要前排仍有存活守軍或城牆耐久 > 0，敵軍近戰物理攻擊無法近身打擊中後排；只有在前排全滅且城牆耐久歸 0（破城）後，敵軍湧入城內，近戰才可直接攻擊中後排。
+    - **遠程 / 魔法 / 貫穿**：可越過城牆打擊中後排，守軍享受 25% 城垛掩體傷害減免。
+  - **守備動員編制自動記憶與「⚡ 智慧自動填補」(`TerritoryDefenseModalController.ts`)**：
+    - 自動記憶上次出戰的 3 梯隊陣容、陣型與 3×3 九宮格。
+    - 提供「⚡ 智慧自動填補」按鈕，一鍵挑選留守領地且戰力最高的冒險者填補空缺。
+  - **專屬【🏰 領地防衛戰報 (Siege Debrief)】彈窗 (`CombatUIManager.ts` & `modals-combat-trade.html`)**：
+    - 戰鬥結束後彈出黑金戰報，清晰交代城牆受損、民兵傷亡撫恤、物資治安變更與守城 MVP，點擊後順暢銜接後續劇情。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、25 個測試檔案 104 項單元測試 100% PASS。
 - **[Feature/UI/Siege] 守備動員支援自訂兵力調派與故事工房攻城戰屬性開關（2026-08-26）**：
   - **守備動員自訂兵力調派 (`TerritoryDefenseModalController.ts` + `modals-combat-trade.html`)**：玩家可自由調整步兵、弓兵、騎兵的出動人數（上限為領地工人總數，提供全出戰/歸零快捷按鈕），即時預覽護盾、箭雨與衝鋒傷害。
   - **故事工房戰役屬性開關 (`StoryStudioForm.ts` + `Narrative.ts`)**：`TRIGGER_RAID` 效果新增 `isSiege` 勾選框。勾選為正規攻城戰（享城牆、箭塔、軍隊調派支援）；取消勾選為街巷／室內突襲遭遇戰（無城防與兵種支援，由傭兵守軍直接迎敵）。

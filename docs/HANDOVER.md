@@ -1,3 +1,28 @@
+- **[Feature/Combat/FieldInterception/Territory] 野外大軍攔截戰 (Field Interception) 全鏈路實裝：動員部署三大決策、短天數交兵公式、戰況狀態 1:1 繼承與大地圖受攻動態視覺特效（2026-08-26）**：
+  - **領地動員部署三大戰略決策 (`TerritoryDefenseModalController.ts` & `modals-combat-trade.html`)**：故事事件觸發 `TRIGGER_RAID` 且 `warningDays > 0` 時，提供【⚔️ 親自出城攔截 (野戰)】、【🛡️ 派遣軍團迎擊 (自動作戰)】與【🏰 堅壁清野 (等待守城)】；天數歸零時切換為正規守城戰動員。
+  - **短天數交兵與時間線公式 (`TerritoryDefenseSystem.ts`)**：$T_{\text{battle}} = \min(T_{\text{enemy}}, T_{\text{march}})$；野戰失利後敵軍抵達天數 $T_{\text{remain}} = \max(1, T_{\text{enemy}} - T_{\text{battle}})$。
+  - **戰況狀態 1:1 繼承 (Battle State Continuity) (`TerritoryDefenseSystem.ts` & `CombatSystem.ts`)**：野外攔截戰陣亡敵怪標記死亡、殘血怪 HP 與剩餘敵軍軍團 100% 存入 `pendingRaid`；守城戰 1:1 繼承殘存敵軍，死亡怪不再登場，殘血怪保留殘血。
+  - **據點工坊隨行敵方軍團 (`CombatStudio.ts` & `combat-studio.html`)**：據點工坊新增「🛡️ 啟用隨行敵方軍團」與步/弓/騎配置；戰鬥引擎支援敵方弓兵齊射與敵方騎兵衝鋒。
+  - **大地圖主城受攻雙劍動畫特效 (`MapScene.ts`)**：領地存在 `pendingRaids` 預警時，主城上方渲染跳動的「⚔️ 雙劍交鋒」與「⚠️ 敵軍逼近 (N天)」標籤。
+  - **出城迎擊狀態鎖定與彈窗生命週期修復 (`TerritoryDefenseModalController.ts` & `TerritoryDefenseSystem.ts`)**：出城迎擊戰鬥結算後（`isFieldInterceptionAttempted = true`），自動隱藏出城迎擊按鈕，切換為「🏰 領地臨戰戒備（敵軍殘部進逼中）」提示，並在戰報關閉時 100% 關閉動員彈窗，回歸大地圖臨戰戒備倒數。
+  - **日結算預警推進 (`TownManagementSystem.ts`)**：日結算推進 `warningDaysLeft -= 1`，歸零時自動喚起正規守城動員部署。
+  - **派遣迎擊探索日誌 (AdventureLogEntry) 標準結構與戰鬥重播實裝 (`TerritoryDefenseSystem.ts`)**：修復派遣迎擊自動結算時寫入非標準結構導致探索日誌顯示「以 undefined 為首的隊伍 / 探索了 undefined / 內文空白」的 Bug，現在如實組裝 `squadLeaderName`、`nodeName`、`segments`、`rewards` 並寫入 `addCombatRecord` 支援點擊【⚔️ 戰鬥紀錄】播放戰鬥重播。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、25 個測試檔案 106 項單元測試 100% 全部通過。
+- **[Feature/StoryStudio/Sync] 故事工坊「🔄 從專案重載 (Git 同步)」與草稿智慧檢測機制實裝（2026-08-26）**：
+  - 頂部操作列新增「🔄 從專案重載 (Git 同步)」按鈕與本機草稿提示橫幅，徹底解決多台電腦 Push/Pull 後本機舊草稿擋住 Git 最新內容的問題。
+- **[Feature/Combat/Studio] 怪物 3×3 九宮格陣型體系與據點波次解包全面修復（2026-08-26）**：
+  - **據點多波次解包修復 (`TerritoryDefenseSystem.ts`)**：修復據點模板多波次怪物被錯誤合併為單一波次的 Bug，1:1 如實分波次登場。
+  - **怪物 3×3 九宮格資料模型 (`Narrative.ts`, `types.ts`, `Combat.ts`)**：擴充支援 `gridR`, `gridC`, `slotId`。
+  - **據點設計工坊 3×3 視覺化戰術九宮格 (`CombatStudio.ts` & `combat-studio.html`)**：波次編輯器升級為 3×3 戰術九宮格 + 詳細清單雙欄，支援點擊空位增派、拖曳排兵布陣與 9 個站位選取。
+  - **戰鬥舞台 1:1 精確映射 (`CombatSystem.ts` & `CombatUIManager.ts`)**：戰鬥引擎與 CSS Grid 優先讀取怪物九宮格坐標渲染。
+  - **驗證**：TypeScript 編譯檢查 0 錯誤、25 個測試檔案 104 項單元測試 100% PASS。
+- **[Feature/Combat/Siege/Territory] 領地守城戰與城防體系深度完善：城牆耐久條與修繕升級限制、民兵戰損與遭遇戰人口波及、攻守目標深度重構、動員記憶與專屬防衛戰報（2026-08-26）**：
+  - **城牆耐久度與修繕升級限制 (`Territory.ts` & `SceneController.ts`)**：全域正名為「城牆耐久度 (Wall Durability)」，書房建築面板新增耐久度進度條與數值，支援依缺損比例修繕，耐久度未滿 100% 時禁止升級；城破降級為 Lv.1 且耐久度為 0。
+  - **調派民兵戰損與遭遇戰人口波及 (`TerritoryDefenseSystem.ts`)**：步兵依剩餘護盾生還換算，弓兵/騎兵依戰況計算戰損（城門未破 5%~15%、城破 25%~40%），直接扣減領地兵力；遭遇戰依回合數波及少量村民。
+  - **守城目標判定重構 (`CombatSystem.ts`)**：前排可直接受擊與分擔城牆壓力；中後排在有前排或城門未破時免疫近戰攻擊；前排全滅且破城後敵軍湧入可打中後排；遠程魔法貫穿打擊中後排享 25% 城垛掩體減傷。
+  - **守備動員記憶與智慧自動填補 (`TerritoryDefenseModalController.ts`)**：自動記憶 3 梯隊編制，提供「⚡ 智慧自動填補」一鍵以最高戰力守軍補滿空缺。
+  - **專屬防衛戰報彈窗 (`CombatUIManager.ts` & `modals-combat-trade.html`)**：戰後彈出黑金戰報，清晰呈現城牆狀態、民兵傷亡撫恤、物資治安變更與守城 MVP。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、25 個測試檔案 104 項單元測試 100% PASS。
 - **[Feature/UI/Siege] 守備動員支援自訂兵力調派與故事工房攻城戰屬性開關（2026-08-26）**：
   - **守備動員自訂兵力調派 (`TerritoryDefenseModalController.ts` + `modals-combat-trade.html`)**：玩家可自由調整步兵、弓兵、騎兵的出動人數（上限為領地工人總數，提供全出戰/歸零快捷按鈕），即時預覽護盾、箭雨與衝鋒傷害。
   - **故事工房戰役屬性開關 (`StoryStudioForm.ts` + `Narrative.ts`)**：`TRIGGER_RAID` 效果新增 `isSiege` 勾選框。勾選為正規攻城戰（享城牆、箭塔、軍隊調派支援）；取消勾選為街巷／室內突襲遭遇戰（無城防與兵種支援，由傭兵守軍直接迎敵）。

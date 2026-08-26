@@ -100,6 +100,7 @@ class CombatStudioController {
   private strongholdFilterTerrain: string = 'ALL';
   private editingStrongholdId: string | null = null;
   private currentPickerWaveIdx: number = 0;
+  private currentPickerTargetSlot: string | null = null;
 
   // 英雄工坊狀態
   private customHeroesDb: UniqueHeroDef[] = [];
@@ -154,6 +155,24 @@ class CombatStudioController {
   }
 
   private async loadStrongholds(): Promise<void> {
+    // 1. 優先從 localStorage 還原自訂據點庫 (保證使用者自訂據點永不被覆蓋)
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('MEDIEVAL_CUSTOM_STRONGHOLDS_V2');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            this.strongholdsDb = parsed;
+            if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
+              this.editingStrongholdId = this.strongholdsDb[0].id;
+            }
+            return;
+          }
+        } catch {}
+      }
+    }
+
+    // 2. 次選 fetch 後端 API (若有提供)
     try {
       const response = await fetch('/api/get-subjugation-nodes');
       if (response.ok) {
@@ -168,10 +187,13 @@ class CombatStudioController {
         }
       }
     } catch {}
+
+    // 3. 首次進入且無本地存檔時使用預設範本
     this.strongholdsDb = clone(subjugationNodesJson) as SubjugationTemplate[];
     if (this.strongholdsDb.length > 0 && !this.editingStrongholdId) {
       this.editingStrongholdId = this.strongholdsDb[0].id;
     }
+    this.saveStrongholdsToStorage();
   }
 
   private saveStrongholdsToStorage(): void {
@@ -1031,6 +1053,20 @@ class CombatStudioController {
     if (expInput) expInput.value = String(sh.rewards?.exp ?? 120);
     if (prestigeInput) prestigeInput.value = String(sh.rewards?.prestige ?? 15);
 
+    // 隨行敵方軍團配置
+    const legionEnableCheckbox = byId<HTMLInputElement>('sh-enemy-legion-enable');
+    const legionInputsDiv = byId('sh-enemy-legion-inputs');
+    const enemyInfInput = byId<HTMLInputElement>('sh-enemy-infantry');
+    const enemyArcInput = byId<HTMLInputElement>('sh-enemy-archer');
+    const enemyCavInput = byId<HTMLInputElement>('sh-enemy-cavalry');
+
+    const isLegionEnabled = !!sh.enemyLegion?.enabled;
+    if (legionEnableCheckbox) legionEnableCheckbox.checked = isLegionEnabled;
+    if (legionInputsDiv) legionInputsDiv.style.display = isLegionEnabled ? 'grid' : 'none';
+    if (enemyInfInput) enemyInfInput.value = String(sh.enemyLegion?.infantry ?? 0);
+    if (enemyArcInput) enemyArcInput.value = String(sh.enemyLegion?.archer ?? 0);
+    if (enemyCavInput) enemyCavInput.value = String(sh.enemyLegion?.cavalry ?? 0);
+
     this.renderStrongholdWaves(sh);
   }
 
@@ -1041,7 +1077,7 @@ class CombatStudioController {
 
     if (!sh.waves || sh.waves.length === 0) {
       sh.waves = [
-        { name: '第 1 波：前哨守軍', monsters: [{ monsterId: 'goblin', powerTier: 1.0 }] }
+        { name: '第 1 波：前哨守軍', monsters: [{ monsterId: 'goblin', powerTier: 1.0, gridR: 0, gridC: 1, slotId: '0_1', formationRow: FormationRow.FRONT }] }
       ];
     }
 
@@ -1054,22 +1090,105 @@ class CombatStudioController {
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed rgba(255,255,255,0.06); padding-bottom: 6px;">
           <div style="display: flex; align-items: center; gap: 6px;">
             <span style="font-weight: bold; font-size: 0.82rem; color: ${isBoss ? 'var(--cs-gold)' : '#93c5fd'};">${isBoss ? '👑' : '🚩'} ${w.name || `第 ${wIdx + 1} 波`}</span>
-            <span class="cs-badge" style="font-size: 0.68rem; color: var(--cs-text-muted);">${w.monsters?.length || 0}/5 隻</span>
+            <span class="cs-badge" style="font-size: 0.68rem; color: var(--cs-text-muted);">${w.monsters?.length || 0}/9 隻</span>
           </div>
           <div style="display: flex; gap: 4px;">
             <button class="cs-btn cs-btn-sm cs-btn-gold" data-sh-add-monster="${wIdx}">＋ 增派怪物</button>
             ${sh.waves!.length > 1 ? `<button class="cs-btn cs-btn-sm cs-btn-danger" data-sh-del-wave="${wIdx}" title="刪除此波">🗑️</button>` : ''}
           </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px;" id="sh-wave-monsters-${wIdx}">
-          <!-- 怪物卡片 -->
+
+        <div style="display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;">
+          <!-- 3x3 怪物戰術九宮格 (左側) -->
+          <div style="background: rgba(0,0,0,0.45); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8; padding: 0 2px;">
+              <span>⚔️ 3×3 敵軍陣型布陣</span>
+              <span>前排 ➔ 中排 ➔ 後排</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 76px); grid-template-rows: repeat(3, 76px); gap: 5px;" id="sh-grid-${wIdx}">
+              <!-- 9 個九宮格槽位 -->
+            </div>
+          </div>
+
+          <!-- 怪物卡片詳細列表 (右側) -->
+          <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 6px;" id="sh-wave-monsters-${wIdx}">
+            <!-- 怪物卡片 -->
+          </div>
         </div>
       `;
 
+      // 1. 渲染 3x3 九宮格槽位
+      const gridEl = waveCard.querySelector(`#sh-grid-${wIdx}`);
+      if (gridEl) {
+        // 構建 slot 映射表
+        const slotMonsterMap: Record<string, { mRef: SubjugationWaveMonster; mIdx: number }> = {};
+        (w.monsters || []).forEach((mRef, mIdx) => {
+          let sId = mRef.slotId;
+          if (!sId) {
+            const r = mRef.gridR !== undefined ? mRef.gridR : (mRef.formationRow === FormationRow.BACK ? 2 : 0);
+            const c = mRef.gridC !== undefined ? mRef.gridC : (mIdx % 3);
+            sId = `${r}_${c}`;
+            mRef.gridR = r;
+            mRef.gridC = c;
+            mRef.slotId = sId;
+          }
+          slotMonsterMap[sId] = { mRef, mIdx };
+        });
+
+        // 渲染 3 行 3 列 (r: 0前排, 1中排, 2後排；c: 0上路, 1中路, 2下路)
+        for (let c = 0; c < 3; c++) {
+          for (let r = 0; r < 3; r++) {
+            const slotId = `${r}_${c}`;
+            const slotData = slotMonsterMap[slotId];
+            const slotBox = document.createElement('div');
+            slotBox.style.cssText = 'border-radius: 5px; border: 1px dashed rgba(255,255,255,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: #121620; cursor: pointer; transition: all 0.2s; overflow: hidden;';
+
+            if (slotData) {
+              const { mRef, mIdx } = slotData;
+              const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
+              const mName = mon?.name || mRef.monsterId;
+              const mAvatar = mon?.avatarIcon || this.getMonsterAvatar(mRef.monsterId, mName);
+              const tier = mRef.powerTier || mon?.powerTier || 1.0;
+
+              slotBox.style.border = '1px solid rgba(239, 68, 68, 0.6)';
+              slotBox.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(0, 0, 0, 0.5))';
+
+              slotBox.innerHTML = `
+                <div style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                  ${renderUniversalIcon(mAvatar, 32)}
+                </div>
+                <div style="font-size: 0.65rem; font-weight: bold; color: #fff; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">${mName}</div>
+                <div style="font-size: 0.58rem; color: #f59e0b;">${tier}x</div>
+                <button type="button" data-sh-del-monster="${wIdx},${mIdx}" style="position: absolute; top: 2px; right: 2px; background: rgba(239,68,68,0.8); color: #fff; border: none; border-radius: 50%; width: 14px; height: 14px; font-size: 9px; line-height: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="移除怪物">✕</button>
+              `;
+
+              slotBox.onclick = (e) => {
+                if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+                this.openSubjugationMonsterConfig(wIdx, mIdx);
+              };
+            } else {
+              // 空槽位
+              slotBox.innerHTML = `
+                <span style="font-size: 1rem; color: rgba(255,255,255,0.2);">＋</span>
+                <span style="font-size: 0.6rem; color: rgba(255,255,255,0.3);">${r === 0 ? '前' : (r === 1 ? '中' : '後')}${c === 0 ? '上' : (c === 1 ? '中' : '下')}</span>
+              `;
+              slotBox.onmouseenter = () => { slotBox.style.borderColor = 'var(--cs-gold)'; slotBox.style.background = 'rgba(234,179,8,0.1)'; };
+              slotBox.onmouseleave = () => { slotBox.style.borderColor = 'rgba(255,255,255,0.15)'; slotBox.style.background = '#121620'; };
+              slotBox.onclick = () => {
+                this.openSubjugationMonsterPicker(wIdx, slotId);
+              };
+            }
+
+            gridEl.appendChild(slotBox);
+          }
+        }
+      }
+
+      // 2. 渲染右側詳細設定列表
       const monstersList = waveCard.querySelector(`#sh-wave-monsters-${wIdx}`);
       if (monstersList) {
         if (!w.monsters || w.monsters.length === 0) {
-          monstersList.innerHTML = '<span style="color: var(--cs-text-muted); font-size: 0.72rem;">目前無怪物，點擊「增派怪物」加入</span>';
+          monstersList.innerHTML = '<span style="color: var(--cs-text-muted); font-size: 0.72rem; padding: 8px;">目前無怪物，點擊左側九宮格或「增派怪物」加入</span>';
         } else {
           w.monsters.forEach((mRef, mIdx) => {
             const mon = this.monstersDb.find(m => m.id === mRef.monsterId);
@@ -1081,9 +1200,10 @@ class CombatStudioController {
             const profileBadge = mRef.profile && (mRef.profile as any) !== 'DEFAULT'
               ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(59,130,246,0.18); color: #60a5fa; padding: 1px 4px;">${mRef.profile}</span>`
               : '';
-            const formationBadge = mRef.formationRow === FormationRow.BACK
-              ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(168,85,247,0.18); color: #c084fc; padding: 1px 4px;">後排</span>`
-              : (mRef.formationRow === FormationRow.FRONT ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(34,197,94,0.18); color: #4ade80; padding: 1px 4px;">前排</span>` : '');
+            const rLabel = mRef.gridR === 0 ? '前排' : (mRef.gridR === 1 ? '中排' : '後排');
+            const cLabel = mRef.gridC === 0 ? '上' : (mRef.gridC === 1 ? '中' : '下');
+            const slotBadge = `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(34,197,94,0.18); color: #4ade80; padding: 1px 4px;">${rLabel}-${cLabel} (${mRef.slotId || `${mRef.gridR || 0}_${mRef.gridC || 0}`})</span>`;
+
             const skillBadge = mRef.skills && mRef.skills.length > 0
               ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(234,179,8,0.18); color: #fde047; padding: 1px 4px;">✨${mRef.skills.length}技</span>`
               : '';
@@ -1098,8 +1218,8 @@ class CombatStudioController {
                   <div style="font-weight: bold; font-size: 0.78rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${affixText}${mName}</div>
                   <div style="font-size: 0.66rem; color: var(--cs-text-muted); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
                     <span>強化: <b>${mRef.powerTier || mon?.powerTier || 1.0}x</b></span>
+                    ${slotBadge}
                     ${profileBadge}
-                    ${formationBadge}
                     ${skillBadge}
                   </div>
                 </div>
@@ -1171,7 +1291,10 @@ class CombatStudioController {
 
     if (powerInput) powerInput.value = String(mRef.powerTier ?? mon?.powerTier ?? 1.0);
     if (profileSelect) profileSelect.value = mRef.profile || 'DEFAULT';
-    if (formationSelect) formationSelect.value = mRef.formationRow || (monsterIdx < 2 ? 'FRONT' : 'BACK');
+
+    const currentSlot = mRef.slotId || `${mRef.gridR || 0}_${mRef.gridC || 0}`;
+    if (formationSelect) formationSelect.value = currentSlot;
+
     if (elementSelect) elementSelect.value = mRef.element || mon?.defaultElement || 'NONE';
     if (affixInput) affixInput.value = mRef.affix || '';
     if (searchInput) searchInput.value = '';
@@ -1259,13 +1382,20 @@ class CombatStudioController {
 
     const powerVal = Number(byId<HTMLInputElement>('sh-mc-power-tier')?.value || 1.0);
     const profileVal = byId<HTMLSelectElement>('sh-mc-profile')?.value;
-    const formationVal = byId<HTMLSelectElement>('sh-mc-formation')?.value as any;
+    const formationSlotVal = byId<HTMLSelectElement>('sh-mc-formation')?.value || '0_0';
     const elementVal = byId<HTMLSelectElement>('sh-mc-element')?.value as any;
     const affixVal = byId<HTMLInputElement>('sh-mc-affix')?.value.trim();
 
+    const [rStr, cStr] = formationSlotVal.split('_');
+    const gridR = parseInt(rStr, 10) || 0;
+    const gridC = parseInt(cStr, 10) || 0;
+
     mRef.powerTier = Math.max(0.1, powerVal);
     mRef.profile = profileVal && profileVal !== 'DEFAULT' ? (profileVal as any) : undefined;
-    mRef.formationRow = formationVal || FormationRow.FRONT;
+    mRef.gridR = gridR;
+    mRef.gridC = gridC;
+    mRef.slotId = formationSlotVal;
+    mRef.formationRow = gridR === 0 ? FormationRow.FRONT : (gridR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
     mRef.element = elementVal && elementVal !== 'NONE' ? elementVal : undefined;
     mRef.affix = affixVal || undefined;
     mRef.skills = this.tempShMonsterSkills.length > 0 ? [...this.tempShMonsterSkills] : undefined;
@@ -1276,10 +1406,11 @@ class CombatStudioController {
     this.renderStrongholdAnalytics();
   }
 
-  private openSubjugationMonsterPicker(waveIdx: number): void {
+  private openSubjugationMonsterPicker(waveIdx: number, targetSlot?: string): void {
     this.currentPickerWaveIdx = waveIdx;
+    this.currentPickerTargetSlot = targetSlot || null;
     const titleEl = byId('sh-picker-wave-title');
-    if (titleEl) titleEl.textContent = `第 ${waveIdx + 1} 波`;
+    if (titleEl) titleEl.textContent = `第 ${waveIdx + 1} 波${targetSlot ? ` (${targetSlot.replace('_', '行 ')}列)` : ''}`;
 
     const searchInput = byId<HTMLInputElement>('sh-monster-picker-search');
     const raceSelect = byId<HTMLSelectElement>('sh-monster-picker-race');
@@ -1329,14 +1460,50 @@ class CombatStudioController {
         const sh = this.getActiveStronghold();
         if (sh && sh.waves && sh.waves[waveIdx]) {
           if (!sh.waves[waveIdx].monsters) sh.waves[waveIdx].monsters = [];
-          if (sh.waves[waveIdx].monsters.length >= 5) {
-            alert('單一波次最多支援 5 隻守軍！');
+          if (sh.waves[waveIdx].monsters.length >= 9) {
+            alert('單一波次最多支援 9 隻守軍 (填滿 3×3 九宮格)！');
             return;
           }
+
+          let gridR = 0;
+          let gridC = 0;
+          let slotId = '0_0';
+          let formationRow = FormationRow.FRONT;
+
+          if (this.currentPickerTargetSlot) {
+            slotId = this.currentPickerTargetSlot;
+            const [rStr, cStr] = slotId.split('_');
+            gridR = parseInt(rStr, 10) || 0;
+            gridC = parseInt(cStr, 10) || 0;
+            formationRow = gridR === 0 ? FormationRow.FRONT : (gridR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+          } else {
+            const occupied = new Set((sh.waves[waveIdx].monsters || []).map(item => item.slotId || `${item.gridR || 0}_${item.gridC || 0}`));
+            let found = false;
+            for (let r = 0; r < 3; r++) {
+              for (let c = 0; c < 3; c++) {
+                const sKey = `${r}_${c}`;
+                if (!occupied.has(sKey)) {
+                  gridR = r;
+                  gridC = c;
+                  slotId = sKey;
+                  formationRow = r === 0 ? FormationRow.FRONT : (r === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+                  found = true;
+                  break;
+                }
+              }
+              if (found) break;
+            }
+          }
+
           sh.waves[waveIdx].monsters.push({
             monsterId: m.id,
-            powerTier: m.powerTier || 1.0
+            powerTier: m.powerTier || 1.0,
+            gridR,
+            gridC,
+            slotId,
+            formationRow
           });
+
           this.saveStrongholdsToStorage();
           this.renderStrongholdStudio();
           byId('modal-sh-monster-picker').style.display = 'none';
@@ -1548,6 +1715,14 @@ class CombatStudioController {
       const expVal = Number(byId<HTMLInputElement>('sh-reward-exp')?.value || 0);
       const prestigeVal = Number(byId<HTMLInputElement>('sh-reward-prestige')?.value || 0);
 
+      const legionEnableVal = byId<HTMLInputElement>('sh-enemy-legion-enable')?.checked || false;
+      const enemyInfVal = Math.max(0, Number(byId<HTMLInputElement>('sh-enemy-infantry')?.value || 0));
+      const enemyArcVal = Math.max(0, Number(byId<HTMLInputElement>('sh-enemy-archer')?.value || 0));
+      const enemyCavVal = Math.max(0, Number(byId<HTMLInputElement>('sh-enemy-cavalry')?.value || 0));
+
+      const legionInputsDiv = byId('sh-enemy-legion-inputs');
+      if (legionInputsDiv) legionInputsDiv.style.display = legionEnableVal ? 'grid' : 'none';
+
       if (idVal) sh.id = idVal;
       if (nameVal) sh.name = nameVal;
       if (terrainVal) sh.terrain = terrainVal;
@@ -1559,6 +1734,13 @@ class CombatStudioController {
       sh.fogRumor = fogRumorVal || undefined;
       sh.revealRumor = revealRumorVal || undefined;
       sh.description = descVal;
+
+      sh.enemyLegion = {
+        enabled: legionEnableVal,
+        infantry: enemyInfVal,
+        archer: enemyArcVal,
+        cavalry: enemyCavVal
+      };
 
       sh.rewards = {
         gold: goldVal,
@@ -1575,7 +1757,7 @@ class CombatStudioController {
       this.renderStrongholdAnalytics();
     };
 
-    ['sh-id', 'sh-name', 'sh-terrain', 'sh-difficulty', 'sh-icon', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-is-world-secret', 'sh-fog-rumor', 'sh-reveal-rumor', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige']
+    ['sh-id', 'sh-name', 'sh-terrain', 'sh-difficulty', 'sh-icon', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-is-world-secret', 'sh-fog-rumor', 'sh-reveal-rumor', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige', 'sh-enemy-legion-enable', 'sh-enemy-infantry', 'sh-enemy-archer', 'sh-enemy-cavalry']
       .forEach(id => {
         const el = byId(id);
         if (el) {

@@ -934,9 +934,10 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   background: linear-gradient(to bottom, #2a1b12, #110d0a) !important;
 }
 
-/* 修復 Bug1：只翻轉頭像圖片本身，保持名稱/標籤文字方向正常 */
-.combat-stage.is-defense-siege .combat-participant.player-side .combat-p-avatar-sq {
-  transform: translate(-50%, -50%) scaleX(-1);
+/* 守城戰進攻方與守軍頭像朝向修復：只翻轉純肖像容器 (.combat-p-avatar-bg)，文字/血條/標籤完全不受影響 */
+.combat-stage.is-defense-siege .combat-participant.enemy-side .combat-p-avatar-bg,
+.combat-stage.is-defense-siege .combat-participant.player-side .combat-p-avatar-bg {
+  transform: scaleX(-1);
 }
 
 /* 滿版背景肖像 (Full-Art Avatar) - 內部置中且保持 1:1 正方形不失真 */

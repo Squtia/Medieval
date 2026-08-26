@@ -26,6 +26,9 @@ export interface SubjugationWaveMonster {
   profile?: MonsterProfile;
   skills?: string[];
   formationRow?: FormationRow;
+  gridR?: number; // 0: 前排 (迎敵第一線), 1: 中排, 2: 後排
+  gridC?: number; // 0: 上路, 1: 中路, 2: 下路
+  slotId?: string; // e.g. "0_0", "1_1"
   affix?: string;
   element?: ElementType;
 }
@@ -48,12 +51,50 @@ export interface SubjugationTemplate {
   fogRumor?: string;
   revealRumor?: string;
   waves?: SubjugationWave[];
+  enemyLegion?: {
+    enabled?: boolean;
+    infantry?: number;
+    archer?: number;
+    cavalry?: number;
+  };
   rewards?: {
     gold?: number;
     exp?: number;
     prestige?: number;
     items?: { id: string; amount: number }[];
   };
+}
+
+export interface SurvivingMonsterState {
+  monsterId: string;
+  currentHp: number;
+  maxHp: number;
+  isDead: boolean;
+  gridR?: number;
+  gridC?: number;
+  slotId?: string;
+  powerTier?: number;
+  profile?: MonsterProfile;
+  skills?: string[];
+  affix?: string;
+  element?: ElementType;
+}
+
+export interface PendingRaidState {
+  id: string;
+  storyId: string;
+  raidName: string;
+  isSiege: boolean;
+  warningDaysTotal: number;
+  warningDaysLeft: number;
+  effect: Extract<NarrativeEffect, { type: 'TRIGGER_RAID' }>;
+  survivingWaves?: SurvivingMonsterState[][];
+  survivingEnemyLegion?: {
+    infantry: number;
+    archer: number;
+    cavalry: number;
+  };
+  isFieldInterceptionAttempted?: boolean;
 }
 
 export interface NarrativeSubjugationDefinition {

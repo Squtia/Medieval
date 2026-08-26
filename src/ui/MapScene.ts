@@ -529,16 +529,28 @@ export class MapScene extends Phaser.Scene {
         elements.push(iconSprite, labelText);
       }
       
-      if (node.siegeData) {
-        const siegeIcon = this.add.text(0, -35, '⚔️', { fontSize: '18px' }).setOrigin(0.5);
+      const hasPendingRaid = node.isPlayerBase && (GameState.myTerritory?.pendingRaids && GameState.myTerritory.pendingRaids.length > 0);
+      if (node.siegeData || hasPendingRaid) {
+        const siegeIcon = this.add.text(0, -38, '⚔️', { fontSize: '22px' }).setOrigin(0.5);
         this.tweens.add({
           targets: siegeIcon,
-          y: -40,
-          duration: 500,
+          y: -46,
+          scale: 1.2,
+          duration: 450,
           yoyo: true,
-          repeat: -1
+          repeat: -1,
+          ease: 'Sine.easeInOut'
         });
-        elements.push(siegeIcon);
+        const raidInfo = hasPendingRaid ? GameState.myTerritory.pendingRaids[0] : undefined;
+        const warnText = this.add.text(0, -60, hasPendingRaid ? `⚠️ 敵軍逼近 (${raidInfo?.warningDaysLeft}天)` : '⚠️ 圍城中', {
+          fontSize: '10px',
+          color: '#fca5a5',
+          backgroundColor: '#7f1d1d',
+          fontFamily: 'sans-serif',
+          fontStyle: 'bold',
+          padding: { x: 5, y: 2 }
+        }).setOrigin(0.5);
+        elements.push(siegeIcon, warnText);
       }
 
       const container = this.add.container(px, py);

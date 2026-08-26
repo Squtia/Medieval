@@ -113,6 +113,11 @@ export class TerritoryDefenseModalController {
       onTroopChange();
     });
 
+    // 智慧自動填補按鈕事件監聽
+    document.getElementById('btn-siege-smart-fill')?.addEventListener('click', () => {
+      this.smartAutoFill();
+    });
+
     btnCancel?.addEventListener('click', () => {
       this.close();
       if (this.currentStoryId && this.currentEffect) {
@@ -121,6 +126,7 @@ export class TerritoryDefenseModalController {
       }
     });
 
+    // 1. 正規守城進入戰鬥按鈕
     btnStart?.addEventListener('click', () => {
       const totalAssigned = this.squads.reduce((acc, s) => acc + s.selectedIds.size, 0);
       if (totalAssigned === 0) {
@@ -128,6 +134,7 @@ export class TerritoryDefenseModalController {
         return;
       }
 
+      this.saveLastSquads();
       this.close();
       if (this.currentStoryId && this.currentEffect) {
         TerritoryDefenseSystem.executeLiveSiegeDefenseWithSquads(
@@ -139,7 +146,106 @@ export class TerritoryDefenseModalController {
       }
     });
 
+    // 2. 野外攔截：親自出城攔截 (進入野戰舞台)
+    document.getElementById('btn-start-field-interception')?.addEventListener('click', () => {
+      const totalAssigned = this.squads.reduce((acc, s) => acc + s.selectedIds.size, 0);
+      if (totalAssigned === 0) {
+        ToastManager.show('⚠️ 請至少在第 1 梯隊中配置 1 名傭兵出戰！');
+        return;
+      }
+
+      this.saveLastSquads();
+      this.close();
+      if (this.currentStoryId && this.currentEffect) {
+        TerritoryDefenseSystem.executeLiveFieldInterceptionWithSquads(
+          this.currentStoryId,
+          this.currentEffect,
+          this.squads,
+          this.assignedTroops
+        );
+      }
+    });
+
+    // 3. 野外攔截：派遣軍團迎擊 (自動作戰模擬)
+    document.getElementById('btn-dispatch-field-interception')?.addEventListener('click', () => {
+      const totalAssigned = this.squads.reduce((acc, s) => acc + s.selectedIds.size, 0);
+      if (totalAssigned === 0) {
+        ToastManager.show('⚠️ 請至少在第 1 梯隊中配置 1 名傭兵出戰！');
+        return;
+      }
+
+      this.saveLastSquads();
+      this.close();
+      if (this.currentStoryId && this.currentEffect) {
+        TerritoryDefenseSystem.dispatchFieldInterception(
+          this.currentStoryId,
+          this.currentEffect,
+          this.squads,
+          this.assignedTroops
+        );
+      }
+    });
+
+    // 4. 野外攔截：堅壁清野 (等待守城)
+    document.getElementById('btn-wait-siege-defense')?.addEventListener('click', () => {
+      this.close();
+      if (this.currentStoryId && this.currentEffect) {
+        TerritoryDefenseSystem.postponeToSiege(this.currentStoryId, this.currentEffect);
+        ToastManager.show('🏰 領地進入臨戰戒備狀態，各防禦設施全力準備迎接圍城戰！');
+      }
+    });
+
     this.isInitialized = true;
+  }
+
+  private static saveLastSquads(): void {
+    // 記憶本次守備動員編制
+    (GameState as any).lastDefenseSquads = this.squads.map(s => ({
+      formationId: s.formationId,
+      gridMap: { ...s.gridMap },
+      selectedIds: Array.from(s.selectedIds)
+    }));
+  }
+
+  /**
+   * ⚡ 智慧自動填補：以留守領地的最高戰力冒險者自動依序填滿 3 梯隊
+   */
+  private static smartAutoFill(): void {
+    const allAdv = GameState.adventurers || [];
+    // 排除外出派遣者
+    const availableAdv = allAdv.filter(a => !(a as any).isDispatched && !(a as any).onExpedition);
+    // 依據戰鬥力排序
+    const sortedAdv = [...availableAdv].sort((a, b) => {
+      const statsA = a.getCombatStats();
+      const statsB = b.getCombatStats();
+      return (statsB.patk + statsB.matk + statsB.pdef + statsB.hp) - (statsA.patk + statsA.matk + statsA.pdef + statsA.hp);
+    });
+
+    // 清空現有梯隊
+    this.squads = [
+      { formationId: this.squads[0]?.formationId || 'DEFAULT', gridMap: {}, selectedIds: new Set() },
+      { formationId: this.squads[1]?.formationId || 'DEFAULT', gridMap: {}, selectedIds: new Set() },
+      { formationId: this.squads[2]?.formationId || 'DEFAULT', gridMap: {}, selectedIds: new Set() }
+    ];
+
+    let advIndex = 0;
+    for (let sqIdx = 0; sqIdx < 3; sqIdx++) {
+      const currentSquad = this.squads[sqIdx];
+      // 每個梯隊填入最多 5 人（優先前排 0_0, 0_1, 0_2，再中排 1_0, 1_1）
+      const defaultSlots = ['0_0', '0_1', '0_2', '1_0', '1_1'];
+      for (const slotId of defaultSlots) {
+        if (advIndex < sortedAdv.length) {
+          const adv = sortedAdv[advIndex];
+          currentSquad.gridMap[slotId] = adv.id;
+          currentSquad.selectedIds.add(adv.id);
+          advIndex++;
+        }
+      }
+    }
+
+    this.renderAdvList();
+    this.renderGrid();
+    ToastManager.show('⚡ 已為您自動以最高戰力守軍填補梯隊！');
   }
 
   private static updateTroopPreviews(): void {
@@ -148,11 +254,11 @@ export class TerritoryDefenseModalController {
     const cavSlowEl = document.getElementById('siege-cavalry-slow-preview');
 
     if (infShieldEl) infShieldEl.textContent = (this.assignedTroops.infantry * 50).toLocaleString();
-    if (arcDmgEl) arcDmgEl.textContent = (this.assignedTroops.archer * 3).toLocaleString();
-    if (cavSlowEl) cavSlowEl.textContent = (this.assignedTroops.cavalry * 2).toLocaleString();
+    if (arcDmgEl) arcDmgEl.textContent = Math.floor(Math.sqrt(this.assignedTroops.archer) * 35).toLocaleString();
+    if (cavSlowEl) cavSlowEl.textContent = Math.floor(Math.sqrt(this.assignedTroops.cavalry) * 28).toLocaleString();
   }
 
-  public static show(storyId: string, effect: Extract<NarrativeEffect, { type: 'TRIGGER_RAID' }>): void {
+  public static show(storyId: string, effect: Extract<NarrativeEffect, { type: 'TRIGGER_RAID' }>, isFieldInterceptOverride?: boolean): void {
     this.init();
     this.currentStoryId = storyId;
     this.currentEffect = effect;
@@ -163,38 +269,105 @@ export class TerritoryDefenseModalController {
 
     const territory = GameState.myTerritory;
     const isSiege = effect.isSiege !== false; // 預設為 true (攻城戰)
+    const warningDays = Number(effect.warningDays || 0);
+    const pending = territory.pendingRaids?.find(pr => pr.storyId === storyId);
+    const isFieldIntercept = isFieldInterceptOverride !== undefined ? isFieldInterceptOverride : (warningDays > 0);
+    const alreadyIntercepted = !!pending?.isFieldInterceptionAttempted;
 
-    // 1. 根據 isSiege 切換頂部標題與要塞簡報
+    // 1. 切換模式按鈕與提示
+    const fieldActionsEl = document.getElementById('field-intercept-actions');
+    const siegeActionsEl = document.getElementById('siege-defense-actions');
+    const warningBadgeEl = document.getElementById('siege-modal-warning-badge');
     const titleEl = document.getElementById('siege-modal-title');
     const fortInfoEl = document.getElementById('siege-modal-fort-info');
     const encounterInfoEl = document.getElementById('siege-modal-encounter-info');
     const troopsDeployPanel = document.getElementById('siege-troops-deploy-panel');
     const troopsDisabledPanel = document.getElementById('siege-troops-disabled-panel');
-    const btnStart = document.getElementById('btn-start-siege-defense-combat');
+    const footerHintEl = document.getElementById('siege-modal-footer-hint');
 
-    if (titleEl) {
-      titleEl.innerHTML = isSiege
-        ? `<span>🛡️ 領地守備動員部署 — ${effect.raidName || '敵軍圍城戰'}</span>`
-        : `<span>⚔️ 領地防衛動員部署（街巷／室內遭遇戰）— ${effect.raidName || '突襲遭遇戰'}</span>`;
+    const btnStartField = document.getElementById('btn-start-field-interception');
+    const btnDispatchField = document.getElementById('btn-dispatch-field-interception');
+
+    if (isFieldIntercept) {
+      if (fieldActionsEl) fieldActionsEl.style.display = 'flex';
+      if (siegeActionsEl) siegeActionsEl.style.display = 'none';
+      if (warningBadgeEl) {
+        warningBadgeEl.textContent = `⚠️ 敵軍進逼中 (距離主城 ${pending?.warningDaysLeft ?? warningDays} 天)`;
+        warningBadgeEl.style.background = 'rgba(234, 88, 12, 0.2)';
+        warningBadgeEl.style.borderColor = '#f97316';
+        warningBadgeEl.style.color = '#fdba74';
+      }
+      if (titleEl) {
+        titleEl.innerHTML = alreadyIntercepted
+          ? `<span>🏰 領地臨戰戒備 —— 敵軍殘部進逼中 (${effect.raidName || '敵軍大軍'})</span>`
+          : `<span>⚔️ 敵軍逼近預警 —— 野外迎擊作戰部署 (${effect.raidName || '敵軍大軍'})</span>`;
+      }
+      if (fortInfoEl) fortInfoEl.style.display = 'none'; // 野戰無城牆箭塔掩護
+      if (encounterInfoEl) {
+        encounterInfoEl.style.display = 'flex';
+        encounterInfoEl.innerHTML = alreadyIntercepted
+          ? '<span>🛡️ 我方部隊已在野外與敵軍交戰並削弱其戰力，守軍已回防主城戒備。</span>'
+          : '<span>🌲 野外遭遇攔截戰（無城防掩體，敵我正面野戰交鋒）</span>';
+      }
+      if (footerHintEl) {
+        footerHintEl.innerHTML = alreadyIntercepted
+          ? '💡 提示：出城迎擊已結束，敵軍殘部正朝主城推進，請全力修繕城防準備迎接圍城戰。'
+          : '💡 提示：出城攔截戰勝可保主城 0 受損；若戰敗，殘存敵軍將在剩餘天數後抵達主城開打守城戰。';
+      }
+
+      // 若已經出城迎擊過，禁用再次出城迎戰按鈕，僅保留堅壁清野等待守城
+      if (alreadyIntercepted) {
+        if (btnStartField) btnStartField.style.display = 'none';
+        if (btnDispatchField) btnDispatchField.style.display = 'none';
+      } else {
+        if (btnStartField) btnStartField.style.display = 'inline-block';
+        if (btnDispatchField) btnDispatchField.style.display = 'inline-block';
+      }
+    } else {
+      if (fieldActionsEl) fieldActionsEl.style.display = 'none';
+      if (siegeActionsEl) siegeActionsEl.style.display = 'flex';
+      if (warningBadgeEl) {
+        warningBadgeEl.textContent = '⚠️ 敵軍兵臨城下';
+        warningBadgeEl.style.background = 'rgba(239, 68, 68, 0.2)';
+        warningBadgeEl.style.borderColor = '#ef4444';
+        warningBadgeEl.style.color = '#fca5a5';
+      }
+      if (titleEl) {
+        titleEl.innerHTML = isSiege
+          ? `<span>🛡️ 領地守備動員部署 —— ${effect.raidName || '敵軍圍城戰'}</span>`
+          : `<span>⚔️ 領地防衛動員部署（街巷／室內遭遇戰）—— ${effect.raidName || '突襲遭遇戰'}</span>`;
+      }
+      if (isSiege) {
+        if (fortInfoEl) fortInfoEl.style.display = 'flex';
+        if (encounterInfoEl) encounterInfoEl.style.display = 'none';
+      } else {
+        if (fortInfoEl) fortInfoEl.style.display = 'none';
+        if (encounterInfoEl) {
+          encounterInfoEl.style.display = 'flex';
+          encounterInfoEl.innerHTML = '<span>🚫 街巷／室內遭遇戰（無城防掩體）</span>';
+        }
+      }
+      if (footerHintEl) {
+        footerHintEl.innerHTML = '💡 提示：誓死守城將依託城牆與箭塔阻擊敵軍，城破將導致建築降級與村民傷亡。';
+      }
     }
 
-    if (btnStart) {
-      btnStart.textContent = isSiege ? '⚔️ 誓死守城 (進入戰鬥)' : '⚔️ 迎敵防守 (進入戰鬥)';
-    }
+    if (troopsDeployPanel) troopsDeployPanel.style.display = 'block';
+    if (troopsDisabledPanel) troopsDisabledPanel.style.display = 'none';
 
-    if (isSiege) {
-      if (fortInfoEl) fortInfoEl.style.display = 'flex';
-      if (encounterInfoEl) encounterInfoEl.style.display = 'none';
-      if (troopsDeployPanel) troopsDeployPanel.style.display = 'block';
-      if (troopsDisabledPanel) troopsDisabledPanel.style.display = 'none';
-
+    if (isSiege && !isFieldIntercept) {
       const gateHpEl = document.getElementById('siege-gate-hp-val');
-      if (gateHpEl) gateHpEl.textContent = TerritoryDefenseSystem.calculateSiegeGateHp(territory).toLocaleString();
+      if (gateHpEl) gateHpEl.textContent = territory.getWallDurability().toLocaleString();
 
       const towerDmgEl = document.getElementById('siege-tower-dmg-val');
       if (towerDmgEl) towerDmgEl.textContent = `${TerritoryDefenseSystem.calculateWatchtowerDamage(territory)}/T`;
+    }
 
-      // 2. 填入可調派兵種總數，並預設全出戰
+    if (isSiege || isFieldIntercept) {
+      if (troopsDeployPanel) troopsDeployPanel.style.display = 'block';
+      if (troopsDisabledPanel) troopsDisabledPanel.style.display = 'none';
+
+      // 填入可調派兵種總數，並預設全出戰
       const infantryCount = territory.workers?.['INFANTRY'] || 0;
       const archerCount = territory.workers?.['ARCHER'] || 0;
       const cavalryCount = territory.workers?.['CAVALRY'] || 0;
@@ -216,7 +389,7 @@ export class TerritoryDefenseModalController {
       this.assignedTroops = { infantry: infantryCount, archer: archerCount, cavalry: cavalryCount };
       this.updateTroopPreviews();
     } else {
-      // 遭遇戰模式：隱藏城牆/箭塔/兵種調派
+      // 街巷突襲遭遇戰模式：隱藏城牆/箭塔/兵種調派
       if (fortInfoEl) fortInfoEl.style.display = 'none';
       if (encounterInfoEl) encounterInfoEl.style.display = 'flex';
       if (troopsDeployPanel) troopsDeployPanel.style.display = 'none';
@@ -225,23 +398,32 @@ export class TerritoryDefenseModalController {
       this.assignedTroops = { infantry: 0, archer: 0, cavalry: 0 };
     }
 
-    // 3. 重置/預設編排守軍梯隊
-    this.squads = [
-      { formationId: 'DEFAULT', gridMap: {}, selectedIds: new Set() },
-      { formationId: 'DEFAULT', gridMap: {}, selectedIds: new Set() },
-      { formationId: 'DEFAULT', gridMap: {}, selectedIds: new Set() }
-    ];
+    // 3. 檢查是否有上次動員記憶，若有且合法則優先還原
+    const savedSquads = (GameState as any).lastDefenseSquads;
+    const allAdv = GameState.adventurers || [];
+    const validAdvIds = new Set(allAdv.map(a => a.id));
 
-    const availableAdv = GameState.adventurers || [];
-    // 預設將前 5 名傭兵放入第 1 梯隊
-    availableAdv.slice(0, 5).forEach((adv, idx) => {
-      const r = Math.floor(idx / 3);
-      const c = idx % 3;
-      const slotId = `${r}_${c}`;
-      this.squads[0].gridMap[slotId] = adv.id;
-      this.squads[0].selectedIds.add(adv.id);
-    });
-
+    if (savedSquads && Array.isArray(savedSquads) && savedSquads.length === 3) {
+      this.squads = savedSquads.map((s: any) => {
+        const validGridMap: Record<string, string> = {};
+        const validSelected = new Set<string>();
+        for (const [slot, advId] of Object.entries(s.gridMap || {})) {
+          if (validAdvIds.has(advId as string)) {
+            validGridMap[slot] = advId as string;
+            validSelected.add(advId as string);
+          }
+        }
+        return {
+          formationId: s.formationId || 'DEFAULT',
+          gridMap: validGridMap,
+          selectedIds: validSelected
+        };
+      });
+      // 若記憶還原後第 1 梯隊完全沒人，則執行智慧填補
+      if (this.squads[0].selectedIds.size === 0) {
+        this.smartAutoFill();
+      }
+    }
 
     this.switchTab(0);
 

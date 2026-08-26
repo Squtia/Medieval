@@ -207,11 +207,11 @@ export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'fo
     if (level === 3) return { name: '皇家鍛造屋', desc: '擁有專業鐵砧與高溫熔爐，支援 T4 專屬神兵裝備重鑄', icon: '⚒️' };
     return { name: '頂級鍛造屋', desc: '機能齊全的頂級鍛造工坊', icon: '⚒️' };
   } else { // defense
-    if (level === 1) return { name: '木造城牆', desc: '由原木與木柵築成的基礎城防 (Gate HP: 1,000)', icon: '🪵' };
-    if (level === 2) return { name: '夯土城牆', desc: '以夯土與石塊加固的防線 (Gate HP: 2,500)', icon: '🚧' };
-    if (level === 3) return { name: '石造城牆', desc: '堅固的規整石造城牆與箭垛 (Gate HP: 5,000)', icon: '🧱' };
-    if (level === 4) return { name: '重裝要塞城牆', desc: '配備城樓與護城深壕的重裝要塞 (Gate HP: 7,000)', icon: '🏰' };
-    return { name: '鋼石要塞城牆', desc: '堅不可摧的帝國級鋼石巨壁 (Gate HP: 9,000)', icon: '🏰' };
+    if (level === 1) return { name: '木造城牆', desc: '由原木與木柵築成的基礎城防 (城牆最大耐久: 1,000)', icon: '🪵' };
+    if (level === 2) return { name: '夯土城牆', desc: '以夯土與石塊加固的防線 (城牆最大耐久: 2,500)', icon: '🚧' };
+    if (level === 3) return { name: '石造城牆', desc: '堅固的規整石造城牆與箭垛 (城牆最大耐久: 5,000)', icon: '🧱' };
+    if (level === 4) return { name: '重裝要塞城牆', desc: '配備城樓與護城深壕的重裝要塞 (城牆最大耐久: 7,000)', icon: '🏰' };
+    return { name: '鋼石要塞城牆', desc: '堅不可摧的帝國級鋼石巨壁 (城牆最大耐久: 9,000)', icon: '🏰' };
   }
 }
 
@@ -249,6 +249,52 @@ export function renderBaseBuildings() {
     card.style.background = 'rgba(0,0,0,0.4)';
     card.style.borderRadius = '6px';
     
+    // 城牆專屬：耐久度條與修繕面板
+    let durabilityBarHtml = '';
+    let repairBtnHtml = '';
+    let isWallDamaged = false;
+
+    if (bld.key === 'defense' && lvl > 0) {
+      const curDur = territory.getWallDurability();
+      const maxDur = territory.getMaxWallDurability();
+      const durPct = Math.max(0, Math.min(100, Math.round((curDur / maxDur) * 100)));
+      isWallDamaged = curDur < maxDur;
+
+      const barColor = durPct > 60 ? 'linear-gradient(90deg, #10b981, #34d399)' : (durPct > 25 ? 'linear-gradient(90deg, #f59e0b, #fbbf24)' : 'linear-gradient(90deg, #ef4444, #f87171)');
+
+      durabilityBarHtml = `
+        <div style="background: rgba(0,0,0,0.5); padding: 6px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.08); margin-top: 2px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: bold; margin-bottom: 3px;">
+            <span style="color: #cbd5e1;">🛡️ 耐久度</span>
+            <span style="color: ${durPct === 100 ? '#4ade80' : (durPct > 25 ? '#fbbf24' : '#f87171')};">${curDur.toLocaleString()} / ${maxDur.toLocaleString()} (${durPct}%)</span>
+          </div>
+          <div style="width: 100%; height: 8px; background: rgba(0,0,0,0.7); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="width: ${durPct}%; height: 100%; background: ${barColor}; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      `;
+
+      if (isWallDamaged) {
+        const repairCost = territory.getWallRepairCost();
+        const canRepair = territory.gold >= repairCost.gold && territory.wood >= repairCost.wood && territory.stone >= repairCost.stone && territory.iron >= repairCost.iron;
+
+        repairBtnHtml = `
+          <div style="margin-top: 4px; padding: 6px; background: rgba(234, 179, 8, 0.1); border: 1px dashed #eab308; border-radius: 4px;">
+            <div style="font-size: 0.78rem; color: #fde047; margin-bottom: 4px; font-weight: bold;">⚠️ 城牆受損，需修繕滿耐久方可升級：</div>
+            <div style="font-size: 0.75rem; color: #cbd5e1; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 4px;">
+              <span>💰 ${repairCost.gold}</span>
+              <span>🌲 ${repairCost.wood}</span>
+              <span>🧱 ${repairCost.stone}</span>
+              ${repairCost.iron > 0 ? `<span>🔗 ${repairCost.iron}</span>` : ''}
+            </div>
+            <button class="action-btn btn-repair-wall" ${canRepair ? '' : 'disabled'} style="width: 100%; font-size: 0.82rem; padding: 4px 0; background: ${canRepair ? 'linear-gradient(135deg, #d97706, #b45309)' : 'rgba(255,255,255,0.05)'}; color: #fff; font-weight: bold;">
+              🔨 修繕城牆
+            </button>
+          </div>
+        `;
+      }
+    }
+
     let actionBtnHtml = '';
     const maxAllowed = getNodeMaxFacilityLevel(node.nodeLevel);
     
@@ -256,6 +302,8 @@ export function renderBaseBuildings() {
       actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px;">已達當前最高等級</button>`;
     } else if (nextLvl > maxAllowed) {
       actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px; color: #f87171;">需擴張據點規模解鎖 Lv.${nextLvl}</button>`;
+    } else if (isWallDamaged) {
+      actionBtnHtml = `<button class="action-btn" disabled style="width: 100%; font-size: 0.85em; margin-top: 5px; color: #f87171; background: rgba(239,68,68,0.1); border: 1px solid #ef4444;">⚠️ 需先修繕滿耐久度方可升級</button>`;
     } else {
       const cost = territory.getUpgradeCost(bld.key, nextLvl);
       const canUpgrade = territory.canUpgradeBuilding(bld.key, node.nodeLevel);
@@ -290,6 +338,8 @@ export function renderBaseBuildings() {
           <div style="font-size: 0.78em; color: #cbd5e1; line-height: 1.3; margin-top: 2px;">${dynamicInfo.desc}</div>
         </div>
       </div>
+      ${durabilityBarHtml}
+      ${repairBtnHtml}
       ${actionBtnHtml}
     `;
     
@@ -297,6 +347,19 @@ export function renderBaseBuildings() {
     if (btn) {
       btn.addEventListener('click', () => {
         if (territory.upgradeBuilding(bld.key, node.nodeLevel)) {
+          renderBaseBuildings();
+          UIManager.updateUI();
+        }
+      });
+    }
+
+    const repairBtn = card.querySelector('.btn-repair-wall') as HTMLButtonElement | null;
+    if (repairBtn) {
+      repairBtn.addEventListener('click', () => {
+        if (territory.repairWall()) {
+          import('./ToastManager').then(({ ToastManager }) => {
+            ToastManager.show('🔨 城牆修繕完畢，耐久度已恢復滿值！');
+          });
           renderBaseBuildings();
           UIManager.updateUI();
         }

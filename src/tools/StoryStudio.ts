@@ -390,12 +390,19 @@ function bindMainEvents(): void {
 
   byId('btn-story-test-node')?.addEventListener('click', testNode);
   byId('btn-story-history')?.addEventListener('click', () => void showHistory().catch(e => alert(e.message)));
-  byId('btn-story-reset-progress')?.addEventListener('click', () => {
-    if (confirm('確定放棄尚未寫入專案的草稿，重新從磁碟載入？')) {
+
+  const handleReloadProject = async () => {
+    if (confirm('🔄 確定放棄本機暫存草稿，重新從專案檔案載入（Git 最新進度）？\n\n注意：這將清空此瀏覽器中尚未「寫入專案」的暫存，適合在其他電腦 Push 並於此處 Git Pull 後執行。')) {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
-      void store.loadFromProject();
+      await store.loadFromProject();
+      updateDraftBanner();
+      alert('✅ 已成功從專案檔案重新載入最新故事！');
     }
-  });
+  };
+
+  byId('btn-story-reload-project')?.addEventListener('click', handleReloadProject);
+  byId('btn-banner-reload-project')?.addEventListener('click', handleReloadProject);
+  byId('btn-story-reset-progress')?.addEventListener('click', handleReloadProject);
 
   byId('btn-story-export')?.addEventListener('click', () => {
     const blob = new Blob([JSON.stringify(store.stories, null, 2)], { type: 'application/json' });
@@ -410,6 +417,13 @@ function bindMainEvents(): void {
     window.close();
     location.href = new URL('../', location.href).href;
   });
+}
+
+function updateDraftBanner(): void {
+  const banner = byId('story-draft-alert-banner');
+  if (!banner) return;
+  const hasDraft = typeof localStorage !== 'undefined' && !!localStorage.getItem(DRAFT_STORAGE_KEY);
+  banner.style.display = hasDraft ? 'flex' : 'none';
 }
 
 async function bootstrap(): Promise<void> {
@@ -433,6 +447,7 @@ async function bootstrap(): Promise<void> {
     renderFacts();
     renderValidation();
     buildSharedDatalists();
+    updateDraftBanner();
   };
 
   store.subscribe('storiesLoaded', fullRefresh);
@@ -449,6 +464,7 @@ async function bootstrap(): Promise<void> {
   });
 
   await store.loadFromProject();
+  updateDraftBanner();
 }
 
 bootstrap().catch(error => {

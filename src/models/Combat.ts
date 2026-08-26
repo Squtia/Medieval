@@ -90,7 +90,8 @@ export enum CombatEventType {
   WATCHTOWER_ATTACK = 'WATCHTOWER_ATTACK', // 箭塔開砲支援
   SQUAD_CHANGE = 'SQUAD_CHANGE',           // 車輪戰替換小隊登場
   ARCHER_VOLLEY = 'ARCHER_VOLLEY',         // 弓兵箭雨齊射
-  CAVALRY_CHARGE = 'CAVALRY_CHARGE'        // 騎兵側翼衝鋒
+  CAVALRY_CHARGE = 'CAVALRY_CHARGE',       // 騎兵側翼衝鋒
+  COMMANDER_TACTIC = 'COMMANDER_TACTIC'    // 領主軍團戰術指令 (箭雨/衝鋒/盾牆/鼓舞)
 }
 
 export interface CombatEvent {
@@ -154,11 +155,14 @@ export interface CombatReport {
   waveIndex?: number; // 用於進度討伐時標記波次
   shieldLoss?: Record<string, Record<string, number>>; // 記錄每個參與者損失的各兵種數量 { participantId: { INFANTRY: 50 } }
 
-  // 守城戰專屬
+  // 守城戰與野外攔截專屬
   isDefenseSiege?: boolean;
+  isFieldInterception?: boolean;
   gateMaxHp?: number;
   gateRemainingHp?: number;
   survivingInfantry?: number;
+  survivingWaves?: import('./Narrative').SurvivingMonsterState[][];
+  survivingEnemyLegion?: { infantry: number; archer: number; cavalry: number; };
 
   // 累加戰利品
   totalEarnedGold?: number;

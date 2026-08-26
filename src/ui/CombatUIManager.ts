@@ -149,7 +149,7 @@ export class CombatUIManager {
         <div style="font-size: 1.6rem;">🏰</div>
         <div>
           <div style="display: flex; justify-content: space-between; gap: 16px; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px;">
-            <span style="color: #fbbf24;">領地要塞城門</span>
+            <span style="color: #fbbf24;">領地城牆耐久度</span>
             <span id="siege-gate-hp-display" style="color: #4ade80;">${currentHp} / ${report.gateMaxHp}</span>
           </div>
           <div style="width: 220px; height: 10px; background: rgba(0,0,0,0.6); border-radius: 5px; overflow: hidden; border: 1px solid #78350f;">
@@ -531,6 +531,93 @@ export class CombatUIManager {
       const cb = this.onCloseCallback;
       this.onCloseCallback = null;
       cb();
+    }
+  }
+
+  /**
+   * 喚起專屬【🏰 領地防衛戰報 (Siege Debrief)】彈窗
+   */
+  public static showSiegeDebrief(options: {
+    isVictory: boolean;
+    isSiege: boolean;
+    raidName: string;
+    wallStatusText: string;
+    gateRemaining: number;
+    gateMax: number;
+    lostInfantry: number;
+    lostArchers: number;
+    lostCavalry: number;
+    lostVillagers: number;
+    lostGold: number;
+    lostFood: number;
+    securityDelta: number;
+    mvpName: string;
+    onClose?: () => void;
+  }): void {
+    if (typeof document === 'undefined') {
+      if (options.onClose) options.onClose();
+      return;
+    }
+
+    const modal = document.getElementById('modal-siege-debrief');
+    if (!modal) {
+      if (options.onClose) options.onClose();
+      return;
+    }
+
+    const bannerIcon = document.getElementById('debrief-banner-icon');
+    const titleEl = document.getElementById('debrief-title');
+    const subtitleEl = document.getElementById('debrief-subtitle');
+    const wallStatusEl = document.getElementById('debrief-wall-status');
+    const casualtiesListEl = document.getElementById('debrief-casualties-list');
+    const resourcesStatusEl = document.getElementById('debrief-resources-status');
+    const mvpNameEl = document.getElementById('debrief-mvp-name');
+    const btnClose = document.getElementById('btn-close-siege-debrief');
+
+    if (bannerIcon) bannerIcon.textContent = options.isVictory ? '🏆' : '💀';
+    if (titleEl) {
+      titleEl.textContent = options.isVictory ? `🛡️ 領地防衛大捷：${options.raidName}` : `🔥 領地防禦失守：${options.raidName}`;
+      titleEl.style.color = options.isVictory ? '#fbbf24' : '#ef4444';
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = options.isVictory
+        ? (options.isSiege ? '守城部隊成功擊退敵軍主力，保衛了領地！' : '巡邏守軍在市街及時壓制了強盜突襲！')
+        : (options.isSiege ? '要塞城防失守，敵軍突破防線掠奪了城鎮！' : '市街遭遇戰敗退，領地遭受了強盜洗劫！');
+    }
+    if (wallStatusEl) {
+      wallStatusEl.textContent = options.isSiege ? options.wallStatusText : '街巷突襲（未受城防設施保護）';
+      wallStatusEl.style.color = (options.gateRemaining <= 0 && options.isSiege) ? '#ef4444' : '#4ade80';
+    }
+
+    if (casualtiesListEl) {
+      let casualtiesHtml = '';
+      if (options.isSiege) {
+        casualtiesHtml += `<div>🛡️ 步兵護衛戰損：<b style="color: ${options.lostInfantry > 0 ? '#f87171' : '#4ade80'};">${options.lostInfantry > 0 ? `-${options.lostInfantry} 人` : '無傷亡'}</b></div>`;
+        casualtiesHtml += `<div>🏹 弓兵民兵戰損：<b style="color: ${options.lostArchers > 0 ? '#f87171' : '#4ade80'};">${options.lostArchers > 0 ? `-${options.lostArchers} 人` : '無傷亡'}</b></div>`;
+        casualtiesHtml += `<div>🐎 騎兵部隊戰損：<b style="color: ${options.lostCavalry > 0 ? '#f87171' : '#4ade80'};">${options.lostCavalry > 0 ? `-${options.lostCavalry} 人` : '無傷亡'}</b></div>`;
+      } else {
+        casualtiesHtml += `<div>🏘️ 市街波及村民：<b style="color: #f87171;">-${options.lostVillagers} 位村民</b></div>`;
+      }
+      casualtiesListEl.innerHTML = casualtiesHtml;
+    }
+
+    if (resourcesStatusEl) {
+      if (options.isVictory) {
+        resourcesStatusEl.innerHTML = `<span style="color: #4ade80;">物資全數保全</span> | <span style="color: #60a5fa;">治安 +${options.securityDelta}</span>`;
+      } else {
+        resourcesStatusEl.innerHTML = `<span style="color: #f87171;">損失 💰${options.lostGold}、🌾${options.lostFood}</span> | <span style="color: #f87171;">治安 ${options.securityDelta}</span>`;
+      }
+    }
+
+    if (mvpNameEl) mvpNameEl.textContent = options.mvpName;
+
+    modal.style.display = 'flex';
+
+    if (btnClose) {
+      btnClose.onclick = () => {
+        modal.style.display = 'none';
+        if (options.onClose) options.onClose();
+      };
     }
   }
 }

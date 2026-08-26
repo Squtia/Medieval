@@ -45,6 +45,7 @@ export enum AdventurerState {
  */
 export enum FormationRow {
   FRONT = 'FRONT',
+  MIDDLE = 'MIDDLE',
   BACK = 'BACK'
 }
 
@@ -716,6 +717,9 @@ export interface MonsterInstance extends MonsterData {
   appliedRaceTag: MonsterRace;          // 實體抽到的最終種族標籤
   skills?: string[];                    // 實體最終掛載的技能
   formationRow?: FormationRow;          // 怪物在戰鬥中的前後排站位
+  gridR?: number;                       // 0: 前排 (迎敵第一線), 1: 中排, 2: 後排
+  gridC?: number;                       // 0: 上路, 1: 中路, 2: 下路
+  slotId?: string;                      // e.g. "0_0", "1_1"
 }
 
 

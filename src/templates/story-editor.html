@@ -8,12 +8,21 @@
       <div class="story-editor-header-actions">
         <button id="btn-story-nav-skill" class="action-btn">🔮 技能工坊</button>
         <button id="btn-story-factions" class="action-btn">🏷️ 自訂陣營/聲望</button>
+        <button id="btn-story-reload-project" class="action-btn" title="清空本機草稿，重新從專案磁碟檔案載入（適合跨電腦 Git Pull 後同步）" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3b82f6; color: #93c5fd; font-weight: bold;">🔄 從專案重載 (Git 同步)</button>
         <button id="btn-story-history" class="action-btn">歷史快照</button>
         <button id="btn-story-export" class="action-btn">匯出 JSON</button>
         <button id="btn-story-publish" class="action-btn story-primary">寫入專案</button>
         <button id="btn-close-story-editor" class="close-btn">×</button>
       </div>
     </header>
+
+    <!-- 草稿提示橫幅 -->
+    <div id="story-draft-alert-banner" style="display: none; background: rgba(234, 179, 8, 0.12); border-bottom: 1px solid rgba(234, 179, 8, 0.35); color: #fde047; padding: 6px 20px; font-size: 0.8rem; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span>📝 <b>偵測到本機暫存草稿</b>：目前顯示的是本瀏覽器尚未寫入專案的暫存。若您剛在其他電腦 Push 並於此處 Git Pull，請點擊右側按鈕以同步專案最新內容。</span>
+      </div>
+      <button id="btn-banner-reload-project" class="action-btn" style="padding: 2px 10px; font-size: 0.75rem; background: #eab308; color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;">🔄 載入專案最新版</button>
+    </div>
 
     <!-- Tab Bar -->
     <nav class="story-tab-bar">
