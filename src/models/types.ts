@@ -255,7 +255,9 @@ export interface MapNode {
     templateId?: string;
     journeyNodeIds: string[];
     victoryNodeId?: string;
+    victoryDelayDays?: number;
     defeatNodeId?: string;
+    defeatDelayDays?: number;
     removeOnVictory: boolean;
     enemyFeature?: 'BALANCED' | 'HIGH_DEF' | 'HIGH_EVADE';
   };
@@ -586,6 +588,10 @@ export interface Equipment {
   baseCombatEffects?: Partial<CombatStats>; // 原始固定基底戰鬥數值 (用於強化時準確還原/計算)
   grantedSkill?: string;                // 裝備附帶的額外技能 ID
   extraSkills?: string[];               // 裝備附帶的額外雙技能 ID 列表
+  fixedSkill?: string;                  // 固定本命特技 ID
+  skillPool?: string[];                 // 隨機抽取技能候選池
+  skillRollChance?: number;             // 隨機技能抽取機率 (0~100)
+  skillRollCount?: number;              // 隨機技能抽取數量
   skillTriggerChances?: number[];       // 技能觸發機率 (例如 [20, 15] 代表 20% 與 15%)
   scaling?: EquipmentScaling;           // 個體差異化的屬性倍率補正 (S~E級)
   enhancementLevel?: number;            // 強化等級 (預設0)
@@ -622,6 +628,10 @@ export interface EquipmentTemplate {
   baseCombatEffects: Partial<CombatStats>; // 固定戰鬥數值 (例如武器的基礎攻擊力固定)
   grantedSkill?: string;                   // 裝備附帶的額外技能 ID
   extraSkills?: string[];                  // 額外雙技能 ID 列表
+  fixedSkill?: string;                     // 固定本命特技 ID
+  skillPool?: string[];                    // 隨機抽取技能候選池
+  skillRollChance?: number;                // 隨機技能抽取機率 (0~100)
+  skillRollCount?: number;                 // 隨機技能抽取數量
   skillTriggerChances?: number[];          // 技能觸發機率
   element?: ElementType;                   // 裝備附帶的元素屬性
   affixPool?: string[];                    // 隨機屬性詞條池
@@ -705,6 +715,7 @@ export interface MonsterInstance extends MonsterData {
   equipmentDropRate?: number;
   appliedRaceTag: MonsterRace;          // 實體抽到的最終種族標籤
   skills?: string[];                    // 實體最終掛載的技能
+  formationRow?: FormationRow;          // 怪物在戰鬥中的前後排站位
 }
 
 

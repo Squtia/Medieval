@@ -211,31 +211,39 @@ export class DataStore {
             ? item.allowedJobs
             : DataStore.getDefaultAllowedJobs(item.slot, item.weaponType, item.armorType),
           icon: item.icon,
-          itemLevel: item.itemLevel,
+          itemLevel: item.itemLevel || 1,
           baseRequirements: item.baseRequirements || item.requirements || {},
           baseEffects: item.baseEffects || item.effects || {},
           baseCombatEffects: item.baseCombatEffects || item.combatEffects || {},
+          fixedSkill: item.fixedSkill,
+          skillPool: item.skillPool,
+          skillRollChance: item.skillRollChance,
+          skillRollCount: item.skillRollCount,
+          extraSkills: item.extraSkills,
+          affixPool: item.affixPool,
+          craftable: item.craftable,
+          droppable: item.droppable,
+          shopBuyable: item.shopBuyable,
+          isLocked: item.isLocked,
           randomPool: item.randomPool || {},
           scalingRules: item.scalingRules
         };
       });
     });
 
-    // 傳家寶劍保留
-    db['wpn_heirloom_sword'] = {
-      id: 'wpn_heirloom_sword', name: '破敗的傳家寶劍', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.GREATSWORD, allowedJobs: ['戰士', '騎士'],
-      itemLevel: 1, tier: 1,
-      baseRequirements: { str: 1 }, 
-      baseEffects: { str: 5, con: 5 }, 
-      baseCombatEffects: { patk: 15, hit: 10 },
-      randomPool: { combatStats: ['hit', 'patk'] },
-      scalingRules: {
-        patk: {
-          guaranteed: { str: ['B', 'S'] },
-          randomPool: { possibleAttributes: ['con', 'luk'], rankRange: ['E', 'B'], count: [0, 1] }
-        }
-      }
-    };
+    // 傳家寶劍預設回退 (若 JSON 內已有則自動採用 JSON 定義)
+    if (!db['wpn_heirloom_sword']) {
+      db['wpn_heirloom_sword'] = {
+        id: 'wpn_heirloom_sword', name: '破敗的傳家寶劍', slot: EquipmentSlot.WEAPON, weaponType: WeaponType.GREATSWORD,
+        itemLevel: 1, tier: 1,
+        baseRequirements: { str: 1 }, 
+        baseEffects: { str: 5, con: 5 }, 
+        baseCombatEffects: { patk: 15, hit: 10 },
+        randomPool: { combatStats: ['hit', 'patk'] },
+        fixedSkill: 'FIGHTER_HEAVY_STRIKE',
+        isLocked: true
+      };
+    }
 
     return db;
   })();

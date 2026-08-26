@@ -1,5 +1,7 @@
 import { Skill, SkillCategory } from '../../models/Skill';
 import { SKILLS } from '../../data/SkillData';
+import { SkillEffectEngine } from './SkillEffectEngine';
+import customSkillData from '../../data/CustomSkillData.json';
 
 /**
  * 技能單一真相中樞註冊中心 (SkillRegistry)
@@ -38,14 +40,19 @@ export class SkillRegistry {
   }
 
   /**
-   * 取得指定 ID 技能 (優先查找動態註冊，回退靜態資料庫)
+   * 取得指定 ID 技能 (優先查找動態註冊，再查找 CustomSkillData，最後回退靜態資料庫)
    */
   public static getSkill(id: string): Skill | undefined {
     let skill: Skill | undefined = undefined;
     if (this.customSkills.has(id)) {
       skill = this.customSkills.get(id);
-    } else if (SKILLS[id]) {
-      skill = SKILLS[id];
+    } else {
+      const customDef = (customSkillData as any[]).find(d => d.id === id);
+      if (customDef) {
+        skill = SkillEffectEngine.compile(customDef);
+      } else if (SKILLS[id]) {
+        skill = SKILLS[id];
+      }
     }
     if (skill && !skill.category) {
       skill.category = this.resolveCategory(skill);
@@ -57,7 +64,7 @@ export class SkillRegistry {
    * 是否存在該技能
    */
   public static hasSkill(id: string): boolean {
-    return this.customSkills.has(id) || !!SKILLS[id];
+    return this.customSkills.has(id) || (customSkillData as any[]).some(d => d.id === id) || !!SKILLS[id];
   }
 
   /**
@@ -71,13 +78,21 @@ export class SkillRegistry {
   }
 
   /**
-   * 獲取全專案所有技能清單 (包含靜態與動態)
+   * 獲取全專案所有技能清單 (包含靜態、工房積木與動態註冊)
    */
   public static getAllSkills(): Skill[] {
     const map = new Map<string, Skill>();
     Object.values(SKILLS).forEach(s => {
       if (!s.category) s.category = this.resolveCategory(s);
       map.set(s.id, s);
+    });
+    // 合併積木格式技能（來自工房 CustomSkillData.json）
+    (customSkillData as any[]).forEach((def) => {
+      if (!map.has(def.id)) {
+        const compiled = SkillEffectEngine.compile(def);
+        if (!compiled.category) compiled.category = this.resolveCategory(compiled);
+        map.set(def.id, compiled);
+      }
     });
     this.customSkills.forEach((s, id) => {
       if (!s.category) s.category = this.resolveCategory(s);

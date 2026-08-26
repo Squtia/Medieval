@@ -5,7 +5,7 @@
     "description": "描述此據點的敵方勢力與地理環境...",
     "terrain": "RUINS",
     "icon": "cave_node_01:cave_node_01_16",
-    "difficulty": 5,
+    "difficulty": 10,
     "requiresScouting": false,
     "removeOnVictory": true,
     "waves": [

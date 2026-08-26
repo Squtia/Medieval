@@ -59,7 +59,10 @@ export class CombatUIManager {
   }
 
 
-  public static replayCombat(report: CombatReport) {
+  private static onCloseCallback: (() => void) | null = null;
+
+  public static replayCombat(report: CombatReport, onClose?: () => void) {
+    this.onCloseCallback = onClose || null;
     this.showCombat(report);
   }
 
@@ -102,16 +105,60 @@ export class CombatUIManager {
     
     // 依據地形設定戰鬥舞台背景
     const stage = document.getElementById('combat-stage')!;
+    if (report.isDefenseSiege) {
+      stage.classList.add('is-defense-siege');
+    } else {
+      stage.classList.remove('is-defense-siege');
+    }
+
     if (report.terrain) {
       if (report.terrain === TerrainType.DESERT) stage.style.background = 'linear-gradient(to bottom, #78350f, #451a03)';
       else if (report.terrain === TerrainType.FOREST) stage.style.background = 'linear-gradient(to bottom, #14532d, #064e3b)';
       else if (report.terrain === TerrainType.SNOW_MOUNTAIN) stage.style.background = 'linear-gradient(to bottom, #e0f2fe, #38bdf8)';
       else if (report.terrain === TerrainType.VOLCANO) stage.style.background = 'linear-gradient(to bottom, #7f1d1d, #450a0a)';
-      else stage.style.background = 'linear-gradient(to bottom, #1e293b, #0f172a)'; // PLAINS 或預設
+      else stage.style.background = report.isDefenseSiege ? 'linear-gradient(to bottom, #2a1b12, #110d0a)' : 'linear-gradient(to bottom, #1e293b, #0f172a)';
     } else {
-      stage.style.background = 'linear-gradient(to bottom, #1e293b, #0f172a)';
+      stage.style.background = report.isDefenseSiege ? 'linear-gradient(to bottom, #2a1b12, #110d0a)' : 'linear-gradient(to bottom, #1e293b, #0f172a)';
     }
-    
+
+    // 守城戰專屬：實體要塞城門 HUD 渲染
+    const existingGate = document.getElementById('combat-siege-gate-hud');
+    if (existingGate) existingGate.remove();
+
+    if (report.isDefenseSiege && report.gateMaxHp) {
+      const gateHud = document.createElement('div');
+      gateHud.id = 'combat-siege-gate-hud';
+      gateHud.style.position = 'absolute';
+      gateHud.style.top = '14px';
+      gateHud.style.left = '50%';
+      gateHud.style.transform = 'translateX(-50%)';
+      gateHud.style.background = 'rgba(15, 10, 8, 0.92)';
+      gateHud.style.border = '2px solid #d97706';
+      gateHud.style.borderRadius = '8px';
+      gateHud.style.padding = '8px 18px';
+      gateHud.style.display = 'flex';
+      gateHud.style.alignItems = 'center';
+      gateHud.style.gap = '14px';
+      gateHud.style.boxShadow = '0 8px 25px rgba(0,0,0,0.85)';
+      gateHud.style.zIndex = '10';
+
+      const currentHp = report.gateRemainingHp !== undefined ? report.gateRemainingHp : report.gateMaxHp;
+      const hpPct = Math.max(0, Math.min(100, (currentHp / report.gateMaxHp) * 100));
+
+      gateHud.innerHTML = `
+        <div style="font-size: 1.6rem;">🏰</div>
+        <div>
+          <div style="display: flex; justify-content: space-between; gap: 16px; font-size: 0.85rem; font-weight: bold; margin-bottom: 4px;">
+            <span style="color: #fbbf24;">領地要塞城門</span>
+            <span id="siege-gate-hp-display" style="color: #4ade80;">${currentHp} / ${report.gateMaxHp}</span>
+          </div>
+          <div style="width: 220px; height: 10px; background: rgba(0,0,0,0.6); border-radius: 5px; overflow: hidden; border: 1px solid #78350f;">
+            <div id="siege-gate-hp-bar" style="width: ${hpPct}%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      `;
+      stage.appendChild(gateHud);
+    }
     
     // 初始化血條 (只初始化我方，敵方由 WAVE_START 處理)
     report.initialStates.forEach(state => {
@@ -148,21 +195,21 @@ export class CombatUIManager {
 
     if (state.isPlayer) {
       if (state.gridR !== undefined && state.gridC !== undefined) {
-         gridColumn = 3 - state.gridR; 
-         gridRow = state.gridC + 1;    
+        gridColumn = this.currentReport?.isDefenseSiege ? (state.gridR + 1) : (3 - state.gridR);
+        gridRow = state.gridC + 1;
       } else {
-         const fallbackIndex = this.fallbackPlayerCount++;
-         gridColumn = state.row === 'FRONT' ? 3 : (state.row === 'MIDDLE' ? 2 : 1);
-         gridRow = (fallbackIndex % 3) + 1;
+        const fallbackIndex = this.fallbackPlayerCount++;
+        gridColumn = state.row === 'FRONT' ? (this.currentReport?.isDefenseSiege ? 1 : 3) : (state.row === 'MIDDLE' ? 2 : (this.currentReport?.isDefenseSiege ? 3 : 1));
+        gridRow = (fallbackIndex % 3) + 1;
       }
     } else {
       if (state.gridR !== undefined && state.gridC !== undefined) {
-         gridColumn = state.gridR + 1; 
-         gridRow = state.gridC + 1;
+        gridColumn = state.gridR + 1;
+        gridRow = state.gridC + 1;
       } else {
-         const fallbackIndex = this.fallbackEnemyCount++;
-         gridColumn = state.row === 'FRONT' ? 1 : (state.row === 'MIDDLE' ? 2 : 3);
-         gridRow = (fallbackIndex % 3) + 1;
+        const fallbackIndex = this.fallbackEnemyCount++;
+        gridColumn = state.row === 'FRONT' ? 1 : (state.row === 'MIDDLE' ? 2 : 3);
+        gridRow = (fallbackIndex % 3) + 1;
       }
     }
     div.style.gridColumn = gridColumn.toString();
@@ -257,10 +304,59 @@ export class CombatUIManager {
         logEl.classList.add('log-status');
       } else if (event.type === CombatEventType.DEATH) {
         logEl.classList.add('log-death');
-      }
+      } else if (event.type === CombatEventType.SIEGE_GATE_DAMAGE || event.type === CombatEventType.SIEGE_GATE_BREAK) {
+        logEl.style.color = '#f97316';
+        logEl.style.fontWeight = 'bold';
+
+        // 更新城門 HUD 血條
+        if (event.gateRemainingHp !== undefined && this.currentReport?.gateMaxHp) {
+          const maxHp = this.currentReport.gateMaxHp;
+          const curHp = Math.max(0, event.gateRemainingHp);
+          const barEl = document.getElementById('siege-gate-hp-bar');
+          const txtEl = document.getElementById('siege-gate-hp-display');
+          if (barEl) barEl.style.width = `${Math.max(0, Math.min(100, (curHp / maxHp) * 100))}%`;
+          if (txtEl) txtEl.textContent = `${curHp} / ${maxHp}`;
+        }
+        const gateHud = document.getElementById('combat-siege-gate-hud');
+        if (gateHud) {
+          gateHud.classList.add('hit-shake', 'hit-flash');
+          setTimeout(() => gateHud.classList.remove('hit-shake', 'hit-flash'), 300);
+
+          if (event.damage) {
+            const dmgEl = document.createElement('div');
+            dmgEl.className = 'floating-dmg crit';
+            dmgEl.textContent = `💥 -${event.damage}`;
+            gateHud.appendChild(dmgEl);
+            setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 800);
+          }
+        }
+      } else if (event.type === CombatEventType.WATCHTOWER_ATTACK) {
+        logEl.style.color = '#38bdf8';
+        logEl.style.fontWeight = 'bold';
+      } else if (event.type === CombatEventType.ARCHER_VOLLEY) {
+        logEl.style.color = '#34d399';
+      } else if (event.type === CombatEventType.CAVALRY_CHARGE) {
+        logEl.style.color = '#fbbf24';
+        logEl.style.fontWeight = 'bold';
+      } else if (event.type === CombatEventType.SQUAD_CHANGE) {
+        logEl.style.color = '#c084fc';
+        logEl.style.fontWeight = 'bold';
+        logEl.style.fontSize = '1.05em';
+
+        // 清空玩家面板並重繪新梯隊成員卡片
+        if (event.newSquadStates && event.newSquadStates.length > 0) {
+          this.playerTeamContainer.innerHTML = '';
+          this.fallbackPlayerCount = 0;
+          event.newSquadStates.forEach(s => {
+            this.hpMap[s.id] = s.maxHp;
+            this.createHpBar(s);
+          });
+        }
+      }  // end else if (SQUAD_CHANGE)
       
       this.logArea.appendChild(logEl);
       this.logArea.scrollTop = this.logArea.scrollHeight;
+
     }
     
     // 技能施放光暈反饋
@@ -431,5 +527,10 @@ export class CombatUIManager {
   private static closeCombat() {
     this.modal.classList.remove('active');
     this.currentReport = null;
+    if (this.onCloseCallback) {
+      const cb = this.onCloseCallback;
+      this.onCloseCallback = null;
+      cb();
+    }
   }
 }

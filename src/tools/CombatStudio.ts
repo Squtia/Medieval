@@ -3236,6 +3236,7 @@ class CombatStudioController {
     };
 
     // 快速外連
+    byId('btn-open-skill-workshop').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/skill-workshop.html`, '_blank');
     byId('btn-open-equipment-studio').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/equipment-studio.html`, '_blank');
     byId('btn-open-icon-studio').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/icon-studio.html`, '_blank');
     byId('btn-open-story-studio').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/story-studio.html`, '_blank');

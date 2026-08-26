@@ -10,6 +10,7 @@ import { GambitEvaluator } from './combat/GambitEvaluator';
 import { calculateSkillDamage, getEvade } from '../utils/CombatMath';
 import { FormationDB } from '../systems/FormationDB';
 import { PassiveManager } from './combat/PassiveManager';
+import { SkillEffectEngine } from './combat/SkillEffectEngine';
 
 export class CombatSystem {
   public static simulateCombat(
@@ -23,10 +24,25 @@ export class CombatSystem {
     formationId?: string,
     gridMap?: Record<string, string>,
     initialHpMpOverride?: { hp: Record<string, number>, mp: Record<string, number> },
-    waveEnemyLineups?: import('../models/types').MonsterInstance[][]
+    waveEnemyLineups?: import('../models/types').MonsterInstance[][],
+    siegeOptions?: {
+      isSiege: boolean;
+      gateHp: number;
+      watchtowerDmg?: number;
+      archerVolleyDmg?: number;   // 弓兵民兵每 2 回合齊射傷害
+      cavalryCount?: number;      // 騎兵數量（每 3 回合出城衝鯌）
+      reserveSquads?: { defenderIds: string[]; formationId?: string; gridMap?: Record<string, string> }[];
+    }
   ): CombatReport {
     const events: CombatEvent[] = [];
     const playerTeam: CombatParticipant[] = [];
+    let gateRemainingHp = siegeOptions?.isSiege ? siegeOptions.gateHp : undefined;
+    const isDefenseSiege = siegeOptions?.isSiege || false;
+    const watchtowerDmg = siegeOptions?.watchtowerDmg || 0;
+    const archerVolleyDmg = siegeOptions?.archerVolleyDmg || 0;
+    const cavalryCount = siegeOptions?.cavalryCount || 0; // 騎兵數量（衝鋒用）
+    const reserveSquadsQueue = siegeOptions?.reserveSquads ? [...siegeOptions.reserveSquads] : [];
+    let currentSquadIndex = 0;
     
         const formationActive = formationId && gridMap ? FormationDB.isFormationActive(gridMap, formationId) : false;
     const formationConfig = formationId ? FormationDB.getFormation(formationId) : FormationDB.getFormation('DEFAULT');
@@ -120,10 +136,19 @@ export class CombatSystem {
           if (isAdv && weaponType === 'HAMMER') skills.push('PRAYER_INQUISITOR_JUDGMENT');
         }
         
-        // [註記] 裝備附加技能檢定：將裝備附帶的額外技能加入可用技能庫
-        // 此處預留給未來法杖與戰鐮等裝備，讓法師功能性上升的擴充特性
-        if (weapon && weapon.grantedSkill) {
-          skills.push(weapon.grantedSkill);
+        // [註記] 裝備附加技能檢定：將武器與防具/飾品附帶的 extraSkills 注入可用技能庫
+        const allEquippedItems = Object.values(adv.equipment || {}).filter(Boolean) as any[];
+        for (const eq of allEquippedItems) {
+          if (eq.grantedSkill && !skills.includes(eq.grantedSkill)) {
+            skills.push(eq.grantedSkill);
+          }
+          if (eq.extraSkills && Array.isArray(eq.extraSkills)) {
+            for (const skId of eq.extraSkills) {
+              if (skId && !skills.includes(skId)) {
+                skills.push(skId);
+              }
+            }
+          }
         }
 
         
@@ -197,8 +222,8 @@ export class CombatSystem {
           attributes: attributes,
           statusEffects: [],
           shieldType: troop?.type,
-          shieldMaxHp: troop?.count ? troop.count * 10 : 0, 
-          shieldCurrentHp: troop?.count ? troop.count * 10 : 0,
+          shieldMaxHp: troop?.count ? troop.count * 50 : 0,    // 修復 Bug4：公式統一為 ×50
+          shieldCurrentHp: troop?.count ? troop.count * 50 : 0, // 修復 Bug4
           baseClass: adv.job?.name || '戰士',
           weaponType: weaponType,
           atkElement: weapon?.element || ElementType.NONE,
@@ -350,13 +375,19 @@ export class CombatSystem {
       let turn = 1;
       const MAX_TURNS = 20;
 
-      const processDeaths = () => {
+      const processDeaths = (killer?: CombatParticipant) => {
         const allParticipants = [...playerTeam, ...enemyTeam];
         for (const p of allParticipants) {
           if (p.currentHp <= 0 && !(p as any).isDead) {
             (p as any).isDead = true;
             p.currentHp = 0;
             events.push({ type: CombatEventType.DEATH, targetName: p.name, text: `${p.name} 倒下了！` });
+
+            if (killer && killer.currentHp > 0) {
+              const killerEnemies = killer.isPlayer ? enemyTeam : playerTeam;
+              const killerAllies = killer.isPlayer ? playerTeam : enemyTeam;
+              events.push(...SkillEffectEngine.triggerHooks('ON_KILL', killer, [p], killerEnemies, killerAllies));
+            }
 
             if (!p.isPlayer) {
               totalEarnedGold += p.goldReward || 0;
@@ -373,14 +404,183 @@ export class CombatSystem {
         }
       };
 
-      while (turn <= MAX_TURNS) {
-        const allParticipants = [...playerTeam, ...enemyTeam].filter(p => p.currentHp > 0);
-        if (playerTeam.every(p => p.currentHp <= 0) || enemyTeam.every(p => p.currentHp <= 0)) {
-          break; // 單波次一方全滅
+      // Bug6 修復：while 內部直接處理梯隊替換，確保殘血敵軍繼續被新梯隊接戰
+      while (true) {
+        // ── 勝負判定 ──
+        // 1. 敵軍全滅 → 此波次清除
+        if (enemyTeam.every(e => e.currentHp <= 0)) break;
+
+        // 2. 我方全滅 → 嘗試派出備用梯隊（繼續對戰同一批殘血敵軍！）
+        if (playerTeam.every(p => p.currentHp <= 0)) {
+          if (reserveSquadsQueue.length > 0) {
+            const nextSquad = reserveSquadsQueue.shift()!;
+            currentSquadIndex++;
+            const squadTitle = currentSquadIndex === 1 ? '第 2 梯隊 (主力部隊)' : '第 3 梯隊 (城門衛隊)';
+
+            // Bug5 修復：正確推導梯隊成員技能與元素
+            playerTeam.length = 0;
+            nextSquad.defenderIds.forEach(id => {
+              const adv = GameState.adventurers.find(a => a.id === id);
+              if (adv) {
+                const stats = adv.getCombatStats();
+                const sWeapon = adv.equipment?.[EquipmentSlot.WEAPON];
+                const sArmor = adv.equipment?.[EquipmentSlot.ARMOR];
+                const sWeaponType = sWeapon?.weaponType;
+
+                // 推導技能清單（與主梯隊相同邏輯）
+                const sSkills: string[] = [];
+                const sJobName = adv.job?.name || '';
+                const sIsAdv = adv.isAdvanced && adv.level >= 10;
+                const sLvl = adv.level || 1;
+                const sIsWarrior = ['戰士','狂戰士','魔劍士','狂戰','魔劍'].some(j => sJobName.includes(j));
+                const sIsMage   = ['法師','大魔導士','死靈法師','魔導','死靈'].some(j => sJobName.includes(j));
+                const sIsArcher = ['弓箭手','神射手','精靈使','弓手','神射','精靈'].some(j => sJobName.includes(j));
+                const sIsThief  = ['盜賊','暗殺者','詭術師','刺客','暗殺','詭術'].some(j => sJobName.includes(j));
+                const sIsKnight = ['騎士','聖騎士','符文騎士','聖騎','符文'].some(j => sJobName.includes(j));
+                const sIsPrayer = ['祈禱者','大主教','異端拷問官','神官','主教','拷問官'].some(j => sJobName.includes(j));
+                if (sIsWarrior) { if (sLvl>=2) sSkills.push('FIGHTER_HEAVY_STRIKE'); if (sLvl>=5) sSkills.push('FIGHTER_ARMOR_BREAK'); if (sIsAdv && sWeaponType==='GREATSWORD') sSkills.push('GREATSWORD_WHIRLWIND'); if (sIsAdv && sWeaponType==='DUAL_SWORDS') sSkills.push('MAGIC_SWORDSMAN_PHANTOM'); }
+                if (sIsMage) { if (sLvl>=2) { const se=sWeapon?.element; if (sWeaponType==='STAFF'&&se&&se!==ElementType.NONE){switch(se){case ElementType.FIRE:sSkills.push('MAGE_FIRE_BOLT');break;case ElementType.ICE:sSkills.push('MAGE_ICE_SPIKE');break;case ElementType.LIGHTNING:sSkills.push('MAGE_LIGHTNING_BOLT');break;case ElementType.HOLY:sSkills.push('MAGE_HOLY_SMITE');break;case ElementType.DARK:sSkills.push('MAGE_DARK_ORB');break;default:sSkills.push('MAGE_ARCANE_MISSILES');}}else{sSkills.push('MAGE_ARCANE_MISSILES');}} if (sLvl>=5) sSkills.push('MAGE_STATIC_FIELD'); if (sIsAdv&&sWeaponType==='STAFF') sSkills.push('STAFF_METEOR'); if (sIsAdv&&sWeaponType==='SCYTHE') sSkills.push('SCYTHE_SOUL_REAP'); }
+                if (sIsArcher) { if (sLvl>=2) sSkills.push('ARCHER_PIERCING_SHOT'); if (sLvl>=5) sSkills.push('ARCHER_AIMED_SHOT'); if (sIsAdv&&sWeaponType==='BOW') sSkills.push('SNIPER_FATAL_SNIPE'); if (sIsAdv&&sWeaponType==='MAGIC_BOW') sSkills.push('SPIRIT_ARCHER_SPIRIT_CHAIN'); }
+                if (sIsThief)  { if (sLvl>=2) sSkills.push('THIEF_SURPRISE_ATTACK'); if (sLvl>=5) sSkills.push('THIEF_POISON_BLADE'); if (sIsAdv&&sWeaponType==='DAGGERS') sSkills.push('ASSASSIN_SHADOW_ASSASSINATION'); if (sIsAdv&&sWeaponType==='MAGIC_RING') sSkills.push('TRICKSTER_TRICK_MAGIC'); }
+                if (sIsKnight) { if (sLvl>=2) sSkills.push('KNIGHT_SHIELD_BASH'); if (sLvl>=5) sSkills.push('KNIGHT_TAUNT'); if (sIsAdv&&sWeaponType==='SWORD_AND_SHIELD') sSkills.push('KNIGHT_PALADIN_AEGIS'); if (sIsAdv&&sWeaponType==='RUNE_SHIELD') sSkills.push('KNIGHT_RUNE_REFLECTION'); }
+                if (sIsPrayer) { if (sLvl>=2) sSkills.push('PRAYER_HEAL'); if (sLvl>=5) sSkills.push('PRAYER_HOLY_LIGHT'); if (sIsAdv&&sWeaponType==='HOLY_BOOK') sSkills.push('PRAYER_ARCHBISHOP_MASS_HEAL'); if (sIsAdv&&sWeaponType==='HAMMER') sSkills.push('PRAYER_INQUISITOR_JUDGMENT'); }
+                // 裝備附加技能
+                Object.values(adv.equipment||{}).filter(Boolean).forEach((eq:any) => { if(eq.grantedSkill&&!sSkills.includes(eq.grantedSkill))sSkills.push(eq.grantedSkill); (eq.extraSkills||[]).forEach((sk:string)=>{if(sk&&!sSkills.includes(sk))sSkills.push(sk);}); });
+
+                let sGridR = 0, sGridC = 0;
+                let sGridRow: string = FormationRow.FRONT;
+                let hasGrid = false;
+                if (nextSquad.gridMap) {
+                  for (const [k, v] of Object.entries(nextSquad.gridMap)) {
+                    if (v === id) {
+                      sGridR = parseInt(k.split('_')[0], 10);
+                      sGridC = parseInt(k.split('_')[1], 10);
+                      sGridRow = sGridR === 0 ? FormationRow.FRONT : (sGridR === 1 ? 'MIDDLE' : FormationRow.BACK);
+                      hasGrid = true;
+                      break;
+                    }
+                  }
+                }
+
+                playerTeam.push({
+                  id: adv.id,
+                  name: adv.name,
+                  isPlayer: true,
+                  row: sGridRow,
+                  gridR: hasGrid ? sGridR : undefined,
+                  gridC: hasGrid ? sGridC : undefined,
+                  maxHp: stats.hp,
+                  currentHp: stats.hp,
+                  maxMp: stats.mp,
+                  currentMp: stats.mp,
+                  stats: stats,
+                  attributes: adv.getEffectiveAttributes ? adv.getEffectiveAttributes() : (adv as any).attributes,
+                  statusEffects: [],
+                  baseClass: adv.job?.name || '戰士',
+                  weaponType: sWeaponType,
+                  atkElement: sWeapon?.element || ElementType.NONE, // Bug5 修復：元素補全
+                  defElement: sArmor?.element || ElementType.NONE,
+                  element: sArmor?.element || sWeapon?.element || ElementType.NONE,
+                  skills: sSkills,  // Bug5 修復：完整技能清單
+                  isAdvanced: adv.isAdvanced && adv.level >= 10
+                });
+              }
+            });
+
+            if (playerTeam.length > 0) {
+              // 傳遞新梯隊成員狀態給 UI（供重繪玩家卡片）
+              const newSquadStates = playerTeam.map(p => {
+                const a = GameState.adventurers.find(x => x.id === p.id);
+                return { id: p.id, name: p.name, isPlayer: true, row: p.row, gridR: p.gridR, gridC: p.gridC, maxHp: p.maxHp, maxMp: p.maxMp ?? 100, currentMp: p.currentMp ?? (p.maxMp ?? 100), avatarIndex: a?.avatarIndex ?? 0, gender: a?.gender as string, isGuardian: a?.isGuardian ?? false };
+              });
+              events.push({
+                type: CombatEventType.SQUAD_CHANGE,
+                squadIndex: currentSquadIndex,
+                squadName: squadTitle,
+                newSquadStates,
+                text: `🚩 【${squadTitle} 增援登場！】全軍誓死守衛領地！`
+              });
+              turn = 1; // 重置回合計數，給新梯隊完整回合數
+              continue;  // 繼續 while → 殘血敵軍繼續被新梯隊接戰！
+            }
+          }
+          break; // 所有梯隊皆全滅，戰敗
         }
+
+        // 3. 超過最大回合 → 超時
+        if (turn > MAX_TURNS) break;
+
+        const allParticipants = [...playerTeam, ...enemyTeam].filter(p => p.currentHp > 0);
 
         // 依敏捷排序
       allParticipants.sort((a, b) => (b.stats.speed + Random.next() * 20) - (a.stats.speed + Random.next() * 20));
+
+      // 守城戰：騎兵每 3 回合出城側翼衝鋒（傷害 + 暈眩）
+      if (cavalryCount > 0 && turn % 3 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
+        const aliveEnemies = enemyTeam.filter(e => e.currentHp > 0);
+        if (aliveEnemies.length > 0) {
+          const cTarget = Random.pick(aliveEnemies);
+          const cavalryDmg = Math.floor(cavalryCount * 2);
+          cTarget.currentHp = Math.max(0, cTarget.currentHp - cavalryDmg);
+
+          // 10 騎以上有 50% 機率暈眩 1 回合
+          let stunText = '';
+          if (cavalryCount >= 10 && Math.random() < 0.5) {
+            cTarget.statusEffects.push({ type: StatusEffectType.STUN, duration: 1 });
+            stunText = '敵人被撞飛，暈眩 1 回合！';
+          }
+
+          events.push({
+            type: CombatEventType.CAVALRY_CHARGE,
+            targetId: cTarget.id,
+            targetName: cTarget.name,
+            damage: cavalryDmg,
+            targetHp: cTarget.currentHp,
+            targetMaxHp: cTarget.maxHp,
+            text: `⚔️ 守城騎兵殺出側翼衝鋒！對 ${cTarget.name} 造成 ${cavalryDmg} 點傷害！${stunText}`
+          });
+          processDeaths();
+        }
+      }
+
+      // 守城戰：弓兵民兵每 2 回合齊射一次
+      if (archerVolleyDmg > 0 && turn % 2 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
+        const aliveEnemies = enemyTeam.filter(e => e.currentHp > 0);
+        if (aliveEnemies.length > 0) {
+          const vTarget = Random.pick(aliveEnemies);
+          vTarget.currentHp = Math.max(0, vTarget.currentHp - archerVolleyDmg);
+          events.push({
+            type: CombatEventType.ARCHER_VOLLEY,
+            targetId: vTarget.id,
+            targetName: vTarget.name,
+            damage: archerVolleyDmg,
+            targetHp: vTarget.currentHp,
+            targetMaxHp: vTarget.maxHp,
+            text: `🏹 守城弓兵民兵齊射！對 ${vTarget.name} 造成 ${archerVolleyDmg} 點穿刺傷害！`
+          });
+          processDeaths();
+        }
+      }
+
+      // 守城戰專屬：哨所笭塊每回合向隨機敋軍發動支援砲擊
+      if (watchtowerDmg > 0 && enemyTeam.some(e => e.currentHp > 0)) {
+        const aliveEnemies = enemyTeam.filter(e => e.currentHp > 0);
+        if (aliveEnemies.length > 0) {
+          const tTarget = Random.pick(aliveEnemies);
+          tTarget.currentHp = Math.max(0, tTarget.currentHp - watchtowerDmg);
+          events.push({
+            type: CombatEventType.WATCHTOWER_ATTACK,
+            actorName: '領地哨所箭塔',
+            targetId: tTarget.id,
+            targetName: tTarget.name,
+            damage: watchtowerDmg,
+            targetHp: tTarget.currentHp,
+            targetMaxHp: tTarget.maxHp,
+            text: `🏹 領地箭塔發射弩砲，對 ${tTarget.name} 造成 ${watchtowerDmg} 點穿甲打擊！`
+          });
+          processDeaths(tTarget);
+        }
+      }
 
       for (const actor of allParticipants) {
         if (actor.currentHp <= 0) continue;
@@ -441,6 +641,13 @@ export class CombatSystem {
         if (enemies.length === 0) break;
 
         const allies = actor.isPlayer ? playerTeam : enemyTeam;
+
+        // 觸發回合開始與 HP 門檻鉤子 (Phase 2)
+        events.push(...SkillEffectEngine.triggerHooks('ON_TURN_START', actor, [actor], enemies, allies));
+        events.push(...SkillEffectEngine.triggerHooks('ON_HP_THRESHOLD', actor, [actor], enemies, allies));
+        processDeaths(actor);
+        if (actor.currentHp <= 0) continue;
+
         const frontEnemies = enemies.filter(e => e.row === FormationRow.FRONT);
 
         let validTargets = enemies;
@@ -509,6 +716,23 @@ export class CombatSystem {
         }
 
         if (selectedSkill) {
+          // 修復 Bug3：守城戰城門也導戒敋方技能攻擊
+          if (!actor.isPlayer && gateRemainingHp !== undefined && gateRemainingHp > 0) {
+            const skillGateDmg = Math.max(1, Math.floor(actor.stats.atk * 0.7));
+            const actualGateDmg = Math.min(gateRemainingHp, skillGateDmg);
+            gateRemainingHp -= actualGateDmg;
+            events.push({
+              type: gateRemainingHp <= 0 ? CombatEventType.SIEGE_GATE_BREAK : CombatEventType.SIEGE_GATE_DAMAGE,
+              actorId: actor.id,
+              actorName: actor.name,
+              damage: actualGateDmg,
+              gateRemainingHp: gateRemainingHp,
+              text: `${actor.name} 用技能衝擊城門，造成 ${actualGateDmg} 點攻城傷害！${gateRemainingHp <= 0 ? '💥 城門彻底被攻破！' : `(城門剩餘 ${gateRemainingHp} HP)`}`
+            });
+            processDeaths();
+            continue; // 城門成功導戒技能攻擊
+          }
+
           // 施放技能
           actor.currentMp = (actor.currentMp || 0) - selectedSkill.mpCost;
           
@@ -534,7 +758,7 @@ export class CombatSystem {
           const totalSkillDmg = skillEvents.reduce((sum, e) => sum + (e.damage || 0), 0);
           PassiveManager.onDamageDealt(actor, totalSkillDmg, events, 'SKILL');
           
-          processDeaths();
+          processDeaths(actor);
           continue; // 技能施放完畢，跳過普攻階段
         }
 
@@ -588,10 +812,31 @@ export class CombatSystem {
         let hpDamage = effectiveDamage;
         let sDamage = 0;
 
+        // 守城戰專屬：城門優先吸收怪物近戰物理攻擊
+        if (!actor.isPlayer && gateRemainingHp !== undefined && gateRemainingHp > 0) {
+          const gateDmg = Math.min(gateRemainingHp, effectiveDamage);
+          gateRemainingHp -= gateDmg;
+          events.push({
+            type: gateRemainingHp <= 0 ? CombatEventType.SIEGE_GATE_BREAK : CombatEventType.SIEGE_GATE_DAMAGE,
+            actorId: actor.id,
+            actorName: actor.name,
+            damage: gateDmg,
+            gateRemainingHp: gateRemainingHp,
+            text: `${actor.name} 猛攻領地要塞城門，造成 ${gateDmg} 點攻城傷害！${gateRemainingHp <= 0 ? '💥 城門徹底被攻破！' : `(城門剩餘 ${gateRemainingHp} HP)`}`
+          });
+          processDeaths(actor);
+          continue; // 城門成功抵擋本次近戰攻擊，守軍本體不受傷害
+        }
+
+        // 守城戰城垛掩體減傷
+        if (target.isPlayer && isDefenseSiege) {
+          hpDamage = Math.floor(hpDamage * 0.75);
+        }
+
         if (target.shieldCurrentHp && target.shieldCurrentHp > 0) {
-          sDamage = Math.min(target.shieldCurrentHp, effectiveDamage);
+          sDamage = Math.min(target.shieldCurrentHp, hpDamage);
           target.shieldCurrentHp -= sDamage;
-          hpDamage = effectiveDamage - sDamage;
+          hpDamage = hpDamage - sDamage;
           
           events.push({
             type: target.shieldCurrentHp === 0 ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
@@ -618,6 +863,13 @@ export class CombatSystem {
           });
           
           PassiveManager.onDamageDealt(actor, hpDamage, events, 'BASIC_ATTACK');
+
+          // Phase 2 爆擊與受傷鉤子
+          if (isCrit) {
+            events.push(...SkillEffectEngine.triggerHooks('ON_CRIT', actor, [target], enemies, allies));
+          }
+          events.push(...SkillEffectEngine.triggerHooks('ON_HIT_TAKEN', target, [actor], allies, targetTeam));
+          events.push(...SkillEffectEngine.triggerHooks('ON_HP_THRESHOLD', target, [target], allies, targetTeam));
         }
         // -- End Shield Interceptor --
 
@@ -629,19 +881,20 @@ export class CombatSystem {
            }
         }
 
-        processDeaths();
+        processDeaths(actor);
       }
       turn++;
-    } // 單波次迴圈結束
+    } // 單波次 while 結束
 
+      // post-while：波次結算
       if (playerTeam.every(p => p.currentHp <= 0)) {
-         break; // 英雄全滅，提早結束總波次迴圈
+        break; // 所有梯隊皆全滅，戰敗結束
       }
       if (!enemyTeam.every(enemy => enemy.currentHp <= 0)) {
         allWavesCleared = false;
-        break;
+        break; // 未能清除此波次（超時或其他原因）
       }
-    } // 總波次迴圈結束
+    } // 總波次 for 迴圈結束
 
     isVictory = playerTeam.some(p => p.currentHp > 0) && allWavesCleared;
     const timedOut = playerTeam.some(p => p.currentHp > 0) && !allWavesCleared;
@@ -661,12 +914,13 @@ export class CombatSystem {
       playerMpMap[p.id] = p.currentMp || 0;
       if (p.shieldType && p.shieldMaxHp !== undefined && p.shieldCurrentHp !== undefined) {
         const lostHp = p.shieldMaxHp - p.shieldCurrentHp;
-        const lostTroops = Math.ceil(lostHp / 10);
+        const lostTroops = Math.ceil(lostHp / 50); // 修復：對應 ×50 公式
         if (lostTroops > 0) {
           shieldLoss[p.id] = { [p.shieldType]: lostTroops };
         }
       }
     });
+
 
     let totalDamageDealt = 0;
     const damageMap: Record<string, number> = {};

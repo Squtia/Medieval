@@ -10,7 +10,7 @@ import { Territory } from '../models/Territory';
 import { Adventurer } from '../models/Adventurer';
 import { Gender } from '../models/types';
 import { GameDifficulty } from '../models/WorldGeneration';
-import { startGameLoop } from '../core/GameLoop';
+import { startGameLoop, advanceDay } from '../core/GameLoop';
 import { refreshGlobalUI } from '../main';
 import { DispatchSystem } from '../systems/DispatchSystem';
 import { ExplorationSystem } from '../systems/ExplorationSystem';
@@ -143,32 +143,79 @@ export async function initNarrativeTestController(): Promise<void> {
     renderMap();
   });
 
-  // 6. 掛載測試控制器面板
+  // 6. 掛載測試控制器面板 (支援拖曳與收合最小化)
   const panel = document.createElement('aside');
   panel.id = 'narrative-test-panel';
   panel.innerHTML = `
     <style>
-      #narrative-test-panel{position:fixed;z-index:9000;right:18px;top:18px;width:330px;max-height:calc(100vh - 36px);overflow:auto;padding:16px;color:#f5ead2;background:#17110ded;border:1px solid #d19a45;border-radius:9px;box-shadow:0 14px 50px #000b;font:14px/1.45 "Microsoft JhengHei",sans-serif}
-      #narrative-test-panel h3{margin:0;color:#fbbf24}#narrative-test-panel .notice{margin:6px 0 13px;color:#fdba74;font-size:12px}
-      #narrative-test-panel select,#narrative-test-panel button{width:100%;margin-top:7px;padding:8px;color:#f5ead2;background:#281d13;border:1px solid #715333;border-radius:4px}
-      #narrative-test-panel button{cursor:pointer}#narrative-test-panel button:hover{border-color:#fbbf24}
-      #narrative-test-status{margin-top:12px;padding:9px;white-space:pre-wrap;background:#0b0907;border-radius:4px;font-size:12px;color:#cbbd9f}
+      #narrative-test-panel{position:fixed;z-index:9000;right:18px;top:72px;width:320px;max-height:calc(100vh - 90px);overflow:hidden;display:flex;flex-direction:column;padding:0;color:#f5ead2;background:rgba(23,17,13,0.96);border:1px solid #d19a45;border-radius:9px;box-shadow:0 14px 50px rgba(0,0,0,0.85);font:14px/1.45 "Microsoft JhengHei",sans-serif;transition:width 0.2s ease, max-height 0.2s ease;}
+      #narrative-test-panel.collapsed{width:160px;max-height:38px;overflow:hidden;border-color:#a855f7;background:rgba(24,24,27,0.95);}
+      #narrative-test-panel.collapsed #narrative-test-body{display:none;}
+      #narrative-test-header{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#281d13;border-bottom:1px solid #5a3e1b;cursor:move;user-select:none;}
+      #narrative-test-header h3{margin:0;font-size:0.92rem;color:#fbbf24;display:flex;align-items:center;gap:6px;}
+      #narrative-test-body{padding:12px;overflow-y:auto;flex:1;}
+      #narrative-test-body .notice{margin:0 0 10px;color:#fdba74;font-size:12px;}
+      #narrative-test-body select,#narrative-test-body button{width:100%;margin-top:6px;padding:7px 10px;color:#f5ead2;background:#281d13;border:1px solid #715333;border-radius:4px;font-size:0.85rem;}
+      #narrative-test-body button{cursor:pointer;transition:all 0.15s ease;}
+      #narrative-test-body button:hover{border-color:#fbbf24;background:#38291a;}
+      #narrative-test-status{margin-top:10px;padding:8px;white-space:pre-wrap;background:#0b0907;border-radius:4px;font-size:12px;color:#cbbd9f;max-height:220px;overflow-y:auto;}
+      .btn-panel-toggle{background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:0.85rem;padding:2px 6px;border-radius:3px;}
+      .btn-panel-toggle:hover{color:#fbbf24;background:rgba(255,255,255,0.1);}
     </style>
-    <h3>🧪 故事測試模式</h3>
-    <div class="notice">暫存沙盒世界，不會覆蓋正式存檔。</div>
-    <label>測試節點<select id="narrative-test-node"></select></label>
-    <button id="btn-narrative-toggle-view" style="background: linear-gradient(135deg, #1e3a8a, #1e40af); border-color: #3b82f6; color: #93c5fd; font-weight: bold;">🏰 切換至領地街道 / 🗺️ 返回地圖</button>
-    <button id="btn-narrative-fulfill" style="background: linear-gradient(135deg, #b45309, #78350f); border-color: #f59e0b; color: #fde68a; font-weight: bold;">🪄 一鍵滿足此節點前置條件</button>
-    <button id="btn-narrative-force">強制顯示此節點</button>
-    <button id="btn-narrative-natural">依正常條件檢查</button>
-    <button id="btn-narrative-day">推進 1 天並檢查</button>
-    <button id="btn-narrative-five-days">推進 5 天並檢查</button>
-    <button id="btn-narrative-journey">模擬下一個討伐途中事件</button>
-    <button id="btn-narrative-victory">模擬故事討伐勝利</button>
-    <button id="btn-narrative-defeat">模擬故事討伐失敗</button>
-    <button id="btn-narrative-reset">重置此故事測試進度</button>
-    <div id="narrative-test-status"></div>`;
+    <div id="narrative-test-header">
+      <h3><span>🧪 故事測試</span></h3>
+      <button type="button" id="btn-toggle-test-panel" class="btn-panel-toggle" title="收合/展開面板">➖ 收合</button>
+    </div>
+    <div id="narrative-test-body">
+      <div class="notice">暫存沙盒世界，不會覆蓋正式存檔。</div>
+      <label>測試節點<select id="narrative-test-node"></select></label>
+      <button id="btn-narrative-toggle-view" style="background: linear-gradient(135deg, #1e3a8a, #1e40af); border-color: #3b82f6; color: #93c5fd; font-weight: bold;">🏰 切換至領地街道 / 🗺️ 返回地圖</button>
+      <button id="btn-narrative-fulfill" style="background: linear-gradient(135deg, #b45309, #78350f); border-color: #f59e0b; color: #fde68a; font-weight: bold;">🪄 一鍵滿足此節點前置條件</button>
+      <button id="btn-narrative-force">強制顯示此節點</button>
+      <button id="btn-narrative-natural">依正常條件檢查</button>
+      <button id="btn-narrative-day" style="background: rgba(16,185,129,0.18); border-color: #10b981; color: #6ee7b7; font-weight: bold;">⏩ 推進 1 天並檢查 (完整結算)</button>
+      <button id="btn-narrative-five-days" style="background: rgba(16,185,129,0.18); border-color: #10b981; color: #6ee7b7; font-weight: bold;">⏩ 推進 5 天並檢查 (完整結算)</button>
+      <button id="btn-narrative-journey">模擬下一個討伐途中事件</button>
+      <button id="btn-narrative-victory">模擬故事討伐勝利</button>
+      <button id="btn-narrative-defeat">模擬故事討伐失敗</button>
+      <button id="btn-narrative-reset">重置此故事測試進度</button>
+      <div id="narrative-test-status"></div>
+    </div>`;
   document.body.appendChild(panel);
+
+  // 面板拖曳邏輯
+  const header = panel.querySelector<HTMLElement>('#narrative-test-header');
+  let isDragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  header?.addEventListener('mousedown', (e) => {
+    if ((e.target as HTMLElement)?.id === 'btn-toggle-test-panel') return;
+    isDragging = true;
+    dragOffsetX = e.clientX - panel.getBoundingClientRect().left;
+    dragOffsetY = e.clientY - panel.getBoundingClientRect().top;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const newX = Math.max(10, Math.min(window.innerWidth - panel.offsetWidth - 10, e.clientX - dragOffsetX));
+    const newY = Math.max(10, Math.min(window.innerHeight - panel.offsetHeight - 10, e.clientY - dragOffsetY));
+    panel.style.left = `${newX}px`;
+    panel.style.top = `${newY}px`;
+    panel.style.right = 'auto';
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+
+  // 面板收合/展開切換
+  const btnToggle = panel.querySelector<HTMLButtonElement>('#btn-toggle-test-panel');
+  btnToggle?.addEventListener('click', () => {
+    const isCollapsed = panel.classList.toggle('collapsed');
+    btnToggle.textContent = isCollapsed ? '➕ 展開' : '➖ 收合';
+  });
 
   panel.querySelector('#btn-narrative-toggle-view')?.addEventListener('click', () => {
     const isSceneActive = document.getElementById('scene-view')?.classList.contains('active');
@@ -292,7 +339,10 @@ export async function initNarrativeTestController(): Promise<void> {
   });
 
   function advance(days: number): void {
-    GameState.totalDays += days;
+    // 完整執行遊戲每日日常結算迴圈 (日曆換算、產能、派遣、探險、事件排程)
+    for (let i = 0; i < days; i++) {
+      advanceDay();
+    }
     NarrativeSystem.processDailyTick();
     renderMap();
     renderStreetNpcEvents();

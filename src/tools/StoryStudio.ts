@@ -2,6 +2,7 @@ import { StoryStudioStore } from './story-studio/StoryStudioStore';
 import { StoryStudioGraph } from './story-studio/StoryStudioGraph';
 import { StoryStudioForm } from './story-studio/StoryStudioForm';
 import { StoryStudioPreview } from './story-studio/StoryStudioPreview';
+import { StoryStudioFactionManager } from './story-studio/StoryStudioFactionManager';
 import {
   channelName,
   DRAFT_STORAGE_KEY,
@@ -367,6 +368,17 @@ function bindMainEvents(): void {
   byId('btn-graph-relayout')?.addEventListener('click', () => graph.relayout());
 
   // 頂部功能
+  byId('btn-story-nav-skill')?.addEventListener('click', () => {
+    window.open('tools/skill-workshop.html', '_blank');
+  });
+
+  byId('btn-story-factions')?.addEventListener('click', () => {
+    StoryStudioFactionManager.getInstance().open(() => {
+      // 自訂陣營更新後，重新建構 datalist 與刷新表單
+      store.emit('validationChanged');
+    });
+  });
+
   byId('btn-story-publish')?.addEventListener('click', async () => {
     try {
       const snapshot = await store.saveProject();

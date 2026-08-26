@@ -52,7 +52,12 @@ export const EFFECT_LABELS: Record<NarrativeEffect['type'], string> = {
   SCHEDULE_NODE: '流程：延遲排程節點 (SCHEDULE_NODE)',
   UNLOCK_MAP_NODE: '地圖：解鎖預設地圖據點 (UNLOCK_MAP_NODE)',
   REMOVE_MAP_NODE: '地圖：移除／銷毀地圖據點 (REMOVE_MAP_NODE)',
-  CREATE_SUBJUGATION_NODE: '討伐：創造故事討伐據點 (CREATE_SUBJUGATION_NODE)'
+  CREATE_SUBJUGATION_NODE: '討伐：創造故事討伐據點 (CREATE_SUBJUGATION_NODE)',
+  REDUCE_POPULATION_PERCENT: '懲罰：隨機扣減人口百分比 (?%~?%)',
+  REDUCE_RESOURCE_PERCENT: '懲罰：扣減資源庫存百分比 (?%~?%)',
+  REDUCE_PRESTIGE_PERCENT: '懲罰：扣減聲望百分比 (?%~?%)',
+  REDUCE_BUILDING_LEVEL: '懲罰：建築/設施受損降級 (REDUCE_BUILDING_LEVEL)',
+  TRIGGER_RAID: '戰役：觸發領地攻城/襲擊戰役 (TRIGGER_RAID)'
 };
 
 export function channelName(channel: NarrativeNode['channel']): string {
@@ -123,6 +128,20 @@ export function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): Narra
     case 'SCHEDULE_NODE': return { type, nodeId: '', delayDays: 1 };
     case 'UNLOCK_MAP_NODE': return { type, nodeId: '' };
     case 'REMOVE_MAP_NODE': return { type, nodeId: '' };
+    case 'REDUCE_POPULATION_PERCENT': return { type, minPercent: 10, maxPercent: 20 };
+    case 'REDUCE_RESOURCE_PERCENT': return { type, resource: 'GOLD', minPercent: 15, maxPercent: 30 };
+    case 'REDUCE_PRESTIGE_PERCENT': return { type, minPercent: 10, maxPercent: 20 };
+    case 'REDUCE_BUILDING_LEVEL': return { type, buildingId: 'defense', levels: 1 };
+    case 'TRIGGER_RAID': return {
+      type,
+      raidName: '黑狼軍團圍城戰',
+      warningDays: 3,
+      waves: [
+        { waveIndex: 1, templateId: 'bandit_camp', customName: '敵方先鋒部隊' }
+      ],
+      successNodeId: '',
+      failNodeId: ''
+    };
     case 'CREATE_SUBJUGATION_NODE': return {
       type,
       definition: {
@@ -136,7 +155,9 @@ export function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): Narra
         enemyFeature: 'BALANCED',
         requiresScouting: true,
         removeOnVictory: true,
-        journeyNodeIds: []
+        journeyNodeIds: [],
+        victoryDelayDays: 0,
+        defeatDelayDays: 0
       }
     };
   }

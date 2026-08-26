@@ -1,23 +1,24 @@
 [
   {
-    "id": "wpn_iron_greatsword",
-    "name": "鐵大劍",
+    "id": "wpn_heirloom_sword",
+    "name": "破敗的傳家寶劍",
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
     "tier": 1,
-    "icon": "",
+    "icon": "weapons:GREATSWORD",
     "element": "NONE",
     "baseEffects": {
-      "str": 3
+      "str": 5,
+      "con": 5
     },
     "combatEffects": {
-      "patk": 12,
+      "patk": 15,
       "matk": 0,
       "pdef": 0,
       "mdef": 0,
       "hp": 0,
       "mp": 0,
-      "hit": 0,
+      "hit": 10,
       "evade": 0,
       "crit": 5
     },
@@ -29,21 +30,85 @@
       ],
       "combatStats": [
         "patk",
-        "hit"
+        "matk",
+        "pdef",
+        "mdef",
+        "hit",
+        "crit"
       ]
     },
     "affixPool": [
       "鋒利",
       "堅定"
     ],
-    "extraSkills": [],
+    "extraSkills": [
+      "FIGHTER_HEAVY_STRIKE"
+    ],
     "skillTriggerChances": [],
+    "allowedJobs": [
+      "戰士",
+      "法師",
+      "弓箭手",
+      "騎士",
+      "盜賊",
+      "祈禱者"
+    ],
+    "craftable": false,
+    "droppable": false,
+    "shopBuyable": false,
+    "description": "領主家族代代相傳的大劍，雖已斑駁破舊，但隱約散發著先祖不滅的戰意。",
+    "flavorText": "這把劍曾見證了領地最初的奠基與榮耀。",
+    "isLocked": false
+  },
+  {
+    "id": "wpn_iron_greatsword",
+    "name": "鐵大劍",
+    "slot": "WEAPON",
+    "weaponType": "GREATSWORD",
+    "tier": 1,
+    "element": "NONE",
     "allowedJobs": [
       "戰士"
     ],
+    "icon": "weapons:GREATSWORD",
     "craftable": true,
     "droppable": true,
     "shopBuyable": true,
+    "baseEffects": {
+      "str": 3
+    },
+    "combatEffects": {
+      "patk": 12,
+      "matk": 0,
+      "pdef": 0,
+      "mdef": 0,
+      "hp": 0,
+      "mp": 0,
+      "hit": 0,
+      "crit": 5
+    },
+    "combatStatRanges": {},
+    "randomPool": {
+      "attributes": [
+        "str",
+        "con"
+      ],
+      "combatStats": [
+        "patk",
+        "matk",
+        "pdef",
+        "mdef",
+        "hit",
+        "crit"
+      ]
+    },
+    "affixPool": [
+      "鋒利",
+      "堅定"
+    ],
+    "skillRollChance": 100,
+    "skillRollCount": 1,
+    "extraSkills": [],
     "description": "",
     "flavorText": "",
     "isLocked": true

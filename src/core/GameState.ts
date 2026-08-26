@@ -21,6 +21,8 @@ import { RoadSystem } from '../systems/RoadSystem';
 import { getDifficultyModifiers } from '../data/BalanceData';
 import { createEmptyNarrativeState } from '../models/Narrative';
 
+import { FactionManager } from '../systems/FactionManager';
+
 export const factions: Faction[] = INITIAL_FACTIONS;
 export const mapNodes: MapNode[] = INITIAL_MAP_NODES;
 
@@ -93,7 +95,7 @@ export function initGameState(options: NewGameOptions = {
   GameState.adventurers = [];
   GameState.system = new DispatchSystem(GameState.myTerritory);
   
-  const factionsCopy = JSON.parse(JSON.stringify(factions));
+  const factionsCopy = JSON.parse(JSON.stringify(FactionManager.getAllFactions()));
   
   // 自動載入討伐據點庫中標記為「開局世界隱藏秘境」的自訂據點
   const secretStrongholds: MapNode[] = DataStore.getSubjugationTemplates()

@@ -1,3 +1,86 @@
+- **[Feature/UI/Siege] 守備動員支援自訂兵力調派與故事工房攻城戰屬性開關（2026-08-26）**：
+  - **守備動員自訂兵力調派 (`TerritoryDefenseModalController.ts` + `modals-combat-trade.html`)**：玩家可自由調整步兵、弓兵、騎兵的出動人數（上限為領地工人總數，提供全出戰/歸零快捷按鈕），即時預覽護盾、箭雨與衝鋒傷害。
+  - **故事工房戰役屬性開關 (`StoryStudioForm.ts` + `Narrative.ts`)**：`TRIGGER_RAID` 效果新增 `isSiege` 勾選框。勾選為正規攻城戰（享城牆、箭塔、軍隊調派支援）；取消勾選為街巷／室內突襲遭遇戰（無城防與兵種支援，由傭兵守軍直接迎敵）。
+  - **動員編制介面適配**：根據 `isSiege` 動態切換標題、隱藏/顯示城門耐久與箭塔情報，並在遭遇戰模式下切換兵種面板為「街巷突襲遭遇戰」警示。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤。
+- **[Feature/Combat/Siege] 守城戰役全鏈路深度升級：正統卡牌池、3 梯隊車輪增援接力、城門實體物理抵擋與每回合箭塔開砲（2026-08-26）**：
+  - **左側可選名冊卡牌池 (`TerritoryDefenseModalController.ts`)**：100% 採用 `renderAdventurerCard(adv)` 正統卡牌（滿版肖像、SSR/SR 金紫品質邊框、職業等級與懸浮 Tooltip），與右側九宮格完全一致。
+  - **多梯隊車輪戰役接力 (`CombatSystem.ts`)**：當第 1 梯隊全員戰敗時，自動觸發 `SQUAD_CHANGE` 讓第 2 梯隊 (主力) 與第 3 梯隊 (城門衛隊) 滿狀態接力上陣作戰。
+  - **城門實體物理阻擋與城垛減傷 (`CombatSystem.ts`)**：城門未破前強制替守軍吸收所有近戰物理攻城打擊；全體守軍常駐 25% 城垛掩體減傷；哨所箭塔每回合主動向敵軍發動重弩砲擊。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/UI/Siege] 守城動員部署全面升級：討伐同款黑金玻璃雙欄、3×3 鏡像九宮格與實體城門血條 HUD（2026-08-26）**：
+  - **討伐同款雙欄動員介面 (`TerritoryDefenseModalController.ts`)**：左側可選傭兵名冊卡牌池（支援點擊/拖曳入隊）與步/弓/騎兵種調派；右側 3 梯隊獨立切換頁籤與陣型選擇（連動 `FormationDB`）。
+  - **3×3 鏡像戰術棋盤**：橫向排列為【前排 (迎敵第一線)】 ➔ 【中排】 ➔ 【後排 (靠城門)】，角色坐標精準映射至戰鬥舞台，徹底告別角色重疊問題。
+  - **戰鬥畫面實體城門 HUD (`CombatUIManager.ts`)**：戰鬥舞台中央常駐【🏰 領地要塞城門】與 Gate HP 耐久血條，即時呈現攻方物理打擊扣血、受擊震動與城門碎裂動畫。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/UI/Siege] 主城守備動員部署彈窗 (`TerritoryDefenseModalController`) 全面實裝（2026-08-26）**：
+  - 攻城戰役觸發時先彈出「領地守備動員部署」彈窗，展示城門/箭塔/掩體情報、敵軍梯隊情報、3 隊守軍梯隊編排與步/弓/騎兵種護盾預覽。
+  - 領主點擊「⚔️ 誓死守城」後帶入編排的陣容出戰，點擊「放棄抵抗」則直接結算城破掠奪與觸發 `failNodeId`。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/Combat/Siege] 領地守城戰役 (TRIGGER_RAID) 即時戰鬥與鏡像視窗全鏈路實裝（2026-08-26）**：
+  - 徹底移除舊有純數值計算，`TRIGGER_RAID` 正式串接 `TerritoryDefenseSystem.startLiveSiegeDefense` 與 `CombatUIManager.replayCombat`。
+  - 支援多梯隊據點敵軍陣容實體化、鏡像舞台播放、城門/箭塔/步兵護盾結算與戰後勝負故事跳轉。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/Tool/NarrativeTest] 故事測試面板全面升級：支援最小化收合、自由拖曳移動與完整 advanceDay 每日推演（2026-08-26）**：
+  - 故事測試面板支援「➖ 收合 / ➕ 展開」與滑鼠拖曳移動，徹底解決遮擋遊戲右下角「結束本日」按鈕與 HUD 的問題。
+  - 推進 1 天 / 5 天功能改為完整呼叫 `advanceDay()` 執行全套遊戲日常迴圈。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/Story/Siege] 故事工房攻城戰役動態梯隊與據點卡片挑選器 + 守城戰鬥核心實裝（2026-08-26）**：
+  - 故事工房完整支援 `TRIGGER_RAID` 多梯隊 (Wave 1~N) 與據點卡片挑選器彈窗。
+  - 戰鬥系統實裝鏡像舞台 (`.is-defense-siege`)、城門耐久 (Gate HP)、箭塔每回合開砲、步兵軍團護盾 (Legion Shield)、弓兵箭雨與騎兵衝鋒事件模型。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/UI/Equipment] 遊戲內裝備 Tooltip 全面升級：完整展示特技圖標、MP/CD消耗與技能效果描述（2026-08-26）**：
+  - 商店/隊伍/倉庫/鐵匠鋪裝備懸浮 Tooltip 全面支援以高質感卡片呈現裝備附帶的特技（含 Sprite 圖標、名稱、MP/CD、技能效果描述）。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Fix/Tool/SkillWorkshop] 修復技能工坊圖標挑選器 Sprite 索引映射 Bug（2026-08-26）**：
+  - 修復了 `SkillWorkshop.ts` 中讀取圖標陣列時傳入數字索引而非 `item.id` 導致所有圖標皆顯示第一格麥穗的 Bug，現在所有 Sprite 圖標均能正確獨立切割顯示。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/Tool/Equipment] 裝備工坊自訂「適用職業限制（全職業通用 / 6大職業自選）」實裝（2026-08-26）**：
+  - **介面與資料儲存 (`EquipmentStudio.ts`)**：提供全職業通用與 6 大職業獨立勾選，支援「🔄 帶入武器預設」功能。
+  - **開局傳家寶劍支援 (`equipment_weapons.json`)**：`wpn_heirloom_sword` 設為全職業通用，各職業守衛均可開局裝備。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 98 項單元測試 100% PASS。
+- **[Feature/Combat/Equipment] 武器固定本命特技 + 自由隨機技能抽取池與機率抽取系統實裝（2026-08-26）**：
+  - **隨機抽取引擎 (`EquipmentGenerator.ts`)**：支援 `fixedSkill`（100% 保底本命技）與 `skillPool`（隨機池），依 `skillRollChance` 與 `skillRollCount` 在掉落/購買/鍛造時動態隨機抽取技能注入裝備實體的 `extraSkills`。
+  - **遊戲內視覺化呈現與戰鬥生效 (`ShopController.ts` & `CombatSystem.ts`)**：商店/背包/鍛造對比 Tooltip 自動顯示「✨ 附帶特技」徽章；戰鬥時自動注入冒險者技能庫。
+  - **視覺化操作介面 (`EquipmentStudio.ts`)**：提供「➕ 挑選加入隨機池」動態徽章列表、一鍵移除、抽取機率與數量配置。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 97 項單元測試 100% PASS。
+- **[Fix/Tool/Equipment] 裝備工坊編輯與創造彈窗修復與回歸測試（2026-08-26）**：
+  - **DOM 完整性補齊**：修復了 `equipment-studio.html` 中詞條 checkbox（`affix-deadly`, `affix-pierce` 等）缺漏導致彈窗開啟時拋出 null 錯誤的問題，現在「＋ 創造新裝備」與「編輯裝備」均可順暢彈出並保存。
+  - **自動化防呆回歸測試**：在 `EquipmentStudio.test.ts` 加入了所有 50+ 個表單元素 DOM ID 的完整性檢查。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 96 項單元測試 100% PASS。
+- **[Feature/Combat/Equipment] 武器額外技能接口啟用與視覺化技能挑選器 (Skill Picker) 實裝（2026-08-26）**：
+  - **底層技能直接生效 (`CombatSystem.ts`)**：裝備附帶的 `extraSkills` 直接注入冒險者 `actor.skills`，主動技能自動進入輪替、被動與鉤子技能由 5 大戰鬥鉤子自動喚起。
+  - **視覺化技能挑選器 (`EquipmentStudio.ts` & `equipment-studio.html`)**：特技槽位升級為純視覺化展示與彈窗挑選，支援搜尋、分類過濾與一鍵配置。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 95 項單元測試 100% PASS。
+- **[Feature/Tool/UI] 技能工坊視覺化圖標庫挑選器 (Icon Picker) 實裝（2026-08-26）**：
+  - **純點選圖標**：基本設定欄位升級為「視覺化頭像方塊 + 🔍 挑選圖標」，點擊即可彈出包含技能/戰鬥 Emoji、魔物 Emoji 以及全圖集 Sprite 的選擇器，支援即時搜尋與一鍵套用。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 94 項單元測試 100% PASS。
+- **[Fix/Tool/UI] 故事工坊物品選擇器彈窗層級（z-index）與唯一來源圖標精靈圖 (UniversalIcon Sprite) 深度串接（2026-08-26）**：
+  - **層級修復 (`StoryStudioItemPicker.ts`)**：提高 overlay 為 `z-index: 999999`，防止被全螢幕故事工坊遮擋。
+  - **唯一來源圖標精靈圖渲染 (`StoryStudioForm.ts` & `StoryStudioItemPicker.ts`)**：全面串接 `renderUniversalIcon`，挑選彈窗與表單效果卡片均可直接呈現美術圖標集（如素材、武器、防具等原汁原味 Sprite）。
+  - **技能工坊入口**：故事工坊/戰鬥工坊/裝備工坊頂部全面增設「🔮 技能工坊」按鈕。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 94 項單元測試 100% PASS。
+- **[Feature/Combat/Skill] 技能工坊 Phase 3：全視覺化積木技能工坊 UI 與 10 款通用怪物技能遷移實裝（2026-08-26）**：
+  - **視覺化技能工坊 UI (`skill-workshop.html` & `SkillWorkshop.ts`)**：提供雙欄純 UI 點選編輯器、WHEN/WHAT/TARGET/IF 四維積木流、一鍵寫入專案磁碟與快照時光機。
+  - **通用魔物技能積木化遷移 (`CustomSkillData.json`)**：10 款通用魔物技能全部轉換為積木格式。
+  - **跨工坊導航互通**：戰鬥工坊、裝備工坊與技能工坊無縫切換。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、24 個測試檔案 94 項單元測試 100% PASS。
+- **[Feature/Combat/Skill] 技能工坊 Phase 2：10款進階效果積木 × 戰鬥引擎 5 大觸發鉤子實裝（2026-08-26）**：
+  - **進階效果積木 (`SkillEffectEngine.ts`)**：支援雙修傷害、護盾、連鎖彈跳、斬殺、驅散、竊取增益、定時炸彈、抽魔、擊退換排、戰場環境。
+  - **5 大戰鬥鉤子 (`CombatSystem.ts`)**：支援每回合開始、致命一擊、受擊、擊殺與殘血門檻自動觸發。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、23 個測試檔案 92 項單元測試 100% PASS。
+- **[Feature/Combat/Skill] 技能工坊 Phase 1：積木技能執行引擎與 CustomSkillData 整合實裝（2026-08-26）**：
+  - **資料模型擴充 (`Skill.ts` & `Combat.ts`)**：新增 `CompositeSkillDefinition`、`EffectBlock` 等型別，擴充 6 種狀態。
+  - **積木解譯引擎 (`SkillEffectEngine.ts`)**：提供 `compile()`、`executeBlock()`、`checkCondition()`、`applyEffect()`。
+  - **資料中樞整合 (`SkillRegistry.ts` & `CustomSkillData.json`)**：自動合併載入工房技能並支援 `CATACLYSM_FLAME`、`DRAGON_ROAR`。
+  - **驗證**：`npx tsc --noEmit` 0 錯誤、23 個測試檔案 90 項單元測試（包含全新 `SkillEffectEngine.test.ts`）100% PASS。
+- **[Feature/Tool/Narrative] 故事工坊物品選擇器彈窗、範圍浮動懲罰、領地襲擊量化與自訂陣營聲望體系實裝（2026-08-26）**：
+  - **物品挑選彈窗 (`StoryStudioItemPicker.ts`)**：提供素材、特產、裝備視覺化多頁籤彈窗搜尋選取，支援部位與 Tier 篩選並一鍵回填。
+  - **延遲觸發排程 (`Narrative.ts` & `NarrativeSystem.ts`)**：支援討伐戰勝與戰敗自訂延遲排程天數 (`victoryDelayDays` / `defeatDelayDays`)。
+  - **範圍浮動百分比懲罰 (?% ~ ?%)**：實作隨機抽籤扣減人口百分比 (`REDUCE_POPULATION_PERCENT`)、資源庫存百分比 (`REDUCE_RESOURCE_PERCENT`)、聲望百分比 (`REDUCE_PRESTIGE_PERCENT`) 與建築等級扣減 (`REDUCE_BUILDING_LEVEL`)。
+  - **領地防禦與襲擊對抗 (`TerritoryDefenseSystem.ts`)**：以哨所等級、治安值與官職軍事加成量化領地防禦力，並提供 `TRIGGER_RAID` 效果自訂襲擊對抗。
+  - **自訂陣營與遠古龍裔聲望 (`FactionManager.ts` & `StoryStudioFactionManager.ts`)**：新增自訂陣營管理，預載【遠古龍裔 (`f_dragonkin`)】，全面連動故事工坊條件/效果、遊戲存檔與外交聲望 UI。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、單元測試、5v5 戰鬥平衡量測、360 天雙難度經濟模擬與 P0 煙霧測試全數通過。
 - **[Optimization/Forge/UI] 鐵匠鋪 T4 神兵重鑄配方顯示與圖紙支援優化（2026-08-25）**：
   - **優化配方清單過濾條件 (`ForgeUIController.ts`)**：移除原「必須在倉庫持有前置裝備才顯示」的隱藏限制。只要鍛造屋等級達到 Lv.3 且持有對應圖紙（或通用重鑄卷軸），即刻於左側清單展示該神兵配方。
   - **前置裝備防呆友善提示**：若倉庫尚未打造前置基底武器，於右側火爐面板清楚標示「0/1」紅字狀態並將重鑄按鈕反灰，提供玩家清晰的鍛造指引。

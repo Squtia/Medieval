@@ -81,7 +81,9 @@ export class DispatchTask {
     templateId?: string;
     journeyNodeIds: string[];
     victoryNodeId?: string;
+    victoryDelayDays?: number;
     defeatNodeId?: string;
+    defeatDelayDays?: number;
     removeOnVictory: boolean;
   };
 

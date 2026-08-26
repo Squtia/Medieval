@@ -15,7 +15,13 @@ export enum StatusEffectType {
   BUFF_MATK = 'BUFF_MATK', // 魔法攻擊增益 (%)
   BUFF_PDEF = 'BUFF_PDEF', // 物理防禦增益 (%)
   BUFF_DEF = 'BUFF_DEF',   // 通用防禦增益 (%)
-  BUFF_EVADE = 'BUFF_EVADE' // 閃避率增益 (點數)
+  BUFF_EVADE = 'BUFF_EVADE', // 閃避率增益 (點數)
+  MARK = 'MARK',               // 標記（可疊加，被引爆技能消耗）
+  BARRIER = 'BARRIER',         // 吸傷護盾
+  DELAYED_BOMB = 'DELAYED_BOMB', // 延遲炸彈
+  FIELD_FIRE = 'FIELD_FIRE',   // 火焰場地
+  FIELD_HOLY = 'FIELD_HOLY',   // 聖域
+  FIELD_CURSE = 'FIELD_CURSE'  // 詛咒場地
 }
 
 export interface StatusEffect {
@@ -71,11 +77,20 @@ export enum CombatEventType {
   SKILL_CAST = 'SKILL_CAST', // 施放技能
   STATUS_APPLY = 'STATUS_APPLY',
   STATUS_DAMAGE = 'STATUS_DAMAGE',
+  STATUS_EXPIRE = 'STATUS_EXPIRE',
   HEAL = 'HEAL',
   SHIELD_DAMAGE = 'SHIELD_DAMAGE', // 護盾受到傷害
   SHIELD_BREAK = 'SHIELD_BREAK',   // 護盾破裂
   DEATH = 'DEATH',
-  END = 'END'
+  END = 'END',
+  
+  // 守城戰與軍團戰術專屬事件
+  SIEGE_GATE_DAMAGE = 'SIEGE_GATE_DAMAGE', // 城門受到傷害
+  SIEGE_GATE_BREAK = 'SIEGE_GATE_BREAK',   // 城門破碎
+  WATCHTOWER_ATTACK = 'WATCHTOWER_ATTACK', // 箭塔開砲支援
+  SQUAD_CHANGE = 'SQUAD_CHANGE',           // 車輪戰替換小隊登場
+  ARCHER_VOLLEY = 'ARCHER_VOLLEY',         // 弓兵箭雨齊射
+  CAVALRY_CHARGE = 'CAVALRY_CHARGE'        // 騎兵側翼衝鋒
 }
 
 export interface CombatEvent {
@@ -98,6 +113,14 @@ export interface CombatEvent {
   enemies?: CombatParticipantState[]; // 在 WAVE_START 時，傳遞該波次新敵人的血條狀態
   isQuietRegen?: boolean; // 例行每回合恢復，不輸出對話框文字
   healType?: 'HP' | 'MP';
+  
+  // 守城專屬
+  gateHp?: number;
+  gateMaxHp?: number;
+  gateRemainingHp?: number;
+  squadIndex?: number;
+  squadName?: string;
+  newSquadStates?: CombatParticipantState[]; // SQUAD_CHANGE 事件：新登場梯隊的成員初始狀態
 }
 
 export interface CombatParticipantState {
@@ -130,6 +153,12 @@ export interface CombatReport {
   terrain?: TerrainType; // 發生戰鬥的地形
   waveIndex?: number; // 用於進度討伐時標記波次
   shieldLoss?: Record<string, Record<string, number>>; // 記錄每個參與者損失的各兵種數量 { participantId: { INFANTRY: 50 } }
+
+  // 守城戰專屬
+  isDefenseSiege?: boolean;
+  gateMaxHp?: number;
+  gateRemainingHp?: number;
+  survivingInfantry?: number;
 
   // 累加戰利品
   totalEarnedGold?: number;

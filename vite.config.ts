@@ -263,6 +263,94 @@ function developmentStudioPlugin(): Plugin {
         }
 
         // ==========================================
+        // 技能工坊自訂技能資料庫 (Custom Skill Definitions API)
+        // ==========================================
+        const skillFile = path.resolve(__dirname, 'src/data/CustomSkillData.json');
+        const skillBackupsDir = path.resolve(__dirname, 'src/data/skill_backups');
+
+        if (url === '/api/get-custom-skills' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(fs.existsSync(skillFile) ? fs.readFileSync(skillFile, 'utf-8') : '[]');
+        }
+
+        if (url === '/api/save-custom-skills' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              const skillList = Array.isArray(payload) ? payload : payload.skills;
+              if (!Array.isArray(skillList)) throw new Error('skills 必須是陣列');
+
+              fs.mkdirSync(skillBackupsDir, { recursive: true });
+              fs.writeFileSync(skillFile, JSON.stringify(skillList, null, 2), 'utf-8');
+
+              const now = new Date();
+              const pad = (value: number) => value.toString().padStart(2, '0');
+              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const snapshot = `snapshot_${stamp}.json`;
+
+              fs.writeFileSync(path.resolve(skillBackupsDir, snapshot), JSON.stringify({
+                timestamp: now.toISOString(),
+                note: payload.note || '使用者在技能工坊儲存技能資料庫',
+                skills: skillList
+              }, null, 2), 'utf-8');
+
+              const backups = fs.readdirSync(skillBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
+              for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(skillBackupsDir, oldFile));
+
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, snapshot, total: skillList.length }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if (url === '/api/list-skill-backups' && req.method === 'GET') {
+          const backups = fs.existsSync(skillBackupsDir)
+            ? fs.readdirSync(skillBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse().map((filename: string) => {
+              const fullPath = path.resolve(skillBackupsDir, filename);
+              const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
+              return { filename, timestamp: data.timestamp, note: data.note, size: fs.statSync(fullPath).size };
+            })
+            : [];
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ backups }));
+        }
+
+        if (url === '/api/restore-skill-backup' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const { filename } = JSON.parse(body);
+              if (typeof filename !== 'string' || path.basename(filename) !== filename || !filename.startsWith('snapshot_')) {
+                throw new Error('快照檔名不合法');
+              }
+              const targetPath = path.resolve(skillBackupsDir, filename);
+              if (!fs.existsSync(targetPath)) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ success: false, error: '找不到該快照' }));
+              }
+              const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+              if (!Array.isArray(snapshot.skills)) throw new Error('快照內容不合法');
+              fs.writeFileSync(skillFile, JSON.stringify(snapshot.skills, null, 2), 'utf-8');
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, skills: snapshot.skills }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        // ==========================================
         // 怪物與單位資料庫 (Monster & Unit Definitions API)
         // ==========================================
         const monsterFile = path.resolve(__dirname, 'src/data/monsters.json');

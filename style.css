@@ -928,6 +928,17 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
 }
 
+/* 守城戰鏡像模式：攻城敵軍在左側，我方守軍在右側，角色朝向對峙 */
+.combat-stage.is-defense-siege {
+  flex-direction: row-reverse;
+  background: linear-gradient(to bottom, #2a1b12, #110d0a) !important;
+}
+
+/* 修復 Bug1：只翻轉頭像圖片本身，保持名稱/標籤文字方向正常 */
+.combat-stage.is-defense-siege .combat-participant.player-side .combat-p-avatar-sq {
+  transform: translate(-50%, -50%) scaleX(-1);
+}
+
 /* 滿版背景肖像 (Full-Art Avatar) - 內部置中且保持 1:1 正方形不失真 */
 .combat-p-avatar-bg {
   position: absolute;

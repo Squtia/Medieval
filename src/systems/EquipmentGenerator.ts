@@ -225,7 +225,13 @@ export class EquipmentGenerator {
   public static generate(templateId: string): Equipment | null {
     const template = DataStore.getEquipmentTemplate(templateId);
     if (!template) return null;
+    return this.generateFromTemplate(template);
+  }
 
+  /**
+   * 根據裝備模板物件隨機生成一件裝備實體
+   */
+  public static generateFromTemplate(template: EquipmentTemplate): Equipment {
     // 產生專屬 UUID
     const uuid = `eq_${Date.now()}_${Random.int(0, 9999)}`;
 
@@ -246,7 +252,11 @@ export class EquipmentGenerator {
       tier: template.tier,
       isVariant: template.isVariant,
       grantedSkill: template.grantedSkill,
-      extraSkills: template.extraSkills ? [...template.extraSkills] : undefined,
+      fixedSkill: template.fixedSkill,
+      skillPool: template.skillPool ? [...template.skillPool] : undefined,
+      skillRollChance: template.skillRollChance,
+      skillRollCount: template.skillRollCount,
+      extraSkills: [],
       skillTriggerChances: template.skillTriggerChances ? [...template.skillTriggerChances] : undefined,
       affixPool: template.affixPool ? [...template.affixPool] : undefined,
       craftable: template.craftable,
@@ -254,6 +264,31 @@ export class EquipmentGenerator {
       shopBuyable: template.shopBuyable,
       scaling: {}
     };
+
+    // 🌟 1. 裝備技能初始化：注入固定本命特技
+    const finalSkills: string[] = [];
+    if (template.fixedSkill) finalSkills.push(template.fixedSkill);
+    if (template.extraSkills && Array.isArray(template.extraSkills)) {
+      template.extraSkills.forEach(s => { if (s && !finalSkills.includes(s)) finalSkills.push(s); });
+    }
+
+    // 🌟 2. 隨機技能池抽取：根據 skillRollChance % 判定是否中獎，並隨機抽取 skillRollCount 招技能
+    if (template.skillPool && template.skillPool.length > 0) {
+      const chance = template.skillRollChance !== undefined ? template.skillRollChance : 100;
+      const isRolled = (Random.next() * 100) <= chance;
+      if (isRolled) {
+        const rollCount = Math.max(1, template.skillRollCount || 1);
+        const candidates = [...template.skillPool].filter(s => !finalSkills.includes(s));
+        for (let i = 0; i < rollCount && candidates.length > 0; i++) {
+          const pickedIdx = Random.int(0, candidates.length - 1);
+          const pickedSkill = candidates.splice(pickedIdx, 1)[0];
+          if (pickedSkill) finalSkills.push(pickedSkill);
+        }
+      }
+    }
+    if (finalSkills.length > 0) {
+      eq.extraSkills = finalSkills;
+    }
 
     // 🌟 若模板定義了浮動戰鬥數值區間 (combatStatRanges)，在此區間內隨機 Roll 點
     if (template.combatStatRanges) {

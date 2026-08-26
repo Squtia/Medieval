@@ -13,6 +13,7 @@ import { EnhancementSystem } from '../systems/EnhancementSystem';
 import { EquipmentSlot, ElementType, Equipment, CombatStats } from '../models/types';
 import { TRADE_GOODS } from '../systems/MarketSystem';
 import { positionFloatingElement } from './FloatingPosition';
+import { SkillRegistry } from '../systems/combat/SkillRegistry';
 import materialsJson from '../data/materials.json';
 
 
@@ -48,11 +49,46 @@ export function attachTooltip(element: HTMLElement, getHtml: () => string) {
   });
 }
 
-import { renderEquipIcon as helperRenderEquipIcon, ICON_SIZE } from './IconSpriteHelper';
+import { renderEquipIcon as helperRenderEquipIcon, renderUniversalIcon, ICON_SIZE } from './IconSpriteHelper';
 export { ICON_SIZE };
 
 export function renderEquipIcon(eq: any, sizePx: number = ICON_SIZE.MD): string {
   return helperRenderEquipIcon(eq, sizePx);
+}
+
+export function formatSkillsTags(skills?: string[]): string {
+  if (!skills || !Array.isArray(skills) || skills.length === 0) return '';
+  const validSkills = skills.filter(Boolean);
+  if (validSkills.length === 0) return '';
+
+  const skillCards = validSkills.map(skId => {
+    const sk = SkillRegistry.getSkill(skId);
+    const name = sk ? sk.name : skId;
+    const iconHtml = renderUniversalIcon(sk?.icon || '🔮', 20);
+    const mpText = sk?.mpCost ? `MP: ${sk.mpCost}` : '';
+    const cdText = sk?.cooldown ? `CD: ${sk.cooldown}T` : '';
+    const costBadges = [mpText, cdText].filter(Boolean).map(t => `<span style="background:rgba(0,0,0,0.5); padding:1px 4px; border-radius:3px; font-size:0.8em; color:#93c5fd;">${t}</span>`).join(' ');
+    const descText = sk?.description ? `<div style="font-size:0.8em; color:#e2e8f0; margin-top:2px; line-height:1.3;">${sk.description}</div>` : '';
+
+    return `
+      <div style="background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.35); border-radius:4px; padding:4px 6px; margin-top:4px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:4px;">
+          <div style="display:flex; align-items:center; gap:4px; font-weight:bold; color:#fde047; font-size:0.88em;">
+            ${iconHtml} <span>${name}</span>
+          </div>
+          <div>${costBadges}</div>
+        </div>
+        ${descText}
+      </div>
+    `;
+  });
+
+  return `
+    <div style="font-size:0.85em; margin-top:6px; background:rgba(0,0,0,0.4); padding:6px; border-radius:4px;">
+      <strong style="color:#eab308; font-size:0.92em;">✨ 武器附帶特技：</strong>
+      ${skillCards.join('')}
+    </div>
+  `;
 }
 
 export function getEquipTooltipHtml(eq: any): string {
@@ -62,6 +98,7 @@ export function getEquipTooltipHtml(eq: any): string {
   const jobs = eq.allowedJobs ? eq.allowedJobs.join('/') : '通用';
   const elemBadge = getElementBadge(eq.element);
   const statsStr = formatStatsTags(eq.combatEffects || eq.baseCombatEffects, eq.effects || eq.baseEffects);
+  const skillsHtml = formatSkillsTags(eq.extraSkills || (eq.grantedSkill ? [eq.grantedSkill] : undefined));
   const iconHtml = renderEquipIcon(eq, 32);
 
   return `
@@ -75,6 +112,7 @@ export function getEquipTooltipHtml(eq: any): string {
       <div style="font-size:0.85em; color:#cbd5e1; margin-top:6px; background:rgba(0,0,0,0.4); padding:6px; border-radius:4px;">
         <strong>戰鬥效果：</strong><br/>${statsStr}
       </div>
+      ${skillsHtml}
       <div style="font-size:0.85em; color:#fbbf24; margin-top:6px; background:rgba(0,0,0,0.4); padding:6px; border-radius:4px;">
         <strong>武器屬性：</strong><br/>${formatScalingTags(eq.scaling)}
       </div>
@@ -101,6 +139,7 @@ export function renderSingleEquipCardHtml(eq: any, headerTitle: string, isCurren
   const jobs = eq.allowedJobs ? eq.allowedJobs.join('/') : '通用';
   const elemBadge = getElementBadge(eq.element);
   const statsStr = formatStatsTags(eq.combatEffects || eq.baseCombatEffects, eq.effects || eq.baseEffects);
+  const skillsHtml = formatSkillsTags(eq.extraSkills || (eq.grantedSkill ? [eq.grantedSkill] : undefined));
   const iconHtml = renderEquipIcon(eq, 24);
   const headerColor = isCurrent ? '#94a3b8' : '#38bdf8';
   const borderColor = isCurrent ? 'rgba(148, 163, 184, 0.3)' : 'rgba(56, 189, 248, 0.4)';
@@ -120,6 +159,7 @@ export function renderSingleEquipCardHtml(eq: any, headerTitle: string, isCurren
       <div style="font-size:0.78em; color:#cbd5e1; background:rgba(0,0,0,0.4); padding:5px 6px; border-radius:4px; margin-top:2px;">
         <strong style="color:#fbbf24;">戰鬥效果：</strong><br/>${statsStr}
       </div>
+      ${skillsHtml}
       <div style="font-size:0.78em; color:#fbbf24; background:rgba(0,0,0,0.4); padding:5px 6px; border-radius:4px; margin-top:2px;">
         <strong style="color:#fbbf24;">武器屬性：</strong><br/>${formatScalingTags(eq.scaling)}
       </div>

@@ -17,6 +17,8 @@ import { EquipmentGenerator } from './EquipmentGenerator';
 import { TRADE_GOODS } from './MarketSystem';
 import { EnemyFeature } from '../models/DispatchTask';
 import { MapNode, NodeFeature, NodeLevel, TerrainType, WeatherType } from '../models/types';
+import { TerritoryDefenseSystem } from './TerritoryDefenseSystem';
+import { FactionManager } from './FactionManager';
 
 export interface NarrativeNodeRef {
   story: NarrativeStory;
@@ -300,8 +302,13 @@ export class NarrativeSystem {
       day: GameState.totalDays
     };
     const outcomeNodeId = isVictory ? narrative?.victoryNodeId : narrative?.defeatNodeId;
+    const delayDays = isVictory ? (narrative?.victoryDelayDays ?? 0) : (narrative?.defeatDelayDays ?? 0);
     if (narrative && outcomeNodeId) {
-      this.presentInteractiveNode(narrative.storyId, outcomeNodeId, true);
+      if (delayDays > 0) {
+        state.scheduledNodes[this.getNodeKey(narrative.storyId, outcomeNodeId)] = GameState.totalDays + delayDays;
+      } else {
+        this.presentInteractiveNode(narrative.storyId, outcomeNodeId, true);
+      }
       return;
     }
     const ref = this.getEligibleNodes('SUBJUGATION')[0];
@@ -463,6 +470,79 @@ export class NarrativeSystem {
         case 'CREATE_SUBJUGATION_NODE':
           this.createSubjugationNode(storyId, effect.definition);
           break;
+        case 'REDUCE_POPULATION_PERCENT': {
+          const territory = GameState.myTerritory;
+          const minP = Math.max(0, Math.min(100, effect.minPercent ?? 0));
+          const maxP = Math.max(minP, Math.min(100, effect.maxPercent ?? minP));
+          const percent = minP === maxP ? minP : Math.round(minP + Math.random() * (maxP - minP));
+          const totalPop = territory.population;
+          const lostCount = Math.min(totalPop, Math.max(1, Math.round(totalPop * (percent / 100))));
+          if (lostCount > 0) {
+            TerritoryDefenseSystem.reducePopulationRandomly(territory, lostCount);
+            console.log(`⚠️【領地損失】領地遭遇懲罰事件，隨機損失了 ${lostCount} 名領民（扣除 ${percent}% 人口）！請至書房重新調整工作分配。`);
+          }
+          break;
+        }
+        case 'REDUCE_RESOURCE_PERCENT': {
+          const territory = GameState.myTerritory;
+          const minP = Math.max(0, Math.min(100, effect.minPercent ?? 0));
+          const maxP = Math.max(minP, Math.min(100, effect.maxPercent ?? minP));
+          const percent = minP === maxP ? minP : Math.round(minP + Math.random() * (maxP - minP));
+          const factor = percent / 100;
+          const res = effect.resource;
+
+          if (res === 'GOLD' || res === 'ALL') {
+            const lost = Math.round(territory.gold * factor);
+            territory.gold = Math.max(0, territory.gold - lost);
+          }
+          if (res === 'FOOD' || res === 'ALL') {
+            const lost = Math.round(territory.food * factor);
+            territory.food = Math.max(0, territory.food - lost);
+          }
+          if (res === 'WOOD' || res === 'ALL') {
+            const lost = Math.round(territory.wood * factor);
+            territory.wood = Math.max(0, territory.wood - lost);
+          }
+          if (res === 'STONE' || res === 'ALL') {
+            const lost = Math.round(territory.stone * factor);
+            territory.stone = Math.max(0, territory.stone - lost);
+          }
+          if (res === 'IRON' || res === 'ALL') {
+            const lost = Math.round(territory.iron * factor);
+            territory.iron = Math.max(0, territory.iron - lost);
+          }
+          console.log(`📉【物資損失】領地扣除了 ${res} 庫存的 ${percent}%！`);
+          break;
+        }
+        case 'REDUCE_PRESTIGE_PERCENT': {
+          const minP = Math.max(0, Math.min(100, effect.minPercent ?? 0));
+          const maxP = Math.max(minP, Math.min(100, effect.maxPercent ?? minP));
+          const percent = minP === maxP ? minP : Math.round(minP + Math.random() * (maxP - minP));
+          const lost = Math.round(GameState.myTerritory.prestige * (percent / 100));
+          GameState.myTerritory.prestige = Math.max(0, GameState.myTerritory.prestige - lost);
+          console.log(`📉【聲望受挫】領主聲望下降了 ${lost} 點（-${percent}%）！`);
+          break;
+        }
+        case 'REDUCE_BUILDING_LEVEL': {
+          const territory = GameState.myTerritory;
+          const levels = Math.max(1, effect.levels ?? 1);
+          const bId = effect.buildingId;
+          if (bId === 'defense' && territory.defenseLevel > 0) territory.defenseLevel = Math.max(0, territory.defenseLevel - levels);
+          else if (bId === 'tavern' && territory.tavernLevel > 0) territory.tavernLevel = Math.max(0, territory.tavernLevel - levels);
+          else if (bId === 'forge' && territory.forgeLevel > 0) territory.forgeLevel = Math.max(0, territory.forgeLevel - levels);
+          else if (bId === 'weapon' && territory.weaponShopLevel > 0) territory.weaponShopLevel = Math.max(0, territory.weaponShopLevel - levels);
+          else if (bId === 'armor' && territory.armorShopLevel > 0) territory.armorShopLevel = Math.max(0, territory.armorShopLevel - levels);
+          else if (bId === 'farmland' && territory.farmlandLevel > 1) territory.farmlandLevel = Math.max(1, territory.farmlandLevel - levels);
+          else if (bId === 'lumberMill' && territory.lumberMillLevel > 1) territory.lumberMillLevel = Math.max(1, territory.lumberMillLevel - levels);
+          else if (bId === 'quarry' && territory.quarryLevel > 1) territory.quarryLevel = Math.max(1, territory.quarryLevel - levels);
+          else if (bId === 'huntingGround' && territory.huntingGroundLevel > 1) territory.huntingGroundLevel = Math.max(1, territory.huntingGroundLevel - levels);
+          console.log(`🏚️【建築受損】領地建築「${bId}」受損降低了 ${levels} 級！`);
+          break;
+        }
+        case 'TRIGGER_RAID': {
+          TerritoryDefenseSystem.startLiveSiegeDefense(storyId, effect);
+          break;
+        }
       }
     }
   }
@@ -528,7 +608,9 @@ export class NarrativeSystem {
         templateId: definition.templateId,
         journeyNodeIds: definition.journeyNodeIds ?? [],
         victoryNodeId: definition.victoryNodeId,
+        victoryDelayDays: definition.victoryDelayDays,
         defeatNodeId: definition.defeatNodeId,
+        defeatDelayDays: definition.defeatDelayDays,
         removeOnVictory,
         enemyFeature: definition.enemyFeature
       }

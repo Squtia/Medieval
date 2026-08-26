@@ -8,15 +8,17 @@ import {
   safeId
 } from './StoryStudioTypes';
 import type { NarrativeCondition, NarrativeEffect, NarrativeNode } from '../../models/Narrative';
-import { INITIAL_FACTIONS } from '../../data/FactionData';
+import { FactionManager } from '../../systems/FactionManager';
 import { DataStore } from '../../systems/DataStore';
-import { renderUniversalPortrait } from '../../ui/IconSpriteHelper';
+import { renderUniversalPortrait, renderUniversalIcon } from '../../ui/IconSpriteHelper';
 import defaultCustomDatasets from '../../data/custom_icon_datasets.json';
-
-const FACTION_OPTIONS = INITIAL_FACTIONS.map(f => ({
-  value: f.id,
-  label: `${f.factionName} (${f.id})`
-}));
+import { StoryStudioItemPicker } from './StoryStudioItemPicker';
+import { StoryStudioSubjugationPicker } from './StoryStudioSubjugationPicker';
+import { TRADE_GOODS } from '../../systems/MarketSystem';
+import materialsJson from '../../data/materials.json';
+import equipmentWeaponsJson from '../../data/equipment_weapons.json';
+import equipmentArmorsJson from '../../data/equipment_armors.json';
+import equipmentAccessoriesJson from '../../data/equipment_accessories.json';
 
 export class StoryStudioForm {
   private store: StoryStudioStore;
@@ -24,6 +26,13 @@ export class StoryStudioForm {
 
   constructor(store: StoryStudioStore) {
     this.store = store;
+  }
+
+  private getFactionOptions(): { value: string; label: string }[] {
+    return FactionManager.getAllFactions().map(f => ({
+      value: f.id,
+      label: `${f.factionName} (${f.id})`
+    }));
   }
 
   public mount(): void {
@@ -339,7 +348,7 @@ export class StoryStudioForm {
       case 'DAY_AT_LEAST': case 'TAVERN_LEVEL_AT_LEAST': case 'PRESTIGE_AT_LEAST': return input('門檻數值', 'value', condition.value, 'number');
       case 'GOLD_AT_LEAST': return input('金幣門檻', 'value', condition.value, 'number');
       case 'FACTION_FAVOR_AT_LEAST': case 'FACTION_FAVOR_AT_MOST':
-        return `${select('目標派系', 'factionId', condition.factionId, FACTION_OPTIONS)}${input('好感度門檻 (-100~100)', 'value', condition.value, 'number')}`;
+        return `${select('目標派系', 'factionId', condition.factionId, this.getFactionOptions())}${input('好感度門檻 (-100~100)', 'value', condition.value, 'number')}`;
       case 'FACT_EXISTS': case 'FACT_MISSING': return input('線索代號', 'fact', condition.fact, 'text', 'story-fact-datalist');
       case 'DAYS_SINCE_FACT': return `${input('線索代號', 'fact', condition.fact, 'text', 'story-fact-datalist')}${input('等待天數', 'value', condition.value, 'number')}`;
       case 'NODE_EXPLORED': return input('地圖節點 ID', 'nodeId', condition.nodeId);
@@ -366,6 +375,66 @@ export class StoryStudioForm {
         setter(next);
         this.renderEffectList(id, next, setter);
       });
+
+      // 綁定物品挑選器按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-pick-item]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const cat = btn.dataset.btnPickItem as any;
+          StoryStudioItemPicker.getInstance().open(cat, (picked) => {
+            if (cat === 'MATERIAL') {
+              (effect as any).itemId = picked.id;
+            } else if (cat === 'TRADE_GOOD') {
+              (effect as any).itemId = picked.id;
+            } else if (cat === 'EQUIPMENT') {
+              (effect as any).templateId = picked.id;
+            }
+            setter([...effects]);
+            this.renderEffectList(id, effects, setter);
+          });
+        });
+      });
+
+      // 綁定攻城梯隊新增按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-add-siege-wave]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (effect.type === 'TRIGGER_RAID') {
+            const waves = effect.waves || [];
+            waves.push({ waveIndex: waves.length + 1, templateId: 'bandit_camp', customName: `進攻梯隊 #${waves.length + 1}` });
+            effect.waves = waves;
+            setter([...effects]);
+            this.renderEffectList(id, effects, setter);
+          }
+        });
+      });
+
+      // 綁定攻城梯隊據點挑選器按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-pick-siege-subjugation]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const wIdx = Number(btn.dataset.btnPickSiegeSubjugation);
+          StoryStudioSubjugationPicker.getInstance().open((pickedTpl) => {
+            if (effect.type === 'TRIGGER_RAID' && effect.waves && effect.waves[wIdx]) {
+              effect.waves[wIdx].templateId = pickedTpl.id;
+              effect.waves[wIdx].customName = pickedTpl.name;
+              setter([...effects]);
+              this.renderEffectList(id, effects, setter);
+            }
+          });
+        });
+      });
+
+      // 綁定攻城梯隊移除按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-remove-siege-wave]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const wIdx = Number(btn.dataset.btnRemoveSiegeWave);
+          if (effect.type === 'TRIGGER_RAID' && effect.waves) {
+            effect.waves.splice(wIdx, 1);
+            effect.waves.forEach((w, idx) => { w.waveIndex = idx + 1; });
+            setter([...effects]);
+            this.renderEffectList(id, effects, setter);
+          }
+        });
+      });
+
       row.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[data-field]').forEach(field => {
         field.addEventListener('input', () => {
           const key = field.dataset.field!;
@@ -415,10 +484,71 @@ export class StoryStudioForm {
       case 'ADD_GOLD': return input('金幣變化量（負數為扣除）', 'value', effect.value, 'number');
       case 'ADD_PRESTIGE': return input('聲望變化量（負數為扣除）', 'value', effect.value, 'number');
       case 'ADD_RESTED_EXP': return input('經驗池獎勵量', 'value', effect.value, 'number');
-      case 'CHANGE_FACTION_FAVOR': return `${select('目標派系', 'factionId', effect.factionId, FACTION_OPTIONS)}${input('好感度增減量', 'value', effect.value, 'number')}`;
-      case 'GRANT_MATERIAL': return `${input('素材代號 (如 mat_iron_ingot)', 'itemId', effect.itemId)}${input('數量', 'quantity', effect.quantity, 'number')}`;
-      case 'GRANT_TRADE_GOOD': return `${input('特產代號 (如 tg_spice)', 'itemId', effect.itemId)}${input('數量', 'quantity', effect.quantity, 'number')}`;
-      case 'GRANT_EQUIPMENT': return `${input('裝備代號 (如 wpn_iron_greatsword)', 'templateId', effect.templateId)}${input('數量', 'quantity', effect.quantity, 'number')}`;
+      case 'CHANGE_FACTION_FAVOR': return `${select('目標派系', 'factionId', effect.factionId, this.getFactionOptions())}${input('好感度增減量', 'value', effect.value, 'number')}`;
+      case 'GRANT_MATERIAL': {
+        const mat = (materialsJson as any[]).find(m => m.id === effect.itemId) || DataStore.MaterialDB[effect.itemId];
+        const display = mat ? `${mat.name} (${mat.id})` : (effect.itemId || '尚未選擇素材');
+        const iconHtml = mat ? renderUniversalIcon(mat.icon || '💎', 26) : '💎';
+        return `
+          <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;">
+            <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
+              <span>素材項目：</span>
+              <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
+                ${iconHtml}
+                <strong style="color:#fde68a;">${escapeHtml(display)}</strong>
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button type="button" class="action-btn" data-btn-pick-item="MATERIAL" style="padding:5px 12px; font-size:0.78rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer;">🔍 挑選素材</button>
+              <input data-field="itemId" type="hidden" value="${escapeHtml(effect.itemId || '')}">
+              <div style="flex:1;">${input('數量', 'quantity', effect.quantity, 'number')}</div>
+            </div>
+          </div>
+        `;
+      }
+      case 'GRANT_TRADE_GOOD': {
+        const tg = TRADE_GOODS.find(g => g.id === effect.itemId);
+        const display = tg ? `${tg.name} (${tg.id})` : (effect.itemId || '尚未選擇特產');
+        const iconHtml = tg ? renderUniversalIcon(tg.icon || '🍷', 26) : '🍷';
+        return `
+          <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;">
+            <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
+              <span>特產項目：</span>
+              <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
+                ${iconHtml}
+                <strong style="color:#fde68a;">${escapeHtml(display)}</strong>
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button type="button" class="action-btn" data-btn-pick-item="TRADE_GOOD" style="padding:5px 12px; font-size:0.78rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer;">🔍 挑選特產</button>
+              <input data-field="itemId" type="hidden" value="${escapeHtml(effect.itemId || '')}">
+              <div style="flex:1;">${input('數量', 'quantity', effect.quantity, 'number')}</div>
+            </div>
+          </div>
+        `;
+      }
+      case 'GRANT_EQUIPMENT': {
+        const allEq = [...(equipmentWeaponsJson as any[]), ...(equipmentArmorsJson as any[]), ...(equipmentAccessoriesJson as any[])];
+        const eq = allEq.find(e => e.id === effect.templateId);
+        const display = eq ? `${eq.name} (${eq.id})` : (effect.templateId || '尚未指定裝備');
+        const iconHtml = eq ? renderUniversalIcon(eq.icon || '⚔️', 26) : '⚔️';
+        return `
+          <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;">
+            <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
+              <span>指定裝備：</span>
+              <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
+                ${iconHtml}
+                <strong style="color:#fde68a;">${escapeHtml(display)}</strong>
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button type="button" class="action-btn" data-btn-pick-item="EQUIPMENT" style="padding:5px 12px; font-size:0.78rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer;">🔍 挑選裝備庫</button>
+              <input data-field="templateId" type="text" value="${escapeHtml(effect.templateId || '')}" placeholder="或手動填入裝備 ID" style="flex:1; font-size:0.78rem;">
+              <div style="width:75px;">${input('數量', 'quantity', effect.quantity, 'number')}</div>
+            </div>
+          </div>
+        `;
+      }
       case 'SCHEDULE_NODE': return `${input('目標故事節點 ID', 'nodeId', effect.nodeId)}${input('等待天數', 'delayDays', effect.delayDays, 'number')}`;
       case 'UNLOCK_MAP_NODE': return input('解鎖地圖節點 ID', 'nodeId', effect.nodeId);
       case 'REMOVE_MAP_NODE': {
@@ -435,6 +565,127 @@ export class StoryStudioForm {
           ${select('快速選取據點範本 ID', 'nodeId', effect.nodeId, templateOptions)}
         `;
       }
+      case 'REDUCE_POPULATION_PERCENT': {
+        return `
+          <div style="display:flex; gap:8px;">
+            <label style="flex:1;">最小扣除百分比 (%)<input data-field="minPercent" type="number" value="${effect.minPercent ?? 10}"></label>
+            <label style="flex:1;">最大扣除百分比 (%)<input data-field="maxPercent" type="number" value="${effect.maxPercent ?? 20}"></label>
+          </div>
+          <div style="font-size:0.72rem; color:#fde68a;">⚠️ 觸發時將在 ${effect.minPercent ?? 10}% ~ ${effect.maxPercent ?? 20}% 範圍內隨機抽籤扣除領民</div>
+        `;
+      }
+      case 'REDUCE_RESOURCE_PERCENT': {
+        const resOptions = [
+          { value: 'GOLD', label: '💰 金幣庫存' },
+          { value: 'FOOD', label: '🌾 糧食庫存' },
+          { value: 'WOOD', label: '🌲 木材庫存' },
+          { value: 'STONE', label: '🧱 石材庫存' },
+          { value: 'IRON', label: '🔗 鐵礦庫存' },
+          { value: 'ALL', label: '📦 全資源庫存' }
+        ];
+        return `
+          ${select('扣除資源種類', 'resource', effect.resource || 'GOLD', resOptions)}
+          <div style="display:flex; gap:8px;">
+            <label style="flex:1;">最小扣除 (%)<input data-field="minPercent" type="number" value="${effect.minPercent ?? 15}"></label>
+            <label style="flex:1;">最大扣除 (%)<input data-field="maxPercent" type="number" value="${effect.maxPercent ?? 30}"></label>
+          </div>
+        `;
+      }
+      case 'REDUCE_PRESTIGE_PERCENT': {
+        return `
+          <div style="display:flex; gap:8px;">
+            <label style="flex:1;">最小聲望扣除 (%)<input data-field="minPercent" type="number" value="${effect.minPercent ?? 10}"></label>
+            <label style="flex:1;">最大聲望扣除 (%)<input data-field="maxPercent" type="number" value="${effect.maxPercent ?? 20}"></label>
+          </div>
+        `;
+      }
+      case 'REDUCE_BUILDING_LEVEL': {
+        const bOptions = [
+          { value: 'defense', label: '🏰 哨所/防衛 (defense)' },
+          { value: 'tavern', label: '🍺 酒館 (tavern)' },
+          { value: 'forge', label: '🔨 鐵匠鋪 (forge)' },
+          { value: 'weapon', label: '⚔️ 武器店 (weapon)' },
+          { value: 'armor', label: '🛡️ 防具店 (armor)' },
+          { value: 'farmland', label: '🌾 農田 (farmland)' },
+          { value: 'lumberMill', label: '🪓 伐木場 (lumberMill)' },
+          { value: 'quarry', label: '⛏️ 採石場 (quarry)' },
+          { value: 'huntingGround', label: '🏹 獵場 (huntingGround)' }
+        ];
+        return `
+          ${select('受損目標建築', 'buildingId', effect.buildingId || 'defense', bOptions)}
+          ${input('降低等級數', 'levels', effect.levels ?? 1, 'number')}
+        `;
+      }
+      case 'TRIGGER_RAID': {
+        const waves = (effect.waves && effect.waves.length > 0)
+          ? effect.waves
+          : [{ waveIndex: 1, templateId: 'bandit_camp', customName: '敵方先鋒部隊' }];
+        effect.waves = waves;
+        const isSiege = effect.isSiege !== false; // 預設為 true
+
+        const allTemplates = DataStore.getSubjugationTemplates();
+
+        const wavesHtml = waves.map((w, wIdx) => {
+          const tpl = allTemplates.find(t => t.id === w.templateId);
+          const icon = tpl?.icon || 'icons_buildings:icons_buildings_3';
+          const iconHtml = renderUniversalIcon(icon, 28);
+          const tplName = tpl ? `${tpl.name} (${tpl.id})` : w.templateId;
+          const monsterCount = tpl?.waves?.reduce((acc, mw) => acc + (mw.monsters?.length || 0), 0) || 0;
+          const diffStars = '⭐'.repeat(Math.min(5, Math.max(1, tpl?.difficulty || 1)));
+
+          return `
+            <div style="background: #18181b; border: 1px solid #3f3f46; border-radius: 6px; padding: 8px; margin-top: 6px; box-sizing: border-box;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #27272a; padding-bottom: 5px; margin-bottom: 6px;">
+                <span style="font-weight: bold; color: #c084fc; font-size: 0.82rem;">🚩 第 ${wIdx + 1} 梯隊</span>
+                <div style="display: flex; gap: 4px; align-items: center;">
+                  <button type="button" class="action-btn" data-btn-pick-siege-subjugation="${wIdx}" style="padding: 2px 8px; font-size: 0.75rem; background: #8b5cf6; color: #fff; border-radius: 4px; border: none; cursor: pointer; white-space: nowrap;">🔍 挑選據點</button>
+                  <button type="button" class="action-btn story-danger" data-btn-remove-siege-wave="${wIdx}" style="padding: 2px 6px; font-size: 0.75rem; background: rgba(239,68,68,0.2); color: #fca5a5; border: 1px solid #ef4444; border-radius: 4px; cursor: pointer; line-height: 1;" title="移除梯隊"${waves.length <= 1 ? ' disabled' : ''}>✕</button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="background: rgba(0,0,0,0.4); padding: 2px; border-radius: 4px; flex-shrink: 0;">${iconHtml}</div>
+                <div style="min-width: 0; flex: 1;">
+                  <div style="font-weight: bold; color: #fde047; font-size: 0.85rem; word-break: break-all; line-height: 1.2;">${escapeHtml(tplName)}</div>
+                  <div style="font-size: 0.72rem; color: #a1a1aa; margin-top: 2px;">難度 ${diffStars} · 敵軍 ${monsterCount} 體</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="wide" style="grid-column: 1 / -1; width: 100%; background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.3); border-radius: 8px; padding: 10px; margin-top: 4px; box-sizing: border-box;">
+            <div style="font-weight: bold; color: #c084fc; font-size: 0.88rem; margin-bottom: 6px;">⚔️ 領地戰役與梯隊配置</div>
+            ${input('戰役名稱', 'raidName', effect.raidName || '黑狼軍團圍城戰')}
+            
+            <label style="display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; background: rgba(0,0,0,0.35); padding: 8px 10px; border-radius: 6px; border: 1px solid rgba(234,179,8,0.25); cursor: pointer;">
+              <input data-field="isSiege" type="checkbox" ${isSiege ? 'checked' : ''} style="margin-top: 3px; accent-color: #eab308;">
+              <div>
+                <span style="font-weight: bold; color: #fbbf24; font-size: 0.85rem;">🏰 啟用正規攻城戰屬性 (Siege Defense)</span>
+                <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 2px;">
+                  勾選 = 具備城牆掩體、箭塔砲擊支援與兵種軍團調派。<br>
+                  未勾選 = 街巷／室內突襲遭遇戰（無城防與兵種支援，由傭兵守軍直接迎敵）。
+                </div>
+              </div>
+            </label>
+
+            ${input('預警行軍天數 (0=立即圍城開打, 1~7=野外可迎擊天數)', 'warningDays', effect.warningDays ?? 3, 'number')}
+            
+            <div style="margin-top: 10px;">
+              <div style="font-size: 0.8rem; font-weight: bold; color: #e2e8f0; margin-bottom: 4px;">進攻梯隊清單 (Wave 1~N):</div>
+              <div class="siege-waves-container">
+                ${wavesHtml}
+              </div>
+              <button type="button" class="action-btn" data-btn-add-siege-wave style="width: 100%; margin-top: 8px; padding: 6px 0; font-size: 0.8rem; background: #6d28d9; color: #fff; border-radius: 6px; border: 1px solid #8b5cf6; cursor: pointer; font-weight: bold;">➕ 新增進攻梯隊</button>
+            </div>
+
+            <div style="margin-top: 10px;">
+              ${input('守城大捷跳轉節點 ID', 'successNodeId', effect.successNodeId || '')}
+              ${input('城防失守跳轉節點 ID', 'failNodeId', effect.failNodeId || '')}
+            </div>
+          </div>
+        `;
+      }
       case 'CREATE_SUBJUGATION_NODE': {
         const d = effect.definition;
         const allTemplates = DataStore.getSubjugationTemplates();
@@ -448,8 +699,14 @@ export class StoryStudioForm {
         return `
           ${select('選擇已創作的討伐據點範本', 'definition.templateId', d.templateId || '', templateOptions)}
           ${input('據點名稱 (自訂或沿用範本)', 'definition.name', d.name)}
-          ${input('勝利觸發節點 ID', 'definition.victoryNodeId', d.victoryNodeId || '')}
-          ${input('失敗觸發節點 ID', 'definition.defeatNodeId', d.defeatNodeId || '')}
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1.5;">${input('勝利觸發節點 ID', 'definition.victoryNodeId', d.victoryNodeId || '')}</div>
+            <div style="flex:1;">${input('戰勝延遲天數 (0=立即)', 'definition.victoryDelayDays', d.victoryDelayDays ?? 0, 'number')}</div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <div style="flex:1.5;">${input('失敗觸發節點 ID', 'definition.defeatNodeId', d.defeatNodeId || '')}</div>
+            <div style="flex:1;">${input('戰敗延遲天數 (0=立即)', 'definition.defeatDelayDays', d.defeatDelayDays ?? 0, 'number')}</div>
+          </div>
           ${input('途中事件節點 IDs (逗號隔開)', 'definition.journeyNodeIds', (d.journeyNodeIds || []).join(', '))}
         `;
       }

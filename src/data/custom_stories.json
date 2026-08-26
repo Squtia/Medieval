@@ -352,7 +352,8 @@
             "nodeId": "evt_vormund_demand",
             "delayDays": 180
           }
-        ]
+        ],
+        "dialoguePages": []
       },
       {
         "id": "evt_hurst_assassin",
@@ -1165,7 +1166,7 @@
         "completionEffects": [
           {
             "type": "SCHEDULE_NODE",
-            "nodeId": "dragon_fam_3w_01",
+            "nodeId": "dragon_fam_3w_01l",
             "delayDays": 1
           }
         ],
@@ -1173,10 +1174,10 @@
         "npcAvatar": "npc_common:npc_dragon_f"
       },
       {
-        "id": "dragon_fam_3w_01",
+        "id": "dragon_fam_3w_01l",
         "title": "神秘女性",
         "description": "",
-        "channel": "STREET_EVENT",
+        "channel": "TERRITORY_EVENT",
         "conditions": [],
         "choices": [
           {
@@ -1205,7 +1206,9 @@
                   "removeOnVictory": true,
                   "journeyNodeIds": [],
                   "templateId": "dragon_fam_dun_2",
-                  "victoryNodeId": "dragon_fam_3w_01w"
+                  "victoryNodeId": "dragon_fam_3w_02w",
+                  "defeatNodeId": "dragon_fam_3w_02l",
+                  "defeatDelayDays": 0
                 }
               }
             ]
@@ -1288,7 +1291,7 @@
         "npcAvatar": "npc:npc_0"
       },
       {
-        "id": "dragon_fam_3w_01w",
+        "id": "dragon_fam_3w_02w",
         "title": "憤怒的女性",
         "description": "",
         "channel": "STREET_EVENT",
@@ -1300,9 +1303,9 @@
             "resultText": "",
             "effects": [
               {
-                "type": "SET_FACT",
-                "fact": "dragon_fam_DIE",
-                "value": true
+                "type": "CHANGE_FACTION_FAVOR",
+                "factionId": "f_vormund",
+                "value": 10
               },
               {
                 "type": "GRANT_MATERIAL",
@@ -1332,6 +1335,32 @@
         ],
         "npcName": "神秘女性",
         "npcAvatar": "npc_common:npc_dragon_f"
+      },
+      {
+        "id": "dragon_fam_3w_02l",
+        "title": "黑龍的反擊",
+        "description": "",
+        "channel": "TERRITORY_EVENT",
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "TRIGGER_RAID",
+            "raidName": "黑龍軍團圍城戰",
+            "warningDays": 2,
+            "waves": [
+              {
+                "waveIndex": 1,
+                "templateId": "dragon_fam_dun_2",
+                "customName": "充滿龍晶的洞穴深處"
+              }
+            ],
+            "successNodeId": "",
+            "failNodeId": ""
+          }
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
       }
     ]
   },

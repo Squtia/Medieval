@@ -74,7 +74,9 @@ export interface NarrativeSubjugationDefinition {
   removeOnVictory: boolean;
   journeyNodeIds: string[];
   victoryNodeId?: string;
+  victoryDelayDays?: number;
   defeatNodeId?: string;
+  defeatDelayDays?: number;
 }
 
 export type NarrativeCondition =
@@ -105,7 +107,27 @@ export type NarrativeEffect =
   | { type: 'SCHEDULE_NODE'; nodeId: string; delayDays: number }
   | { type: 'UNLOCK_MAP_NODE'; nodeId: string }
   | { type: 'REMOVE_MAP_NODE'; nodeId: string }
-  | { type: 'CREATE_SUBJUGATION_NODE'; definition: NarrativeSubjugationDefinition };
+  | { type: 'CREATE_SUBJUGATION_NODE'; definition: NarrativeSubjugationDefinition }
+  | { type: 'REDUCE_POPULATION_PERCENT'; minPercent: number; maxPercent: number }
+  | { type: 'REDUCE_RESOURCE_PERCENT'; resource: 'GOLD' | 'FOOD' | 'WOOD' | 'STONE' | 'IRON' | 'ALL'; minPercent: number; maxPercent: number }
+  | { type: 'REDUCE_PRESTIGE_PERCENT'; minPercent: number; maxPercent: number }
+  | { type: 'REDUCE_BUILDING_LEVEL'; buildingId: string; levels?: number }
+  | {
+      type: 'TRIGGER_RAID';
+      raidName: string;
+      isSiege?: boolean; // 是否為正規攻城戰 (true=城牆/箭塔/兵種支援, false=街巷/室內遭遇防衛戰)
+      threatPower?: number;
+      warningDays?: number;
+      waves?: SiegeWaveConfig[];
+      successNodeId?: string;
+      failNodeId?: string;
+    };
+
+export interface SiegeWaveConfig {
+  waveIndex: number;
+  templateId: string;
+  customName?: string;
+}
 
 export interface NarrativeChoice {
   id: string;

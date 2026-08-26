@@ -8,6 +8,7 @@ import craftingRecipesJson from '../data/CraftingRecipes.json';
 import itemsJson from '../data/items.json';
 import defaultCustomDatasets from '../data/custom_icon_datasets.json';
 import { renderUniversalIcon } from '../ui/IconSpriteHelper';
+import { SkillRegistry } from '../systems/combat/SkillRegistry';
 import '../styles/equipment-studio.css';
 
 const byId = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as unknown as T;
@@ -59,6 +60,10 @@ export interface CustomEquipmentTemplate {
   };
   affixPool?: string[];
   extraSkills?: string[];
+  fixedSkill?: string;
+  skillPool?: string[];
+  skillRollChance?: number;
+  skillRollCount?: number;
   skillTriggerChances?: number[];
   craftable?: boolean;
   droppable?: boolean;
@@ -92,6 +97,9 @@ class EquipmentStudioController {
   private activeEditingId: string | null = null;
 
   private iconPickerCallback: ((icon: string) => void) | null = null;
+  private skillPickerCallback: ((skillId: string) => void) | null = null;
+  private currentSkillCategoryFilter: string = 'ALL';
+  private currentSkillPool: string[] = [];
 
   public async init(): Promise<void> {
     await this.loadTemplate();
@@ -379,9 +387,22 @@ class EquipmentStudioController {
            </div>`
         : '';
 
-      const skillsHtml = (eq.extraSkills && eq.extraSkills.length > 0 && eq.extraSkills.some(s => !!s))
+      const fixedSkillMeta = eq.fixedSkill ? SkillRegistry.getSkill(eq.fixedSkill) : null;
+      const fixedSkillBadge = eq.fixedSkill
+        ? `<span style="background: rgba(234,179,8,0.15); color: #fde047; padding: 1px 5px; border-radius: 3px; font-size: 0.68rem; border: 1px solid rgba(234,179,8,0.4);">✨ ${fixedSkillMeta?.name || eq.fixedSkill}</span>`
+        : '';
+      const poolBadge = (eq.skillPool && eq.skillPool.length > 0)
+        ? `<span style="background: rgba(168,85,247,0.15); color: #d8b4fe; padding: 1px 5px; border-radius: 3px; font-size: 0.68rem; border: 1px solid rgba(168,85,247,0.4);" title="${eq.skillPool.join(', ')}">🎲 隨機池: ${eq.skillPool.length}款 (${eq.skillRollChance ?? 100}%抽${eq.skillRollCount || 1})</span>`
+        : '';
+      const legacySkillsBadge = (!eq.fixedSkill && !eq.skillPool && eq.extraSkills && eq.extraSkills.length > 0)
+        ? eq.extraSkills.filter(Boolean).map(s => `<span style="background: rgba(234,179,8,0.15); color: #fde047; padding: 1px 5px; border-radius: 3px; font-size: 0.68rem; border: 1px solid rgba(234,179,8,0.4);">✨ ${s}</span>`).join('')
+        : '';
+
+      const skillsHtml = (fixedSkillBadge || poolBadge || legacySkillsBadge)
         ? `<div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;">
-            ${eq.extraSkills.filter(Boolean).map((s, idx) => `<span style="background: rgba(234,179,8,0.15); color: #fde047; padding: 1px 5px; border-radius: 3px; font-size: 0.68rem; border: 1px solid rgba(234,179,8,0.4);">✨ ${s} (${eq.skillTriggerChances?.[idx] || 20}%)</span>`).join('')}
+            ${fixedSkillBadge}
+            ${poolBadge}
+            ${legacySkillsBadge}
            </div>`
         : '';
 
@@ -514,6 +535,7 @@ class EquipmentStudioController {
 
   private bindEvents(): void {
     byId('btn-nav-combat').onclick = () => window.open('combat-studio.html', '_blank');
+    byId('btn-nav-skill').onclick = () => window.open('skill-workshop.html', '_blank');
     byId('btn-nav-icon').onclick = () => window.open('icon-studio.html', '_blank');
     byId('btn-nav-story').onclick = () => window.open('story-studio.html', '_blank');
 
@@ -785,6 +807,47 @@ class EquipmentStudioController {
       byId('ee-icon').innerHTML = renderUniversalIcon(ic, 40);
       byId('ee-icon').dataset.iconVal = ic;
     });
+
+    // 適用職業勾選事件
+    byId('job-all').onchange = (e) => {
+      const isAll = (e.target as HTMLInputElement).checked;
+      document.querySelectorAll<HTMLInputElement>('.es-job-chk').forEach(chk => { chk.checked = isAll; });
+    };
+
+    document.querySelectorAll<HTMLInputElement>('.es-job-chk').forEach(chk => {
+      chk.onchange = () => {
+        const allChks = Array.from(document.querySelectorAll<HTMLInputElement>('.es-job-chk'));
+        const allChecked = allChks.every(c => c.checked);
+        const allJobChk = byId<HTMLInputElement>('job-all');
+        if (allJobChk) allJobChk.checked = allChecked;
+      };
+    });
+
+    byId('btn-es-job-preset').onclick = () => {
+      const slotVal = (byId('ee-slot') as HTMLSelectElement).value as any;
+      const wpnTypeVal = (byId('ee-weapon-type') as HTMLSelectElement).value as any;
+      const preset = DataStore.getDefaultAllowedJobs(slotVal, wpnTypeVal);
+      if (!preset || preset.length === 0) {
+        (byId('job-all') as HTMLInputElement).checked = true;
+        document.querySelectorAll<HTMLInputElement>('.es-job-chk').forEach(chk => { chk.checked = true; });
+      } else {
+        (byId('job-all') as HTMLInputElement).checked = false;
+        document.querySelectorAll<HTMLInputElement>('.es-job-chk').forEach(chk => {
+          chk.checked = preset.includes(chk.value);
+        });
+      }
+    };
+
+    // 技能挑選器事件
+    byId('btn-es-pick-fixed-skill').onclick = () => this.openSkillPicker(id => this.updateFixedSkillUI(id));
+    byId('btn-es-clear-fixed-skill').onclick = () => this.updateFixedSkillUI('');
+    byId('btn-es-add-pool-skill').onclick = () => this.openSkillPicker(id => this.addSkillToPool(id));
+    byId('btn-close-es-skill-picker').onclick = () => byId('modal-es-skill-picker').style.display = 'none';
+    byId('inp-es-skill-search').oninput = () => this.renderSkillPickerGrid();
+    byId('sel-es-skill-category').onchange = (e) => {
+      this.currentSkillCategoryFilter = (e.target as HTMLSelectElement).value;
+      this.renderSkillPickerGrid();
+    };
   }
 
   private openMaterialEditor(id: string | null): void {
@@ -869,6 +932,14 @@ class EquipmentStudioController {
     (byId('ee-droppable') as HTMLInputElement).checked = eq ? (eq.droppable !== false) : true;
     (byId('ee-shop-buyable') as HTMLInputElement).checked = eq ? (eq.shopBuyable !== false) : true;
 
+    // 載入適用職業
+    const allowed = eq?.allowedJobs;
+    const isAllJobs = !allowed || allowed.length === 0 || allowed.length >= 6;
+    (byId('job-all') as HTMLInputElement).checked = isAllJobs;
+    document.querySelectorAll<HTMLInputElement>('.es-job-chk').forEach(chk => {
+      chk.checked = isAllJobs ? true : allowed.includes(chk.value);
+    });
+
     const six = eq?.baseEffects || {};
     const rndPoolAttrs = eq?.randomPool?.attributes || [];
     (byId('ee-str') as HTMLInputElement).value = String(six.str || 0);
@@ -910,12 +981,13 @@ class EquipmentStudioController {
     (byId('affix-meditation') as HTMLInputElement).checked = pool.includes('冥想');
     (byId('affix-allround') as HTMLInputElement).checked = pool.includes('全能');
 
-    const skills = eq?.extraSkills || [];
-    const chances = eq?.skillTriggerChances || [];
-    (byId('ee-skill-1') as HTMLInputElement).value = skills[0] || '';
-    (byId('ee-skill-rate-1') as HTMLInputElement).value = String(chances[0] ?? 20);
-    (byId('ee-skill-2') as HTMLInputElement).value = skills[1] || '';
-    (byId('ee-skill-rate-2') as HTMLInputElement).value = String(chances[1] ?? 100);
+    const fixedSkill = eq?.fixedSkill || (eq?.extraSkills && eq.extraSkills.length > 0 ? eq.extraSkills[0] : '');
+    this.updateFixedSkillUI(fixedSkill);
+
+    this.currentSkillPool = eq?.skillPool ? [...eq.skillPool] : (eq?.extraSkills && eq.extraSkills.length > 1 ? eq.extraSkills.slice(1) : []);
+    (byId('ee-skill-roll-chance') as HTMLInputElement).value = String(eq?.skillRollChance !== undefined ? eq.skillRollChance : 100);
+    (byId('ee-skill-roll-count') as HTMLSelectElement).value = String(eq?.skillRollCount || 1);
+    this.renderSkillPoolBadges();
 
     (byId('ee-desc') as HTMLTextAreaElement).value = eq ? (eq.description || '') : '';
     (byId('ee-flavor') as HTMLTextAreaElement).value = eq ? (eq.flavorText || '') : '';
@@ -1095,25 +1167,24 @@ class EquipmentStudioController {
       if (hitParsed.range) combatStatRanges.hit = hitParsed.range;
       if (critParsed.range) combatStatRanges.crit = critParsed.range;
 
-      const extraSkills: string[] = [];
-      const skillTriggerChances: number[] = [];
-      const s1 = (byId('ee-skill-1') as HTMLInputElement).value.trim();
-      const s2 = (byId('ee-skill-2') as HTMLInputElement).value.trim();
-      if (s1) {
-        extraSkills.push(s1);
-        skillTriggerChances.push(Number((byId('ee-skill-rate-1') as HTMLInputElement).value) || 20);
-      }
-      if (s2) {
-        extraSkills.push(s2);
-        skillTriggerChances.push(Number((byId('ee-skill-rate-2') as HTMLInputElement).value) || 100);
-      }
+      const fixedSkill = ((byId('ee-fixed-skill') as HTMLInputElement)?.value || '').trim();
+      const skillPool = [...this.currentSkillPool];
+      const skillRollChance = Number((byId('ee-skill-roll-chance') as HTMLInputElement)?.value ?? 100);
+      const skillRollCount = Number((byId('ee-skill-roll-count') as HTMLSelectElement)?.value ?? 1);
+      const extraSkills: string[] = [fixedSkill, ...skillPool].filter(Boolean);
 
       const slotVal = (byId('ee-slot') as HTMLSelectElement).value as any;
       const wpnTypeVal = (byId('ee-weapon-type') as HTMLSelectElement).value as any;
-      const existingItem = this.equipment.find(e => e.id === id);
-      const derivedAllowedJobs = (existingItem?.allowedJobs && existingItem.allowedJobs.length > 0)
-        ? existingItem.allowedJobs
-        : DataStore.getDefaultAllowedJobs(slotVal, wpnTypeVal, existingItem?.armorType);
+      
+      const isJobAll = (byId('job-all') as HTMLInputElement).checked;
+      const selectedJobs = Array.from(document.querySelectorAll<HTMLInputElement>('.es-job-chk'))
+        .filter(chk => chk.checked)
+        .map(chk => chk.value);
+      
+      const ALL_JOBS = ['戰士', '法師', '弓箭手', '騎士', '盜賊', '祈禱者'];
+      const finalAllowedJobs = (isJobAll || selectedJobs.length === 0 || selectedJobs.length >= 6)
+        ? ALL_JOBS
+        : selectedJobs;
 
       const eq: CustomEquipmentTemplate = {
         id,
@@ -1122,7 +1193,7 @@ class EquipmentStudioController {
         weaponType: wpnTypeVal,
         tier: Number((byId('ee-tier') as HTMLSelectElement).value) || 1,
         element: (byId('ee-element') as HTMLSelectElement).value as any,
-        allowedJobs: derivedAllowedJobs,
+        allowedJobs: finalAllowedJobs,
         icon: byId('ee-icon').dataset.iconVal || 'weapons:GREATSWORD',
         craftable: (byId('ee-craftable') as HTMLInputElement).checked,
         droppable: (byId('ee-droppable') as HTMLInputElement).checked,
@@ -1144,8 +1215,11 @@ class EquipmentStudioController {
           combatStats: ['patk', 'matk', 'pdef', 'mdef', 'hit', 'crit']
         },
         affixPool: pool,
+        fixedSkill: fixedSkill || undefined,
+        skillPool: skillPool.length > 0 ? skillPool : undefined,
+        skillRollChance,
+        skillRollCount,
         extraSkills,
-        skillTriggerChances,
         description: (byId('ee-desc') as HTMLTextAreaElement).value.trim(),
         flavorText: (byId('ee-flavor') as HTMLTextAreaElement).value.trim()
       };
@@ -1300,6 +1374,147 @@ class EquipmentStudioController {
     if (id.includes('leather')) return '🧶';
     if (id.includes('gem') || id.includes('crystal')) return '💎';
     return '🧱';
+  }
+
+  private updateFixedSkillUI(skillId: string): void {
+    const hiddenInp = byId<HTMLInputElement>('ee-fixed-skill');
+    const nameEl = byId('ee-fixed-skill-name');
+    const clearBtn = byId('btn-es-clear-fixed-skill');
+
+    if (hiddenInp) hiddenInp.value = skillId || '';
+
+    if (skillId) {
+      const sk = SkillRegistry.getSkill(skillId);
+      const iconHtml = renderUniversalIcon(sk?.icon || '🔮', 20);
+      const displayName = sk ? `${sk.name} (${sk.id})` : skillId;
+      if (nameEl) {
+        nameEl.innerHTML = `<div style="display: flex; align-items: center; gap: 6px;">${iconHtml} <strong style="color: #fde047; font-size: 0.8rem;">${displayName}</strong></div>`;
+      }
+      if (clearBtn) clearBtn.style.display = 'inline-block';
+    } else {
+      if (nameEl) {
+        nameEl.innerHTML = '<span style="color: var(--es-text-muted);">尚未配置固定特技 (若無則純隨機抽取)</span>';
+      }
+      if (clearBtn) clearBtn.style.display = 'none';
+    }
+  }
+
+  private addSkillToPool(skillId: string): void {
+    if (!skillId) return;
+    if (!this.currentSkillPool.includes(skillId)) {
+      this.currentSkillPool.push(skillId);
+      this.renderSkillPoolBadges();
+    }
+  }
+
+  private removeSkillFromPool(skillId: string): void {
+    this.currentSkillPool = this.currentSkillPool.filter(s => s !== skillId);
+    this.renderSkillPoolBadges();
+  }
+
+  private renderSkillPoolBadges(): void {
+    const container = byId('ee-skill-pool-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (this.currentSkillPool.length === 0) {
+      container.innerHTML = '<span style="color: var(--es-text-muted); font-size: 0.75rem;">隨機池目前為空（點擊右上角「➕ 挑選加入隨機池」新增技能）</span>';
+      return;
+    }
+
+    this.currentSkillPool.forEach(skId => {
+      const sk = SkillRegistry.getSkill(skId);
+      const badge = document.createElement('div');
+      badge.style.cssText = 'display: inline-flex; align-items: center; gap: 5px; background: rgba(168,85,247,0.18); border: 1px solid rgba(168,85,247,0.45); border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; color: #e9d5ff;';
+      badge.innerHTML = `
+        <span>${renderUniversalIcon(sk?.icon || '🔮', 18)}</span>
+        <span style="font-weight: 500;">${sk ? sk.name : skId}</span>
+        <span style="font-size: 0.65rem; color: #a855f7; font-family: monospace;">(${skId})</span>
+        <button type="button" style="background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.75rem; padding: 0 2px; line-height: 1;" title="從隨機池移除">✕</button>
+      `;
+      badge.querySelector('button')!.onclick = () => this.removeSkillFromPool(skId);
+      container.appendChild(badge);
+    });
+  }
+
+  private openSkillPicker(callback: (skillId: string) => void): void {
+    this.skillPickerCallback = callback;
+    const searchInp = byId<HTMLInputElement>('inp-es-skill-search');
+    if (searchInp) searchInp.value = '';
+    const catSel = byId<HTMLSelectElement>('sel-es-skill-category');
+    if (catSel) catSel.value = this.currentSkillCategoryFilter || 'ALL';
+
+    this.renderSkillPickerGrid();
+    byId('modal-es-skill-picker').style.display = 'flex';
+  }
+
+  private renderSkillPickerGrid(): void {
+    const grid = byId('es-skill-picker-grid');
+    const countEl = byId('es-skill-picker-count');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const query = (byId<HTMLInputElement>('inp-es-skill-search')?.value || '').toLowerCase().trim();
+    const allSkills = SkillRegistry.getAllSkills();
+
+    const filtered = allSkills.filter(sk => {
+      const cat = SkillRegistry.resolveCategory(sk);
+      if (this.currentSkillCategoryFilter !== 'ALL' && cat !== this.currentSkillCategoryFilter) {
+        return false;
+      }
+      if (query) {
+        const text = `${sk.id} ${sk.name} ${sk.description || ''}`.toLowerCase();
+        if (!text.includes(query)) return false;
+      }
+      return true;
+    });
+
+    if (countEl) countEl.textContent = `共 ${filtered.length} 個技能`;
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--es-text-muted); padding: 40px 0;">無符合條件的技能</div>';
+      return;
+    }
+
+    filtered.forEach(sk => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background: #141b2d; border: 1px solid var(--es-panel-border); border-radius: 8px; padding: 10px 12px; cursor: pointer; display: flex; gap: 10px; align-items: center; transition: all 0.15s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
+      card.onmouseenter = () => {
+        card.style.borderColor = 'var(--es-primary)';
+        card.style.background = '#1e293b';
+        card.style.transform = 'translateY(-2px)';
+      };
+      card.onmouseleave = () => {
+        card.style.borderColor = 'var(--es-panel-border)';
+        card.style.background = '#141b2d';
+        card.style.transform = 'none';
+      };
+
+      const cat = SkillRegistry.resolveCategory(sk);
+
+      card.innerHTML = `
+        <div style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 6px; flex-shrink: 0; font-size: 1.4rem;">
+          ${renderUniversalIcon(sk.icon || '🔮', 32)}
+        </div>
+        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px;">
+            <span style="font-weight: bold; font-size: 0.88rem; color: #fde047; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${sk.name}</span>
+            <span style="font-size: 0.68rem; padding: 1px 5px; border-radius: 3px; background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4);">${cat}</span>
+          </div>
+          <div style="font-size: 0.72rem; color: #94a3b8; font-family: monospace;">${sk.id} ｜ 💧 ${sk.mpCost || 0} MP</div>
+          ${sk.description ? `<div style="font-size: 0.72rem; color: #64748b; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sk.description}</div>` : ''}
+        </div>
+      `;
+
+      card.onclick = () => {
+        if (this.skillPickerCallback) {
+          this.skillPickerCallback(sk.id);
+        }
+        byId('modal-es-skill-picker').style.display = 'none';
+      };
+
+      grid.appendChild(card);
+    });
   }
 
   private getEquipDefaultIcon(slot: EquipmentSlot, weaponType?: WeaponType, tier: number = 1): string {

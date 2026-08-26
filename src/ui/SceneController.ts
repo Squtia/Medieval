@@ -207,10 +207,11 @@ export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'fo
     if (level === 3) return { name: '皇家鍛造屋', desc: '擁有專業鐵砧與高溫熔爐，支援 T4 專屬神兵裝備重鑄', icon: '⚒️' };
     return { name: '頂級鍛造屋', desc: '機能齊全的頂級鍛造工坊', icon: '⚒️' };
   } else { // defense
-    if (level === 1) return { name: '木柵欄', desc: '用削尖的圓木圍成，能抵禦野獸與零星流寇', icon: '🪵' };
-    if (level === 2) return { name: '拒馬與壕溝', desc: '強化的營地防禦，能有效阻擋強盜集團', icon: '🚧' };
-    if (level === 3) return { name: '瞭望塔', desc: '能提早發現敵人並提供弓箭手射擊視野', icon: '🗼' };
-    return { name: '護城要塞', desc: '堅不可摧的石頭城牆，足以應付正規軍隊', icon: '🏰' };
+    if (level === 1) return { name: '木造城牆', desc: '由原木與木柵築成的基礎城防 (Gate HP: 1,000)', icon: '🪵' };
+    if (level === 2) return { name: '夯土城牆', desc: '以夯土與石塊加固的防線 (Gate HP: 2,500)', icon: '🚧' };
+    if (level === 3) return { name: '石造城牆', desc: '堅固的規整石造城牆與箭垛 (Gate HP: 5,000)', icon: '🧱' };
+    if (level === 4) return { name: '重裝要塞城牆', desc: '配備城樓與護城深壕的重裝要塞 (Gate HP: 7,000)', icon: '🏰' };
+    return { name: '鋼石要塞城牆', desc: '堅不可摧的帝國級鋼石巨壁 (Gate HP: 9,000)', icon: '🏰' };
   }
 }
 
