@@ -11,6 +11,7 @@ import { calculateSkillDamage, getEvade } from '../utils/CombatMath';
 import { FormationDB } from '../systems/FormationDB';
 import { PassiveManager } from './combat/PassiveManager';
 import { SkillEffectEngine } from './combat/SkillEffectEngine';
+import { LordCommanderSystem } from './combat/LordCommanderSystem';
 
 export class CombatSystem {
   public static simulateCombat(
@@ -33,6 +34,9 @@ export class CombatSystem {
       cavalryCount?: number;      // 騎兵數量（每 3 回合出城衝鋒）
       infantryCount?: number;     // 步兵數量
       isFieldInterception?: boolean; // 野外大軍攔截戰
+      isLordCampaign?: boolean;   // 👑 領主親自率軍親征
+      lordTitle?: import('../models/types').NobleTitle;
+      assignedTroops?: { infantry: number; archer: number; cavalry: number; };
       reserveSquads?: { defenderIds: string[]; formationId?: string; gridMap?: Record<string, string> }[];
       enemyLegion?: { enabled?: boolean; infantry?: number; archer?: number; cavalry?: number; };
     }
@@ -48,6 +52,23 @@ export class CombatSystem {
     const enemyLegion = siegeOptions?.enemyLegion;
     const reserveSquadsQueue = siegeOptions?.reserveSquads ? [...siegeOptions.reserveSquads] : [];
     let currentSquadIndex = 0;
+
+    // 兵力統計提升至作用域頂部供全模擬與報表使用
+    const infCount = siegeOptions?.infantryCount || siegeOptions?.assignedTroops?.infantry || 0;
+    const arcCount = siegeOptions?.assignedTroops?.archer || (siegeOptions?.archerVolleyDmg ? Math.round(Math.pow(siegeOptions.archerVolleyDmg / 35, 2)) : 0) || 0;
+    const activeCavCount = cavalryCount || siegeOptions?.assignedTroops?.cavalry || 0;
+    
+    // 👑 領主親征判定與光環計算（僅限親自出征，委託派遣不帶光環）
+    const isLordCampaign = siegeOptions?.isLordCampaign === true;
+    const lordAura = isLordCampaign ? LordCommanderSystem.getLordAura(siegeOptions?.lordTitle || GameState.myTerritory?.title) : undefined;
+
+    if (lordAura) {
+      events.push({
+        type: CombatEventType.LORD_AURA_TRIGGER,
+        auraDesc: lordAura.description,
+        text: `👑 【領主親征光環啟動】${lordAura.name}！${lordAura.description}`
+      });
+    }
     
         const formationActive = formationId && gridMap ? FormationDB.isFormationActive(gridMap, formationId) : false;
     const formationConfig = formationId ? FormationDB.getFormation(formationId) : FormationDB.getFormation('DEFAULT');
@@ -69,6 +90,17 @@ export class CombatSystem {
             stats.atk = Math.max(stats.patk, stats.matk);
             stats.def = stats.pdef;
           }
+        }
+
+        // 👑 領主親征光環全體攻防與暴擊加成
+        if (lordAura) {
+          stats.patk = Math.floor(stats.patk * (1 + lordAura.statBonusPct));
+          stats.matk = Math.floor(stats.matk * (1 + lordAura.statBonusPct));
+          stats.pdef = Math.floor(stats.pdef * (1 + lordAura.statBonusPct));
+          stats.mdef = Math.floor(stats.mdef * (1 + lordAura.statBonusPct));
+          stats.critRate = Math.min(100, (stats.critRate || 5) + lordAura.critBonusPct);
+          stats.atk = Math.max(stats.patk, stats.matk);
+          stats.def = stats.pdef;
         }
         const troop = troopAssignments?.[id];
         const weapon = adv.equipment ? adv.equipment[EquipmentSlot.WEAPON] : undefined;
@@ -204,8 +236,8 @@ export class CombatSystem {
 
         const attributes = adv.getEffectiveAttributes();
         const maxMpBase = attributes?.spr ? attributes.spr * 5 : (stats.mp || 100);
-        let currentHp = stats.hp;
-        let currentMp = maxMpBase;
+        let currentHp = typeof adv.getCurrentHp === 'function' ? adv.getCurrentHp() : (adv.currentHp !== undefined ? adv.currentHp : stats.hp);
+        let currentMp = typeof adv.getCurrentMp === 'function' ? adv.getCurrentMp() : (adv.currentMp !== undefined ? adv.currentMp : maxMpBase);
         
         if (initialHpMpOverride) {
            if (initialHpMpOverride.hp[adv.id] !== undefined) currentHp = initialHpMpOverride.hp[adv.id];
@@ -240,6 +272,9 @@ export class CombatSystem {
         PassiveManager.onCombatStart(playerTeam[playerTeam.length - 1]);
       }
     });
+
+    // 追蹤所有登場過的參戰傭兵（包含第 1 梯隊與後續增援梯隊）
+    const allTrackedPlayers: CombatParticipant[] = [...playerTeam];
 
     // 記錄玩家初始狀態供 UI 繪製，敵方則在 WAVE_START 動態處理
     const initialStates = [...playerTeam].map(p => {
@@ -355,6 +390,7 @@ export class CombatSystem {
           atkElement: lineupMonster?.element || ElementType.NONE,
           defElement: lineupMonster?.element || ElementType.NONE,
           element: lineupMonster?.element || ElementType.NONE,
+          attackType: lineupMonster?.attackType || (lineupMonster?.isMagicalAttacker ? 'MAGIC' : (lineupMonster?.id === 'crossbowman' ? 'RANGED' : 'MELEE')),
           isMagicalAttacker: lineupMonster?.isMagicalAttacker || false,
           avatarIcon: avatarIcon,
           stats: { hp: eHp, mp: 50 + currentWaveDiff * 5, patk: eAtk, matk: eAtk, pdef: ePdef, mdef: eMdef, hit: 20 + currentWaveDiff, evade: eEvade, speed: 10 + currentWaveDiff, critRate: 5, critDmg: 150, atk: eAtk, def: eDef },
@@ -511,6 +547,12 @@ export class CombatSystem {
             });
 
             if (playerTeam.length > 0) {
+              playerTeam.forEach(p => {
+                if (!allTrackedPlayers.some(x => x.id === p.id)) {
+                  allTrackedPlayers.push(p);
+                }
+              });
+
               // 傳遞新梯隊成員狀態給 UI（供重繪玩家卡片）
               const newSquadStates = playerTeam.map(p => {
                 const a = GameState.adventurers.find(x => x.id === p.id);
@@ -533,18 +575,39 @@ export class CombatSystem {
         // 3. 超過最大回合 → 超時
         if (turn > MAX_TURNS) break;
 
+        events.push({
+          type: CombatEventType.TURN_START,
+          turn: turn,
+          text: `── ⚔️ 第 ${turn} 回合開始 ──`
+        });
+
         const allParticipants = [...playerTeam, ...enemyTeam].filter(p => p.currentHp > 0);
 
         // 依敏捷排序
       allParticipants.sort((a, b) => (b.stats.speed + Random.next() * 20) - (a.stats.speed + Random.next() * 20));
 
-      // 守城戰：騎兵每 3 回合出城側翼衝鋒（平滑傷害 + BOSS抗性）
-      if (cavalryCount > 0 && turn % 3 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
+      // 👑 步兵【鋼鐵盾牆】（第 1 回合與每 3 回合展開）
+      if (infCount > 0 && turn % 3 === 1 && playerTeam.some(p => p.currentHp > 0)) {
+        const { shieldHp, blockChanceBonus } = LordCommanderSystem.calculateShieldWall(infCount);
+        // 為所有存活玩家前排成員施加格擋增益
+        playerTeam.filter(p => p.currentHp > 0 && (p.row === FormationRow.FRONT || p.gridR === 0)).forEach(frontP => {
+          frontP.statusEffects.push({ type: StatusEffectType.BUFF_DEF, duration: 1, value: blockChanceBonus });
+        });
+        const label = isLordCampaign ? '【👑 領主軍令·鋼鐵盾牆】' : '【🛡️ 隨行軍團·步兵護盾】';
+        const subject = isLordCampaign ? `步兵軍團（${infCount}人）` : `隨行步兵（${infCount}人）`;
+        events.push({
+          type: CombatEventType.COMMANDER_SHIELD_WALL,
+          shieldRemaining: shieldHp,
+          text: `🛡️ ${label}${subject}立起重盾方陣！前排獲得 +${blockChanceBonus}% 格擋增益！`
+        });
+      }
+
+      // 👑 騎兵【破陣衝鋒】（每 3 回合側翼/破陣衝鋒）
+      if (activeCavCount > 0 && turn % 3 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
         const aliveEnemies = enemyTeam.filter(e => e.currentHp > 0);
         if (aliveEnemies.length > 0) {
           const cTarget = Random.pick(aliveEnemies);
-          // 平滑對數曲線傷害：sqrt(count) * 28
-          const cavalryDmg = Math.max(10, Math.floor(Math.sqrt(cavalryCount) * 28));
+          const { damage: cavalryDmg, stunChance } = LordCommanderSystem.calculateCavalryCharge(activeCavCount);
           cTarget.currentHp = Math.max(0, cTarget.currentHp - cavalryDmg);
 
           // 判定是否為 BOSS / 首領級魔物 (BOSS 免疫暈眩，轉為攻擊力降低 20% 與減速)
@@ -553,16 +616,18 @@ export class CombatSystem {
                          cTarget.maxHp >= 3000;
 
           let stunText = '';
-          if (cavalryCount >= 10) {
+          if (Math.random() < stunChance) {
             if (isBoss) {
               cTarget.statusEffects.push({ type: StatusEffectType.BUFF_PATK, duration: 2, value: -20 });
               stunText = '（太古首領受到重裝衝擊，攻擊力下降 20%！）';
-            } else if (Math.random() < 0.5) {
+            } else {
               cTarget.statusEffects.push({ type: StatusEffectType.STUN, duration: 1 });
-              stunText = '敵人被撞飛，暈眩 1 回合！';
+              stunText = '敵人被重裝撞飛，暈眩 1 回合！';
             }
           }
 
+          const label = isLordCampaign ? '【👑 領主軍令·破陣衝鋒】' : '【🐎 隨行軍團·側翼衝擊】';
+          const subject = isLordCampaign ? `騎兵軍團（${activeCavCount}騎）` : `隨行騎兵（${activeCavCount}騎）`;
           events.push({
             type: CombatEventType.CAVALRY_CHARGE,
             targetId: cTarget.id,
@@ -570,27 +635,31 @@ export class CombatSystem {
             damage: cavalryDmg,
             targetHp: cTarget.currentHp,
             targetMaxHp: cTarget.maxHp,
-            text: `⚔️ 守城騎兵殺出側翼衝鋒！對 ${cTarget.name} 造成 ${cavalryDmg} 點傷害！${stunText}`
+            text: `🐎 ${label}${subject}疾馳破陣！對 ${cTarget.name} 造成 ${cavalryDmg} 點重創！${stunText}`
           });
           processDeaths();
         }
       }
 
-      // 守城戰：弓兵民兵每 2 回合齊射一次 (平滑傷害)
-      if (archerVolleyDmg > 0 && turn % 2 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
+      // 👑 弓兵【漫天箭雨】（每 2 回合齊射一次）
+      const effectiveVolleyDmg = archerVolleyDmg > 0 ? archerVolleyDmg : (arcCount > 0 ? LordCommanderSystem.calculateVolleyFire(arcCount) : 0);
+      if (effectiveVolleyDmg > 0 && turn % 2 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
         const aliveEnemies = enemyTeam.filter(e => e.currentHp > 0);
         if (aliveEnemies.length > 0) {
           const vTarget = Random.pick(aliveEnemies);
-          const actualVolleyDmg = Math.min(vTarget.currentHp, archerVolleyDmg);
-          vTarget.currentHp = Math.max(0, vTarget.currentHp - actualVolleyDmg);
+          vTarget.currentHp = Math.max(0, vTarget.currentHp - effectiveVolleyDmg);
+          // 箭雨附加破甲
+          vTarget.statusEffects.push({ type: StatusEffectType.ARMOR_BREAK, duration: 2, value: 20 });
+          const label = isLordCampaign ? '【👑 領主軍令·漫天箭雨】' : '【🏹 隨行軍團·箭雨支援】';
+          const subject = isLordCampaign ? `弓兵軍團（${arcCount}人）` : `隨行弓兵（${arcCount}人）`;
           events.push({
             type: CombatEventType.ARCHER_VOLLEY,
             targetId: vTarget.id,
             targetName: vTarget.name,
-            damage: actualVolleyDmg,
+            damage: effectiveVolleyDmg,
             targetHp: vTarget.currentHp,
             targetMaxHp: vTarget.maxHp,
-            text: `🏹 守城弓兵民兵齊射！對 ${vTarget.name} 造成 ${actualVolleyDmg} 點穿刺傷害！`
+            text: `🏹 ${label}${subject}齊射！對 ${vTarget.name} 造成 ${effectiveVolleyDmg} 點穿刺傷害並附加破甲！`
           });
           processDeaths();
         }
@@ -962,7 +1031,8 @@ export class CombatSystem {
         // 1. 前排存活時：近戰普攻可打前排守軍，也可打城牆
         // 2. 前排全滅但城牆耐久 > 0 時：近戰普攻 100% 擊打城牆
         // 3. 前排全滅且城牆耐久歸 0 時：敵軍湧入城內，近戰可直接攻擊中後排守軍
-        if (!actor.isPlayer && isDefenseSiege && gateRemainingHp !== undefined && gateRemainingHp > 0) {
+        const isMeleeActor = actor.attackType === 'MELEE' || (!actor.attackType && !actor.isMagicalAttacker && actor.weaponType !== 'BOW' && actor.weaponType !== 'MAGIC_BOW' && actor.weaponType !== 'STAFF' && actor.weaponType !== 'HOLY_BOOK');
+        if (!actor.isPlayer && isDefenseSiege && isMeleeActor && gateRemainingHp !== undefined && gateRemainingHp > 0) {
           const frontDefenders = playerTeam.filter(p => p.currentHp > 0 && (p.row === FormationRow.FRONT || p.gridR === 0));
           const targetIsFront = target.row === FormationRow.FRONT || target.gridR === 0;
 
@@ -1039,6 +1109,11 @@ export class CombatSystem {
 
         processDeaths(actor);
       }
+      events.push({
+        type: CombatEventType.TURN_END,
+        turn: turn,
+        text: `── 第 ${turn} 回合結束 ──`
+      });
       turn++;
     } // 單波次 while 結束
 
@@ -1065,7 +1140,7 @@ export class CombatSystem {
     const playerMpMap: Record<string, number> = {};
     const shieldLoss: Record<string, Record<string, number>> = {};
     
-    playerTeam.forEach(p => {
+    allTrackedPlayers.forEach(p => {
       playerHpMap[p.id] = p.currentHp;
       playerMpMap[p.id] = p.currentMp || 0;
       if (p.shieldType && p.shieldMaxHp !== undefined && p.shieldCurrentHp !== undefined) {
@@ -1082,7 +1157,7 @@ export class CombatSystem {
     const damageMap: Record<string, number> = {};
     events.forEach(e => {
       if ((e.type === CombatEventType.HIT || e.type === CombatEventType.CRIT) && e.actorId && e.damage) {
-        if (playerTeam.find(p => p.id === e.actorId)) {
+        if (allTrackedPlayers.find(p => p.id === e.actorId)) {
           totalDamageDealt += e.damage;
           damageMap[e.actorId] = (damageMap[e.actorId] || 0) + e.damage;
         }
@@ -1093,7 +1168,7 @@ export class CombatSystem {
     Object.entries(damageMap).forEach(([id, dmg]) => {
       if (dmg > maxDmg) { maxDmg = dmg; mvpId = id; }
     });
-    const mvpName = playerTeam.find(p => p.id === mvpId)?.name || '無';
+    const mvpName = allTrackedPlayers.find(p => p.id === mvpId)?.name || '無';
 
     // 統計所有波次的殘存狀態 (供野外攔截戰戰況 1:1 繼承至守城戰)
     const survivingWaves: import('../models/Narrative').SurvivingMonsterState[][] = [];
@@ -1122,9 +1197,33 @@ export class CombatSystem {
       });
     }
 
+    // 🏥 戰後傭兵即時血量 1:1 寫回與重傷瀕死判定 (全梯隊參戰成員 100% 寫回)
+    allTrackedPlayers.forEach(p => {
+      const adv = (GameState.adventurers || []).find(a => a.id === p.id);
+      if (adv) {
+        if (p.currentHp <= 0) {
+          if (typeof adv.applyWound === 'function') {
+            adv.applyWound();
+          } else {
+            (adv as any).isWounded = true;
+            (adv as any).currentHp = 1;
+            (adv as any).currentMp = 0;
+          }
+        } else {
+          if (typeof adv.setCurrentHp === 'function') {
+            adv.setCurrentHp(p.currentHp);
+            adv.setCurrentMp(p.currentMp || 0);
+          } else {
+            (adv as any).currentHp = p.currentHp;
+            (adv as any).currentMp = p.currentMp || 0;
+          }
+        }
+      }
+    });
+
     return {
       isVictory,
-      participants: playerTeam.map(p => p.id),
+      participants: allTrackedPlayers.map(p => p.id),
       lootValue: Math.floor(Math.random() * 50) + 50,
       events,
       playerHpMap,
@@ -1135,6 +1234,13 @@ export class CombatSystem {
       totalDamageDealt,
       terrain,
       shieldLoss,
+      isLordCampaign,
+      lordAura,
+      commanderTroops: {
+        infantry: infCount,
+        archer: arcCount,
+        cavalry: activeCavCount
+      },
       isDefenseSiege,
       isFieldInterception,
       gateMaxHp: siegeOptions?.gateHp,

@@ -133,6 +133,26 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
 
   const qualityColor = adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1';
 
+  // 🩸 傷病與持久血條呈現
+  let injuryBadgeHtml = '';
+  const curHp = typeof adv.getCurrentHp === 'function' ? adv.getCurrentHp() : (adv.currentHp !== undefined ? adv.currentHp : adv.getCombatStats().hp);
+  const maxHp = adv.getCombatStats().hp;
+  const hpPct = Math.round((curHp / maxHp) * 100);
+
+  if (adv.isWounded) {
+    injuryBadgeHtml = `
+      <div title="🩸 重傷瀕死 (全屬性-20%, 速度-30%)" style="position: absolute; top: 18px; left: 4px; z-index: 6; background: rgba(153,27,27,0.9); color: #fecaca; font-size: 7px; padding: 1px 4px; border-radius: 3px; border: 1px solid #ef4444; line-height: 1;">
+        🩸重傷
+      </div>
+    `;
+  } else if (hpPct < 100) {
+    injuryBadgeHtml = `
+      <div title="生命值: ${curHp}/${maxHp} (${hpPct}%)" style="position: absolute; bottom: 2px; left: 4px; right: 4px; height: 3px; background: rgba(0,0,0,0.6); border-radius: 2px; overflow: hidden; z-index: 6;">
+        <div style="width: ${hpPct}%; height: 100%; background: ${hpPct < 30 ? '#ef4444' : (hpPct < 80 ? '#f59e0b' : '#10b981')};"></div>
+      </div>
+    `;
+  }
+
   return `
     <div class="adv-name" style="color: ${qualityColor};">${adv.name}</div>
     <div class="adv-avatar-wrapper" style="display: flex; justify-content: center; align-items: center; overflow: hidden;">
@@ -147,5 +167,6 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
     ${bottomLabelHtml}
     ${cornerLabelHtml}
     ${statPointBadgeHtml}
+    ${injuryBadgeHtml}
   `;
 }

@@ -674,6 +674,8 @@ export enum MonsterProfile {
   BALANCED = 'BALANCED'      // 常規均衡：標準平穩分配
 }
 
+export type AttackType = 'MELEE' | 'RANGED' | 'MAGIC';
+
 /**
  * 魔物原型資料結構
  */
@@ -685,10 +687,11 @@ export interface MonsterData {
   terrains: TerrainType[];              // 出沒地形
   powerTier: number;                    // 基礎戰力係數
   profile?: MonsterProfile;             // 戰鬥定位模板 (預設 BALANCED)
+  attackType?: AttackType;              // 攻擊類型: MELEE(近戰物理), RANGED(遠程物理), MAGIC(遠程魔法)
   skills?: string[];                    // 預設掛載的通用技能 ID 清單
   defaultElement?: ElementType;         // 預設元素
   isBoss?: boolean;                     // 是否為 Boss
-  isMagicalAttacker?: boolean;          // 是否為法系攻擊者 (普攻造成魔法傷害)
+  isMagicalAttacker?: boolean;          // 是否為法系攻擊者 (相容性標記)
   avatarIcon?: string;                  // 怪物專屬 Sprite / Emoji 圖標
   lootConfig?: {
     goldBase: number;

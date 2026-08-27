@@ -32,6 +32,7 @@ export const GameState = {
   system: null as unknown as DispatchSystem,
   mapSystem: null as unknown as MapDynamicsSystem,
   adventurers: [] as Adventurer[],
+  retiredAdventurers: [] as Adventurer[],
   playTime: 0,
   sessionStartTime: Date.now(),
   currentSaveSlot: null as number | null,

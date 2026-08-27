@@ -59,7 +59,8 @@ export interface CombatParticipant {
   element?: import('./types').ElementType; // 相容用總元素
   atkElement?: import('./types').ElementType; // 攻擊元素 (來自武器或怪物原生)
   defElement?: import('./types').ElementType; // 防禦元素 (來自防具或怪物原生)
-  isMagicalAttacker?: boolean; // 是否為法系攻擊者 (普攻造成魔法傷害)
+  attackType?: import('./types').AttackType; // 攻擊類型: MELEE, RANGED, MAGIC
+  isMagicalAttacker?: boolean; // 是否為法系攻擊者 (相容性標記)
   avatarIcon?: string;        // 專屬 Sprite 圖標 (如 icons_monsters:goblin)
 
   // 動態戰利品 (供怪獸使用)
@@ -91,7 +92,12 @@ export enum CombatEventType {
   SQUAD_CHANGE = 'SQUAD_CHANGE',           // 車輪戰替換小隊登場
   ARCHER_VOLLEY = 'ARCHER_VOLLEY',         // 弓兵箭雨齊射
   CAVALRY_CHARGE = 'CAVALRY_CHARGE',       // 騎兵側翼衝鋒
-  COMMANDER_TACTIC = 'COMMANDER_TACTIC'    // 領主軍團戰術指令 (箭雨/衝鋒/盾牆/鼓舞)
+  COMMANDER_TACTIC = 'COMMANDER_TACTIC',   // 領主軍團戰術指令 (通用)
+  LORD_AURA_TRIGGER = 'LORD_AURA_TRIGGER', // 領主親征專屬光環觸發
+  COMMANDER_SHIELD_WALL = 'COMMANDER_SHIELD_WALL', // 領主展開步兵鋼鐵盾牆
+  COMMANDER_INSPIRE = 'COMMANDER_INSPIRE',         // 領主發動全軍鼓舞
+  TURN_START = 'TURN_START',                       // 回合開始 (用於回合制親征暫停決策)
+  TURN_END = 'TURN_END'                            // 回合結束
 }
 
 export interface CombatEvent {
@@ -110,6 +116,7 @@ export interface CombatEvent {
   statusType?: StatusEffectType;
   skillName?: string; // 施放的技能名稱
   text: string;
+  turn?: number; // 標示所屬回合數
   wave?: number; // 標示屬於哪一波
   enemies?: CombatParticipantState[]; // 在 WAVE_START 時，傳遞該波次新敵人的血條狀態
   isQuietRegen?: boolean; // 例行每回合恢復，不輸出對話框文字
@@ -122,6 +129,7 @@ export interface CombatEvent {
   squadIndex?: number;
   squadName?: string;
   newSquadStates?: CombatParticipantState[]; // SQUAD_CHANGE 事件：新登場梯隊的成員初始狀態
+  auraDesc?: string;                         // 光環描述
 }
 
 export interface CombatParticipantState {
@@ -130,6 +138,7 @@ export interface CombatParticipantState {
   isPlayer: boolean;
   row: string;
   maxHp: number;
+  currentHp?: number;
   maxMp?: number;
   currentMp?: number;
   gridR?: number;
@@ -154,6 +163,11 @@ export interface CombatReport {
   terrain?: TerrainType; // 發生戰鬥的地形
   waveIndex?: number; // 用於進度討伐時標記波次
   shieldLoss?: Record<string, Record<string, number>>; // 記錄每個參與者損失的各兵種數量 { participantId: { INFANTRY: 50 } }
+
+  // 領主親征專屬
+  isLordCampaign?: boolean;
+  lordAura?: import('../systems/combat/LordCommanderSystem').LordAuraConfig;
+  commanderTroops?: { infantry: number; archer: number; cavalry: number; };
 
   // 守城戰與野外攔截專屬
   isDefenseSiege?: boolean;
@@ -232,4 +246,19 @@ export function tryApplyStatus(
       text: customApplyText || `${target.name} 被附加了狀態！`
     };
   }
+}
+
+export interface SiegeDefenseCombatOptions {
+  isSiege: boolean;
+  gateHp: number;
+  watchtowerDmg?: number;
+  archerVolleyDmg?: number;
+  cavalryCount?: number;
+  infantryCount?: number;
+  isFieldInterception?: boolean;
+  isLordCampaign?: boolean;
+  lordTitle?: import('./types').NobleTitle;
+  assignedTroops?: { infantry: number; archer: number; cavalry: number; };
+  reserveSquads?: { defenderIds: string[]; formationId?: string; gridMap?: Record<string, string> }[];
+  enemyLegion?: { enabled?: boolean; infantry?: number; archer?: number; cavalry?: number; };
 }

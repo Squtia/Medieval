@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-25T03:43:57.308Z",
+  "timestamp": "2026-08-27T01:38:35.630Z",
   "note": "故事內容調整",
   "stories": [
     {
@@ -355,7 +355,8 @@
               "nodeId": "evt_vormund_demand",
               "delayDays": 180
             }
-          ]
+          ],
+          "dialoguePages": []
         },
         {
           "id": "evt_hurst_assassin",
@@ -1087,7 +1088,7 @@
               "type": "CREATE_SUBJUGATION_NODE",
               "definition": {
                 "nodeId": "dragon_fam_dun",
-                "name": "充滿龍晶的隱藏洞窟",
+                "name": "神秘的隱藏洞窟",
                 "description": "",
                 "placement": "NEAR_PLAYER",
                 "radius": 8,
@@ -1102,11 +1103,6 @@
                 "victoryNodeId": "dragon_fam_3w",
                 "defeatNodeId": "dragon_fam_3l"
               }
-            },
-            {
-              "type": "SET_FACT",
-              "fact": "dragon_fam_3w",
-              "value": true
             }
           ],
           "dialoguePages": [
@@ -1173,7 +1169,7 @@
           "completionEffects": [
             {
               "type": "SCHEDULE_NODE",
-              "nodeId": "dragon_fam_3ing_01",
+              "nodeId": "dragon_fam_3w_01l",
               "delayDays": 1
             }
           ],
@@ -1181,12 +1177,46 @@
           "npcAvatar": "npc_common:npc_dragon_f"
         },
         {
-          "id": "dragon_fam_3ing_01",
+          "id": "dragon_fam_3w_01l",
           "title": "神秘女性",
           "description": "",
-          "channel": "STREET_EVENT",
+          "channel": "TERRITORY_EVENT",
           "conditions": [],
-          "choices": [],
+          "choices": [
+            {
+              "id": "choice_1",
+              "text": "讓傭兵們等等，我們先釐清事實!",
+              "resultText": "",
+              "effects": []
+            },
+            {
+              "id": "choice_2",
+              "text": "繼續探索，如有龍就討伐，資源比起一切更重要!",
+              "resultText": "",
+              "effects": [
+                {
+                  "type": "CREATE_SUBJUGATION_NODE",
+                  "definition": {
+                    "nodeId": "dragon_fam_dun_2",
+                    "name": "充滿龍晶的洞穴深處",
+                    "description": "描述此據點的敵方勢力與地理環境...",
+                    "placement": "NEAR_PLAYER",
+                    "radius": 8,
+                    "terrain": "RUINS",
+                    "difficulty": 10,
+                    "enemyFeature": "BALANCED",
+                    "requiresScouting": false,
+                    "removeOnVictory": true,
+                    "journeyNodeIds": [],
+                    "templateId": "dragon_fam_dun_2",
+                    "victoryNodeId": "dragon_fam_3w_02w",
+                    "defeatNodeId": "dragon_fam_3w_02l",
+                    "defeatDelayDays": 0
+                  }
+                }
+              ]
+            }
+          ],
           "completionEffects": [],
           "dialoguePages": [
             {
@@ -1236,11 +1266,104 @@
               "speakerName": "神秘女性",
               "speakerTitle": "【街角遇見的旅人】",
               "speakerAvatar": "npc_common:npc_dragon_f",
-              "text": ""
+              "text": "領主大人，等你指令，我們該如何處置?"
             }
           ],
           "npcAvatar": "npc_common:npc_dragon_f",
           "npcName": "神秘女性"
+        },
+        {
+          "id": "dragon_fam_3l",
+          "title": "傭兵探索突遇挫折",
+          "description": "傭兵們探索時碰到了突發狀況，山體震動，在出口被掩埋之前逃了出來。",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "REMOVE_MAP_NODE",
+              "nodeId": "dragon_fam_dun"
+            },
+            {
+              "type": "SET_FACT",
+              "fact": "dragon_fam_3l_1",
+              "value": true
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "dragon_fam_3w_02w",
+          "title": "憤怒的女性",
+          "description": "",
+          "channel": "STREET_EVENT",
+          "conditions": [],
+          "choices": [
+            {
+              "id": "choice_1",
+              "text": "抓住她!!把她關進牢裡!!",
+              "resultText": "",
+              "effects": [
+                {
+                  "type": "CHANGE_FACTION_FAVOR",
+                  "factionId": "f_vormund",
+                  "value": 10
+                },
+                {
+                  "type": "GRANT_MATERIAL",
+                  "itemId": "mat_new_6491",
+                  "quantity": 1,
+                  "mode": "FIXED"
+                }
+              ]
+            }
+          ],
+          "completionEffects": [],
+          "dialoguePages": [
+            {
+              "speakerType": "NPC",
+              "speakerName": "神秘女性",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": "你這愚蠢且可惡的東西!!!"
+            },
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerName": "神秘女性",
+              "speakerTitle": "【街角遇見的旅人】",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": ""
+            }
+          ],
+          "npcName": "神秘女性",
+          "npcAvatar": "npc_common:npc_dragon_f"
+        },
+        {
+          "id": "dragon_fam_3w_02l",
+          "title": "黑龍的反擊",
+          "description": "",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "TRIGGER_RAID",
+              "raidName": "黑龍軍團圍城戰",
+              "warningDays": 4,
+              "waves": [
+                {
+                  "waveIndex": 1,
+                  "templateId": "dragon_fam_dun_2",
+                  "customName": "充滿龍晶的洞穴深處"
+                }
+              ],
+              "successNodeId": "",
+              "failNodeId": ""
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
         }
       ]
     },
@@ -1315,6 +1438,46 @@
             }
           ],
           "completionEffects": []
+        }
+      ]
+    },
+    {
+      "id": "new_story_2",
+      "title": "城戰測試",
+      "summary": "",
+      "version": 1,
+      "enabled": false,
+      "nodes": [
+        {
+          "id": "test",
+          "title": "有人對你不爽就是想打你",
+          "description": "",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [
+            {
+              "type": "FACT_EXISTS",
+              "fact": "TEST"
+            }
+          ],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "TRIGGER_RAID",
+              "raidName": "對你不爽圍城戰",
+              "warningDays": 3,
+              "waves": [
+                {
+                  "waveIndex": 1,
+                  "templateId": "bandit_camp",
+                  "customName": "敵方先鋒部隊"
+                }
+              ],
+              "successNodeId": "",
+              "failNodeId": ""
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
         }
       ]
     }

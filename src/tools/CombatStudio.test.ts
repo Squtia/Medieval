@@ -6,6 +6,7 @@ import { ElementType, EquipmentSlot, FormationRow, MonsterRace, TerrainType, Wea
 import { SubjugationTemplate } from '../models/Narrative';
 import { GameState } from '../core/GameState';
 import monstersJson from '../data/monsters.json';
+import { CombatStudioController } from './CombatStudio';
 
 describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Tests)', () => {
   const monsterSys = new MonsterSystem();
@@ -235,6 +236,50 @@ describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Test
     expect(customStronghold.waves![1].monsters[0].affix).toBe('👑[黑龍首領]');
     expect(customStronghold.waves![1].monsters[0].formationRow).toBe(FormationRow.MIDDLE);
     expect(customStronghold.waves![1].monsters[0].gridC).toBe(1);
+  });
+
+  it('normalizeStrongholdWaves 能自動偵測並修復重複的 3x3 九宮格座標，保證每隻怪物站位唯一', () => {
+    const studio = new CombatStudioController();
+    const collidingStronghold: SubjugationTemplate = {
+      id: 'colliding_lair',
+      name: '雪山霜狼群測試',
+      description: '測試重複座標',
+      terrain: TerrainType.SNOW_MOUNTAIN as any,
+      difficulty: 5,
+      waves: [
+        {
+          name: '第 1 波：雪山霜狼群',
+          monsters: [
+            { monsterId: 'frost_wolf', powerTier: 1.8, gridR: 0, gridC: 0, slotId: '0_0' },
+            { monsterId: 'frost_wolf', powerTier: 1.8, gridR: 0, gridC: 1, slotId: '0_1' },
+            { monsterId: 'frost_wolf', powerTier: 1.2, gridR: 0, gridC: 2, slotId: '0_2' },
+            { monsterId: 'frost_wolf', powerTier: 1.2, gridR: 0, gridC: 0, slotId: '0_0' }, // 重複 0_0
+            { monsterId: 'yeti', powerTier: 1.9, gridR: 0, gridC: 1, slotId: '0_1' }        // 重複 0_1
+          ]
+        }
+      ]
+    };
+
+    const isModified = studio.normalizeStrongholdWaves(collidingStronghold);
+    expect(isModified).toBe(true);
+
+    const monsters = collidingStronghold.waves![0].monsters;
+    expect(monsters.length).toBe(5);
+
+    // 驗證 5 隻怪物的 slotId 100% 各不相同且合法
+    const slotSet = new Set(monsters.map(m => m.slotId));
+    expect(slotSet.size).toBe(5);
+
+    monsters.forEach(m => {
+      expect(m.slotId).toBeDefined();
+      expect(/^[0-2]_[0-2]$/.test(m.slotId!)).toBe(true);
+      const [r, c] = m.slotId!.split('_').map(Number);
+      expect(m.gridR).toBe(r);
+      expect(m.gridC).toBe(c);
+      if (r === 0) expect(m.formationRow).toBe(FormationRow.FRONT);
+      else if (r === 1) expect(m.formationRow).toBe(FormationRow.MIDDLE);
+      else expect(m.formationRow).toBe(FormationRow.BACK);
+    });
   });
 });
 

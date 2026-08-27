@@ -61,6 +61,8 @@ export class Territory {
   public armorShopLevel: number;
   public forgeLevel: number;
   public defenseLevel: number;
+  public churchLevel: number = 0; // ⛪ 教會/醫療所等級 (0: 未建造, 1: 祈禱處, 2: 禮拜堂, 3: 修道院, 4: 大教堂)
+  public infirmaryBeds: { id: string; adventurerId?: string; isOccupied: boolean; lastPotionUseTurn?: number }[] = [];
   public wallDurability?: number; // 城牆當前耐久度 (若未初始化則自動依等級補滿)
 
   // 四大基礎生產設施等級 (預設 Lv.1)
@@ -144,12 +146,33 @@ export class Territory {
   // 建築升級與建造系統
   // ==========================================
   
-  public getBuildingLevel(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense'): number {
+  public getBuildingLevel(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' | 'church'): number {
     if (bldType === 'tavern') return this.tavernLevel || 0;
     if (bldType === 'weapon') return this.weaponShopLevel || 0;
     if (bldType === 'armor') return this.armorShopLevel || 0;
     if (bldType === 'defense') return this.defenseLevel || 0;
+    if (bldType === 'church') return this.churchLevel || 0;
     return this.forgeLevel || 0;
+  }
+
+  /**
+   * 🏥 取得當前教會等級允許的最大病床上限
+   */
+  public getMaxInfirmaryBeds(): number {
+    const lvl = this.churchLevel || 0;
+    if (lvl <= 0) return 0; // 未建造教會無病床
+    if (lvl === 1) return 4; // Lv.1 祈禱處: 4 床
+    if (lvl === 2) return 8; // Lv.2 禮拜堂: 8 床
+    if (lvl === 3) return 12; // Lv.3 修道院: 12 床
+    return 16; // Lv.4 大教堂: 16 床
+  }
+
+  /**
+   * ⛪ 取得當前全領地基礎過夜自然恢復率 (Lv.0: 10%, Lv.1: 15%, Lv.2: 20%, Lv.3: 25%, Lv.4: 30%)
+   */
+  public getChurchNaturalRecoveryRate(): number {
+    const lvl = this.churchLevel || 0;
+    return 0.10 + lvl * 0.05;
   }
 
   public getFacilityLevel(type: 'farmland' | 'lumberMill' | 'quarry' | 'huntingGround'): number {
@@ -196,6 +219,7 @@ export class Territory {
            calcBonus(this.getBuildingLevel('armor')) +
            calcBonus(this.getBuildingLevel('forge')) +
            calcBonus(this.getBuildingLevel('defense')) +
+           calcBonus(this.getBuildingLevel('church')) +
            calcFacilityBonus(this.getFacilityLevel('farmland')) +
            calcFacilityBonus(this.getFacilityLevel('lumberMill')) +
            calcFacilityBonus(this.getFacilityLevel('quarry')) +
@@ -212,7 +236,7 @@ export class Territory {
     return Math.max(0, popScore + bldScore + roadScore + vassalScore - dangerPenalty);
   }
 
-  public getUpgradeCost(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nextLevel: number) {
+  public getUpgradeCost(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' | 'church', nextLevel: number) {
     let baseCost;
     if (bldType === 'tavern') {
       if (nextLevel === 1) return { gold: 300, wood: 80, stone: 40, iron: 0 };
@@ -226,6 +250,11 @@ export class Territory {
       if (nextLevel === 1) return { gold: 300, wood: 50, stone: 50, iron: 0 };
       if (nextLevel === 2) return { gold: 1200, wood: 250, stone: 200, iron: 15 };
       baseCost = { gold: 3500, wood: 600, stone: 500, iron: 50 };
+    } else if (bldType === 'church') { // church 教會與醫療所
+      if (nextLevel === 1) return { gold: 150, wood: 40, stone: 20, iron: 0 };
+      if (nextLevel === 2) return { gold: 400, wood: 100, stone: 60, iron: 0 };
+      if (nextLevel === 3) return { gold: 1000, wood: 250, stone: 150, iron: 0 };
+      baseCost = { gold: 2500, wood: 600, stone: 400, iron: 0 };
     } else { // defense 防禦設施
       if (nextLevel === 1) return { gold: 100, wood: 100, stone: 50, iron: 0 };
       if (nextLevel === 2) return { gold: 500, wood: 300, stone: 200, iron: 0 };
@@ -313,7 +342,7 @@ export class Territory {
     return true;
   }
 
-  public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nodeLevel: NodeLevel = NodeLevel.WILDERNESS): boolean {
+  public canUpgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' | 'church', nodeLevel: NodeLevel = NodeLevel.WILDERNESS): boolean {
     const nextLevel = this.getBuildingLevel(bldType) + 1;
 
     // 城牆特殊限制：耐久度未滿 100% 不可升級
@@ -334,7 +363,7 @@ export class Territory {
            this.iron >= cost.iron;
   }
 
-  public upgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', nodeLevel: NodeLevel = NodeLevel.WILDERNESS): boolean {
+  public upgradeBuilding(bldType: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' | 'church', nodeLevel: NodeLevel = NodeLevel.WILDERNESS): boolean {
     if (!this.canUpgradeBuilding(bldType, nodeLevel)) return false;
     const nextLevel = this.getBuildingLevel(bldType) + 1;
     const cost = this.getUpgradeCost(bldType, nextLevel);
@@ -348,13 +377,18 @@ export class Territory {
     else if (bldType === 'weapon') this.weaponShopLevel = nextLevel;
     else if (bldType === 'armor') this.armorShopLevel = nextLevel;
     else if (bldType === 'forge') this.forgeLevel = nextLevel;
-    else {
+    else if (bldType === 'church') {
+      this.churchLevel = nextLevel;
+      if (nextLevel === 1 && (!this.infirmaryBeds || this.infirmaryBeds.length === 0)) {
+        this.infirmaryBeds = [{ id: 'bed_1', isOccupied: false }];
+      }
+    } else {
       this.defenseLevel = nextLevel;
       // 升級完成後將耐久度補滿到新等級最大值
       this.wallDurability = this.getMaxWallDurability();
     }
     
-    const bldName = bldType === 'tavern' ? '酒館' : bldType === 'weapon' ? '武器店' : bldType === 'armor' ? '防具店' : bldType === 'forge' ? '鍛造屋' : '城牆';
+    const bldName = bldType === 'tavern' ? '酒館' : bldType === 'weapon' ? '武器店' : bldType === 'armor' ? '防具店' : bldType === 'forge' ? '鍛造屋' : (bldType === 'church' ? '教會與醫療所' : '城牆');
     console.log(`[系統] 🏛️ 建造/升級成功！您的 ${bldName} 已提升至等級 ${nextLevel}。`);
     return true;
   }

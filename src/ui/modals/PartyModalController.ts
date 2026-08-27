@@ -145,10 +145,15 @@ export class PartyModalController {
     const xpFillEl = document.getElementById('party-bar-xp-fill');
     const xpTextEl = document.getElementById('party-bar-xp-text');
     
-    if (hpTextEl) hpTextEl.textContent = `${stats.hp} / ${stats.hp}`;
-    if (hpFillEl) hpFillEl.style.width = '100%';
-    if (mpTextEl) mpTextEl.textContent = `${stats.mp} / ${stats.mp}`;
-    if (mpFillEl) mpFillEl.style.width = '100%';
+    const curHp = typeof adv.getCurrentHp === 'function' ? adv.getCurrentHp() : (adv.currentHp !== undefined ? adv.currentHp : stats.hp);
+    const curMp = typeof adv.getCurrentMp === 'function' ? adv.getCurrentMp() : (adv.currentMp !== undefined ? adv.currentMp : stats.mp);
+    const hpPercent = Math.min(100, Math.max(0, Math.round((curHp / stats.hp) * 100)));
+    const mpPercent = Math.min(100, Math.max(0, Math.round((curMp / stats.mp) * 100)));
+
+    if (hpTextEl) hpTextEl.textContent = `${curHp} / ${stats.hp}`;
+    if (hpFillEl) hpFillEl.style.width = `${hpPercent}%`;
+    if (mpTextEl) mpTextEl.textContent = `${curMp} / ${stats.mp}`;
+    if (mpFillEl) mpFillEl.style.width = `${mpPercent}%`;
     if (xpFillEl) {
       const isMax = adv.level >= 10;
       const xpPercent = isMax ? 100 : Math.min(100, Math.max(0, (adv.xp / adv.getRequiredXP()) * 100));

@@ -17,14 +17,8 @@
             "powerTier": 1.1,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
-          },
-          {
-            "monsterId": "lizard",
-            "powerTier": 1.1,
-            "gridR": 0,
-            "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "lizard",
@@ -42,9 +36,26 @@
           {
             "monsterId": "ancient_black_dragon",
             "powerTier": 5,
+            "gridR": 2,
+            "gridC": 1,
+            "slotId": "2_1",
+            "formationRow": "BACK"
+          },
+          {
+            "monsterId": "lizard",
+            "powerTier": 1.1,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
+          },
+          {
+            "monsterId": "lizard",
+            "powerTier": 1.1,
+            "gridR": 0,
+            "gridC": 2,
+            "slotId": "0_2",
+            "formationRow": "FRONT"
           }
         ]
       }
@@ -74,21 +85,24 @@
             "powerTier": 1.1,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "lizard",
             "powerTier": 1.1,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "lizard",
             "powerTier": 1.1,
             "gridR": 0,
             "gridC": 2,
-            "slotId": "0_2"
+            "slotId": "0_2",
+            "formationRow": "FRONT"
           }
         ]
       },
@@ -100,7 +114,8 @@
             "powerTier": 1.5,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           }
         ]
       }
@@ -130,28 +145,32 @@
             "powerTier": 0.8,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "bandit",
             "powerTier": 0.8,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "crossbowman",
             "powerTier": 1,
             "gridR": 0,
             "gridC": 2,
-            "slotId": "0_2"
+            "slotId": "0_2",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "shaman",
             "powerTier": 1.3,
-            "gridR": 0,
+            "gridR": 1,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "1_0",
+            "formationRow": "MIDDLE"
           }
         ]
       },
@@ -163,21 +182,24 @@
             "powerTier": 1,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "bandit",
             "powerTier": 0.8,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "barbarian",
             "powerTier": 1.2,
             "gridR": 0,
             "gridC": 2,
-            "slotId": "0_2"
+            "slotId": "0_2",
+            "formationRow": "FRONT"
           }
         ]
       }
@@ -216,14 +238,24 @@
             "powerTier": 0.6,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "wild_wolf",
             "powerTier": 0.6,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
+          },
+          {
+            "monsterId": "goblin_Archer",
+            "powerTier": 0.6,
+            "gridR": 2,
+            "gridC": 0,
+            "slotId": "2_0",
+            "formationRow": "BACK"
           }
         ]
       },
@@ -231,25 +263,28 @@
         "name": "第 2 波：哥布林薩滿與長矛隊",
         "monsters": [
           {
-            "monsterId": "goblin_shaman",
-            "powerTier": 1.2,
-            "gridR": 0,
-            "gridC": 0,
-            "slotId": "0_0"
-          },
-          {
             "monsterId": "goblin",
             "powerTier": 0.8,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "goblin",
             "powerTier": 0.8,
             "gridR": 0,
             "gridC": 2,
-            "slotId": "0_2"
+            "slotId": "0_2",
+            "formationRow": "FRONT"
+          },
+          {
+            "monsterId": "goblin",
+            "powerTier": 0.5,
+            "gridR": 0,
+            "gridC": 0,
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           }
         ]
       }
@@ -284,14 +319,16 @@
             "powerTier": 1,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "skeleton",
             "powerTier": 1,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
           }
         ]
       },
@@ -303,14 +340,16 @@
             "powerTier": 1.4,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "skeleton",
             "powerTier": 0.7,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
           }
         ]
       },
@@ -322,14 +361,16 @@
             "powerTier": 2,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "specter",
             "powerTier": 1.5,
             "gridR": 0,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_1",
+            "formationRow": "FRONT"
           }
         ]
       }
@@ -368,35 +409,24 @@
             "powerTier": 1.8,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
-          },
-          {
-            "monsterId": "frost_wolf",
-            "powerTier": 1.8,
-            "gridR": 0,
-            "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "frost_wolf",
             "powerTier": 1.2,
             "gridR": 0,
             "gridC": 2,
-            "slotId": "0_2"
-          },
-          {
-            "monsterId": "frost_wolf",
-            "powerTier": 1.2,
-            "gridR": 0,
-            "gridC": 0,
-            "slotId": "0_0"
+            "slotId": "0_2",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "yeti",
             "powerTier": 1.9,
-            "gridR": 0,
+            "gridR": 2,
             "gridC": 1,
-            "slotId": "0_1"
+            "slotId": "2_1",
+            "formationRow": "BACK"
           }
         ]
       },
@@ -408,19 +438,8 @@
             "powerTier": 2.3,
             "gridR": 0,
             "gridC": 0,
-            "slotId": "0_0"
-          },
-          {
-            "monsterId": "yeti",
-            "powerTier": 3,
-            "gridR": 2,
-            "gridC": 1,
-            "slotId": "2_1",
-            "formationRow": "BACK",
-            "skills": [
-              "SKILL_FROST_BREATH",
-              "SKILL_CRUSHING_SLAM"
-            ]
+            "slotId": "0_0",
+            "formationRow": "FRONT"
           },
           {
             "monsterId": "elemental_golem",
@@ -429,6 +448,14 @@
             "gridC": 2,
             "slotId": "0_2",
             "formationRow": "FRONT"
+          },
+          {
+            "monsterId": "yeti",
+            "powerTier": 1.9,
+            "gridR": 2,
+            "gridC": 1,
+            "slotId": "2_1",
+            "formationRow": "BACK"
           }
         ]
       },
@@ -436,15 +463,8 @@
         "name": "第 3 波：極寒古霜龍",
         "monsters": [
           {
-            "monsterId": "elemental_golem",
-            "powerTier": 2.3,
-            "gridR": 0,
-            "gridC": 2,
-            "slotId": "0_2"
-          },
-          {
             "monsterId": "frost_dragon",
-            "powerTier": 3.5,
+            "powerTier": 4,
             "gridR": 2,
             "gridC": 1,
             "slotId": "2_1",
@@ -456,6 +476,14 @@
             "gridR": 0,
             "gridC": 0,
             "slotId": "0_0",
+            "formationRow": "FRONT"
+          },
+          {
+            "monsterId": "elemental_golem",
+            "powerTier": 2.3,
+            "gridR": 0,
+            "gridC": 2,
+            "slotId": "0_2",
             "formationRow": "FRONT"
           }
         ]

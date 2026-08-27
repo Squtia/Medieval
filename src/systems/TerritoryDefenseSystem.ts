@@ -3,6 +3,7 @@ import { GameState } from '../core/GameState';
 import { OfficeType, TerrainType, Gender, MonsterRace, ElementType, FormationRow } from '../models/types';
 import { CombatSystem } from './CombatSystem';
 import { CombatUIManager } from '../ui/CombatUIManager';
+import { InteractiveCombatSession } from './combat/InteractiveCombatSession';
 import { DataStore } from './DataStore';
 import { Adventurer } from '../models/Adventurer';
 import { NarrativeSystem } from './NarrativeSystem';
@@ -246,6 +247,7 @@ export class TerritoryDefenseSystem {
           if (s.gridC !== undefined) inst.gridC = s.gridC;
           if (s.slotId) inst.slotId = s.slotId;
           inst.formationRow = s.gridR === 0 ? FormationRow.FRONT : (s.gridR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+          if (s.maxHp) inst.maxHp = s.maxHp;
           inst.hp = s.currentHp; // 殘留血量
           if (s.skills) inst.skills = s.skills;
           waveMonsters.push(inst);
@@ -388,33 +390,34 @@ export class TerritoryDefenseSystem {
       }
     }
 
-    const report = CombatSystem.simulateCombat(
+    const session = new InteractiveCombatSession(
       defenderIds,
       (effect.waves?.length || 1) * 3,
       effect.raidName || '野外大軍攔截戰',
       TerrainType.WILDERNESS,
-      waveEnemyLineups.length || 1,
-      troopAssignments,
-      undefined,
-      primarySquad.formationId,
-      primarySquad.gridMap,
-      undefined,
       waveEnemyLineups,
       {
         isSiege: false,
         isFieldInterception: true,
+        isLordCampaign: true,
+        lordTitle: territory.title,
+        assignedTroops: {
+          infantry: infantryCount,
+          archer: archerCount,
+          cavalry: cavalryCount
+        },
         gateHp: 0,
-        archerVolleyDmg: Math.floor(Math.sqrt(archerCount) * 35),
         cavalryCount: cavalryCount,
         infantryCount: infantryCount,
         reserveSquads: reserveSquads,
         enemyLegion: enemyLegion
-      }
+      },
+      primarySquad.formationId,
+      primarySquad.gridMap
     );
 
-    report.isFieldInterception = true;
-
-    CombatUIManager.replayCombat(report, () => {
+    CombatUIManager.startInteractiveCombat(session, (report) => {
+      report.isFieldInterception = true;
       this.settleFieldInterceptionResults(storyId, effect, report, {
         infantry: infantryCount,
         archer: archerCount,
@@ -486,6 +489,12 @@ export class TerritoryDefenseSystem {
       {
         isSiege: false,
         isFieldInterception: true,
+        isLordCampaign: false, // 委託派遣迎擊，無領主親征光環
+        assignedTroops: {
+          infantry: infantryCount,
+          archer: archerCount,
+          cavalry: cavalryCount
+        },
         gateHp: 0,
         archerVolleyDmg: Math.floor(Math.sqrt(archerCount) * 35),
         cavalryCount: cavalryCount,
@@ -765,37 +774,37 @@ export class TerritoryDefenseSystem {
       }
     }
 
-    // 4. 執行戰鬥運算 (傳入 primarySquad 的陣型與九宮格坐標 + 完整 siegeOptions)
-    const report = CombatSystem.simulateCombat(
+    // 4. 啟動親征實時戰鬥會話 (傳入 primarySquad 的陣型與九宮格坐標 + 完整 siegeOptions)
+    const session = new InteractiveCombatSession(
       defenderIds,
       (waveEnemyLineups.length || 1) * 3,
       effect.raidName || '領地圍城戰',
       TerrainType.PLAINS,
-      waveEnemyLineups.length || 1,
-      troopAssignments,
-      undefined,
-      primarySquad.formationId,
-      primarySquad.gridMap,
-      undefined,
       waveEnemyLineups,
       {
         isSiege: isSiege,
+        isLordCampaign: true,
+        lordTitle: territory.title,
+        assignedTroops: {
+          infantry: infantryCount,
+          archer: archerCount,
+          cavalry: cavalryCount
+        },
         gateHp: gateHp,
         watchtowerDmg: watchtowerDmg,
-        archerVolleyDmg: archerVolleyDmg,
         cavalryCount: cavalryCount,     // 騎兵數量供衝鋒用
         infantryCount: infantryCount,
         reserveSquads: reserveSquads,
         enemyLegion: enemyLegion
-      }
+      },
+      primarySquad.formationId,
+      primarySquad.gridMap
     );
 
-    // 標記為守城戰鏡像模式
-    report.isDefenseSiege = isSiege;
-    report.gateMaxHp = isSiege ? territory.getMaxWallDurability() : 0;
-
-    // 5. 打開戰鬥畫面並播放，戰後進行精準結算
-    CombatUIManager.replayCombat(report, () => {
+    // 5. 打開實時戰鬥畫面，戰後進行精準結算
+    CombatUIManager.startInteractiveCombat(session, (report) => {
+      report.isDefenseSiege = isSiege;
+      report.gateMaxHp = isSiege ? territory.getMaxWallDurability() : 0;
       this.settleSiegeDefenseResults(storyId, effect, report, {
         infantry: infantryCount,
         archer: archerCount,
@@ -884,7 +893,12 @@ export class TerritoryDefenseSystem {
       territory.security = Math.max(0, (territory.security ?? 100) - 20);
     }
 
-    // 4. 喚起專屬防衛戰報 Debrief 彈窗
+    // 4. 清理已結算的待決戰役
+    if (territory.pendingRaids) {
+      territory.pendingRaids = territory.pendingRaids.filter(pr => pr.storyId !== storyId);
+    }
+
+    // 5. 喚起專屬防衛戰報 Debrief 彈窗
     CombatUIManager.showSiegeDebrief({
       isVictory: report.isVictory,
       isSiege: isSiege,

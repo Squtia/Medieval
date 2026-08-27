@@ -2,7 +2,7 @@
   "weapons": [
     {
       "id": "wpn_heirloom_sword",
-      "name": "破敗的傳家寶劍",
+      "name": "破敗的傳家寶���",
       "slot": "WEAPON",
       "weaponType": "GREATSWORD",
       "tier": 1,
@@ -67,14 +67,8 @@
       "slot": "WEAPON",
       "weaponType": "GREATSWORD",
       "tier": 1,
-      "element": "NONE",
-      "allowedJobs": [
-        "戰士"
-      ],
       "icon": "weapons:GREATSWORD",
-      "craftable": true,
-      "droppable": true,
-      "shopBuyable": true,
+      "element": "NONE",
       "baseEffects": {
         "str": 3
       },
@@ -86,6 +80,7 @@
         "hp": 0,
         "mp": 0,
         "hit": 0,
+        "evade": 0,
         "crit": 5
       },
       "combatStatRanges": {},
@@ -107,9 +102,14 @@
         "鋒利",
         "堅定"
       ],
-      "skillRollChance": 100,
-      "skillRollCount": 1,
       "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
       "description": "",
       "flavorText": "",
       "isLocked": true

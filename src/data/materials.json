@@ -589,5 +589,16 @@
     "flavorText": "從人類身上掉落的稀有龍鱗，價值不斐。",
     "icon": "icons_materials:icons_materials_60",
     "isLocked": true
+  },
+  {
+    "id": "tg_Medicinal_herbs",
+    "name": "藥草",
+    "tier": 1,
+    "category": "WOOD",
+    "basePrice": 10,
+    "description": "用於治療的藥草。",
+    "flavorText": "",
+    "icon": "icons_materials:icons_materials_59",
+    "isLocked": true
   }
 ]

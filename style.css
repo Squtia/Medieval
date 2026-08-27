@@ -934,6 +934,46 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   background: linear-gradient(to bottom, #2a1b12, #110d0a) !important;
 }
 
+/* 🏰 守城戰中央實體要塞城牆與城門屏障 */
+.combat-siege-wall-divider {
+  width: 54px;
+  height: 90%;
+  align-self: center;
+  background: linear-gradient(180deg, #475569 0%, #1e293b 50%, #0f172a 100%);
+  border: 2px solid #78350f;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 10px rgba(245, 158, 11, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 10px 0;
+  position: relative;
+  z-index: 5;
+}
+.combat-siege-wall-divider::before {
+  content: '🏰';
+  font-size: 1.8rem;
+  filter: drop-shadow(0 0 8px #f59e0b);
+}
+.combat-siege-wall-divider::after {
+  content: '🛡️';
+  font-size: 1.4rem;
+  opacity: 0.8;
+}
+.combat-siege-wall-divider.wall-hit {
+  animation: wallHitShake 0.35s ease;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.7) !important;
+}
+@keyframes wallHitShake {
+  0% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(-4px, 2px) scale(0.98); }
+  50% { transform: translate(4px, -2px) scale(1.02); }
+  75% { transform: translate(-2px, 1px) scale(0.99); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
 /* 守城戰進攻方與守軍頭像朝向修復：只翻轉純肖像容器 (.combat-p-avatar-bg)，文字/血條/標籤完全不受影響 */
 .combat-stage.is-defense-siege .combat-participant.enemy-side .combat-p-avatar-bg,
 .combat-stage.is-defense-siege .combat-participant.player-side .combat-p-avatar-bg {
@@ -1012,9 +1052,10 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
 }
 
 .combat-hp-bg {
+  position: relative;
   width: 100%;
-  height: 6px;
-  background: rgba(15, 23, 42, 0.85);
+  height: 12px;
+  background: rgba(15, 23, 42, 0.9);
   border-radius: 3px;
   overflow: hidden;
   border: 1px solid rgba(0,0,0,0.9);
@@ -1023,16 +1064,47 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
 .combat-hp-fill { height: 100%; background: linear-gradient(to right, #22c55e, #4ade80); transition: width 0.25s ease-out; }
 .combat-hp-fill.low { background: linear-gradient(to right, #ef4444, #f87171); }
 
+.combat-hp-text {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 0 2px #000, 1px 1px 1px #000;
+  line-height: 1;
+  pointer-events: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
 .combat-mp-bg {
+  position: relative;
   width: 100%;
-  height: 4px;
-  background: rgba(15, 23, 42, 0.85);
+  height: 9px;
+  background: rgba(15, 23, 42, 0.9);
   border-radius: 2px;
   overflow: hidden;
   border: 1px solid rgba(0,0,0,0.9);
   flex-shrink: 0;
 }
 .combat-mp-fill { height: 100%; background: linear-gradient(to right, #0284c7, #38bdf8); transition: width 0.25s ease-out; }
+
+.combat-mp-text {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #e0f2fe;
+  text-shadow: 0 0 2px #000, 1px 1px 1px #000;
+  line-height: 1;
+  pointer-events: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
 
 /* 下方戰報文字區：範圍縮小、字體縮小 */
 .combat-log-area {

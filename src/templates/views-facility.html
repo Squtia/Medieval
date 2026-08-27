@@ -347,9 +347,191 @@
         <button id="btn-forge-tab-disassemble" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">♻️ 裝備拆解</button>
       </div>
 
-      <!-- 中央雙欄工作區 (半透明玻璃面板滿鋪，透出背景火爐) -->
       <div id="forge-workspace" style="display: flex; gap: 15px; flex: 1; min-height: 0; overflow: hidden;">
-        <!-- JS 動態渲染左右雙欄面板 -->
+        <!-- JS 動態渲染鍛造工作區 -->
+      </div>
+    </div>
+
+    <!-- 獨立建築：教會與醫療所 (Church & Infirmary) - 酒館同款雙欄佈局 -->
+    <div id="view-church" class="facility-view">
+      <!-- 頂部列：返回按鈕與標題 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 8px;">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">🔙 返回街道</button>
+        <h2 id="church-view-title" style="margin: 0; font-size: 2.2em; color: #eab308; text-shadow: 0 3px 6px rgba(0,0,0,0.9); font-family: Georgia, serif;">⛪ 領地教會與醫療所 <span style="font-size:0.5em; color:#cbd5e1; font-weight:normal;">(當前等級: <span id="ui-church-lvl">Lv.1 祈禱處</span>)</span></h2>
+        <div style="width: 100px;"></div>
+      </div>
+
+      <!-- 核心雙欄工作區 (零標籤切換，全功能同屏) -->
+      <div style="display: flex; gap: 20px; flex: 1; min-height: 0; overflow: hidden;">
+        
+        <!-- 左欄：設施運作、聖光藥坊與病房擴建 (flex: 1.2) -->
+        <div class="glass-panel" style="flex: 1.2; padding: 20px; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.6); overflow-y: auto;">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin: 0;">📜 領地醫療運作</h3>
+          
+          <!-- 每日自然恢復率與神職被動提示 -->
+          <div style="background: rgba(0,0,0,0.4); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); font-size: 0.88em; line-height: 1.6;">
+            <div>✨ <span style="color: #94a3b8;">全領地過夜自然恢復：</span><span id="church-daily-recovery-text" style="color: #4ade80; font-weight: bold;">+15% MaxHP/MP</span></div>
+            <div>🛏️ <span style="color: #94a3b8;">病房休養額外加成：</span><span style="color: #facc15; font-weight: bold;">+10% MaxHP/MP</span></div>
+            <div id="church-clergy-bonus-text" style="color: #60a5fa; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 4px;">📜 聖光庇護：暫無退休神職人員</div>
+          </div>
+
+          <!-- 🧪 聖光藥坊熬藥區 -->
+          <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid rgba(217,119,6,0.3); display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-weight: bold; color: #fbbf24; font-size: 1.05em; display: flex; justify-content: space-between;">
+              <span>🧪 聖光藥坊</span>
+              <span style="font-size: 0.85em; color: #cbd5e1;">配方: 50 藥草 ➔ 1 生命藥水</span>
+            </div>
+            
+            <div style="display: flex; justify-content: space-around; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 4px; font-size: 0.9em;">
+              <div>🌿 倉庫野生藥草: <span id="church-herbs-count" style="color: #4ade80; font-weight: bold;">0</span> 株</div>
+              <div>🧪 庫存生命藥水: <span id="church-potion-count" style="color: #60a5fa; font-weight: bold;">0</span> 瓶</div>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+              <button id="btn-brew-single" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.88em; background: linear-gradient(135deg, #059669, #047857);">🔥 熬製 1 瓶 (50草)</button>
+              <button id="btn-brew-max" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.88em; background: linear-gradient(135deg, #d97706, #b45309);">🔥 全部熬製</button>
+            </div>
+          </div>
+
+          <!-- 🔨 打造病床區 -->
+          <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: bold; color: #cbd5e1;">🛏️ 病房容量：<span id="church-bed-capacity" style="color: #facc15;">1 / 4 床</span></span>
+              <span id="church-bed-cost-text" style="font-size: 0.8em; color: #94a3b8;">消耗: 20木材 5生皮</span>
+            </div>
+            <button id="btn-build-infirmary-bed" class="action-btn" style="padding: 8px; font-size: 0.9em; background: linear-gradient(135deg, #2563eb, #1d4ed8);">🔨 打造新病床</button>
+          </div>
+        </div>
+
+        <!-- 右欄：病床卡片清單與選中操作區 (flex: 2) -->
+        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.6); min-height: 0;">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin: 0; flex-shrink: 0;">🛏️ 傷病病房 (點擊病床指派或急救)</h3>
+
+          <!-- 上半部：病床卡片列表 (可捲動) -->
+          <div id="church-beds-container" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 4px; overflow-y: auto; align-content: flex-start; margin-top: 8px; flex: 1; min-height: 0;">
+            <!-- JS 動態生成病床卡片 -->
+          </div>
+
+          <!-- 下半部：選中病床操作區或選中空床時的待選傷員列表 (固定在下方) -->
+          <div id="church-selected-detail" style="display: none; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; margin-top: 8px;">
+            <!-- JS 動態渲染選中病患的急救/出院面板，或待選傷員卡片列表 -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 獨立建築/工坊：🎨 全域視覺排版與美術工坊 (Theme & Layout Studio) -->
+    <div id="view-theme-studio" class="facility-view" style="display: none; flex-direction: column; height: 100%;">
+      <!-- 頂部列：返回與操作按鈕 -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(167,139,250,0.4); padding-bottom: 8px;">
+        <button id="btn-exit-theme-studio" class="action-btn" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(167,139,250,0.5);">🔙 返回領地</button>
+        <h2 style="margin: 0; font-size: 2.2em; color: #c084fc; text-shadow: 0 3px 6px rgba(0,0,0,0.9); font-family: Georgia, serif;">🎨 全域視覺排版與美術工坊</h2>
+        <div style="display: flex; gap: 10px;">
+          <button id="btn-studio-reset" class="action-btn" style="width: auto; padding: 6px 14px; font-size: 0.88em; background: rgba(100,116,139,0.5); border: 1px solid #94a3b8;">↩️ 重置預設</button>
+          <button id="btn-studio-save-apply" class="action-btn" style="width: auto; padding: 6px 18px; font-size: 0.95em; font-weight: bold; background: linear-gradient(135deg, #7c3aed, #4f46e5); border: 1px solid #c084fc; box-shadow: 0 0 12px rgba(167,139,250,0.5);">💾 儲存並套用至全遊戲</button>
+        </div>
+      </div>
+
+      <!-- 核心雙欄：左側控制滑桿 + 右側真機即時預覽 -->
+      <div style="display: flex; gap: 18px; flex: 1; min-height: 0; overflow: hidden;">
+        
+        <!-- 左欄：控制面板 (360px) -->
+        <div class="glass-panel" style="width: 360px; flex-shrink: 0; padding: 16px; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.75); overflow-y: auto;">
+          
+          <!-- 1. 預覽場景切換 -->
+          <div>
+            <div style="font-weight: bold; color: #c084fc; font-size: 0.95em; margin-bottom: 6px;">1. 👁️ 選擇預覽場景</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <button class="action-btn btn-studio-scene active" data-scene="church" style="padding: 6px 4px; font-size: 0.82em;">⛪ 修道院/醫療所</button>
+              <button class="action-btn btn-studio-scene" data-scene="tavern" style="padding: 6px 4px; font-size: 0.82em;">🍺 冒險者酒館</button>
+              <button class="action-btn btn-studio-scene" data-scene="base" style="padding: 6px 4px; font-size: 0.82em;">🏛️ 領主書房</button>
+              <button class="action-btn btn-studio-scene" data-scene="forge" style="padding: 6px 4px; font-size: 0.82em;">⚒️ 鍛造屋</button>
+            </div>
+          </div>
+
+          <!-- 2. 🖼️ 背景圖自訂替換 -->
+          <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 6px; border: 1px solid rgba(167,139,250,0.25); display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-weight: bold; color: #fbbf24; font-size: 0.9em;">2. 🖼️ 當前場景背景圖</div>
+            <div style="font-size: 0.78em; color: #cbd5e1;">可直接從電腦選擇 PNG / JPG 圖片：</div>
+            <label class="action-btn" style="padding: 6px; font-size: 0.85em; text-align: center; cursor: pointer; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8;">
+              📁 選擇電腦本地圖片...
+              <input type="file" id="studio-bg-file-input" accept="image/*" style="display: none;">
+            </label>
+          </div>
+
+          <!-- 3. 🖼️ 框體與面板風格 -->
+          <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-weight: bold; color: #fbbf24; font-size: 0.9em;">3. 🖼️ 框體面板風格</div>
+            
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #cbd5e1;">
+                <span>底色深淺/透明度</span>
+                <span id="studio-panel-opacity-val" style="color: #60a5fa;">65%</span>
+              </div>
+              <input type="range" id="studio-panel-opacity" min="0.2" max="0.95" step="0.05" value="0.65" style="width: 100%; accent-color: #c084fc;">
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #cbd5e1;">
+                <span>邊框粗細 (Border Width)</span>
+                <span id="studio-border-width-val" style="color: #60a5fa;">1px</span>
+              </div>
+              <input type="range" id="studio-border-width" min="0" max="6" step="1" value="1" style="width: 100%; accent-color: #c084fc;">
+            </div>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #cbd5e1;">
+                <span>框體圓角 (Border Radius)</span>
+                <span id="studio-border-radius-val" style="color: #60a5fa;">8px</span>
+              </div>
+              <input type="range" id="studio-border-radius" min="0" max="24" step="2" value="8" style="width: 100%; accent-color: #c084fc;">
+            </div>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.8em; color: #cbd5e1;">
+              <span>邊框顏色</span>
+              <input type="color" id="studio-border-color" value="#eab308" style="border: none; background: transparent; cursor: pointer; height: 24px; width: 36px;">
+            </div>
+          </div>
+
+          <!-- 4. 🔘 按鈕風格調整 -->
+          <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-weight: bold; color: #fbbf24; font-size: 0.9em;">4. 🔘 按鈕視覺風格</div>
+            <select id="studio-button-theme-select" style="background: rgba(0,0,0,0.6); color: #fff; border: 1px solid rgba(255,255,255,0.2); padding: 5px; border-radius: 4px; font-size: 0.85em;">
+              <option value="gold">🏆 暗金帝國 (預設)</option>
+              <option value="bronze">🪵 古典青銅木紋</option>
+              <option value="purple">🔮 皇家秘術紫</option>
+              <option value="emerald">🌲 翡翠遊俠綠</option>
+              <option value="ruby">🩸 狂戰深血紅</option>
+            </select>
+
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #cbd5e1;">
+                <span>按鈕圓角</span>
+              </div>
+              <input type="range" id="studio-btn-radius" min="0" max="20" step="2" value="6" style="width: 100%; accent-color: #c084fc;">
+            </div>
+          </div>
+
+          <!-- 5. 📐 左右欄排版比例 -->
+          <div style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-weight: bold; color: #fbbf24; font-size: 0.9em;">5. 📐 雙欄排版分割比例</div>
+            <div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.8em; color: #cbd5e1;">
+                <span>左欄寬度佔比</span>
+                <span id="studio-left-ratio-val" style="color: #4ade80;">35%</span>
+              </div>
+              <input type="range" id="studio-left-ratio" min="25" max="50" step="1" value="35" style="width: 100%; accent-color: #4ade80;">
+            </div>
+          </div>
+
+        </div>
+
+        <!-- 右欄：真機即時預覽視圖 (flex: 1) -->
+        <div id="studio-preview-workspace" style="flex: 1; display: flex; flex-direction: column; background: #111827; border-radius: 8px; padding: 20px; border: 1px solid rgba(255,255,255,0.15); overflow: hidden; position: relative;">
+          <!-- JS 動態渲染真機預覽畫面 -->
+        </div>
+
       </div>
     </div>
 

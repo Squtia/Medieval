@@ -128,6 +128,8 @@ class CombatStudioController {
   private currentConfiguringWaveIdx = 0;
   private currentConfiguringMonsterIdx = 0;
   private tempShMonsterSkills: string[] = [];
+  // 討伐據點九宮格拖曳狀態
+  private draggedShMonster: { waveIdx: number; monsterIdx: number; slotId: string } | null = null;
   // 當前更換頭像中的對象 ('creator' 或 敵方陣容 index 或 傭兵 index)
   private activeIconPickerTarget: 'creator' | { type: 'enemy'; idx: number } | { type: 'player'; idx: number } = 'creator';
 
@@ -163,9 +165,11 @@ class CombatStudioController {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
             this.strongholdsDb = parsed;
+            this.strongholdsDb.forEach(sh => this.normalizeStrongholdWaves(sh));
             if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
               this.editingStrongholdId = this.strongholdsDb[0].id;
             }
+            this.saveStrongholdsToStorage();
             return;
           }
         } catch {}
@@ -179,6 +183,7 @@ class CombatStudioController {
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
           this.strongholdsDb = data;
+          this.strongholdsDb.forEach(sh => this.normalizeStrongholdWaves(sh));
           if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
             this.editingStrongholdId = this.strongholdsDb[0].id;
           }
@@ -190,10 +195,72 @@ class CombatStudioController {
 
     // 3. 首次進入且無本地存檔時使用預設範本
     this.strongholdsDb = clone(subjugationNodesJson) as SubjugationTemplate[];
+    this.strongholdsDb.forEach(sh => this.normalizeStrongholdWaves(sh));
     if (this.strongholdsDb.length > 0 && !this.editingStrongholdId) {
       this.editingStrongholdId = this.strongholdsDb[0].id;
     }
     this.saveStrongholdsToStorage();
+  }
+
+  /**
+   * 🛡️ 正規化據點波次怪物的 3×3 九宮格座標，徹底消除 slot 重複覆蓋與衝突
+   */
+  public normalizeStrongholdWaves(sh: SubjugationTemplate): boolean {
+    if (!sh || !sh.waves) return false;
+    let modified = false;
+
+    sh.waves.forEach((w) => {
+      if (!w.monsters || w.monsters.length === 0) return;
+
+      const occupiedSlots = new Set<string>();
+      const monstersToReassign: SubjugationWaveMonster[] = [];
+
+      // 1. 先檢驗現有座標，保留第一個合法且唯一的座標
+      w.monsters.forEach((mRef) => {
+        let sId = mRef.slotId;
+        if (!sId && mRef.gridR !== undefined && mRef.gridC !== undefined) {
+          sId = `${mRef.gridR}_${mRef.gridC}`;
+        }
+
+        if (sId && /^[0-2]_[0-2]$/.test(sId) && !occupiedSlots.has(sId)) {
+          occupiedSlots.add(sId);
+          mRef.slotId = sId;
+          const [rStr, cStr] = sId.split('_');
+          mRef.gridR = parseInt(rStr, 10);
+          mRef.gridC = parseInt(cStr, 10);
+          mRef.formationRow = mRef.gridR === 0 ? FormationRow.FRONT : (mRef.gridR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+        } else {
+          // 座標重複或未設定，加入重新分配清單
+          monstersToReassign.push(mRef);
+        }
+      });
+
+      // 2. 為需要重新分配的怪物尋找第一個可用的空槽位
+      if (monstersToReassign.length > 0) {
+        modified = true;
+        for (const mRef of monstersToReassign) {
+          let assigned = false;
+          // 優先順序：前排 (0_0, 0_1, 0_2) -> 中排 (1_0, 1_1, 1_2) -> 後排 (2_0, 2_1, 2_2)
+          for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+              const testKey = `${r}_${c}`;
+              if (!occupiedSlots.has(testKey)) {
+                occupiedSlots.add(testKey);
+                mRef.gridR = r;
+                mRef.gridC = c;
+                mRef.slotId = testKey;
+                mRef.formationRow = r === 0 ? FormationRow.FRONT : (r === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+                assigned = true;
+                break;
+              }
+            }
+            if (assigned) break;
+          }
+        }
+      }
+    });
+
+    return modified;
   }
 
   private saveStrongholdsToStorage(): void {
@@ -854,7 +921,7 @@ class CombatStudioController {
       if (raceSelect) raceSelect.value = m.race || 'MONSTER';
       if (elementSelect) elementSelect.value = m.defaultElement || 'NONE';
       if (powerTierInput) powerTierInput.value = String(m.powerTier || 1.0);
-      if (attackTypeSelect) attackTypeSelect.value = m.isMagicalAttacker ? 'magical' : 'physical';
+      if (attackTypeSelect) attackTypeSelect.value = m.attackType || (m.isMagicalAttacker ? 'MAGIC' : (m.id === 'crossbowman' ? 'RANGED' : 'MELEE'));
 
       const iconVal = m.avatarIcon || `icons_monsters:${m.id}`;
       if (avatarPreview) {
@@ -1117,21 +1184,16 @@ class CombatStudioController {
         </div>
       `;
 
+      // 0. 渲染前確保本據點波次座標無重疊衝突
+      this.normalizeStrongholdWaves(sh);
+
       // 1. 渲染 3x3 九宮格槽位
       const gridEl = waveCard.querySelector(`#sh-grid-${wIdx}`);
       if (gridEl) {
         // 構建 slot 映射表
         const slotMonsterMap: Record<string, { mRef: SubjugationWaveMonster; mIdx: number }> = {};
         (w.monsters || []).forEach((mRef, mIdx) => {
-          let sId = mRef.slotId;
-          if (!sId) {
-            const r = mRef.gridR !== undefined ? mRef.gridR : (mRef.formationRow === FormationRow.BACK ? 2 : 0);
-            const c = mRef.gridC !== undefined ? mRef.gridC : (mIdx % 3);
-            sId = `${r}_${c}`;
-            mRef.gridR = r;
-            mRef.gridC = c;
-            mRef.slotId = sId;
-          }
+          const sId = mRef.slotId || `${mRef.gridR || 0}_${mRef.gridC || 0}`;
           slotMonsterMap[sId] = { mRef, mIdx };
         });
 
@@ -1141,7 +1203,9 @@ class CombatStudioController {
             const slotId = `${r}_${c}`;
             const slotData = slotMonsterMap[slotId];
             const slotBox = document.createElement('div');
-            slotBox.style.cssText = 'border-radius: 5px; border: 1px dashed rgba(255,255,255,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: #121620; cursor: pointer; transition: all 0.2s; overflow: hidden;';
+            slotBox.style.cssText = 'border-radius: 5px; border: 1px dashed rgba(255,255,255,0.15); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; background: #121620; cursor: pointer; transition: all 0.2s; overflow: hidden; user-select: none;';
+            slotBox.dataset.shSlot = slotId;
+            slotBox.dataset.shWave = String(wIdx);
 
             if (slotData) {
               const { mRef, mIdx } = slotData;
@@ -1152,15 +1216,34 @@ class CombatStudioController {
 
               slotBox.style.border = '1px solid rgba(239, 68, 68, 0.6)';
               slotBox.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(0, 0, 0, 0.5))';
+              slotBox.setAttribute('draggable', 'true');
+              slotBox.style.cursor = 'grab';
 
               slotBox.innerHTML = `
-                <div style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; pointer-events: none;">
                   ${renderUniversalIcon(mAvatar, 32)}
                 </div>
-                <div style="font-size: 0.65rem; font-weight: bold; color: #fff; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">${mName}</div>
-                <div style="font-size: 0.58rem; color: #f59e0b;">${tier}x</div>
-                <button type="button" data-sh-del-monster="${wIdx},${mIdx}" style="position: absolute; top: 2px; right: 2px; background: rgba(239,68,68,0.8); color: #fff; border: none; border-radius: 50%; width: 14px; height: 14px; font-size: 9px; line-height: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;" title="移除怪物">✕</button>
+                <div style="font-size: 0.65rem; font-weight: bold; color: #fff; max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; pointer-events: none;">${mName}</div>
+                <div style="font-size: 0.58rem; color: #f59e0b; pointer-events: none;">${tier}x</div>
+                <button type="button" data-sh-del-monster="${wIdx},${mIdx}" style="position: absolute; top: 2px; right: 2px; background: rgba(239,68,68,0.8); color: #fff; border: none; border-radius: 50%; width: 14px; height: 14px; font-size: 9px; line-height: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5;" title="移除怪物">✕</button>
               `;
+
+              // 拖曳開始
+              slotBox.ondragstart = (e) => {
+                this.draggedShMonster = { waveIdx: wIdx, monsterIdx: mIdx, slotId };
+                slotBox.style.opacity = '0.4';
+                slotBox.style.cursor = 'grabbing';
+                if (e.dataTransfer) {
+                  e.dataTransfer.effectAllowed = 'move';
+                  e.dataTransfer.setData('text/plain', slotId);
+                }
+              };
+
+              slotBox.ondragend = () => {
+                slotBox.style.opacity = '1';
+                slotBox.style.cursor = 'grab';
+                this.draggedShMonster = null;
+              };
 
               slotBox.onclick = (e) => {
                 if ((e.target as HTMLElement).tagName === 'BUTTON') return;
@@ -1169,8 +1252,8 @@ class CombatStudioController {
             } else {
               // 空槽位
               slotBox.innerHTML = `
-                <span style="font-size: 1rem; color: rgba(255,255,255,0.2);">＋</span>
-                <span style="font-size: 0.6rem; color: rgba(255,255,255,0.3);">${r === 0 ? '前' : (r === 1 ? '中' : '後')}${c === 0 ? '上' : (c === 1 ? '中' : '下')}</span>
+                <span style="font-size: 1rem; color: rgba(255,255,255,0.2); pointer-events: none;">＋</span>
+                <span style="font-size: 0.6rem; color: rgba(255,255,255,0.3); pointer-events: none;">${r === 0 ? '前' : (r === 1 ? '中' : '後')}${c === 0 ? '上' : (c === 1 ? '中' : '下')}</span>
               `;
               slotBox.onmouseenter = () => { slotBox.style.borderColor = 'var(--cs-gold)'; slotBox.style.background = 'rgba(234,179,8,0.1)'; };
               slotBox.onmouseleave = () => { slotBox.style.borderColor = 'rgba(255,255,255,0.15)'; slotBox.style.background = '#121620'; };
@@ -1178,6 +1261,69 @@ class CombatStudioController {
                 this.openSubjugationMonsterPicker(wIdx, slotId);
               };
             }
+
+            // 拖曳放置目標處理 (所有槽位皆可接收 drop)
+            slotBox.ondragover = (e) => {
+              e.preventDefault();
+              if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            };
+
+            slotBox.ondragenter = (e) => {
+              e.preventDefault();
+              slotBox.style.borderColor = '#f59e0b';
+              slotBox.style.boxShadow = '0 0 12px rgba(245, 158, 11, 0.5)';
+              slotBox.style.transform = 'scale(1.04)';
+            };
+
+            slotBox.ondragleave = () => {
+              slotBox.style.borderColor = slotData ? 'rgba(239, 68, 68, 0.6)' : 'rgba(255,255,255,0.15)';
+              slotBox.style.boxShadow = 'none';
+              slotBox.style.transform = 'scale(1)';
+            };
+
+            slotBox.ondrop = (e) => {
+              e.preventDefault();
+              slotBox.style.boxShadow = 'none';
+              slotBox.style.transform = 'scale(1)';
+
+              const src = this.draggedShMonster;
+              if (!src || src.waveIdx !== wIdx) return;
+              if (src.slotId === slotId) return;
+
+              const activeSh = this.getActiveStronghold();
+              const curMonsters = activeSh?.waves?.[wIdx]?.monsters;
+              if (!curMonsters || !curMonsters[src.monsterIdx]) return;
+
+              const srcMonster = curMonsters[src.monsterIdx];
+              const targetMonster = curMonsters.find(m => (m.slotId || `${m.gridR}_${m.gridC}`) === slotId);
+
+              const [tgtR, tgtC] = slotId.split('_').map(Number);
+
+              if (targetMonster) {
+                // 🔄 兩隻怪物站位雙向互換 (Swap)
+                const [srcR, srcC] = src.slotId.split('_').map(Number);
+                srcMonster.slotId = slotId;
+                srcMonster.gridR = tgtR;
+                srcMonster.gridC = tgtC;
+                srcMonster.formationRow = tgtR === 0 ? FormationRow.FRONT : (tgtR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+
+                targetMonster.slotId = src.slotId;
+                targetMonster.gridR = srcR;
+                targetMonster.gridC = srcC;
+                targetMonster.formationRow = srcR === 0 ? FormationRow.FRONT : (srcR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+              } else {
+                // ➡️ 移動至空槽位
+                srcMonster.slotId = slotId;
+                srcMonster.gridR = tgtR;
+                srcMonster.gridC = tgtC;
+                srcMonster.formationRow = tgtR === 0 ? FormationRow.FRONT : (tgtR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+              }
+
+              this.draggedShMonster = null;
+              this.saveStrongholdsToStorage();
+              this.renderStrongholdForm();
+              this.renderStrongholdAnalytics();
+            };
 
             gridEl.appendChild(slotBox);
           }
@@ -1195,7 +1341,21 @@ class CombatStudioController {
             const mName = mon?.name || mRef.monsterId;
             const mAvatar = mon?.avatarIcon || this.getMonsterAvatar(mRef.monsterId, mName);
             const mCard = document.createElement('div');
-            mCard.style.cssText = 'background: #141822; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--cs-panel-border); display: flex; align-items: center; justify-content: space-between; gap: 6px;';
+            mCard.style.cssText = 'background: #141822; padding: 6px 8px; border-radius: 4px; border: 1px solid var(--cs-panel-border); display: flex; align-items: center; justify-content: space-between; gap: 6px; cursor: grab; user-select: none; transition: all 0.2s;';
+            mCard.setAttribute('draggable', 'true');
+
+            mCard.ondragstart = (e) => {
+              this.draggedShMonster = { waveIdx: wIdx, monsterIdx: mIdx, slotId: mRef.slotId || `${mRef.gridR || 0}_${mRef.gridC || 0}` };
+              mCard.style.opacity = '0.5';
+              if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', mRef.slotId || '');
+              }
+            };
+            mCard.ondragend = () => {
+              mCard.style.opacity = '1';
+              this.draggedShMonster = null;
+            };
 
             const profileBadge = mRef.profile && (mRef.profile as any) !== 'DEFAULT'
               ? `<span class="cs-badge" style="font-size: 0.62rem; background: rgba(59,130,246,0.18); color: #60a5fa; padding: 1px 4px;">${mRef.profile}</span>`
@@ -1211,10 +1371,10 @@ class CombatStudioController {
 
             mCard.innerHTML = `
               <div style="display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1;">
-                <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 4px; background: #0c1017; display: flex; align-items: center; justify-content: center;">
+                <div style="width: 32px; height: 32px; min-width: 32px; border-radius: 4px; background: #0c1017; display: flex; align-items: center; justify-content: center; pointer-events: none;">
                   ${renderUniversalIcon(mAvatar, 28)}
                 </div>
-                <div style="min-width: 0; flex: 1;">
+                <div style="min-width: 0; flex: 1; pointer-events: none;">
                   <div style="font-weight: bold; font-size: 0.78rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${affixText}${mName}</div>
                   <div style="font-size: 0.66rem; color: var(--cs-text-muted); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; margin-top: 2px;">
                     <span>強化: <b>${mRef.powerTier || mon?.powerTier || 1.0}x</b></span>
@@ -1386,9 +1546,23 @@ class CombatStudioController {
     const elementVal = byId<HTMLSelectElement>('sh-mc-element')?.value as any;
     const affixVal = byId<HTMLInputElement>('sh-mc-affix')?.value.trim();
 
+    const oldSlot = mRef.slotId || `${mRef.gridR || 0}_${mRef.gridC || 0}`;
     const [rStr, cStr] = formationSlotVal.split('_');
     const gridR = parseInt(rStr, 10) || 0;
     const gridC = parseInt(cStr, 10) || 0;
+
+    // 若選取的新站位已被同波次的其他怪物佔用，自動將對方互換 (Swap) 至當前怪物的舊站位
+    if (formationSlotVal !== oldSlot) {
+      const curMonsters = sh?.waves?.[this.currentConfiguringWaveIdx]?.monsters || [];
+      const occupiedOther = curMonsters.find((m, idx) => idx !== this.currentConfiguringMonsterIdx && (m.slotId || `${m.gridR}_${m.gridC}`) === formationSlotVal);
+      if (occupiedOther) {
+        const [oldR, oldC] = oldSlot.split('_').map(Number);
+        occupiedOther.slotId = oldSlot;
+        occupiedOther.gridR = oldR;
+        occupiedOther.gridC = oldC;
+        occupiedOther.formationRow = oldR === 0 ? FormationRow.FRONT : (oldR === 1 ? FormationRow.MIDDLE : FormationRow.BACK);
+      }
+    }
 
     mRef.powerTier = Math.max(0.1, powerVal);
     mRef.profile = profileVal && profileVal !== 'DEFAULT' ? (profileVal as any) : undefined;
@@ -3565,13 +3739,15 @@ class CombatStudioController {
         alert('請填寫單位 ID 與名稱');
         return;
       }
+      const rawAttackType = (byId('mc-attack-type') as HTMLSelectElement).value as import('../models/types').AttackType;
       const newMonster: MonsterData = {
         id,
         name,
         race: (byId('mc-race') as HTMLSelectElement).value as any,
         defaultElement: (byId('mc-element') as HTMLSelectElement).value as any,
         powerTier: Number((byId('mc-powertier') as HTMLInputElement).value) || 1.0,
-        isMagicalAttacker: (byId('mc-attack-type') as HTMLSelectElement).value === 'magical',
+        attackType: rawAttackType || 'MELEE',
+        isMagicalAttacker: rawAttackType === 'MAGIC',
         compatibleRaces: [((byId('mc-race') as HTMLSelectElement).value as any)],
         terrains: [TerrainType.PLAINS, TerrainType.FOREST]
       };
@@ -4127,8 +4303,12 @@ class CombatStudioController {
   }
 }
 
+export { CombatStudioController };
+
 // 啟動工坊
-window.addEventListener('DOMContentLoaded', () => {
-  const controller = new CombatStudioController();
-  controller.init();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    const controller = new CombatStudioController();
+    controller.init();
+  });
+}

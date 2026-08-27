@@ -185,7 +185,7 @@ export function backToScene() {
   });
 }
 
-export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense', level: number): { name: string, desc: string, icon: string } {
+export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' | 'church', level: number): { name: string, desc: string, icon: string } {
   if (type === 'tavern') {
     if (level === 1) return { name: '露天營火', desc: '吸引荒野流浪者歇腳，提供最基礎的招募與休息', icon: '🔥' };
     if (level === 2) return { name: '聚落帳篷', desc: '由多個帳篷組成的簡易交易與休息處', icon: '⛺' };
@@ -206,6 +206,11 @@ export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'fo
     if (level === 2) return { name: '進階鍛造屋', desc: '擁有精良熔爐與淬火池，支援高階裝備鍛造與元素附魔', icon: '⚒️' };
     if (level === 3) return { name: '皇家鍛造屋', desc: '擁有專業鐵砧與高溫熔爐，支援 T4 專屬神兵裝備重鑄', icon: '⚒️' };
     return { name: '頂級鍛造屋', desc: '機能齊全的頂級鍛造工坊', icon: '⚒️' };
+  } else if (type === 'church') {
+    if (level === 1) return { name: '祈禱處', desc: '由原木與聖燭搭建的祈禱處，過夜自然恢復 15%，提供 4 床病房', icon: '⛪' };
+    if (level === 2) return { name: '禮拜堂', desc: '莊嚴石造禮拜堂，過夜自然恢復 20%，病房擴增至 8 床', icon: '⛪' };
+    if (level === 3) return { name: '修道院', desc: '具備大型聖水池與草藥園，過夜自然恢復 25%，病房擴增至 12 床', icon: '⛪' };
+    return { name: '大教堂', desc: '神聖宏偉的信仰聖殿，過夜自然恢復 30%，病房擴增至 16 床', icon: '⛪' };
   } else { // defense
     if (level === 1) return { name: '木造城牆', desc: '由原木與木柵築成的基礎城防 (城牆最大耐久: 1,000)', icon: '🪵' };
     if (level === 2) return { name: '夯土城牆', desc: '以夯土與石塊加固的防線 (城牆最大耐久: 2,500)', icon: '🚧' };
@@ -223,8 +228,9 @@ export function renderBaseBuildings() {
   const territory = GameState.myTerritory;
   const node = GameState.mapSystem.getNodeById(territory.currentCountryId!);
   if (!node) return;
-  const bldTypes: { key: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' }[] = [
+  const bldTypes: { key: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' | 'church' }[] = [
     { key: 'defense' },
+    { key: 'church' },
     { key: 'tavern' },
     { key: 'weapon' },
     { key: 'armor' },
@@ -496,6 +502,15 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     const label = btnEnterDefense.querySelector('.building-label');
     if (label && myTerritory.defenseLevel > 0) {
       const info = getDynamicFacilityName('defense', myTerritory.defenseLevel);
+      label.textContent = `${info.icon} ${info.name}`;
+    }
+  }
+  const btnEnterChurch = document.getElementById('btn-enter-church');
+  if (btnEnterChurch) {
+    btnEnterChurch.style.display = (isMyHome && (myTerritory.churchLevel || 0) > 0) ? 'block' : 'none';
+    const label = btnEnterChurch.querySelector('.building-label');
+    if (label && myTerritory.churchLevel > 0) {
+      const info = getDynamicFacilityName('church', myTerritory.churchLevel);
       label.textContent = `${info.icon} ${info.name}`;
     }
   }

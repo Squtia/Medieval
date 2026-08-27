@@ -139,6 +139,7 @@ export class MonsterSystem {
       evade,
       calculatedPowerScore,
       skills,
+      attackType: baseMonster.attackType || (baseMonster.isMagicalAttacker || profile === MonsterProfile.MAGE ? 'MAGIC' : (baseMonster.id === 'crossbowman' ? 'RANGED' : 'MELEE')),
       isMagicalAttacker: baseMonster.isMagicalAttacker || profile === MonsterProfile.MAGE,
       
       // 動態戰利品配置 (金幣: 戰力 * 1.0, 經驗: 戰力 * 0.25)

@@ -140,6 +140,14 @@ async function bootstrap() {
   initExplorationController();
   initStreetScroller();
   NarrativeSystem.reloadDefinitions();
+  
+  // 7. 全域 UI 與戰鬥中樞完整初始化（保證無論正式遊戲或測試沙盒 100% 具備所有 UI 引用）
+  refreshGlobalUI();
+  const { UIThemeStudio } = await import('./tools/UIThemeStudio');
+  UIThemeStudio.loadAndApply();
+  const { LiveLayoutEditor } = await import('./tools/LiveLayoutEditor');
+  LiveLayoutEditor.loadAndApply();
+
   const searchParams = new URLSearchParams(location.search);
   if (searchParams.has('storyTest') || searchParams.has('testStory') || searchParams.has('story')) {
     const { initNarrativeTestController } = await import('./ui/NarrativeTestController');
@@ -147,8 +155,6 @@ async function bootstrap() {
     return;
   }
   NarrativeSystem.processDailyTick();
-  
-  refreshGlobalUI();
 }
 
 

@@ -1,3 +1,175 @@
+- **[Fix/UI/RightPanelBackgroundRestore] 修復右側帝國儀表板底圖與樣式隔離（2026-08-27）**：
+  - **樣式範圍嚴格隔離 (`UIThemeStudio.ts`)**：修正全域樣式注入規則，移除對 `.glass-panel` 的強制 `!important` 覆蓋，將自訂樣式嚴格限制於獨立設施視圖 (`.facility-view .glass-panel:not(#shared-right-panel)`)，徹底排除並保護右側帝國儀表板 (`#shared-right-panel`)，100% 恢復右側原始羊皮紙與精緻底圖外觀。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 120 項單元測試 100% 全部通過。
+- **[Feature/Tools/LiveLayoutEditor] 遊戲內即時覆蓋排版與美術編輯器 (Live HUD & Layout Inspector) 全面實裝（2026-08-27）**：
+  - **即時覆蓋編輯器 (`LiveLayoutEditor.ts`)**：
+    - **點選元素高亮 (Inspector)**：在遊戲任意畫面（街道/戰鬥/書房/地圖）連續敲擊鍵盤 **`layout`** 或 **`edit`** 即可在當前畫面上喚出浮動編輯面板。滑鼠移到任意 UI（建築圖標、進度條、NPC頭像、輪盤、背景）均會出現金色高亮框，點擊立即選中。
+    - **🖱️ 自由拖曳移動 (Drag to Move)**：勾選「自由拖曳移動」後，可直接用滑鼠在遊戲畫面上拖動任何元素到任意位置。
+    - **🖼️ 素材與背景圖片替換**：直接從電腦挑選 PNG/JPG 本地圖片，一鍵替換選中元素的背景或圖片素材。
+    - **📐 座標尺寸與框體微調**：即時調節 X/Y 座標、寬度、高度、圓角半徑與透明度。
+    - **💾 永久儲存與開局套用 (`main.ts`)**：點擊【💾 儲存】即可永久記錄排版，刷新頁面自動保留所有自訂位置。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 120 項單元測試 100% 全部通過。
+- **[Feature/Tools/UIThemeStudio] 全域視覺排版與美術工坊 (UI & Asset Studio) 全面實裝，改由 CHEAT 密技觸發（2026-08-27）**：
+  - **移出常規遊戲介面 (`views-facility.html`, `FacilityController.ts`)**：自領主書房「其他指令」中徹底移除視覺工坊按鈕，維持純淨的遊戲探索與內政體驗。
+  - **CHEAT 密技系統喚醒 (`CheatController.ts`)**：
+    - 遊戲中直接敲擊鍵盤英文字母 **`layout`** 或 **`theme`** 即可即時喚醒工坊。
+    - 支援主控制台 `openThemeStudio()` / `openUIStudio()` 隨時呼叫。
+  - **視覺工坊核心功能 (`UIThemeStudio.ts`)**：
+    - **多場景真機即時預覽**：支援切換預覽【⛪ 修道院】、【🍺 酒館】、【🏛️ 領主書房】、【⚒️ 鍛造屋】。
+    - **自訂美術圖片替換**：支援本地圖片（PNG/JPG）一鍵上傳與各場景背景動態換裝。
+    - **框體與面板風格微調**：滑桿即時調節底色透明度、邊框粗細、圓角半徑與邊框顏色。
+    - **按鈕視覺風格切換**：預設 5 大中世紀按鈕色系（暗金、青銅木紋、皇家秘術紫、翡翠綠、狂戰深血紅）與圓角微調。
+    - **雙欄排版比例即時調整**：滑桿動態調整設施左欄佔比（25% ~ 50%）。
+  - **全域持久化與動態注入 (`UIThemeStudio.ts`, `main.ts`)**：點擊【💾 儲存並套用至全遊戲】即可透過 LocalStorage 與動態樣式注入，使全遊戲所有建築與面板永久換上調製好的新外觀。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 120 項單元測試 100% 全部通過。
+- **[Fix/Combat/MultiSquadHealthAndWoundSettleFix] 多梯隊迎擊/守城戰全參戰成員戰後血量與重傷瀕死 1:1 寫回修復（2026-08-27）**：
+  - **全梯隊參戰成員總追蹤 (`CombatSystem.ts`, `InteractiveCombatSession.ts`)**：
+    - 引入 `allTrackedPlayers` 總追蹤機制，在開局第一梯隊以及後續增援梯隊登場時，即時將所有參戰成員納入追蹤。
+    - 徹底修復過去換梯隊後，先前陣亡被換下的前排隊員因脫離 `playerTeam` 而遺漏結算的嚴重 Bug。
+  - **戰後 100% 精準寫回**：
+    - 戰鬥結束時，對所有梯隊的每一位成員執行 1:1 寫回：陣亡者 100% 賦予【🩸 重傷瀕死】Debuff 並鎖定 1 HP；殘存者精準寫回真實剩餘 HP/MP。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 120 項單元測試 100% 全部通過。
+- **[Config/Civic/ChurchBedAdvancedMaterialCost] 病床打造材料升級為木板 (mat_wood_plank) 與皮革 (mat_leather) 全鏈路實裝（2026-08-27）**：
+  - **精確材料校準 (`ChurchSystem.ts`, `ChurchModalController.ts`)**：
+    - 將打造病床的消耗由原木改為進階加工材料：**20 木板 (`mat_wood_plank`) + 10 皮革 (`mat_leather`)**。
+    - 介面即時顯示現有庫存 `消耗: 20木板 (現有 X) 10皮革 (現有 Y)`，當兩者材料充足時解鎖點擊【🔨 打造新病床】。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、單元測試 `ChurchAndPersistentHealth.test.ts` 更新並通過、28 個測試檔案 120 項測試 100% 全部通過。
+- **[Refactor/Civic/ChurchTavernLayoutAndCardPatientSelect] 教會醫療所「酒館同款雙欄佈局」重構與「全卡片式病床選人」徹底去下拉選單實裝（2026-08-27）**：
+  - **修復鍛造屋與教會 HTML 嵌套錯位 (`views-facility.html`)**：補齊 `#view-forge` 遺漏的閉合標籤 `</div>`，徹底修復「點擊修道院無反應、點隔壁鍛造屋誤入修道院」的嚴重 DOM 錯位 Bug。
+  - **零標籤酒館式雙欄介面 (`views-facility.html`, `ChurchModalController.ts`)**：
+    - 徹底移除容易造成混亂的 Tab 頁籤切換，改為酒館同款滿版左右雙欄：
+    - **左欄 (flex: 1.2)**：領地每日自然恢復率、退休神職被動提示、聖光藥坊熬藥區（直接操作熬製 1 瓶/全部熬製）與打造新病床區。
+    - **右欄 (flex: 2)**：上半部展示病床卡片列表（`Flex-wrap`），下半部展示選中操作區。
+  - **全卡片式病床選人與急救互動 (`ChurchModalController.ts`)**：
+    - 徹底廢除 `<select>` 下拉選單。
+    - 點擊空病床時，下方直接列出所有可用傭兵的頭像卡片（`renderAdventurerCard`，受傷/重傷傭兵自動置頂排序），點擊任意卡片立即入住。
+    - 選中已入住病床時，即時展示血條百分比、提供【💉 施用藥水急救 (補25% HP)】與【🚪 離床出院】操作。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 120 項單元測試 100% 全部通過。
+- **[Fix/Civic/ChurchBaseUpgradeAndStreetDragFix] 教會由書房統一建造升級、未建造街道隱藏與街道拖曳滾動修復（2026-08-27）**：
+  - **書房統一建造升級 (`SceneController.ts`, `Territory.ts`, `IconSpriteHelper.ts`)**：將【⛪ 教會與醫療所】正式納入領主書房「🏛️ 領地建築升級」清單，支援 Lv.1 建造（150金 40木 20石）至 Lv.4 升級，並提供動態建築名稱與描述。
+  - **街道未建造嚴格隱藏 (`SceneController.ts`)**：修正街道建築顯示邏輯為 `(isMyHome && churchLevel > 0)`，未建造時（Lv.0）完全不在街道上顯示，與酒館、鐵匠鋪規則 100% 一致。
+  - **街道拖曳與滾動修復 (`main.ts`)**：在系統啟動流程中主動呼叫 `initStreetScroller()`，恢復街道滑鼠橫向拖曳（Grab & Drag）與導航箭頭滑動功能。
+  - **傭兵詳情面板血條真實連動 (`PartyModalController.ts`)**：修正詳情面板寫死滿血的歷史遺留邏輯，改為動態讀取 `adv.getCurrentHp()` 與 `adv.getCurrentMp()`，重傷或受傷時真實顯示剩餘血量與百分比。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 120 項單元測試 100% 全部通過。
+- **[Feature/Civic/ChurchAndPersistentHealthSystem] 傭兵即時持久 HP/MP 體系、重傷瀕死 Debuff、伐木場藥草採集與領地教會醫療所病床急救系統全面實裝（2026-08-27）**：
+  - **傭兵持久生命與重傷 Debuff (`Adventurer.ts`, `types.ts`)**：
+    - 傭兵資料模型新增 `currentHp` / `currentMp` 持久生命魔力與 `isWounded` 狀態，戰鬥入場以當前持久血量為準，戰後 1:1 寫回。
+    - 戰敗或陣亡傭兵鎖定為 1 HP 並賦予【🩸 重傷瀕死】Debuff（全屬性 -20%、速度 -30%），生命值休養或急救至 80% 以上自動痊癒解除。
+    - 徹底廢除戰敗鎖定硬 CD（Lockout CD），只要血量健康或備用梯隊齊全隨時可調度出征。
+  - **伐木場野生藥草採集 (`TownManagementSystem.ts`)**：
+    - 伐木工每日作業時，機率副產野生藥草（`tg_Medicinal_herbs`）存入領地倉庫，完善四大基礎生產設施資源閉環。
+  - **教會與醫療所建築體系 (`ChurchSystem.ts`, `Territory.ts`, `ChurchModalController.ts`, `views-facility.html`)**：
+    - 支援 5 大階級擴建（Lv.0 10% ➔ Lv.1 祈禱處 15% ➔ Lv.2 禮拜堂 20% ➔ Lv.3 修道院 25% ➔ Lv.4 大教堂 30% 全領地過夜自然恢復率）。
+    - 實裝【病床區】：可消耗木材打造病床（Lv.1 4床 ➔ Lv.4 16床），指派傷員入住過夜額外 +10% 回血回魔。
+    - 實裝【聖光藥坊】：消耗 50 株藥草熬製 1 瓶【小型生命藥水 (`item_healing_potion_s`)】。
+    - 實裝【藥水急救】：病床專屬急救指令，消耗 1 瓶藥水立即恢復 25% MaxHP 與 15% MP（冷卻 4 回合/天）。
+    - 實裝【退休神職被動】：每 2 位神職傭兵（祈禱者/神官/牧師/主教）退休，全領地每日恢復 +1%、藥水效果 +1%。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、新增專屬測試套件 `ChurchAndPersistentHealth.test.ts`、28 個測試檔案 120 項單元測試 100% 全部通過。
+- **[Fix/Combat/CommanderTacticCdGuard] 親征模式領主軍令 CD 與兵力防呆阻斷全鏈路實裝（2026-08-27）**：
+  - **防誤觸阻斷機制 (`CombatUIManager.ts`)**：
+    - 在 `handleOrderClick` 前置加入冷卻時間（`cds.SHIELD_WALL`、`cds.VOLLEY_FIRE`、`cds.CAVALRY_CHARGE`、`cds.INSPIRE`）與剩餘兵力校驗。
+    - 當玩家誤觸處於 CD 或兵力不足的技能時，即時彈出 Toast 警示並 **100% 絕對阻斷回合推進**，防止因誤觸而白白空過回合，保障戰術決策體驗。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Fix/Combat/RaidLifecycleAndOvernightSurvivingWaves] 過夜倒數待決圍城戰役生命週期修復與野外殘存波次殘血 100% 繼承實裝（2026-08-27）**：
+  - **待決戰役生命週期修正 (`TownManagementSystem.ts`, `TerritoryDefenseSystem.ts`)**：
+    - 修復過夜推進天數時因在開戰前提前執行 `filter(pr => pr.warningDaysLeft > 0)` 導致守城戰初始化找不到 `pendingRaids` 而退回全新生成範本的重大時序漏洞。
+    - 改為在守城戰徹底打完並結算（`settleSiegeDefenseResults`）時才清理該戰役，確保野外攔截戰留下的殘存波次與殘血怪物（如打殘的雪怪）100% 完整保留並傳入守城戰舞台。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Feature/Combat/BarInternalHpMpOverlay] 戰鬥角色卡片「條內微型 HP/MP 數值疊加 (Bar-Internal Overlay)」與殘血即時渲染實裝（2026-08-27）**：
+  - **條內微型數值疊加佈局 (`style.css`, `CombatUIManager.ts`)**：
+    - 在完全不額外增加卡片高度、100% 保留肖像視野的前提下，將 HP 與 MP 的即時數值（如 `245/1000` 與 `80/100`）直接疊加置中印在綠色血條與藍色魔力條內部。
+    - 採用等寬字體（monospace）搭配 `text-shadow` 黑色文字陰影，無論血條滿綠、半血還是紅血瀕死，數字均 100% 清晰銳利。
+  - **傭兵與敵方全體連動 (`InteractiveCombatSession.ts`, `Combat.ts`)**：
+    - `CombatParticipantState` 支援 `currentHp` 傳遞；守城戰開局、波次登場（`WAVE_START`）與梯隊登場（`SQUAD_CHANGE`）均精準讀取各怪物與傭兵的真實殘存 HP，血條寬度與數字百分之百即時連動。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Fix/Combat/SiegeMirrorAndSurvivingWaves] 守城戰敵怪九宮格鏡像站位校正 & 實時親征「波次殘留與殘血 1:1 繼承」全鏈路修復（2026-08-27）**：
+  - **守城戰敵怪九宮格鏡像站位校正 (`CombatUIManager.ts`)**：
+    - 修正翻轉舞台下敵怪 gridColumn 計算為 `isSiege ? (3 - state.gridR) : (state.gridR + 1)`，徹底解決「前排冰原狼被放到最左側、後排雪怪貼在城門」的反向 Bug；現在前排魔物 100% 緊貼右側要塞城門前線，後排魔物在左側後方壓陣。
+  - **實時親征波次狀態與殘血全鏈路繼承 (`InteractiveCombatSession.ts`, `TerritoryDefenseSystem.ts`)**：
+    - 補全 `InteractiveCombatSession` 中各波次敵怪的實時陣亡與殘存 HP 追蹤，在 `generateFinalReport()` 中 100% 產出 `survivingWaves`。
+    - 守城戰初始化時嚴格排除已陣亡怪物（`isDead` / `hp <= 0`）與已全滅波次，殘留怪物（如野外打殘的雪怪）100% 繼承殘血（`currentHp: s.currentHp`），不再被強制洗成滿血。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Fix/Combat/SiegeGateHpLiveSync] 實時親征模式城門耐久度血條與數字即時更新全鏈路修復（2026-08-27）**：
+  - **雙軌狀態相容修正 (`CombatUIManager.ts`)**：
+    - 修復事件渲染中因僅檢測 `currentReport.gateMaxHp` 導致實時親征 `currentSession` 期間跳過血條數值更新的問題；現在統一相容 `this.currentSession?.gateMaxHp || this.currentReport?.gateMaxHp`，每當敵怪撞擊城門時，中央底部數字（如 `4989 / 5000`）與綠色進度條百分比 100% 即時扣除並觸發浮動受擊特效。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Feature/Combat/MonsterAttackType] 怪物攻擊類型 (AttackType: MELEE/RANGED/MAGIC) 標準化擴充、怪物工坊升級與守城戰 100% 絕對阻隔實裝（2026-08-27）**：
+  - **怪物資料模型與實體庫標準化 (`types.ts`, `monsters.json`, `MonsterSystem.ts`)**：
+    - 定義 `AttackType = 'MELEE' | 'RANGED' | 'MAGIC'`，並為全資料庫 70 種怪物實裝明確的攻擊類型（弩手為 `RANGED`，法術怪/幽魂/薩滿為 `MAGIC`，野狼/哥布林/巨魔等 65 種為 `MELEE`）。
+  - **戰鬥工坊 (Combat Studio) 升級 (`combat-studio.html`, `CombatStudio.ts`)**：
+    - 升級怪物創造表單中的「攻擊距離與類型」下拉選單（`MELEE` 物理近戰 / `RANGED` 遠程物理 / `MAGIC` 遠程魔法），儲存與載入 100% 雙向對齊。
+  - **戰鬥引擎守城戰絕對阻隔 (`InteractiveCombatSession.ts`, `CombatSystem.ts`)**：
+    - 🛡️ **近戰 100% 絕對受阻**：在守城戰且城門耐久 $> 0$ 時，若我方前排無人，`attackType === 'MELEE'` 的魔物（野狼、哥布林）100% 絕對無法攻擊中後排（艾蓮娜），傷害全部轉化為對城門耐久度的撞擊！
+    - 🏹 **遠程/魔法越牆減傷**：只有 `RANGED` 或 `MAGIC` 可隔牆攻擊中後排，並套用 25% 城垛掩體傷害減免。
+  - **規範同步**：同步更新 `docs/MONSTERS_AND_ELEMENTS.md` 規範文檔。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Fix/Combat/LayoutOptimization] 戰鬥框頂部全寬光環 Header Bar & 舞台正中底部城門 HUD 完美佈局實裝（2026-08-27）**：
+  - **頂部領主親征光環 Header Bar (`modals-combat-trade.html`, `CombatUIManager.ts`)**：
+    - 將光環移出舞台內部，於 Modal 最頂部建立全寬獨立橫條 `#combat-lord-aura-bar`，完整展示光環全名與所有屬性增益，字體清晰且 100% 徹底消除對戰場頂部人物卡牌的遮擋。
+  - **城牆耐久度 HUD 移至舞台正中底部 (`modals-combat-trade.html`, `CombatUIManager.ts`)**：
+    - 將 `#combat-siege-gate-hud` 移至中央城牆屏障底部、領主軍令【🐎 破陣衝鋒】正上方，與戰場正中央的要塞城門自然咬合，視覺層級井然有序。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Feature/Combat/FortressGateBarrier & MeleeBlock] 守城戰中央實體要塞城門屏障、頂部防遮擋 HUD 重構與「近戰受城門阻隔無法攻擊後排」核心法則實裝（2026-08-27）**：
+  - **戰場中央實體要塞城垛與城門屏障 (`modals-combat-trade.html`, `style.css`, `CombatUIManager.ts`)**：
+    - 在戰鬥舞台正中央加入實體 `.combat-siege-wall-divider`（石砌要塞垛口與城門圖標），清晰劃分「城外攻城區」與「城內守軍區」；城門受擊時觸發即時劇烈震動與受擊動畫 (`wall-hit`)。
+    - **頂部 HUD 防遮擋重構**：領主光環徽章收斂至左上方獨立區域，中央頂部專屬預留給「🏰 領地城牆耐久度 HUD」，並提升層級至 `z-index: 25`，解決重疊被遮擋問題。
+  - **守城戰近戰城牆阻隔法則與城垛掩體減傷 (`InteractiveCombatSession.ts`)**：
+    - 🛡️ **無前排守軍時**：只要城門耐久度 > 0，敵方近戰單位（如哥布林）**100% 被城牆阻隔，絕對無法穿透攻擊中後排守軍**，所有物理近戰攻擊強制轉化為對城門耐久度的撞擊打擊（`SIEGE_GATE_DAMAGE`）。
+    - 🏹 **遠程/法術攻擊**：可越過城牆攻擊中後排，但我方守軍享有 **25% 城垛掩體傷害減免**。
+    - 💥 **城門攻破後**：觸發 `SIEGE_GATE_BREAK`，城門崩塌後敵軍近戰方可自由攻擊中後排！
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Fix/Combat/SiegeDefenseVisuals] 領主親征「誓死守城戰」實體城牆耐久血條 HUD、要塞城垛背景、鏡像防禦站位與箭塔砲擊支援全鏈路修復（2026-08-27）**：
+  - **親征守城戰專屬要塞視覺與實體城牆 HUD (`CombatUIManager.ts`)**：
+    - 封裝 `setupStageEnvironment` 統一管理守城與野外場景渲染；當觸發正規守城戰時，實時親征模式與靜態回放模式 100% 完整掛載中央頂部的 **「🏰 領地城牆耐久度 HUD (Gate Durability)」** 與 **要塞城垛背景 (`.is-defense-siege`)**。
+  - **守城戰正統鏡像防禦站位修復 (`CombatUIManager.ts`)**：
+    - 新增 `isCurrentDefenseSiege()` 智能雙向檢測（相容 `currentReport` 與 `currentSession`），守城方在左側時前排單位緊靠右側中央城門前線（`gridColumn = gridR + 1`），後排在左側，敵怪由右側向左攻門，100% 恢復昨日正統鏡像戰術站位。
+  - **親征守城戰邏輯對齊 (`InteractiveCombatSession.ts`)**：
+    - 實裝哨所箭塔每回合支援砲擊（`CombatEventType.WATCHTOWER_ATTACK`）與敵怪近戰轟擊城門耐久度（`SIEGE_GATE_DAMAGE` / `SIEGE_GATE_BREAK`），完整回傳並結算領地城牆殘存耐久。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Fix/Combat/ButtonsAndIcons] 戰鬥結算切換與瞬間完成按鈕 ID 綁定校正 & 親征怪物高清立繪修復（2026-08-27）**：
+  - **戰鬥結算與按鈕操作修復 (`CombatUIManager.ts`)**：
+    - 校正 `btn-combat-skip`、`btn-combat-close`、`btn-combat-result-close` 的 DOM ID 查詢，消除因 ID 前後綴不符導致的事件綁定失敗。
+    - 在 `finishPlayback` 加入安全保護，保證戰鬥播完或點擊「⏩ 瞬間完成」時，100% 順暢切換出「完成」按鈕與結算面板，徹底解決卡在最後一幀不結束的問題。
+  - **親征怪物專屬立繪修復 (`InteractiveCombatSession.ts`)**：
+    - 補全實時親征會話中敵方隊伍與 `WAVE_START` 波次事件的 `avatarIcon`（如 `icons_monsters:goblin`）傳遞，徹底告別 fallback 紙箱圖標，恢復寫實魔物立繪。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Fix/Combat/Sandbox/Lifecycle] 故事測試沙盒全域生命週期對齊與戰鬥中樞自動防呆 (`CombatUIManager.ensureInit`) 實裝（2026-08-27）**：
+  - **故事測試沙盒環境 100% 完整對齊正式遊戲 (`main.ts`)**：
+    - 消除故事測試沙盒跳過全域 UI 初始化 (`refreshGlobalUI()`) 的架構缺陷；調整啟動生命週期為「完整註冊 Templates 與全域 UI 模組 ➔ 再掛載故事測試控制器」，保證故事測試沙盒在戰鬥引擎、城防體系、日誌與回放上 100% 與正式遊戲同源共軌。
+  - **戰鬥 UI 自動防呆初始化 (`CombatUIManager.ts`)**：
+    - 實裝 `ensureInit()` 機制，在 `startInteractiveCombat`、`replayCombat`、`showCombat` 入口處全面主動檢測並安全綁定 DOM 節點。
+    - 在 `createHpBar` 與 `showCombat` 加入卡片容器存在性保護與 `initialStates` 容錯，徹底解決探險日誌「⚔️ 戰鬥紀錄」在特定邊界條件下黑屏無法播放的問題。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Feature/Combat/InteractiveCombatSession] 領主親征「實時單回合步進演算架構 (Interactive Combat Session)」與常規派遣雙軌隔離實裝（2026-08-27）**：
+  - **核心雙軌架構隔離 (Dual-Track Architecture Separation)**：
+    - 🛡️ **軌道 A（常規派遣／討伐／跑商／派遣迎擊）**：呼叫 `CombatSystem.simulateCombat` 進行批次演算，前端呼叫 `CombatUIManager.replayCombat(report)`，保留「⏩ 瞬間完成」按鈕與隨行部隊支援，不受手動干涉影響。
+    - 👑 **軌道 B（領主親征戰役：親自出城攔截／誓死守城）**：建立 `new InteractiveCombatSession(...)`，前端呼叫 `CombatUIManager.startInteractiveCombat(session, onClose)`。
+  - **實時步進演算與狀態鎖定機制 (`InteractiveCombatSession.ts` & `CombatUIManager.ts`)**：
+    - 🔒 **禁瞬間完成**：親征模式下隱藏「⏩ 瞬間完成」按鈕，每回合實時步進運算。
+    - 🛑 **交鋒防干涉鎖定**：每回合開始時戰場暫停，解鎖指揮列；玩家點擊任一軍令（盾牆/箭雨/衝鋒/鼓舞/待命）後，**按鈕立即反灰鎖定（`disabled`）**，執行 `session.stepTurn(order)` 並播放該回合動畫。
+    - ⏳ **精準 CD 扣除**：回合結束後才將技能 CD 遞減 1，戰鬥未結束時重新解鎖按鈕等待下回合決策；支援「🤖 自動戰鬥 (Auto)」與「1x/2x/3x 速度」。
+    - 🎯 **單一指令結算**：玩家選擇點擊的軍令立即作用於戰場，絕不自動混發其他未選指令。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、27 個測試檔案 114 項單元測試 100% 全部通過。
+- **[Feature/Combat/LordCommander] 領主親征軍令中樞系統 (Turn-based Commander Loop) 與隨行部隊身分隔離（2026-08-27）**：
+  - **領主親征 vs 委託派遣身分邊界與兵力精確校正 (`CombatSystem.ts`, `TerritoryDefenseSystem.ts`)**：
+    - 👑 **領主親征**：標示為 `【👑 領主軍令·XXX】`，啟動光環與手動指揮 HUD。
+    - 🛡️ **委託派遣**：完全移除「領主軍令」與光環，回歸隨行部隊支援（`【🛡️ 隨行軍團·步兵護盾】`、`【🏹 隨行軍團·箭雨支援】`、`【🐎 隨行軍團·側翼衝擊】`），自動由小隊長作戰。
+    - 🏹 **弓兵人數與傷害修復**：修正日誌傷害被怪物殘存血量截斷問題，完整顯示打擊威力（如 782 點）；兵種調派人數（500人）100% 傳遞至戰報與指揮列。
+- **[Feature/CombatStudio/DragDrop/Fix] 討伐據點 3×3 戰術九宮格全方位拖曳布陣 (Drag & Drop) 與波次座標自動防撞互換機制實裝（2026-08-27）**：
+  - **根本解決舊資料座標重疊覆蓋 Bug (`CombatStudio.ts`)**：
+    - 舊版資料升級 3×3 九宮格時使用 `c = mIdx % 3` 導致前排超過 3 隻怪物時座標循環撞車（出現多個 `0_0`、`0_1` 且九宮格互相覆蓋吞噬）。
+    - 實裝 `normalizeStrongholdWaves()` 正規化防撞引擎，在載入與渲染時自動檢測波次 slot 衝突，為重複或無效怪物依序分配未佔用空位（前 ➔ 中 ➔ 後），保證 1~9 隻怪物 100% 獨立不重疊。
+  - **3×3 戰術九宮格全方位拖曳布陣 (Drag & Drop) (`CombatStudio.ts`)**：
+    - 九宮格怪物卡片支援原創滑鼠拖曳：
+      - **拖曳至空槽位**：直接移動怪物至目標格子，即時更新 `slotId`, `gridR`, `gridC`, `formationRow`。
+      - **拖曳至已有怪物槽位**：兩隻怪物 **1:1 雙向互換位置 (Swap Slots)**。
+    - 右側怪物卡片清單同樣支援直接拖入左側九宮格指定槽位。
+    - 拖曳懸浮時目標槽位呈現金光高亮（`border: 2px dashed #f59e0b`、光暈縮放反饋）。
+  - **「⚙️ 配置」彈窗防呆互換 (`CombatStudio.ts`)**：
+    - 手動切換站位時，若目標槽位已被同波次其他怪物佔用，自動將對方互換回當前怪物原有的舊槽位，徹底告別手動撞車。
+  - **資料庫批次清理 ([src/data/subjugation_nodes.json](file:///d:/tryagent/Medieval/src/data/subjugation_nodes.json))**：
+    - 校正走私者關卡（薩滿移至中排 `1_1`）與霜風王陵（第 4、5 隻霜狼與雪怪移至中排 `1_0`, `1_1`）。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、25 個測試檔案 107 項單元測試（包含全新 `normalizeStrongholdWaves` 自動排他測試）100% PASS。
 - **[Feature/Combat/FieldInterception/Territory] 野外大軍攔截戰 (Field Interception) 全鏈路實裝：動員部署三大決策、短天數交兵公式、戰況狀態 1:1 繼承與大地圖受攻動態視覺特效（2026-08-26）**：
   - **領地動員部署彈窗升級 (`TerritoryDefenseModalController.ts` & `modals-combat-trade.html`)**：
     - 當故事事件觸發 `TRIGGER_RAID` 且 `warningDays > 0` 時，自動切換為「⚠️ 敵軍逼近預警」模式，提供 3 大戰略決策按鈕：

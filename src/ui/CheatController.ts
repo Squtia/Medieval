@@ -187,11 +187,39 @@ export function initCheatController(): void {
           GameState.adventurers.push(hero);
           ToastManager.show(`🛡️ 唯一 UR 傭兵【${hero.name}】已加入您的隊伍！`, 'success');
         }
+    }},
+    'layout': { name: '喚醒即時排版與美術編輯器', noPrompt: true, setter: async () => {
+        const { LiveLayoutEditor } = await import('../tools/LiveLayoutEditor');
+        LiveLayoutEditor.toggle();
+    }},
+    'edit': { name: '喚醒即時排版與美術編輯器', noPrompt: true, setter: async () => {
+        const { LiveLayoutEditor } = await import('../tools/LiveLayoutEditor');
+        LiveLayoutEditor.toggle();
+    }},
+    'theme': { name: '開啟全域視覺主題工坊', noPrompt: true, setter: async () => {
+        const { UIThemeStudio } = await import('../tools/UIThemeStudio');
+        UIThemeStudio.open();
+        ToastManager.show('🎨 已開啟「全域視覺主題工坊 (UI & Asset Studio)」！', 'success');
     }}
   });
 
   (window as any).openIconStudio = () => {
     window.open('./tools/icon-studio.html', '_blank');
+  };
+
+  (window as any).openLiveLayoutEditor = async () => {
+    const { LiveLayoutEditor } = await import('../tools/LiveLayoutEditor');
+    LiveLayoutEditor.open();
+  };
+
+  (window as any).toggleLiveLayoutEditor = async () => {
+    const { LiveLayoutEditor } = await import('../tools/LiveLayoutEditor');
+    LiveLayoutEditor.toggle();
+  };
+
+  (window as any).openThemeStudio = async () => {
+    const { UIThemeStudio } = await import('../tools/UIThemeStudio');
+    UIThemeStudio.open();
   };
 
   (window as any).openStoryStudio = () => {

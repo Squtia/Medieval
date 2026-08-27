@@ -118,7 +118,8 @@ export const FACILITY_SPRITE_COORDS: Record<string, SpriteCoordConfig> = {
   weapon: { col: 2, row: 0, zoom: 100 },
   armor: { col: 3, row: 0, zoom: 100 },
   study: { col: 0, row: 1, zoom: 100 },
-  defense: { col: 1, row: 1, zoom: 100 }
+  defense: { col: 1, row: 1, zoom: 100 },
+  church: { col: 0, row: 1, zoom: 100 }
 };
 
 /**

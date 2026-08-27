@@ -39,6 +39,12 @@ export class Adventurer {
   public quality: 'N' | 'R' | 'SR' | 'SSR' | 'UR';
   public isGuardian: boolean = false;
 
+  // 🏥 持久生命、魔力與傷病狀態 (Persistent Vitals & Injury System)
+  public currentHp?: number;
+  public currentMp?: number;
+  public isWounded: boolean = false;
+  public inInfirmaryBed: boolean = false;
+
   constructor(id: string, name: string, job: JobConfig, trait: TraitConfig, quality: 'N' | 'R' | 'SR' | 'SSR' | 'UR' = 'N', gender?: Gender, isGuardian: boolean = false) {
     this.id = id;
     this.name = name;
@@ -435,7 +441,93 @@ export class Adventurer {
     stats.atk = Math.max(stats.patk, stats.matk);
     stats.def = stats.pdef;
 
+    // 🩸 重傷 Debuff 懲罰：戰鬥輸出與防禦降低 20%，速度降低 30%
+    if (this.isWounded) {
+      stats.patk = Math.max(1, Math.floor(stats.patk * 0.8));
+      stats.matk = Math.max(1, Math.floor(stats.matk * 0.8));
+      stats.pdef = Math.max(1, Math.floor(stats.pdef * 0.8));
+      stats.mdef = Math.max(1, Math.floor(stats.mdef * 0.8));
+      stats.speed = Math.max(1, Math.floor(stats.speed * 0.7));
+      stats.atk = Math.max(stats.patk, stats.matk);
+      stats.def = stats.pdef;
+    }
+
     return stats;
+  }
+
+  /**
+   * 🏥 取得傭兵即時持久 HP (單一真相來源保護)
+   */
+  public getCurrentHp(): number {
+    const max = this.getCombatStats().hp;
+    if (this.currentHp === undefined || isNaN(this.currentHp)) {
+      this.currentHp = max;
+    }
+    return Math.max(1, Math.min(this.currentHp, max));
+  }
+
+  /**
+   * 🔮 取得傭兵即時持久 MP
+   */
+  public getCurrentMp(): number {
+    const max = this.getCombatStats().mp;
+    if (this.currentMp === undefined || isNaN(this.currentMp)) {
+      this.currentMp = max;
+    }
+    return Math.max(0, Math.min(this.currentMp, max));
+  }
+
+  /**
+   * 🩸 設定傭兵即時 HP (血量達 80% 自動痊癒解除重傷)
+   */
+  public setCurrentHp(val: number): void {
+    const max = this.getCombatStats().hp;
+    this.currentHp = Math.max(1, Math.min(val, max));
+    if (this.currentHp >= Math.floor(max * 0.8) && this.isWounded) {
+      this.isWounded = false;
+    }
+  }
+
+  /**
+   * 🔮 設定傭兵即時 MP
+   */
+  public setCurrentMp(val: number): void {
+    const max = this.getCombatStats().mp;
+    this.currentMp = Math.max(0, Math.min(val, max));
+  }
+
+  /**
+   * ✨ 治療與回復生命/魔力
+   */
+  public heal(hpAmount: number, mpAmount: number = 0): void {
+    const maxHp = this.getCombatStats().hp;
+    const maxMp = this.getCombatStats().mp;
+    const curHp = this.getCurrentHp();
+    const curMp = this.getCurrentMp();
+    this.setCurrentHp(Math.min(maxHp, curHp + hpAmount));
+    this.setCurrentMp(Math.min(maxMp, curMp + mpAmount));
+  }
+
+  /**
+   * 🩸 戰鬥中陣亡或戰敗，陷入重傷瀕死狀態
+   */
+  public applyWound(): void {
+    this.isWounded = true;
+    this.currentHp = 1;
+    this.currentMp = 0;
+  }
+
+  /**
+   * 🛡️ 邊界保護：當裝備更換或升級使得 MaxHP 變動時，防溢出保護
+   */
+  public validateHpMpLimits(): void {
+    const stats = this.getCombatStats();
+    if (this.currentHp !== undefined) {
+      this.currentHp = Math.min(this.currentHp, stats.hp);
+    }
+    if (this.currentMp !== undefined) {
+      this.currentMp = Math.min(this.currentMp, stats.mp);
+    }
   }
 
 

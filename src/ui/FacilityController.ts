@@ -64,6 +64,12 @@ export function initFacilityController(): void {
     renderForgeView();
   });
 
+  document.getElementById('btn-enter-church')?.addEventListener('click', async () => {
+    enterFacility('view-church');
+    const { ChurchModalController } = await import('./modals/ChurchModalController');
+    ChurchModalController.render();
+  });
+
   // 退出建築按鈕
   document.querySelectorAll('.btn-exit-facility').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -123,6 +129,4 @@ export function initFacilityController(): void {
     const { openWarehouse } = await import('./ShopController');
     openWarehouse(true);
   });
-
-
 }

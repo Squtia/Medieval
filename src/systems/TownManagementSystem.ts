@@ -4,6 +4,7 @@ import { GameState } from '../core/GameState';
 import { WorkerJob, getTaxBonusPer10Pop, NodeLevel, getOfficeConfig } from '../models/types';
 import { Random } from '../core/Random';
 import { calculateNodeLevel, getDifficultyModifiers } from '../data/BalanceData';
+import { ChurchSystem } from './ChurchSystem';
 
 export class TownManagementSystem {
   constructor() {
@@ -11,15 +12,15 @@ export class TownManagementSystem {
     
     // 監聽天數流逝，進行資源結算
     eventBus.subscribe(GameEventType.DAY_PASSED, (payload) => {
-      this.resolveDailyResources();
+      TownManagementSystem.resolveDailyResources();
     });
 
     // 監聽勞工分配與人口變動，即時更新治安度
     eventBus.subscribe(GameEventType.WORKER_ASSIGNED, () => {
-      this.updateSecurity();
+      TownManagementSystem.updateSecurity();
     });
     eventBus.subscribe(GameEventType.POPULATION_CHANGED, () => {
-      this.updateSecurity();
+      TownManagementSystem.updateSecurity();
     });
 
     // 監聽災難威脅抵達
@@ -67,11 +68,11 @@ export class TownManagementSystem {
     });
   }
 
-  public updateSecurity() {
+  public static updateSecurity() {
     const territory = GameState.myTerritory;
     const workers = territory.workers;
     let newSecurity = 100;
-    const currentNode = GameState.mapSystem.getNodes().find(n => n.id === territory.currentCountryId);
+    const currentNode = GameState.mapSystem ? GameState.mapSystem.getNodes().find(n => n.id === territory.currentCountryId) : undefined;
     
     // 基礎守衛需求 (按 NodeLevel)
     let baseGuards = 0;
@@ -118,7 +119,7 @@ export class TownManagementSystem {
     return productionMultiplier;
   }
 
-  private resolveDailyResources() {
+  public static resolveDailyResources() {
     const territory = GameState.myTerritory;
     const workers = territory.workers;
     
@@ -162,6 +163,16 @@ export class TownManagementSystem {
     }
     // 鐵礦也套用倍率
     ironProduced = Math.floor(ironProduced * quarryMult * productionMultiplier);
+
+    // 🌿 伐木工有機率採集到野生藥草 (每個伐木工獨立 25% 機率採集 1~2 株)
+    let herbsProduced = 0;
+    const woodcutterCount = workers[WorkerJob.WOODCUTTER] || 0;
+    for (let i = 0; i < woodcutterCount; i++) {
+      if (Random.next() < 0.25) {
+        herbsProduced += Random.int(1, 2);
+      }
+    }
+    herbsProduced = Math.floor(herbsProduced * lumberMult * productionMultiplier);
     
     // 獵人產出生皮與獸肉
     const hunterCount = workers[WorkerJob.HUNTER] || 0;
@@ -183,10 +194,14 @@ export class TownManagementSystem {
     territory.iron += ironProduced;
     territory.food += foodProduced - foodConsumed;
     
-    // 結算額外貿易品
+    // 結算額外貿易品與素材
     if (cottonProduced > 0) territory.tradeInventory['tg_cotton'] = (territory.tradeInventory['tg_cotton'] || 0) + cottonProduced;
     if (hideProduced > 0) territory.tradeInventory['tg_hide'] = (territory.tradeInventory['tg_hide'] || 0) + hideProduced;
     if (meatProduced > 0) territory.tradeInventory['tg_meat'] = (territory.tradeInventory['tg_meat'] || 0) + meatProduced;
+    if (herbsProduced > 0) {
+      if (!territory.materials) territory.materials = {};
+      territory.materials['tg_Medicinal_herbs'] = (territory.materials['tg_Medicinal_herbs'] || 0) + herbsProduced;
+    }
 
     // 每日統一日結稅收 (依據爵位與人口，並套用稅率與治安倍率)
     const baseTaxPer10 = 2 + getTaxBonusPer10Pop(territory.title);
@@ -341,9 +356,7 @@ export class TownManagementSystem {
       });
 
       if (arrivedRaids.length > 0) {
-        // 過濾已抵達城下的戰役
-        territory.pendingRaids = territory.pendingRaids.filter(pr => pr.warningDaysLeft > 0);
-        // 延遲喚起守城動員部署 (天數已歸零，強制為正規守城戰模式)
+        // 延遲喚起守城動員部署 (天數已歸零，強制為正規守城戰模式，戰後結算時才移除)
         setTimeout(() => {
           import('./TerritoryDefenseSystem').then(({ TerritoryDefenseSystem }) => {
             arrivedRaids.forEach(ar => {
@@ -353,6 +366,32 @@ export class TownManagementSystem {
         }, 400);
       }
     }
+
+    // 7. 🏥 冒險者過夜自然恢復與教會病房休養結算
+    const baseRecoveryRate = territory.getChurchNaturalRecoveryRate(); // Lv.0: 10% ~ Lv.4: 30%
+    const prayerBonus = ChurchSystem.getRetiredPrayersBonus(); // 退休祈禱者加成
+
+    (GameState.adventurers || []).forEach(adv => {
+      // 若外出派遣中，不享受領地教會與病床加成 (外出自然恢復 5%)
+      if ((adv as any).isDispatched || (adv as any).onExpedition) {
+        if (typeof adv.heal === 'function') {
+          adv.heal(Math.floor(adv.getCombatStats().hp * 0.05), Math.floor(adv.getCombatStats().mp * 0.05));
+        }
+        return;
+      }
+
+      let totalRate = baseRecoveryRate + prayerBonus.recoveryBonusPct;
+      if (adv.inInfirmaryBed) {
+        totalRate += 0.10; // 🛏️ 病床額外 +10%
+      }
+
+      if (typeof adv.getCombatStats === 'function' && typeof adv.heal === 'function') {
+        const stats = adv.getCombatStats();
+        const healHp = Math.max(5, Math.floor(stats.hp * totalRate));
+        const healMp = Math.max(2, Math.floor(stats.mp * totalRate));
+        adv.heal(healHp, healMp);
+      }
+    });
 
     // 發布資源變更事件，讓 UI 更新
     EventBus.getInstance().publish({

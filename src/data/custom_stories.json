@@ -1437,5 +1437,76 @@
         "completionEffects": []
       }
     ]
+  },
+  {
+    "id": "new_story_2",
+    "title": "城戰測試",
+    "summary": "",
+    "version": 1,
+    "enabled": false,
+    "nodes": [
+      {
+        "id": "test",
+        "title": "有人對你不爽就是想打你(守城測試)",
+        "description": "",
+        "channel": "TERRITORY_EVENT",
+        "conditions": [
+          {
+            "type": "FACT_EXISTS",
+            "fact": "TEST"
+          }
+        ],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "TRIGGER_RAID",
+            "raidName": "對你不爽圍城戰",
+            "warningDays": 0,
+            "waves": [
+              {
+                "waveIndex": 1,
+                "templateId": "goblin_den",
+                "customName": "哥布林潮濕洞穴"
+              }
+            ],
+            "successNodeId": "",
+            "failNodeId": ""
+          }
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      },
+      {
+        "id": "new_node",
+        "title": "有人對你不爽就是想打你(主要軍團迎擊測試)",
+        "description": "",
+        "channel": "TERRITORY_EVENT",
+        "conditions": [
+          {
+            "type": "FACT_EXISTS",
+            "fact": "send_test"
+          }
+        ],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "TRIGGER_RAID",
+            "raidName": "黑狼軍團圍城戰",
+            "warningDays": 3,
+            "waves": [
+              {
+                "waveIndex": 1,
+                "templateId": "frost_dragon_lair",
+                "customName": "霜風王陵與冰龍巢"
+              }
+            ],
+            "successNodeId": "",
+            "failNodeId": ""
+          }
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      }
+    ]
   }
 ]

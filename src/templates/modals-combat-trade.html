@@ -1,10 +1,64 @@
 
   <!-- 戰鬥結算 Modal -->
   <div id="combat-modal">
+    <!-- 👑 領主親征光環 Header Bar (戰鬥框頂部全寬橫條，獨立顯示絕不遮擋卡片) -->
+    <div id="combat-lord-aura-bar" style="display: none; width: 100%; background: linear-gradient(90deg, #1e150b, #382414, #1e150b); border-bottom: 1px solid #d97706; padding: 6px 16px; font-size: 0.84rem; color: #fef08a; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.6); box-sizing: border-box;">
+      <span style="color: #fbbf24; font-weight: bold; font-size: 0.88rem;">👑 領主親征光環:</span>
+      <span id="combat-lord-aura-text" style="color: #ffffff; font-weight: 500;">【領主威嚴】全軍士氣高昂 (+10% 攻防)</span>
+    </div>
+
     <div id="combat-stage" class="combat-stage">
       <div id="combat-player-team" class="combat-team player-team"></div>
+      <!-- 🏰 守城戰專屬：中央實體要塞城牆與城門屏障 -->
+      <div id="combat-siege-wall-divider" class="combat-siege-wall-divider" style="display: none;"></div>
       <div id="combat-enemy-team" class="combat-team enemy-team"></div>
+
+      <!-- 🏰 守城戰專屬：正中底部城牆耐久度 HUD (位於中央城門底部、破陣衝鋒正上方) -->
+      <div id="combat-siege-gate-hud" style="display: none; position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: rgba(15, 10, 8, 0.96); border: 2px solid #d97706; border-radius: 8px; padding: 5px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 4px 18px rgba(0,0,0,0.9); z-index: 10;">
+        <div style="font-size: 1.4rem;">🏰</div>
+        <div>
+          <div style="display: flex; justify-content: space-between; gap: 14px; font-size: 0.8rem; font-weight: bold; margin-bottom: 3px;">
+            <span style="color: #fbbf24;">領地城牆耐久度</span>
+            <span id="siege-gate-hp-display" style="color: #4ade80;">5000 / 5000</span>
+          </div>
+          <div style="width: 200px; height: 8px; background: rgba(0,0,0,0.6); border-radius: 4px; overflow: hidden; border: 1px solid #78350f;">
+            <div id="siege-gate-hp-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- ⚔️ 領主軍令戰術指揮列 (Commander HUD) -->
+    <div id="combat-commander-hud" style="display: none; background: rgba(15, 23, 42, 0.95); border-top: 1px solid rgba(234, 179, 8, 0.4); border-bottom: 1px solid rgba(255,255,255,0.08); padding: 6px 14px; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.82rem; flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 6px; color: #eab308; font-weight: bold; flex-shrink: 0;">
+        <span>🚩 領主軍令:</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center; flex: 1; justify-content: center; flex-wrap: wrap;">
+        <div id="cmd-btn-shield-wall" class="commander-tactic-btn" style="background: #1e293b; border: 1px solid #3b82f6; border-radius: 6px; padding: 4px 10px; color: #93c5fd; display: flex; align-items: center; gap: 5px; font-size: 0.78rem; cursor: pointer;">
+          <span>🛡️ 鋼鐵盾牆</span>
+          <span id="cmd-shield-count" style="font-weight: bold; color: #fff;">(0人)</span>
+        </div>
+        <div id="cmd-btn-volley-fire" class="commander-tactic-btn" style="background: #1e293b; border: 1px solid #10b981; border-radius: 6px; padding: 4px 10px; color: #6ee7b7; display: flex; align-items: center; gap: 5px; font-size: 0.78rem; cursor: pointer;">
+          <span>🏹 漫天箭雨</span>
+          <span id="cmd-archer-count" style="font-weight: bold; color: #fff;">(0人)</span>
+        </div>
+        <div id="cmd-btn-cavalry-charge" class="commander-tactic-btn" style="background: #1e293b; border: 1px solid #f59e0b; border-radius: 6px; padding: 4px 10px; color: #fde68a; display: flex; align-items: center; gap: 5px; font-size: 0.78rem; cursor: pointer;">
+          <span>🐎 破陣衝鋒</span>
+          <span id="cmd-cavalry-count" style="font-weight: bold; color: #fff;">(0人)</span>
+        </div>
+        <div id="cmd-btn-inspire" class="commander-tactic-btn" style="background: #1e293b; border: 1px solid #c084fc; border-radius: 6px; padding: 4px 10px; color: #e9d5ff; display: flex; align-items: center; gap: 5px; font-size: 0.78rem; cursor: pointer;">
+          <span>🎺 全軍鼓舞</span>
+          <span id="cmd-inspire-count" style="font-weight: bold; color: #fff;">(領主)</span>
+        </div>
+        <div id="cmd-btn-pass-turn" class="commander-tactic-btn" style="background: #334155; border: 1px solid #94a3b8; border-radius: 6px; padding: 4px 12px; color: #f1f5f9; display: flex; align-items: center; gap: 5px; font-size: 0.78rem; cursor: pointer; font-weight: bold;">
+          <span>⏩ 略過/待命</span>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button id="btn-commander-auto" class="action-btn" style="padding: 2px 8px; font-size: 0.75rem; background: #334155; color: #cbd5e1; border: 1px solid #64748b;">🤖 自動戰鬥</button>
+      </div>
+    </div>
+
     <div id="combat-log-area" class="combat-log-area"></div>
     <div class="combat-footer" style="justify-content: space-between;">
       <div style="display: flex; gap: 8px; align-items: center;">
