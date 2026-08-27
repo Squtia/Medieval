@@ -4,6 +4,7 @@ import { MapNode, NodeFeature } from '../models/types';
 import { TaskType } from '../models/DispatchTask';
 import { buildTradeRouteSegments, getNodeIcon, getNodeTextureKey } from './MapPresentation';
 import { positionFloatingElement } from './FloatingPosition';
+import defaultCustomDatasets from '../data/custom_icon_datasets.json';
 
 interface CombatBeacon {
   container: Phaser.GameObjects.Container;
@@ -57,6 +58,11 @@ export class MapScene extends Phaser.Scene {
     this.load.image('node-port', `${cleanBase}assets/node_port.png`);
     this.load.image('node-monastery', `${cleanBase}assets/node_monastery.png`);
     this.load.image('node-volcano', `${cleanBase}assets/node_volcano.png`);
+
+    // 載入常用自訂據點與城鎮圖集
+    this.load.image('cave_node_01', `${cleanBase}assets/custom_icons/cave_node_01.png`);
+    this.load.image('icons_buildings', `${cleanBase}assets/icons_buildings_12.jpg`);
+    this.load.image('settlement_sheet', `${cleanBase}assets/custom_icons/settlement_sheet.png`);
   }
 
   create() {
@@ -492,10 +498,9 @@ export class MapScene extends Phaser.Scene {
         glowColor = '#9ca3af'; // 灰色
       }
 
-      // 繪製 Isometric 3/4 俯視角地圖節點圖案
-      const textureKey = getNodeTextureKey(node);
+      // 繪製 Isometric 3/4 俯視角地圖節點圖案 (優先讀取自訂 customIcon，若無則依等級 fallback)
       const iconSize = node.isPlayerBase ? 42 : node.isDynamic ? 25 : 35;
-      const iconSprite = this.add.image(0, -10, textureKey).setDisplaySize(iconSize, iconSize);
+      const iconSprite = this.createNodeIconSprite(node, iconSize);
 
       // 繪製名字標籤 (移除黑框，改為純文字加發光陰影)
       const labelText = this.add.text(0, 12, node.name, {
@@ -626,6 +631,72 @@ export class MapScene extends Phaser.Scene {
       this.nodeContainers.set(node.id, container);
     });
     this.syncCombatBeacons(nodes);
+  }
+
+  private createNodeIconSprite(node: MapNode, iconSize: number): Phaser.GameObjects.Image {
+    let targetIcon = node.customIcon;
+    if (!targetIcon && node.isPlayerBase) {
+      switch (node.nodeLevel) {
+        case 1: // NodeLevel.CAMP
+          targetIcon = 'settlement_sheet:settlement_sheet_0';
+          break;
+        case 2: // NodeLevel.VILLAGE
+          targetIcon = 'settlement_sheet:settlement_sheet_5';
+          break;
+        case 3: // NodeLevel.TOWN
+          targetIcon = 'settlement_sheet:settlement_sheet_10';
+          break;
+        case 4: // NodeLevel.CAPITAL
+          targetIcon = 'settlement_sheet:settlement_sheet_20';
+          break;
+        case 0: // NodeLevel.WILDERNESS
+        default:
+          targetIcon = undefined;
+          break;
+      }
+    }
+
+    if (targetIcon && typeof targetIcon === 'string') {
+      const parts = targetIcon.split(':');
+      const catKey = parts.length > 1 ? parts[0] : '';
+      const itemId = parts.length > 1 ? parts[1] : targetIcon;
+
+      const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
+      let targetCatKey = catKey;
+      if (!targetCatKey) {
+        for (const [k, cat] of Object.entries(allDatasets)) {
+          if (cat.items && cat.items.some((i: any) => i.id === itemId)) {
+            targetCatKey = k;
+            break;
+          }
+        }
+      }
+
+      const catData = allDatasets[targetCatKey];
+      if (catData && this.textures.exists(targetCatKey)) {
+        const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
+        const cols = catData.cols || 5;
+        const rows = catData.rows || 5;
+        const col = itemDef.col ?? 0;
+        const row = itemDef.row ?? 0;
+        const frameKey = `${targetCatKey}_${col}_${row}`;
+
+        const texture = this.textures.get(targetCatKey);
+        if (texture && !texture.has(frameKey)) {
+          const source = texture.source[0];
+          const frameW = source.width / cols;
+          const frameH = source.height / rows;
+          texture.add(frameKey, 0, col * frameW, row * frameH, frameW, frameH);
+        }
+
+        if (texture && texture.has(frameKey)) {
+          return this.add.image(0, -10, targetCatKey, frameKey).setDisplaySize(iconSize, iconSize);
+        }
+      }
+    }
+
+    const textureKey = getNodeTextureKey(node);
+    return this.add.image(0, -10, textureKey).setDisplaySize(iconSize, iconSize);
   }
 
   private syncCombatBeacons(nodes: MapNode[]): void {

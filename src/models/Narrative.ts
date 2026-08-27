@@ -50,6 +50,10 @@ export interface SubjugationTemplate {
   isWorldSecret?: boolean;
   fogRumor?: string;
   revealRumor?: string;
+  allowTroops?: boolean;
+  worldGenMode?: 'PERMANENT_VISIBLE' | 'WORLD_SECRET' | 'STORY_ONLY';
+  factionId?: string;
+  nodeLevel?: import('./types').NodeLevel;
   waves?: SubjugationWave[];
   enemyLegion?: {
     enabled?: boolean;

@@ -501,6 +501,7 @@ export class DispatchModalController {
       const task = new DispatchTask(`攻城${node.name}`, TaskType.COMBAT, 4, baseDiff, 100 + node.nodeLevel * 50, prestigeReward, minPower, randomFeature);
       task.targetNodeId = node.id;
       task.isWar = true;
+      task.allowTroops = true;
       return task;
     } else {
       const enemyLineup = (node.scoutData && node.scoutData.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0)
@@ -517,6 +518,7 @@ export class DispatchModalController {
       const task = new DispatchTask(`討伐${node.name}`, TaskType.COMBAT, 4, baseDiff, baseRewardGold, prestigeReward, subjugationMinPower, randomFeature);
       task.targetNodeId = node.id;
       task.enemyLineup = enemyLineup;
+      task.allowTroops = node.allowTroops !== false;
       if (node.narrativeSubjugation) {
         task.narrativeSubjugation = { ...node.narrativeSubjugation, journeyNodeIds: [...node.narrativeSubjugation.journeyNodeIds] };
         if (node.narrativeSubjugation.enemyFeature) task.enemyFeature = node.narrativeSubjugation.enemyFeature as EnemyFeature;
@@ -672,8 +674,8 @@ export class DispatchModalController {
       if (actionType === 'subjugation' || actionType === 'war') {
         this.pendingDispatchTask.subjugationMode = SubjugationMode.SINGLE;
         
-        // 驗證總派兵數是否超過領地庫存 (只有 WAR 模式才會帶兵)
-        if (this.pendingDispatchTask.isWar) {
+        // 驗證總派兵數是否超過領地庫存 (WAR 模式或允許帶兵的討伐模式)
+        if (this.pendingDispatchTask.isWar || this.pendingDispatchTask.allowTroops) {
           const terr = GameState.myTerritory;
           const totals: Record<string, number> = { INFANTRY: 0, CAVALRY: 0, ARCHER: 0 };
           // this.selectedTroopsForDispatch is Record<string, any> where any is {type, count}

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-24T14:20:59.315Z",
+  "timestamp": "2026-08-27T14:58:35.217Z",
   "note": "在戰鬥工坊中儲存",
   "monsters": [
     {
@@ -18,7 +18,8 @@
       "powerTier": 0.5,
       "profile": "BALANCED",
       "skills": [],
-      "avatarIcon": "monster_icon1:monster_icon1_7"
+      "avatarIcon": "monster_icon1:monster_icon1_7",
+      "attackType": "MELEE"
     },
     {
       "id": "wild_wolf",
@@ -38,7 +39,8 @@
       "skills": [
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_6"
+      "avatarIcon": "monster_icon1:monster_icon1_6",
+      "attackType": "MELEE"
     },
     {
       "id": "skeleton",
@@ -56,7 +58,8 @@
       "defaultElement": "DARK",
       "profile": "BALANCED",
       "skills": [],
-      "avatarIcon": "monster_icon1:monster_icon1_5"
+      "avatarIcon": "monster_icon1:monster_icon1_5",
+      "attackType": "MELEE"
     },
     {
       "id": "ghoul",
@@ -75,7 +78,8 @@
       "skills": [
         "SKILL_BLOOD_DRAIN"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_4"
+      "avatarIcon": "monster_icon1:monster_icon1_4",
+      "attackType": "MELEE"
     },
     {
       "id": "bandit",
@@ -92,7 +96,8 @@
       "powerTier": 0.8,
       "profile": "BALANCED",
       "skills": [],
-      "avatarIcon": "monster_icon1:monster_icon1_3"
+      "avatarIcon": "monster_icon1:monster_icon1_3",
+      "attackType": "MELEE"
     },
     {
       "id": "spider",
@@ -112,7 +117,8 @@
       "skills": [
         "SKILL_TOXIC_SPRAY"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_2"
+      "avatarIcon": "monster_icon1:monster_icon1_2",
+      "attackType": "MELEE"
     },
     {
       "id": "orc",
@@ -131,7 +137,8 @@
       "skills": [
         "SKILL_FRENZY_ROAR"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_1"
+      "avatarIcon": "monster_icon1:monster_icon1_1",
+      "attackType": "MELEE"
     },
     {
       "id": "lizard",
@@ -151,7 +158,8 @@
       "skills": [
         "SKILL_TOXIC_SPRAY"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_0"
+      "avatarIcon": "monster_icon1:monster_icon1_0",
+      "attackType": "MELEE"
     },
     {
       "id": "crossbowman",
@@ -170,7 +178,8 @@
       "skills": [
         "SKILL_SHADOW_ASSAULT"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_15"
+      "avatarIcon": "monster_icon1:monster_icon1_15",
+      "attackType": "RANGED"
     },
     {
       "id": "shaman",
@@ -190,7 +199,8 @@
       "skills": [
         "SKILL_FLAME_BURST"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_14"
+      "avatarIcon": "monster_icon1:monster_icon1_14",
+      "attackType": "MAGIC"
     },
     {
       "id": "golem",
@@ -210,7 +220,8 @@
         "SKILL_CRUSHING_SLAM",
         "SKILL_IRON_DEFENSE"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_13"
+      "avatarIcon": "monster_icon1:monster_icon1_13",
+      "attackType": "MELEE"
     },
     {
       "id": "wraith",
@@ -231,7 +242,8 @@
       "skills": [
         "SKILL_TERROR_SCREECH"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_12"
+      "avatarIcon": "monster_icon1:monster_icon1_12",
+      "attackType": "MAGIC"
     },
     {
       "id": "rebel",
@@ -249,7 +261,8 @@
       "skills": [
         "SKILL_FRENZY_ROAR"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_11"
+      "avatarIcon": "monster_icon1:monster_icon1_11",
+      "attackType": "MELEE"
     },
     {
       "id": "death_knight",
@@ -269,7 +282,8 @@
         "SKILL_BLOOD_DRAIN",
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_10"
+      "avatarIcon": "monster_icon1:monster_icon1_10",
+      "attackType": "MELEE"
     },
     {
       "id": "assassin",
@@ -288,7 +302,8 @@
         "SKILL_SHADOW_ASSAULT",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_9"
+      "avatarIcon": "monster_icon1:monster_icon1_9",
+      "attackType": "MELEE"
     },
     {
       "id": "bear",
@@ -308,7 +323,8 @@
         "SKILL_SAVAGE_REND",
         "SKILL_FRENZY_ROAR"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_8"
+      "avatarIcon": "monster_icon1:monster_icon1_8",
+      "attackType": "MELEE"
     },
     {
       "id": "troll",
@@ -328,7 +344,8 @@
       "skills": [
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_23"
+      "avatarIcon": "monster_icon1:monster_icon1_23",
+      "attackType": "MELEE"
     },
     {
       "id": "gargoyle",
@@ -347,7 +364,8 @@
         "SKILL_IRON_DEFENSE",
         "SKILL_TERROR_SCREECH"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_22"
+      "avatarIcon": "monster_icon1:monster_icon1_22",
+      "attackType": "MELEE"
     },
     {
       "id": "scorpion",
@@ -366,7 +384,8 @@
         "SKILL_TOXIC_SPRAY",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_21"
+      "avatarIcon": "monster_icon1:monster_icon1_21",
+      "attackType": "MELEE"
     },
     {
       "id": "bat",
@@ -385,7 +404,8 @@
       "skills": [
         "SKILL_BLOOD_DRAIN"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_20"
+      "avatarIcon": "monster_icon1:monster_icon1_20",
+      "attackType": "MELEE"
     },
     {
       "id": "harpy",
@@ -403,7 +423,8 @@
       "skills": [
         "SKILL_TERROR_SCREECH"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_19"
+      "avatarIcon": "monster_icon1:monster_icon1_19",
+      "attackType": "MELEE"
     },
     {
       "id": "treant",
@@ -420,7 +441,8 @@
       "skills": [
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_18"
+      "avatarIcon": "monster_icon1:monster_icon1_18",
+      "attackType": "MELEE"
     },
     {
       "id": "beetle",
@@ -438,7 +460,8 @@
       "skills": [
         "SKILL_IRON_DEFENSE"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_17"
+      "avatarIcon": "monster_icon1:monster_icon1_17",
+      "attackType": "MELEE"
     },
     {
       "id": "yeti",
@@ -456,7 +479,8 @@
         "SKILL_FROST_BREATH",
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_16"
+      "avatarIcon": "monster_icon1:monster_icon1_16",
+      "attackType": "MELEE"
     },
     {
       "id": "naga",
@@ -475,7 +499,8 @@
         "SKILL_TOXIC_SPRAY",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_31"
+      "avatarIcon": "monster_icon1:monster_icon1_31",
+      "attackType": "MELEE"
     },
     {
       "id": "specter",
@@ -495,7 +520,8 @@
       "skills": [
         "SKILL_TERROR_SCREECH"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_30"
+      "avatarIcon": "monster_icon1:monster_icon1_30",
+      "attackType": "MAGIC"
     },
     {
       "id": "hellhound",
@@ -516,7 +542,8 @@
         "SKILL_FLAME_BURST",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_29"
+      "avatarIcon": "monster_icon1:monster_icon1_29",
+      "attackType": "MELEE"
     },
     {
       "id": "zombie",
@@ -534,7 +561,8 @@
       "defaultElement": "DARK",
       "profile": "JUGGERNAUT",
       "skills": [],
-      "avatarIcon": "monster_icon1:monster_icon1_28"
+      "avatarIcon": "monster_icon1:monster_icon1_28",
+      "attackType": "MELEE"
     },
     {
       "id": "wight",
@@ -553,7 +581,8 @@
       "skills": [
         "SKILL_BLOOD_DRAIN"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_27"
+      "avatarIcon": "monster_icon1:monster_icon1_27",
+      "attackType": "MELEE"
     },
     {
       "id": "iron_guard",
@@ -572,7 +601,8 @@
         "SKILL_IRON_DEFENSE",
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_26"
+      "avatarIcon": "monster_icon1:monster_icon1_26",
+      "attackType": "MELEE"
     },
     {
       "id": "barbarian",
@@ -590,7 +620,8 @@
       "skills": [
         "SKILL_FRENZY_ROAR"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_25"
+      "avatarIcon": "monster_icon1:monster_icon1_25",
+      "attackType": "MELEE"
     },
     {
       "id": "minotaur",
@@ -610,7 +641,8 @@
         "SKILL_CRUSHING_SLAM",
         "SKILL_FRENZY_ROAR"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_24"
+      "avatarIcon": "monster_icon1:monster_icon1_24",
+      "attackType": "MELEE"
     },
     {
       "id": "basilisk",
@@ -629,7 +661,8 @@
         "SKILL_TOXIC_SPRAY",
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_39"
+      "avatarIcon": "monster_icon1:monster_icon1_39",
+      "attackType": "MELEE"
     },
     {
       "id": "shadow_blade",
@@ -649,7 +682,8 @@
         "SKILL_SHADOW_ASSAULT",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_38"
+      "avatarIcon": "monster_icon1:monster_icon1_38",
+      "attackType": "MAGIC"
     },
     {
       "id": "cultist",
@@ -668,7 +702,8 @@
       "skills": [
         "SKILL_FLAME_BURST"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_37"
+      "avatarIcon": "monster_icon1:monster_icon1_37",
+      "attackType": "MAGIC"
     },
     {
       "id": "elemental_golem",
@@ -688,7 +723,8 @@
         "SKILL_FLAME_BURST",
         "SKILL_IRON_DEFENSE"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_36"
+      "avatarIcon": "monster_icon1:monster_icon1_36",
+      "attackType": "MAGIC"
     },
     {
       "id": "slime",
@@ -705,7 +741,8 @@
       "powerTier": 0.4,
       "profile": "BALANCED",
       "skills": [],
-      "avatarIcon": "monster_icon1:monster_icon1_35"
+      "avatarIcon": "monster_icon1:monster_icon1_35",
+      "attackType": "MELEE"
     },
     {
       "id": "sand_worm",
@@ -722,7 +759,8 @@
       "skills": [
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_34"
+      "avatarIcon": "monster_icon1:monster_icon1_34",
+      "attackType": "MELEE"
     },
     {
       "id": "phantom_warrior",
@@ -742,7 +780,8 @@
         "SKILL_SHADOW_ASSAULT",
         "SKILL_BLOOD_DRAIN"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_33"
+      "avatarIcon": "monster_icon1:monster_icon1_33",
+      "attackType": "MAGIC"
     },
     {
       "id": "frost_wolf",
@@ -761,7 +800,8 @@
         "SKILL_FROST_BREATH",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_32"
+      "avatarIcon": "monster_icon1:monster_icon1_32",
+      "attackType": "MELEE"
     },
     {
       "id": "drake",
@@ -782,7 +822,8 @@
         "SKILL_FLAME_BURST",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_47"
+      "avatarIcon": "monster_icon1:monster_icon1_47",
+      "attackType": "MELEE"
     },
     {
       "id": "wyvern",
@@ -802,7 +843,8 @@
         "SKILL_FROST_BREATH",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_46"
+      "avatarIcon": "monster_icon1:monster_icon1_46",
+      "attackType": "MELEE"
     },
     {
       "id": "draconic_lizard",
@@ -822,7 +864,8 @@
         "SKILL_CRUSHING_SLAM",
         "SKILL_IRON_DEFENSE"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_45"
+      "avatarIcon": "monster_icon1:monster_icon1_45",
+      "attackType": "MELEE"
     },
     {
       "id": "skeleton_drake",
@@ -844,7 +887,8 @@
         "SKILL_BLOOD_DRAIN",
         "SKILL_TERROR_SCREECH"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_44"
+      "avatarIcon": "monster_icon1:monster_icon1_44",
+      "attackType": "MELEE"
     },
     {
       "id": "hydra_spawn",
@@ -863,7 +907,8 @@
         "SKILL_TOXIC_SPRAY",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_43"
+      "avatarIcon": "monster_icon1:monster_icon1_43",
+      "attackType": "MELEE"
     },
     {
       "id": "salamander",
@@ -881,7 +926,8 @@
       "skills": [
         "SKILL_FLAME_BURST"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_42"
+      "avatarIcon": "monster_icon1:monster_icon1_42",
+      "attackType": "MELEE"
     },
     {
       "id": "thunder_drake",
@@ -901,7 +947,8 @@
         "SKILL_SAVAGE_REND",
         "SKILL_TERROR_SCREECH"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_41"
+      "avatarIcon": "monster_icon1:monster_icon1_41",
+      "attackType": "MELEE"
     },
     {
       "id": "swamp_drake",
@@ -921,7 +968,8 @@
         "SKILL_TOXIC_SPRAY",
         "SKILL_SAVAGE_REND"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_40"
+      "avatarIcon": "monster_icon1:monster_icon1_40",
+      "attackType": "MELEE"
     },
     {
       "id": "faction_infantry",
@@ -934,7 +982,8 @@
       "powerTier": 1,
       "profile": "BALANCED",
       "skills": [],
-      "avatarIcon": "monster_icon1:monster_icon1_26"
+      "avatarIcon": "monster_icon1:monster_icon1_26",
+      "attackType": "MELEE"
     },
     {
       "id": "faction_spearman",
@@ -947,7 +996,8 @@
       "powerTier": 1.1,
       "profile": "BALANCED",
       "skills": [],
-      "avatarIcon": "monster_icon1:monster_icon1_26"
+      "avatarIcon": "monster_icon1:monster_icon1_26",
+      "attackType": "MELEE"
     },
     {
       "id": "faction_crossbowman",
@@ -962,7 +1012,8 @@
       "skills": [
         "SKILL_SHADOW_ASSAULT"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_37"
+      "avatarIcon": "monster_icon1:monster_icon1_37",
+      "attackType": "RANGED"
     },
     {
       "id": "faction_knight",
@@ -977,7 +1028,8 @@
       "skills": [
         "SKILL_IRON_DEFENSE"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_10"
+      "avatarIcon": "monster_icon1:monster_icon1_10",
+      "attackType": "MELEE"
     },
     {
       "id": "faction_mage",
@@ -993,7 +1045,8 @@
       "skills": [
         "SKILL_FLAME_BURST"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_52"
+      "avatarIcon": "monster_icon1:monster_icon1_52",
+      "attackType": "MAGIC"
     },
     {
       "id": "faction_siege_weapon",
@@ -1008,7 +1061,8 @@
       "skills": [
         "SKILL_CRUSHING_SLAM"
       ],
-      "avatarIcon": "3_icons_materials:3_icons_materials_49"
+      "avatarIcon": "3_icons_materials:3_icons_materials_49",
+      "attackType": "MELEE"
     },
     {
       "id": "young_dragon",
@@ -1028,7 +1082,8 @@
         "DRAGON_BREATH"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_55"
+      "avatarIcon": "monster_icon1:monster_icon1_55",
+      "attackType": "MELEE"
     },
     {
       "id": "frost_dragon",
@@ -1049,7 +1104,8 @@
         "DRAGON_BREATH"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_54"
+      "avatarIcon": "monster_icon1:monster_icon1_54",
+      "attackType": "MELEE"
     },
     {
       "id": "bandit_king",
@@ -1069,7 +1125,8 @@
         "FATAL_STRIKE"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_53"
+      "avatarIcon": "monster_icon1:monster_icon1_53",
+      "attackType": "MELEE"
     },
     {
       "id": "grand_inquisitor",
@@ -1090,7 +1147,8 @@
         "HEAL"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_52"
+      "avatarIcon": "monster_icon1:monster_icon1_52",
+      "attackType": "MELEE"
     },
     {
       "id": "griffin",
@@ -1110,7 +1168,8 @@
         "DIVE_ATTACK"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_51"
+      "avatarIcon": "monster_icon1:monster_icon1_51",
+      "attackType": "MELEE"
     },
     {
       "id": "cerberus",
@@ -1131,7 +1190,8 @@
         "HELLFIRE"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_50"
+      "avatarIcon": "monster_icon1:monster_icon1_50",
+      "attackType": "MELEE"
     },
     {
       "id": "medusa",
@@ -1151,7 +1211,8 @@
         "STONE_GAZE"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_49"
+      "avatarIcon": "monster_icon1:monster_icon1_49",
+      "attackType": "MELEE"
     },
     {
       "id": "lich_king",
@@ -1172,7 +1233,8 @@
         "RAISE_UNDEAD"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_48"
+      "avatarIcon": "monster_icon1:monster_icon1_48",
+      "attackType": "MELEE"
     },
     {
       "id": "fallen_angel",
@@ -1192,7 +1254,8 @@
         "FATAL_STRIKE"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_63"
+      "avatarIcon": "monster_icon1:monster_icon1_63",
+      "attackType": "MELEE"
     },
     {
       "id": "grim_reaper",
@@ -1212,7 +1275,8 @@
         "SOUL_REAP"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_62"
+      "avatarIcon": "monster_icon1:monster_icon1_62",
+      "attackType": "MELEE"
     },
     {
       "id": "ancient_hydra",
@@ -1233,7 +1297,8 @@
         "VENOM_SPIT"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_61"
+      "avatarIcon": "monster_icon1:monster_icon1_61",
+      "attackType": "MELEE"
     },
     {
       "id": "void_behemoth",
@@ -1254,7 +1319,8 @@
         "ABYSSAL_GAZE"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_60"
+      "avatarIcon": "monster_icon1:monster_icon1_60",
+      "attackType": "MELEE"
     },
     {
       "id": "magma_colossus",
@@ -1273,7 +1339,8 @@
         "LAVA_ERUPTION"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_59"
+      "avatarIcon": "monster_icon1:monster_icon1_59",
+      "attackType": "MELEE"
     },
     {
       "id": "thunderbird",
@@ -1293,7 +1360,8 @@
         "THUNDER_CALL"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_58"
+      "avatarIcon": "monster_icon1:monster_icon1_58",
+      "attackType": "MELEE"
     },
     {
       "id": "emerald_dragon",
@@ -1314,7 +1382,8 @@
         "DRAGON_BREATH"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_57"
+      "avatarIcon": "monster_icon1:monster_icon1_57",
+      "attackType": "MELEE"
     },
     {
       "id": "ancient_black_dragon",
@@ -1335,7 +1404,41 @@
         "DRAGON_ROAR"
       ],
       "isBoss": true,
-      "avatarIcon": "monster_icon1:monster_icon1_56"
+      "avatarIcon": "monster_icon1:monster_icon1_56",
+      "attackType": "MELEE"
+    },
+    {
+      "id": "goblin_Archer",
+      "name": "哥布林投石手",
+      "race": "MONSTER",
+      "defaultElement": "NONE",
+      "powerTier": 1,
+      "attackType": "RANGED",
+      "isMagicalAttacker": false,
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "PLAINS",
+        "FOREST"
+      ],
+      "avatarIcon": "monster_icon1:monster_icon1_7"
+    },
+    {
+      "id": "goblin_Archer",
+      "name": "哥布林投石手",
+      "race": "MONSTER",
+      "defaultElement": "NONE",
+      "powerTier": 0.6,
+      "attackType": "RANGED",
+      "isMagicalAttacker": false,
+      "compatibleRaces": [
+        "MONSTER"
+      ],
+      "terrains": [
+        "PLAINS",
+        "FOREST"
+      ]
     }
   ]
 }

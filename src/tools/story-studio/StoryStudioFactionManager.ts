@@ -24,9 +24,9 @@ export class StoryStudioFactionManager {
       el = document.createElement('div');
       el.id = 'story-studio-faction-manager-modal';
       el.className = 'story-studio-modal-overlay';
-      el.style.display = 'none';
+      el.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); z-index: 999999; display: none; align-items: center; justify-content: center; box-sizing: border-box;';
       el.innerHTML = `
-        <div class="story-studio-modal-content" style="max-width: 680px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; background: #1c1917; border: 1px solid #78350f; border-radius: 8px; color: #e7e5e4; box-shadow: 0 10px 25px rgba(0,0,0,0.8);">
+        <div class="story-studio-modal-content" style="max-width: 680px; width: 90%; max-height: 85vh; display: flex; flex-direction: column; background: #1c1917; border: 2px solid #f59e0b; border-radius: 10px; color: #e7e5e4; box-shadow: 0 20px 50px rgba(0,0,0,0.9); overflow: hidden; z-index: 1000000;">
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #44403c; background: #292524;">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.1rem; font-weight: bold; color: #fbbf24;">🏷️ 自訂陣營與聲望管理</span>

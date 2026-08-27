@@ -854,19 +854,36 @@
           <button class="cs-btn cs-btn-sm cs-btn-gold" id="btn-sh-add">＋ 新建據點</button>
         </div>
         <input type="text" id="sh-search" class="cs-input" placeholder="🔍 搜尋據點名稱、ID..." style="font-size: 0.8rem; padding: 4px 8px;">
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <span style="font-size: 0.75rem; color: var(--cs-text-muted);">地形:</span>
-          <select id="sh-filter-terrain" class="cs-select" style="flex: 1; padding: 2px 6px; font-size: 0.75rem;">
-            <option value="ALL">全部地形</option>
-            <option value="RUINS">遺跡 (RUINS)</option>
-            <option value="FOREST">森林 (FOREST)</option>
-            <option value="CAVE">洞穴 (CAVE)</option>
-            <option value="SNOW_MOUNTAIN">雪山 (SNOW_MOUNTAIN)</option>
-            <option value="VOLCANO">火山 (VOLCANO)</option>
-            <option value="PLAINS">平原 (PLAINS)</option>
-            <option value="WILDERNESS">荒野 (WILDERNESS)</option>
-            <option value="DESERT">沙漠 (DESERT)</option>
-          </select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <span style="font-size: 0.72rem; color: var(--cs-text-muted);">地形:</span>
+            <select id="sh-filter-terrain" class="cs-select" style="flex: 1; padding: 2px 4px; font-size: 0.72rem;">
+              <option value="ALL">全部地形</option>
+              <option value="RUINS">遺跡</option>
+              <option value="FOREST">森林</option>
+              <option value="CAVE">洞穴</option>
+              <option value="SNOW_MOUNTAIN">雪山</option>
+              <option value="VOLCANO">火山</option>
+              <option value="PLAINS">平原</option>
+              <option value="WILDERNESS">荒野</option>
+              <option value="DESERT">沙漠</option>
+            </select>
+          </div>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <span style="font-size: 0.72rem; color: var(--cs-text-muted);">勢力:</span>
+            <select id="sh-filter-faction" class="cs-select" style="flex: 1; padding: 2px 4px; font-size: 0.72rem;">
+              <option value="ALL">全部勢力</option>
+              <option value="NEUTRAL">無主荒野/巢穴</option>
+              <option value="f_lothgar">👑 舊帝國王室</option>
+              <option value="f_vormund">🌋 北境 沃爾蒙德</option>
+              <option value="f_hurst">⛪ 東境 赫斯特</option>
+              <option value="f_bellavia">🌹 南境 貝拉維亞</option>
+              <option value="f_dusk">🏜️ 西境 達斯克</option>
+              <option value="f_dragonkin">🐉 遠古龍裔</option>
+              <option value="f_blackwood">🛡️ 黑木守衛</option>
+              <option value="f_oakhaven">🌾 橡木谷</option>
+            </select>
+          </div>
         </div>
       </div>
       <div id="sh-list-container" style="flex: 1; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
@@ -890,7 +907,7 @@
       </div>
 
       <!-- 基礎設定卡片 -->
-      <div style="background: #131722; padding: 14px; border-radius: 8px; border: 1px solid var(--cs-panel-border); display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+      <div style="background: #131722; padding: 14px; border-radius: 8px; border: 1px solid var(--cs-panel-border); display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
         <div>
           <label class="cs-label">據點代號 (ID):</label>
           <input type="text" id="sh-id" class="cs-input" style="width: 100%;" placeholder="例: bandit_fortress">
@@ -898,6 +915,30 @@
         <div>
           <label class="cs-label">據點名稱:</label>
           <input type="text" id="sh-name" class="cs-input" style="width: 100%;" placeholder="例: 荒野強盜要塞">
+        </div>
+        <div>
+          <label class="cs-label">所屬國家 / 勢力:</label>
+          <select id="sh-faction" class="cs-select" style="width: 100%;">
+            <option value="NEUTRAL">无主中立 / 荒野巢穴</option>
+            <option value="f_lothgar">👑 舊帝國王室 (洛斯加)</option>
+            <option value="f_vormund">🌋 北境 沃爾蒙德大公領</option>
+            <option value="f_hurst">⛪ 東境 赫斯特侯爵領</option>
+            <option value="f_bellavia">🌹 南境 貝拉維亞伯爵領</option>
+            <option value="f_dusk">🏜️ 西境 達斯克子爵領</option>
+            <option value="f_dragonkin">🐉 遠古龍裔</option>
+            <option value="f_blackwood">🛡️ 黑木守衛</option>
+            <option value="f_oakhaven">🌾 橡木谷家族</option>
+          </select>
+        </div>
+        <div>
+          <label class="cs-label">節點規模等級:</label>
+          <select id="sh-node-level" class="cs-select" style="width: 100%;">
+            <option value="0">🏚️ 荒野 / 魔物巢穴 (Lv.0)</option>
+            <option value="1">🏕️ 營地 / 前哨 (Lv.1)</option>
+            <option value="2">🏡 村莊 / 聚落 (Lv.2)</option>
+            <option value="3">🏘️ 城鎮 / 要塞 (Lv.3)</option>
+            <option value="4">🏰 國家首都 (Lv.4)</option>
+          </select>
         </div>
         <div>
           <label class="cs-label">出沒地形:</label>
@@ -920,6 +961,14 @@
           </div>
         </div>
         <div>
+          <label class="cs-label">大地圖生成模式:</label>
+          <select id="sh-world-gen-mode" class="cs-select" style="width: 100%;">
+            <option value="PERMANENT_VISIBLE">🌐 開局常駐生成 (大地圖直接可見)</option>
+            <option value="WORLD_SECRET">🌫️ 迷霧隱藏秘境 (探索/酒館打聽)</option>
+            <option value="STORY_ONLY">📜 故事事件專屬 (劇情動態召喚)</option>
+          </select>
+        </div>
+        <div>
           <label class="cs-label">大地圖圖標 (Sprite):</label>
           <div style="display: flex; gap: 8px; align-items: center;">
             <div id="sh-icon-preview" style="width: 40px; height: 40px; min-width: 40px; border-radius: 6px; background: #0e121a; border: 1.5px solid var(--cs-panel-border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease;" title="點擊切換圖標">
@@ -930,18 +979,18 @@
             <input type="hidden" id="sh-icon" value="icons_buildings:icons_buildings_3">
           </div>
         </div>
-        <div style="display: flex; flex-direction: column; justify-content: center; gap: 6px;">
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #cbd5e1; cursor: pointer;">
+        <div style="grid-column: span 4; display: flex; flex-wrap: wrap; gap: 16px; background: #0e121a; padding: 10px 14px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #38bdf8; font-weight: bold; cursor: pointer;">
+            <input type="checkbox" id="sh-allow-troops" checked> 🛡️ 允許帶兵討伐／攻城 (支援調派步兵/弓兵/騎兵軍團)
+          </label>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #cbd5e1; cursor: pointer;">
             <input type="checkbox" id="sh-requires-scouting"> 🌫️ 需要斥候開霧／偵查才可討伐
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #cbd5e1; cursor: pointer;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #cbd5e1; cursor: pointer;">
             <input type="checkbox" id="sh-remove-on-victory" checked> 💥 討伐勝利後自動從地圖清除
           </label>
-          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #f59e0b; cursor: pointer; font-weight: bold;">
-            <input type="checkbox" id="sh-is-world-secret"> 🗺️ 註冊為開局世界隱藏秘境 (酒館打聽)
-          </label>
         </div>
-        <div style="grid-column: span 3;">
+        <div style="grid-column: span 4;">
           <label class="cs-label">風味敘述／據點背景:</label>
           <textarea id="sh-description" class="cs-input" rows="2" style="width: 100%; resize: vertical;" placeholder="描述此據點的敵方勢力與地理環境..."></textarea>
         </div>

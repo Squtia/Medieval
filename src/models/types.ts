@@ -249,6 +249,8 @@ export interface MapNode {
   isHidden?: boolean;
   isDynamic?: boolean; // 是否為動態生成的節點 (如：探索出來的隨機巢穴)
   isEliteLair?: boolean; // 是否為低機率刷出的稀有高難度挑戰據點
+  allowTroops?: boolean; // 是否允許帶兵討伐/攻城 (支援調派步兵/弓兵/騎兵)
+  customIcon?: string; // 自訂大地圖圖標 (例如 "cave_node_01:cave_node_01_1" 或自訂圖檔)
   baseDifficulty?: number; // 用於動態巢穴等自訂難度的節點
   narrativeSubjugation?: {
     storyId: string;

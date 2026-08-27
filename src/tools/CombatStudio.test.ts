@@ -281,5 +281,32 @@ describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Test
       else expect(m.formationRow).toBe(FormationRow.BACK);
     });
   });
+
+  it('支援據點工坊自訂勢力、節點規模、世界生成模式與允許帶兵攻城 (allowTroops) 屬性', () => {
+    const siegeCapital: SubjugationTemplate = {
+      id: 'val_forge_capital_test',
+      name: '鍛主之城測試',
+      description: '北境軍事首都',
+      terrain: 'VOLCANO' as any,
+      difficulty: 8,
+      worldGenMode: 'PERMANENT_VISIBLE',
+      allowTroops: true,
+      factionId: 'f_vormund',
+      nodeLevel: 4 as any,
+      enemyLegion: {
+        enabled: true,
+        infantry: 250,
+        archer: 100,
+        cavalry: 80
+      }
+    };
+
+    expect(siegeCapital.allowTroops).toBe(true);
+    expect(siegeCapital.worldGenMode).toBe('PERMANENT_VISIBLE');
+    expect(siegeCapital.factionId).toBe('f_vormund');
+    expect(siegeCapital.nodeLevel).toBe(4);
+    expect(siegeCapital.enemyLegion?.enabled).toBe(true);
+    expect(siegeCapital.enemyLegion?.infantry).toBe(250);
+  });
 });
 

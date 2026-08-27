@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { INITIAL_MAP_NODES } from '../data/MapData';
 import { MapMaskData } from '../data/MapMaskData';
 import { GameDifficulty } from '../models/WorldGeneration';
-import { NodeLevel } from '../models/types';
+import { NodeLevel, TerrainType, NodeFeature } from '../models/types';
 import { MapGenerator } from './MapGenerator';
 
 describe('MapGenerator', () => {
@@ -70,5 +70,46 @@ describe('MapGenerator', () => {
       );
       expect(MapGenerator.validateWorld(generated.nodes), `sample-seed-${index}`).toEqual([]);
     }
+  });
+
+  it('支援包含 RUINS / CAVE / WILDERNESS 概念地形據點的世界生成與驗證', () => {
+    const customNodes: any[] = [
+      ...INITIAL_MAP_NODES,
+      {
+        id: 'test_ruins_stronghold',
+        name: '失落遺跡',
+        description: '測試遺跡',
+        terrain: TerrainType.RUINS,
+        feature: NodeFeature.SUBJUGATION,
+        nodeLevel: NodeLevel.WILDERNESS,
+        ownerFactionId: null,
+        isPlayerBase: false,
+        isDiscovered: false,
+        isHidden: false,
+        baseDifficulty: 3
+      },
+      {
+        id: 'test_cave_stronghold',
+        name: '幽暗洞窟',
+        description: '測試洞窟',
+        terrain: TerrainType.CAVE,
+        feature: NodeFeature.SUBJUGATION,
+        nodeLevel: NodeLevel.WILDERNESS,
+        ownerFactionId: null,
+        isPlayerBase: false,
+        isDiscovered: false,
+        isHidden: true,
+        baseDifficulty: 4
+      }
+    ];
+
+    const generated = MapGenerator.generateWorld(customNodes, 'concept-terrain-seed', GameDifficulty.NORMAL);
+    expect(MapGenerator.validateWorld(generated.nodes)).toEqual([]);
+    const ruinsNode = generated.nodes.find(n => n.id === 'test_ruins_stronghold');
+    const caveNode = generated.nodes.find(n => n.id === 'test_cave_stronghold');
+    expect(ruinsNode).toBeDefined();
+    expect(ruinsNode!.x).toBeGreaterThan(0);
+    expect(caveNode).toBeDefined();
+    expect(caveNode!.y).toBeGreaterThan(0);
   });
 });

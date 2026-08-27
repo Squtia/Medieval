@@ -98,6 +98,7 @@ class CombatStudioController {
   private strongholdsDb: SubjugationTemplate[] = [];
   private strongholdSearchQuery: string = '';
   private strongholdFilterTerrain: string = 'ALL';
+  private strongholdFilterFaction: string = 'ALL';
   private editingStrongholdId: string | null = null;
   private currentPickerWaveIdx: number = 0;
   private currentPickerTargetSlot: string | null = null;
@@ -156,48 +157,65 @@ class CombatStudioController {
     this.render();
   }
 
-  private async loadStrongholds(): Promise<void> {
-    // 1. 優先從 localStorage 還原自訂據點庫 (保證使用者自訂據點永不被覆蓋)
+  private async loadStrongholds(forceReloadFromDisk: boolean = false): Promise<void> {
+    const diskDefaults = clone(subjugationNodesJson) as SubjugationTemplate[];
+    
+    // 如果強制從硬碟載入，則直接以磁碟完整 24+ 處據點覆蓋
+    if (forceReloadFromDisk) {
+      this.strongholdsDb = diskDefaults;
+      this.strongholdsDb.forEach(sh => this.normalizeStrongholdWaves(sh));
+      if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
+        this.editingStrongholdId = this.strongholdsDb[0]?.id || null;
+      }
+      this.saveStrongholdsToStorage();
+      return;
+    }
+
+    // 讀取 localStorage 既有暫存
+    let savedList: SubjugationTemplate[] = [];
     if (typeof localStorage !== 'undefined') {
       const saved = localStorage.getItem('MEDIEVAL_CUSTOM_STRONGHOLDS_V2');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            this.strongholdsDb = parsed;
-            this.strongholdsDb.forEach(sh => this.normalizeStrongholdWaves(sh));
-            if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
-              this.editingStrongholdId = this.strongholdsDb[0].id;
-            }
-            this.saveStrongholdsToStorage();
-            return;
+            savedList = parsed;
           }
         } catch {}
       }
     }
 
-    // 2. 次選 fetch 後端 API (若有提供)
-    try {
-      const response = await fetch('/api/get-subjugation-nodes');
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          this.strongholdsDb = data;
-          this.strongholdsDb.forEach(sh => this.normalizeStrongholdWaves(sh));
-          if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
-            this.editingStrongholdId = this.strongholdsDb[0].id;
-          }
-          this.saveStrongholdsToStorage();
-          return;
-        }
-      }
-    } catch {}
+    // 智慧合併：以磁碟 24 處據點為基底，合併使用者修改內容與額外自創據點
+    const mergedDb: SubjugationTemplate[] = [];
+    const savedMap = new Map<string, SubjugationTemplate>();
+    savedList.forEach(s => savedMap.set(s.id, s));
 
-    // 3. 首次進入且無本地存檔時使用預設範本
-    this.strongholdsDb = clone(subjugationNodesJson) as SubjugationTemplate[];
+    diskDefaults.forEach(diskSh => {
+      if (savedMap.has(diskSh.id)) {
+        const userSaved = savedMap.get(diskSh.id)!;
+        mergedDb.push({
+          ...diskSh,
+          ...userSaved,
+          allowTroops: userSaved.allowTroops !== undefined ? userSaved.allowTroops : diskSh.allowTroops,
+          worldGenMode: userSaved.worldGenMode || diskSh.worldGenMode,
+          factionId: userSaved.factionId !== undefined ? userSaved.factionId : diskSh.factionId,
+          nodeLevel: userSaved.nodeLevel !== undefined ? userSaved.nodeLevel : diskSh.nodeLevel
+        });
+        savedMap.delete(diskSh.id);
+      } else {
+        mergedDb.push(diskSh);
+      }
+    });
+
+    // 將使用者自創的新據點追加進清單
+    savedMap.forEach(customSh => {
+      mergedDb.push(customSh);
+    });
+
+    this.strongholdsDb = mergedDb;
     this.strongholdsDb.forEach(sh => this.normalizeStrongholdWaves(sh));
-    if (this.strongholdsDb.length > 0 && !this.editingStrongholdId) {
-      this.editingStrongholdId = this.strongholdsDb[0].id;
+    if (!this.editingStrongholdId || !this.strongholdsDb.some(s => s.id === this.editingStrongholdId)) {
+      this.editingStrongholdId = this.strongholdsDb[0]?.id || null;
     }
     this.saveStrongholdsToStorage();
   }
@@ -1028,6 +1046,13 @@ class CombatStudioController {
     const filtered = this.strongholdsDb.filter(s => {
       if (q && !s.name.toLowerCase().includes(q) && !s.id.toLowerCase().includes(q)) return false;
       if (this.strongholdFilterTerrain !== 'ALL' && s.terrain !== this.strongholdFilterTerrain) return false;
+      if (this.strongholdFilterFaction !== 'ALL') {
+        if (this.strongholdFilterFaction === 'NEUTRAL') {
+          if (s.factionId && s.factionId !== 'NEUTRAL') return false;
+        } else {
+          if (s.factionId !== this.strongholdFilterFaction) return false;
+        }
+      }
       return true;
     });
 
@@ -1049,6 +1074,9 @@ class CombatStudioController {
       `;
       const waveCount = s.waves?.length || 0;
       const totalMonsters = (s.waves || []).reduce((sum, w) => sum + (w.monsters?.length || 0), 0);
+      const allowTroopsBadge = s.allowTroops !== false
+        ? '<span style="color: #38bdf8; background: rgba(56,189,248,0.15); padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">🛡️可帶兵</span>'
+        : '<span style="color: #a78bfa; background: rgba(167,139,250,0.15); padding: 1px 4px; border-radius: 3px; font-size: 0.65rem;">⚔️純傭兵</span>';
 
       card.innerHTML = `
         <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 6px; background: #0e121a; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center;">
@@ -1059,9 +1087,12 @@ class CombatStudioController {
             <span style="font-weight: bold; font-size: 0.85rem; color: ${isSelected ? 'var(--cs-gold-light)' : '#f8fafc'}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${s.name}</span>
             <span class="cs-badge" style="font-size: 0.68rem; color: var(--cs-orange); background: rgba(249,115,22,0.15); flex-shrink: 0;">Lv.${s.difficulty}</span>
           </div>
-          <div style="font-size: 0.72rem; color: var(--cs-text-muted); margin-top: 2px; display: flex; justify-content: space-between;">
+          <div style="font-size: 0.72rem; color: var(--cs-text-muted); margin-top: 2px; display: flex; justify-content: space-between; align-items: center;">
             <span>${s.terrain}</span>
-            <span>⚔️ ${waveCount} 波 (${totalMonsters} 隻)</span>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              ${allowTroopsBadge}
+              <span>⚔️ ${waveCount}波 (${totalMonsters}隻)</span>
+            </div>
           </div>
         </div>
       `;
@@ -1086,13 +1117,16 @@ class CombatStudioController {
 
     const idInput = byId<HTMLInputElement>('sh-id');
     const nameInput = byId<HTMLInputElement>('sh-name');
+    const factionSelect = byId<HTMLSelectElement>('sh-faction');
+    const nodeLevelSelect = byId<HTMLSelectElement>('sh-node-level');
     const terrainSelect = byId<HTMLSelectElement>('sh-terrain');
     const diffSlider = byId<HTMLInputElement>('sh-difficulty');
     const diffDisplay = byId('sh-diff-display');
+    const worldGenSelect = byId<HTMLSelectElement>('sh-world-gen-mode');
     const iconInput = byId<HTMLInputElement>('sh-icon');
+    const allowTroopsCheckbox = byId<HTMLInputElement>('sh-allow-troops');
     const scoutingCheckbox = byId<HTMLInputElement>('sh-requires-scouting');
     const removeCheckbox = byId<HTMLInputElement>('sh-remove-on-victory');
-    const secretCheckbox = byId<HTMLInputElement>('sh-is-world-secret');
     const fogRumorInput = byId<HTMLInputElement>('sh-fog-rumor');
     const revealRumorInput = byId<HTMLInputElement>('sh-reveal-rumor');
     const descTextarea = byId<HTMLTextAreaElement>('sh-description');
@@ -1103,15 +1137,18 @@ class CombatStudioController {
 
     if (idInput) idInput.value = sh.id;
     if (nameInput) nameInput.value = sh.name;
+    if (factionSelect) factionSelect.value = sh.factionId || 'NEUTRAL';
+    if (nodeLevelSelect) nodeLevelSelect.value = String(sh.nodeLevel ?? 0);
     if (terrainSelect) terrainSelect.value = sh.terrain || 'RUINS';
     if (diffSlider) diffSlider.value = String(sh.difficulty || 2);
     if (diffDisplay) diffDisplay.textContent = `Lv.${sh.difficulty || 2}`;
+    if (worldGenSelect) worldGenSelect.value = sh.worldGenMode || (sh.isWorldSecret ? 'WORLD_SECRET' : 'PERMANENT_VISIBLE');
     if (iconInput) iconInput.value = sh.icon || 'icons_buildings:icons_buildings_3';
     const iconPreview = byId('sh-icon-preview');
     if (iconPreview) iconPreview.innerHTML = renderUniversalIcon(sh.icon || 'icons_buildings:icons_buildings_3', 32);
+    if (allowTroopsCheckbox) allowTroopsCheckbox.checked = sh.allowTroops !== false;
     if (scoutingCheckbox) scoutingCheckbox.checked = !!sh.requiresScouting;
     if (removeCheckbox) removeCheckbox.checked = sh.removeOnVictory !== false;
-    if (secretCheckbox) secretCheckbox.checked = !!sh.isWorldSecret;
     if (fogRumorInput) fogRumorInput.value = sh.fogRumor || '';
     if (revealRumorInput) revealRumorInput.value = sh.revealRumor || '';
     if (descTextarea) descTextarea.value = sh.description || '';
@@ -1755,6 +1792,11 @@ class CombatStudioController {
       terrain: 'RUINS',
       icon: 'icons_buildings:icons_buildings_3',
       difficulty: 2,
+      worldGenMode: 'PERMANENT_VISIBLE',
+      isWorldSecret: false,
+      allowTroops: true,
+      factionId: 'NEUTRAL',
+      nodeLevel: 0,
       requiresScouting: false,
       removeOnVictory: true,
       waves: [
@@ -1811,9 +1853,9 @@ class CombatStudioController {
   private bindStrongholdEvents(): void {
     byId('btn-studio-tab-strongholds')?.addEventListener('click', () => this.switchStudioTab('strongholds'));
     byId('btn-sh-reload-disk')?.addEventListener('click', async () => {
-      await this.loadStrongholds();
+      await this.loadStrongholds(true);
       this.renderStrongholdStudio();
-      alert('🔄 已成功從專案磁碟重新載入最新討伐據點！');
+      alert(`🔄 已成功從專案磁碟重新載入最新 ${this.strongholdsDb.length} 處討伐與攻城據點！`);
     });
     byId('btn-sh-save-disk')?.addEventListener('click', () => this.saveMonstersToDisk());
     byId('btn-sh-add')?.addEventListener('click', () => this.createNewStronghold());
@@ -1846,6 +1888,11 @@ class CombatStudioController {
       this.renderStrongholdList();
     });
 
+    byId<HTMLSelectElement>('sh-filter-faction')?.addEventListener('change', e => {
+      this.strongholdFilterFaction = (e.target as HTMLSelectElement).value;
+      this.renderStrongholdList();
+    });
+
     byId('btn-sh-load-to-battle')?.addEventListener('click', () => {
       const sh = this.getActiveStronghold();
       if (sh) this.loadStrongholdToBattleSandbox(sh);
@@ -1875,12 +1922,15 @@ class CombatStudioController {
 
       const idVal = byId<HTMLInputElement>('sh-id')?.value.trim();
       const nameVal = byId<HTMLInputElement>('sh-name')?.value.trim();
+      const factionVal = byId<HTMLSelectElement>('sh-faction')?.value || undefined;
+      const nodeLevelVal = Number(byId<HTMLSelectElement>('sh-node-level')?.value || 0);
       const terrainVal = byId<HTMLSelectElement>('sh-terrain')?.value as any;
       const diffVal = Number(byId<HTMLInputElement>('sh-difficulty')?.value || 2);
+      const worldGenModeVal = (byId<HTMLSelectElement>('sh-world-gen-mode')?.value || 'PERMANENT_VISIBLE') as any;
       const iconVal = byId<HTMLInputElement>('sh-icon')?.value.trim();
+      const allowTroopsVal = byId<HTMLInputElement>('sh-allow-troops')?.checked !== false;
       const scoutingVal = byId<HTMLInputElement>('sh-requires-scouting')?.checked;
       const removeVal = byId<HTMLInputElement>('sh-remove-on-victory')?.checked;
-      const secretVal = byId<HTMLInputElement>('sh-is-world-secret')?.checked;
       const fogRumorVal = byId<HTMLInputElement>('sh-fog-rumor')?.value.trim();
       const revealRumorVal = byId<HTMLInputElement>('sh-reveal-rumor')?.value.trim();
       const descVal = byId<HTMLTextAreaElement>('sh-description')?.value;
@@ -1899,12 +1949,16 @@ class CombatStudioController {
 
       if (idVal) sh.id = idVal;
       if (nameVal) sh.name = nameVal;
+      sh.factionId = factionVal === 'NEUTRAL' ? undefined : factionVal;
+      sh.nodeLevel = nodeLevelVal as any;
       if (terrainVal) sh.terrain = terrainVal;
       sh.difficulty = diffVal;
+      sh.worldGenMode = worldGenModeVal;
+      sh.isWorldSecret = worldGenModeVal === 'WORLD_SECRET';
       if (iconVal) sh.icon = iconVal;
+      sh.allowTroops = allowTroopsVal;
       sh.requiresScouting = scoutingVal;
       sh.removeOnVictory = removeVal;
-      sh.isWorldSecret = secretVal;
       sh.fogRumor = fogRumorVal || undefined;
       sh.revealRumor = revealRumorVal || undefined;
       sh.description = descVal;
@@ -1931,7 +1985,7 @@ class CombatStudioController {
       this.renderStrongholdAnalytics();
     };
 
-    ['sh-id', 'sh-name', 'sh-terrain', 'sh-difficulty', 'sh-icon', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-is-world-secret', 'sh-fog-rumor', 'sh-reveal-rumor', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige', 'sh-enemy-legion-enable', 'sh-enemy-infantry', 'sh-enemy-archer', 'sh-enemy-cavalry']
+    ['sh-id', 'sh-name', 'sh-faction', 'sh-node-level', 'sh-terrain', 'sh-difficulty', 'sh-world-gen-mode', 'sh-icon', 'sh-allow-troops', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-fog-rumor', 'sh-reveal-rumor', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige', 'sh-enemy-legion-enable', 'sh-enemy-infantry', 'sh-enemy-archer', 'sh-enemy-cavalry']
       .forEach(id => {
         const el = byId(id);
         if (el) {

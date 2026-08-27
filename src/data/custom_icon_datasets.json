@@ -4126,5 +4126,371 @@
         "zoom": 100
       }
     ]
+  },
+  "stronghold_iso_spritesheet_5x5": {
+    "title": "據點ICON",
+    "spriteUrl": "../public/assets/custom_icons/stronghold_iso_spritesheet_5x5.png",
+    "cols": 5,
+    "rows": 5,
+    "items": [
+      {
+        "id": "stronghold_iso_spritesheet_5x5_0",
+        "name": "據點ICON #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_1",
+        "name": "據點ICON #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_2",
+        "name": "據點ICON #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_3",
+        "name": "據點ICON #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_4",
+        "name": "據點ICON #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_5",
+        "name": "據點ICON #06",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_6",
+        "name": "據點ICON #07",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_7",
+        "name": "據點ICON #08",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_8",
+        "name": "據點ICON #09",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_9",
+        "name": "據點ICON #10",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_10",
+        "name": "據點ICON #11",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_11",
+        "name": "據點ICON #12",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_12",
+        "name": "據點ICON #13",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_13",
+        "name": "據點ICON #14",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_14",
+        "name": "據點ICON #15",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_15",
+        "name": "據點ICON #16",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_16",
+        "name": "據點ICON #17",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_17",
+        "name": "據點ICON #18",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_18",
+        "name": "據點ICON #19",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_19",
+        "name": "據點ICON #20",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_20",
+        "name": "據點ICON #21",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_21",
+        "name": "據點ICON #22",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_22",
+        "name": "據點ICON #23",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_23",
+        "name": "據點ICON #24",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "stronghold_iso_spritesheet_5x5_24",
+        "name": "據點ICON #25",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      }
+    ]
+  },
+  "settlement_sheet": {
+    "title": "城鎮圖集",
+    "spriteUrl": "../public/assets/custom_icons/settlement_sheet.png",
+    "cols": 5,
+    "rows": 5,
+    "items": [
+      {
+        "id": "settlement_sheet_0",
+        "name": "城鎮圖集 #01",
+        "col": 0,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_1",
+        "name": "城鎮圖集 #02",
+        "col": 1,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_2",
+        "name": "城鎮圖集 #03",
+        "col": 2,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_3",
+        "name": "城鎮圖集 #04",
+        "col": 3,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_4",
+        "name": "城鎮圖集 #05",
+        "col": 4,
+        "row": 0,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_5",
+        "name": "城鎮圖集 #06",
+        "col": 0,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_6",
+        "name": "城鎮圖集 #07",
+        "col": 1,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_7",
+        "name": "城鎮圖集 #08",
+        "col": 2,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_8",
+        "name": "城鎮圖集 #09",
+        "col": 3,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_9",
+        "name": "城鎮圖集 #10",
+        "col": 4,
+        "row": 1,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_10",
+        "name": "城鎮圖集 #11",
+        "col": 0,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_11",
+        "name": "城鎮圖集 #12",
+        "col": 1,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_12",
+        "name": "城鎮圖集 #13",
+        "col": 2,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_13",
+        "name": "城鎮圖集 #14",
+        "col": 3,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_14",
+        "name": "城鎮圖集 #15",
+        "col": 4,
+        "row": 2,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_15",
+        "name": "城鎮圖集 #16",
+        "col": 0,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_16",
+        "name": "城鎮圖集 #17",
+        "col": 1,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_17",
+        "name": "城鎮圖集 #18",
+        "col": 2,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_18",
+        "name": "城鎮圖集 #19",
+        "col": 3,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_19",
+        "name": "城鎮圖集 #20",
+        "col": 4,
+        "row": 3,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_20",
+        "name": "城鎮圖集 #21",
+        "col": 0,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_21",
+        "name": "城鎮圖集 #22",
+        "col": 1,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_22",
+        "name": "城鎮圖集 #23",
+        "col": 2,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_23",
+        "name": "城鎮圖集 #24",
+        "col": 3,
+        "row": 4,
+        "zoom": 100
+      },
+      {
+        "id": "settlement_sheet_24",
+        "name": "城鎮圖集 #25",
+        "col": 4,
+        "row": 4,
+        "zoom": 100
+      }
+    ]
   }
 }

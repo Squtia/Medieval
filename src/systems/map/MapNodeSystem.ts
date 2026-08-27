@@ -8,6 +8,9 @@ import { PROSPERITY_THRESHOLDS, calculateNodeLevel, getMonthlyProsperityGain } f
 export class MapNodeSystem {
   public static simulateProsperity(mapNodes: MapNode[]): void {
     for (const node of mapNodes) {
+      // 僅針對玩家主據點進行繁榮度即時計算與等級晉升，NPC 各國據點與險地保持其預設固定規模等級
+      if (!node.isPlayerBase) continue;
+
       // 檢查相鄰高危險動態節點 (距離 15 內的探索動態巢穴/荒野)
       const hasAdjacentDanger = mapNodes.some(other => 
         other.id !== node.id && 
@@ -16,62 +19,46 @@ export class MapNodeSystem {
         MapUtils.getDistance(node, other) < 15
       );
 
-      if (node.isPlayerBase) {
-        const t = GameState.myTerritory;
-        if (t) {
-          const roadCount = GameState.roadSystem ? GameState.roadSystem.getRoads().length : 0;
-          const vassalCount = mapNodes.filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
-          node.prosperity = t.getRealtimeProsperity(roadCount, vassalCount, hasAdjacentDanger);
-          console.log(`[MapDynamics] 📊 玩家據點即時繁榮度評分：${node.prosperity}（人口+設施+建築）`);
-        }
-      } else if (node.ownerFactionId !== null) {
-        if (hasAdjacentDanger) {
-          node.prosperity = Math.max(0, node.prosperity - 3);
-        }
+      const t = GameState.myTerritory;
+      if (t) {
+        const roadCount = GameState.roadSystem ? GameState.roadSystem.getRoads().length : 0;
+        const vassalCount = mapNodes.filter(n => n.ownerFactionId === 'player' && !n.isPlayerBase).length;
+        node.prosperity = t.getRealtimeProsperity(roadCount, vassalCount, hasAdjacentDanger);
+        console.log(`[MapDynamics] 📊 玩家據點即時繁榮度評分：${node.prosperity}（人口+設施+建築）`);
       }
 
-      // 確保繁榮度不小於 0
       node.prosperity = Math.max(0, node.prosperity);
 
       const previousLevel = node.nodeLevel;
       const hasVassal = mapNodes.some(other =>
         other.id !== node.id &&
-        other.ownerFactionId !== null &&
-        other.ownerFactionId === node.ownerFactionId
+        other.ownerFactionId === 'player' &&
+        !other.isPlayerBase
       );
       node.nodeLevel = calculateNodeLevel(node, hasVassal);
       node.isCapital = node.nodeLevel === NodeLevel.CAPITAL;
       
       if (node.nodeLevel !== previousLevel) {
-        console.log(`[MapDynamics] ${node.name} 據點等級由 ${previousLevel} 調整為 ${node.nodeLevel}。`);
-        if (node.nodeLevel > previousLevel) {
-          this.upgradeNode(node);
-        } else {
-          // 在重構的上下文中，downgradeNode 的 faction 移除邏輯交給呼叫端或這裡省略詳細實作，只保留升降級日誌
-          const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
-          console.log(`[系統] ⚠️ 隨著時間凋零，「${node.name}」從${levelNames[previousLevel]}衰退成了${levelNames[node.nodeLevel]}。`);
-        }
+        console.log(`[MapDynamics] 玩家據點規模由等級 ${previousLevel} 晉升為等級 ${node.nodeLevel}。`);
       }
 
-      if (node.isPlayerBase) {
-        const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
-        const nextThresh = node.nodeLevel < NodeLevel.CAPITAL
-          ? PROSPERITY_THRESHOLDS[node.nodeLevel + 1 as NodeLevel]
-          : node.prosperity;
-        import('../../core/EventBus').then(({ EventBus }) => {
-          import('../../core/GameEvents').then(({ GameEventType }) => {
-            EventBus.getInstance().publish({
-              type: GameEventType.PROSPERITY_CHANGED,
-              payload: {
-                delta: 0,
-                current: node.prosperity,
-                nextThreshold: nextThresh,
-                levelName: levelNames[node.nodeLevel] ?? '未知'
-              }
-            });
+      const levelNames = ['荒野', '營地', '村莊', '城鎮', '首都'];
+      const nextThresh = node.nodeLevel < NodeLevel.CAPITAL
+        ? PROSPERITY_THRESHOLDS[node.nodeLevel + 1 as NodeLevel]
+        : node.prosperity;
+      import('../../core/EventBus').then(({ EventBus }) => {
+        import('../../core/GameEvents').then(({ GameEventType }) => {
+          EventBus.getInstance().publish({
+            type: GameEventType.PROSPERITY_CHANGED,
+            payload: {
+              delta: 0,
+              current: node.prosperity,
+              nextThreshold: nextThresh,
+              levelName: levelNames[node.nodeLevel] ?? '未知'
+            }
           });
         });
-      }
+      });
     }
   }
 

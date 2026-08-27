@@ -1,3 +1,42 @@
+- **[Docs/Architecture/NPCAutonomousDesign] 建立 NPC 自主推演與動態世界觀系統設計規範文件（2026-08-27）**：
+  - **權威架構文件 ([docs/NPC_AUTONOMOUS_SYSTEM_DESIGN.md](file:///i:/gameproject/Medieval/docs/NPC_AUTONOMOUS_SYSTEM_DESIGN.md))**：詳細歸納系統核心定位（服務於劇情世界觀）、三大沙盒狀態合約、故事工坊自適應插值機制、NPC 底層四大維度變數矩陣、四大保命煞車機制、連續劇因果表現層與分階段實裝路線圖。
+- **[Fix/StoryStudio/FactionModalZIndex] 故事工坊自訂陣營與聲望彈窗置頂層級與毛玻璃遮罩修復（2026-08-27）**：
+  - **彈窗樣式與層級修復 (`StoryStudioFactionManager.ts`)**：為「🏷️ 自訂陣營與聲望管理」彈窗容器加入 `position: fixed`、`z-index: 999999` 與全螢幕 `backdrop-filter: blur(5px)` 暗色遮罩，徹底解決過去點擊後彈窗出現在故事編輯器主畫面背後被遮擋的 UI 層級異常。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/MapScene/PlayerSettlementProgressionIcons] 玩家據點等級升級專屬 Isometric 城鎮圖標映射實裝（2026-08-27）**：
+  - **圖集註冊與載入 (`settlement_sheet.png`, `MapScene.ts`)**：將新生成的 5×5 2.5D Isometric 城鎮精靈圖表儲存至 `public/assets/custom_icons/settlement_sheet.png` 並在 Phaser 引擎中預載入。
+  - **玩家領地階層專屬綁定 (`MapScene.ts`)**：
+    - ⛺ **營地 (CAMP)** ➔ `settlement_sheet_0`（拓荒帳篷營地）
+    - 🏡 **村莊 (VILLAGE)** ➔ `settlement_sheet_5`（綠水井繁榮村落）
+    - 🏘️ **城鎮 (TOWN)** ➔ `settlement_sheet_10`（圍牆市集石堡）
+    - 🏰 **首都 (CAPITAL)** ➔ `settlement_sheet_20`（哥德大教堂帝都）
+    - 🏚️ **荒野 (WILDERNESS)** ➔ 保持原圖 `node-ruins`
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/MapScene/DynamicCustomNodeIcons] 大地圖節點專屬自訂圖標 (customIcon) 動態 Sprite 切圖渲染引擎接通（2026-08-27）**：
+  - **動態圖集切格渲染 (`MapScene.ts`)**：實裝 `createNodeIconSprite()`，支援大地圖節點直接讀取 `node.customIcon`（如 `cave_node_01:cave_node_01_16`、`icons_buildings:icons_buildings_3` 等），並在 Phaser 引擎中動態依據行列座標進行 Sprite 幀精確裁切與渲染。未指定自訂圖標之節點自動 fallback 至等級圖標。
+  - **新遊戲開局與工坊對齊 (`GameState.ts`, `types.ts`)**：開局與世界生成時，自動將 `SubjugationTemplate` 設定的自訂圖標 (`icon`) 同步注入至對應的 `MapNode.customIcon`，實現工坊所選圖標即時在大地圖呈現。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Refactor/Settlement/NPCSettlementStability] 拔除 NPC 據點繁榮度衰退與等級降級機制，鎖定 NPC 固定規模並保留玩家領地晉級（2026-08-27）**：
+  - **NPC 據點穩定性提升 (`MapNodeSystem.ts`)**：移除 `simulateProsperity()` 中對非玩家節點（NPC 國家首都、要塞、城鎮與險地）的繁榮度扣減與等級降級計算。各大勢力城鎮永遠維持其設定的原始規模與繁榮度，市場交易、謁見廳與攻城關卡全面穩定運作。
+  - **玩家領地成長專屬化 (`MapNodeSystem.ts`)**：僅針對玩家主據點 (`node.isPlayerBase`) 實裝人口、設施與道路繁榮度即時動態評分與等級晉升，保留玩家開疆拓土由營地晉升為王城的成就反饋。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/WorldGen/TieredClearanceDistance] 大地圖城鎮與野外據點分級安全間距演算法實裝（城鎮對城鎮 4.5 / 城鎮對野外 3.2 / 野外對野外 3.0）（2026-08-27）**：
+  - **分級間距矩陣 (`MapGenerator.ts`)**：新增 `getRequiredDistance()` 函式，區分常規城鎮 (`NodeFeature.OCCUPIABLE`) 與野外魔物巢穴/險地 (`NodeFeature.SUBJUGATION`)。將城鎮對城鎮間隔調整為 `4.5`（滿足創作者自訂與新增更多城鎮的需求），城鎮對野外據點為 `3.2`，野外對野外為 `3.0`。
+  - **動態自適應選點與校驗 (`MapGenerator.ts`)**：坐標生成演算法採用滿足分級間距條件的候選點，並在 `validateWorld` 中嚴格依據分級間距標準精確校驗，徹底修復城鎮與野外險地過近的衝突報錯。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Fix/CombatStudio/StrongholdSmartMerge] 據點庫本地快取與官方磁碟 24 處據點智慧合併 (Smart Merge) 與強制重載全面實裝（2026-08-27）**：
+  - **智慧合併演算法 (`CombatStudio.ts`, `DataStore.ts`)**：載入據點庫時，自動比對磁碟檔案 `subjugation_nodes.json` 與瀏覽器 `localStorage`，若磁碟中有新增據點（如永恆之城、鍛主之城、聖耀王座等 18+ 處國家要塞與巢穴）自動合併注入，徹底解決舊版瀏覽器快取殘留遮蔽新據點的問題；同時完美保留創作者自建的新據點。
+  - **強制重載按鈕升級 (`CombatStudio.ts`)**：工坊【🔄 重新讀取硬碟】按鈕支援強制完全重載磁碟據點檔案並覆蓋本機快照。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Fix/WorldGen/TerrainCompatibilityEngine] 大地圖生成概念地形相容性引擎實裝與開局坐標放置修復（2026-08-27）**：
+  - **地形相容性匹配機制 (`MapGenerator.ts`)**：實裝 `isTerrainCompatible` 核心函式，區分 5 大實體地貌像素（平原、森林、雪山、火山、沙漠）與概念型副本環境（古遺跡 `RUINS`、洞穴 `CAVE`、荒野 `WILDERNESS` 等）。允許概念型地下城/秘境據點座落於任何合法陸地像素上，徹底根除 `Unable to place map node ... on terrain RUINS` 開局崩潰異常。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、擴充專屬單元測試、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/CombatStudio/StrongholdCustomization & TroopDispatch] 大地圖攻略據點工坊全方位自訂、國家/固定據點全面收錄、新遊戲世界生成與「允許帶兵討伐」開關全面實裝（2026-08-27）**：
+  - **大地圖固定魔物巢穴與國家攻城據點全面收錄 (`subjugation_nodes.json`)**：收錄 24+ 處完備據點範本（硫磺深淵、飢餓冰窟、幻毒沼澤、死寂深淵、染血丘陵、嘆息平原等野外險地，以及舊王都永恆之城、鍛主之城、聖耀王座、金玫瑰城、黑鐵樞紐、黑曜石堡、裁決要塞等各大國家/勢力核心攻城戰略要塞）。
+  - **據點工坊（Subjugation Studio）功能升級 (`CombatStudio.ts`, `combat-studio.html`)**：支援「＋ 創造新據點」與「🗑️ 刪除據點」；實裝【🛡️ 允許帶兵討伐／攻城 (`allowTroops`)】勾選框；實裝【大地圖生成模式 (`worldGenMode`)】下拉選單（🌐 開局常駐生成 / 🌫️ 迷霧隱藏秘境 / 📜 故事事件專屬）；實裝【所屬國家／勢力 (`factionId`)】與【節點規模等級 (`nodeLevel`)】配置，並在左側清單新增「勢力篩選」過濾器與「🛡️可帶兵」徽章。
+  - **新遊戲大地圖動態生成整合 (`GameState.ts`, `MapGenerator.ts`)**：新開局時，大地圖演算法自動讀取據點工坊中所有標記為常駐與秘境的自訂與國家據點，隨機分布於大地圖上，實現大地圖攻略內容完全由創作者自訂。
+  - **遊戲內派遣出征兵力調派連動 (`DispatchModalController.ts`)**：派遣討伐或攻城時，若目標節點開啟 `allowTroops` 或 `isWar`，自動支援調派步兵（護盾）、弓兵（箭雨）與騎兵（衝鋒）軍團。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、擴充專屬單元測試、28 個測試檔案 121 項單元測試 100% 全部通過。
 - **[Fix/UI/RightPanelBackgroundRestore] 修復右側帝國儀表板底圖與樣式隔離（2026-08-27）**：
   - **樣式範圍嚴格隔離 (`UIThemeStudio.ts`)**：修正全域樣式注入規則，移除對 `.glass-panel` 的強制 `!important` 覆蓋，將自訂樣式嚴格限制於獨立設施視圖 (`.facility-view .glass-panel:not(#shared-right-panel)`)，徹底排除並保護右側帝國儀表板 (`#shared-right-panel`)，100% 恢復右側原始羊皮紙與精緻底圖外觀。
   - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 120 項單元測試 100% 全部通過。

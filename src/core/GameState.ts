@@ -98,9 +98,24 @@ export function initGameState(options: NewGameOptions = {
   
   const factionsCopy = JSON.parse(JSON.stringify(FactionManager.getAllFactions()));
   
-  // 自動載入討伐據點庫中標記為「開局世界隱藏秘境」的自訂據點
-  const secretStrongholds: MapNode[] = DataStore.getSubjugationTemplates()
-    .filter(tpl => tpl.isWorldSecret)
+  // 自動載入討伐據點庫中標記為「開局常駐生成」與「開局世界隱藏秘境」的自訂/固定據點
+  const allTemplates = DataStore.getSubjugationTemplates();
+  const templateMap = new Map(allTemplates.map(t => [t.id, t]));
+
+  // 同步原生節點與據點工坊中的自訂圖標與配置
+  mapNodes.forEach(node => {
+    const tpl = templateMap.get(node.id) || allTemplates.find(t => t.name === node.name);
+    if (tpl) {
+      if (tpl.icon) node.customIcon = tpl.icon;
+      if (tpl.allowTroops !== undefined) node.allowTroops = tpl.allowTroops;
+    }
+  });
+
+  const existingNodeIds = new Set(mapNodes.map(n => n.id));
+
+  // 1. 隱藏秘境節點 (迷霧中探索發現)
+  const secretStrongholds: MapNode[] = allTemplates
+    .filter(tpl => tpl.worldGenMode === 'WORLD_SECRET' || (tpl.isWorldSecret && tpl.worldGenMode !== 'STORY_ONLY'))
     .map(tpl => ({
       id: `secret_${tpl.id}`,
       name: tpl.name,
@@ -109,14 +124,15 @@ export function initGameState(options: NewGameOptions = {
       y: 0,
       population: 0,
       prosperity: 0,
-      nodeLevel: NodeLevel.WILDERNESS,
-      ownerFactionId: null,
+      nodeLevel: tpl.nodeLevel ?? NodeLevel.WILDERNESS,
+      ownerFactionId: tpl.factionId || null,
       isPlayerBase: false,
       isDiscovered: false,
       terrain: (TerrainType as any)[tpl.terrain] || TerrainType.RUINS,
       feature: NodeFeature.SUBJUGATION,
       isHidden: true,
       isDynamic: true,
+      allowTroops: tpl.allowTroops !== false,
       baseDifficulty: tpl.difficulty || 2,
       isScouted: !tpl.requiresScouting,
       customIcon: tpl.icon,
@@ -131,7 +147,39 @@ export function initGameState(options: NewGameOptions = {
       }
     } as unknown as MapNode));
 
-  const allWorldNodes = [...mapNodes, ...secretStrongholds];
+  // 2. 自訂常駐攻略據點 (非 STORY_ONLY 且非秘境，且不在原生 INITIAL_MAP_NODES 中的新據點)
+  const customPermanentNodes: MapNode[] = allTemplates
+    .filter(tpl => (tpl.worldGenMode === 'PERMANENT_VISIBLE' || (!tpl.worldGenMode && !tpl.isWorldSecret)) && !existingNodeIds.has(tpl.id))
+    .map(tpl => ({
+      id: tpl.id,
+      name: tpl.name,
+      description: tpl.description || '',
+      x: 0,
+      y: 0,
+      population: tpl.nodeLevel ? (tpl.nodeLevel * 500) : 0,
+      prosperity: tpl.nodeLevel ? (tpl.nodeLevel * 100) : 0,
+      nodeLevel: tpl.nodeLevel ?? NodeLevel.WILDERNESS,
+      ownerFactionId: tpl.factionId || null,
+      isPlayerBase: false,
+      isDiscovered: false,
+      terrain: (TerrainType as any)[tpl.terrain] || TerrainType.PLAINS,
+      feature: (tpl.nodeLevel && tpl.nodeLevel > 0) ? NodeFeature.OCCUPIABLE : NodeFeature.SUBJUGATION,
+      isHidden: false,
+      isDynamic: false,
+      allowTroops: tpl.allowTroops !== false,
+      baseDifficulty: tpl.difficulty || 2,
+      isScouted: !tpl.requiresScouting,
+      customIcon: tpl.icon,
+      narrativeSubjugation: {
+        storyId: 'custom_stronghold',
+        sourceNodeId: tpl.id,
+        templateId: tpl.id,
+        journeyNodeIds: [],
+        removeOnVictory: tpl.removeOnVictory === true
+      }
+    } as unknown as MapNode));
+
+  const allWorldNodes = [...mapNodes, ...customPermanentNodes, ...secretStrongholds];
   const generatedWorld = MapGenerator.generateWorld(
     allWorldNodes,
     options.seed,

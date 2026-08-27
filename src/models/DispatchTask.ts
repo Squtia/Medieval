@@ -43,6 +43,7 @@ export class DispatchTask {
   public minPowerRequired: number;    // 承接任務的基礎難度要求
   public enemyFeature: EnemyFeature;  // 敵方特性
   public isWar: boolean = false;      // Phase 5: 是否為攻城戰爭(允許帶兵)
+  public allowTroops: boolean = false; // 是否允許調派領地軍團 (步兵/弓兵/騎兵)
   public troopAssignments?: Record<string, { type: string, count: number }>; // 每個參戰傭兵分配的兵種與數量
   public enemyLineup?: MonsterInstance[]; // 具體的敵方魔物陣容
   

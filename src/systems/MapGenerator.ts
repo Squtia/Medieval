@@ -1,4 +1,4 @@
-import { MapNode, NodeFeature, NodeLevel } from '../models/types';
+import { MapNode, NodeFeature, NodeLevel, TerrainType } from '../models/types';
 import { GeneratedWorld, GameDifficulty } from '../models/WorldGeneration';
 import { MapMaskData } from '../data/MapMaskData';
 import { getDifficultyConfig } from '../data/DifficultyData';
@@ -102,6 +102,41 @@ export class MapGenerator {
   }
 
   /**
+   * 檢查目標地形是否相容該節點需求。
+   * 實體地形 (PLAINS/FOREST/SNOW_MOUNTAIN/VOLCANO/DESERT) 嚴格匹配；
+   * 概念型地形 (RUINS 遺跡, CAVE 洞窟, WILDERNESS 荒野) 允許座落於任何合法陸地。
+   */
+  public static isTerrainCompatible(nodeTerrain: TerrainType | string, targetTerrain: TerrainType | null): boolean {
+    if (!targetTerrain) return false;
+    if (nodeTerrain === targetTerrain) return true;
+    if (
+      nodeTerrain === TerrainType.RUINS ||
+      nodeTerrain === TerrainType.CAVE ||
+      nodeTerrain === TerrainType.WILDERNESS ||
+      (nodeTerrain as any) === 'RUINS' ||
+      (nodeTerrain as any) === 'CAVE' ||
+      (nodeTerrain as any) === 'WILDERNESS'
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 根據節點性質計算所需的安全間隔距離：
+   * - 城鎮 vs 城鎮 (OCCUPIABLE vs OCCUPIABLE): 4.5
+   * - 城鎮 vs 野外據點 (OCCUPIABLE vs SUBJUGATION): 3.2
+   * - 野外據點 vs 野外據點 (SUBJUGATION vs SUBJUGATION): 3.0
+   */
+  public static getRequiredDistance(nodeA: { feature?: NodeFeature }, nodeB: { feature?: NodeFeature }): number {
+    const isTownA = nodeA.feature === NodeFeature.OCCUPIABLE;
+    const isTownB = nodeB.feature === NodeFeature.OCCUPIABLE;
+    if (isTownA && isTownB) return 4.5;
+    if (isTownA || isTownB) return 3.2;
+    return 3.0;
+  }
+
+  /**
    * 為所有沒有座標的節點分配位置。保留公開方法供動態地圖工具使用。
    */
   public static assignDynamicCoordinates(
@@ -122,19 +157,37 @@ export class MapGenerator {
 
       let acceptedPoint: Point | null = null;
       let bestPoint: Point | null = null;
-      let bestClearance = -1;
+      let bestRatio = -1;
 
       for (let attempt = 0; attempt < MAX_PLACEMENT_ATTEMPTS; attempt += 1) {
         const candidate = this.createCandidate(node, capitalPositions, random, attempt);
-        if (MapMaskData.getTerrainAt(candidate.x, candidate.y) !== node.terrain) continue;
+        const terrainAtCandidate = MapMaskData.getTerrainAt(candidate.x, candidate.y);
+        if (!this.isTerrainCompatible(node.terrain, terrainAtCandidate)) continue;
 
-        const clearance = this.getMinimumDistance(candidate, placedNodes);
-        if (clearance > bestClearance) {
-          bestClearance = clearance;
+        let minRatio = Number.POSITIVE_INFINITY;
+        let isAcceptable = true;
+
+        for (const placed of placedNodes) {
+          const reqDist = this.getRequiredDistance(node, placed);
+          const dist = this.distance(candidate, placed);
+          const ratio = dist / reqDist;
+          if (ratio < minRatio) minRatio = ratio;
+          if (dist < reqDist) {
+            isAcceptable = false;
+          }
+        }
+
+        if (placedNodes.length === 0) {
+          minRatio = 10;
+          isAcceptable = true;
+        }
+
+        if (minRatio > bestRatio) {
+          bestRatio = minRatio;
           bestPoint = candidate;
         }
 
-        if (clearance >= MIN_NODE_DISTANCE) {
+        if (isAcceptable) {
           acceptedPoint = candidate;
           break;
         }
@@ -168,17 +221,20 @@ export class MapGenerator {
       const terrain = MapMaskData.getTerrainAt(node.x, node.y);
       if (!terrain) {
         errors.push(`Node ${node.id} is outside valid land.`);
-      } else if (!node.isPlayerBase && terrain !== node.terrain) {
+      } else if (!node.isPlayerBase && !this.isTerrainCompatible(node.terrain, terrain)) {
         errors.push(`Node ${node.id} is on ${terrain}, expected ${node.terrain}.`);
       }
     }
 
     for (let leftIndex = 0; leftIndex < nodes.length; leftIndex += 1) {
       for (let rightIndex = leftIndex + 1; rightIndex < nodes.length; rightIndex += 1) {
-        const distance = this.distance(nodes[leftIndex], nodes[rightIndex]);
-        if (distance < MIN_NODE_DISTANCE - 0.001) {
+        const left = nodes[leftIndex];
+        const right = nodes[rightIndex];
+        const reqDistance = this.getRequiredDistance(left, right);
+        const distance = this.distance(left, right);
+        if (distance < reqDistance - 0.001) {
           errors.push(
-            `Nodes ${nodes[leftIndex].id} and ${nodes[rightIndex].id} are too close (${distance.toFixed(2)}).`
+            `Nodes ${left.id} and ${right.id} are too close (${distance.toFixed(2)} < ${reqDistance}).`
           );
         }
       }

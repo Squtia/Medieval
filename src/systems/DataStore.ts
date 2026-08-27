@@ -16,18 +16,43 @@ export class DataStore {
   // ============================
   public static readonly SubjugationNodeDB: SubjugationTemplate[] = subjugationNodesJson as SubjugationTemplate[];
 
-  /** 動態取得最新討伐據點庫（優先讀取戰鬥工坊中自訂儲存的據點） */
+  /** 動態取得最新討伐據點庫（優先讀取戰鬥工坊中自訂儲存的據點，並與官方 24 處據點智慧合併） */
   public static getSubjugationTemplates(): SubjugationTemplate[] {
+    const diskDefaults = this.SubjugationNodeDB;
     if (typeof localStorage !== 'undefined') {
       try {
         const raw = localStorage.getItem('MEDIEVAL_CUSTOM_STRONGHOLDS_V2');
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const savedMap = new Map<string, SubjugationTemplate>();
+            parsed.forEach((s: SubjugationTemplate) => savedMap.set(s.id, s));
+
+            const merged: SubjugationTemplate[] = [];
+            diskDefaults.forEach(d => {
+              if (savedMap.has(d.id)) {
+                const u = savedMap.get(d.id)!;
+                merged.push({
+                  ...d,
+                  ...u,
+                  allowTroops: u.allowTroops !== undefined ? u.allowTroops : d.allowTroops,
+                  worldGenMode: u.worldGenMode || d.worldGenMode,
+                  factionId: u.factionId !== undefined ? u.factionId : d.factionId,
+                  nodeLevel: u.nodeLevel !== undefined ? u.nodeLevel : d.nodeLevel
+                });
+                savedMap.delete(d.id);
+              } else {
+                merged.push(d);
+              }
+            });
+
+            savedMap.forEach(customSh => merged.push(customSh));
+            return merged;
+          }
         }
       } catch {}
     }
-    return this.SubjugationNodeDB;
+    return diskDefaults;
   }
 
   // ============================
