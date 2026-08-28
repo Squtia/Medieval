@@ -516,7 +516,7 @@ export function renderArmorSpriteHtml(armorType: string | undefined, tier: numbe
       overflow: hidden;
       flex-shrink: 0;
       ${borderStyle}
-      background-image: url('./assets/icons_armors_12.jpg');
+      background-image: url('${resolvedSpriteUrl}');
       background-size: ${bgSizeX}% ${bgSizeY}%;
       background-position: ${bgX}% ${bgY}%;
     ">
@@ -619,8 +619,11 @@ export function resolveSpriteAssetUrl(rawUrl: string): string {
   if (clean.startsWith('./')) clean = clean.substring(2);
 
   const isSubDir = typeof window !== 'undefined' && window.location && window.location.pathname.includes('/tools/');
-  const prefix = isSubDir ? '../' : './';
-  return prefix + clean;
+  if (isSubDir) return '../' + clean;
+
+  const base = (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.BASE_URL) ? (import.meta as any).env.BASE_URL : './';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  return `${cleanBase}${clean}`;
 }
 
 /**

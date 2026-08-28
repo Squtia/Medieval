@@ -12,13 +12,13 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
 #app-background {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: #1a1511 url('./bg-parchment.png') center/cover no-repeat;
+  background: #1a1511 url('/bg-parchment.png') center/cover no-repeat;
   z-index: -1;
 }
 
 /* 共用玻璃擬物化面板 -> 羊皮紙風格面板 */
 .glass-panel {
-  background: url('./bg-parchment.png') center/cover;
+  background: url('/bg-parchment.png') center/cover;
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.9), 0 8px 32px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(139, 69, 19, 0.5);
   border-radius: 4px;
@@ -49,7 +49,7 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   height: 36px;
   vertical-align: middle;
   border-radius: 4px;
-  background-image: url('./assets/icons_materials_color_12_1.png');
+  background-image: url('/assets/icons_materials_color_12_1.png');
   background-size: 400% 300%;
   flex-shrink: 0;
   filter: drop-shadow(0 2px 5px rgba(0,0,0,0.9));
@@ -166,11 +166,11 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
 .facility-view.active { display: flex; }
 
 /* 獨立建築視圖背景 */
-#view-base { background: url('./assets/study_desk.png') center/cover; }
-#view-hall { background: url('./bg-parchment.png') center/cover; }
-#view-camp { background: url('./bg-parchment.png') center/cover; }
+#view-base { background: url('/assets/study_desk.png') center/cover; }
+#view-hall { background: url('/bg-parchment.png') center/cover; }
+#view-camp { background: url('/bg-parchment.png') center/cover; }
 #view-forge {
-  background: url('./assets/forge_workshop_bg.png') center/cover;
+  background: url('/assets/forge_workshop_bg.png') center/cover;
   padding: 25px 40px;
   box-sizing: border-box;
   z-index: 50;
@@ -353,7 +353,7 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
 
 /* 動作按鈕 */
 .action-btn {
-  background: url('./bg-parchment.png') center/cover;
+  background: url('/bg-parchment.png') center/cover;
   box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 4px 6px rgba(0, 0, 0, 0.5);
   border: 1px solid rgba(139, 69, 19, 0.8);
   color: #ebdcb6;
@@ -685,7 +685,7 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   width: 176px;
   height: 176px;
   border-radius: 50%;
-  background: url('./assets/btn_epic_crest.png') no-repeat center/118%;
+  background: url('/assets/btn_epic_crest.png') no-repeat center/118%;
   border: 3px solid rgba(234, 179, 8, 0.85);
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.95), inset 0 0 25px rgba(0, 0, 0, 0.6);
   cursor: pointer;
@@ -724,7 +724,7 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   right: 0;
   width: 75px;
   height: 75px;
-  background: url('./assets/btn_return_base_gold.png') no-repeat center/cover;
+  background: url('/assets/btn_return_base_gold.png') no-repeat center/cover;
   border: 2px solid rgba(234, 179, 8, 0.75);
   cursor: pointer;
   z-index: 150;
