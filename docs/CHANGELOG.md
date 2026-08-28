@@ -1,9 +1,10 @@
-- **[Fix/Build/AssetsPath] 全域靜態圖片與 CSS/HTML 紋理背景路徑全面修復（2026-08-28）**：
-  - **根本原因**：`style.css`、`views-main.html` 與 `panels-hud.html` 中的背景圖使用了相對路徑（如 `url('./bg-parchment.png')`、`url('./assets/btn_epic_crest.png')`），在 Vite 打包後瀏覽器會錯誤指向 `assets/bg-parchment.png` 造成 404 破圖與黑底。
+- **[Fix/Build/AssetsPath] 全域街道建築圖示 SSOT 與 CSS/HTML 紋理背景路徑全面修復（2026-08-28）**：
+  - **根本原因**：HTML 模板為 JS 動態字串注入，行內樣式 `style="background-image: url('/...')"` 不受 Vite 編譯期路徑重寫，導致瀏覽器直連根域名 404 使街道建築與傭兵面板隱形。
   - **解決方案**：
-    - 將 [style.css](file:///i:/gameproject/Medieval/style.css)、[views-main.html](file:///i:/gameproject/Medieval/src/templates/views-main.html) 與 [panels-hud.html](file:///i:/gameproject/Medieval/src/templates/panels-hud.html) 的背景圖統一轉換為標準根路徑（`/bg-parchment.png`、`/assets/...`），使 Vite 編譯時自動注入 `/Medieval/` 前綴。
-    - 優化 [IconSpriteHelper.ts](file:///i:/gameproject/Medieval/src/ui/IconSpriteHelper.ts) 中的 `resolveSpriteAssetUrl`，動態注入 `import.meta.env.BASE_URL` 並修復防具圖標變數引用。
-    - 全數通過 132 項自動化測試與 Vite 生產打包驗證，羊皮紙底圖、按鈕材質與 UI 圖標已 100% 恢復。
+    - 將街道建築（領主自宅、謁見廳、酒館、改造所、二手商、防禦工事、鍛造屋、教會）與傭兵面板的背景圖與尺寸**全部集中至 [style.css](file:///i:/gameproject/Medieval/style.css) 作為 SSOT**，徹底由 Vite 編譯器轉換為帶 `/Medieval/` 前綴之正確路徑。
+    - 清理 [views-main.html](file:///i:/gameproject/Medieval/src/templates/views-main.html) 與 [panels-hud.html](file:///i:/gameproject/Medieval/src/templates/panels-hud.html) 中的行內背景樣式。
+    - 優化 [IconSpriteHelper.ts](file:///i:/gameproject/Medieval/src/ui/IconSpriteHelper.ts) 動態 `BASE_URL` 解析。
+    - 通過 132 項自動化測試與 Vite 生產打包驗證，街道建築、羊皮紙底圖與按鈕紋理 100% 恢復正常。
 
 - **[Fix/Build/TemplateLoader] 採用 Vite 原生 `?raw` 靜態字串導入修復生產環境 (GitHub Pages) HTTP 404 報錯（2026-08-28）**：
   - **根本原因**：原先 `TemplateLoader.ts` 採用執行期 `fetch('./src/templates/*.html')`，在本地 dev 模式正常，但在生產打包 (`npm run build`) 部署至 GitHub Pages 時，`src/templates/` 未被輸出至 `dist/`，導致 `ui-chrome.html` 等片段返回 HTTP 404 遊戲初始化失敗。

@@ -1,6 +1,6 @@
-- **[Fix/Build/AssetsPath] 全域靜態圖片與 CSS/HTML 紋理背景路徑全面修復（2026-08-28）**：
-  - **根本原因**：`style.css`、`views-main.html` 與 `panels-hud.html` 中的背景圖使用了相對路徑，在 Vite 打包部署至 GitHub Pages 時因路徑層級錯誤導致 404 破圖，主選單底圖與大圓鈕材質變為純黑。
-  - **解決方案**：全面將相關樣式與模板改用標準根路徑（`/bg-parchment.png`、`/assets/...`），使 Vite 編譯時自動注入 `/Medieval/` 前綴；並在 `IconSpriteHelper.ts` 整合動態 BASE_URL。已全數通過 132 項自動化測試與生產打包。
+- **[Fix/Build/AssetsPath] 全域街道建築圖示 SSOT 與 CSS/HTML 紋理背景路徑全面修復（2026-08-28）**：
+  - **根本原因**：HTML 模板中的行內樣式 `url('/...')` 在執行期未受 Vite 編譯處理，導致瀏覽器發出錯誤路徑請求（404）造成街道建築與傭兵面板透明隱形。
+  - **解決方案**：全面將街道建築與傭兵面板背景樣式由 HTML 模板移至 [style.css](file:///i:/gameproject/Medieval/style.css) 統一以 CSS 類別宣告（SSOT），使 Vite 打包時 100% 正確編譯並注入 base 前綴。已全數通過 132 項自動化測試與生產打包。
 
 - **[Fix/Build/TemplateLoader] 採用 Vite 原生 `?raw` 靜態字串導入修復生產環境 (GitHub Pages) HTTP 404 報錯（2026-08-28）**：
   - **根本原因**：`TemplateLoader.ts` 透過 `fetch()` 讀取 `src/templates/*.html` 在生產打包部署後無法讀取（404）。

@@ -285,6 +285,28 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
   transform: scale(1.1) translateY(-10px);
   filter: drop-shadow(0 15px 15px rgba(255,215,0,0.3));
 }
+
+/* 街道建築背景圖與尺寸 SSOT */
+#btn-enter-hall { background-image: url('/bld_hall_1784087169726.png'); width: 260px; height: 260px; }
+#btn-enter-base { background-image: url('/bld_base_1784087181104.png'); width: 250px; height: 250px; }
+#btn-enter-tavern { background-image: url('/assets/buildings/bld_tavern.png'); background-size: cover; width: 220px; height: 220px; }
+#btn-enter-weapon-shop { background-image: url('/assets/buildings/bld_weapon.png'); background-size: cover; width: 220px; height: 220px; }
+#btn-enter-armor-shop { background-image: url('/assets/buildings/bld_armor.png'); background-size: cover; width: 220px; height: 220px; }
+#btn-enter-defense { background-image: url('/assets/buildings/bld_defense.png'); background-size: cover; width: 220px; height: 220px; cursor: default; }
+#btn-enter-forge { background-image: url('/assets/buildings/bld_forge.png'); background-size: cover; width: 220px; height: 220px; }
+#btn-enter-church { background-image: url('/assets/buildings/bld_tavern.png'); background-size: cover; width: 220px; height: 220px; }
+
+/* 傭兵小隊展開面板背景 */
+#modal-party-list {
+  width: auto;
+  max-width: 1300px;
+  flex-direction: row;
+  gap: 0;
+  padding: 0;
+  overflow: visible;
+  background: url('/bg-parchment.png') left top / 1920px 1080px no-repeat;
+}
+
 .building-label {
   position: absolute;
   bottom: -30px;
