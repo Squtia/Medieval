@@ -1,6 +1,6 @@
 import { Territory } from '../models/Territory';
 import { GameState } from '../core/GameState';
-import { OfficeType, TerrainType, Gender, MonsterRace, ElementType, FormationRow } from '../models/types';
+import { OfficeType, TerrainType, Gender, MonsterRace, ElementType, FormationRow, SiegeBattleMode, SiegeRole } from '../models/types';
 import { CombatSystem } from './CombatSystem';
 import { CombatUIManager } from '../ui/CombatUIManager';
 import { InteractiveCombatSession } from './combat/InteractiveCombatSession';
@@ -398,6 +398,8 @@ export class TerritoryDefenseSystem {
       waveEnemyLineups,
       {
         isSiege: false,
+        battleMode: SiegeBattleMode.NONE,
+        playerRole: SiegeRole.ATTACKER,
         isFieldInterception: true,
         isLordCampaign: true,
         lordTitle: territory.title,
@@ -416,13 +418,16 @@ export class TerritoryDefenseSystem {
       primarySquad.gridMap
     );
 
+    const currentDays = Number(pending?.warningDaysLeft ?? effect.warningDays ?? 2);
+    const interceptBattleDays = Math.max(1, Math.floor(currentDays / 2));
+
     CombatUIManager.startInteractiveCombat(session, (report) => {
       report.isFieldInterception = true;
       this.settleFieldInterceptionResults(storyId, effect, report, {
         infantry: infantryCount,
         archer: archerCount,
         cavalry: cavalryCount
-      }, false, 1);
+      }, false, interceptBattleDays);
     });
   }
 
@@ -436,12 +441,10 @@ export class TerritoryDefenseSystem {
     assignedTroops?: { infantry?: number; archer?: number; cavalry?: number }
   ): void {
     const territory = GameState.myTerritory;
-    const warningDays = Number(effect.warningDays || 2);
-    // 嚴謹公式：交兵天數以短日為主 (最高 4 天行軍)
-    const marchDays = 4;
-    const battleDays = Math.min(warningDays, marchDays);
-
     const pending = territory.pendingRaids?.find(pr => pr.storyId === storyId);
+    const currentDays = Number(pending?.warningDaysLeft ?? effect.warningDays ?? 2);
+    // 📐 雙方對進遭遇算法：在荒野中途交火 (floor(T/2))
+    const battleDays = Math.max(1, Math.floor(currentDays / 2));
     const { waveEnemyLineups, enemyLegion } = this.buildWaveEnemyLineups(effect, pending?.survivingWaves);
 
     const primarySquad = squadConfigs[0] || { formationId: 'DEFAULT', gridMap: {}, selectedIds: new Set() };
@@ -525,7 +528,8 @@ export class TerritoryDefenseSystem {
     battleDays: number = 1
   ): void {
     const territory = GameState.myTerritory;
-    const warningDays = Number(effect.warningDays || 2);
+    const pendingRaid = territory.pendingRaids?.find(pr => pr.storyId === storyId);
+    const currentTotalWarningDays = Number(pendingRaid?.warningDaysLeft ?? effect.warningDays ?? 2);
 
     // 1. 計算兵種戰損 (野戰無城牆，步兵抵擋前線，弓兵 8%，騎兵 12%)
     let lostInfantry = 0;
@@ -625,7 +629,7 @@ export class TerritoryDefenseSystem {
       }
     } else {
       // ⚠️ 攔截失利：敵軍已被削弱，計算剩餘天數並繼承殘損敵軍陣容！
-      const remainingDays = Math.max(1, warningDays - battleDays);
+      const remainingDays = Math.max(1, currentTotalWarningDays - battleDays);
       if (!territory.pendingRaids) territory.pendingRaids = [];
 
       const existingIdx = territory.pendingRaids.findIndex(pr => pr.storyId === storyId);
@@ -634,7 +638,7 @@ export class TerritoryDefenseSystem {
         storyId,
         raidName: effect.raidName || '敵軍大軍圍城戰',
         isSiege: effect.isSiege !== false,
-        warningDaysTotal: warningDays,
+        warningDaysTotal: effect.warningDays || currentTotalWarningDays,
         warningDaysLeft: remainingDays,
         effect,
         survivingWaves: report.survivingWaves,
@@ -783,6 +787,8 @@ export class TerritoryDefenseSystem {
       waveEnemyLineups,
       {
         isSiege: isSiege,
+        battleMode: isSiege ? SiegeBattleMode.DEFENSE_SIEGE : SiegeBattleMode.NONE,
+        playerRole: isSiege ? SiegeRole.DEFENDER : SiegeRole.ATTACKER,
         isLordCampaign: true,
         lordTitle: territory.title,
         assignedTroops: {

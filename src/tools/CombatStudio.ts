@@ -1,6 +1,6 @@
 import { Adventurer } from '../models/Adventurer';
 import { CombatEvent, CombatEventType, CombatReport } from '../models/Combat';
-import { ElementType, Equipment, EquipmentSlot, FormationRow, Gender, JobConfig, MonsterData, MonsterInstance, MonsterProfile, MonsterRace, TerrainType, TraitConfig, WeaponType } from '../models/types';
+import { CombatGroupRole, AttackerInterfaceConfig, DefenderInterfaceConfig, ElementType, Equipment, EquipmentSlot, FormationRow, Gender, JobConfig, MonsterData, MonsterInstance, MonsterProfile, MonsterRace, TerrainType, TraitConfig, WeaponType } from '../models/types';
 import { SubjugationTemplate, SubjugationWave, SubjugationWaveMonster } from '../models/Narrative';
 import { MonsterSystem } from '../systems/MonsterSystem';
 import { CombatSystem } from '../systems/CombatSystem';
@@ -1171,6 +1171,39 @@ class CombatStudioController {
     if (enemyArcInput) enemyArcInput.value = String(sh.enemyLegion?.archer ?? 0);
     if (enemyCavInput) enemyCavInput.value = String(sh.enemyLegion?.cavalry ?? 0);
 
+    // 🏰 攻守戰役陣營接口與可控條件 (Siege Role & Engine Interface)
+    const combatRoleSelect = byId<HTMLSelectElement>('sh-combat-role');
+    const defPanel = byId('sh-defender-interface-panel');
+    const atkPanel = byId('sh-attacker-interface-panel');
+
+    const curRole = (sh as any).combatRole || CombatGroupRole.VERSATILE;
+    if (combatRoleSelect) combatRoleSelect.value = curRole;
+
+    if (defPanel) defPanel.style.display = (curRole === CombatGroupRole.VERSATILE || curRole === CombatGroupRole.DEFENDER_ONLY) ? 'flex' : 'none';
+    if (atkPanel) atkPanel.style.display = (curRole === CombatGroupRole.VERSATILE || curRole === CombatGroupRole.ATTACKER_ONLY) ? 'flex' : 'none';
+
+    // 防守方控制項
+    const gateHpInput = byId<HTMLInputElement>('sh-gate-hp');
+    const towerCountInput = byId<HTMLInputElement>('sh-watchtower-count');
+    const towerDmgInput = byId<HTMLInputElement>('sh-watchtower-dmg');
+    const rampartBonusInput = byId<HTMLInputElement>('sh-rampart-bonus');
+
+    const defCfg = (sh as any).defenderConfig || { gateMaxHp: 3000, watchtowerCount: 1, watchtowerDmg: 50, rampartArrowBonusPct: 15 };
+    if (gateHpInput) gateHpInput.value = String(defCfg.gateMaxHp ?? 3000);
+    if (towerCountInput) towerCountInput.value = String(defCfg.watchtowerCount ?? 1);
+    if (towerDmgInput) towerDmgInput.value = String(defCfg.watchtowerDmg ?? 50);
+    if (rampartBonusInput) rampartBonusInput.value = String(defCfg.rampartArrowBonusPct ?? 15);
+
+    // 進攻方控制項
+    const ramCountInput = byId<HTMLInputElement>('sh-ram-count');
+    const trebCountInput = byId<HTMLInputElement>('sh-treb-count');
+    const stanceSelect = byId<HTMLSelectElement>('sh-tactical-stance');
+
+    const atkCfg = (sh as any).attackerConfig || { ramCount: 1, trebuchetCount: 1, tacticalStance: 'GATE_FOCUS' };
+    if (ramCountInput) ramCountInput.value = String(atkCfg.ramCount ?? 1);
+    if (trebCountInput) trebCountInput.value = String(atkCfg.trebuchetCount ?? 1);
+    if (stanceSelect) stanceSelect.value = atkCfg.tacticalStance || 'GATE_FOCUS';
+
     this.renderStrongholdWaves(sh);
   }
 
@@ -1976,6 +2009,26 @@ class CombatStudioController {
         prestige: prestigeVal
       };
 
+      // 🏰 攻守戰役陣營角色與接口配置同步
+      const combatRoleVal = (byId<HTMLSelectElement>('sh-combat-role')?.value as CombatGroupRole) || CombatGroupRole.VERSATILE;
+      const defPanel = byId('sh-defender-interface-panel');
+      const atkPanel = byId('sh-attacker-interface-panel');
+      if (defPanel) defPanel.style.display = (combatRoleVal === CombatGroupRole.VERSATILE || combatRoleVal === CombatGroupRole.DEFENDER_ONLY) ? 'flex' : 'none';
+      if (atkPanel) atkPanel.style.display = (combatRoleVal === CombatGroupRole.VERSATILE || combatRoleVal === CombatGroupRole.ATTACKER_ONLY) ? 'flex' : 'none';
+
+      (sh as any).combatRole = combatRoleVal;
+      (sh as any).defenderConfig = {
+        gateMaxHp: Number(byId<HTMLInputElement>('sh-gate-hp')?.value || 3000),
+        watchtowerCount: Number(byId<HTMLInputElement>('sh-watchtower-count')?.value || 1),
+        watchtowerDmg: Number(byId<HTMLInputElement>('sh-watchtower-dmg')?.value || 50),
+        rampartArrowBonusPct: Number(byId<HTMLInputElement>('sh-rampart-bonus')?.value || 15)
+      };
+      (sh as any).attackerConfig = {
+        ramCount: Number(byId<HTMLInputElement>('sh-ram-count')?.value || 1),
+        trebuchetCount: Number(byId<HTMLInputElement>('sh-treb-count')?.value || 1),
+        tacticalStance: byId<HTMLSelectElement>('sh-tactical-stance')?.value || 'GATE_FOCUS'
+      };
+
       byId('sh-diff-display').textContent = `Lv.${diffVal}`;
       byId('sh-edit-badge').textContent = sh.id;
       byId('sh-edit-title').textContent = sh.name;
@@ -1985,7 +2038,7 @@ class CombatStudioController {
       this.renderStrongholdAnalytics();
     };
 
-    ['sh-id', 'sh-name', 'sh-faction', 'sh-node-level', 'sh-terrain', 'sh-difficulty', 'sh-world-gen-mode', 'sh-icon', 'sh-allow-troops', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-fog-rumor', 'sh-reveal-rumor', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige', 'sh-enemy-legion-enable', 'sh-enemy-infantry', 'sh-enemy-archer', 'sh-enemy-cavalry']
+    ['sh-id', 'sh-name', 'sh-faction', 'sh-node-level', 'sh-terrain', 'sh-difficulty', 'sh-world-gen-mode', 'sh-icon', 'sh-allow-troops', 'sh-requires-scouting', 'sh-remove-on-victory', 'sh-fog-rumor', 'sh-reveal-rumor', 'sh-description', 'sh-reward-gold', 'sh-reward-exp', 'sh-reward-prestige', 'sh-enemy-legion-enable', 'sh-enemy-infantry', 'sh-enemy-archer', 'sh-enemy-cavalry', 'sh-combat-role', 'sh-gate-hp', 'sh-watchtower-count', 'sh-watchtower-dmg', 'sh-rampart-bonus', 'sh-ram-count', 'sh-treb-count', 'sh-tactical-stance']
       .forEach(id => {
         const el = byId(id);
         if (el) {

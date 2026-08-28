@@ -752,8 +752,35 @@ class UIManagerClass {
 
     container.style.display = 'flex';
     container.innerHTML = '';
+
+    // 🐎 優先展示進行中的攻城遠征行軍進度
+    const campaignMission = GameState.myTerritory?.lordCampaignMission;
+    if (campaignMission && campaignMission.state === 'MARCHING') {
+      const campEl = document.createElement('div');
+      campEl.style.background = 'linear-gradient(90deg, rgba(120, 53, 15, 0.85), rgba(30, 20, 10, 0.9))';
+      campEl.style.border = '1px solid #f59e0b';
+      campEl.style.borderRadius = '6px';
+      campEl.style.padding = '8px 12px';
+      campEl.style.display = 'flex';
+      campEl.style.alignItems = 'center';
+      campEl.style.gap = '8px';
+      campEl.style.backdropFilter = 'blur(4px)';
+      campEl.style.boxShadow = '0 2px 10px rgba(245, 158, 11, 0.4)';
+
+      campEl.innerHTML = `
+        <div style="font-size: 1.3rem;">🐎</div>
+        <div style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+          <div style="color: #fef08a; font-size: 0.85rem; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+            ${campaignMission.isLordCampaign ? '👑 領主親征' : '⚔️ 先鋒遠征'}：【${campaignMission.targetNodeName}】
+          </div>
+          <div style="color: #cbd5e1; font-size: 0.75rem;">行軍倒數：<b style="color: #4ade80;">${campaignMission.daysRemaining}</b> 天抵達城下</div>
+        </div>
+      `;
+      container.appendChild(campEl);
+    }
+
     const missions = GameState.system?.getActiveMissions() || [];
-    if (missions.length === 0) return;
+    if (missions.length === 0 && !campaignMission) return;
 
     missions.forEach(mission => {
       const el = document.createElement('div');

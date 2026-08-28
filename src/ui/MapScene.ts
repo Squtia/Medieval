@@ -4,11 +4,28 @@ import { MapNode, NodeFeature } from '../models/types';
 import { TaskType } from '../models/DispatchTask';
 import { buildTradeRouteSegments, getNodeIcon, getNodeTextureKey } from './MapPresentation';
 import { positionFloatingElement } from './FloatingPosition';
+import { DataStore } from '../systems/DataStore';
 import defaultCustomDatasets from '../data/custom_icon_datasets.json';
 
 interface CombatBeacon {
   container: Phaser.GameObjects.Container;
   tweens: Phaser.Tweens.Tween[];
+}
+
+function resolveDatasetUrl(cleanBase: string, dataset: { spriteUrl?: string; fallbackUrls?: string[] }): string {
+  if (dataset.fallbackUrls && dataset.fallbackUrls.length > 0) {
+    for (const url of dataset.fallbackUrls) {
+      if (url.includes('assets/')) {
+        const idx = url.indexOf('assets/');
+        return `${cleanBase}${url.slice(idx)}`;
+      }
+    }
+  }
+  if (dataset.spriteUrl && dataset.spriteUrl.includes('assets/')) {
+    const idx = dataset.spriteUrl.indexOf('assets/');
+    return `${cleanBase}${dataset.spriteUrl.slice(idx)}`;
+  }
+  return '';
 }
 
 export class MapScene extends Phaser.Scene {
@@ -59,10 +76,16 @@ export class MapScene extends Phaser.Scene {
     this.load.image('node-monastery', `${cleanBase}assets/node_monastery.png`);
     this.load.image('node-volcano', `${cleanBase}assets/node_volcano.png`);
 
-    // 載入常用自訂據點與城鎮圖集
-    this.load.image('cave_node_01', `${cleanBase}assets/custom_icons/cave_node_01.png`);
-    this.load.image('icons_buildings', `${cleanBase}assets/icons_buildings_12.jpg`);
-    this.load.image('settlement_sheet', `${cleanBase}assets/custom_icons/settlement_sheet.png`);
+    // 動態載入自訂圖集資料庫中所有註冊的圖集 (SSOT: custom_icon_datasets.json)
+    if (defaultCustomDatasets && typeof defaultCustomDatasets === 'object') {
+      for (const [key, dataset] of Object.entries(defaultCustomDatasets as Record<string, any>)) {
+        if (!key) continue;
+        const resolvedUrl = resolveDatasetUrl(cleanBase, dataset);
+        if (resolvedUrl) {
+          this.load.image(key, resolvedUrl);
+        }
+      }
+    }
   }
 
   create() {
@@ -161,20 +184,20 @@ export class MapScene extends Phaser.Scene {
       }
     });
 
-    // 設定滾輪縮放，依據當前視窗動態計算限制
+    // 設定滾輪縮放 (等比指數縮放，每次約 15%，最大支援 5.5 倍深入放大)
     this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any, deltaX: number, deltaY: number) => {
-      const zoomIntensity = 0.05;
-      let newZoom = this.cameras.main.zoom;
-      
+      const zoomFactor = 1.15;
       const minZoom = Math.max(this.scale.width / 1600, this.scale.height / 900);
-      const maxZoom = minZoom * 3;
+      const maxZoom = minZoom * 5.5;
+      let newZoom = this.cameras.main.zoom;
 
       if (deltaY < 0) {
-        newZoom = Math.min(this.cameras.main.zoom + zoomIntensity, maxZoom);
+        newZoom = Math.min(newZoom * zoomFactor, maxZoom);
       } else {
-        newZoom = Math.max(this.cameras.main.zoom - zoomIntensity, minZoom);
+        newZoom = Math.max(newZoom / zoomFactor, minZoom);
       }
       this.cameras.main.setZoom(newZoom);
+      this.updateNodeTextScales();
     });
 
     // 5. 繪製貿易路線與商隊與初始節點
@@ -182,6 +205,7 @@ export class MapScene extends Phaser.Scene {
     this.renderFog();
     this.renderRoadNetwork();
     this.updateRoutesAndCaravans();
+    this.updateNodeTextScales();
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.cleanupSceneResources());
     this.events.once(Phaser.Scenes.Events.DESTROY, () => this.cleanupSceneResources());
@@ -202,6 +226,30 @@ export class MapScene extends Phaser.Scene {
     if (this.cameras.main.zoom < minZoom) {
       this.cameras.main.setZoom(minZoom);
     }
+    this.updateNodeTextScales();
+  }
+
+  public updateNodeTextScales(): void {
+    const minZoom = Math.max(this.scale.width / 1600, this.scale.height / 900);
+    const maxRelZoom = 5.5;
+    const currentZoom = this.cameras.main?.zoom || minZoom;
+    const relZoom = Math.max(1, Math.min(currentZoom / minZoom, maxRelZoom));
+
+    // 全景時 (relZoom=1) 螢幕文字倍率 1.0x；極限放大時 (relZoom=5.5) 螢幕文字倍率 2.5x
+    const targetScreenRatio = 1 + (2.5 - 1) * ((relZoom - 1) / (maxRelZoom - 1));
+    // 世界座標中的 scale = 期望螢幕倍率 / 相機縮放倍率
+    const textScale = targetScreenRatio / relZoom;
+
+    this.nodeContainers.forEach(container => {
+      const labelText = container.getData('labelText') as Phaser.GameObjects.Text | undefined;
+      if (labelText) {
+        labelText.setScale(textScale);
+      }
+      const homeBadge = container.getData('homeBadge') as Phaser.GameObjects.Text | undefined;
+      if (homeBadge) {
+        homeBadge.setScale(textScale);
+      }
+    });
   }
 
   public renderFog() {
@@ -514,12 +562,13 @@ export class MapScene extends Phaser.Scene {
       labelText.setShadow(0, 4, node.isPlayerBase ? '#7c2d12' : '#000000', node.isPlayerBase ? 8 : 4, true, true);
 
       const elements: any[] = [];
+      let homeBadge: Phaser.GameObjects.Text | undefined;
       if (node.isPlayerBase) {
         const outerRing = this.add.ellipse(0, -7, 76, 38, 0xfbbf24, 0.1)
           .setStrokeStyle(3, 0xfbbf24, 0.95);
         const innerRing = this.add.ellipse(0, -7, 58, 28, 0xfef3c7, 0.05)
           .setStrokeStyle(1, 0xfef3c7, 0.72);
-        const homeBadge = this.add.text(0, -50, '◆ 我的據點 ◆', {
+        homeBadge = this.add.text(0, -50, '◆ 我的據點 ◆', {
           fontSize: '11px',
           color: '#fff7c2',
           backgroundColor: '#713f12',
@@ -558,8 +607,9 @@ export class MapScene extends Phaser.Scene {
         elements.push(siegeIcon, warnText);
       }
 
-      const container = this.add.container(px, py);
-      container.add(elements);
+      const container = this.add.container(px, py, elements);
+      container.setData('labelText', labelText);
+      if (homeBadge) container.setData('homeBadge', homeBadge);
 
       let depth = 10;
       if (node.isPlayerBase) depth = 50;
@@ -586,6 +636,7 @@ export class MapScene extends Phaser.Scene {
       });
 
       iconSprite.on('pointerover', () => {
+        container.setData('isHovered', true);
         // 暫存原有的 depth，並將 depth 設為最高避免被遮擋
         container.setData('originalDepth', container.depth);
         container.setDepth(100);
@@ -609,6 +660,7 @@ export class MapScene extends Phaser.Scene {
       });
 
       iconSprite.on('pointerout', () => {
+        container.setData('isHovered', false);
         // 還原 depth
         const originalDepth = container.getData('originalDepth') || depth;
         container.setDepth(originalDepth);
@@ -631,10 +683,19 @@ export class MapScene extends Phaser.Scene {
       this.nodeContainers.set(node.id, container);
     });
     this.syncCombatBeacons(nodes);
+    this.updateNodeTextScales();
   }
 
   private createNodeIconSprite(node: MapNode, iconSize: number): Phaser.GameObjects.Image {
     let targetIcon = node.customIcon;
+
+    // 依據 SSOT：向 DataStore.getSubjugationTemplates() 查詢據點工坊中的最新設定
+    const allTemplates = DataStore.getSubjugationTemplates();
+    const tpl = allTemplates.find(t => t.id === node.id || (t.name && t.name === node.name));
+    if (tpl && tpl.icon) {
+      targetIcon = tpl.icon;
+    }
+
     if (!targetIcon && node.isPlayerBase) {
       switch (node.nodeLevel) {
         case 1: // NodeLevel.CAMP
@@ -674,13 +735,25 @@ export class MapScene extends Phaser.Scene {
 
       const catData = allDatasets[targetCatKey];
       if (catData && this.textures.exists(targetCatKey)) {
-        const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
+        const itemDef = catData.items?.find((i: any) => i.id === itemId);
         const cols = catData.cols || 5;
         const rows = catData.rows || 5;
-        const col = itemDef.col ?? 0;
-        const row = itemDef.row ?? 0;
-        const frameKey = `${targetCatKey}_${col}_${row}`;
+        let col = 0;
+        let row = 0;
 
+        if (itemDef) {
+          col = itemDef.col ?? 0;
+          row = itemDef.row ?? 0;
+        } else if (itemId.startsWith(`${targetCatKey}_`)) {
+          const suffix = itemId.replace(`${targetCatKey}_`, '');
+          const num = parseInt(suffix, 10);
+          if (!isNaN(num)) {
+            col = num % cols;
+            row = Math.floor(num / cols);
+          }
+        }
+
+        const frameKey = `${targetCatKey}_${col}_${row}`;
         const texture = this.textures.get(targetCatKey);
         if (texture && !texture.has(frameKey)) {
           const source = texture.source[0];

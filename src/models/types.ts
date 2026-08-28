@@ -242,6 +242,8 @@ export interface MapNode {
   isPlayerBase: boolean;      // 標記這是否為玩家當前的所在地
   isDiscovered?: boolean;     // 玩家是否已永久發現此據點
   isCapital?: boolean;        // 標記這是否為玩家冊封的首都
+  isVassal?: boolean;         // 標記是否為玩家征服收編之附庸據點
+  defenseLevel?: number;      // 據點城防與守軍難度等級
   terrain: TerrainType;       // 地形類型
   feature: NodeFeature;       // 節點特性
   
@@ -726,5 +728,143 @@ export interface MonsterInstance extends MonsterData {
   gridC?: number;                       // 0: 上路, 1: 中路, 2: 下路
   slotId?: string;                      // e.g. "0_0", "1_1"
 }
+
+/**
+ * 攻守戰役戰場模式與陣營席位抽象 (桌遊棋盤標準介面)
+ */
+export enum SiegeBattleMode {
+  NONE = 'NONE',                       // 常規野戰 / 討伐 / 跑商遭遇戰 (無城門)
+  DEFENSE_SIEGE = 'DEFENSE_SIEGE',     // 守城戰役 (玩家接入 Defender 右席位，敵軍接入 Attacker 左席位)
+  OFFENSIVE_SIEGE = 'OFFENSIVE_SIEGE' // 攻城遠征 (玩家接入 Attacker 左席位，敵軍接入 Defender 右席位)
+}
+
+export enum SiegeRole {
+  ATTACKER = 'ATTACKER', // 進攻方 (左側席位，面向右側推進，擁有攻城器械，打擊中央城門)
+  DEFENDER = 'DEFENDER'  // 防守方 (右側席位，面向左側迎敵，擁有城防設施，防守中央城門)
+}
+
+/**
+ * 攻城器械種類與配置
+ */
+export enum SiegeEngineType {
+  BATTERING_RAM = 'BATTERING_RAM', // 撞木衝車
+  TREBUCHET = 'TREBUCHET'          // 重型投石機
+}
+
+export interface SiegeEngineCost {
+  materials: Record<string, number>; // 二階加工素材需求 (e.g. { mat_wood_plank: 60, mat_iron_ingot: 30 })
+  gold: number;
+  description: string;
+}
+
+export const SIEGE_ENGINE_CONFIGS: Record<SiegeEngineType, SiegeEngineCost> = {
+  [SiegeEngineType.BATTERING_RAM]: {
+    materials: {
+      mat_wood_plank: 60,
+      mat_iron_ingot: 30
+    },
+    gold: 800,
+    description: '重型撞木衝車：需步兵 ≥10 人推動，每次撞擊造成 400+ 破門巨響。'
+  },
+  [SiegeEngineType.TREBUCHET]: {
+    materials: {
+      mat_wood_plank: 120,
+      mat_stone_brick: 80,
+      mat_iron_ingot: 40
+    },
+    gold: 2000,
+    description: '巨型配重投石機：自帶 4 枚巨石彈藥，每發造成 800 傷害並震懾擊暈。'
+  }
+};
+
+/**
+ * 攻城部隊與器械編制
+ */
+export interface OffensiveSiegeDeployment {
+  targetNodeId: string;
+  squads: {
+    adventurerIds: string[];
+    gridMap?: Record<string, string>;
+    formationId?: string;
+  }[];
+  assignedTroops: {
+    infantry: number;
+    archer: number;
+    cavalry: number;
+  };
+  engines: {
+    ramCount: number;       // 衝車數量 (0 或 1)
+    trebuchetCount: number;  // 投石機數量 (0 或 1)
+  };
+  provisions: number;       // 隨行糧草消耗量
+  marchDays?: number;       // 單程行軍天數
+}
+
+/**
+ * 據點工坊 (Encounter / Group Studio) 戰鬥團體陣營角色定位
+ */
+export enum CombatGroupRole {
+  DEFENDER_ONLY = 'DEFENDER_ONLY', // 僅防守方 (據點守軍、要塞衛隊)
+  ATTACKER_ONLY = 'ATTACKER_ONLY', // 僅進攻方 (攻城侵略軍、突襲圍城隊)
+  VERSATILE = 'VERSATILE'          // 攻守通用 (正規野戰軍、遊擊傭兵團)
+}
+
+/**
+ * 進攻方接口可控數值配置 (Attacker Interface)
+ */
+export interface AttackerInterfaceConfig {
+  ramCount: number;                 // 撞木衝車數量 (0 ~ 3)
+  trebuchetCount: number;           // 重型投石機數量 (0 ~ 3)
+  infantrySupport: number;          // 隨軍步兵人數 (提供軍團護盾與推車)
+  archerSupport: number;            // 隨軍弓兵人數 (提供漫天箭雨壓制與後排陣地血池)
+  cavalrySupport: number;           // 隨軍騎兵人數 (破城後毀滅突入衝鋒)
+  tacticalStance?: 'GATE_FOCUS' | 'ENEMY_FOCUS'; // 戰術傾向 (破門優先 vs 殲敵優先)
+}
+
+/**
+ * 防守方接口可控數值配置 (Defender Interface)
+ */
+export interface DefenderInterfaceConfig {
+  gateMaxHp: number;                // 城門/要塞最大耐久度 (1,000 ~ 10,000)
+  watchtowerCount: number;          // 防禦箭塔數量 (0 ~ 3)
+  watchtowerDmg: number;            // 箭塔每回合穿透傷害 (0 ~ 150)
+  gatePdef?: number;                // 城門物理減傷抗性 (0 ~ 50)
+  rampartArrowBonusPct?: number;    // 城垛弓箭手傷害加成百分比 (0 ~ 50%)
+}
+
+/**
+ * 據點工坊自定義戰鬥團體配置
+ */
+export interface CustomCombatGroup {
+  id: string;
+  name: string;
+  description: string;
+  role: CombatGroupRole;
+  attackerConfig?: AttackerInterfaceConfig;
+  defenderConfig?: DefenderInterfaceConfig;
+  monsterIds: string[];             // 成員怪獸/NPC ID 列表
+}
+
+/**
+ * 領主攻城戰役行軍任務模型 (Lord Siege Campaign Marching Mission)
+ */
+export interface LordSiegeCampaignMission {
+  id: string;
+  targetNodeId: string;
+  targetNodeName: string;
+  targetTerrain?: TerrainType;
+  daysTotal: number;
+  daysRemaining: number;
+  assignedTroops: { infantry: number; archer: number; cavalry: number };
+  engines: { ramCount: number; trebuchetCount: number };
+  primarySquadIds: string[];
+  reserveSquadConfigs: { defenderIds: string[]; formationId?: string; gridMap?: Record<string, string> }[];
+  primaryFormationId?: string;
+  primaryGridMap?: Record<string, string>;
+  provisionPerDay: number;
+  isLordCampaign: boolean;
+  state: 'MARCHING' | 'ARRIVED' | 'RESOLVED';
+}
+
 
 

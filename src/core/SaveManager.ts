@@ -218,11 +218,21 @@ export class SaveManager {
       if (data.activeMissions) {
         GameState.system.loadActiveMissions(data.activeMissions);
       }
-      const restoredMapNodes = data.mapNodes.map((node: any) => ({
-        ...node,
-        minimumNodeLevel: node.minimumNodeLevel ??
-          (!node.isDynamic ? node.nodeLevel : undefined)
-      }));
+
+      // 同步原生節點與據點工坊中的自訂圖標與配置 (SSOT)
+      const allTemplates = DataStore.getSubjugationTemplates();
+      const templateMap = new Map(allTemplates.map(t => [t.id, t]));
+
+      const restoredMapNodes = data.mapNodes.map((node: any) => {
+        const tpl = templateMap.get(node.id) || allTemplates.find(t => t.name === node.name);
+        return {
+          ...node,
+          customIcon: tpl?.icon || node.customIcon,
+          allowTroops: tpl?.allowTroops !== undefined ? tpl.allowTroops : node.allowTroops,
+          minimumNodeLevel: node.minimumNodeLevel ??
+            (!node.isDynamic ? node.nodeLevel : undefined)
+        };
+      });
       GameState.mapSystem = new MapDynamicsSystem(restoredMapNodes, data.factions);
       GameState.explorationSystem = new ExplorationSystem(data.exploration);
       GameState.roadSystem = new RoadSystem(data.roads);

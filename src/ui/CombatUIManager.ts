@@ -1,7 +1,7 @@
 import { EventBus } from '../core/EventBus';
 import { GameEventType } from '../core/GameEvents';
 import { CombatReport, CombatEvent, CombatEventType, CombatParticipantState } from '../models/Combat';
-import { FormationRow, TerrainType } from '../models/types';
+import { FormationRow, TerrainType, SiegeBattleMode, SiegeRole } from '../models/types';
 import { getAvatarSpriteStyle, renderUniversalIcon } from './IconSpriteHelper';
 import { InteractiveCombatSession, CommanderOrderType } from '../systems/combat/InteractiveCombatSession';
 
@@ -353,8 +353,23 @@ export class CombatUIManager {
     this.playTurnQueue();
   }
 
+  public static getCurrentBattleMode(): SiegeBattleMode {
+    if (this.currentReport?.battleMode) return this.currentReport.battleMode;
+    if (this.currentSession?.battleMode) return this.currentSession.battleMode;
+    if (this.currentReport?.isOffensiveSiege || this.currentSession?.isOffensiveSiege) return SiegeBattleMode.OFFENSIVE_SIEGE;
+    if (this.currentReport?.isDefenseSiege || this.currentSession?.siegeOptions?.isSiege) return SiegeBattleMode.DEFENSE_SIEGE;
+    return SiegeBattleMode.NONE;
+  }
+
+  public static getPlayerRole(): SiegeRole {
+    if (this.currentReport?.playerRole) return this.currentReport.playerRole;
+    if (this.currentSession?.playerRole) return this.currentSession.playerRole;
+    const mode = this.getCurrentBattleMode();
+    return mode === SiegeBattleMode.DEFENSE_SIEGE ? SiegeRole.DEFENDER : SiegeRole.ATTACKER;
+  }
+
   private static isCurrentDefenseSiege(): boolean {
-    return (this.currentReport?.isDefenseSiege || this.currentSession?.siegeOptions?.isSiege) ?? false;
+    return this.getCurrentBattleMode() === SiegeBattleMode.DEFENSE_SIEGE;
   }
 
   private static setupStageEnvironment(
@@ -366,7 +381,10 @@ export class CombatUIManager {
     const stage = document.getElementById('combat-stage');
     if (!stage) return;
 
-    if (isDefenseSiege) {
+    const battleMode = this.getCurrentBattleMode();
+    const isSiegeActive = battleMode === SiegeBattleMode.DEFENSE_SIEGE || battleMode === SiegeBattleMode.OFFENSIVE_SIEGE;
+
+    if (battleMode === SiegeBattleMode.DEFENSE_SIEGE) {
       stage.classList.add('is-defense-siege');
     } else {
       stage.classList.remove('is-defense-siege');
@@ -377,27 +395,31 @@ export class CombatUIManager {
       else if (terrain === TerrainType.FOREST) stage.style.background = 'linear-gradient(to bottom, #14532d, #064e3b)';
       else if (terrain === TerrainType.SNOW_MOUNTAIN) stage.style.background = 'linear-gradient(to bottom, #e0f2fe, #38bdf8)';
       else if (terrain === TerrainType.VOLCANO) stage.style.background = 'linear-gradient(to bottom, #7f1d1d, #450a0a)';
-      else stage.style.background = isDefenseSiege ? 'linear-gradient(to bottom, #2a1b12, #110d0a)' : 'linear-gradient(to bottom, #1e293b, #0f172a)';
+      else stage.style.background = isSiegeActive ? 'linear-gradient(to bottom, #2a1b12, #110d0a)' : 'linear-gradient(to bottom, #1e293b, #0f172a)';
     } else {
-      stage.style.background = isDefenseSiege ? 'linear-gradient(to bottom, #2a1b12, #110d0a)' : 'linear-gradient(to bottom, #1e293b, #0f172a)';
+      stage.style.background = isSiegeActive ? 'linear-gradient(to bottom, #2a1b12, #110d0a)' : 'linear-gradient(to bottom, #1e293b, #0f172a)';
     }
 
-    // 守城戰專屬：中央實體要塞城牆與城門屏障顯示控制
+    // 攻守戰役：中央實體要塞城牆與城門屏障顯示控制
     const wallDivider = document.getElementById('combat-siege-wall-divider');
     if (wallDivider) {
-      wallDivider.style.display = isDefenseSiege ? 'flex' : 'none';
+      wallDivider.style.display = isSiegeActive ? 'flex' : 'none';
       wallDivider.classList.remove('wall-hit');
     }
 
-    // 守城戰專屬：正中底部城門耐久度 HUD (位於中央城門底部、破陣衝鋒正上方)
+    // 正中底部城門耐久度 HUD (位於中央城門底部)
     const gateHud = document.getElementById('combat-siege-gate-hud');
     if (gateHud) {
-      if (isDefenseSiege && gateMaxHp) {
+      if (isSiegeActive && gateMaxHp) {
         gateHud.style.display = 'flex';
         const currentHp = gateRemainingHp !== undefined ? gateRemainingHp : gateMaxHp;
         const hpPct = Math.max(0, Math.min(100, (currentHp / gateMaxHp) * 100));
         const txtEl = document.getElementById('siege-gate-hp-display');
         const barEl = document.getElementById('siege-gate-hp-bar');
+        const titleEl = document.getElementById('siege-gate-title');
+        if (titleEl) {
+          titleEl.textContent = battleMode === SiegeBattleMode.OFFENSIVE_SIEGE ? '🏰 敵方要塞城門' : '🛡️ 主城防衛城門';
+        }
         if (txtEl) txtEl.textContent = `${currentHp} / ${gateMaxHp}`;
         if (barEl) barEl.style.width = `${hpPct}%`;
       } else {
@@ -522,24 +544,28 @@ export class CombatUIManager {
     
     let gridColumn = 1;
     let gridRow = 1;
-    const isSiege = this.isCurrentDefenseSiege();
+    const playerRole = this.getPlayerRole();
+    // 依據棋盤規則判定此卡片所屬單位是否在戰場左側 (進攻席位)
+    const isLeftTeam = (state.isPlayer && playerRole === SiegeRole.ATTACKER) || (!state.isPlayer && playerRole === SiegeRole.DEFENDER);
 
-    if (state.isPlayer) {
+    if (isLeftTeam) {
+      // 🚩 左側進攻席位：面向右側推進，前排靠右 (X=3)，後排靠左 (X=1)
       if (state.gridR !== undefined && state.gridC !== undefined) {
-        gridColumn = isSiege ? (state.gridR + 1) : (3 - state.gridR);
+        gridColumn = 3 - state.gridR;
         gridRow = state.gridC + 1;
       } else {
-        const fallbackIndex = this.fallbackPlayerCount++;
-        gridColumn = state.row === 'FRONT' ? (isSiege ? 1 : 3) : (state.row === 'MIDDLE' ? 2 : (isSiege ? 3 : 1));
+        const fallbackIndex = state.isPlayer ? this.fallbackPlayerCount++ : this.fallbackEnemyCount++;
+        gridColumn = state.row === 'FRONT' ? 3 : (state.row === 'MIDDLE' ? 2 : 1);
         gridRow = (fallbackIndex % 3) + 1;
       }
     } else {
+      // 🛡️ 右側防守席位：面向左側迎敵，前排靠左 (X=1)，後排靠右 (X=3)
       if (state.gridR !== undefined && state.gridC !== undefined) {
-        gridColumn = isSiege ? (3 - state.gridR) : (state.gridR + 1);
+        gridColumn = state.gridR + 1;
         gridRow = state.gridC + 1;
       } else {
-        const fallbackIndex = this.fallbackEnemyCount++;
-        gridColumn = state.row === 'FRONT' ? (isSiege ? 3 : 1) : (state.row === 'MIDDLE' ? 2 : (isSiege ? 1 : 3));
+        const fallbackIndex = state.isPlayer ? this.fallbackPlayerCount++ : this.fallbackEnemyCount++;
+        gridColumn = state.row === 'FRONT' ? 1 : (state.row === 'MIDDLE' ? 2 : 3);
         gridRow = (fallbackIndex % 3) + 1;
       }
     }

@@ -642,11 +642,14 @@ export class CombatSystem {
       }
 
       // 👑 弓兵【漫天箭雨】（每 2 回合齊射一次）
-      const effectiveVolleyDmg = archerVolleyDmg > 0 ? archerVolleyDmg : (arcCount > 0 ? LordCommanderSystem.calculateVolleyFire(arcCount) : 0);
-      if (effectiveVolleyDmg > 0 && turn % 2 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
+      if (arcCount > 0 && turn % 2 === 1 && enemyTeam.some(e => e.currentHp > 0)) {
         const aliveEnemies = enemyTeam.filter(e => e.currentHp > 0);
         if (aliveEnemies.length > 0) {
           const vTarget = Random.pick(aliveEnemies);
+          const targetDef = vTarget.stats?.pdef ?? vTarget.stats?.def ?? 0;
+          const effectiveVolleyDmg = archerVolleyDmg > 0
+            ? Math.max(1, Math.floor(archerVolleyDmg * (100 / (100 + targetDef))))
+            : LordCommanderSystem.calculateVolleyFire(arcCount, targetDef);
           vTarget.currentHp = Math.max(0, vTarget.currentHp - effectiveVolleyDmg);
           // 箭雨附加破甲
           vTarget.statusEffects.push({ type: StatusEffectType.ARMOR_BREAK, duration: 2, value: 20 });
@@ -659,7 +662,7 @@ export class CombatSystem {
             damage: effectiveVolleyDmg,
             targetHp: vTarget.currentHp,
             targetMaxHp: vTarget.maxHp,
-            text: `🏹 ${label}${subject}齊射！對 ${vTarget.name} 造成 ${effectiveVolleyDmg} 點穿刺傷害並附加破甲！`
+            text: `🏹 ${label}${subject}萬箭齊發！對 ${vTarget.name} 造成 ${effectiveVolleyDmg} 點穿刺傷害並附加破甲！${targetDef > 0 ? '(防禦減免後)' : ''}`
           });
           processDeaths();
         }

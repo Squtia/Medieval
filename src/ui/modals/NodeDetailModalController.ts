@@ -5,6 +5,7 @@ import { EventBus } from '../../core/EventBus';
 import { GameEventType } from '../../core/GameEvents';
 import { GameState } from '../../core/GameState';
 import { openDispatchSetup } from '../ModalController';
+import { OffensiveSiegeModalController } from './OffensiveSiegeModalController';
 
 
 export class NodeDetailModalController {
@@ -289,13 +290,8 @@ export class NodeDetailModalController {
       } else {
         newBtnAction.textContent = '⚔️ 發動攻城戰';
         newBtnAction.onclick = () => {
-          if (!node.isScouted) {
-            if (!confirm('⚠️ 【警告】您尚未偵查該據點，敵方駐軍數量與城防未知！是否確定要盲目發動攻城？')) {
-              return;
-            }
-          }
-          openDispatchSetup(node, 'war');
           this.closeNodeDetailPanel();
+          OffensiveSiegeModalController.show(node);
         };
       }
     }

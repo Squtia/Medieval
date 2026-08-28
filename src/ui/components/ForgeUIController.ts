@@ -3,7 +3,7 @@ import { UIManager } from '../UIManager';
 import { DataStore } from '../../systems/DataStore';
 import { EquipmentGenerator } from '../../systems/EquipmentGenerator';
 import { EnhancementSystem } from '../../systems/EnhancementSystem';
-import { CombatStats, ElementType, Equipment, EquipmentSlot, EquipmentTemplate } from '../../models/types';
+import { CombatStats, ElementType, Equipment, EquipmentSlot, EquipmentTemplate, NobleTitle, SIEGE_ENGINE_CONFIGS, SiegeEngineType } from '../../models/types';
 import { MarketSystem } from '../../systems/MarketSystem';
 import { positionFloatingElement } from '../FloatingPosition';
 import { renderEquipIcon, ICON_SIZE, formatStatsTags, getElementBadge, consumeMaterial, attachTooltip, getEquipTooltipHtml, getMaterialCount, getTradeGoodStock } from '../ShopController';
@@ -47,19 +47,21 @@ export class ForgeUIController {
     const uiForgeLvl = document.getElementById('ui-forge-lvl');
     if (uiForgeLvl) uiForgeLvl.textContent = forgeLevel.toString();
   
-    // 5 大頁籤按鈕
+    // 6 大頁籤按鈕
     const btnEnhance = document.getElementById('btn-forge-tab-enhance')!;
     const btnCraft = document.getElementById('btn-forge-tab-craft')!;
     const btnEnchant = document.getElementById('btn-forge-tab-enchant')!;
     const btnSmelt = document.getElementById('btn-forge-tab-smelt')!;
     const btnDisassemble = document.getElementById('btn-forge-tab-disassemble')!;
+    const btnSiege = document.getElementById('btn-forge-tab-siege')!;
   
     const tabs = [
       { btn: btnEnhance, render: () => this.renderForgeEnhanceMode() },
       { btn: btnCraft, render: () => this.renderForgeCraftMode() }, // Craft & Reforge combined
       { btn: btnEnchant, render: () => this.renderForgeEnchantMode() },
       { btn: btnSmelt, render: () => this.renderForgeSmeltMode() },
-      { btn: btnDisassemble, render: () => this.renderForgeDisassembleMode() }
+      { btn: btnDisassemble, render: () => this.renderForgeDisassembleMode() },
+      { btn: btnSiege, render: () => this.renderForgeSiegeMode() }
     ];
   
     const setActiveTab = (activeIndex: number) => {
@@ -1650,6 +1652,169 @@ export class ForgeUIController {
       grid.appendChild(card);
     });
   }
-  
-  
+
+  private renderForgeSiegeMode() {
+    const territory = GameState.myTerritory;
+    const workspace = document.getElementById('forge-workspace')!;
+    workspace.innerHTML = '';
+
+    if (!territory.siegeEngineStock) {
+      territory.siegeEngineStock = { ram: 0, trebuchet: 0 };
+    }
+
+    const ramStock = territory.siegeEngineStock.ram || 0;
+    const trebStock = territory.siegeEngineStock.trebuchet || 0;
+    const materials = territory.materials || {};
+    const plankOwned = materials['mat_wood_plank'] || 0;
+    const ironOwned = materials['mat_iron_ingot'] || 0;
+    const stoneOwned = materials['mat_stone_brick'] || 0;
+
+    // 解鎖判定：領地規模 >= 營地 (CAMP, 繁榮度 >= 100 或爵位 >= KNIGHT)
+    const isUnlocked = (territory.title && territory.title !== NobleTitle.COMMONER) || territory.prestige >= 100 || (territory.forgeLevel || 0) >= 1;
+
+    const container = document.createElement('div');
+    container.style.cssText = 'display: flex; gap: 20px; width: 100%; height: 100%; min-height: 0;';
+
+    // 左欄：器械打造區
+    const leftCol = document.createElement('div');
+    leftCol.className = 'glass-panel';
+    leftCol.style.cssText = 'flex: 1.6; padding: 20px; display: flex; flex-direction: column; gap: 16px; background: rgba(0,0,0,0.6); overflow-y: auto;';
+
+    leftCol.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px;">
+        <h3 style="color: #eab308; margin: 0; font-size: 1.2em;">🪵 攻城重型器械工坊</h3>
+        <div style="font-size: 0.85em; color: ${isUnlocked ? '#4ade80' : '#ef4444'}; font-weight: bold;">
+          ${isUnlocked ? '✅ 已解鎖軍備製造資格' : '🔒 需達 🏕️ 營地規模 / ⚔️ 騎士爵位'}
+        </div>
+      </div>
+      <div style="color: #cbd5e1; font-size: 0.88em; line-height: 1.5;">
+        打造的攻城器械將存入領地軍備庫存（上限各 10 台）。出征攻城時可從庫存中調派攜帶（各限帶 1 台），重型器械將增加行軍天數與隨軍口糧消耗。
+      </div>
+
+      <!-- 衝車打造卡片 -->
+      <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(234,88,12,0.3); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-weight: bold; color: #fdba74; font-size: 1.1em;">🪵 撞木衝車 (Battering Ram)</div>
+          <span style="font-size: 0.9em; color: #4ade80; font-weight: bold;">目前庫存：${ramStock} / 10 台</span>
+        </div>
+        <div style="font-size: 0.85em; color: #cbd5e1;">
+          打造單台造價：木板 60 (現有 ${plankOwned})、鐵錠 30 (現有 ${ironOwned})、金幣 800 (現有 ${territory.gold})
+        </div>
+        <div style="font-size: 0.8em; color: #94a3b8;">
+          戰術特性：步兵推動重擊城門 (每2回合撞擊 400+ 傷害)，多台交替接力可降低衝撞冷卻時間。
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+          <button id="btn-craft-ram" class="action-btn" style="padding: 8px 20px; font-size: 0.95em; font-weight: bold; background: ${ramStock >= 10 || !isUnlocked ? '#475569' : 'linear-gradient(135deg, #ea580c, #c2410c)'};" ${ramStock >= 10 || !isUnlocked ? 'disabled' : ''}>
+            ${ramStock >= 10 ? '🚫 庫存已達上限 (10台)' : '🔨 打造 1 台衝車'}
+          </button>
+        </div>
+      </div>
+
+      <!-- 投石機打造卡片 -->
+      <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(234,88,12,0.3); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-weight: bold; color: #fdba74; font-size: 1.1em;">🪨 重型投石機 (Trebuchet)</div>
+          <span style="font-size: 0.9em; color: #4ade80; font-weight: bold;">目前庫存：${trebStock} / 10 台</span>
+        </div>
+        <div style="font-size: 0.85em; color: #cbd5e1;">
+          打造單台造價：木板 120 (現有 ${plankOwned})、石磚 80 (現有 ${stoneOwned})、鐵錠 40 (現有 ${ironOwned})、金幣 2,000 (現有 ${territory.gold})
+        </div>
+        <div style="font-size: 0.8em; color: #94a3b8;">
+          戰術特性：自帶 4 枚巨石彈藥，每 2 回合轟擊 800 點城門毀滅傷害並震懾擊暈守軍。
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+          <button id="btn-craft-treb" class="action-btn" style="padding: 8px 20px; font-size: 0.95em; font-weight: bold; background: ${trebStock >= 10 || !isUnlocked ? '#475569' : 'linear-gradient(135deg, #ea580c, #c2410c)'};" ${trebStock >= 10 || !isUnlocked ? 'disabled' : ''}>
+            ${trebStock >= 10 ? '🚫 庫存已達上限 (10台)' : '🔨 打造 1 台投石機'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    // 右欄：庫存概況與後勤說明
+    const rightCol = document.createElement('div');
+    rightCol.className = 'glass-panel';
+    rightCol.style.cssText = 'flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.6);';
+
+    rightCol.innerHTML = `
+      <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">📜 軍備儲備與行軍戰略</h3>
+      <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; font-size: 0.88em; line-height: 1.6; color: #cbd5e1;">
+        <div style="color: #facc15; font-weight: bold; margin-bottom: 4px;">🐎 行軍代價與後勤補給：</div>
+        <div>1. 攻城遠征時，每多攜帶 1 台重型器械，部隊行軍時長 <span style="color:#f87171; font-weight:bold;">+1 回合 (天)</span>。</div>
+        <div>2. 行軍天數增加將等比提升部隊的隨軍口糧消耗。</div>
+        <div>3. 攻城結束後，攜帶出征的攻城器械將正常報廢或折損。</div>
+      </div>
+
+      <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; font-size: 0.88em; line-height: 1.6; color: #cbd5e1; margin-top: auto;">
+        <div style="color: #60a5fa; font-weight: bold; margin-bottom: 4px;">🏰 謁見廳展示聯動：</div>
+        <div>打造完成的軍備數量會同步呈現在【👑 謁見廳】軍備總覽中，供領主隨時查閱全境軍容。</div>
+      </div>
+    `;
+
+    container.appendChild(leftCol);
+    container.appendChild(rightCol);
+    workspace.appendChild(container);
+
+    // 綁定打造衝車事件
+    document.getElementById('btn-craft-ram')?.addEventListener('click', () => {
+      if (!isUnlocked) {
+        ToastManager.show('🔒 需達到 🏕️ 營地規模或 ⚔️ 騎士爵位方可打造攻城軍備！');
+        return;
+      }
+      if (territory.siegeEngineStock.ram >= 10) {
+        ToastManager.show('⚠️ 衝車庫存已達上限 (10台)！');
+        return;
+      }
+      const cost = SIEGE_ENGINE_CONFIGS[SiegeEngineType.BATTERING_RAM];
+      const reqPlank = cost.materials['mat_wood_plank'] || 0;
+      const reqIron = cost.materials['mat_iron_ingot'] || 0;
+      const reqGold = cost.gold;
+
+      if ((materials['mat_wood_plank'] || 0) < reqPlank || (materials['mat_iron_ingot'] || 0) < reqIron || territory.gold < reqGold) {
+        ToastManager.show('⚠️ 打造衝車所需二階素材 (木板/鐵錠) 或金幣不足！');
+        return;
+      }
+
+      materials['mat_wood_plank'] -= reqPlank;
+      materials['mat_iron_ingot'] -= reqIron;
+      territory.gold -= reqGold;
+      territory.siegeEngineStock.ram++;
+
+      UIManager.updateUI();
+      ToastManager.show('🎉 成功打造 1 台【🪵 撞木衝車】！已存入領地軍備庫存！', 'success');
+      this.renderForgeSiegeMode();
+    });
+
+    // 綁定打造投石機事件
+    document.getElementById('btn-craft-treb')?.addEventListener('click', () => {
+      if (!isUnlocked) {
+        ToastManager.show('🔒 需達到 🏕️ 營地規模或 ⚔️ 騎士爵位方可打造攻城軍備！');
+        return;
+      }
+      if (territory.siegeEngineStock.trebuchet >= 10) {
+        ToastManager.show('⚠️ 投石機庫存已達上限 (10台)！');
+        return;
+      }
+      const cost = SIEGE_ENGINE_CONFIGS[SiegeEngineType.TREBUCHET];
+      const reqPlank = cost.materials['mat_wood_plank'] || 0;
+      const reqStone = cost.materials['mat_stone_brick'] || 0;
+      const reqIron = cost.materials['mat_iron_ingot'] || 0;
+      const reqGold = cost.gold;
+
+      if ((materials['mat_wood_plank'] || 0) < reqPlank || (materials['mat_stone_brick'] || 0) < reqStone || (materials['mat_iron_ingot'] || 0) < reqIron || territory.gold < reqGold) {
+        ToastManager.show('⚠️ 打造投石機所需二階素材 (木板/石磚/鐵錠) 或金幣不足！');
+        return;
+      }
+
+      materials['mat_wood_plank'] -= reqPlank;
+      materials['mat_stone_brick'] -= reqStone;
+      materials['mat_iron_ingot'] -= reqIron;
+      territory.gold -= reqGold;
+      territory.siegeEngineStock.trebuchet++;
+
+      UIManager.updateUI();
+      ToastManager.show('🎉 成功打造 1 台【🪨 重型投石機】！已存入領地軍備庫存！', 'success');
+      this.renderForgeSiegeMode();
+    });
+  }
 }
+

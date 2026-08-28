@@ -16,6 +16,7 @@ export class TerritoryDefenseModalController {
   private static isInitialized = false;
   private static currentStoryId: string = '';
   private static currentEffect: Extract<NarrativeEffect, { type: 'TRIGGER_RAID' }> | null = null;
+  private static isCurrentFieldIntercept: boolean = false;
   private static currentTabIndex: number = 0; // 0, 1, 2 對應 3 個梯隊
 
   private static squads: SiegeSquadConfig[] = [
@@ -272,6 +273,7 @@ export class TerritoryDefenseModalController {
     const warningDays = Number(effect.warningDays || 0);
     const pending = territory.pendingRaids?.find(pr => pr.storyId === storyId);
     const isFieldIntercept = isFieldInterceptOverride !== undefined ? isFieldInterceptOverride : (warningDays > 0);
+    this.isCurrentFieldIntercept = isFieldIntercept;
     const alreadyIntercepted = !!pending?.isFieldInterceptionAttempted;
 
     // 1. 切換模式按鈕與提示
@@ -291,8 +293,12 @@ export class TerritoryDefenseModalController {
     if (isFieldIntercept) {
       if (fieldActionsEl) fieldActionsEl.style.display = 'flex';
       if (siegeActionsEl) siegeActionsEl.style.display = 'none';
+      const currentDaysLeft = pending?.warningDaysLeft ?? warningDays;
+      const interceptDay = Math.max(1, Math.floor(currentDaysLeft / 2));
+      const remainingDays = Math.max(1, currentDaysLeft - interceptDay);
+
       if (warningBadgeEl) {
-        warningBadgeEl.textContent = `⚠️ 敵軍進逼中 (距離主城 ${pending?.warningDaysLeft ?? warningDays} 天)`;
+        warningBadgeEl.textContent = `⚠️ 敵軍進逼中 (距離主城 ${currentDaysLeft} 天)`;
         warningBadgeEl.style.background = 'rgba(234, 88, 12, 0.2)';
         warningBadgeEl.style.borderColor = '#f97316';
         warningBadgeEl.style.color = '#fdba74';
@@ -307,12 +313,12 @@ export class TerritoryDefenseModalController {
         encounterInfoEl.style.display = 'flex';
         encounterInfoEl.innerHTML = alreadyIntercepted
           ? '<span>🛡️ 我方部隊已在野外與敵軍交戰並削弱其戰力，守軍已回防主城戒備。</span>'
-          : '<span>🌲 野外遭遇攔截戰（無城防掩體，敵我正面野戰交鋒）</span>';
+          : `<span>🌲 野外遭遇攔截戰（預計在第 ${interceptDay} 天於荒野中途交火；若戰敗，敵軍殘部需花費剩餘 ${remainingDays} 天抵達主城）</span>`;
       }
       if (footerHintEl) {
         footerHintEl.innerHTML = alreadyIntercepted
           ? '💡 提示：出城迎擊已結束，敵軍殘部正朝主城推進，請全力修繕城防準備迎接圍城戰。'
-          : '💡 提示：出城攔截戰勝可保主城 0 受損；若戰敗，殘存敵軍將在剩餘天數後抵達主城開打守城戰。';
+          : `💡 提示：出城攔截戰勝可保主城 0 受損；若戰敗，殘存敵軍將在 ${remainingDays} 天後抵達主城開打守城戰。`;
       }
 
       // 若已經出城迎擊過，禁用再次出城迎戰按鈕，僅保留堅壁清野等待守城
@@ -580,12 +586,38 @@ export class TerritoryDefenseModalController {
 
     const isFormationActive = FormationDB.isFormationActive(currentSquad.gridMap, currentSquad.formationId);
 
-    // 鏡像九宮格 (橫向 Columns: 前排 ➔ 中排 ➔ 後排)
-    // 欄 vc=0 ➔ 前排 (r=0), vc=1 ➔ 中排 (r=1), vc=2 ➔ 後排 (r=2)
-    // 列 vr=0 ➔ 上 (c=0), vr=1 ➔ 中 (c=1), vr=2 ➔ 下 (c=2)
+    // 依據野外迎擊 vs 守城防衛，智能動態自適應棋盤方向
+    const isField = this.isCurrentFieldIntercept;
+    const labelLeft = document.getElementById('siege-grid-label-left');
+    const labelMid = document.getElementById('siege-grid-label-mid');
+    const labelRight = document.getElementById('siege-grid-label-right');
+
+    if (labelLeft && labelMid && labelRight) {
+      if (isField) {
+        // 🌲 野戰出征：玩家在左面向右推進（左後 ➔ 右前）
+        labelLeft.textContent = '🏰 後排 (後備)';
+        labelLeft.style.color = '#60a5fa';
+        labelMid.textContent = '🛡️ 中排';
+        labelMid.style.color = '#fbbf24';
+        labelRight.textContent = '⚔️ 前排 (衝鋒)';
+        labelRight.style.color = '#f87171';
+      } else {
+        // 🏰 守城戰役：守軍在右面向左守門（左前 ➔ 右後）
+        labelLeft.textContent = '⚔️ 前排 (守門)';
+        labelLeft.style.color = '#f87171';
+        labelMid.textContent = '🛡️ 中排';
+        labelMid.style.color = '#fbbf24';
+        labelRight.textContent = '🏰 後排 (城內)';
+        labelRight.style.color = '#60a5fa';
+      }
+    }
+
+    // 棋盤格子映射
     for (let vr = 0; vr < 3; vr++) {
       for (let vc = 0; vc < 3; vc++) {
-        const r = vc; // 0=前排, 1=中排, 2=後排
+        // 野戰：vc=0 是後排(r=2)，vc=2 是前排(r=0)
+        // 守城：vc=0 是前排(r=0)，vc=2 是後排(r=2)
+        const r = isField ? (2 - vc) : vc;
         const c = vr; // 0, 1, 2
         const slotId = `${r}_${c}`;
         const advId = currentSquad.gridMap[slotId];
@@ -654,7 +686,10 @@ export class TerritoryDefenseModalController {
 
           slot.appendChild(cardDiv);
         } else {
-          slot.innerHTML = `<span style="color: #64748b; font-size: 0.75rem;">+ 空槽</span>`;
+          const slotText = isField
+            ? (vc === 0 ? '+ 後排' : (vc === 1 ? '+ 中排' : '+ 前排'))
+            : (vc === 0 ? '+ 前排' : (vc === 1 ? '+ 中排' : '+ 後排'));
+          slot.innerHTML = `<span style="color: #64748b; font-size: 0.75rem;">${slotText}</span>`;
         }
 
         gridEl.appendChild(slot);

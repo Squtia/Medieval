@@ -12,6 +12,7 @@ import { TaskType } from '../models/DispatchTask';
 import { getDifficultyModifiers } from '../data/BalanceData';
 import { BountySystem } from '../systems/BountySystem';
 import { NarrativeSystem } from '../systems/NarrativeSystem';
+import { OffensiveSiegeModalController } from '../ui/modals/OffensiveSiegeModalController';
 
 export function startGameLoop(updateUICallback: () => void) {
   if ((window as any).autoSaveLoop) {
@@ -27,7 +28,6 @@ export function startGameLoop(updateUICallback: () => void) {
       SaveManager.saveGame(GameState.currentSaveSlot);
     }
   }, 60000);
-
 }
 
 export function stopGameLoop() {
@@ -99,6 +99,20 @@ export function advanceDay(): boolean {
   // 2. 推進故事敘事系統每日排程與事件結算
   NarrativeSystem.processDailyTick();
 
+  // 3. 推進領主攻城遠征行軍任務 (Lord Siege Campaign)
+  let arrivedSiegeMission: import('../models/types').LordSiegeCampaignMission | null = null;
+  const campaignMission = GameState.myTerritory?.lordCampaignMission;
+  if (campaignMission && campaignMission.state === 'MARCHING') {
+    campaignMission.daysRemaining -= 1;
+    if (campaignMission.provisionPerDay > 0) {
+      GameState.myTerritory.food = Math.max(0, GameState.myTerritory.food - campaignMission.provisionPerDay);
+    }
+    if (campaignMission.daysRemaining <= 0) {
+      campaignMission.state = 'ARRIVED';
+      arrivedSiegeMission = campaignMission;
+    }
+  }
+
   const explorationResults = GameState.explorationSystem?.advanceDay(GameState.mapSystem.getNodes()) ?? [];
   for (const explorationProgress of explorationResults) {
     explorationProgress.discoveredNodeIds.forEach(nodeId => {
@@ -115,8 +129,6 @@ export function advanceDay(): boolean {
       );
       if (explorer) {
         explorer.currentState = AdventurerState.IDLE;
-        
-        // 原先的探險日誌引擎呼叫已移至 DispatchSystem.ts 作為討伐日誌
       }
     }
 
@@ -162,7 +174,6 @@ export function advanceDay(): boolean {
 
   // 處理懸賞系統的每日推進
   BountySystem.processDailyTick(GameState);
-  NarrativeSystem.processDailyTick();
 
   // 處理盜匪勒索事件 (排入每日結算轉場佇列，避免誤殺日常結算與中斷故事排程)
   if (GameState.pendingExtortionEvent) {
@@ -188,7 +199,6 @@ export function advanceDay(): boolean {
   // 4. 月底大結算 (世界地圖)
   if (monthEnded) {
     GameState.mapSystem.simulateMapDynamics(1);
-    
     console.log(`📅 [系統] 月底結算：目前時間為第 ${GameState.currentYear} 年 ${GameState.currentMonth} 月。`);
   }
 
@@ -208,11 +218,6 @@ export function advanceDay(): boolean {
     MilestoneSystem.checkAll();
   });
 
-// UI 更新改由 GameFlowController 等呼叫端根據轉場時機手動呼叫，避免畫面前後跳躍
-  // if (typeof (window as any).updateUICallback === 'function') {
-  //   (window as any).updateUICallback();
-  // }
-  
   if (GameState.myTerritory.gold < 0) {
     GameState.myTerritory.consecutiveDaysInDebt = (GameState.myTerritory.consecutiveDaysInDebt || 0) + 1;
   } else {
@@ -234,7 +239,15 @@ export function advanceDay(): boolean {
     });
     return true;
   }
-  
+
+  // 若當日有兵臨城下之攻城遠征，延遲觸發攻城戰役
+  if (arrivedSiegeMission) {
+    const m = arrivedSiegeMission;
+    setTimeout(() => {
+      OffensiveSiegeModalController.triggerArrivedSiegeCombat(m);
+    }, 450);
+  }
+
   return false;
 }
 
@@ -245,76 +258,76 @@ export function processInvasionCombat(forcedEnemyPower?: number) {
   
   const defenseLevel = territory.defenseLevel || 0;
   const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
-    const advPower = idleAdvs.reduce((sum, a) => sum + a.power, 0);
+  const advPower = idleAdvs.reduce((sum, a) => sum + a.power, 0);
 
-    // 哨所/衛兵戰力計算
-    const workers = territory.workers || {};
-    const watchtowerTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
-    const security = (territory.security === null || territory.security === undefined) ? 100 : territory.security;
-    const watchtowerPower = Math.round(watchtowerTroops * 15 * (1 + security / 100));
+  // 哨所/衛兵戰力計算
+  const workers = territory.workers || {};
+  const watchtowerTroops = (workers[WorkerJob.INFANTRY] || 0) + (workers[WorkerJob.CAVALRY] || 0) + (workers[WorkerJob.ARCHER] || 0);
+  const security = (territory.security === null || territory.security === undefined) ? 100 : territory.security;
+  const watchtowerPower = Math.round(watchtowerTroops * 15 * (1 + security / 100));
 
-    const totalDefensePower = advPower + watchtowerPower;
+  const totalDefensePower = advPower + watchtowerPower;
 
-    const topThreePower = [...GameState.adventurers]
-      .sort((left, right) => right.power - left.power)
-      .slice(0, 3)
-      .reduce((sum, adventurer) => sum + adventurer.power, 0);
-    const baseEnemyPower =
-      20 +
-      GameState.currentYear * 10 +
-      Math.sqrt(Math.max(0, territory.population)) * 4 +
-      topThreePower * 0.45;
-    const defenseReduction = Math.min(0.6, defenseLevel * 0.08);
-    const randomFactor = Random.int(85, 115) / 100;
+  const topThreePower = [...GameState.adventurers]
+    .sort((left, right) => right.power - left.power)
+    .slice(0, 3)
+    .reduce((sum, adventurer) => sum + adventurer.power, 0);
+  const baseEnemyPower =
+    20 +
+    GameState.currentYear * 10 +
+    Math.sqrt(Math.max(0, territory.population)) * 4 +
+    topThreePower * 0.45;
+  const defenseReduction = Math.min(0.6, defenseLevel * 0.08);
+  const randomFactor = Random.int(85, 115) / 100;
+  
+  const enemyPower = forcedEnemyPower !== undefined ? forcedEnemyPower : Math.max(
+    10,
+    Math.round(baseEnemyPower * difficulty.enemyStrength * randomFactor * (1 - defenseReduction))
+  );
+
+  if (idleAdvs.length === 0 && watchtowerTroops === 0) {
+    // 據點完全空虛（無傭兵且無哨所守衛）
+    processInvasionDefeat(territory, '💥 敵襲！據點無人駐守，物資遭到嚴重洗劫！', 0);
+  } else if (totalDefensePower >= enemyPower) {
+    // 哨所與留守傭兵成功擊退敵襲
+    import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => MilestoneSystem.trigger('first_invasion_repelled'));
+    const goldLoot = Random.int(10, 50);
+    const prestigeReward = Math.max(10, Math.round(enemyPower / 10));
+    territory.gold += goldLoot;
+    territory.prestige += prestigeReward;
     
-    const enemyPower = forcedEnemyPower !== undefined ? forcedEnemyPower : Math.max(
-      10,
-      Math.round(baseEnemyPower * difficulty.enemyStrength * randomFactor * (1 - defenseReduction))
-    );
-
-    if (idleAdvs.length === 0 && watchtowerTroops === 0) {
-      // 據點完全空虛（無傭兵且無哨所守衛）
-      processInvasionDefeat(territory, '💥 敵襲！據點無人駐守，物資遭到嚴重洗劫！', 0);
-    } else if (totalDefensePower >= enemyPower) {
-      // 哨所與留守傭兵成功擊退敵襲
-      import('../systems/MilestoneSystem').then(({ MilestoneSystem }) => MilestoneSystem.trigger('first_invasion_repelled'));
-      const goldLoot = Random.int(10, 50);
-      const prestigeReward = Math.max(10, Math.round(enemyPower / 10));
-      territory.gold += goldLoot;
-      territory.prestige += prestigeReward;
-      
-      let defenderDesc = '留守傭兵在防禦設施支援下擊退敵軍！';
-      if (watchtowerTroops > 0 && idleAdvs.length > 0) {
-        defenderDesc = `哨所守衛與留守傭兵聯手擊退敵軍！(我方戰力: ${totalDefensePower})`;
-      } else if (watchtowerTroops > 0) {
-        defenderDesc = `🏰 哨所守衛及時反擊，成功抵禦敵軍！(哨所戰力: ${watchtowerPower})`;
-      }
-
-      showInvasionReport(
-        '⚔️ 擊退敵襲',
-        `${defenderDesc}\n\n敵軍戰力：${enemyPower}\n戰利品：${goldLoot} 金幣、${prestigeReward} 聲望`,
-        false
-      );
-    } else {
-      // 戰力不敵，但哨所守衛與留守傭兵進行抵抗，獲得減傷
-      idleAdvs.forEach(a => {
-        a.currentState = AdventurerState.RESTING;
-        a.restingDaysLeft = 4; // 原本是 3，依需求加上一回合(天)恢復時間
-      });
-
-      // 計算哨所涵蓋減傷率 (最高 80% 減傷)
-      const mitigationRatio = Math.min(0.8, (security / 100) * 0.6 + (watchtowerTroops > 0 ? 0.2 : 0));
-      
-      let defeatMsg = `💀 敵襲！我方戰力 ${totalDefensePower} 不敵敵軍 ${enemyPower}。`;
-      if (idleAdvs.length > 0) {
-        defeatMsg += '\n（所有留守傭兵受重傷，需休養 4 天）';
-      }
-      if (watchtowerTroops > 0 || security > 0) {
-        defeatMsg += `\n🛡️ 哨所守衛誓死抵抗，成功保護了大部分物資！（洗劫損失降低 ${Math.round(mitigationRatio * 100)}%）`;
-      }
-
-      processInvasionDefeat(territory, defeatMsg, mitigationRatio);
+    let defenderDesc = '留守傭兵在防禦設施支援下擊退敵軍！';
+    if (watchtowerTroops > 0 && idleAdvs.length > 0) {
+      defenderDesc = `哨所守衛與留守傭兵聯手擊退敵軍！(我方戰力: ${totalDefensePower})`;
+    } else if (watchtowerTroops > 0) {
+      defenderDesc = `🏰 哨所守衛及時反擊，成功抵禦敵軍！(哨所戰力: ${watchtowerPower})`;
     }
+
+    showInvasionReport(
+      '⚔️ 擊退敵襲',
+      `${defenderDesc}\n\n敵軍戰力：${enemyPower}\n戰利品：${goldLoot} 金幣、${prestigeReward} 聲望`,
+      false
+    );
+  } else {
+    // 戰力不敵，但哨所守衛與留守傭兵進行抵抗，獲得減傷
+    idleAdvs.forEach(a => {
+      a.currentState = AdventurerState.RESTING;
+      a.restingDaysLeft = 4; // 原本是 3，依需求加上一回合(天)恢復時間
+    });
+
+    // 計算哨所涵蓋減傷率 (最高 80% 減傷)
+    const mitigationRatio = Math.min(0.8, (security / 100) * 0.6 + (watchtowerTroops > 0 ? 0.2 : 0));
+    
+    let defeatMsg = `💀 敵襲！我方戰力 ${totalDefensePower} 不敵敵軍 ${enemyPower}。`;
+    if (idleAdvs.length > 0) {
+      defeatMsg += '\n（所有留守傭兵受重傷，需休養 4 天）';
+    }
+    if (watchtowerTroops > 0 || security > 0) {
+      defeatMsg += `\n🛡️ 哨所守衛誓死抵抗，成功保護了大部分物資！（洗劫損失降低 ${Math.round(mitigationRatio * 100)}%）`;
+    }
+
+    processInvasionDefeat(territory, defeatMsg, mitigationRatio);
+  }
 }
 
 function showInvasionReport(title: string, message: string, isError: boolean) {
@@ -399,4 +412,3 @@ function processInvasionDefeat(territory: any, baseMsg: string, mitigationRatio:
   const reportMsg = `${baseMsg}\n\n損失統計：\n🪵 木材 -${lostWood}\n🍞 糧食 -${lostFood}\n👥 人口 -${actualLostPop}`;
   showInvasionReport(mitigationRatio > 0 ? '⚔️ 哨所抵抗（遭強敵突破）' : '慘遭洗劫', reportMsg, true);
 }
-

@@ -1,4 +1,4 @@
-import { Equipment, NobleTitle, WorkerJob, getNodeMaxFacilityLevel, NodeLevel } from './types';
+import { Equipment, NobleTitle, WorkerJob, getNodeMaxFacilityLevel, NodeLevel, LordSiegeCampaignMission } from './types';
 import { Adventurer } from './Adventurer';
 import { CombatHistoryRecord } from './Combat';
 import { AdventureLogEntry } from './AdventureLog';
@@ -89,6 +89,15 @@ export class Territory {
   public security: number = 100;
   public extortionCooldown: number = 0; // 繳交保護費後的喘息期
   public pendingRaids: PendingRaidState[] = []; // 待決戰役/敵軍進逼預警隊列
+
+  // 封建附庸代官委任 (附庸節點 ID -> 代官冒險者 ID)
+  public vassalGovernors: Record<string, string> = {};
+
+  // 攻城重型軍備庫存 (鍛造屋打造，上限各 10 台)
+  public siegeEngineStock: { ram: number; trebuchet: number } = { ram: 0, trebuchet: 0 };
+
+  // 領主攻城遠征行軍任務 (若有進行中的行軍遠征)
+  public lordCampaignMission?: LordSiegeCampaignMission;
 
   constructor(name: string, startingCountryId: string | null = null) {
     this.name = name;

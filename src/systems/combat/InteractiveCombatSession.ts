@@ -8,7 +8,7 @@ import {
   SiegeDefenseCombatOptions, 
   StatusEffectType
 } from '../../models/Combat';
-import { TerrainType, NobleTitle, FormationRow, MonsterInstance, ElementType, MonsterRace } from '../../models/types';
+import { TerrainType, NobleTitle, FormationRow, MonsterInstance, ElementType, MonsterRace, SiegeBattleMode, SiegeRole } from '../../models/types';
 import { LordCommanderSystem } from './LordCommanderSystem';
 
 export type CommanderOrderType = 'SHIELD_WALL' | 'VOLLEY_FIRE' | 'CAVALRY_CHARGE' | 'INSPIRE' | 'STANDBY';
@@ -38,6 +38,15 @@ export class InteractiveCombatSession {
   public gateMaxHp: number = 0;
   public gateRemainingHp: number = 0;
 
+  // 攻守戰役統一抽象 (桌遊棋盤接口)
+  public battleMode: SiegeBattleMode = SiegeBattleMode.NONE;
+  public playerRole: SiegeRole = SiegeRole.ATTACKER;
+  public isOffensiveSiege: boolean = false;
+  public engines: { ramCount: number; trebuchetCount: number } = { ramCount: 0, trebuchetCount: 0 };
+  public trebuchetShotsLeft: number = 0;
+  public archerRearHp: number = 0;
+  public archerMaxRearHp: number = 0;
+
   // 累計統計
   public allEvents: CombatEvent[] = [];
   public initialStates: CombatParticipantState[] = [];
@@ -62,10 +71,36 @@ export class InteractiveCombatSession {
     this.gateMaxHp = siegeOptions?.gateHp || 0;
     this.gateRemainingHp = siegeOptions?.gateHp || 0;
 
+    // 棋盤戰役模式與席位接入判定
+    if (siegeOptions?.battleMode) {
+      this.battleMode = siegeOptions.battleMode;
+      this.playerRole = siegeOptions.playerRole || (this.battleMode === SiegeBattleMode.DEFENSE_SIEGE ? SiegeRole.DEFENDER : SiegeRole.ATTACKER);
+    } else if (siegeOptions?.isOffensiveSiege) {
+      this.battleMode = SiegeBattleMode.OFFENSIVE_SIEGE;
+      this.playerRole = SiegeRole.ATTACKER;
+    } else if (siegeOptions?.isSiege) {
+      this.battleMode = SiegeBattleMode.DEFENSE_SIEGE;
+      this.playerRole = SiegeRole.DEFENDER;
+    } else {
+      this.battleMode = SiegeBattleMode.NONE;
+      this.playerRole = SiegeRole.ATTACKER;
+    }
+
+    this.isOffensiveSiege = this.battleMode === SiegeBattleMode.OFFENSIVE_SIEGE;
+
+    if (this.isOffensiveSiege && siegeOptions?.engines) {
+      this.engines = { ...siegeOptions.engines };
+      this.trebuchetShotsLeft = (this.engines.trebuchetCount || 0) * 4; // 每座投石機 4 枚巨石彈藥
+    }
+
     const infCount = siegeOptions?.infantryCount || siegeOptions?.assignedTroops?.infantry || 0;
     const arcCount = siegeOptions?.assignedTroops?.archer || (siegeOptions?.archerVolleyDmg ? Math.round(Math.pow(siegeOptions.archerVolleyDmg / 35, 2)) : 0) || 0;
     const cavCount = siegeOptions?.cavalryCount || siegeOptions?.assignedTroops?.cavalry || 0;
     this.assignedTroops = { infantry: infCount, archer: arcCount, cavalry: cavCount };
+
+    // 弓兵後排生命池 (40 HP/人)
+    this.archerMaxRearHp = LordCommanderSystem.calculateArcherRearHp(arcCount);
+    this.archerRearHp = this.archerMaxRearHp;
 
     // 領主光環
     this.lordAura = LordCommanderSystem.getLordAura(siegeOptions?.lordTitle || GameState.myTerritory?.title || NobleTitle.COMMONER);
@@ -322,9 +357,10 @@ export class InteractiveCombatSession {
       const arcCount = this.assignedTroops.archer;
       if (arcCount > 0 && this.tacticCds.VOLLEY_FIRE <= 0) {
         this.tacticCds.VOLLEY_FIRE = 2;
-        const volleyDmg = LordCommanderSystem.calculateVolleyFire(arcCount);
         const aliveEnemies = this.enemyTeam.filter(e => e.currentHp > 0);
         aliveEnemies.forEach(vTarget => {
+          const targetDef = vTarget.stats?.pdef ?? vTarget.stats?.def ?? vTarget.defense ?? 0;
+          const volleyDmg = LordCommanderSystem.calculateVolleyFire(arcCount, targetDef);
           vTarget.currentHp = Math.max(0, vTarget.currentHp - volleyDmg);
           vTarget.statusEffects.push({ type: StatusEffectType.ARMOR_BREAK, duration: 2, value: 20 });
           turnEvents.push({
@@ -334,7 +370,7 @@ export class InteractiveCombatSession {
             damage: volleyDmg,
             targetHp: vTarget.currentHp,
             targetMaxHp: vTarget.maxHp,
-            text: `🏹 【👑 領主軍令·漫天箭雨】弓兵軍團（${arcCount}人）萬箭齊發！對 ${vTarget.name} 造成 ${volleyDmg} 點穿刺傷害並附加破甲！`
+            text: `🏹 【👑 領主軍令·漫天箭雨】弓兵軍團（${arcCount}人）萬箭齊發！對 ${vTarget.name} 造成 ${volleyDmg} 點穿刺傷害並附加破甲！${targetDef > 0 ? `(防禦減免後)` : ''}`
           });
         });
         this.processDeaths(turnEvents);
@@ -342,38 +378,50 @@ export class InteractiveCombatSession {
     } else if (order === 'CAVALRY_CHARGE') {
       const cavCount = this.assignedTroops.cavalry;
       if (cavCount > 0 && this.tacticCds.CAVALRY_CHARGE <= 0) {
-        this.tacticCds.CAVALRY_CHARGE = 4;
-        const aliveEnemies = this.enemyTeam.filter(e => e.currentHp > 0);
-        if (aliveEnemies.length > 0) {
-          const cTarget = Random.pick(aliveEnemies);
-          const { damage: cavalryDmg, stunChance } = LordCommanderSystem.calculateCavalryCharge(cavCount);
-          cTarget.currentHp = Math.max(0, cTarget.currentHp - cavalryDmg);
-
-          const isBoss = (cTarget.id && (cTarget.id.includes('boss') || cTarget.id.includes('dragon'))) ||
-                         (cTarget.name && (cTarget.name.includes('太古') || cTarget.name.includes('龍') || cTarget.name.includes('首領') || cTarget.name.includes('領主'))) ||
-                         cTarget.maxHp >= 3000;
-
-          let stunText = '';
-          if (Math.random() < stunChance) {
-            if (isBoss) {
-              cTarget.statusEffects.push({ type: StatusEffectType.BUFF_PATK, duration: 2, value: -20 });
-              stunText = '（太古首領受到重裝衝擊，攻擊力下降 20%！）';
-            } else {
-              cTarget.statusEffects.push({ type: StatusEffectType.STUN, duration: 1 });
-              stunText = '敵人被重裝撞飛，暈眩 1 回合！';
-            }
-          }
-
+        // 攻城戰騎兵邏輯：城門未破前待命，城門破後發動破城突入
+        if (this.isOffensiveSiege && this.gateRemainingHp > 0) {
           turnEvents.push({
-            type: CombatEventType.CAVALRY_CHARGE,
-            targetId: cTarget.id,
-            targetName: cTarget.name,
-            damage: cavalryDmg,
-            targetHp: cTarget.currentHp,
-            targetMaxHp: cTarget.maxHp,
-            text: `🐎 【👑 領主軍令·破陣衝鋒】騎兵軍團（${cavCount}騎）疾馳破陣！對 ${cTarget.name} 造成 ${cavalryDmg} 點重創！${stunText}`
+            type: CombatEventType.COMMANDER_TACTIC,
+            text: `🔒 【🐎 騎兵待命中】城門尚未攻破，戰馬無法翻越城垛！騎兵部隊在陣地後方整裝待命！`
           });
-          this.processDeaths(turnEvents);
+        } else {
+          this.tacticCds.CAVALRY_CHARGE = 4;
+          const aliveEnemies = this.enemyTeam.filter(e => e.currentHp > 0);
+          if (aliveEnemies.length > 0) {
+            const cTarget = Random.pick(aliveEnemies);
+            const { damage: cavalryDmg, stunChance } = LordCommanderSystem.calculateCavalryCharge(cavCount);
+            const isBreach = this.isOffensiveSiege && this.gateRemainingHp <= 0;
+            const finalDmg = isBreach ? Math.floor(cavalryDmg * 1.4) : cavalryDmg;
+            cTarget.currentHp = Math.max(0, cTarget.currentHp - finalDmg);
+
+            const isBoss = (cTarget.id && (cTarget.id.includes('boss') || cTarget.id.includes('dragon'))) ||
+                           (cTarget.name && (cTarget.name.includes('太古') || cTarget.name.includes('龍') || cTarget.name.includes('首領') || cTarget.name.includes('領主'))) ||
+                           cTarget.maxHp >= 3000;
+
+            let stunText = '';
+            if (isBreach || Math.random() < stunChance) {
+              if (isBoss) {
+                cTarget.statusEffects.push({ type: StatusEffectType.BUFF_PATK, duration: 2, value: -20 });
+                stunText = '（太古首領受到破城重裝衝擊，攻擊力下降 20%！）';
+              } else {
+                cTarget.statusEffects.push({ type: StatusEffectType.STUN, duration: 1 });
+                stunText = '敵軍被鋼鐵洪流撞飛，震懾暈眩 1 回合！';
+              }
+            }
+
+            turnEvents.push({
+              type: isBreach ? CombatEventType.CAVALRY_BREACH_CHARGE : CombatEventType.CAVALRY_CHARGE,
+              targetId: cTarget.id,
+              targetName: cTarget.name,
+              damage: finalDmg,
+              targetHp: cTarget.currentHp,
+              targetMaxHp: cTarget.maxHp,
+              text: isBreach
+                ? `🐎 【⚡ 破城毀滅突入】城門已破！鐵甲騎兵（${cavCount}騎）直插城內廣場！對 ${cTarget.name} 造成 ${finalDmg} 點致命碾壓！${stunText}`
+                : `🐎 【👑 領主軍令·破陣衝鋒】騎兵軍團（${cavCount}騎）疾馳破陣！對 ${cTarget.name} 造成 ${finalDmg} 點重創！${stunText}`
+            });
+            this.processDeaths(turnEvents);
+          }
         }
       }
     } else if (order === 'INSPIRE') {
@@ -393,6 +441,76 @@ export class InteractiveCombatSession {
         type: CombatEventType.COMMANDER_TACTIC,
         text: `⏩ 【領主號令·全軍待命】領主審時度勢保留兵力，下令全軍正常交鋒！`
       });
+    }
+
+    // 💥 1.5 攻城器械自動交鋒 (進攻方攻城戰特化)
+    if (this.isOffensiveSiege) {
+      // 🪨 重型投石機巨石砲擊 (每台 4 枚巨石，每 2 回合發射一輪齊射)
+      if (this.trebuchetShotsLeft > 0 && (this.turn === 1 || this.turn % 2 === 1)) {
+        const volleyShots = Math.min(this.trebuchetShotsLeft, this.engines.trebuchetCount || 1);
+        this.trebuchetShotsLeft -= volleyShots;
+        const trebuchet = LordCommanderSystem.calculateTrebuchetVolley(volleyShots);
+
+        if (this.gateRemainingHp > 0) {
+          const actualGateDmg = Math.min(this.gateRemainingHp, trebuchet.gateDamage);
+          this.gateRemainingHp = Math.max(0, this.gateRemainingHp - actualGateDmg);
+          turnEvents.push({
+            type: this.gateRemainingHp <= 0 ? CombatEventType.SIEGE_GATE_BREAK : CombatEventType.TREBUCHET_ATTACK,
+            damage: actualGateDmg,
+            gateRemainingHp: this.gateRemainingHp,
+            text: this.gateRemainingHp <= 0
+              ? `🪨💥 【🪨 重型投石機】${volleyShots} 發巨石呼嘯破空砸中城門！轟碎最後 ${actualGateDmg} 點耐久！敵方要塞城門徹底崩塌崩解！`
+              : `🪨 【🪨 重型投石機·巨石齊射】${volleyShots} 發巨石轟鳴砸中敵方城牆 (邊際遞減)！造成 ${actualGateDmg} 點城防破壞！(剩餘耐久：${this.gateRemainingHp}/${this.gateMaxHp}，剩餘總彈藥：${this.trebuchetShotsLeft}發)`
+          });
+        } else {
+          // 城門已破，巨石砸入城內廣場
+          const aliveEnemies = this.enemyTeam.filter(e => e.currentHp > 0);
+          if (aliveEnemies.length > 0) {
+            for (let s = 0; s < volleyShots; s++) {
+              const curAlive = this.enemyTeam.filter(e => e.currentHp > 0);
+              if (curAlive.length === 0) break;
+              const rTarget = Random.pick(curAlive);
+              const splashDmg = 400;
+              rTarget.currentHp = Math.max(0, rTarget.currentHp - splashDmg);
+              rTarget.statusEffects.push({ type: StatusEffectType.STUN, duration: 1 });
+              turnEvents.push({
+                type: CombatEventType.TREBUCHET_ATTACK,
+                targetId: rTarget.id,
+                targetName: rTarget.name,
+                damage: splashDmg,
+                text: `🪨 【🪨 重型投石機】巨石呼嘯砸入城內！對 ${rTarget.name} 造成 ${splashDmg} 點巨石碾壓傷害並震懾暈眩！(剩餘總彈藥：${this.trebuchetShotsLeft}發)`
+              });
+              this.processDeaths(turnEvents);
+            }
+          }
+        }
+      }
+
+      // 🪵 撞木衝車 (多台交替輪流衝撞降低冷卻)
+      if (this.engines.ramCount > 0 && this.gateRemainingHp > 0) {
+        const ramCycle = LordCommanderSystem.calculateBatteringRamCycle(this.engines.ramCount, this.assignedTroops.infantry, this.turn);
+        if (ramCycle.canOperate && ramCycle.willStrike) {
+          const actualRamDmg = Math.min(this.gateRemainingHp, ramCycle.totalDamage);
+          this.gateRemainingHp = Math.max(0, this.gateRemainingHp - actualRamDmg);
+          const strikeDesc = ramCycle.strikeCount > 1
+            ? `（${this.engines.ramCount}台衝車高速輪流接力，觸發 ${ramCycle.strikeCount} 次連環猛烈衝撞！）`
+            : (this.engines.ramCount > 1 ? `（${this.engines.ramCount}台衝車交替輪流撞擊，達成無 CD 連續打擊）` : '');
+
+          turnEvents.push({
+            type: this.gateRemainingHp <= 0 ? CombatEventType.SIEGE_GATE_BREAK : CombatEventType.BATTERING_RAM_ATTACK,
+            damage: actualRamDmg,
+            gateRemainingHp: this.gateRemainingHp,
+            text: this.gateRemainingHp <= 0
+              ? `🪵💥 【🪵 撞木衝車】重型生鐵撞木猛烈撞碎城門！敵方城防徹底失守！${strikeDesc}(造成 ${actualRamDmg} 點破門傷害)`
+              : `🪵 【🪵 撞木衝車】步兵工兵推動巨型撞木轟擊城門！${strikeDesc}造成 ${actualRamDmg} 點破門傷害！(剩餘耐久：${this.gateRemainingHp}/${this.gateMaxHp})`
+          });
+        } else if (ramCycle.reason) {
+          turnEvents.push({
+            type: CombatEventType.COMMANDER_TACTIC,
+            text: `⚠️ 【🪵 衝車戰況】${ramCycle.reason}`
+          });
+        }
+      }
     }
 
     // ⚔️ 2. 雙方全員依敏捷速度進行本回合交鋒
@@ -431,13 +549,13 @@ export class InteractiveCombatSession {
       }
     }
 
-    // 🏰 守城戰專屬：哨所箭塔每回合開砲
-    if (this.siegeOptions?.isSiege && (this.siegeOptions.watchtowerDmg || 0) > 0) {
+    // 🏰 守城戰專屬：防守席位哨所箭塔每回合開砲 (僅限守城戰)
+    if (this.battleMode === SiegeBattleMode.DEFENSE_SIEGE && (this.siegeOptions?.watchtowerDmg || 0) > 0) {
       const aliveEnemies = this.enemyTeam.filter(e => e.currentHp > 0);
       if (aliveEnemies.length > 0) {
         const wtTarget = this.pickTarget(aliveEnemies);
         if (wtTarget) {
-          const wtDmg = this.siegeOptions.watchtowerDmg || 25;
+          const wtDmg = this.siegeOptions?.watchtowerDmg || 25;
           wtTarget.currentHp = Math.max(0, wtTarget.currentHp - wtDmg);
           turnEvents.push({
             type: CombatEventType.WATCHTOWER_ATTACK,
@@ -596,13 +714,16 @@ export class InteractiveCombatSession {
     const isMelee = attackType === 'MELEE';
     const isPhysical = attackType !== 'MAGIC';
 
-    // 🏰 守城戰專屬：近戰敵怪城牆 100% 絕對阻隔法則
-    if (!actor.isPlayer && isSiege && isMelee) {
-      const frontDefenders = this.playerTeam.filter(p => p.currentHp > 0 && (p.row === FormationRow.FRONT || p.gridR === 0));
+    // 🏰 城門阻隔法則：只有進攻席位 (Attacker) 的近戰單位受城牆阻隔打擊城門；防守方身在城內正常交鋒
+    const isAttacker = (actor.isPlayer && this.playerRole === SiegeRole.ATTACKER) || (!actor.isPlayer && this.playerRole === SiegeRole.DEFENDER);
+
+    if (isAttacker && isSiege && isMelee) {
+      const defenderTeam = actor.isPlayer ? this.enemyTeam : this.playerTeam;
+      const frontDefenders = defenderTeam.filter(p => p.currentHp > 0 && (p.row === FormationRow.FRONT || p.gridR === 0));
       const targetIsFront = target.row === FormationRow.FRONT || target.gridR === 0;
 
-      // 1. 若我方前排已無人：近戰敵怪 100% 絕對被城牆阻隔，無法攻擊中後排守軍，全部傷害轉打城門！
-      // 2. 若我方有前排：非前排目標或 40% 機率打擊城門！
+      // 1. 若防守方前排已無人：進攻方近戰 100% 絕對被城牆阻隔，無法攻擊中後排守軍，全部傷害轉打城門！
+      // 2. 若防守方有前排：非前排目標或 40% 機率打擊城門！
       if (frontDefenders.length === 0 || !targetIsFront || Random.next() < 0.4) {
         const rawGateDmg = Math.max(5, Math.floor((actor.stats.patk || 20) * 0.8));
         const gateDmg = Math.min(this.gateRemainingHp, rawGateDmg);
@@ -614,7 +735,7 @@ export class InteractiveCombatSession {
           damage: gateDmg,
           gateRemainingHp: this.gateRemainingHp,
           text: this.gateRemainingHp <= 0
-            ? `💥 【⚠️ 城門告急】${actor.name} 猛烈衝擊城門造成 ${gateDmg} 點傷害！城門已被徹底攻破！敵軍湧入城內！`
+            ? `💥 【⚠️ 城門告急】${actor.name} 猛烈衝擊城門造成 ${gateDmg} 點傷害！城門已被徹底攻破！`
             : `🛡️ 【🏰 城門阻擋】${actor.name} 受城門阻隔無法攻擊後排守軍，轉而撞擊要塞城牆造成 ${gateDmg} 點攻城傷害！(剩餘耐久：${this.gateRemainingHp} / ${this.gateMaxHp})`
         });
         return; // 城牆完全吸收了本次近戰傷害，保護後排！
@@ -623,9 +744,12 @@ export class InteractiveCombatSession {
 
     const atk = isPhysical ? actor.stats.patk : actor.stats.matk;
     const def = isPhysical ? target.stats.pdef : target.stats.mdef;
-
     let baseDmg = Math.max(1, atk * 1.5 - def * 0.5 + (Random.next() * 10 - 5));
-    if (target.isPlayer && isSiege) {
+
+    // 🏰 城垛掩體判定：只有防守方 (Defender) 在城門未破前受擊才享有 25% 掩體減傷
+    const isTargetDefender = (target.isPlayer && this.playerRole === SiegeRole.DEFENDER) || (!target.isPlayer && this.playerRole === SiegeRole.ATTACKER);
+
+    if (isTargetDefender && isSiege) {
       baseDmg = Math.max(1, Math.floor(baseDmg * 0.75)); // 🏰 城垛掩體減傷 25%
     }
     const isCrit = Random.next() < (actor.stats.critChance || 5) / 100;
@@ -647,7 +771,7 @@ export class InteractiveCombatSession {
       damage: finalDmg,
       targetHp: target.currentHp,
       targetMaxHp: target.maxHp,
-      text: `${actor.name} 對 ${target.name} 發動攻擊，造成 ${finalDmg} 點傷害！${isCrit ? '💥 暴擊！' : ''}${target.isPlayer && isSiege ? ' 🛡️(城垛掩體減傷)' : ''}`
+      text: `${actor.name} 對 ${target.name} 發動攻擊，造成 ${finalDmg} 點傷害！${isCrit ? '💥 暴擊！' : ''}${isTargetDefender && isSiege ? ' 🛡️(城垛掩體減傷)' : ''}`
     });
   }
 
@@ -776,8 +900,13 @@ export class InteractiveCombatSession {
       isLordCampaign: true,
       lordAura: this.lordAura,
       commanderTroops: this.assignedTroops,
-      isDefenseSiege: this.siegeOptions?.isSiege ?? false,
+      battleMode: this.battleMode,
+      playerRole: this.playerRole,
+      isDefenseSiege: this.battleMode === SiegeBattleMode.DEFENSE_SIEGE,
       isFieldInterception: this.siegeOptions?.isFieldInterception ?? false,
+      isOffensiveSiege: this.isOffensiveSiege,
+      engines: this.engines,
+      survivingArchers: LordCommanderSystem.calculateSurvivingArchers(this.archerRearHp),
       survivingWaves: survivingWaves.length > 0 ? survivingWaves : undefined,
       gateMaxHp: this.gateMaxHp,
       gateRemainingHp: this.gateRemainingHp,

@@ -1,4 +1,4 @@
-import { CombatStats, FormationRow, TerrainType, Attributes } from './types';
+import { CombatStats, FormationRow, TerrainType, Attributes, SiegeBattleMode, SiegeRole, NobleTitle } from './types';
 
 export enum StatusEffectType {
   BLEED = 'BLEED',
@@ -43,7 +43,7 @@ export interface CombatParticipant {
   maxMp?: number;
   currentMp?: number;
   stats: CombatStats; // hp, mp, atk, def, hit, evade, speed
-  attributes?: import('./types').Attributes; // str, int, con, agi, luk (供新版計算使用)
+  attributes?: Attributes; // str, int, con, agi, luk (供新版計算使用)
   statusEffects: StatusEffect[];
   // Phase 4: Army Shield System
   shieldType?: string;      // 攜帶的兵種 (例如: 'INFANTRY', 'CAVALRY', 'ARCHER')
@@ -97,7 +97,13 @@ export enum CombatEventType {
   COMMANDER_SHIELD_WALL = 'COMMANDER_SHIELD_WALL', // 領主展開步兵鋼鐵盾牆
   COMMANDER_INSPIRE = 'COMMANDER_INSPIRE',         // 領主發動全軍鼓舞
   TURN_START = 'TURN_START',                       // 回合開始 (用於回合制親征暫停決策)
-  TURN_END = 'TURN_END'                            // 回合結束
+  TURN_END = 'TURN_END',                           // 回合結束
+
+  // 攻城戰 (進攻方) 專屬事件
+  BATTERING_RAM_ATTACK = 'BATTERING_RAM_ATTACK',   // 撞木衝車破門撞擊
+  TREBUCHET_ATTACK = 'TREBUCHET_ATTACK',           // 重型投石機巨石轟擊
+  CAVALRY_BREACH_CHARGE = 'CAVALRY_BREACH_CHARGE', // 破城毀滅突入
+  ARCHER_REAR_CASUALTY = 'ARCHER_REAR_CASUALTY'    // 弓兵後排陣地戰損
 }
 
 export interface CombatEvent {
@@ -122,7 +128,7 @@ export interface CombatEvent {
   isQuietRegen?: boolean; // 例行每回合恢復，不輸出對話框文字
   healType?: 'HP' | 'MP';
   
-  // 守城專屬
+  // 守城與攻城專屬
   gateHp?: number;
   gateMaxHp?: number;
   gateRemainingHp?: number;
@@ -144,7 +150,7 @@ export interface CombatParticipantState {
   gridR?: number;
   gridC?: number;
   avatarIndex?: number;
-  gender?: string; // or Gender, but we can just use string to avoid import
+  gender?: string;
   isGuardian?: boolean;
   avatarIcon?: string; // 怪物或特定單位的專屬 Sprite
 }
@@ -162,14 +168,18 @@ export interface CombatReport {
   totalDamageDealt?: number; // 總造成傷害
   terrain?: TerrainType; // 發生戰鬥的地形
   waveIndex?: number; // 用於進度討伐時標記波次
-  shieldLoss?: Record<string, Record<string, number>>; // 記錄每個參與者損失的各兵種數量 { participantId: { INFANTRY: 50 } }
+  shieldLoss?: Record<string, Record<string, number>>; // 記錄每個參與者損失的各兵種數量
 
   // 領主親征專屬
   isLordCampaign?: boolean;
   lordAura?: import('../systems/combat/LordCommanderSystem').LordAuraConfig;
   commanderTroops?: { infantry: number; archer: number; cavalry: number; };
 
-  // 守城戰與野外攔截專屬
+  // 攻守戰役統一抽象 (桌遊棋盤接口)
+  battleMode?: SiegeBattleMode;
+  playerRole?: SiegeRole;
+
+  // 守城戰專屬 (相容)
   isDefenseSiege?: boolean;
   isFieldInterception?: boolean;
   gateMaxHp?: number;
@@ -177,6 +187,11 @@ export interface CombatReport {
   survivingInfantry?: number;
   survivingWaves?: import('./Narrative').SurvivingMonsterState[][];
   survivingEnemyLegion?: { infantry: number; archer: number; cavalry: number; };
+
+  // 攻城戰專屬 (相容)
+  isOffensiveSiege?: boolean;
+  survivingArchers?: number;
+  engines?: { ramCount: number; trebuchetCount: number; };
 
   // 累加戰利品
   totalEarnedGold?: number;
@@ -250,6 +265,8 @@ export function tryApplyStatus(
 
 export interface SiegeDefenseCombatOptions {
   isSiege: boolean;
+  battleMode?: SiegeBattleMode; // 統一戰役模式
+  playerRole?: SiegeRole;       // 玩家接入席位 (ATTACKER / DEFENDER)
   gateHp: number;
   watchtowerDmg?: number;
   archerVolleyDmg?: number;
@@ -257,8 +274,13 @@ export interface SiegeDefenseCombatOptions {
   infantryCount?: number;
   isFieldInterception?: boolean;
   isLordCampaign?: boolean;
-  lordTitle?: import('./types').NobleTitle;
+  lordTitle?: NobleTitle;
   assignedTroops?: { infantry: number; archer: number; cavalry: number; };
   reserveSquads?: { defenderIds: string[]; formationId?: string; gridMap?: Record<string, string> }[];
   enemyLegion?: { enabled?: boolean; infantry?: number; archer?: number; cavalry?: number; };
+  isOffensiveSiege?: boolean; // 是否為進攻方攻城戰
+  engines?: {
+    ramCount: number;
+    trebuchetCount: number;
+  };
 }

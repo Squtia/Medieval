@@ -218,4 +218,13 @@ export function renderOfficeBoard(): void {
 
     candidatesContainer.appendChild(card);
   });
+
+  // 更新攻城重型軍備庫存展示
+  const territory = GameState.myTerritory;
+  const ramEl = document.getElementById('hall-siege-ram-count');
+  const trebEl = document.getElementById('hall-siege-treb-count');
+  const stock = territory.siegeEngineStock || { ram: 0, trebuchet: 0 };
+
+  if (ramEl) ramEl.textContent = (stock.ram || 0).toString();
+  if (trebEl) trebEl.textContent = (stock.trebuchet || 0).toString();
 }

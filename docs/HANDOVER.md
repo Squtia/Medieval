@@ -1,3 +1,86 @@
+- **[Feature/Combat/UnifiedSiegeBoard] 桌遊棋盤式攻守統一戰役系統 (Unified Siege Board & Role Binding) 全鏈路重構實裝（2026-08-28）**：
+  - **棋盤與席位標準解耦抽象 (`types.ts`, `Combat.ts`, `InteractiveCombatSession.ts`, `CombatUIManager.ts`)**：
+    - 🎲 **標準棋盤固定規範 (The Immutable Board)**：戰場統一劃分為左側進攻席位 (`AttackerSlot`)、中央要塞城門 (`SiegeGate`)、右側防守席位 (`DefenderSlot`)。
+    - 🔗 **接口方判定 (Role Binding)**：守城戰時玩家接入 `DefenderSlot`、敵軍接入 `AttackerSlot`；攻城戰時玩家接入 `AttackerSlot`、敵軍接入 `DefenderSlot`。
+    - 📐 **九宮格座標席位統一公式**：
+      - 左側部隊 (Attacker)：面向右側推進，$\text{gridColumn} = 3 - \text{gridR}$ (前排 $X=3$ 靠中，後排 $X=1$ 靠左)。
+      - 右側部隊 (Defender)：面向左側迎敵，$\text{gridColumn} = \text{gridR} + 1$ (前排 $X=1$ 靠中，後排 $X=3$ 靠右)。
+    - 💥 **城門受擊與戰術目標歸屬**：中央城門所屬權永遠為防守席位，只承受來自進攻席位的器械（衝車、投石機）轟擊；攻城戰敵方守軍絕對不攻擊城門。
+  - **多台攻城器械配置 (方案 A)、投石機邊際遞減與衝車輪撞降 CD 機制 (`LordCommanderSystem.ts`, `InteractiveCombatSession.ts`, `OffensiveSiegeModalController.ts`)**：
+    - 🪨 **重型投石機邊際遞減齊射**：每台提供 4 枚巨石，每 2 回合發射一輪齊射。多台齊射傷害依等比衰減（第 1 台 800、第 2 台 560、第 3 台 392，總計 800 / 1360 / 1752）；城破後巨石分散砸入城內壓制不同敵軍並震懾暈眩。
+    - 🪵 **撞木衝車交替輪流衝撞降 CD**：每台需 $\ge 10$ 名步兵推車（$N$ 台需 $\ge N \times 10$ 步兵）。1 台每 2 回合撞擊 1 次（冷卻 1 回合）；2 台交替接力達成**每 1 回合無間斷連續撞擊**（0 CD）；3 台三台高速輪替，每回合撞擊且 50% 機率追加二次連鎖重擊！
+    - 🏰 **爵位與天賦器械上限接口 (`SiegeEngineRegistry`)**：基礎上限各 3 台，封裝提供者接口供未來爵位（公爵 +2）與天賦樹無縫擴充。
+    - 🎛️ **UI 步進計數器與二階素材倍數消耗**：介面升級為 `[ - ] 數量 [ + ]`，動態結算二階加工素材（木板/鐵錠/石磚）與金幣成本，極限消耗中後期積壓產能。
+  - **三大兵種攻城特化、PDEF 防禦減傷與嚴謹戰損模型 (`LordCommanderSystem.ts`, `InteractiveCombatSession.ts`, `CombatSystem.ts`)**：
+    - 🏹 **弓兵漫天箭雨 PDEF 減傷與後排陣地血池**：箭雨傷害全面納入目標物理防禦計算 $\text{Dmg} = \text{Raw} \times \frac{100}{100 + \text{PDEF}}$；弓兵自帶後排生命池（40 HP/人），前排步兵護盾破裂後按傷害等額折算弓兵傷亡，徹底解決千人大軍固定暗扣 bug。
+    - 🐎 **攻城騎兵階段性戰術**：城門未破前禁止衝鋒並標記 🔒【騎兵待命中】；城門被轟碎倒塌瞬間，解鎖 ⚡【破城毀滅突入】，騎兵直插城內廣場碾壓敵軍並造成加倍傷害與集體震懾暈眩。
+    - 🛡️ **步兵工兵護盾**：每 1 名步兵提供 50 點軍團護盾，前排受擊優先扣除護盾，每 50 護盾折損 1 名步兵。
+  - **鍛造屋攻城器械打造工坊、謁見廳軍備展示與庫存上限 (`Territory.ts`, `views-facility.html`, `ForgeUIController.ts`, `OfficeController.ts`)**：
+    - 🔨 **鍛造屋打造工坊**：領地達營地規模 (CAMP) / 騎士爵位解鎖打造資格，在鍛造屋第 6 頁籤【🪵 攻城器械工坊】消耗二階加工素材打造衝車與投石機，庫存上限各 **10 台**。修正石磚素材 ID 權威指向 `mat_stone_brick`，打造成功後立即觸發 `UIManager.updateUI()` 即時扣減頂部 HUD 金幣與領地物資。
+    - 👑 **謁見廳軍備儀表板**：即時展示領地當前攻城軍備庫存（`🪵 撞木衝車: X / 10 台`、`🪨 重型投石機: Y / 10 台`）。
+  - **攻城編制庫存調派攜帶 (各限帶1台)、行軍天數計算 (+1天/台) 與真實行軍生命週期 (`OffensiveSiegeModalController.ts`, `modals-combat-trade.html`, `CombatUIManager.ts`, `InteractiveCombatSession.ts`, `GameLoop.ts`, `UIManager.ts`)**：
+    - 🎛️ **從庫存調派攜帶**：攻城編制 UI 改為從領地庫存勾選攜帶（各限帶 1 台），出征時扣除庫存並即時更新頂部 HUD 糧草。
+    - 🗺️ **行軍天數與隨軍口糧**：總行軍天數 $D_{\text{march}} = D_{\text{base}} + (\text{衝車}?1:0) + (\text{投石機}?1:0)$，隨軍乾糧依往返天數動態計算。
+    - 🐎 **真實行軍任務生命週期 (LordSiegeCampaignMission)**：點擊【👑 領主親征】或【⚔️ 委託先鋒】後建立行軍任務，參戰傭兵標記為 `DISPATCHED`，主介面顯示行軍倒數進度；領地回到每日正常運轉，玩家每次點擊【過日 / 下一回合】時行軍天數 -1 並消耗口糧，當天數歸零（兵臨城下）時自動觸發攻城戰役！
+    - 🛡️ **席位與城門判定修復**：修正 `CombatUIManager.ts` 只有守城戰才掛載鏡像反轉樣式，攻城戰時玩家 100% 保持在左側進攻席位、敵軍在右側守備席位；嚴格限制**只有進攻方近戰部隊受城牆阻隔打擊城門，敵方守軍身處城內絕不攻擊城門**。
+    - 🏰 **據點工坊 SSOT 直連**：出征時精準讀取目標據點在工坊中設定的城門最大耐久（如 30,000 HP）與真實怪獸波次名冊、精靈頭像 Sprite、技能與九宮格佈陣。
+    - 🛡️ **城垛掩體與城門 HUD 文案精確化**：城垛掩體 25% 減傷（`🛡️ (城垛掩體減傷)`）嚴格綁定**防守方席位（Defender）**；中央城門 HUD 動態依攻守戰役精準切換為「🏰 敵方要塞城門耐久度」與「🛡️ 主城防衛城門耐久度」。
+    - 🎯 **戰術九宮格智能自適應方位 (`TerritoryDefenseModalController.ts`, `modals-combat-trade.html`)**：依據戰術型態動態自適應九宮格佈局與映射：
+      - 🌲 **野外攔截戰 (野戰衝鋒)**：自適應呈現「左列：`🏰 後排 (r=2)` ➔ 中列：`🛡️ 中排 (r=1)` ➔ 右列：`⚔️ 前排 (r=0，面向右側衝鋒)`」。
+      - 🏰 **領地守城戰 (守門禦敵)**：自適應呈現「左列：`⚔️ 前排 (r=0，靠近城門守衛)` ➔ 中列：`🛡️ 中排 (r=1)` ➔ 右列：`🏰 後排 (r=2，城內後備)`」。
+      - 格子空槽提示、頂部標籤與傭兵點擊填位 100% 動態連動，徹底消除攻守心智與戰鬥站位錯位問題。
+    - 📐 **野外迎擊雙方對進遭遇算法 (`TerritoryDefenseSystem.ts`, `TerritoryDefenseModalController.ts`)**：
+      - 精準計算相向行軍遭遇天數 $D_{\text{intercept}} = \max(1, \lfloor T / 2 \rfloor)$ 與戰敗後殘存敵軍抵達天數 $T_{\text{remaining}} = T - D_{\text{intercept}}$（例如敵軍進逼 7 天時，我軍在第 3 天遭遇交火；戰敗後主城尚有 4 天緩衝防守時間）。
+      - 部署彈窗動態呈現遭遇預估與防禦緩衝天數。
+  - **據點工坊 (Encounter / Group Studio) 戰鬥團體陣營攻守接口角色與參數分類 (`types.ts`, `combat-studio.html`, `CombatStudio.ts`)**：
+    - 規範 `CombatGroupRole`：`DEFENDER_ONLY`（僅防守方）、`ATTACKER_ONLY`（僅進攻方）、`VERSATILE`（攻守通用）。
+    - 🎛️ **工坊編輯 UI 全面實裝**：在討伐據點/戰鬥團體工坊中加入【🏰 攻守戰役陣營接口與可控條件】控制面板。
+      - 🛡️ **防守方接口**：城門最大耐久（1000~10000 HP）、防禦箭塔數量 (0~3座)、箭塔每回合傷害 (0~150)、城垛射手加成 (0~50%)。
+      - ⚔️ **進攻方接口**：撞木衝車數量 (0~3台)、重型投石機數量 (0~3台)、AI 戰術傾向 (破門優先 vs 殲敵優先)。
+      - 🔄 **角色切換連動**：依陣營定位（僅守方/僅攻方/攻守通用）智能動態展開對應控制面板並雙向即時同步儲存。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、29 個測試檔案 132 項單元測試 100% 全部通過。
+- **[Feature/MapScene/DynamicNodeTextLOD] 大地圖據點文字智能動態字級 (全景 1.0x ➔ 極限放大 2.5x) 實裝（2026-08-28）**：
+  - **智能動態字級演算法 (`MapScene.ts`)**：新增 `updateNodeTextScales()`，依據相對縮放倍率動態計算阻尼縮放公式 `targetScreenRatio = 1 + (2.5 - 1) * ((relZoom - 1) / (5.5 - 1))`，將世界座標縮放設為 `targetScreenRatio / relZoom`。
+  - **極致閱讀體驗**：全景視角下維持 1.0x 原生精美字級（11px/14px），不遮擋山脈全景；放大到 5.5 倍極限時，名稱標籤與徽章在螢幕上平滑過渡至 2.5x 大小，清晰顯眼且不會過度膨脹，圖標則隨地圖自然等比縮放。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/MapScene/ExponentialZoomAndSizeRevert] 大地圖等比指數滾輪縮放 (每次 15%) 與節點經典尺寸還原（2026-08-28）**：
+  - **平滑等比指數縮放 (`MapScene.ts`)**：滑鼠滾輪縮放改用指數演算法（每次等比縮放 15%：`newZoom = zoom * 1.15` / `zoom / 1.15`），徹底消除固定加減步長在不同視野下的手感落差，全景與微觀過渡極致均勻流暢。
+  - **節點尺寸 100% 經典還原**：玩家主據點 `42px`（光環 `76×38px`、徽章 `y = -50`、文字 `y = 12`）、一般固定城鎮 `35px`（文字 `y = 12`）、動態巢穴 `25px` 全面還原為原版精緻比例。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/MapScene/MultiTierNaturalZoom] 大地圖多級深入放大（提升至 5.5 倍）與節點自然等比縮放機制實裝（2026-08-28）**：
+  - **最大放大倍率大幅提升 (`MapScene.ts`)**：將相機最大縮放上限由 `3 倍` 提升至 **`5.5 倍` (`minZoom * 5.5`)**，支援玩家深入檢視道路分歧、河流山川與要塞周邊的精細地形地貌。
+  - **自然等比隨圖縮放**：移除反向補償縮放限制，所有節點（玩家據點 62px / 固定城鎮 55px / 動態巢穴 45px）隨相機自然流暢地等比放大與縮小，達成如真實沙盤般的沉浸式空間體驗。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/MapScene/EnlargeNodeIconSizes] 大地圖節點圖標全面放大升級（玩家據點 62px / 固定城鎮 55px / 動態巢穴 45px）（2026-08-28）**：
+  - **圖標規格全面升級 (`MapScene.ts`)**：
+    - 👑 **玩家主據點**：由 `42px` 放大至 **`62px`**；金色發光外環擴大至 `96×48px`、內環 `74×36px`，徽章置頂於 `y = -56`。
+    - 🏰 **一般固定城鎮／要塞**：由 `35px` 放大至 **`55px`**；名稱文字標籤間距調整至 `y = 20`。
+    - 🌫️ **動態巢穴／隨機秘境**：由 `25px` 放大至 **`45px`**。
+  - **視覺比例與閱讀體驗**：大幅增強大地圖要塞與村落的視覺辨識度與手繪 Isometric 建築精緻度，文字標籤與狀態徽章完美間隔無遮擋。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/MapScene/ConstantNodeScreenScale] 大地圖節點反向縮放補償機制 (模式 A：保持固定螢幕尺寸) 實裝（2026-08-28）**：
+  - **動態反向縮放引擎 (`MapScene.ts`)**：新增 `updateNodeScales()`，監聽相機 `zoom` 變更事件（滑鼠滾輪縮放、視窗 Resize、地圖重建），動態將所有節點 Container 與戰鬥信標的 Scale 設為 `1 / zoom`。
+  - **螢幕恆定與交互保真**：無論地圖縮小至全景還是放大至局部細節，節點圖標、名稱標籤與狀態徽章皆保持舒適好讀的固定螢幕尺寸；滑鼠懸停 (Hover) 動畫完美基於當前動態基準 Scale 放大 1.25 倍並平滑縮回。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Refactor/MapScene/ResetContainerFilter] 重置大地圖容器壓暗濾鏡 (brightness/sepia) 以展現 100% 原圖真實色彩（2026-08-28）**：
+  - **樣式重置與原碼備份 (`views-main.html`)**：將 `#map-nodes-container` 上的 `filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);` 設為 `filter: none;`，並在 HTML 中完整備份原始濾鏡注釋，徹底消除 20% 強制壓暗與泛黃灰濛感，100% 還原原圖純淨明亮的金黃沙丘、雪白冰山與翠綠森林。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/CombatStudio/All27StaticNodesCovered] 大地圖 27 處原生固定節點 100% 全面收錄至討伐據點工坊資料庫（2026-08-28）**：
+  - **補齊 8 處固定據點 (`subjugation_nodes.json`)**：
+    - 🌋 **燃鐵礦場** (`val_iron_quarry`)：Lv.2 火山鐵礦村落，配備礦山巡邏守衛與重裝工頭。
+    - 🏔️ **無光修道院** (`mor_dark_monastery`)：Lv.0 雪山秘境，黑袍血脈狂信徒與秘儀大司祭。
+    - 🏔️ **碎冰灣** (`mor_frost_bay`)：Lv.2 極寒破冰漁村，霜雪守備隊與海灣獵手。
+    - 🌲 **荊棘谷** (`lys_bramble_valley`)：Lv.3 密林劇毒要塞，影刃刺客與隨行敵方軍團。
+    - 🌲 **暗鴉村** (`lys_dark_crow_village`)：Lv.2 森林偽裝村落，暗鴉斥候密探與偽裝村民。
+    - 🏜️ **赤砂城** (`cas_red_sand_city`)：Lv.3 沙漠傭兵要塞，赤砂僱傭狂兵與隨行敵方軍團。
+    - 🏜️ **枯骨綠洲** (`cas_withered_oasis`)：Lv.1 沙漠水源營地，綠洲奴隸捕手與流寇。
+    - 🌾 **十字路口旅店** (`wild_crossroad_inn`)：Lv.1 中立平原驛站，鬧事酒客與荒野路霸。
+  - **驗證**：比對腳本確認 27/27 處固定節點 100% 全數收錄且對應專屬 Isometric 圖標，28 個測試檔案 122 項單元測試 100% 全部通過。
+- **[Feature/MapScene/StrongholdIconSSOT] 大地圖節點圖案全面對齊討伐據點工坊唯一真實來源 (SSOT) 與圖集動態預載入（2026-08-28）**：
+  - **Phaser 圖集動態自動化 Preload (`MapScene.ts`)**：在 `MapScene.preload()` 中動態讀取 `custom_icon_datasets.json`，自動解析並載入所有註冊的 Isometric 據點與建築圖集（如 `stronghold_iso_spritesheet_5x5` 等），根除因缺失紋理導致退回預設城堡的問題。
+  - **大地圖節點圖標動態 SSOT 查詢 (`MapScene.ts`)**：`createNodeIconSprite()` 動態向 `DataStore.getSubjugationTemplates()` 依 `id` 與 `name` 查詢取得工坊最新設定的 `tpl.icon`，並精確裁切對應的 5×5 / 4×3 Frame 貼圖，創作者在工坊更換據點圖標後大地圖即時生效。
+  - **存檔讀檔自動同步 (`SaveManager.ts`)**：在 `loadGame()` 還原節點時自動與 `DataStore.getSubjugationTemplates()` 比對，將工坊最新 `customIcon` 與 `allowTroops` 無縫同步至遊戲世界存檔節點。
+  - **驗證**：TypeScript 型別檢查 0 錯誤、28 個測試檔案 122 項單元測試 100% 全部通過。
 - **[Docs/Architecture/NPCAutonomousDesign] 建立 NPC 自主推演與動態世界觀系統設計規範文件（2026-08-27）**：
   - **權威架構文件 ([docs/NPC_AUTONOMOUS_SYSTEM_DESIGN.md](file:///i:/gameproject/Medieval/docs/NPC_AUTONOMOUS_SYSTEM_DESIGN.md))**：詳細歸納系統核心定位（服務於劇情世界觀）、三大沙盒狀態合約、故事工坊自適應插值機制、NPC 底層四大維度變數矩陣、四大保命煞車機制、連續劇因果表現層與分階段實裝路線圖。
 - **[Fix/StoryStudio/FactionModalZIndex] 故事工坊自訂陣營與聲望彈窗置頂層級與毛玻璃遮罩修復（2026-08-27）**：

@@ -11,7 +11,7 @@ export class ToastManager {
     this.container.style.top = '20px';
     this.container.style.left = '50%';
     this.container.style.transform = 'translateX(-50%)';
-    this.container.style.zIndex = '9999';
+    this.container.style.zIndex = '99999';
     this.container.style.display = 'flex';
     this.container.style.flexDirection = 'column';
     this.container.style.gap = '10px';

@@ -42,7 +42,8 @@
 
         <!-- 節點由 JS 動態生成 -->
         <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 1;">
-          <div id="map-nodes-container" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8);"></div>
+          <!-- 備份原始壓暗濾鏡: filter: brightness(0.8) sepia(0.2) contrast(1.1); box-shadow: 0 0 50px rgba(0,0,0,0.8); -->
+          <div id="map-nodes-container" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; filter: none;"></div>
           <div id="map-accessible-node-list" class="visually-hidden-map-list" aria-label="世界地圖節點"></div>
         </div>
 
