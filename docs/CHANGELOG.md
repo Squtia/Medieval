@@ -1,3 +1,7 @@
+- **[Fix/Build/TemplateLoader] 採用 Vite 原生 `?raw` 靜態字串導入修復生產環境 (GitHub Pages) HTTP 404 報錯（2026-08-28）**：
+  - **根本原因**：原先 `TemplateLoader.ts` 採用執行期 `fetch('./src/templates/*.html')`，在本地 dev 模式正常，但在生產打包 (`npm run build`) 部署至 GitHub Pages 時，`src/templates/` 未被輸出至 `dist/`，導致 `ui-chrome.html` 等片段返回 HTTP 404 遊戲初始化失敗。
+  - **解決方案**：在 [TemplateLoader.ts](file:///i:/gameproject/Medieval/src/ui/TemplateLoader.ts) 中改用 Vite 提供的原生 `import html from '../templates/*.html?raw'`，在編譯期直接將 HTML 模板打包嵌入至 JS bundle 中，實現 0 網路請求、0 延遲與 100% 部署相容性，同時完整保留 template 檔案獨立拆分規範。
+
 - **[Feature/Combat/UnifiedSiegeBoard] 桌遊棋盤式攻守統一戰役系統 (Unified Siege Board & Role Binding) 全鏈路重構實裝（2026-08-28）**：
   - **棋盤與席位標準解耦抽象 (`types.ts`, `Combat.ts`, `InteractiveCombatSession.ts`, `CombatUIManager.ts`)**：
     - 🎲 **標準棋盤固定規範 (The Immutable Board)**：戰場統一劃分為左側進攻席位 (`AttackerSlot`)、中央要塞城門 (`SiegeGate`)、右側防守席位 (`DefenderSlot`)。
