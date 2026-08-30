@@ -1,6 +1,7 @@
 import { GameState } from '../../core/GameState';
 import { NarrativeEffect } from '../../models/Narrative';
 import { TerritoryDefenseSystem } from '../../systems/TerritoryDefenseSystem';
+import { NarrativeSystem } from '../../systems/NarrativeSystem';
 import { FormationDB } from '../../systems/FormationDB';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
 import { positionFloatingElement } from '../FloatingPosition';
@@ -15,6 +16,7 @@ export interface SiegeSquadConfig {
 export class TerritoryDefenseModalController {
   private static isInitialized = false;
   private static currentStoryId: string = '';
+  private static currentSourceNodeId: string = ''; // 🔑 觸發 TRIGGER_RAID 效果的源節點 ID，用於戰役結算後標記完成
   private static currentEffect: Extract<NarrativeEffect, { type: 'TRIGGER_RAID' }> | null = null;
   private static isCurrentFieldIntercept: boolean = false;
   private static currentTabIndex: number = 0; // 0, 1, 2 對應 3 個梯隊
@@ -124,6 +126,10 @@ export class TerritoryDefenseModalController {
       if (this.currentStoryId && this.currentEffect) {
         ToastManager.show('領地放棄抵抗，敵軍肆意掠奪並破壞了城防！');
         TerritoryDefenseSystem.applyDefeatLosses(this.currentStoryId, this.currentEffect);
+        // ✅ 標記觸發節點（含有 TRIGGER_RAID 效果的源節點）為已完成，防止下次每日輪詢再次觸發守城編組彈窗
+        if (this.currentSourceNodeId) {
+          NarrativeSystem.completeNode(this.currentStoryId, this.currentSourceNodeId, false);
+        }
       }
     });
 
@@ -136,13 +142,15 @@ export class TerritoryDefenseModalController {
       }
 
       this.saveLastSquads();
+      const capturedSourceNodeId = this.currentSourceNodeId;
       this.close();
       if (this.currentStoryId && this.currentEffect) {
         TerritoryDefenseSystem.executeLiveSiegeDefenseWithSquads(
           this.currentStoryId,
           this.currentEffect,
           this.squads,
-          this.assignedTroops
+          this.assignedTroops,
+          capturedSourceNodeId
         );
       }
     });
@@ -156,13 +164,15 @@ export class TerritoryDefenseModalController {
       }
 
       this.saveLastSquads();
+      const capturedSourceNodeId = this.currentSourceNodeId;
       this.close();
       if (this.currentStoryId && this.currentEffect) {
         TerritoryDefenseSystem.executeLiveFieldInterceptionWithSquads(
           this.currentStoryId,
           this.currentEffect,
           this.squads,
-          this.assignedTroops
+          this.assignedTroops,
+          capturedSourceNodeId
         );
       }
     });
@@ -176,13 +186,15 @@ export class TerritoryDefenseModalController {
       }
 
       this.saveLastSquads();
+      const capturedSourceNodeId = this.currentSourceNodeId;
       this.close();
       if (this.currentStoryId && this.currentEffect) {
         TerritoryDefenseSystem.dispatchFieldInterception(
           this.currentStoryId,
           this.currentEffect,
           this.squads,
-          this.assignedTroops
+          this.assignedTroops,
+          capturedSourceNodeId
         );
       }
     });
@@ -259,9 +271,10 @@ export class TerritoryDefenseModalController {
     if (cavSlowEl) cavSlowEl.textContent = Math.floor(Math.sqrt(this.assignedTroops.cavalry) * 28).toLocaleString();
   }
 
-  public static show(storyId: string, effect: Extract<NarrativeEffect, { type: 'TRIGGER_RAID' }>, isFieldInterceptOverride?: boolean): void {
+  public static show(storyId: string, effect: Extract<NarrativeEffect, { type: 'TRIGGER_RAID' }>, isFieldInterceptOverride?: boolean, sourceNodeId?: string): void {
     this.init();
     this.currentStoryId = storyId;
+    this.currentSourceNodeId = sourceNodeId || '';
     this.currentEffect = effect;
     this.currentTabIndex = 0;
 

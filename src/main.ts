@@ -20,6 +20,7 @@ import { initStreetScroller } from './ui/SceneController';
 import { loadAllTemplates } from './ui/TemplateLoader';
 import { NarrativeSystem } from './systems/NarrativeSystem';
 import { NpcDialogueModalController } from './ui/modals/NpcDialogueModalController';
+import { FactionCampaignModalController } from './ui/modals/FactionCampaignModalController';
 
 // 全域 UI 事件訂閱 (只需綁定一次，不會因重新開局被清除)
 export function initGlobalUIEvents() {
@@ -139,6 +140,7 @@ async function bootstrap() {
   initCheatController();
   initExplorationController();
   initStreetScroller();
+  FactionCampaignModalController.init();
   NarrativeSystem.reloadDefinitions();
   
   // 7. 全域 UI 與戰鬥中樞完整初始化（保證無論正式遊戲或測試沙盒 100% 具備所有 UI 引用）

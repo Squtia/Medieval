@@ -6,6 +6,7 @@ import { buildTradeRouteSegments, getNodeIcon, getNodeTextureKey } from './MapPr
 import { positionFloatingElement } from './FloatingPosition';
 import { DataStore } from '../systems/DataStore';
 import defaultCustomDatasets from '../data/custom_icon_datasets.json';
+import { FactionCampaign } from '../systems/faction/FactionCampaignSystem';
 
 interface CombatBeacon {
   container: Phaser.GameObjects.Container;
@@ -39,6 +40,7 @@ export class MapScene extends Phaser.Scene {
   private explorationRangeCellCanvas: HTMLCanvasElement | null = null;
   private explorationGraphics!: Phaser.GameObjects.Graphics;
   private nodeContainers: Map<string, Phaser.GameObjects.Container> = new Map();
+  private campaignContainers: Map<string, Phaser.GameObjects.Container> = new Map();
   private caravans: Phaser.GameObjects.Text[] = [];
   private caravanTweens: Phaser.Tweens.Tween[] = [];
   private combatBeacons: Map<string, CombatBeacon> = new Map();
@@ -519,6 +521,70 @@ export class MapScene extends Phaser.Scene {
         }
       }
     }
+  }
+
+  // 繪製 AI 勢力道路行軍軍團標記
+  public renderCampaignLegions(campaigns: FactionCampaign[] = []) {
+    this.campaignContainers.forEach(c => c.destroy());
+    this.campaignContainers.clear();
+
+    const nodes = GameState.mapSystem?.getNodes() || [];
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+    const factions = GameState.mapSystem?.getFactions() || [];
+    const factionMap = new Map(factions.map(f => [f.id, f]));
+
+    campaigns.forEach(camp => {
+      if (camp.status === 'RESOLVED') return;
+      const originNode = nodeMap.get(camp.originNodeId);
+      const targetNode = nodeMap.get(camp.targetNodeId);
+      if (!originNode || !targetNode) return;
+
+      const originPx = { x: (originNode.x / 100) * 1600, y: (originNode.y / 100) * 900 };
+      const targetPx = { x: (targetNode.x / 100) * 1600, y: (targetNode.y / 100) * 900 };
+
+      // 插值計算行軍座標
+      const t = camp.status === 'RETURNING' ? 1 - camp.currentPositionRatio : camp.currentPositionRatio;
+      const currentX = originPx.x + (targetPx.x - originPx.x) * t;
+      const currentY = originPx.y + (targetPx.y - originPx.y) * t;
+
+      const attackerFaction = factionMap.get(camp.attackerFactionId);
+      const factionColorHex = attackerFaction?.color || '#ef4444';
+      const colorNum = parseInt(factionColorHex.replace('#', '0x'), 16) || 0xef4444;
+
+      const container = this.add.container(currentX, currentY);
+      container.setDepth(15);
+
+      // 軍團標記外光環
+      const ring = this.add.circle(0, 0, 16, colorNum, 0.85);
+      ring.setStrokeStyle(2, 0xffffff, 0.9);
+
+      // Emoji 圖示
+      const icon = this.add.text(0, 0, camp.type === 'SIEGE' ? '🏰' : '🐎', {
+        fontSize: '16px',
+      }).setOrigin(0.5);
+
+      // 標籤文字
+      const label = this.add.text(0, 20, `${attackerFaction?.factionName?.slice(0, 4) || '軍團'} ➔ ${targetNode.name?.slice(0, 4)}`, {
+        fontSize: '9px',
+        color: '#fef08a',
+        backgroundColor: '#000000d0',
+        padding: { x: 4, y: 2 },
+      }).setOrigin(0.5);
+
+      container.add([ring, icon, label]);
+      container.setSize(36, 36);
+      container.setInteractive({ useHandCursor: true });
+
+      container.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        if (pointer.leftButtonDown()) {
+          document.dispatchEvent(new CustomEvent('faction-campaign-clicked', {
+            detail: { campaign: camp }
+          }));
+        }
+      });
+
+      this.campaignContainers.set(camp.id, container);
+    });
   }
 
   // 重新繪製所有城鎮節點

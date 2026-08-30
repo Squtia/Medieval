@@ -12,6 +12,7 @@ import { FormationDB } from '../systems/FormationDB';
 import { PassiveManager } from './combat/PassiveManager';
 import { SkillEffectEngine } from './combat/SkillEffectEngine';
 import { LordCommanderSystem } from './combat/LordCommanderSystem';
+import { FactionArmyGenerator } from './map/FactionArmyGenerator';
 
 export class CombatSystem {
   public static simulateCombat(
@@ -112,66 +113,72 @@ export class CombatSystem {
         const isAdv = adv.isAdvanced && adv.level >= 10;
         
         const lvl = adv.level || 1;
-        const isWarrior = ['戰士', '狂戰士', '魔劍士', '狂戰', '魔劍'].some(j => jobName.includes(j));
-        const isMage = ['法師', '大魔導士', '死靈法師', '魔導', '死靈'].some(j => jobName.includes(j));
-        const isArcher = ['弓箭手', '神射手', '精靈使', '弓手', '神射', '精靈'].some(j => jobName.includes(j));
-        const isThief = ['盜賊', '暗殺者', '詭術師', '刺客', '暗殺', '詭術'].some(j => jobName.includes(j));
-        const isKnight = ['騎士', '聖騎士', '符文騎士', '聖騎', '符文'].some(j => jobName.includes(j));
-        const isPrayer = ['祈禱者', '大主教', '異端拷問官', '神官', '主教', '拷問官'].some(j => jobName.includes(j));
+        // 優先使用客製化技能 (Custom Skills SSOT)
+        if (adv.customSkills && Array.isArray(adv.customSkills) && adv.customSkills.length > 0) {
+          skills.push(...adv.customSkills);
+        } else {
+          const isWarrior = ['戰士', '狂戰士', '魔劍士', '狂戰', '魔劍'].some(j => jobName.includes(j));
+          const isMage = ['法師', '大魔導士', '死靈法師', '魔導', '死靈'].some(j => jobName.includes(j));
+          const isArcher = ['弓箭手', '神射手', '精靈使', '弓手', '神射', '精靈'].some(j => jobName.includes(j));
+          const isThief = ['盜賊', '暗殺者', '詭術師', '刺客', '暗殺', '詭術'].some(j => jobName.includes(j));
+          const isKnight = ['騎士', '聖騎士', '符文騎士', '聖騎', '符文'].some(j => jobName.includes(j));
+          const isPrayer = ['祈禱者', '大主教', '異端拷問官', '神官', '主教', '拷問官'].some(j => jobName.includes(j));
 
-        if (isWarrior) {
-          if (lvl >= 2) skills.push('FIGHTER_HEAVY_STRIKE');
-          if (lvl >= 5) skills.push('FIGHTER_ARMOR_BREAK');
-          if (isAdv && weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
-          if (isAdv && weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
-        }
-        if (isMage) {
-          if (lvl >= 2) {
-            // 元素法杖轉化機制
-            const elem = weapon?.element;
-            if (weaponType === 'STAFF' && elem && elem !== ElementType.NONE) {
-              switch (elem) {
-                case ElementType.FIRE: skills.push('MAGE_FIRE_BOLT'); break;
-                case ElementType.ICE: skills.push('MAGE_ICE_SPIKE'); break;
-                case ElementType.LIGHTNING: skills.push('MAGE_LIGHTNING_BOLT'); break;
-                case ElementType.HOLY: skills.push('MAGE_HOLY_SMITE'); break;
-                case ElementType.DARK: skills.push('MAGE_DARK_ORB'); break;
-                default: skills.push('MAGE_ARCANE_MISSILES'); break;
+          if (isWarrior) {
+            if (lvl >= 2) skills.push('FIGHTER_HEAVY_STRIKE');
+            if (lvl >= 5) skills.push('FIGHTER_ARMOR_BREAK');
+            if (isAdv && weaponType === 'GREATSWORD') skills.push('GREATSWORD_WHIRLWIND');
+            if (isAdv && weaponType === 'DUAL_SWORDS') skills.push('MAGIC_SWORDSMAN_PHANTOM');
+          }
+          if (isMage) {
+            if (lvl >= 2) {
+              // 元素法杖轉化機制
+              const elem = weapon?.element;
+              if (weaponType === 'STAFF' && elem && elem !== ElementType.NONE) {
+                switch (elem) {
+                  case ElementType.FIRE: skills.push('MAGE_FIRE_BOLT'); break;
+                  case ElementType.ICE: skills.push('MAGE_ICE_SPIKE'); break;
+                  case ElementType.LIGHTNING: skills.push('MAGE_LIGHTNING_BOLT'); break;
+                  case ElementType.HOLY: skills.push('MAGE_HOLY_SMITE'); break;
+                  case ElementType.DARK: skills.push('MAGE_DARK_ORB'); break;
+                  default: skills.push('MAGE_ARCANE_MISSILES'); break;
+                }
+              } else {
+                skills.push('MAGE_ARCANE_MISSILES');
               }
-            } else {
-              skills.push('MAGE_ARCANE_MISSILES');
             }
+            if (lvl >= 5) skills.push('MAGE_STATIC_FIELD');
+            if (isAdv && weaponType === 'STAFF') skills.push('STAFF_METEOR');
+            if (isAdv && weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
           }
-          if (lvl >= 5) skills.push('MAGE_STATIC_FIELD');
-          if (isAdv && weaponType === 'STAFF') skills.push('STAFF_METEOR');
-          if (isAdv && weaponType === 'SCYTHE') skills.push('SCYTHE_SOUL_REAP');
-        }
-        if (isArcher) {
-          if (lvl >= 2) skills.push('ARCHER_PIERCING_SHOT');
-          if (lvl >= 5) skills.push('ARCHER_AIMED_SHOT');
-          if (isAdv && weaponType === 'BOW') skills.push('SNIPER_FATAL_SNIPE');
-          if (isAdv && weaponType === 'MAGIC_BOW') skills.push('SPIRIT_ARCHER_SPIRIT_CHAIN');
-        }
-        if (isThief) {
-          if (lvl >= 2) skills.push('THIEF_SURPRISE_ATTACK');
-          if (lvl >= 5) skills.push('THIEF_POISON_BLADE');
-          if (isAdv && weaponType === 'DAGGERS') {
-            skills.push('ASSASSIN_SHADOW_ASSASSINATION');
+          if (isArcher) {
+            if (lvl >= 2) skills.push('ARCHER_PIERCING_SHOT');
+            if (lvl >= 5) skills.push('ARCHER_AIMED_SHOT');
+            if (isAdv && weaponType === 'BOW') skills.push('SNIPER_FATAL_SNIPE');
+            if (isAdv && weaponType === 'MAGIC_BOW') skills.push('SPIRIT_ARCHER_SPIRIT_CHAIN');
           }
-          if (isAdv && weaponType === 'MAGIC_RING') skills.push('TRICKSTER_TRICK_MAGIC');
+          if (isThief) {
+            if (lvl >= 2) skills.push('THIEF_SURPRISE_ATTACK');
+            if (lvl >= 5) skills.push('THIEF_POISON_BLADE');
+            if (isAdv && weaponType === 'DAGGERS') {
+              skills.push('ASSASSIN_SHADOW_ASSASSINATION');
+            }
+            if (isAdv && weaponType === 'MAGIC_RING') skills.push('TRICKSTER_TRICK_MAGIC');
+          }
+          if (isKnight) {
+            if (lvl >= 2) skills.push('KNIGHT_SHIELD_BASH');
+            if (lvl >= 5) skills.push('KNIGHT_TAUNT');
+            if (isAdv && weaponType === 'SWORD_AND_SHIELD') skills.push('KNIGHT_PALADIN_AEGIS');
+            if (isAdv && weaponType === 'RUNE_SHIELD') skills.push('KNIGHT_RUNE_REFLECTION');
+          }
+          if (isPrayer) {
+            if (lvl >= 2) skills.push('PRAYER_HEAL');
+            if (lvl >= 5) skills.push('PRAYER_HOLY_LIGHT');
+            if (isAdv && weaponType === 'HOLY_BOOK') skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
+            if (isAdv && weaponType === 'HAMMER') skills.push('PRAYER_INQUISITOR_JUDGMENT');
+          }
         }
-        if (isKnight) {
-          if (lvl >= 2) skills.push('KNIGHT_SHIELD_BASH');
-          if (lvl >= 5) skills.push('KNIGHT_TAUNT');
-          if (isAdv && weaponType === 'SWORD_AND_SHIELD') skills.push('KNIGHT_PALADIN_AEGIS');
-          if (isAdv && weaponType === 'RUNE_SHIELD') skills.push('KNIGHT_RUNE_REFLECTION');
-        }
-        if (isPrayer) {
-          if (lvl >= 2) skills.push('PRAYER_HEAL');
-          if (lvl >= 5) skills.push('PRAYER_HOLY_LIGHT');
-          if (isAdv && weaponType === 'HOLY_BOOK') skills.push('PRAYER_ARCHBISHOP_MASS_HEAL');
-          if (isAdv && weaponType === 'HAMMER') skills.push('PRAYER_INQUISITOR_JUDGMENT');
-        }
+
         
         // [註記] 裝備附加技能檢定：將武器與防具/飾品附帶的 extraSkills 注入可用技能庫
         const allEquippedItems = Object.values(adv.equipment || {}).filter(Boolean) as any[];
@@ -291,6 +298,7 @@ export class CombatSystem {
         maxMp: maxMp,
         currentMp: p.currentMp ?? maxMp,
         avatarIndex: adv?.avatarIndex ?? 0,
+        avatarIcon: (adv as any)?.avatarIcon,
         gender: adv?.gender,
         isGuardian: adv?.isGuardian ?? false
       };
@@ -303,6 +311,31 @@ export class CombatSystem {
     const droppedEquipment: string[] = [];
     const allWavesEnemyTeams: Record<number, CombatParticipant[]> = {};
     let lastActiveWave = 1;
+
+    // 構建當前不可用英雄名冊 (SSOT)
+    const allCapturedPrisoners: { id: string; characterKey?: string; boundMonsterId?: string }[] = [];
+    const territoryPrisonerHeroIds = GameState.myTerritory?.dungeonPrisonerHeroIds || [];
+    territoryPrisonerHeroIds.forEach(hid => {
+      allCapturedPrisoners.push({ id: hid });
+    });
+    const factions = GameState.mapSystem?.getFactions() || [];
+    factions.forEach(f => {
+      if (f.capturedChampionIds) {
+        f.capturedChampionIds.forEach(cid => {
+          const champ = f.champions?.find(c => c.id === cid);
+          allCapturedPrisoners.push({
+            id: cid,
+            characterKey: (champ as any)?.characterKey,
+            boundMonsterId: (champ as any)?.boundMonsterId
+          });
+        });
+      }
+    });
+    const unavailableSet = FactionArmyGenerator.buildUnavailableCharacterSet(
+      (GameState.adventurers as any) || [],
+      allCapturedPrisoners,
+      []
+    );
 
     for (let wave = 1; wave <= totalWaves; wave++) {
       lastActiveWave = wave;
@@ -329,9 +362,25 @@ export class CombatSystem {
       const enemyCount = (currentWaveLineup && currentWaveLineup.length > 0) ? currentWaveLineup.length : Random.int(1, 3);
       
       for (let i = 0; i < enemyCount; i++) {
-        let lineupMonster = undefined;
+        let lineupMonster: any = undefined;
         if (currentWaveLineup && currentWaveLineup.length > 0) {
            lineupMonster = currentWaveLineup[Math.min(i, currentWaveLineup.length - 1)];
+        }
+        
+        // 戰鬥前二次安檢：若敵人為已被收服之具名英雄，強制觸發副將接替引擎
+        if (lineupMonster) {
+          const isUnavailable = (
+            (lineupMonster.characterKey && unavailableSet.has(lineupMonster.characterKey)) ||
+            (lineupMonster.id && unavailableSet.has(lineupMonster.id))
+          );
+          if (isUnavailable) {
+            lineupMonster = FactionArmyGenerator.resolveTroopMember(
+              lineupMonster.id,
+              'f_neutral',
+              unavailableSet,
+              currentWaveDiff
+            );
+          }
         }
         
         const eHp = lineupMonster ? lineupMonster.hp : (50 + currentWaveDiff * 5);
@@ -486,23 +535,27 @@ export class CombatSystem {
                 const sArmor = adv.equipment?.[EquipmentSlot.ARMOR];
                 const sWeaponType = sWeapon?.weaponType;
 
-                // 推導技能清單（與主梯隊相同邏輯）
+                // 推導技能清單（優先使用 customSkills SSOT）
                 const sSkills: string[] = [];
-                const sJobName = adv.job?.name || '';
-                const sIsAdv = adv.isAdvanced && adv.level >= 10;
-                const sLvl = adv.level || 1;
-                const sIsWarrior = ['戰士','狂戰士','魔劍士','狂戰','魔劍'].some(j => sJobName.includes(j));
-                const sIsMage   = ['法師','大魔導士','死靈法師','魔導','死靈'].some(j => sJobName.includes(j));
-                const sIsArcher = ['弓箭手','神射手','精靈使','弓手','神射','精靈'].some(j => sJobName.includes(j));
-                const sIsThief  = ['盜賊','暗殺者','詭術師','刺客','暗殺','詭術'].some(j => sJobName.includes(j));
-                const sIsKnight = ['騎士','聖騎士','符文騎士','聖騎','符文'].some(j => sJobName.includes(j));
-                const sIsPrayer = ['祈禱者','大主教','異端拷問官','神官','主教','拷問官'].some(j => sJobName.includes(j));
-                if (sIsWarrior) { if (sLvl>=2) sSkills.push('FIGHTER_HEAVY_STRIKE'); if (sLvl>=5) sSkills.push('FIGHTER_ARMOR_BREAK'); if (sIsAdv && sWeaponType==='GREATSWORD') sSkills.push('GREATSWORD_WHIRLWIND'); if (sIsAdv && sWeaponType==='DUAL_SWORDS') sSkills.push('MAGIC_SWORDSMAN_PHANTOM'); }
-                if (sIsMage) { if (sLvl>=2) { const se=sWeapon?.element; if (sWeaponType==='STAFF'&&se&&se!==ElementType.NONE){switch(se){case ElementType.FIRE:sSkills.push('MAGE_FIRE_BOLT');break;case ElementType.ICE:sSkills.push('MAGE_ICE_SPIKE');break;case ElementType.LIGHTNING:sSkills.push('MAGE_LIGHTNING_BOLT');break;case ElementType.HOLY:sSkills.push('MAGE_HOLY_SMITE');break;case ElementType.DARK:sSkills.push('MAGE_DARK_ORB');break;default:sSkills.push('MAGE_ARCANE_MISSILES');}}else{sSkills.push('MAGE_ARCANE_MISSILES');}} if (sLvl>=5) sSkills.push('MAGE_STATIC_FIELD'); if (sIsAdv&&sWeaponType==='STAFF') sSkills.push('STAFF_METEOR'); if (sIsAdv&&sWeaponType==='SCYTHE') sSkills.push('SCYTHE_SOUL_REAP'); }
-                if (sIsArcher) { if (sLvl>=2) sSkills.push('ARCHER_PIERCING_SHOT'); if (sLvl>=5) sSkills.push('ARCHER_AIMED_SHOT'); if (sIsAdv&&sWeaponType==='BOW') sSkills.push('SNIPER_FATAL_SNIPE'); if (sIsAdv&&sWeaponType==='MAGIC_BOW') sSkills.push('SPIRIT_ARCHER_SPIRIT_CHAIN'); }
-                if (sIsThief)  { if (sLvl>=2) sSkills.push('THIEF_SURPRISE_ATTACK'); if (sLvl>=5) sSkills.push('THIEF_POISON_BLADE'); if (sIsAdv&&sWeaponType==='DAGGERS') sSkills.push('ASSASSIN_SHADOW_ASSASSINATION'); if (sIsAdv&&sWeaponType==='MAGIC_RING') sSkills.push('TRICKSTER_TRICK_MAGIC'); }
-                if (sIsKnight) { if (sLvl>=2) sSkills.push('KNIGHT_SHIELD_BASH'); if (sLvl>=5) sSkills.push('KNIGHT_TAUNT'); if (sIsAdv&&sWeaponType==='SWORD_AND_SHIELD') sSkills.push('KNIGHT_PALADIN_AEGIS'); if (sIsAdv&&sWeaponType==='RUNE_SHIELD') sSkills.push('KNIGHT_RUNE_REFLECTION'); }
-                if (sIsPrayer) { if (sLvl>=2) sSkills.push('PRAYER_HEAL'); if (sLvl>=5) sSkills.push('PRAYER_HOLY_LIGHT'); if (sIsAdv&&sWeaponType==='HOLY_BOOK') sSkills.push('PRAYER_ARCHBISHOP_MASS_HEAL'); if (sIsAdv&&sWeaponType==='HAMMER') sSkills.push('PRAYER_INQUISITOR_JUDGMENT'); }
+                if (adv.customSkills && Array.isArray(adv.customSkills) && adv.customSkills.length > 0) {
+                  sSkills.push(...adv.customSkills);
+                } else {
+                  const sJobName = adv.job?.name || '';
+                  const sIsAdv = adv.isAdvanced && adv.level >= 10;
+                  const sLvl = adv.level || 1;
+                  const sIsWarrior = ['戰士','狂戰士','魔劍士','狂戰','魔劍'].some(j => sJobName.includes(j));
+                  const sIsMage   = ['法師','大魔導士','死靈法師','魔導','死靈'].some(j => sJobName.includes(j));
+                  const sIsArcher = ['弓箭手','神射手','精靈使','弓手','神射','精靈'].some(j => sJobName.includes(j));
+                  const sIsThief  = ['盜賊','暗殺者','詭術師','刺客','暗殺','詭術'].some(j => sJobName.includes(j));
+                  const sIsKnight = ['騎士','聖騎士','符文騎士','聖騎','符文'].some(j => sJobName.includes(j));
+                  const sIsPrayer = ['祈禱者','大主教','異端拷問官','神官','主教','拷問官'].some(j => sJobName.includes(j));
+                  if (sIsWarrior) { if (sLvl>=2) sSkills.push('FIGHTER_HEAVY_STRIKE'); if (sLvl>=5) sSkills.push('FIGHTER_ARMOR_BREAK'); if (sIsAdv && sWeaponType==='GREATSWORD') sSkills.push('GREATSWORD_WHIRLWIND'); if (sIsAdv && sWeaponType==='DUAL_SWORDS') sSkills.push('MAGIC_SWORDSMAN_PHANTOM'); }
+                  if (sIsMage) { if (sLvl>=2) { const se=sWeapon?.element; if (sWeaponType==='STAFF'&&se&&se!==ElementType.NONE){switch(se){case ElementType.FIRE:sSkills.push('MAGE_FIRE_BOLT');break;case ElementType.ICE:sSkills.push('MAGE_ICE_SPIKE');break;case ElementType.LIGHTNING:sSkills.push('MAGE_LIGHTNING_BOLT');break;case ElementType.HOLY:sSkills.push('MAGE_HOLY_SMITE');break;case ElementType.DARK:sSkills.push('MAGE_DARK_ORB');break;default:sSkills.push('MAGE_ARCANE_MISSILES');}}else{sSkills.push('MAGE_ARCANE_MISSILES');}} if (sLvl>=5) sSkills.push('MAGE_STATIC_FIELD'); if (sIsAdv&&sWeaponType==='STAFF') sSkills.push('STAFF_METEOR'); if (sIsAdv&&sWeaponType==='SCYTHE') sSkills.push('SCYTHE_SOUL_REAP'); }
+                  if (sIsArcher) { if (sLvl>=2) sSkills.push('ARCHER_PIERCING_SHOT'); if (sLvl>=5) sSkills.push('ARCHER_AIMED_SHOT'); if (sIsAdv&&sWeaponType==='BOW') sSkills.push('SNIPER_FATAL_SNIPE'); if (sIsAdv&&sWeaponType==='MAGIC_BOW') sSkills.push('SPIRIT_ARCHER_SPIRIT_CHAIN'); }
+                  if (sIsThief)  { if (sLvl>=2) sSkills.push('THIEF_SURPRISE_ATTACK'); if (sLvl>=5) sSkills.push('THIEF_POISON_BLADE'); if (sIsAdv&&sWeaponType==='DAGGERS') sSkills.push('ASSASSIN_SHADOW_ASSASSINATION'); if (sIsAdv&&sWeaponType==='MAGIC_RING') sSkills.push('TRICKSTER_TRICK_MAGIC'); }
+                  if (sIsKnight) { if (sLvl>=2) sSkills.push('KNIGHT_SHIELD_BASH'); if (sLvl>=5) sSkills.push('KNIGHT_TAUNT'); if (sIsAdv&&sWeaponType==='SWORD_AND_SHIELD') sSkills.push('KNIGHT_PALADIN_AEGIS'); if (sIsAdv&&sWeaponType==='RUNE_SHIELD') sSkills.push('KNIGHT_RUNE_REFLECTION'); }
+                  if (sIsPrayer) { if (sLvl>=2) sSkills.push('PRAYER_HEAL'); if (sLvl>=5) sSkills.push('PRAYER_HOLY_LIGHT'); if (sIsAdv&&sWeaponType==='HOLY_BOOK') sSkills.push('PRAYER_ARCHBISHOP_MASS_HEAL'); if (sIsAdv&&sWeaponType==='HAMMER') sSkills.push('PRAYER_INQUISITOR_JUDGMENT'); }
+                }
                 // 裝備附加技能
                 Object.values(adv.equipment||{}).filter(Boolean).forEach((eq:any) => { if(eq.grantedSkill&&!sSkills.includes(eq.grantedSkill))sSkills.push(eq.grantedSkill); (eq.extraSkills||[]).forEach((sk:string)=>{if(sk&&!sSkills.includes(sk))sSkills.push(sk);}); });
 

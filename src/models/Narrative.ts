@@ -53,6 +53,8 @@ export interface SubjugationTemplate {
   allowTroops?: boolean;
   worldGenMode?: 'PERMANENT_VISIBLE' | 'WORLD_SECRET' | 'STORY_ONLY';
   factionId?: string;
+  producedGoods?: string[];
+  demandedGoods?: string[];
   nodeLevel?: import('./types').NodeLevel;
   waves?: SubjugationWave[];
   enemyLegion?: {
@@ -135,7 +137,12 @@ export type NarrativeCondition =
   | { type: 'FACT_MISSING'; fact: string }
   | { type: 'DAYS_SINCE_FACT'; fact: string; value: number }
   | { type: 'NODE_EXPLORED'; nodeId: string }
-  | { type: 'SUBJUGATION_COUNT_AT_LEAST'; value: number };
+  | { type: 'SUBJUGATION_COUNT_AT_LEAST'; value: number }
+  | { type: 'NODE_OWNER_IS'; nodeId: string; factionId: string }
+  | { type: 'FACTION_AT_WAR'; factionId: string }
+  | { type: 'FACTION_STARVING'; factionId: string }
+  | { type: 'HERO_EXISTS'; heroIds: string[]; matchMode?: 'ANY' | 'ALL' }
+  | { type: 'HERO_MISSING'; heroIds: string[]; matchMode?: 'ANY' | 'ALL' };
 
 export type NarrativeEquipmentSlot = 'ANY' | 'WEAPON' | 'ARMOR' | 'ACCESSORY';
 export type NarrativeEquipmentTier = 'ANY' | 1 | 2 | 3 | 4;
@@ -149,6 +156,7 @@ export type NarrativeEffect =
   | { type: 'GRANT_MATERIAL'; itemId: string; quantity: number; mode?: 'FIXED' | 'RANDOM' }
   | { type: 'GRANT_TRADE_GOOD'; itemId: string; quantity: number; mode?: 'FIXED' | 'RANDOM' }
   | { type: 'GRANT_EQUIPMENT'; templateId?: string; mode?: 'FIXED' | 'RANDOM'; slot?: NarrativeEquipmentSlot; tier?: NarrativeEquipmentTier; quantity: number }
+  | { type: 'GRANT_HERO'; heroId: string }
   | { type: 'SCHEDULE_NODE'; nodeId: string; delayDays: number }
   | { type: 'UNLOCK_MAP_NODE'; nodeId: string }
   | { type: 'REMOVE_MAP_NODE'; nodeId: string }

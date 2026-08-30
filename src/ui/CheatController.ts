@@ -167,6 +167,10 @@ export function initCheatController(): void {
         window.open('./tools/equipment-studio.html', '_blank');
         ToastManager.show(`🔨 已在新分頁開啟「裝備、素材與配方工坊 (Equipment Studio)」！`);
     }},
+    'skill': { name: '開啟全自訂積木技能工坊', noPrompt: true, setter: () => {
+        window.open('./tools/skill-workshop.html', '_blank');
+        ToastManager.show(`⚡ 已在新分頁開啟「全自訂積木技能工坊 (Skill Workshop)」！`);
+    }},
     'addur': { name: '召喚唯一 UR【赤焰戰神】', noPrompt: true, setter: () => {
         const hero = createUniqueAdventurer('reyn');
         if (hero) {
@@ -205,6 +209,10 @@ export function initCheatController(): void {
 
   (window as any).openIconStudio = () => {
     window.open('./tools/icon-studio.html', '_blank');
+  };
+
+  (window as any).openSkillWorkshop = () => {
+    window.open('./tools/skill-workshop.html', '_blank');
   };
 
   (window as any).openLiveLayoutEditor = async () => {

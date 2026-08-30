@@ -8,10 +8,16 @@ import { GameState } from '../core/GameState';
 import monstersJson from '../data/monsters.json';
 import defaultCustomDatasets from '../data/custom_icon_datasets.json';
 import subjugationNodesJson from '../data/subjugation_nodes.json';
-import { renderUniversalIcon } from '../ui/IconSpriteHelper';
+import materialsJson from '../data/materials.json';
+import { renderUniversalIcon, renderEquipIcon } from '../ui/IconSpriteHelper';
 import { UNIQUE_HEROES, UniqueHeroDef } from '../data/UniqueAdventurers';
 import { SkillRegistry } from '../systems/combat/SkillRegistry';
 import { DataStore } from '../systems/DataStore';
+import { SKILLS } from '../data/SkillData';
+import equipmentWeaponsJson from '../data/equipment_weapons.json';
+import equipmentArmorsJson from '../data/equipment_armors.json';
+import equipmentAccessoriesJson from '../data/equipment_accessories.json';
+import customSkillsJson from '../data/CustomSkillData.json';
 import '../styles/combat-studio.css';
 
 // 工具函式
@@ -52,6 +58,7 @@ interface PlayerUnitConfig {
   gender?: Gender;
   isGuardian?: boolean;
   avatarIndex?: number;
+  skills?: string[];
   allocatedStats: AllocatedStats;
 }
 
@@ -111,6 +118,20 @@ class CombatStudioController {
   private editingHeroId: string | null = null;
   private activePickingSlotIdx: number = 0;
 
+  // 英雄自訂技能與挑選器狀態
+  private readonly DEFAULT_JOB_SKILLS: Record<string, [string, string, string]> = {
+    WARRIOR: ['FIGHTER_HEAVY_STRIKE', 'FIGHTER_ARMOR_BREAK', 'GREATSWORD_WHIRLWIND'],
+    KNIGHT: ['KNIGHT_SHIELD_BASH', 'KNIGHT_TAUNT', 'KNIGHT_PALADIN_AEGIS'],
+    MAGE: ['MAGE_ARCANE_MISSILES', 'MAGE_STATIC_FIELD', 'STAFF_METEOR'],
+    ARCHER: ['ARCHER_PIERCING_SHOT', 'ARCHER_AIMED_SHOT', 'SNIPER_FATAL_SNIPE'],
+    THIEF: ['THIEF_SURPRISE_ATTACK', 'THIEF_POISON_BLADE', 'ASSASSIN_SHADOW_ASSASSINATION'],
+    PRAYER: ['PRAYER_HEAL', 'PRAYER_HOLY_LIGHT', 'PRAYER_ARCHBISHOP_MASS_HEAL']
+  };
+  private currentHeroEditingSkills: string[] = ['FIGHTER_HEAVY_STRIKE', 'FIGHTER_ARMOR_BREAK', 'GREATSWORD_WHIRLWIND'];
+  private activeHeroSkillSlotIndex: number = 0;
+  private currentSkillPickerTab: string = 'ALL';
+  private skillPickerSearchQuery: string = '';
+
   // 我方隊伍狀態
   private playerTeam: PlayerUnitConfig[] = [];
   // 敵方多波次隊伍狀態 (每一波為一個 EnemyUnitConfig[])
@@ -119,6 +140,11 @@ class CombatStudioController {
 
   // 當前裝備編輯中的傭兵索引
   private activeEditingPlayerIdx = 0;
+
+  // 英雄工坊裝備挑選器狀態
+  private activeHeroEquipSlotType: 'WEAPON' | 'ARMOR' | 'ACCESSORY' = 'WEAPON';
+  private equipPickerSearchQuery: string = '';
+  private equipPickerTierFilter: string = 'ALL';
 
   // 怪物技能自訂狀態
   private activeEditingMonsterWaveIdx = 0;
@@ -133,6 +159,7 @@ class CombatStudioController {
   private draggedShMonster: { waveIdx: number; monsterIdx: number; slotId: string } | null = null;
   // 當前更換頭像中的對象 ('creator' 或 敵方陣容 index 或 傭兵 index)
   private activeIconPickerTarget: 'creator' | { type: 'enemy'; idx: number } | { type: 'player'; idx: number } = 'creator';
+  private isIconPickerFlipped: boolean = false;
 
   // 戰鬥播放器狀態
   private currentReport: CombatReport | null = null;
@@ -294,32 +321,38 @@ class CombatStudioController {
     }
   }
 
-  private saveCustomHeroesToStorage(): void {
+  private async saveCustomHeroesToStorage(): Promise<void> {
     localStorage.setItem('MEDIEVAL_CUSTOM_HEROES', JSON.stringify(this.customHeroesDb));
+    try {
+      const allHeroes = this.getAllHeroes().filter(h => h.id !== 'save_guardian_hero');
+      await fetch('/api/save-hero-definitions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(allHeroes)
+      });
+    } catch {}
   }
 
   private getAllHeroes(): UniqueHeroDef[] {
-    const list: UniqueHeroDef[] = [];
-    // 1. 預設唯一英雄 (若 customHeroesDb 內有覆蓋版本，優先讀取自訂儲存庫)
+    const map = new Map<string, UniqueHeroDef>();
+
+    // 1. 預設唯一英雄 (SSOT)
     Object.values(UNIQUE_HEROES).forEach(h => {
-      const customOverride = this.customHeroesDb.find(c => c.id === h.id);
-      if (customOverride) {
-        list.push(customOverride);
-      } else {
-        list.push(h);
-      }
+      map.set(h.id, h);
     });
-    // 2. 自訂英雄 (全新建立的角色)
+
+    // 2. 自訂英雄庫 (同 ID 覆蓋，新 ID 新增)
     this.customHeroesDb.forEach(h => {
-      if (!list.some(item => item.id === h.id)) list.push(h);
+      map.set(h.id, h);
     });
+
     // 3. 當前存檔誓約守衛 (若有)
     const playerGuardian = GameState.adventurers?.find(a => a.isGuardian);
-    if (playerGuardian && !list.some(item => item.id === 'save_guardian_hero')) {
+    if (playerGuardian) {
       const gWeapon = playerGuardian.equipment[EquipmentSlot.WEAPON];
       const gArmor = playerGuardian.equipment[EquipmentSlot.ARMOR];
       const gAcc = playerGuardian.equipment[EquipmentSlot.ACCESSORY];
-      list.push({
+      map.set('save_guardian_hero', {
         id: 'save_guardian_hero',
         name: playerGuardian.name,
         title: '【我的誓約騎士】',
@@ -351,7 +384,7 @@ class CombatStudioController {
         }
       });
     }
-    return list;
+    return Array.from(map.values());
   }
 
   private async loadIconDatasets(): Promise<void> {
@@ -522,7 +555,7 @@ class CombatStudioController {
         ],
         [
           { monsterId: 'faction_knight', name: '[洛斯加] 皇家騎士', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_knight', '皇家騎士'), formationRow: FormationRow.FRONT },
-          { monsterId: 'faction_siege_weapon', name: '[洛斯加] 攻城重弩砲', difficulty: diff + 1, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_siege_weapon', '攻城重弩砲'), formationRow: FormationRow.BACK }
+          { monsterId: 'lothgar_court_mage', name: '[洛斯加] 皇家宮廷法師', difficulty: diff + 1, element: ElementType.FIRE, isUndead: false, avatarIcon: this.getMonsterAvatar('lothgar_court_mage', '皇家宮廷法師'), formationRow: FormationRow.BACK }
         ],
         [
           { monsterId: 'faction_knight', name: '[洛斯加] 禁衛騎士', difficulty: diff + 2, element: ElementType.NONE, isUndead: false, avatarIcon: this.getMonsterAvatar('faction_knight', '禁衛騎士'), formationRow: FormationRow.FRONT },
@@ -836,7 +869,14 @@ class CombatStudioController {
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 6px;">
           <div style="font-size: 0.72rem; color: var(--cs-gold);">
-            ⚔️ 裝備: T4+${h.equipment.weaponEnhance} [${h.equipment.weaponElement || '無'}]
+            ${(() => {
+              const wId = h.equipment?.weaponTemplateId;
+              const wTpl = wId ? DataStore.EquipmentDB[wId] : null;
+              const wName = wTpl ? wTpl.name : (wId || '無武器');
+              const enhance = (h.equipment?.weaponEnhance ?? 0) > 0 ? `+${h.equipment.weaponEnhance}` : '+0';
+              const elem = h.equipment?.weaponElement && h.equipment.weaponElement !== ElementType.NONE ? ` [${h.equipment.weaponElement}]` : '';
+              return `⚔️ 裝備: ${wName} ${enhance}${elem}`;
+            })()}
           </div>
           <div style="display: flex; gap: 4px;">
             <button class="cs-btn cs-btn-sm cs-btn-gold" data-apply-hero-id="${h.id}">⚔️ 套用陣容</button>
@@ -924,6 +964,9 @@ class CombatStudioController {
     const titleEl = modal.querySelector('.cs-modal-title');
     const idInput = byId<HTMLInputElement>('mc-id');
     const nameInput = byId<HTMLInputElement>('mc-name');
+    const charKeyInput = byId<HTMLInputElement>('mc-character-key');
+    const subIdInput = byId<HTMLInputElement>('mc-substitute-id');
+    const captureRateInput = byId<HTMLInputElement>('mc-capture-rate');
     const raceSelect = byId<HTMLSelectElement>('mc-race');
     const elementSelect = byId<HTMLSelectElement>('mc-element');
     const powerTierInput = byId<HTMLInputElement>('mc-powertier');
@@ -936,6 +979,9 @@ class CombatStudioController {
       if (titleEl) titleEl.textContent = `✏️ 編輯怪物單位【${m.name}】`;
       if (idInput) { idInput.value = m.id; idInput.disabled = true; }
       if (nameInput) nameInput.value = m.name;
+      if (charKeyInput) charKeyInput.value = m.characterKey || '';
+      if (subIdInput) subIdInput.value = m.substituteMonsterId || '';
+      if (captureRateInput) captureRateInput.value = (m.captureRate !== undefined && m.captureRate !== null) ? String(m.captureRate) : '';
       if (raceSelect) raceSelect.value = m.race || 'MONSTER';
       if (elementSelect) elementSelect.value = m.defaultElement || 'NONE';
       if (powerTierInput) powerTierInput.value = String(m.powerTier || 1.0);
@@ -954,6 +1000,9 @@ class CombatStudioController {
       if (titleEl) titleEl.textContent = '👾 創造全新敵方單位 / 史詩 Boss';
       if (idInput) { idInput.value = ''; idInput.disabled = false; }
       if (nameInput) nameInput.value = '';
+      if (charKeyInput) charKeyInput.value = '';
+      if (subIdInput) subIdInput.value = '';
+      if (captureRateInput) captureRateInput.value = '';
       if (raceSelect) raceSelect.value = 'MONSTER';
       if (elementSelect) elementSelect.value = 'NONE';
       if (powerTierInput) powerTierInput.value = '1.0';
@@ -1020,8 +1069,8 @@ class CombatStudioController {
       </optgroup>
       <optgroup label="⚔️ 特殊戰術情境">
         <option value="node_5">熔火巨龍巢 (難度 8 - 火山/骨龍Boss)</option>
-        <option value="faction_siege">洛斯加正規軍攻城部隊 (難度 5)</option>
-        <option value="church_crusade">神聖教廷裁決遠征軍 (難度 6)</option>
+        <option value="faction_siege">👑 洛斯加中央王室攻城部隊 (難度 5)</option>
+        <option value="church_crusade">❄️ 北境 赫斯特神聖遠征軍 (難度 6)</option>
       </optgroup>
     `;
     if (curVal && (curVal === 'custom' || this.strongholdsDb.some(s => s.id === curVal) || ['node_5', 'faction_siege', 'church_crusade'].includes(curVal))) {
@@ -1203,6 +1252,86 @@ class CombatStudioController {
     if (ramCountInput) ramCountInput.value = String(atkCfg.ramCount ?? 1);
     if (trebCountInput) trebCountInput.value = String(atkCfg.trebuchetCount ?? 1);
     if (stanceSelect) stanceSelect.value = atkCfg.tacticalStance || 'GATE_FOCUS';
+
+    // 📦 市場貿易產銷配置（簡潔膠囊 + 彈窗挑選）
+    const renderTradeBadges = (
+      containerId: string,
+      goodsIds: string[],
+      key: 'producedGoods' | 'demandedGoods',
+      badgeColor: string
+    ) => {
+      const container = byId(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!goodsIds || goodsIds.length === 0) {
+        container.innerHTML = `<span style="font-size: 0.72rem; color: #64748b; font-style: italic;">（未指定特產，點擊上方按鈕挑選）</span>`;
+        return;
+      }
+
+      goodsIds.forEach(id => {
+        const mat = materialsJson.find(m => m.id === id);
+        if (!mat) return;
+        const badge = document.createElement('div');
+        badge.style.cssText = `
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(255,255,255,0.06);
+          border: 1px solid ${badgeColor};
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 0.74rem;
+          color: #e2e8f0;
+        `;
+        badge.innerHTML = `
+          <span>${renderUniversalIcon(mat.icon, 14)}</span>
+          <span style="font-weight: 500;">${mat.name}</span>
+          <span style="cursor: pointer; color: #ef4444; font-weight: bold; margin-left: 2px;" title="移除此物資">✕</span>
+        `;
+        const delBtn = badge.querySelector('span:last-child') as HTMLElement;
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          sh[key] = (sh[key] || []).filter(gId => gId !== id);
+          this.saveStrongholdsToStorage();
+          renderTradeBadges(containerId, sh[key] || [], key, badgeColor);
+        };
+        container.appendChild(badge);
+      });
+    };
+
+    renderTradeBadges('sh-produced-goods-badges', sh.producedGoods || [], 'producedGoods', '#4ade80');
+    renderTradeBadges('sh-demanded-goods-badges', sh.demandedGoods || [], 'demandedGoods', '#f59e0b');
+
+    const btnPickProd = byId('btn-pick-produced-goods');
+    if (btnPickProd) {
+      btnPickProd.onclick = () => {
+        this.openMaterialPicker(
+          `🛒 選擇【${sh.name}】盛產／可買物資 (低價批發)`,
+          sh.producedGoods || [],
+          (newSelected) => {
+            sh.producedGoods = newSelected;
+            this.saveStrongholdsToStorage();
+            renderTradeBadges('sh-produced-goods-badges', sh.producedGoods, 'producedGoods', '#4ade80');
+          }
+        );
+      };
+    }
+
+    const btnPickDem = byId('btn-pick-demanded-goods');
+    if (btnPickDem) {
+      btnPickDem.onclick = () => {
+        this.openMaterialPicker(
+          `💰 選擇【${sh.name}】短缺／需求物資 (高價收購)`,
+          sh.demandedGoods || [],
+          (newSelected) => {
+            sh.demandedGoods = newSelected;
+            this.saveStrongholdsToStorage();
+            renderTradeBadges('sh-demanded-goods-badges', sh.demandedGoods, 'demandedGoods', '#f59e0b');
+          }
+        );
+      };
+    }
 
     this.renderStrongholdWaves(sh);
   }
@@ -2183,17 +2312,18 @@ class CombatStudioController {
       weaponType: wpnType,
       weaponElement: hero.equipment.weaponElement || ElementType.NONE,
       weaponTier: 4,
-      weaponEnhance: hero.equipment.weaponEnhance,
+      weaponEnhance: hero.equipment.weaponEnhance ?? 0,
       weaponTemplateId: hero.equipment.weaponTemplateId,
       armorTier: 4,
-      armorEnhance: hero.equipment.armorEnhance,
+      armorEnhance: hero.equipment.armorEnhance ?? 0,
       armorTemplateId: hero.equipment.armorTemplateId,
-      accessoryType: hero.equipment.accessoryId,
+      accessoryType: hero.equipment.accessoryId || 'NONE',
       accessoryId: hero.equipment.accessoryId,
       formationRow: slotIdx === 0 ? FormationRow.FRONT : FormationRow.FRONT,
       gender: hero.gender,
       isGuardian: hero.isGuardian,
       avatarIndex: hero.avatarIndex,
+      skills: hero.customSkills ? [...hero.customSkills] : undefined,
       allocatedStats: {
         str: hero.customAttributes.str,
         agi: hero.customAttributes.agi,
@@ -2292,6 +2422,447 @@ class CombatStudioController {
     '重裝板金女戰 (10/10)'
   ];
 
+  // ── 取得技能工坊自訂技能 (優先 LocalStorage，次選專案磁碟 JSON) ──
+  private getCustomSkillList(): any[] {
+    try {
+      const raw = localStorage.getItem('MEDIEVAL_CUSTOM_COMPOSITE_SKILLS');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    if (Array.isArray(customSkillsJson)) {
+      return customSkillsJson;
+    }
+    return [];
+  }
+
+  private getCustomSkillById(id: string): any {
+    return this.getCustomSkillList().find(s => s.id === id);
+  }
+
+  // ── 渲染英雄編輯器中的 3 個技能卡槽 (簡短 ICON + Tooltip 說明) ──
+  private renderHeroSkillSlots(): void {
+    const slotTitles = ['基礎技能 1', '基礎技能 2', '進階終極技能'];
+    for (let i = 0; i < 3; i++) {
+      const skillId = this.currentHeroEditingSkills[i];
+      const sk = (SKILLS as Record<string, any>)[skillId] || this.getCustomSkillById(skillId);
+      const slotEl = byId(`hc-skill-slot-${i}`);
+      const iconEl = byId(`hc-skill-icon-${i}`);
+      const nameEl = byId(`hc-skill-name-${i}`);
+      const mpEl = byId(`hc-skill-mp-${i}`);
+
+      if (sk) {
+        if (iconEl) {
+          if (sk.icon && sk.icon.includes(':')) {
+            iconEl.innerHTML = renderUniversalIcon(sk.icon, 28);
+          } else if (sk.icon) {
+            iconEl.textContent = sk.icon;
+          } else {
+            iconEl.textContent = i === 2 ? '🌀' : (i === 1 ? '💥' : '🗡️');
+          }
+        }
+        if (nameEl) nameEl.textContent = sk.name || skillId;
+        const mpVal = sk.mpCost ?? sk.totalMpCost ?? sk.cost?.mpCost ?? 0;
+        if (mpEl) mpEl.textContent = `${mpVal} MP`;
+        if (slotEl) {
+          slotEl.title = `【${sk.name || skillId}】 (${slotTitles[i]})\n消耗 MP: ${mpVal}\n說明: ${sk.description || '無詳細說明'}\n(點擊開啟技能庫更換)`;
+        }
+      } else {
+        if (iconEl) iconEl.textContent = '❓';
+        if (nameEl) nameEl.textContent = skillId || '(無技能)';
+        if (mpEl) mpEl.textContent = '0 MP';
+        if (slotEl) slotEl.title = `${slotTitles[i]} · 點擊設定技能`;
+      }
+    }
+  }
+
+  // ── 打開全視覺化技能挑選器 ──
+  private openHeroSkillPicker(slotIdx: number): void {
+    this.activeHeroSkillSlotIndex = slotIdx;
+    const modal = byId('modal-hc-skill-picker');
+    if (!modal) return;
+
+    const titles = ['基礎技能 1', '基礎技能 2', '進階終極技能'];
+    const titleEl = byId('hc-skill-picker-target-slot-title');
+    if (titleEl) titleEl.textContent = titles[slotIdx] || `技能槽 ${slotIdx + 1}`;
+
+    const searchInput = byId<HTMLInputElement>('inp-hc-skill-search');
+    if (searchInput) {
+      searchInput.value = '';
+      this.skillPickerSearchQuery = '';
+    }
+
+    this.currentSkillPickerTab = 'ALL';
+    const tabsContainer = byId('hc-skill-picker-tabs');
+    if (tabsContainer) {
+      tabsContainer.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.skillTab === 'ALL');
+        btn.classList.toggle('cs-btn-gold', btn.dataset.skillTab === 'ALL');
+      });
+    }
+
+    this.renderHeroSkillPickerGrid();
+    modal.style.display = 'flex';
+  }
+
+  // ── 渲染技能挑選器網格卡片 ──
+  private renderHeroSkillPickerGrid(): void {
+    const grid = byId('hc-skill-picker-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const allSkillsList: { id: string; name: string; mpCost: number; description: string; icon?: string; jobCategory: string }[] = [];
+
+    // 1. 官方全職業技能
+    Object.entries(SKILLS as Record<string, any>).forEach(([id, sk]) => {
+      let cat = 'OTHER';
+      if (id.startsWith('FIGHTER_') || id.startsWith('GREATSWORD_') || id.startsWith('MAGIC_SWORDSMAN_')) cat = 'WARRIOR';
+      else if (id.startsWith('KNIGHT_')) cat = 'KNIGHT';
+      else if (id.startsWith('MAGE_') || id.startsWith('STAFF_') || id.startsWith('SCYTHE_')) cat = 'MAGE';
+      else if (id.startsWith('ARCHER_') || id.startsWith('SNIPER_') || id.startsWith('SPIRIT_ARCHER_')) cat = 'ARCHER';
+      else if (id.startsWith('THIEF_') || id.startsWith('ASSASSIN_') || id.startsWith('TRICKSTER_')) cat = 'THIEF';
+      else if (id.startsWith('PRAYER_')) cat = 'PRAYER';
+
+      allSkillsList.push({
+        id,
+        name: sk.name || id,
+        mpCost: sk.mpCost ?? 0,
+        description: sk.description || '',
+        icon: sk.icon,
+        jobCategory: cat
+      });
+    });
+
+    // 2. 技能工坊自訂技能
+    this.getCustomSkillList().forEach((cSk: any) => {
+      allSkillsList.push({
+        id: cSk.id,
+        name: cSk.name || cSk.id,
+        mpCost: cSk.mpCost ?? cSk.totalMpCost ?? (cSk.cost?.mpCost ?? 0),
+        description: cSk.description || '工坊創作技能',
+        icon: cSk.icon,
+        jobCategory: 'CUSTOM'
+      });
+    });
+
+    // 依 Tab 與搜尋過濾
+    const q = this.skillPickerSearchQuery.toLowerCase();
+    const filtered = allSkillsList.filter(sk => {
+      if (this.currentSkillPickerTab !== 'ALL' && sk.jobCategory !== this.currentSkillPickerTab) {
+        return false;
+      }
+      if (!q) return true;
+      return sk.name.toLowerCase().includes(q) || sk.description.toLowerCase().includes(q) || sk.id.toLowerCase().includes(q);
+    });
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--cs-text-muted); padding: 30px;">無符合條件的技能</div>';
+      return;
+    }
+
+    filtered.forEach(sk => {
+      const isSelected = this.currentHeroEditingSkills[this.activeHeroSkillSlotIndex] === sk.id;
+      const card = document.createElement('div');
+      card.style.cssText = `background: ${isSelected ? '#1c2538' : '#141822'}; border: 1px solid ${isSelected ? 'var(--cs-gold)' : 'var(--cs-panel-border)'}; border-radius: 6px; padding: 10px; cursor: pointer; transition: all 0.15s; display: flex; gap: 10px; align-items: flex-start;`;
+
+      let iconHtml = '✨';
+      if (sk.icon && sk.icon.includes(':')) {
+        iconHtml = renderUniversalIcon(sk.icon, 36);
+      } else if (sk.icon) {
+        iconHtml = `<div style="font-size: 1.8rem; line-height: 1;">${sk.icon}</div>`;
+      } else {
+        iconHtml = `<div style="font-size: 1.8rem; line-height: 1;">⚡</div>`;
+      }
+
+      card.innerHTML = `
+        <div style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; background: #0d1117; border-radius: 4px; flex-shrink: 0;">
+          ${iconHtml}
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: bold; font-size: 0.84rem; color: ${isSelected ? 'var(--cs-gold-light)' : '#f8fafc'};">${sk.name}</span>
+            <span class="cs-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.7rem;">${sk.mpCost} MP</span>
+          </div>
+          <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 4px; line-height: 1.35;">${sk.description}</div>
+        </div>
+      `;
+
+      card.onmouseenter = () => { if (!isSelected) card.style.borderColor = 'rgba(245, 158, 11, 0.6)'; };
+      card.onmouseleave = () => { if (!isSelected) card.style.borderColor = 'var(--cs-panel-border)'; };
+      card.onclick = () => {
+        this.currentHeroEditingSkills[this.activeHeroSkillSlotIndex] = sk.id;
+        this.renderHeroSkillSlots();
+        byId('modal-hc-skill-picker').style.display = 'none';
+      };
+
+      grid.appendChild(card);
+    });
+  }
+
+  // ── 更新英雄編輯器三格裝備視覺化卡片顯示 ──
+  private updateHeroCreatorEquipmentDisplays(): void {
+    const wId = byId<HTMLInputElement>('hc-wpn-template')?.value || '';
+    const aId = byId<HTMLInputElement>('hc-arm-template')?.value || '';
+    const accId = byId<HTMLInputElement>('hc-acc-template')?.value || '';
+
+    const wItem = (equipmentWeaponsJson as any[]).find(i => i.id === wId);
+    const aItem = (equipmentArmorsJson as any[]).find(i => i.id === aId);
+    const accItem = (equipmentAccessoriesJson as any[]).find(i => i.id === accId);
+
+    // 武器槽位
+    const wIconEl = byId('hc-wpn-icon-preview');
+    const wNameEl = byId('hc-wpn-name-display');
+    const wBadgeEl = byId('hc-wpn-type-badge');
+    const wSlotCard = byId('hc-wpn-slot-card');
+    if (wItem) {
+      if (wIconEl) wIconEl.innerHTML = renderEquipIcon(wItem, 36);
+      if (wNameEl) wNameEl.textContent = `[T${wItem.tier || 1}] ${wItem.name}`;
+      if (wBadgeEl) wBadgeEl.textContent = `T${wItem.tier || 1} ${wItem.weaponType}`;
+      const patk = wItem.combatEffects?.patk ?? wItem.pAtk ?? 0;
+      const matk = wItem.combatEffects?.matk ?? wItem.mAtk ?? 0;
+      if (wSlotCard) wSlotCard.title = `【${wItem.name}】(T${wItem.tier || 1})\n物攻: +${patk} 魔攻: +${matk}\n(點擊開啟武器庫挑選)`;
+    } else {
+      if (wIconEl) wIconEl.innerHTML = '<span style="font-size: 1.5rem;">⚔️</span>';
+      if (wNameEl) wNameEl.textContent = '(空手 / 無武器)';
+      if (wBadgeEl) wBadgeEl.textContent = 'WEAPON';
+      if (wSlotCard) wSlotCard.title = '未穿戴主手武器 (點擊開啟武器庫挑選)';
+    }
+
+    // 防具槽位
+    const aIconEl = byId('hc-arm-icon-preview');
+    const aNameEl = byId('hc-arm-name-display');
+    const aBadgeEl = byId('hc-arm-type-badge');
+    const aSlotCard = byId('hc-arm-slot-card');
+    if (aItem) {
+      if (aIconEl) aIconEl.innerHTML = renderEquipIcon(aItem, 36);
+      if (aNameEl) aNameEl.textContent = `[T${aItem.tier || 1}] ${aItem.name}`;
+      if (aBadgeEl) aBadgeEl.textContent = `T${aItem.tier || 1} ${aItem.armorType || 'ARMOR'}`;
+      const pdef = aItem.combatEffects?.pdef ?? aItem.pDef ?? 0;
+      const mdef = aItem.combatEffects?.mdef ?? aItem.mDef ?? 0;
+      if (aSlotCard) aSlotCard.title = `【${aItem.name}】(T${aItem.tier || 1})\n物防: +${pdef} 魔防: +${mdef}\n(點擊開啟防具庫挑選)`;
+    } else {
+      if (aIconEl) aIconEl.innerHTML = '<span style="font-size: 1.5rem;">🛡️</span>';
+      if (aNameEl) aNameEl.textContent = '(無防具)';
+      if (aBadgeEl) aBadgeEl.textContent = 'ARMOR';
+      if (aSlotCard) aSlotCard.title = '未穿戴身體防具 (點擊開啟防具庫挑選)';
+    }
+
+    // 飾品槽位
+    const accIconEl = byId('hc-acc-icon-preview');
+    const accNameEl = byId('hc-acc-name-display');
+    const accSlotCard = byId('hc-acc-slot-card');
+    if (accItem) {
+      if (accIconEl) accIconEl.innerHTML = renderEquipIcon(accItem, 36);
+      if (accNameEl) accNameEl.textContent = `${accItem.name}`;
+      if (accSlotCard) accSlotCard.title = `【${accItem.name}】\n${accItem.description || '專屬飾品'}\n(點擊開啟飾品庫挑選)`;
+    } else {
+      if (accIconEl) accIconEl.innerHTML = '<span style="font-size: 1.5rem;">💍</span>';
+      if (accNameEl) accNameEl.textContent = '(無飾品)';
+      if (accSlotCard) accSlotCard.title = '未配戴飾品 (點擊開啟飾品庫挑選)';
+    }
+  }
+
+  public static readonly JOB_ALLOWED_WEAPON_TYPES: Record<string, string[]> = {
+    WARRIOR: ['GREATSWORD', 'DUAL_SWORDS'],
+    KNIGHT: ['SWORD_AND_SHIELD', 'RUNE_SHIELD'],
+    MAGE: ['STAFF', 'SCYTHE'],
+    ARCHER: ['BOW', 'MAGIC_BOW'],
+    THIEF: ['DAGGERS', 'MAGIC_RING'],
+    PRAYER: ['HOLY_BOOK', 'HAMMER']
+  };
+
+  public static readonly JOB_ALLOWED_ARMOR_TYPES: Record<string, string[]> = {
+    WARRIOR: ['HEAVY', 'PLATE'],
+    KNIGHT: ['HEAVY', 'PLATE'],
+    MAGE: ['CLOTH', 'ROBE'],
+    ARCHER: ['LEATHER', 'LIGHT', 'MEDIUM'],
+    THIEF: ['LEATHER', 'LIGHT', 'MEDIUM'],
+    PRAYER: ['CLOTH', 'ROBE']
+  };
+
+  public static readonly JOB_DEFAULT_EQUIPMENT: Record<string, { weapon: string; armor: string; accessory: string }> = {
+    WARRIOR: { weapon: 'wpn_T1_greatsword_0001', armor: 'arm_heavy_t1', accessory: 'acc_ring_hp' },
+    KNIGHT: { weapon: 'wpn_T1_sword_shield_0001', armor: 'arm_heavy_t1', accessory: 'acc_ring_hp' },
+    MAGE: { weapon: 'wpn_T1_staff_0001', armor: 'arm_cloth_t1', accessory: 'acc_ring_mp' },
+    ARCHER: { weapon: 'wpn_T1_bow_0001', armor: 'arm_leather_t1', accessory: 'acc_badge_crit' },
+    THIEF: { weapon: 'wpn_T1_daggers_0001', armor: 'arm_leather_t1', accessory: 'acc_amulet_agi' },
+    PRAYER: { weapon: 'wpn_T1_holy_book_0001', armor: 'arm_cloth_t1', accessory: 'acc_cross_holy' }
+  };
+
+  // ── 打開全視覺化裝備挑選器 (Hero Equipment Picker) ──
+  private openHeroEquipmentPicker(slotType: 'WEAPON' | 'ARMOR' | 'ACCESSORY'): void {
+    this.activeHeroEquipSlotType = slotType;
+    const modal = byId('modal-hc-equip-picker');
+    if (!modal) return;
+
+    const curJob = byId<HTMLSelectElement>('hc-job')?.value || 'WARRIOR';
+    const jobNames: Record<string, string> = {
+      WARRIOR: '⚔️ 戰士',
+      KNIGHT: '🛡️ 騎士',
+      MAGE: '🔮 法師',
+      ARCHER: '🏹 弓箭手',
+      THIEF: '🗡️ 盜賊',
+      PRAYER: '📖 祈禱者'
+    };
+    const curJobName = jobNames[curJob] || curJob;
+
+    const titleEl = byId('hc-equip-picker-title');
+    if (titleEl) {
+      titleEl.textContent = slotType === 'WEAPON' 
+        ? `⚔️ 挑選主手武器 (${curJobName} 專用裝備庫)` 
+        : (slotType === 'ARMOR' ? `🛡️ 挑選身體防具 (${curJobName} 專用防具庫)` : '💍 挑選專屬飾品 (全視覺化飾品庫)');
+    }
+
+    const searchInput = byId<HTMLInputElement>('inp-hc-equip-search');
+    if (searchInput) {
+      searchInput.value = '';
+      this.equipPickerSearchQuery = '';
+    }
+
+    this.equipPickerTierFilter = 'ALL';
+    const tabsContainer = byId('hc-equip-picker-tabs');
+    if (tabsContainer) {
+      tabsContainer.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.equipTier === 'ALL');
+        btn.classList.toggle('cs-btn-gold', btn.dataset.equipTier === 'ALL');
+      });
+    }
+
+    this.renderHeroEquipmentPickerGrid();
+    modal.style.display = 'flex';
+  }
+
+  // ── 渲染裝備挑選器網格卡片 ──
+  private renderHeroEquipmentPickerGrid(): void {
+    const grid = byId('hc-equip-picker-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const slotType = this.activeHeroEquipSlotType;
+    let sourceList: any[] = [];
+    let curEquippedId = '';
+
+    if (slotType === 'WEAPON') {
+      sourceList = equipmentWeaponsJson as any[];
+      curEquippedId = byId<HTMLInputElement>('hc-wpn-template')?.value || '';
+    } else if (slotType === 'ARMOR') {
+      sourceList = equipmentArmorsJson as any[];
+      curEquippedId = byId<HTMLInputElement>('hc-arm-template')?.value || '';
+    } else {
+      sourceList = equipmentAccessoriesJson as any[];
+      curEquippedId = byId<HTMLInputElement>('hc-acc-template')?.value || '';
+    }
+
+    const curJob = byId<HTMLSelectElement>('hc-job')?.value || 'WARRIOR';
+    const allowedWeapons = CombatStudioController.JOB_ALLOWED_WEAPON_TYPES[curJob] || [];
+    const allowedArmors = CombatStudioController.JOB_ALLOWED_ARMOR_TYPES[curJob] || [];
+
+    const q = this.equipPickerSearchQuery.toLowerCase();
+    const filtered = sourceList.filter(item => {
+      // 職業限制防呆過濾
+      if (slotType === 'WEAPON' && item.weaponType) {
+        if (!allowedWeapons.includes(item.weaponType.toUpperCase())) return false;
+      }
+      if (slotType === 'ARMOR' && item.armorType) {
+        if (!allowedArmors.includes(item.armorType.toUpperCase())) return false;
+      }
+
+      if (this.equipPickerTierFilter !== 'ALL') {
+        const t = String(item.tier || 1);
+        if (t !== this.equipPickerTierFilter) return false;
+      }
+      if (!q) return true;
+      const matchName = (item.name || '').toLowerCase().includes(q);
+      const matchId = (item.id || '').toLowerCase().includes(q);
+      const matchDesc = (item.description || '').toLowerCase().includes(q);
+      const matchType = (item.weaponType || item.armorType || '').toLowerCase().includes(q);
+      return matchName || matchId || matchDesc || matchType;
+    });
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; color: var(--cs-text-muted); padding: 40px;">無符合該職業與條件的裝備品項</div>';
+      return;
+    }
+
+    filtered.forEach(item => {
+      const isSelected = curEquippedId === item.id;
+      const tier = item.tier || 1;
+      const tierColor = tier === 4 ? '#ef4444' : (tier === 3 ? '#f59e0b' : (tier === 2 ? '#3b82f6' : '#94a3b8'));
+      const card = document.createElement('div');
+      card.style.cssText = `
+        background: ${isSelected ? '#1c2538' : '#141822'};
+        border: 1.5px solid ${isSelected ? 'var(--cs-gold)' : 'var(--cs-panel-border)'};
+        border-radius: 6px;
+        padding: 8px 10px;
+        cursor: pointer;
+        transition: all 0.15s;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        box-shadow: ${isSelected ? '0 0 10px rgba(245, 158, 11, 0.3)' : 'none'};
+      `;
+
+      let statInfo = '';
+      if (slotType === 'WEAPON') {
+        const patk = item.combatEffects?.patk ?? item.pAtk ?? 0;
+        const matk = item.combatEffects?.matk ?? item.mAtk ?? 0;
+        statInfo = `物攻 +${patk} · 魔攻 +${matk}`;
+      } else if (slotType === 'ARMOR') {
+        const pdef = item.combatEffects?.pdef ?? item.pDef ?? 0;
+        const mdef = item.combatEffects?.mdef ?? item.mDef ?? 0;
+        statInfo = `物防 +${pdef} · 魔防 +${mdef}`;
+      } else {
+        const effs: string[] = [];
+        if (item.baseEffects) {
+          Object.entries(item.baseEffects).forEach(([k, v]) => effs.push(`${k.toUpperCase()} +${v}`));
+        }
+        if (item.combatEffects) {
+          if (item.combatEffects.patk) effs.push(`物攻 +${item.combatEffects.patk}`);
+          if (item.combatEffects.matk) effs.push(`魔攻 +${item.combatEffects.matk}`);
+          if (item.combatEffects.pdef) effs.push(`物防 +${item.combatEffects.pdef}`);
+          if (item.combatEffects.mdef) effs.push(`魔防 +${item.combatEffects.mdef}`);
+          if (item.combatEffects.hp) effs.push(`生命 +${item.combatEffects.hp}`);
+          if (item.combatEffects.mp) effs.push(`法力 +${item.combatEffects.mp}`);
+        }
+        statInfo = effs.length > 0 ? effs.join(' · ') : (item.description || '專屬飾品');
+      }
+
+      card.innerHTML = `
+        <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+          ${renderEquipIcon(item, 40)}
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+            <span style="font-weight: bold; font-size: 0.82rem; color: ${isSelected ? 'var(--cs-gold-light)' : '#f8fafc'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.name}</span>
+            <span class="cs-badge" style="background: ${tierColor}22; color: ${tierColor}; border: 1px solid ${tierColor}; font-size: 0.65rem; padding: 0 4px;">T${tier}</span>
+          </div>
+          <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${statInfo}</div>
+        </div>
+        ${isSelected ? '<span style="color: #4ade80; font-weight: bold; font-size: 0.85rem;">✓</span>' : ''}
+      `;
+
+      card.onmouseenter = () => { if (!isSelected) card.style.borderColor = 'rgba(245, 158, 11, 0.6)'; };
+      card.onmouseleave = () => { if (!isSelected) card.style.borderColor = 'var(--cs-panel-border)'; };
+      card.onclick = () => {
+        if (slotType === 'WEAPON') {
+          const wInput = byId<HTMLInputElement>('hc-wpn-template');
+          if (wInput) wInput.value = item.id;
+        } else if (slotType === 'ARMOR') {
+          const aInput = byId<HTMLInputElement>('hc-arm-template');
+          if (aInput) aInput.value = item.id;
+        } else {
+          const accInput = byId<HTMLInputElement>('hc-acc-template');
+          if (accInput) accInput.value = item.id;
+        }
+        this.updateHeroCreatorEquipmentDisplays();
+        byId('modal-hc-equip-picker').style.display = 'none';
+      };
+
+      grid.appendChild(card);
+    });
+  }
+
   // ── 英雄創造器彈窗邏輯 ──
   private openHeroCreator(heroDef?: UniqueHeroDef): void {
     const modal = byId('modal-hero-creator');
@@ -2301,12 +2872,15 @@ class CombatStudioController {
     const editIdInput = byId<HTMLInputElement>('hc-edit-id');
     const titleInput = byId<HTMLInputElement>('hc-title');
     const nameInput = byId<HTMLInputElement>('hc-name');
+    const charKeyInput = byId<HTMLInputElement>('hc-character-key');
+    const boundMonsterInput = byId<HTMLInputElement>('hc-bound-monster-id');
+    const captureRateInput = byId<HTMLInputElement>('hc-capture-rate');
     const qualitySelect = byId<HTMLSelectElement>('hc-quality');
     const genderSelect = byId<HTMLSelectElement>('hc-gender');
     const jobSelect = byId<HTMLSelectElement>('hc-job');
+    const levelInput = byId<HTMLInputElement>('hc-level');
     const isAdvSelect = byId<HTMLSelectElement>('hc-is-advanced');
-    const isGuardianSelect = byId<HTMLSelectElement>('hc-is-guardian');
-    const avatarSelect = byId<HTMLSelectElement>('hc-avatar-select');
+    const isAdvHint = byId('hc-is-advanced-hint');
     const traitSelect = byId<HTMLSelectElement>('hc-trait');
 
     const strInput = byId<HTMLInputElement>('hc-str');
@@ -2316,85 +2890,89 @@ class CombatStudioController {
     const sprInput = byId<HTMLInputElement>('hc-spr');
     const lukInput = byId<HTMLInputElement>('hc-luk');
     const totalStatsEl = byId('hc-total-stats');
+    const diffHintEl = byId('hc-stats-diff-hint');
 
+    const wpnTemplateInput = byId<HTMLInputElement>('hc-wpn-template');
     const wpnElementSelect = byId<HTMLSelectElement>('hc-weapon-element');
     const wpnEnhanceInput = byId<HTMLInputElement>('hc-weapon-enhance');
+    const armTemplateInput = byId<HTMLInputElement>('hc-arm-template');
     const armEnhanceInput = byId<HTMLInputElement>('hc-armor-enhance');
+    const accTemplateInput = byId<HTMLInputElement>('hc-acc-template');
     const bioTextarea = byId<HTMLTextAreaElement>('hc-biography');
 
     const avatarPreview = byId('hc-avatar-preview');
     const customIconInput = byId<HTMLInputElement>('hc-avatar-icon-custom');
 
-    // 六維屬性總計即時連動
+    // 六維屬性總計即時連動與各品級標準點數參考高亮
     const updateTotalStats = () => {
-      const total = (Number(strInput?.value) || 0) + (Number(agiInput?.value) || 0) + (Number(conInput?.value) || 0) +
-                    (Number(intInput?.value) || 0) + (Number(sprInput?.value) || 0) + (Number(lukInput?.value) || 0);
+      const str = Number(strInput?.value) || 0;
+      const agi = Number(agiInput?.value) || 0;
+      const con = Number(conInput?.value) || 0;
+      const int = Number(intInput?.value) || 0;
+      const spr = Number(sprInput?.value) || 0;
+      const luk = Number(lukInput?.value) || 0;
+      const total = str + agi + con + int + spr + luk;
       if (totalStatsEl) totalStatsEl.textContent = String(total);
-    };
-    [strInput, agiInput, conInput, intInput, sprInput, lukInput].forEach(ipt => {
-      if (ipt) ipt.oninput = updateTotalStats;
-    });
 
-    // 肖像選單動態更新器
-    const updateAvatarSelectOptions = (selectedIdx: number = 0) => {
-      if (!avatarSelect) return;
-      avatarSelect.innerHTML = '';
-      const isG = isGuardianSelect?.value === 'true';
-      const isFem = genderSelect?.value === Gender.FEMALE;
+      const q = qualitySelect?.value || 'SSR';
+      const stdPoints: Record<string, number> = { N: 45, R: 60, SR: 72, SSR: 88, UR: 110 };
+      const targetStd = stdPoints[q] || 88;
 
-      if (isG) {
-        const list = isFem ? this.GUARDIAN_AVATARS_FEMALE : this.GUARDIAN_AVATARS_MALE;
-        list.forEach((name, idx) => {
-          const opt = document.createElement('option');
-          opt.value = String(idx);
-          opt.textContent = name;
-          if (idx === selectedIdx) opt.selected = true;
-          avatarSelect.appendChild(opt);
-        });
-      } else {
-        for (let i = 0; i < 25; i++) {
-          const opt = document.createElement('option');
-          opt.value = String(i);
-          opt.textContent = `傭兵立繪 #${i + 1}`;
-          if (i === selectedIdx) opt.selected = true;
-          avatarSelect.appendChild(opt);
+      ['n', 'r', 'sr', 'ssr', 'ur'].forEach(k => {
+        const el = byId(`ref-q-${k}`);
+        if (el) {
+          const isCur = k.toUpperCase() === q;
+          el.style.fontWeight = isCur ? 'bold' : 'normal';
+          el.style.textDecoration = isCur ? 'underline' : 'none';
+          el.style.padding = isCur ? '1px 4px' : '0';
+          el.style.background = isCur ? 'rgba(255, 255, 255, 0.15)' : 'transparent';
+          el.style.borderRadius = '3px';
+        }
+      });
+
+      if (diffHintEl) {
+        const diff = total - targetStd;
+        if (diff === 0) {
+          diffHintEl.textContent = `(符合 ${q} 標準)`;
+          diffHintEl.style.color = '#10b981';
+        } else if (diff > 0) {
+          diffHintEl.textContent = `(+${diff} 高於 ${q} 基準)`;
+          diffHintEl.style.color = '#f59e0b';
+        } else {
+          diffHintEl.textContent = `(${diff} 低於 ${q} 基準)`;
+          diffHintEl.style.color = '#94a3b8';
         }
       }
     };
 
-    const applySelectedAvatar = () => {
-      const isG = isGuardianSelect?.value === 'true';
-      const isFem = genderSelect?.value === Gender.FEMALE;
-      const idx = Number(avatarSelect?.value) || 0;
-      let iconCode = '';
+    [strInput, agiInput, conInput, intInput, sprInput, lukInput].forEach(ipt => {
+      if (ipt) ipt.oninput = updateTotalStats;
+    });
+    if (qualitySelect) qualitySelect.onchange = updateTotalStats;
 
-      if (isG) {
-        iconCode = `guardian_${isFem ? 'f' : 'm'}_${idx}`;
+    // 等級與進階狀態連動防呆
+    const updateLevelAndAdvancement = () => {
+      const lvl = Math.max(1, Math.min(10, parseInt(levelInput?.value || '10', 10) || 10));
+      if (levelInput) levelInput.value = String(lvl);
+
+      if (lvl < 10) {
+        if (isAdvSelect) {
+          isAdvSelect.value = 'false';
+          isAdvSelect.disabled = true;
+          isAdvSelect.style.opacity = '0.5';
+        }
+        if (isAdvHint) isAdvHint.style.display = 'block';
       } else {
-        iconCode = isFem ? `female_${idx}` : `male_${idx}`;
+        if (isAdvSelect) {
+          isAdvSelect.disabled = false;
+          isAdvSelect.style.opacity = '1';
+        }
+        if (isAdvHint) isAdvHint.style.display = 'none';
       }
-
-      if (avatarPreview) {
-        avatarPreview.innerHTML = renderUniversalIcon(iconCode, 44);
-        avatarPreview.dataset.iconVal = iconCode;
-      }
-      if (customIconInput) customIconInput.value = iconCode;
     };
-
-    if (isGuardianSelect) {
-      isGuardianSelect.onchange = () => {
-        updateAvatarSelectOptions(0);
-        applySelectedAvatar();
-      };
-    }
-    if (genderSelect) {
-      genderSelect.onchange = () => {
-        updateAvatarSelectOptions(0);
-        applySelectedAvatar();
-      };
-    }
-    if (avatarSelect) {
-      avatarSelect.onchange = applySelectedAvatar;
+    if (levelInput) {
+      levelInput.oninput = updateLevelAndAdvancement;
+      levelInput.onchange = updateLevelAndAdvancement;
     }
 
     if (avatarPreview) {
@@ -2416,21 +2994,60 @@ class CombatStudioController {
       };
     }
 
+    // 職業變更時自動連動預設 3 招技能與職業裝備相容性防呆校驗
+    if (jobSelect) {
+      jobSelect.onchange = () => {
+        const curJob = jobSelect.value;
+        const defaultSkills = this.DEFAULT_JOB_SKILLS[curJob] || this.DEFAULT_JOB_SKILLS.WARRIOR;
+        this.currentHeroEditingSkills = [...defaultSkills];
+        this.renderHeroSkillSlots();
+
+        // 職業裝備防呆：若當前已配備的武器/防具與新職業不相容，自動修正為該職業的標準裝備
+        const allowedWpns = CombatStudioController.JOB_ALLOWED_WEAPON_TYPES[curJob] || [];
+        const allowedArms = CombatStudioController.JOB_ALLOWED_ARMOR_TYPES[curJob] || [];
+        const defaultEq = CombatStudioController.JOB_DEFAULT_EQUIPMENT[curJob] || CombatStudioController.JOB_DEFAULT_EQUIPMENT.WARRIOR;
+
+        const curWpnId = wpnTemplateInput?.value || '';
+        const curWpnDef = (equipmentWeaponsJson as any[]).find(w => w.id === curWpnId);
+        if (curWpnDef && curWpnDef.weaponType && !allowedWpns.includes(curWpnDef.weaponType.toUpperCase())) {
+          if (wpnTemplateInput) wpnTemplateInput.value = defaultEq.weapon;
+        }
+
+        const curArmId = armTemplateInput?.value || '';
+        const curArmDef = (equipmentArmorsJson as any[]).find(a => a.id === curArmId);
+        if (curArmDef && curArmDef.armorType && !allowedArms.includes(curArmDef.armorType.toUpperCase())) {
+          if (armTemplateInput) armTemplateInput.value = defaultEq.armor;
+        }
+
+        this.updateHeroCreatorEquipmentDisplays();
+      };
+    }
+
     if (heroDef) {
       if (titleEl) titleEl.textContent = `✏️ 編輯英雄【${heroDef.name}】`;
       if (editIdInput) editIdInput.value = heroDef.id;
       if (titleInput) titleInput.value = heroDef.title;
       if (nameInput) nameInput.value = heroDef.name;
+      if (charKeyInput) charKeyInput.value = heroDef.characterKey || '';
+      if (boundMonsterInput) boundMonsterInput.value = heroDef.boundMonsterId || '';
+      if (captureRateInput) captureRateInput.value = (heroDef.captureRate !== undefined && heroDef.captureRate !== null) ? String(heroDef.captureRate) : '';
       if (qualitySelect) qualitySelect.value = heroDef.quality;
       if (genderSelect) genderSelect.value = heroDef.gender;
       if (jobSelect) jobSelect.value = heroDef.jobKey;
-      if (isAdvSelect) isAdvSelect.value = 'true';
-      if (isGuardianSelect) isGuardianSelect.value = String(heroDef.isGuardian);
-      if (traitSelect) traitSelect.value = heroDef.traitKey || (heroDef.isGuardian ? 'GUARDIAN_LOYAL' : 'BRAVE');
+      if (levelInput) levelInput.value = String(heroDef.level || 10);
+      if (isAdvSelect) isAdvSelect.value = (heroDef.isAdvanced !== false && (heroDef.level || 10) >= 10) ? 'true' : 'false';
+      if (traitSelect) traitSelect.value = heroDef.traitKey || 'BRAVE';
 
-      updateAvatarSelectOptions(heroDef.avatarIndex || 0);
+      // 技能
+      if (heroDef.customSkills && heroDef.customSkills.length > 0) {
+        this.currentHeroEditingSkills = [...heroDef.customSkills];
+      } else {
+        const defaultSkills = this.DEFAULT_JOB_SKILLS[heroDef.jobKey] || this.DEFAULT_JOB_SKILLS.WARRIOR;
+        this.currentHeroEditingSkills = [...defaultSkills];
+      }
+      this.renderHeroSkillSlots();
 
-      const curIcon = heroDef.avatarIcon || (heroDef.isGuardian ? (heroDef.gender === Gender.FEMALE ? 'guardian_f_0' : 'guardian_m_1') : (heroDef.id.includes('reyn') ? 'heroes:reyn' : (heroDef.id.includes('luna') ? 'heroes:luna' : 'heroes:reyn')));
+      const curIcon = heroDef.avatarIcon || (heroDef.id.includes('reyn') ? 'heroes:reyn' : (heroDef.id.includes('luna') ? 'heroes:luna' : (heroDef.gender === Gender.FEMALE ? 'avatars_female:female_0' : 'avatars_male:male_0')));
       if (avatarPreview) {
         avatarPreview.innerHTML = renderUniversalIcon(curIcon, 44);
         avatarPreview.dataset.iconVal = curIcon;
@@ -2444,23 +3061,31 @@ class CombatStudioController {
       if (sprInput) sprInput.value = String(heroDef.customAttributes.spr);
       if (lukInput) lukInput.value = String(heroDef.customAttributes.luk);
 
+      if (wpnTemplateInput) wpnTemplateInput.value = heroDef.equipment.weaponTemplateId || '';
       if (wpnElementSelect) wpnElementSelect.value = heroDef.equipment.weaponElement || 'NONE';
-      if (wpnEnhanceInput) wpnEnhanceInput.value = String(heroDef.equipment.weaponEnhance);
-      if (armEnhanceInput) armEnhanceInput.value = String(heroDef.equipment.armorEnhance);
+      if (wpnEnhanceInput) wpnEnhanceInput.value = String(heroDef.equipment.weaponEnhance ?? 0);
+      if (armTemplateInput) armTemplateInput.value = heroDef.equipment.armorTemplateId || '';
+      if (armEnhanceInput) armEnhanceInput.value = String(heroDef.equipment.armorEnhance ?? 0);
+      if (accTemplateInput) accTemplateInput.value = heroDef.equipment.accessoryId || '';
       if (bioTextarea) bioTextarea.value = heroDef.biography;
     } else {
       if (titleEl) titleEl.textContent = '👑 創造全新自訂英雄';
       if (editIdInput) editIdInput.value = `custom_hero_${Date.now()}`;
       if (titleInput) titleInput.value = '【傳奇勇士】';
       if (nameInput) nameInput.value = '';
+      if (charKeyInput) charKeyInput.value = '';
+      if (boundMonsterInput) boundMonsterInput.value = '';
+      if (captureRateInput) captureRateInput.value = '';
       if (qualitySelect) qualitySelect.value = 'SSR';
       if (genderSelect) genderSelect.value = Gender.MALE;
       if (jobSelect) jobSelect.value = 'WARRIOR';
+      if (levelInput) levelInput.value = '10';
       if (isAdvSelect) isAdvSelect.value = 'true';
-      if (isGuardianSelect) isGuardianSelect.value = 'false';
       if (traitSelect) traitSelect.value = 'BRAVE';
 
-      updateAvatarSelectOptions(0);
+      // 技能預設
+      this.currentHeroEditingSkills = [...this.DEFAULT_JOB_SKILLS.WARRIOR];
+      this.renderHeroSkillSlots();
 
       const curIcon = 'heroes:reyn';
       if (avatarPreview) {
@@ -2476,12 +3101,17 @@ class CombatStudioController {
       if (sprInput) sprInput.value = '10';
       if (lukInput) lukInput.value = '5';
 
+      if (wpnTemplateInput) wpnTemplateInput.value = 'wpn_meteoric_greatsword';
       if (wpnElementSelect) wpnElementSelect.value = 'NONE';
       if (wpnEnhanceInput) wpnEnhanceInput.value = '7';
+      if (armTemplateInput) armTemplateInput.value = 'arm_heavy_t4';
       if (armEnhanceInput) armEnhanceInput.value = '7';
+      if (accTemplateInput) accTemplateInput.value = '';
       if (bioTextarea) bioTextarea.value = '';
     }
 
+    updateLevelAndAdvancement();
+    this.updateHeroCreatorEquipmentDisplays();
     updateTotalStats();
     modal.style.display = 'flex';
   }
@@ -2490,11 +3120,13 @@ class CombatStudioController {
     const editIdInput = byId<HTMLInputElement>('hc-edit-id');
     const titleInput = byId<HTMLInputElement>('hc-title');
     const nameInput = byId<HTMLInputElement>('hc-name');
+    const charKeyInput = byId<HTMLInputElement>('hc-character-key');
+    const boundMonsterInput = byId<HTMLInputElement>('hc-bound-monster-id');
     const qualitySelect = byId<HTMLSelectElement>('hc-quality');
     const genderSelect = byId<HTMLSelectElement>('hc-gender');
     const jobSelect = byId<HTMLSelectElement>('hc-job');
-    const isGuardianSelect = byId<HTMLSelectElement>('hc-is-guardian');
-    const avatarSelect = byId<HTMLSelectElement>('hc-avatar-select');
+    const levelInput = byId<HTMLInputElement>('hc-level');
+    const isAdvSelect = byId<HTMLSelectElement>('hc-is-advanced');
     const traitSelect = byId<HTMLSelectElement>('hc-trait');
     const customIconInput = byId<HTMLInputElement>('hc-avatar-icon-custom');
     const avatarPreview = byId('hc-avatar-preview');
@@ -2506,14 +3138,21 @@ class CombatStudioController {
     const sprInput = byId<HTMLInputElement>('hc-spr');
     const lukInput = byId<HTMLInputElement>('hc-luk');
 
+    const wpnTemplateInput = byId<HTMLInputElement>('hc-wpn-template');
     const wpnElementSelect = byId<HTMLSelectElement>('hc-weapon-element');
     const wpnEnhanceInput = byId<HTMLInputElement>('hc-weapon-enhance');
+    const armTemplateInput = byId<HTMLInputElement>('hc-arm-template');
     const armEnhanceInput = byId<HTMLInputElement>('hc-armor-enhance');
+    const accTemplateInput = byId<HTMLInputElement>('hc-acc-template');
     const bioTextarea = byId<HTMLTextAreaElement>('hc-biography');
 
     const id = editIdInput ? editIdInput.value.trim() : `custom_hero_${Date.now()}`;
     const name = nameInput ? nameInput.value.trim() : '';
     const title = titleInput ? titleInput.value.trim() : '';
+    const characterKey = charKeyInput ? charKeyInput.value.trim() || undefined : undefined;
+    const boundMonsterId = boundMonsterInput ? boundMonsterInput.value.trim() || undefined : undefined;
+    const rawCaptureRate = (byId('hc-capture-rate') as HTMLInputElement)?.value?.trim();
+    const captureRate = rawCaptureRate !== '' && !isNaN(Number(rawCaptureRate)) ? Number(rawCaptureRate) : undefined;
     const avatarIcon = customIconInput?.value.trim() || avatarPreview?.dataset?.iconVal || undefined;
 
     if (!name) {
@@ -2522,15 +3161,10 @@ class CombatStudioController {
     }
 
     const jobKey = jobSelect ? jobSelect.value : 'WARRIOR';
-    const isGuardian = isGuardianSelect?.value === 'true';
-    const weaponMap: Record<string, string> = {
-      WARRIOR: 'wpn_meteoric_greatsword',
-      KNIGHT: isGuardian ? 'wpn_royal_paladin_sword' : 'wpn_royal_paladin_sword',
-      MAGE: 'wpn_archmage_staff',
-      ARCHER: 'wpn_composite_bow',
-      THIEF: 'wpn_daggers_t4',
-      PRAYER: 'wpn_holybook_t4'
-    };
+    const traitKey = traitSelect ? traitSelect.value : 'BRAVE';
+    const isGuardian = traitKey.startsWith('GUARDIAN_');
+    const level = Math.max(1, Math.min(10, Number(levelInput?.value) || 10));
+    const isAdvanced = level >= 10 ? (isAdvSelect?.value === 'true') : false;
 
     const heroDef: UniqueHeroDef = {
       id,
@@ -2538,12 +3172,17 @@ class CombatStudioController {
       title,
       quality: (qualitySelect?.value as any) || 'SSR',
       jobKey,
-      traitKey: traitSelect?.value || (isGuardian ? 'GUARDIAN_LOYAL' : 'BRAVE'),
+      traitKey,
       gender: (genderSelect?.value as any) || Gender.MALE,
       isGuardian,
-      avatarIndex: Number(avatarSelect?.value) || 0,
+      avatarIndex: 0,
       avatarIcon,
-      level: 10,
+      characterKey,
+      boundMonsterId,
+      captureRate,
+      level,
+      isAdvanced,
+      customSkills: [...this.currentHeroEditingSkills],
       biography: bioTextarea?.value || '',
       customAttributes: {
         str: Number(strInput?.value) || 10,
@@ -2556,12 +3195,12 @@ class CombatStudioController {
         command: isGuardian ? 15 : 10
       },
       equipment: {
-        weaponTemplateId: weaponMap[jobKey] || 'wpn_meteoric_greatsword',
-        weaponEnhance: Number(wpnEnhanceInput?.value) || 7,
+        weaponTemplateId: wpnTemplateInput?.value || undefined,
+        weaponEnhance: Number(wpnEnhanceInput?.value) || 0,
         weaponElement: (wpnElementSelect?.value as any) || ElementType.NONE,
-        armorTemplateId: 'arm_heavy_t4',
-        armorEnhance: Number(armEnhanceInput?.value) || 7,
-        accessoryId: isGuardian ? 'acc_guardian_shield' : 'acc_berserk_badge'
+        armorTemplateId: armTemplateInput?.value || undefined,
+        armorEnhance: Number(armEnhanceInput?.value) || 0,
+        accessoryId: accTemplateInput?.value || undefined
       }
     };
 
@@ -3814,13 +4453,25 @@ class CombatStudioController {
       });
     };
 
+    const btnPickerFlip = byId('btn-icon-picker-flip');
+    if (btnPickerFlip) {
+      btnPickerFlip.onclick = () => {
+        this.isIconPickerFlipped = !this.isIconPickerFlipped;
+        this.updateIconPickerFlipBtnState();
+        this.renderIconPickerItems(this.currentIconPickerTab);
+      };
+    }
+
     byId('btn-close-icon-picker').onclick = () => byId('modal-icon-picker').style.display = 'none';
     byId('btn-close-icon-picker-footer').onclick = () => byId('modal-icon-picker').style.display = 'none';
     byId('btn-quick-open-icon-studio').onclick = () => window.open(`${import.meta.env.BASE_URL}tools/icon-studio.html`, '_blank');
 
     byId('btn-apply-custom-icon').onclick = () => {
       const input = byId<HTMLInputElement>('icon-picker-custom-input');
-      const val = input ? input.value.trim() : '';
+      let val = input ? input.value.trim() : '';
+      if (val && this.isIconPickerFlipped && !val.includes('?flip')) {
+        val = `${val}?flip`;
+      }
       if (val && this.iconPickerCallback) {
         this.iconPickerCallback(val);
         byId('modal-icon-picker').style.display = 'none';
@@ -3847,24 +4498,47 @@ class CombatStudioController {
         return;
       }
       const rawAttackType = (byId('mc-attack-type') as HTMLSelectElement).value as import('../models/types').AttackType;
+      const avatarIcon = byId('mc-avatar-preview')?.dataset?.iconVal || `icons_monsters:${id}`;
+      const characterKey = (byId('mc-character-key') as HTMLInputElement)?.value?.trim() || undefined;
+      const substituteMonsterId = (byId('mc-substitute-id') as HTMLInputElement)?.value?.trim() || undefined;
+      const rawCaptureRate = (byId('mc-capture-rate') as HTMLInputElement)?.value?.trim();
+      const captureRate = rawCaptureRate !== '' && !isNaN(Number(rawCaptureRate)) ? Number(rawCaptureRate) : undefined;
+      
+      const selectedTerrains: TerrainType[] = [];
+      document.querySelectorAll<HTMLInputElement>('input[name="mc-terrain"]:checked').forEach(cb => {
+        selectedTerrains.push(cb.value as any);
+      });
+
       const newMonster: MonsterData = {
         id,
         name,
+        characterKey,
+        substituteMonsterId,
+        captureRate,
         race: (byId('mc-race') as HTMLSelectElement).value as any,
         defaultElement: (byId('mc-element') as HTMLSelectElement).value as any,
         powerTier: Number((byId('mc-powertier') as HTMLInputElement).value) || 1.0,
         attackType: rawAttackType || 'MELEE',
         isMagicalAttacker: rawAttackType === 'MAGIC',
         compatibleRaces: [((byId('mc-race') as HTMLSelectElement).value as any)],
-        terrains: [TerrainType.PLAINS, TerrainType.FOREST]
+        terrains: selectedTerrains.length > 0 ? selectedTerrains : [TerrainType.PLAINS, TerrainType.FOREST],
+        avatarIcon
       };
       if ((byId('mc-comp-undead') as HTMLInputElement).checked) {
         newMonster.compatibleRaces.push(MonsterRace.UNDEAD);
       }
-      this.monstersDb.push(newMonster);
+
+      const existingIdx = this.monstersDb.findIndex(m => m.id === id);
+      if (existingIdx >= 0) {
+        this.monstersDb[existingIdx] = { ...this.monstersDb[existingIdx], ...newMonster };
+      } else {
+        this.monstersDb.push(newMonster);
+      }
+
       byId('modal-monster-creator').style.display = 'none';
-      alert(`已成功建立新單位 [${name}]！已加入本機資料庫。`);
+      this.renderMonsterDatabase();
       this.renderEnemyList();
+      alert(`已成功保存單位【${name}】！`);
     };
 
     // 磁碟持久化 (怪物庫 + 討伐據點庫同步寫入專案硬碟)
@@ -4190,6 +4864,76 @@ class CombatStudioController {
     byId('btn-cancel-hero-creator').onclick = () => byId('modal-hero-creator').style.display = 'none';
     byId('btn-save-hero-creator').onclick = () => this.saveHeroCreator();
 
+    // ── 英雄技能卡槽點擊更換 ──
+    byId('hc-skill-slot-0').onclick = () => this.openHeroSkillPicker(0);
+    byId('hc-skill-slot-1').onclick = () => this.openHeroSkillPicker(1);
+    byId('hc-skill-slot-2').onclick = () => this.openHeroSkillPicker(2);
+
+    // ── 英雄裝備卡槽點擊開啟裝備挑選器 ──
+    const wpnSlotCard = byId('hc-wpn-slot-card');
+    if (wpnSlotCard) wpnSlotCard.onclick = () => this.openHeroEquipmentPicker('WEAPON');
+    const armSlotCard = byId('hc-arm-slot-card');
+    if (armSlotCard) armSlotCard.onclick = () => this.openHeroEquipmentPicker('ARMOR');
+    const accSlotCard = byId('hc-acc-slot-card');
+    if (accSlotCard) accSlotCard.onclick = () => this.openHeroEquipmentPicker('ACCESSORY');
+
+    // ── 全視覺化裝備挑選器彈窗按鈕與事件 ──
+    const btnCloseHCEquip = byId('btn-close-hc-equip-picker');
+    if (btnCloseHCEquip) btnCloseHCEquip.onclick = () => byId('modal-hc-equip-picker').style.display = 'none';
+    const btnCancelHCEquip = byId('btn-cancel-hc-equip-picker');
+    if (btnCancelHCEquip) btnCancelHCEquip.onclick = () => byId('modal-hc-equip-picker').style.display = 'none';
+    const btnClearHCEquip = byId('btn-hc-equip-clear');
+    if (btnClearHCEquip) {
+      btnClearHCEquip.onclick = () => {
+        if (this.activeHeroEquipSlotType === 'WEAPON') {
+          const wInput = byId<HTMLInputElement>('hc-wpn-template');
+          if (wInput) wInput.value = '';
+        } else if (this.activeHeroEquipSlotType === 'ARMOR') {
+          const aInput = byId<HTMLInputElement>('hc-arm-template');
+          if (aInput) aInput.value = '';
+        } else {
+          const accInput = byId<HTMLInputElement>('hc-acc-template');
+          if (accInput) accInput.value = '';
+        }
+        this.updateHeroCreatorEquipmentDisplays();
+        byId('modal-hc-equip-picker').style.display = 'none';
+      };
+    }
+    byId<HTMLInputElement>('inp-hc-equip-search')?.addEventListener('input', (e) => {
+      this.equipPickerSearchQuery = (e.target as HTMLInputElement).value.trim();
+      this.renderHeroEquipmentPickerGrid();
+    });
+    byId('hc-equip-picker-tabs')?.querySelectorAll<HTMLButtonElement>('button').forEach(btn => {
+      btn.onclick = () => {
+        const tier = btn.dataset.equipTier || 'ALL';
+        this.equipPickerTierFilter = tier;
+        byId('hc-equip-picker-tabs')?.querySelectorAll('button').forEach(b => {
+          b.classList.toggle('active', b === btn);
+          b.classList.toggle('cs-btn-gold', b === btn);
+        });
+        this.renderHeroEquipmentPickerGrid();
+      };
+    });
+
+    // ── 全視覺化技能挑選器彈窗按鈕與事件 ──
+    byId('btn-close-hc-skill-picker').onclick = () => byId('modal-hc-skill-picker').style.display = 'none';
+    byId('btn-cancel-hc-skill-picker').onclick = () => byId('modal-hc-skill-picker').style.display = 'none';
+    byId<HTMLInputElement>('inp-hc-skill-search')?.addEventListener('input', (e) => {
+      this.skillPickerSearchQuery = (e.target as HTMLInputElement).value.trim();
+      this.renderHeroSkillPickerGrid();
+    });
+    byId('hc-skill-picker-tabs')?.querySelectorAll<HTMLButtonElement>('button').forEach(btn => {
+      btn.onclick = () => {
+        const tab = btn.dataset.skillTab || 'ALL';
+        this.currentSkillPickerTab = tab;
+        byId('hc-skill-picker-tabs')?.querySelectorAll('button').forEach(b => {
+          b.classList.toggle('active', b === btn);
+          b.classList.toggle('cs-btn-gold', b === btn);
+        });
+        this.renderHeroSkillPickerGrid();
+      };
+    });
+
     // ── 英雄快速選擇器彈窗按鈕 ──
     byId('btn-close-hero-picker').onclick = () => byId('modal-hero-picker').style.display = 'none';
     byId('btn-close-hero-picker-footer').onclick = () => byId('modal-hero-picker').style.display = 'none';
@@ -4325,6 +5069,23 @@ class CombatStudioController {
     return '👤';
   }
 
+  private updateIconPickerFlipBtnState(): void {
+    const btn = byId('btn-icon-picker-flip');
+    if (btn) {
+      if (this.isIconPickerFlipped) {
+        btn.textContent = '↔️ 水平翻轉: 開';
+        btn.style.background = 'rgba(245, 158, 11, 0.35)';
+        btn.style.borderColor = '#f59e0b';
+        btn.style.fontWeight = 'bold';
+      } else {
+        btn.textContent = '↔️ 水平翻轉: 關';
+        btn.style.background = 'rgba(245, 158, 11, 0.15)';
+        btn.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+        btn.style.fontWeight = 'normal';
+      }
+    }
+  }
+
   // ── 🖼️ 全圖集通用圖標選擇器 (Universal Icon Picker) ──
   private openIconPicker(callback: (icon: string) => void): void {
     this.iconPickerCallback = callback;
@@ -4333,6 +5094,8 @@ class CombatStudioController {
 
     if (tabsContainer) tabsContainer.innerHTML = '';
     if (customInput) customInput.value = '';
+
+    this.updateIconPickerFlipBtnState();
 
     const datasets = this.iconDatasets || {};
     const catKeys = Object.keys(datasets);
@@ -4380,9 +5143,11 @@ class CombatStudioController {
       candidates.forEach(emoji => {
         const item = document.createElement('div');
         item.className = 'cs-icon-picker-item';
-        item.innerHTML = `<div style="font-size: 1.8rem; line-height: 1.2;">${emoji}</div>`;
+        const flipStyle = this.isIconPickerFlipped ? 'transform: scaleX(-1);' : '';
+        item.innerHTML = `<div style="font-size: 1.8rem; line-height: 1.2; ${flipStyle}">${emoji}</div>`;
         item.onclick = () => {
-          if (this.iconPickerCallback) this.iconPickerCallback(emoji);
+          const finalId = this.isIconPickerFlipped ? `${emoji}?flip` : emoji;
+          if (this.iconPickerCallback) this.iconPickerCallback(finalId);
           byId('modal-icon-picker').style.display = 'none';
         };
         grid.appendChild(item);
@@ -4394,19 +5159,134 @@ class CombatStudioController {
     if (!catData || !catData.items) return;
 
     catData.items.forEach((it: any) => {
-      const fullId = `${tabKey}:${it.id}`;
+      const rawFullId = `${tabKey}:${it.id}`;
+      const displayId = this.isIconPickerFlipped ? `${rawFullId}?flip` : rawFullId;
       const item = document.createElement('div');
       item.className = 'cs-icon-picker-item';
       item.innerHTML = `
-        ${renderUniversalIcon(fullId, 44)}
+        ${renderUniversalIcon(displayId, 44)}
         <div class="cs-icon-picker-item-label">${it.name || it.id}</div>
       `;
       item.onclick = () => {
-        if (this.iconPickerCallback) this.iconPickerCallback(fullId);
+        if (this.iconPickerCallback) this.iconPickerCallback(displayId);
         byId('modal-icon-picker').style.display = 'none';
       };
       grid.appendChild(item);
     });
+  }
+
+  // ── 📦 全物資與特產視覺化選擇器 ──
+  private openMaterialPicker(
+    title: string,
+    initialSelected: string[],
+    onConfirm: (selected: string[]) => void
+  ): void {
+    const modal = byId('modal-material-picker');
+    const titleEl = byId('material-picker-title');
+    const searchInput = byId<HTMLInputElement>('material-picker-search');
+    const grid = byId('material-picker-grid');
+    const countEl = byId('material-picker-selected-count');
+    const btnConfirm = byId('btn-confirm-material-picker');
+    const btnCancel = byId('btn-cancel-material-picker');
+    const btnClose = byId('btn-close-material-picker');
+    const btnClearAll = byId('btn-material-picker-clear-all');
+
+    if (!modal || !grid) return;
+
+    if (titleEl) titleEl.textContent = title;
+    if (searchInput) searchInput.value = '';
+
+    const selectedSet = new Set<string>(initialSelected);
+
+    const updateCount = () => {
+      if (countEl) countEl.textContent = `已選取 ${selectedSet.size} 項物資`;
+    };
+
+    const renderGrid = () => {
+      grid.innerHTML = '';
+      const q = searchInput?.value.trim().toLowerCase() || '';
+
+      const filtered = materialsJson.filter(m => {
+        if (q && !m.name.toLowerCase().includes(q) && !m.id.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      filtered.forEach(mat => {
+        const isSelected = selectedSet.has(mat.id);
+        const card = document.createElement('div');
+        card.style.cssText = `
+          background: ${isSelected ? 'rgba(234, 179, 8, 0.18)' : '#0e121a'};
+          border: 1.5px solid ${isSelected ? 'var(--cs-gold)' : 'rgba(255,255,255,0.08)'};
+          box-shadow: ${isSelected ? '0 0 8px rgba(234, 179, 8, 0.3)' : 'none'};
+          border-radius: 6px;
+          padding: 8px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          position: relative;
+        `;
+
+        card.innerHTML = `
+          <div style="font-size: 1.2rem;">${renderUniversalIcon(mat.icon, 36)}</div>
+          <div style="font-size: 0.8rem; font-weight: bold; color: ${isSelected ? '#fbbf24' : '#e2e8f0'}; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">${mat.name}</div>
+          <div style="font-size: 0.7rem; color: #94a3b8;">${mat.basePrice} 金幣</div>
+          ${isSelected ? '<div style="position: absolute; top: 4px; right: 4px; color: #4ade80; font-size: 0.8rem; font-weight: bold;">✓</div>' : ''}
+        `;
+
+        card.onmouseenter = () => {
+          if (!isSelected) card.style.borderColor = 'rgba(234,179,8,0.5)';
+        };
+        card.onmouseleave = () => {
+          if (!isSelected) card.style.borderColor = 'rgba(255,255,255,0.08)';
+        };
+
+        card.onclick = () => {
+          if (selectedSet.has(mat.id)) {
+            selectedSet.delete(mat.id);
+          } else {
+            selectedSet.add(mat.id);
+          }
+          updateCount();
+          renderGrid();
+        };
+
+        grid.appendChild(card);
+      });
+      updateCount();
+    };
+
+    renderGrid();
+
+    if (searchInput) {
+      searchInput.oninput = () => renderGrid();
+    }
+
+    if (btnClearAll) {
+      btnClearAll.onclick = () => {
+        selectedSet.clear();
+        updateCount();
+        renderGrid();
+      };
+    }
+
+    const closeModal = () => {
+      modal.style.display = 'none';
+    };
+
+    if (btnClose) btnClose.onclick = closeModal;
+    if (btnCancel) btnCancel.onclick = closeModal;
+
+    if (btnConfirm) {
+      btnConfirm.onclick = () => {
+        onConfirm(Array.from(selectedSet));
+        closeModal();
+      };
+    }
+
+    modal.style.display = 'flex';
   }
 }
 

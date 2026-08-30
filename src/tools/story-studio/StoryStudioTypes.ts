@@ -37,7 +37,12 @@ export const CONDITION_LABELS: Record<NarrativeCondition['type'], string> = {
   FACT_MISSING: '必須尚無線索',
   DAYS_SINCE_FACT: '取得線索後等待',
   NODE_EXPLORED: '需要已發現據點',
-  SUBJUGATION_COUNT_AT_LEAST: '動態討伐累積數'
+  SUBJUGATION_COUNT_AT_LEAST: '動態討伐累積數',
+  NODE_OWNER_IS: '🏰 沙盒：據點控制權為',
+  FACTION_AT_WAR: '⚔️ 沙盒：派系處於交戰狀態',
+  FACTION_STARVING: '🌾 沙盒：派系陷入糧荒',
+  HERO_EXISTS: '👤 英雄：已擁有指定英雄 (HERO_EXISTS)',
+  HERO_MISSING: '👤 英雄：尚未擁有指定英雄 (HERO_MISSING)'
 };
 
 export const EFFECT_LABELS: Record<NarrativeEffect['type'], string> = {
@@ -46,6 +51,7 @@ export const EFFECT_LABELS: Record<NarrativeEffect['type'], string> = {
   ADD_PRESTIGE: '資源：聲望變化 (ADD_PRESTIGE)',
   ADD_RESTED_EXP: '資源：經驗池獎勵 (ADD_RESTED_EXP)',
   CHANGE_FACTION_FAVOR: '外交：派系好感度 (CHANGE_FACTION_FAVOR)',
+  GRANT_HERO: '👥 招募：贈送/加入英雄 (GRANT_HERO)',
   GRANT_EQUIPMENT: '物品：裝備獎勵 (GRANT_EQUIPMENT)',
   GRANT_MATERIAL: '物品：素材獎勵 (GRANT_MATERIAL)',
   GRANT_TRADE_GOOD: '物品：貿易特產 (GRANT_TRADE_GOOD)',
@@ -112,6 +118,10 @@ export function defaultCondition(type: NarrativeCondition['type'] = 'FACT_EXISTS
     case 'DAYS_SINCE_FACT': return { type, fact: 'new_fact', value: 1 };
     case 'NODE_EXPLORED': return { type, nodeId: '' };
     case 'SUBJUGATION_COUNT_AT_LEAST': return { type, value: 1 };
+    case 'NODE_OWNER_IS': return { type, nodeId: 'n_royal_1', factionId: 'f_lothgar' };
+    case 'FACTION_AT_WAR': return { type, factionId: 'f_vormund' };
+    case 'FACTION_STARVING': return { type, factionId: 'f_vormund' };
+    case 'HERO_EXISTS': case 'HERO_MISSING': return { type, heroIds: ['reyn'], matchMode: 'ANY' };
   }
 }
 
@@ -122,6 +132,7 @@ export function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): Narra
     case 'ADD_PRESTIGE': return { type, value: 10 };
     case 'ADD_RESTED_EXP': return { type, value: 50 };
     case 'CHANGE_FACTION_FAVOR': return { type, factionId: 'f_vormund', value: 10 };
+    case 'GRANT_HERO': return { type, heroId: 'reyn' };
     case 'GRANT_MATERIAL': return { type, itemId: 'mat_iron_ingot', quantity: 1, mode: 'FIXED' };
     case 'GRANT_TRADE_GOOD': return { type, itemId: 'tg_spice', quantity: 1, mode: 'FIXED' };
     case 'GRANT_EQUIPMENT': return { type, templateId: 'wpn_iron_greatsword', mode: 'FIXED', slot: 'ANY', tier: 'ANY', quantity: 1 };

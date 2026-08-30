@@ -370,8 +370,39 @@ export function renderResourceIcon(resourceKey: string, sizePx: number = 20): st
 export function getAvatarSpriteStyle(
   gender: 'MALE' | 'FEMALE' | string = 'MALE', 
   avatarIndex: number = 0,
-  isGuardian: boolean = false
+  isGuardian: boolean = false,
+  avatarIcon?: string
 ): { backgroundImage: string; backgroundSize: string; backgroundPosition: string } {
+  // 🌟 優先支援英雄專屬精靈圖標 (如 heroes_male:heroes_male_13, heroes_female:heroes_female_1)
+  if (avatarIcon && avatarIcon.includes(':')) {
+    const isFlipped = avatarIcon.includes('?flip');
+    const cleanId = avatarIcon.replace('?flip', '');
+    const [catKey, itemId] = cleanId.split(':');
+    const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
+    const customConfigs = getCustomIconConfig();
+    const catData = allDatasets[catKey];
+    if (catData) {
+      const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
+      const config = customConfigs[catKey]?.[itemId] || {};
+      const cols = catData.cols || 4;
+      const rows = catData.rows || 3;
+      const defBgX = cols > 1 ? (config.col ?? itemDef.col ?? 0) * (100 / (cols - 1)) : 0;
+      const defBgY = rows > 1 ? (config.row ?? itemDef.row ?? 0) * (100 / (rows - 1)) : 0;
+      const bgX = config.bgX !== undefined ? config.bgX : defBgX;
+      const bgY = config.bgY !== undefined ? config.bgY : defBgY;
+      const zoom = config.zoom || 100;
+      const bgSizeX = cols * 100 * (zoom / 100);
+      const bgSizeY = rows * 100 * (zoom / 100);
+      const rawSpriteUrl = config.customImage || catData.spriteUrl || '';
+      const spriteUrl = resolveSpriteAssetUrl(rawSpriteUrl);
+      return {
+        backgroundImage: `url('${spriteUrl}')`,
+        backgroundSize: `${bgSizeX.toFixed(1)}% ${bgSizeY.toFixed(1)}%`,
+        backgroundPosition: `${bgX.toFixed(2)}% ${bgY.toFixed(2)}%`
+      };
+    }
+  }
+
   // 🌟 誓約守衛專屬 5x5 大圖集 (男守衛 10 款: Row 0~1，女守衛 10 款: Row 3~4)
   if (isGuardian || gender === 'GUARDIAN_MALE' || gender === 'GUARDIAN_FEMALE') {
     const isFem = gender === 'FEMALE' || gender === 'GUARDIAN_FEMALE';
@@ -635,37 +666,42 @@ export function resolveSpriteAssetUrl(rawUrl: string): string {
 export function renderUniversalIcon(identifier: string, sizePx: number = ICON_SIZE.MD, customClass: string = ''): string {
   if (!identifier) return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em;">🛡️</div>`;
 
+  const isFlipped = identifier.includes('?flip');
+  const cleanIdentifier = identifier.replace('?flip', '');
+
   const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
   const customConfigs = getCustomIconConfig();
 
   let catKey = '';
-  let itemId = identifier;
+  let itemId = cleanIdentifier;
 
-  if (identifier.includes(':')) {
-    const parts = identifier.split(':');
+  if (cleanIdentifier.includes(':')) {
+    const parts = cleanIdentifier.split(':');
     catKey = parts[0];
     itemId = parts[1];
   } else {
     // 自動尋找所屬分類
     for (const [k, cat] of Object.entries(allDatasets)) {
-      if (cat.items && cat.items.some((i: any) => i.id === identifier)) {
+      if (cat.items && cat.items.some((i: any) => i.id === cleanIdentifier)) {
         catKey = k;
         break;
       }
     }
   }
 
+  const flipStyle = isFlipped ? 'transform: scaleX(-1);' : '';
+
   const catData = allDatasets[catKey];
   if (!catData) {
     // Fallback: 如果是 Emoji 或是未知項目
-    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em;">${identifier.length <= 4 ? identifier : '📦'}</div>`;
+    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; ${flipStyle}">${cleanIdentifier.length <= 4 ? cleanIdentifier : '📦'}</div>`;
   }
 
   const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
   const config = customConfigs[catKey]?.[itemId] || {};
 
   if (config.customEmoji) {
-    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em;">${config.customEmoji}</div>`;
+    return `<div class="${customClass}" style="width:${sizePx}px; height:${sizePx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; ${flipStyle}">${config.customEmoji}</div>`;
   }
 
   const cols = catData.cols || 4;
@@ -695,6 +731,7 @@ export function renderUniversalIcon(identifier: string, sizePx: number = ICON_SI
     image-rendering: crisp-edges;
     flex-shrink: 0;
     display: inline-block;
+    ${flipStyle}
   "></div>`;
 }
 
@@ -713,20 +750,24 @@ export function renderUniversalPortrait(
     return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px;">👤</div>`;
   }
 
+  const isFlipped = identifier.includes('?flip');
+  const cleanIdentifier = identifier.replace('?flip', '');
+  const flipStyle = isFlipped ? 'transform: scaleX(-1);' : '';
+
   const heightPx = Math.round(widthPx * aspectRatio);
   const allDatasets = (defaultCustomDatasets || {}) as Record<string, any>;
   const customConfigs = getCustomIconConfig();
 
   let catKey = '';
-  let itemId = identifier;
+  let itemId = cleanIdentifier;
 
-  if (identifier.includes(':')) {
-    const parts = identifier.split(':');
+  if (cleanIdentifier.includes(':')) {
+    const parts = cleanIdentifier.split(':');
     catKey = parts[0];
     itemId = parts[1];
   } else {
     for (const [k, cat] of Object.entries(allDatasets)) {
-      if (cat.items && cat.items.some((i: any) => i.id === identifier)) {
+      if (cat.items && cat.items.some((i: any) => i.id === cleanIdentifier)) {
         catKey = k;
         break;
       }
@@ -735,14 +776,14 @@ export function renderUniversalPortrait(
 
   const catData = allDatasets[catKey];
   if (!catData) {
-    return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px;">${identifier.length <= 4 ? identifier : '👤'}</div>`;
+    return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px; ${flipStyle}">${cleanIdentifier.length <= 4 ? cleanIdentifier : '👤'}</div>`;
   }
 
   const itemDef = catData.items?.find((i: any) => i.id === itemId) || { col: 0, row: 0 };
   const config = customConfigs[catKey]?.[itemId] || {};
 
   if (config.customEmoji) {
-    return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px;">${config.customEmoji}</div>`;
+    return `<div class="${customClass}" style="width:${widthPx}px; height:${heightPx}px; display:flex; align-items:center; justify-content:center; font-size:1.4em; background:rgba(0,0,0,0.6); border-radius:4px; ${flipStyle}">${config.customEmoji}</div>`;
   }
 
   const cols = catData.cols || 5;
@@ -772,6 +813,7 @@ export function renderUniversalPortrait(
     image-rendering: crisp-edges;
     flex-shrink: 0;
     display: inline-block;
+    ${flipStyle}
   "></div>`;
 }
 

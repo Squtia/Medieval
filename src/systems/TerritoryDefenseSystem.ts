@@ -189,7 +189,8 @@ export class TerritoryDefenseSystem {
    */
   public static startLiveSiegeDefense(
     storyId: string,
-    effect: Extract<import('../models/Narrative').NarrativeEffect, { type: 'TRIGGER_RAID' }>
+    effect: Extract<import('../models/Narrative').NarrativeEffect, { type: 'TRIGGER_RAID' }>,
+    sourceNodeId?: string
   ): void {
     const territory = GameState.myTerritory;
     const pending = territory?.pendingRaids?.find(pr => pr.storyId === storyId);
@@ -204,7 +205,7 @@ export class TerritoryDefenseSystem {
 
     // 喚起守備動員部署彈窗
     import('../ui/modals/TerritoryDefenseModalController').then(({ TerritoryDefenseModalController }) => {
-      TerritoryDefenseModalController.show(storyId, effect);
+      TerritoryDefenseModalController.show(storyId, effect, undefined, sourceNodeId);
     });
   }
 
@@ -354,7 +355,8 @@ export class TerritoryDefenseSystem {
     storyId: string,
     effect: Extract<import('../models/Narrative').NarrativeEffect, { type: 'TRIGGER_RAID' }>,
     squadConfigs: { formationId?: string; gridMap?: Record<string, string>; selectedIds: Set<string> }[],
-    assignedTroops?: { infantry?: number; archer?: number; cavalry?: number }
+    assignedTroops?: { infantry?: number; archer?: number; cavalry?: number },
+    sourceNodeId?: string
   ): void {
     const territory = GameState.myTerritory;
     const pending = territory.pendingRaids?.find(pr => pr.storyId === storyId);
@@ -427,7 +429,7 @@ export class TerritoryDefenseSystem {
         infantry: infantryCount,
         archer: archerCount,
         cavalry: cavalryCount
-      }, false, interceptBattleDays);
+      }, false, interceptBattleDays, sourceNodeId);
     });
   }
 
@@ -438,7 +440,8 @@ export class TerritoryDefenseSystem {
     storyId: string,
     effect: Extract<import('../models/Narrative').NarrativeEffect, { type: 'TRIGGER_RAID' }>,
     squadConfigs: { formationId?: string; gridMap?: Record<string, string>; selectedIds: Set<string> }[],
-    assignedTroops?: { infantry?: number; archer?: number; cavalry?: number }
+    assignedTroops?: { infantry?: number; archer?: number; cavalry?: number },
+    sourceNodeId?: string
   ): void {
     const territory = GameState.myTerritory;
     const pending = territory.pendingRaids?.find(pr => pr.storyId === storyId);
@@ -513,7 +516,7 @@ export class TerritoryDefenseSystem {
       infantry: infantryCount,
       archer: archerCount,
       cavalry: cavalryCount
-    }, true, battleDays);
+    }, true, battleDays, sourceNodeId);
   }
 
   /**
@@ -525,7 +528,8 @@ export class TerritoryDefenseSystem {
     report: import('../models/Combat').CombatReport,
     assignedTroops: { infantry: number; archer: number; cavalry: number },
     isAutoDispatch: boolean = false,
-    battleDays: number = 1
+    battleDays: number = 1,
+    sourceNodeId?: string
   ): void {
     const territory = GameState.myTerritory;
     const pendingRaid = territory.pendingRaids?.find(pr => pr.storyId === storyId);
@@ -621,6 +625,10 @@ export class TerritoryDefenseSystem {
           securityDelta: 8,
           mvpName: report.mvpName || '出征英雄隊伍',
           onClose: () => {
+            // ✅ 野外擔截大捷：標記觸發節點為已完成
+            if (sourceNodeId) {
+              NarrativeSystem.completeNode(storyId, sourceNodeId, false);
+            }
             if (effect.successNodeId) {
               NarrativeSystem.presentInteractiveNode(storyId, effect.successNodeId, true);
             }
@@ -709,7 +717,8 @@ export class TerritoryDefenseSystem {
     storyId: string,
     effect: Extract<import('../models/Narrative').NarrativeEffect, { type: 'TRIGGER_RAID' }>,
     squadConfigs: { formationId?: string; gridMap?: Record<string, string>; selectedIds: Set<string> }[],
-    assignedTroops?: { infantry?: number; archer?: number; cavalry?: number }
+    assignedTroops?: { infantry?: number; archer?: number; cavalry?: number },
+    sourceNodeId?: string
   ): void {
     const territory = GameState.myTerritory;
     const isSiege = effect.isSiege !== false; // 預設為 true (正規攻城戰)
@@ -815,7 +824,7 @@ export class TerritoryDefenseSystem {
         infantry: infantryCount,
         archer: archerCount,
         cavalry: cavalryCount
-      });
+      }, sourceNodeId);
     });
   }
 
@@ -826,7 +835,8 @@ export class TerritoryDefenseSystem {
     storyId: string,
     effect: Extract<import('../models/Narrative').NarrativeEffect, { type: 'TRIGGER_RAID' }>,
     report: import('../models/Combat').CombatReport,
-    assignedTroops: { infantry: number; archer: number; cavalry: number }
+    assignedTroops: { infantry: number; archer: number; cavalry: number },
+    sourceNodeId?: string
   ): void {
     const territory = GameState.myTerritory;
     const isSiege = effect.isSiege !== false;
@@ -921,6 +931,10 @@ export class TerritoryDefenseSystem {
       securityDelta: report.isVictory ? 5 : -20,
       mvpName: report.mvpName || '全體守衛',
       onClose: () => {
+        // ✅ 標記觸發節點為已完成，防止次日輪詢再次觸發守城編組彈窗
+        if (sourceNodeId) {
+          NarrativeSystem.completeNode(storyId, sourceNodeId, false);
+        }
         if (report.isVictory && effect.successNodeId) {
           NarrativeSystem.presentInteractiveNode(storyId, effect.successNodeId, true);
         } else if (!report.isVictory && effect.failNodeId) {

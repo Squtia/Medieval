@@ -100,6 +100,7 @@ class EquipmentStudioController {
   private skillPickerCallback: ((skillId: string) => void) | null = null;
   private currentSkillCategoryFilter: string = 'ALL';
   private currentSkillPool: string[] = [];
+  private isIconPickerFlipped: boolean = false;
 
   public async init(): Promise<void> {
     await this.loadTemplate();
@@ -634,6 +635,15 @@ class EquipmentStudioController {
     byId('btn-close-re').onclick = () => byId('modal-recipe-editor').style.display = 'none';
     byId('btn-cancel-re').onclick = () => byId('modal-recipe-editor').style.display = 'none';
     byId('btn-close-icon-picker').onclick = () => byId('modal-icon-picker').style.display = 'none';
+
+    const btnPickerFlip = byId('btn-icon-picker-flip');
+    if (btnPickerFlip) {
+      btnPickerFlip.onclick = () => {
+        this.isIconPickerFlipped = !this.isIconPickerFlipped;
+        this.updateIconPickerFlipBtnState();
+        this.renderIconPickerItems(this.currentIconPickerTab);
+      };
+    }
 
     byId('btn-re-add-mat').onclick = () => this.addRecipeMatRow();
 
@@ -1275,6 +1285,23 @@ class EquipmentStudioController {
     };
   }
 
+  private updateIconPickerFlipBtnState(): void {
+    const btn = byId('btn-icon-picker-flip');
+    if (btn) {
+      if (this.isIconPickerFlipped) {
+        btn.textContent = '↔️ 水平翻轉: 開';
+        btn.style.background = 'rgba(245, 158, 11, 0.35)';
+        btn.style.borderColor = '#f59e0b';
+        btn.style.fontWeight = 'bold';
+      } else {
+        btn.textContent = '↔️ 水平翻轉: 關';
+        btn.style.background = 'rgba(245, 158, 11, 0.15)';
+        btn.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+        btn.style.fontWeight = 'normal';
+      }
+    }
+  }
+
   // ── 全圖集通用圖標選擇器 ──
   private openIconPicker(callback: (icon: string) => void): void {
     this.iconPickerCallback = callback;
@@ -1283,6 +1310,8 @@ class EquipmentStudioController {
     
     tabsContainer.innerHTML = '';
     customInput.value = '';
+
+    this.updateIconPickerFlipBtnState();
 
     const datasets = this.iconDatasets || {};
     const catKeys = Object.keys(datasets);
@@ -1311,7 +1340,10 @@ class EquipmentStudioController {
     });
 
     byId('btn-icon-picker-apply-custom').onclick = () => {
-      const val = customInput.value.trim();
+      let val = customInput.value.trim();
+      if (val && this.isIconPickerFlipped && !val.includes('?flip')) {
+        val = `${val}?flip`;
+      }
       if (val && this.iconPickerCallback) {
         this.iconPickerCallback(val);
         byId('modal-icon-picker').style.display = 'none';
@@ -1334,9 +1366,11 @@ class EquipmentStudioController {
       candidates.forEach(emoji => {
         const item = document.createElement('div');
         item.className = 'es-icon-picker-item';
-        item.innerHTML = `<div style="font-size: 1.8rem; line-height: 1.2;">${emoji}</div>`;
+        const flipStyle = this.isIconPickerFlipped ? 'transform: scaleX(-1);' : '';
+        item.innerHTML = `<div style="font-size: 1.8rem; line-height: 1.2; ${flipStyle}">${emoji}</div>`;
         item.onclick = () => {
-          if (this.iconPickerCallback) this.iconPickerCallback(emoji);
+          const finalId = this.isIconPickerFlipped ? `${emoji}?flip` : emoji;
+          if (this.iconPickerCallback) this.iconPickerCallback(finalId);
           byId('modal-icon-picker').style.display = 'none';
         };
         grid.appendChild(item);
@@ -1348,15 +1382,16 @@ class EquipmentStudioController {
     if (!catData || !catData.items) return;
 
     catData.items.forEach((it: any) => {
-      const fullId = `${tabKey}:${it.id}`;
+      const rawFullId = `${tabKey}:${it.id}`;
+      const displayId = this.isIconPickerFlipped ? `${rawFullId}?flip` : rawFullId;
       const item = document.createElement('div');
       item.className = 'es-icon-picker-item';
       item.innerHTML = `
-        ${renderUniversalIcon(fullId, 44)}
+        ${renderUniversalIcon(displayId, 44)}
         <div class="es-icon-picker-item-label">${it.name || it.id}</div>
       `;
       item.onclick = () => {
-        if (this.iconPickerCallback) this.iconPickerCallback(fullId);
+        if (this.iconPickerCallback) this.iconPickerCallback(displayId);
         byId('modal-icon-picker').style.display = 'none';
       };
       grid.appendChild(item);

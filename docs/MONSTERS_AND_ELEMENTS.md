@@ -1,13 +1,14 @@
-# 怪物名單與元素相剋系統說明文件 (Monsters & Elemental Systems)
+# 怪物名單、元素相剋與動態副將系統手冊 (Monsters, Elements & Vice-Commander System)
 
-本文檔詳細記載中世紀戰術放置 RPG 中的 **40 種基礎怪物名單**、**種族質變前綴規則**、**元素相剋傷害算式**，以及 **討伐據點單向隔離與偵查一致性機制**。
+本文檔詳細記載中世紀戰術放置 RPG 中的 **64+ 隻全魔物母庫**、**種族質變前綴規則**、**元素相剋傷害算式**、**討伐據點單向隔離與偵查一致性機制**，以及 **雙實體英雄綁定與動態副將接替規範**。
 
 ---
 
-## 📚 一、40 種基礎怪物資料庫 (`src/data/monsters.json`)
+## 📚 一、64+ 隻全魔物與陣營軍團資料庫 (`src/data/monsters.json`)
 
-所有怪物採 **扁平化基礎名稱**（不包含 Boss），依據地形與戰力係數 (`powerTier`: 0.4 ~ 2.5) 配置如下：
+所有怪物採 **扁平化基礎名稱**（包含基礎魔物、龍族、Boss 與各大派系正規軍團單位），依據地形與戰力係數 (`powerTier`: 0.4 ~ 3.5) 配置如下：
 
+### 1. 常規魔物、異獸與死靈族 (48 款)
 | 序號 | 怪物 ID | 基礎名稱 | 預設種族 | 相容種族標籤 (`compatibleRaces`) | 出沒地形 (`terrains`) | 基礎戰力 (`powerTier`) | 預設元素 |
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: | :---: |
 | 1 | `goblin` | 哥布林 | `MONSTER` | `MONSTER`, `UNDEAD` | 森林、平原、荒野 | 0.5 | `NONE` |
@@ -59,16 +60,31 @@
 | 47 | `thunder_drake` | 迅雷飛龍 | `DRAGON` | `DRAGON` | 雪山、平原 | 2.2 | `LIGHTNING` |
 | 48 | `swamp_drake` | 沼澤毒龍 | `DRAGON` | `DRAGON`, `UNDEAD` | 森林、遺跡 | 1.9 | `NONE` |
 
-> 💡 **註**：`DRAGON` 種族的一般怪物（包含毒蜥、蜥蜴王、飛龍、骨龍獸等共 10 種）在一般遭遇抽取時具備較低出現機率（權重 0.25x vs 一般怪 1.0x），少部分（如毒蜥、巨角蜥、骨龍獸、沼澤毒龍）相容 `UNDEAD` 質變標籤。
+### 2. 派系正規軍團單位 (Faction Army Units)
+| 序號 | 單位 ID | 單位名稱 | 預設種族 | 攻擊型態 | 基礎戰力 | 歸屬派系 |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| 49 | `f_lothgar_0` | 洛斯加徵召步兵 | `HUMAN` | `MELEE` | 1.0 | 👑 洛斯加中央王室 |
+| 50 | `f_lothgar_1` | 洛斯加精銳長弓手 | `HUMAN` | `RANGED` | 1.5 | 👑 洛斯加中央王室 |
+| 51 | `f_lothgar_2` | 洛斯加皇家重裝騎士 | `HUMAN` | `MELEE` | 2.4 | 👑 洛斯加中央王室 |
+| 52 | `f_lothgar_3` | 洛斯加宮廷隨軍法師 | `HUMAN` | `MAGIC` | 1.8 | 👑 洛斯加中央王室 |
+| 53 | `f_lothgar_4` | 洛斯加近衛大劍士 | `HUMAN` | `MELEE` | 2.2 | 👑 洛斯加中央王室 |
+| 54 | `f_lothgar_5` | 洛斯加重裝神射弩衛 | `HUMAN` | `RANGED` | 2.0 | 👑 洛斯加中央王室 |
+
+### 3. 史詩 Boss 與唯一首領
+| 序號 | Boss ID | 首領名稱 | 預設種族 | 攻擊型態 | 基礎戰力 | 特殊機制與定位 |
+| :---: | :--- | :--- | :--- | :--- | :---: | :--- |
+| 55 | `boss_bandit_king` | 山賊王·巴洛克 | `HUMAN` | `MELEE` | 2.8 | 帶領 2 波護衛，高爆發劈砍 |
+| 56 | `boss_fire_drake` | 狂怒火龍 | `DRAGON` | `MAGIC` | 3.2 | 龍息全體灼燒，霸體減傷 |
+| 57 | `boss_lich_king` | 死靈法王 | `UNDEAD` | `MAGIC` | 3.5 | 召喚骷髏大軍，暗黑護盾 |
 
 ---
 
 ## 🎯 攻擊類型與距離規範 (`attackType`)
 
 所有怪物實體均包含明確的 `attackType: 'MELEE' | 'RANGED' | 'MAGIC'` 標籤：
-* **`MELEE` (近戰物理)**：絕大多數野獸與魔物（如哥布林、野狼、狂熊、巨魔、石像鬼）。在常規戰鬥中優先攻擊敵方前排；在**守城戰中 100% 受到城門阻隔**，若敵方無前排守軍則無法攻擊中後排，所有傷害強制轉化為對要塞城門的撞擊打擊！
-* **`RANGED` (遠程物理)**：如弩手 (`crossbowman`)。可隔著前排與城門直接射擊敵方中後排，守城戰中守軍享有 25% 城垛掩體減傷。
-* **`MAGIC` (遠程魔法)**：如薩滿 (`shaman`)、幽魂 (`wraith`)、怨靈 (`specter`)、狂熱者 (`cultist`)。普攻與技能結算目標 MDEF 魔法防禦，可越過城門施法轟擊，守城戰中守軍享有 25% 城垛掩體減傷。
+* **`MELEE` (近戰物理)**：優先攻擊敵方前排；在**守城戰中 100% 受到城門阻隔**，若敵方無前排守軍則無法攻擊中後排，所有傷害強制轉化為對要塞城門的撞擊打擊！
+* **`RANGED` (遠程物理)**：如弩手、長弓手。可隔著前排與城門直接射擊敵方中後排，守城戰中守軍享有 25% 城垛掩體減傷。
+* **`MAGIC` (遠程魔法)**：如薩滿、隨軍法師、幽魂。普攻與技能結算目標 MDEF 魔法防禦，可越過城門施法轟擊，守城戰中守軍享有 25% 城垛掩體減傷。
 
 ---
 
@@ -90,11 +106,6 @@ $$\text{最終名稱} = [\text{元素前綴}] + [\text{種族質變前綴}] + \t
 - `DARK` ➔ `[黑暗的]`
 - `NONE` ➔ 無前綴
 
-### 3. 組合範例
-- 哥布林 (`compatibleRaces: ['MONSTER', 'UNDEAD']`) 抽到 `UNDEAD` 與 `DARK` ➔ **`[黑暗的][不死的]哥布林`**
-- 骷髏 (`compatibleRaces: ['UNDEAD']`) 抽到 `FIRE` ➔ **`[火焰的]骷髏`**
-- 冰原狼 預設 `ICE` ➔ **`[冰冷的]冰原狼`**
-
 ---
 
 ## ⚡ 三、元素相剋傷害算式 (`Skill.ts` & `CombatMath.ts`)
@@ -103,16 +114,8 @@ $$\text{最終名稱} = [\text{元素前綴}] + [\text{種族質變前綴}] + \t
 
 $$\text{元素相剋乘數} = \text{getElementalMultiplier}(\text{攻擊方 atkElement}, \text{防守方 defElement})$$
 
-- **攻擊方元素 (`atkElement`)**：
-  - **傭兵**：來自**【主手武器】(`WEAPON.element`)**。例如手持**熾炎大劍🔥**攻擊**雷霆魔物⚡**，觸發火剋雷 **1.25x (125%) 剋制增傷**！
-  - **魔物**：來自魔物原生元素屬性（如惡魔犬🔥、冰原狼❄️、死靈魔物🌙）。
-- **防守方元素 (`defElement`)**：
-  - **傭兵**：來自**【身穿防具】(`ARMOR.element`)**。例如身穿**霜冰鎧甲❄️**抵禦火系怪物攻擊，觸發逆剋防護折減！
-  - **魔物**：來自魔物原生元素屬性。
-
-```ts
-export function getElementalMultiplier(atkElement?: ElementType, defElement?: ElementType): number
-```
+- **攻擊方元素 (`atkElement`)**：傭兵來自**【主手武器】(`WEAPON.element`)**；魔物來自原生元素。
+- **防守方元素 (`defElement`)**：傭兵來自**【身穿防具】(`ARMOR.element`)**；魔物來自原生元素。
 
 ### 1. 三元循環相剋 (順剋 1.25x / 逆剋 0.75x)
 - ❄️ **冰** ➔ 🔥 **火** (冰攻擊火 = **1.25x** 順剋，火攻擊冰 = **0.75x** 逆剋)
@@ -133,81 +136,42 @@ export function getElementalMultiplier(atkElement?: ElementType, defElement?: El
 
 ### 1. 單向隔離法則 (Asymmetric Spawning)
 - **常規生靈據點**：敵軍標籤僅允許 `MONSTER` / `HUMAN`，**嚴格排除 `UNDEAD`**，不會突兀冒出殭屍。
-- **亡靈據點 (`allowedRaces: [UNDEAD]`)**：以 `UNDEAD` 敵軍為主體 (70%+)，允許混入少量 `HUMAN` (如死靈法師) 或 `MONSTER` (如墓穴巨蛛)。
+- **亡靈據點 (`allowedRaces: [UNDEAD]`)**：以 `UNDEAD` 敵軍為主體 (70%+)，允許混入少量 `HUMAN` 或 `MONSTER`。
 
 ### 2. 偵查與戰鬥 100% 一致性 (`node.scoutData.garrisonEncounter`)
 - 當斥候成功偵查據點時，`MonsterSystem.generateNodeEncounter(node)` 會生成敵軍小隊並**持久化儲存在 `node.scoutData.garrisonEncounter`** 中。
-- 玩家於據點面板查看的敵軍名單、威脅元素與據點詞綴（如 `MIASMA` 瘴氣、`BLIZZARD` 暴風雪），即為隨後玩家發起討伐時實際對抗的敵軍，保證 100% 精確一致。
+- 玩家於據點面板查看的敵軍名單、威脅元素與據點詞綴，即為隨後玩家發起討伐時實際對抗的敵軍，保證 100% 精確一致。
 
 ---
 
-## 📊 五、怪物數值生成模型與稀有挑戰據點機制
+## 📊 五、怪物數值生成模型與戰鬥定位權重
 
-### 1. 怪物戰力分與屬性換算公式 (`MonsterSystem.ts`)
-- **屬性預算量綱對齊**：
-  $$\text{baseBudget} = \max(15, \lfloor\text{baseDifficulty} \times \text{powerTier} \times \text{raceMult} \times 55\rfloor)$$
-  * 以 1 級標準傭兵（約 45~65 戰力）為基準，難度 1 時一隻 1.0 階標準怪戰力約 45~55 點。
-  * 據點駐守 1~2 隻標準怪物的總戰力約為 **55~85 點**，精準對齊開局 1 人出征。
-- **面板屬性計算**：
-  * 生命值 (HP)：$\max(45, \lfloor\text{baseBudget} \times \text{hpRatio} \times 2.8\rfloor)$（確保承受 3~4 輪技能/普攻）
-  * 攻擊力 (Damage)：$\max(12, \lfloor\text{baseBudget} \times \text{atkRatio} \times 1.15\rfloor)$（對 1 級傭兵造成 18~24 點實質傷害）
-  * 物理防禦 (PDEF)：$\lfloor\text{baseBudget} \times \text{pdefRatio} \times 1.2\rfloor$
-  * 魔法防禦 (MDEF)：$\lfloor\text{baseBudget} \times \text{mdefRatio} \times 1.2\rfloor$
-  * 出手速度 (Speed)：$\max(4, \lfloor\text{baseBudget} \times 0.12\rfloor)$
-- **大一統戰力計分 (`calculatedPowerScore`)**：
-  $$\text{Power} = \text{Damage} + \lfloor\frac{\text{PDEF} + \text{MDEF}}{2} \times 0.6\rfloor + \lfloor\text{HP} \times 0.2\rfloor + \lfloor\text{Speed} \times 0.5\rfloor$$
-- **戰利品回報標準**：
-  * 金幣回報：$\lfloor\text{Power} \times 1.0\rfloor$
-  * 經驗值回報：$\lfloor\text{Power} \times 0.25\rfloor$ (升級節奏健康拉長，1 級升 2 級約需 7 場討伐)
-- **法系怪攻擊機制 (`isMagicalAttacker`)**：
-  * 薩滿、幽魂、怨靈、狂熱者、元素石像、隨軍法師等法系怪物，普通攻擊為 `DamageType.MAGICAL`，結算防守者的 MDEF。
-
-### 2. 8 大戰鬥定位屬性權重分配 (Normalized Stat Profiles)
-為了解決魔物數值同質化問題，在總屬性預算 ($\text{baseBudget}$) 鎖死不破壞平衡的前提下，導入 **8 大定位權重比**，依比例換算 HP、ATK、PDEF、MDEF、Speed 與 Evade：
-
+### 1. 8 大戰鬥定位屬性權重分配 (Normalized Stat Profiles)
 | 戰鬥定位 (`MonsterProfile`) | 標誌特徵 | 屬性權重配比 (HP / ATK / PDEF / MDEF / SPD / EVA) | 代表怪物 |
 | :--- | :--- | :--- | :--- |
 | `🛡️ TANK (鐵壁肉盾)` | 超高生命與物防，站前排阻擋 | `45 / 26 / 32 / 16 / 6 / 0` | 傀儡、鐵甲衛、石像鬼 |
 | `⚡ ASSASSIN (疾風刺客)` | 極速先手、高爆發、高閃避 | `22 / 44 / 8 / 8 / 20 / 16` | 野狼、刺客、暗影刃、吸血蝠 |
-| `🔮 MAGE (奧術法師)` | 高魔法傷害、高魔防 | `25 / 45 / 8 / 28 / 10 / 6` | 薩滿、幽魂、怨靈、狂熱者 |
+| `🔮 MAGE (奧術法師)` | 高魔法傷害、高魔防 | `25 / 45 / 8 / 28 / 10 / 6` | 薩滿、幽魂、怨靈、隨軍法師 |
 | `🩸 BERSERKER (嗜血狂戰)` | 極高物傷輸出、中等血量 | `34 / 50 / 10 / 8 / 12 / 4` | 狂熊、半獸人、蠻兵、牛頭人 |
-| `🏹 RANGER (遠程狙擊)` | 遠程精準打擊、高命中 | `26 / 40 / 10 / 12 / 18 / 12` | 弩手、鷹身女郎、沙蠕蟲 |
+| `🏹 RANGER (遠程狙擊)` | 遠程精準打擊、高命中 | `26 / 40 / 10 / 12 / 18 / 12` | 弩手、鷹身女郎、神射弩衛 |
 | `💀 JUGGERNAUT (亡靈泥沼)` | 超巨量生命、高堅韌、低速 | `50 / 36 / 20 / 16 / 6 / 0` | 巨魔、雪怪、樹精、食屍鬼 |
 | `👑 BOSS (史詩首領)` | 全屬性均衡強化、霸體威壓 | `42 / 38 / 20 / 18 / 14 / 8` | 飛龍、死靈騎士、幼九頭蛇 |
 | `⚖️ BALANCED (常規均衡)` | 經典標準平衡配置 | `38 / 34 / 16 / 14 / 10 / 6` | 哥布林、流寇、巨蛛、甲蟲 |
 
-- **種族修正**：
-  * `UNDEAD (不死族)`：生命 +6、物防 +4、魔防 +4、閃避歸 0。
-
 ---
 
-## 🧠 六、單一真相技能中樞與通用魔物技能 (`SkillRegistry.ts` & `SkillData.ts`)
+## 🔗 六、雙實體英雄綁定與動態副將接替規範 (Dynamic Vice-Commander Engine)
 
-### 1. 單一真相來源架構 (Single Source of Truth)
-- 專案內所有技能（包含傭兵基礎技能、進階職業技能、通用魔物技能與裝備特技）皆由 `SkillRegistry` 統一註冊與管理。
-- **分類自動推導**：`HERO_BASE` (傭兵基礎)、`HERO_ADVANCED` (進階轉職)、`MONSTER` (通用魔物)、`EQUIPMENT` (裝備特技)。
-- **工坊與遊戲共用**：戰鬥平衡工坊 (`CombatStudio.ts`)、戰鬥系統 (`CombatSystem.ts`) 與魔物創造器自動共享同一個技能庫，無需重複編寫代碼。
+為了解決「名將英雄被玩家招降/俘虜/擊殺後，敵方討伐據點或軍團直接破產甚至出錯」的底層架構難題，專案導入了 **雙實體身分綁定與動態副將接替引擎**：
 
-### 2. 10 款通用魔物技能 (去個體特定化命名)
-所有魔物技能皆採用通用型命名，可靈活掛載於任意怪物原型：
-
-1. 🧪 **【劇毒噴吐】(`SKILL_TOXIC_SPRAY`)**：造成 90% 傷害，並對目標施加 2 回合【中毒】。
-2. 🐾 **【撕裂爪擊】(`SKILL_SAVAGE_REND`)**：造成 120% 物理傷害，並附加 3 回合【流血】。
-3. 🔨 **【粉碎重擊】(`SKILL_CRUSHING_SLAM`)**：造成 130% 重擊傷害，降低目標 25% 物理防禦。
-4. 🩸 **【嗜血打擊】(`SKILL_BLOOD_DRAIN`)**：造成 100% 傷害，並將 50% 傷害轉化為自身 HP。
-5. 😱 **【尖嘯震懾】(`SKILL_TERROR_SCREECH`)**：全體震懾，全體敵方攻擊力降低 20% 持續 2 回合。
-6. 👤 **【暗影突襲】(`SKILL_SHADOW_ASSAULT`)**：瞬間突進敵方後排，造成 140% 暴擊傷害。
-7. 🔥 **【烈焰轟爆】(`SKILL_FLAME_BURST`)**：造成 125% 火焰魔法傷害，並附加【灼燒】。
-8. ❄️ **【冰霜吐息】(`SKILL_FROST_BREATH`)**：橫排全體 80% 冰霜傷害，降低目標 30% 速度。
-9. 🛡️ **【堅石甲殼】(`SKILL_IRON_DEFENSE`)**：自身防禦力提升 50% 持續 3 回合。
-10. 🦁 **【狂暴怒吼】(`SKILL_FRENZY_ROAR`)**：使自身攻擊力提升 35%，但防禦力降低 15%。
-
----
-
-## 🏰 七、領地近郊生態三階梯據點機制 (`MapEventSystem.ts`)
-- **🟢 50% 小型落單威脅 (難度 1)**：1~2 隻初階怪 (戰力 ~55~65)，適合開局 1 人單挑。
-- **🟡 35% 中型營地巢穴 (難度 2~3)**：2~3 隻普通怪 (戰力 ~110~160)，適合 2~3 人小隊。
-- **🔴 15% 稀有凶煞首領 (難度 3~4, `isEliteLair`)**：
-  * **首領駐軍**：高階精英怪/龍族領軍，100% 附加環境詞綴。
-  * **專屬冠名**：冠上 `💀[凶兆]`、`👑[首領]`、`🔥[極危險]` 前綴。
-  * **超額戰利品**：金幣與經驗值 **3 倍**，裝備掉落率保底 35%，高機率掉落藍紫色裝備或稀有圖紙。
+1. **雙實體唯一身分綁定 (`characterKey`)**：
+   - 英雄實體 (`UniqueHeroDef`) 與敵方怪物實體 (`MonsterData`) 皆可配置唯一的 `characterKey`（例如 `char_vanguard_reyn`）。
+   - 怪物可透過 `substituteMonsterId` 指定專屬的代理副將範本 ID。
+2. **動態副將解析演算法 (`FactionArmyGenerator.resolveTroopMember`)**：
+   - 當戰鬥系統實例化部隊 (`instantiateCombatGroup`) 時，即時檢查該成員是否已被玩家收編（存在於 `GameState.myTerritory.adventurers`、已陣亡或正處於俘虜監獄）。
+   - **接替順位**：
+     - ① 若已收編且配置了 `substituteMonsterId` ➔ 直接調用指定的副將範本。
+     - ② 若未指定專屬副將 ➔ 調用 `getBestSubstituteMonsterId` 自動保底演算法：篩選出「**同攻擊型態 (MELEE/RANGED/MAGIC) + 該派系正規人類軍團 + 戰力階級最接近**」的正規軍官。
+     - ③ 將生成的代理副將名稱冠以 **`【代理副將】`** 稱號（例如：`【代理副將】洛斯加近衛大劍士`），接替原英雄出征。
+3. **部隊藍圖 100% 唯讀隔離**：
+   - 據點工坊與資料庫中的原始討伐隊伍藍圖維持 100% 唯讀，副將替換僅在戰鬥實例化時於記憶體動態運算，絕不污染持久化資料。

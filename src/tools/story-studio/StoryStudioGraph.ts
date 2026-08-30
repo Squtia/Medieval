@@ -127,6 +127,12 @@ export class StoryStudioGraph {
           if (d.defeatNodeId && nodeSet.has(d.defeatNodeId)) edges.push({ from: node.id, to: d.defeatNodeId, type: 'defeat' });
           for (const jId of d.journeyNodeIds) if (nodeSet.has(jId)) edges.push({ from: node.id, to: jId, type: 'journey' });
         }
+        if (fx.type === 'TRIGGER_RAID') {
+          if (fx.successNodeId && nodeSet.has(fx.successNodeId))
+            edges.push({ from: node.id, to: fx.successNodeId, type: 'victory' });
+          if (fx.failNodeId && nodeSet.has(fx.failNodeId))
+            edges.push({ from: node.id, to: fx.failNodeId, type: 'defeat' });
+        }
       }
     }
     for (const node of story.nodes) {
@@ -225,13 +231,20 @@ export class StoryStudioGraph {
       idTxt.textContent = node.id.length > 26 ? node.id.slice(0, 26) + '…' : node.id;
       g.appendChild(idTxt);
 
-      // 條件與效果計數
-      const meta = `${node.conditions.length > 0 ? `⚙ ${node.conditions.length} 條件` : ''}${node.completionEffects.length > 0 ? `  ✦ ${node.completionEffects.length} 效果` : ''}`.trim();
+      // 條件、效果或懸賞設定資訊
+      let meta = `${node.conditions.length > 0 ? `⚙ ${node.conditions.length} 條件` : ''}${node.completionEffects.length > 0 ? `  ✦ ${node.completionEffects.length} 效果` : ''}`.trim();
+      if (node.channel === 'BOUNTY_BOARD' && node.bounty) {
+        meta = `⏱️ ${node.bounty.duration}天 | 💰 ${node.bounty.gold}G | ⏳ 保留${node.bounty.expireDays}天`;
+      }
       if (meta) {
         const metaTxt = this.svgEl<SVGTextElement>('text');
         metaTxt.setAttribute('x', '10');
         metaTxt.setAttribute('y', '80');
         metaTxt.setAttribute('class', 'graph-node-meta-txt');
+        if (node.channel === 'BOUNTY_BOARD') {
+          metaTxt.setAttribute('fill', '#fde047');
+          metaTxt.setAttribute('font-weight', 'bold');
+        }
         metaTxt.textContent = meta;
         g.appendChild(metaTxt);
       }

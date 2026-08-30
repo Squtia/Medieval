@@ -481,6 +481,94 @@ function developmentStudioPlugin(): Plugin {
         }
 
         // ==========================================
+        // 英雄工坊專用資料庫 API (Unique Hero Studio API)
+        // ==========================================
+        const heroFile = path.resolve(__dirname, 'src/data/unique_heroes.json');
+        const heroBackupsDir = path.resolve(__dirname, 'src/data/hero_backups');
+
+        if (url === '/api/get-hero-definitions' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(fs.existsSync(heroFile) ? fs.readFileSync(heroFile, 'utf-8') : '[]');
+        }
+
+        if (url === '/api/save-hero-definitions' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              const heroList = Array.isArray(payload) ? payload : payload.heroes;
+              if (!Array.isArray(heroList)) throw new Error('heroes 必須是陣列');
+
+              fs.mkdirSync(heroBackupsDir, { recursive: true });
+              fs.writeFileSync(heroFile, JSON.stringify(heroList, null, 2), 'utf-8');
+
+              const now = new Date();
+              const pad = (value: number) => value.toString().padStart(2, '0');
+              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const snapshot = `snapshot_${stamp}.json`;
+
+              fs.writeFileSync(path.resolve(heroBackupsDir, snapshot), JSON.stringify({
+                timestamp: now.toISOString(),
+                note: payload.note || '使用者在英雄工坊儲存英雄資料庫',
+                heroes: heroList
+              }, null, 2), 'utf-8');
+
+              const backups = fs.readdirSync(heroBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
+              for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(heroBackupsDir, oldFile));
+
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, snapshot, total: heroList.length }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if (url === '/api/list-hero-backups' && req.method === 'GET') {
+          const backups = fs.existsSync(heroBackupsDir)
+            ? fs.readdirSync(heroBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse().map((filename: string) => {
+              const fullPath = path.resolve(heroBackupsDir, filename);
+              const data = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
+              return { filename, timestamp: data.timestamp, note: data.note, size: fs.statSync(fullPath).size };
+            })
+            : [];
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ backups }));
+        }
+
+        if (url === '/api/restore-hero-backup' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const { filename } = JSON.parse(body);
+              if (typeof filename !== 'string' || path.basename(filename) !== filename || !filename.startsWith('snapshot_')) {
+                throw new Error('快照檔名不合法');
+              }
+              const targetPath = path.resolve(heroBackupsDir, filename);
+              if (!fs.existsSync(targetPath)) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ success: false, error: '找不到該快照' }));
+              }
+              const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
+              if (!Array.isArray(snapshot.heroes)) throw new Error('快照內容不合法');
+              fs.writeFileSync(heroFile, JSON.stringify(snapshot.heroes, null, 2), 'utf-8');
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, heroes: snapshot.heroes }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        // ==========================================
         // 裝備、素材、道具與鍛造配方 API (Equipment & Material Studio API)
         // ==========================================
         const materialsFile = path.resolve(__dirname, 'src/data/materials.json');
@@ -657,6 +745,14 @@ function developmentStudioPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [developmentStudioPlugin()],
+  server: {
+    watch: {
+      ignored: [
+        '**/src/data/*.json',
+        '**/src/data/**/*_backups/**'
+      ]
+    }
+  },
   // 將 base 設定為您的 GitHub Repository 名稱，這樣打包後的檔案路徑才會正確
   base: '/Medieval/'
 });

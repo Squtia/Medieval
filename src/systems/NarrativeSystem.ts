@@ -19,6 +19,7 @@ import { EnemyFeature } from '../models/DispatchTask';
 import { MapNode, NodeFeature, NodeLevel, TerrainType, WeatherType } from '../models/types';
 import { TerritoryDefenseSystem } from './TerritoryDefenseSystem';
 import { FactionManager } from './FactionManager';
+import { createUniqueAdventurer } from '../data/UniqueAdventurers';
 
 export interface NarrativeNodeRef {
   story: NarrativeStory;
@@ -146,6 +147,32 @@ export class NarrativeSystem {
     return false;
   }
 
+  /**
+   * 檢查某個節點是否被劇本中任何節點的 TRIGGER_RAID 效果指名為戰役勝利或失敗後續節點。
+   * 這類節點必須等到守城/攔截戰役實際結算後，由 TerritoryDefenseSystem 透過 onClose 回調主動觸發，
+   * 不得由每日輪詢 getEligibleNodes 無條件喚醒。
+   */
+  static isRaidTargetNode(storyId: string, nodeId: string): boolean {
+    for (const story of this.getStories()) {
+      if (!story.enabled) continue;
+      for (const n of story.nodes) {
+        for (const eff of n.completionEffects || []) {
+          if (eff.type === 'TRIGGER_RAID') {
+            if (eff.successNodeId === nodeId || eff.failNodeId === nodeId) return true;
+          }
+        }
+        for (const choice of n.choices || []) {
+          for (const eff of choice.effects || []) {
+            if (eff.type === 'TRIGGER_RAID') {
+              if (eff.successNodeId === nodeId || eff.failNodeId === nodeId) return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
   static explainBlocked(story: NarrativeStory, node: NarrativeNode): string[] {
     const state = this.ensureState();
     const key = this.getNodeKey(story.id, node.id);
@@ -168,11 +195,19 @@ export class NarrativeSystem {
       reasons.push('為討伐據點專屬後續節點，需在討伐結算時觸發');
     }
 
+    // 若該節點是 TRIGGER_RAID 戰役結算專屬後續節點 (守城大捷/城防失守)：
+    // 必須等待 TerritoryDefenseSystem 的 settleSiegeDefenseResults onClose 回調主動觸發，
+    // 絕對不可由每日輪詢無條件喚醒！
+    if (this.isRaidTargetNode(story.id, node.id)) {
+      reasons.push('為戰役結算專屬後續節點（守城大捷/城防失守），需在戰役結算時觸發');
+    }
+
     for (const condition of node.conditions) {
       if (!this.checkCondition(condition)) reasons.push(this.describeCondition(condition));
     }
     return reasons;
   }
+
 
   private static checkCondition(condition: NarrativeCondition): boolean {
     const state = this.ensureState();
@@ -201,6 +236,40 @@ export class NarrativeSystem {
           .filter(key => key.startsWith('subjugation:') && key.endsWith(':victory')).length;
         return count >= condition.value;
       }
+      case 'NODE_OWNER_IS': {
+        const node = GameState.mapSystem?.getNodes().find(n => n.id === condition.nodeId);
+        return node?.ownerFactionId === condition.factionId;
+      }
+      case 'FACTION_AT_WAR': {
+        const f = GameState.mapSystem?.getFactions().find(item => item.id === condition.factionId);
+        return (f?.atWarWith || []).length > 0;
+      }
+      case 'FACTION_STARVING': {
+        const f = GameState.mapSystem?.getFactions().find(item => item.id === condition.factionId) as any;
+        return (f?.economy?.grainDays ?? 100) <= 0;
+      }
+      case 'HERO_EXISTS': {
+        const currentAdvs = GameState.adventurers || [];
+        const targetIds = condition.heroIds || [];
+        if (targetIds.length === 0) return true;
+        const isMatch = (tId: string) => currentAdvs.some(adv => {
+          const aId = (adv.id || '').toLowerCase();
+          const target = tId.toLowerCase();
+          return aId === target || aId.includes(target) || (adv.name || '').includes(tId);
+        });
+        return condition.matchMode === 'ALL' ? targetIds.every(isMatch) : targetIds.some(isMatch);
+      }
+      case 'HERO_MISSING': {
+        const currentAdvs = GameState.adventurers || [];
+        const targetIds = condition.heroIds || [];
+        if (targetIds.length === 0) return true;
+        const isMatch = (tId: string) => currentAdvs.some(adv => {
+          const aId = (adv.id || '').toLowerCase();
+          const target = tId.toLowerCase();
+          return aId === target || aId.includes(target) || (adv.name || '').includes(tId);
+        });
+        return condition.matchMode === 'ALL' ? targetIds.every(tId => !isMatch(tId)) : targetIds.some(tId => !isMatch(tId));
+      }
     }
   }
 
@@ -217,6 +286,11 @@ export class NarrativeSystem {
       case 'DAYS_SINCE_FACT': return `取得「${condition.fact}」後需經過 ${condition.value} 天`;
       case 'NODE_EXPLORED': return `尚未探索據點「${condition.nodeId}」`;
       case 'SUBJUGATION_COUNT_AT_LEAST': return `尚未討伐滿 ${condition.value} 個動態據點`;
+      case 'NODE_OWNER_IS': return `據點「${condition.nodeId}」控制者需為「${condition.factionId}」`;
+      case 'FACTION_AT_WAR': return `派系「${condition.factionId}」需處於交戰狀態`;
+      case 'FACTION_STARVING': return `派系「${condition.factionId}」需處於糧荒狀態`;
+      case 'HERO_EXISTS': return `需要已招募英雄「${condition.heroIds.join('、')}」`;
+      case 'HERO_MISSING': return `需要尚未擁有英雄「${condition.heroIds.join('、')}」`;
     }
   }
 
@@ -330,8 +404,8 @@ export class NarrativeSystem {
   static resolveChoice(storyId: string, nodeId: string, choice?: NarrativeChoice): void {
     const ref = this.findNode(storyId, nodeId);
     if (!ref) return;
-    if (choice) this.applyEffects(storyId, choice.effects);
-    this.applyEffects(storyId, ref.node.completionEffects);
+    if (choice) this.applyEffects(storyId, choice.effects, nodeId);
+    this.applyEffects(storyId, ref.node.completionEffects, nodeId);
     this.completeNode(storyId, nodeId, false);
   }
 
@@ -380,7 +454,7 @@ export class NarrativeSystem {
     return { affordable: true };
   }
 
-  static applyEffects(storyId: string, effects: NarrativeEffect[]): void {
+  static applyEffects(storyId: string, effects: NarrativeEffect[], sourceNodeId?: string): void {
     const state = this.ensureState();
     for (const effect of effects) {
       switch (effect.type) {
@@ -444,6 +518,16 @@ export class NarrativeSystem {
             if (equipment) GameState.myTerritory.addEquipmentToWarehouse(equipment);
           }
           break;
+        case 'GRANT_HERO': {
+          if (effect.heroId) {
+            const hero = createUniqueAdventurer(effect.heroId);
+            if (hero) {
+              GameState.adventurers.push(hero);
+              console.log(`🎉【英雄加入】${hero.name} 已正式加入您的領地麾下！`);
+            }
+          }
+          break;
+        }
         case 'SCHEDULE_NODE':
           state.scheduledNodes[this.getNodeKey(storyId, effect.nodeId)] = GameState.totalDays + Math.max(0, effect.delayDays);
           break;
@@ -540,7 +624,7 @@ export class NarrativeSystem {
           break;
         }
         case 'TRIGGER_RAID': {
-          TerritoryDefenseSystem.startLiveSiegeDefense(storyId, effect);
+          TerritoryDefenseSystem.startLiveSiegeDefense(storyId, effect, sourceNodeId);
           break;
         }
       }

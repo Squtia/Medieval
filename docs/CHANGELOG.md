@@ -1,4 +1,389 @@
-- **[Fix/Build/AssetsPath] 全域街道建築圖示 SSOT 與 CSS/HTML 紋理背景路徑全面修復（2026-08-28）**：
+- **[Fix/NarrativeSystem/TriggerRaidSuccessFailNodeUnconditionalFire] TRIGGER_RAID 守城/城防後續節點修復全系列（2026-08-30）**：
+  - **問題根源 1（邏輯層）**：`explainBlocked()` 缺少對 `TRIGGER_RAID.successNodeId/failNodeId` 的阻擋防護，導致每日輪詢無條件觸發後續節點。新增 `isRaidTargetNode()` 修復。
+  - **問題根源 2（視覺層）**：[`StoryStudioGraph.ts`](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioGraph.ts) 的 `buildEdges()` 缺少 `TRIGGER_RAID` 的 `successNodeId`/`failNodeId` 連線繪製。補上後圖形正常顯示勝利（綠線）/失敗（紅線）箭頭。
+  - **問題根源 3（生命週期層）**：無論放棄、守城勝/敗、野外攔截勝利，所有結算路徑都**從未呼叫 `NarrativeSystem.completeNode`** 標記觸發節點完成，導致節點可被反覆觸發（即使懲罰已結算），守城編組彈窗持續反覆彈出。
+    - 修復方案：在 `applyEffects(TRIGGER_RAID)` 引入 `sourceNodeId` 傳遞鏈，從 `resolveChoice` → `applyEffects` → `startLiveSiegeDefense` → `TerritoryDefenseModalController.show`，並在所有 5 個出口路徑加入 `completeNode`：
+      1. **放棄防守** (`btnCancel`) — `TerritoryDefenseModalController`
+      2. **守城戰勝/失敗** (`settleSiegeDefenseResults.onClose`) — `TerritoryDefenseSystem`
+      3. **野外攔截勝利** (`settleFieldInterceptionResults.onClose`) — `TerritoryDefenseSystem`（失敗僅削弱敵軍、繼承預警天數，節點刻意保持未完成，等待後續攻城結算）
+  - **驗證**：全數通過 35 個測試檔案 163 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Fix/StoryStudio/GrantItemQuantityInputUI] 故事工坊素材/特產/裝備發放數量輸入框佈局與可視性全面修復（2026-08-30）**：
+  - **數量輸入框自適應佈局與樣式重構**：
+    - 在 [StoryStudioForm.ts](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioForm.ts) 中重構 `GRANT_MATERIAL`（素材獎勵）、`GRANT_TRADE_GOOD`（特產獎勵）與 `GRANT_EQUIPMENT`（裝備獎勵）的數量輸入 UI。
+    - 徹底移除過去在 flex 佈局下被擠壓至窄小的 `div` 包裹，改為獨立的金色高亮標籤 `<span>發放數量：</span>` 與固定寬度 `75px` 的標準置中輸入框，並提供預設值 `1`。
+    - 解決了使用者回報的「數量輸入框過小、無法看清或無法顯示數量」問題。
+  - **驗證**：全數通過 35 個測試檔案 162 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/CombatStudio/HeroCreatorLevelAdvancementAndEquipGuard] 英雄工坊等級與滿等進階防呆、品級標準點數標註與職業裝備限制防呆實裝（2026-08-30）**：
+  - **指定等級 (Level 1~10) 與滿等進階 (isAdvanced) 連動防呆**：
+    - 在 [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html) 與 [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 實裝等級輸入欄與進階轉職開關。
+    - **未滿 10 等 (Lv.1~9)**：`isAdvanced` 開關強制設為 `false` 且處於 `disabled` 禁用狀態，並高亮警示「🔒 須 Lv.10 方可開啟進階」。
+    - **滿 10 等 (Lv.10)**：解鎖進階狀態選擇，允許自由勾選是否已滿等轉職。
+    - 在 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 的 `createUniqueAdventurer` 中落實同等防呆，未滿 10 等英雄即便傳入 `isAdvanced: true` 亦強制初始化為未進階。
+  - **六維屬性極限配點旁標註「各品級標準總點數參考」**：
+    - 對齊 [ATTRIBUTE_SYSTEM.md](file:///i:/gameproject/Medieval/docs/ATTRIBUTE_SYSTEM.md) 與平衡基準，在配點區塊頂部標註 `N:45 | R:60 | SR:72 | SSR:88 | UR:110` 基準對照表。
+    - 切換品質稀有度時即時高亮對應數值，並動態提示當前總點數差額（如：`符合 SSR 標準`、`+5 高於 SSR 基準`）。
+  - **裝備加入「限制職業防呆」**：
+    - 嚴格對齊 [CLASS_SYSTEM.md](file:///i:/gameproject/Medieval/docs/CLASS_SYSTEM.md) 規範，定義六大職業專屬武器與防具類型清單。
+    - 開啟裝備庫挑選時，自動過濾並僅顯示該英雄所屬職業相容之武器（如戰士只顯示巨劍/雙劍）與防具（如騎士只顯示重鎧）。
+    - 切換基礎職業時，若當前配備之裝備與新職業不相容，系統自動修正為該職業的合法預設裝備。
+  - **驗證**：全數通過 35 個測試檔案 162 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/StoryStudio/BountyBoardWorkflowUpgrade] 故事工坊懸賞委託 (BOUNTY_BOARD) 全鏈路可視化與快捷建立升級（2026-08-30）**：
+  - **懸賞節點一鍵快速建立與預設值**：
+    - 在 [StoryStudioStore.ts](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioStore.ts) 新增 `createBountyNode()`，一鍵生成包含「執行天數 (2天)」、「保留天數 (4天)」、「金幣 (50G)」、「經驗 (30EXP)」與日常重複輪替等完整預設值的標準懸賞節點。
+    - 在 [story-editor.html](file:///i:/gameproject/Medieval/src/templates/story-editor.html) 工具列新增 `📜 ＋新增懸賞委託` 快捷按鈕，大幅簡化建立懸賞流程。
+  - **全鏈路可視化與設定自動展開**：
+    - 在 [StoryStudioGraph.ts](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioGraph.ts) 流程圖節點上，為懸賞節點直觀繪製 `⏱️ 執行天數 | 💰 金幣 | ⏳ 保留天數` 金色摘要徽章，一目了然。
+    - 在 [StoryStudioForm.ts](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioForm.ts) 與 [story-editor.html](file:///i:/gameproject/Medieval/src/templates/story-editor.html) 中，當選取或切換為 `BOUNTY_BOARD` 節點時，自動預設展開「🎯 懸賞任務專屬設定」面板，解決過去欄位被摺疊隱藏無法直觀編輯的痛點。
+  - **驗證**：全數通過 35 個測試檔案 160 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Refactor/LegacyCleanup/AbolishLegacyInvasionAndExtortion] 徹底拔除舊時代強盜勒索 (Extortion) 與純數值侵襲洗劫 (processInvasionCombat) 歷史遺留代碼（2026-08-30）**：
+  - **清剿舊時代侵襲源頭**：
+    - 在 [BountySystem.ts](file:///i:/gameproject/Medieval/src/systems/BountySystem.ts) 中徹底移除強盜懸賞過期時觸發 `pendingExtortionEvent = true` 的舊邏輯，懸賞過期僅自然刷新清單，不再觸發任何勒索。
+    - 在 [GameState.ts](file:///i:/gameproject/Medieval/src/core/GameState.ts) 中移除 `pendingExtortionEvent` 欄位與重設邏輯。
+  - **徹底抹除舊版純數值侵襲與洗劫彈窗**：
+    - 在 [GameLoop.ts](file:///i:/gameproject/Medieval/src/core/GameLoop.ts) 中彻底刪除 `processInvasionCombat`、`processInvasionDefeat` 與 `showInvasionReport`（哨所抵抗羊皮紙彈窗）等全部舊式代碼。
+    - 將 [ExtortionModalController.ts](file:///i:/gameproject/Medieval/src/ui/ExtortionModalController.ts) 徹底廢棄停用，所有領地威脅與突發事件 100% 統一由【故事工坊 (NarrativeSystem)】與實體【城防保衛戰 (TerritoryDefenseModalController)】接管。
+  - **驗證**：全數通過 35 個測試檔案 160 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/HeroExclusivity/DynamicViceCommanderSubstitution] 傳奇唯一英雄全球排他性與據點戰鬥全鏈路智慧副將接替引擎實裝（2026-08-30）**：
+  - **全球唯一性排他與雙向綁定注入**：
+    - 在 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 中為冒險者實例完整賦值 `characterKey` 與 `boundMonsterId`。
+    - 在 [FactionArmyGenerator.ts](file:///i:/gameproject/Medieval/src/systems/map/FactionArmyGenerator.ts) 的 `buildUnavailableCharacterSet` 中引入 `findHeroDef` 雙向關聯檢索，確保只要傳奇名將被招降在隊或收押於領地地牢，其所有別名 ID、怪物 ID 與人物 Key 100% 納入不可用黑名單。
+  - **全鏈路據點守軍與戰鬥入口智慧副將替補 (SSOT Substitution)**：
+    - 在 [MonsterSystem.ts](file:///i:/gameproject/Medieval/src/systems/MonsterSystem.ts) 的 `createInstancesFromTemplateWaves` 討伐據點波次生成中，全面接入 `FactionArmyGenerator.getBestSubstituteMonsterId`，若名將已在玩家麾下，強制將守關 Boss 自動替換為同階級正規士兵並冠上 `【代理副將】` 前綴，徹底終結「自己打自己」的分身術矛盾。
+    - 在 [CombatSystem.ts](file:///i:/gameproject/Medieval/src/systems/CombatSystem.ts) 與 [InteractiveCombatSession.ts](file:///i:/gameproject/Medieval/src/systems/combat/InteractiveCombatSession.ts) 戰鬥入口建立二次安檢防禦，若傳入陣容含不可用具名英雄，強制觸發副將接替。
+  - **戰鬥介面立繪與工坊即時渲染修復**：
+    - 在 [CombatSystem.ts](file:///i:/gameproject/Medieval/src/systems/CombatSystem.ts) 與 [InteractiveCombatSession.ts](file:///i:/gameproject/Medieval/src/systems/combat/InteractiveCombatSession.ts) 參戰者與初始狀態補齊 `avatarIcon` 傳遞，修復玩家隊伍立繪退化為預設棕髮騎士的 Bug。
+    - 在 [vite.config.ts](file:///i:/gameproject/Medieval/vite.config.ts) 加入 `server.watch.ignored`，解決工坊選取圖標自動存檔時觸發 Vite 熱重新整理的問題。
+    - 在 [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 修正英雄卡片左下角裝備名稱為動態查詢真實武器與強化等級（如 `炎魔巨刃 +0`），並修復英雄工坊列表影分身重複渲染問題。
+  - **戰俘判定與重複俘虜提示過濾**：
+    - 在 [ExplorationNarrativeEngine.ts](file:///i:/gameproject/Medieval/src/systems/ExplorationNarrativeEngine.ts) 中為戰鬥勝利結算的戰俘判定加入嚴格排他過濾：凡已被替換之 `【代理副將】` 或已在玩家隊伍/已在領地地牢的傳奇英雄，直接跳過俘虜判定與 Toast 提示，徹底避免戰勝代理副將時誤跳出「成功生擒雷恩」的混淆訊息。
+  - **驗證**：新增專屬單元測試，全數通過 35 個測試檔案 160 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Architecture/HeroDatabase/JSONPersistenceAutoSync] 英雄資料庫實體 JSON 化 (unique_heroes.json) 與工坊自動同步寫入硬碟重構實裝（2026-08-30）**：
+  - **英雄資料庫實體 JSON 化 (SSOT)**：
+    - 建立 [unique_heroes.json](file:///i:/gameproject/Medieval/src/data/unique_heroes.json) 實體資料庫檔案，徹底移除程式碼內的巨大硬編碼常數；[UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 直連 JSON 檔案，職責精簡為純工廠實例化邏輯。
+    - 收錄雷恩最新工坊配置（炎魔巨刃、皇家重鎧、狂暴暴擊徽章、赤銅轟擊/破甲碎擊/旋風斬技能組、六維點數 105、`characterKey: "char_ryan"`, `boundMonsterId: "enemy_ryan"`, `captureRate: 100`）。
+  - **Vite 後端與工坊自動同步硬碟 (Auto Sync Disk)**：
+    - 在 [vite.config.ts](file:///i:/gameproject/Medieval/vite.config.ts) 接通 `/api/get-hero-definitions` 與 `/api/save-hero-definitions` API，支援自動儲存至 `unique_heroes.json` 並於 `src/data/hero_backups/` 建立快照。
+    - 在 [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 英雄工坊保存時自動調用 API 寫入硬碟，達成「畫面上點擊儲存，硬碟實體檔案即時同步」的真正 SSOT 架構。
+  - **全鏈路戰俘、招降扣款與技能實裝驗證**：
+    - 在 [SkillData.ts](file:///i:/gameproject/Medieval/src/data/SkillData.ts) 支援 `SkillRegistry.getSkill` 動態解析工坊技能；在 [PrisonerModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/PrisonerModalController.ts) 招降（-2,500 金幣）與沒收（+1,000 金幣）時即時調用 `UIManager.updateUI()` 刷新頂部 HUD。
+  - **驗證**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Fix/HeroWorkshop/StorageKeyAndAvatarAlignment] 英雄工坊儲存鍵值對齊 (MEDIEVAL_CUSTOM_HEROES) 與全鏈路專屬立繪渲染修復（2026-08-30）**：
+  - **工坊 LocalStorage 鍵值對齊**：
+    - 在 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 中將讀取 Key 由 `MEDIEVAL_CUSTOM_HEROES_V2` 修正為同時支援工坊實際儲存的 `MEDIEVAL_CUSTOM_HEROES` 與 `MEDIEVAL_CUSTOM_HEROES_V2`，徹底解決遊戲內部因 Key 不一致而讀不到使用者在畫面上設計的自訂裝備、技能與屬性的核心問題。
+  - **全鏈路專屬立繪圖標渲染**：
+    - 在 [IconSpriteHelper.ts](file:///i:/gameproject/Medieval/src/ui/IconSpriteHelper.ts) 升級 `getAvatarSpriteStyle` 優先支援 `avatarIcon` 解析；在 [AdventurerCard.ts](file:///i:/gameproject/Medieval/src/ui/components/AdventurerCard.ts)、[PartyModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/PartyModalController.ts) 與 [CombatUIManager.ts](file:///i:/gameproject/Medieval/src/ui/CombatUIManager.ts) 全面傳入 `adv.avatarIcon`，確保招降與在隊時 100% 呈現工坊自訂立繪，不再退化為預設通用臉孔。
+  - **驗證**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Refactor/HeroWorkshop/SSOTWorkshopPriority] 英雄名單 SSOT 權威統一與工坊自訂資料優先覆蓋實裝（2026-08-30）**：
+  - **消除雙軌矛盾與工坊絕對優先覆蓋**：
+    - 在 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 重構 `getSelectableHeroes`：以 `Map` 載入底稿並由工坊自訂英雄（`MEDIEVAL_CUSTOM_HEROES_V2`）100% 絕對優先覆寫同 ID 官方預設英雄，徹底解決工坊編輯的 `characterKey`、`boundMonsterId` 與 `captureRate` 被硬編碼擋在門外的重大架構問題。
+    - 重構 `findHeroDef` 與 `createUniqueAdventurer`：支援依據 key、ID、`characterKey`、`boundMonsterId` 與英雄姓名進行大小寫不敏感智慧查詢，統一以工坊自訂英雄資料為 SSOT。
+    - 在程式碼預設底稿 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 與怪物庫 [monsters.json](file:///i:/gameproject/Medieval/src/data/monsters.json) 補齊雷恩的雙向綁定（`characterKey: "char_ryan"` 與 `boundMonsterId: "enemy_ryan"`、`captureRate: 100`）。
+  - **驗證**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/Dungeon/UniqueHeroSSOTCaptureDungeonSystem] 以英雄名單 (UniqueHeroDef) 為 SSOT 的全鏈路俘虜資格、地牢收押與提審招降實裝（2026-08-30）**：
+  - **英雄名冊俘虜資格嚴格檢定**：
+    - 在 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 導出 `findHeroDef` 函式，支援依據 ID、`characterKey`、`boundMonsterId` 或姓名精確檢索英雄本體。
+    - 在 [ExplorationNarrativeEngine.ts](file:///i:/gameproject/Medieval/src/systems/ExplorationNarrativeEngine.ts) 實裝以英雄名冊為準的俘虜資格判定：只有匹配到 `UniqueHeroDef` 或陣營名將 `FactionChampion` 的敵將才具備生擒資格，普通野怪/雜兵直接結算素材與金幣。
+  - **領地地牢持久化收押與招降完整還原**：
+    - 在 [Territory.ts](file:///i:/gameproject/Medieval/src/models/Territory.ts) 新增 `dungeonPrisonerHeroIds` 陣列，俘虜成功後 100% 押送至領地地牢名冊。
+    - 在 [PrisonerModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/PrisonerModalController.ts) 升級地牢清單與提審彈窗：精確渲染英雄專屬頭像（`avatarIcon` / `renderUniversalIcon`）、尊號、姓名與品質；點擊【🤝 招降加入】直接調用 `createUniqueAdventurer` 將英雄自訂六維屬性、裝備強化與專屬技能 100% 完整還原加入冒險者隊伍！
+  - **驗證**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Fix/MonsterSystem/SubjugationWavesSSOTAlignment] 討伐據點工坊自訂波次守軍精確載入與 SSOT 對齊修復（2026-08-30）**：
+  - **據點模板守軍解析與副將連動**：
+    - 在 [MonsterSystem.ts](file:///i:/gameproject/Medieval/src/systems/MonsterSystem.ts) 實裝 `createInstancesFromTemplateWaves`，精確解析戰鬥工坊 [subjugation_nodes.json](file:///i:/gameproject/Medieval/src/data/subjugation_nodes.json) 據點模板中 `waves` 設定的怪物 ID、戰力階級 `powerTier` 與九宮格站位（`gridR`, `gridC`, `slotId`, `formationRow`）。
+    - 整合 `FactionArmyGenerator.buildUnavailableCharacterSet`，當名將已入隊或被俘虜時，自動將守軍替換為副將（`substituteMonsterId`）。
+    - 重構 `generateNodeEncounter`：優先比對 `DataStore.getSubjugationTemplates()`，若據點模板具備自訂波次守軍，100% 精確載入工坊設定，徹底解決過去被隨機野生魔物（如薩滿、殭屍）覆蓋之重大 Bug。
+  - **UI 細節防呆修復**：
+    - 在 [NodeDetailModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/NodeDetailModalController.ts) 修復天氣持續天數讀取，當 `node.weatherDuration` 未定義或為 0 時預設顯示 3 天，修復 `(剩餘 undefined 天)` 顯示異常。
+  - **驗證**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/Dungeon/FallenFactionPrisonerActions] 地牢俘虜系統滅國與常規情境差異化處置邏輯實裝（2026-08-30）**：
+  - **母國存亡情境自適應處置邏輯**：
+    - 在 [PrisonerModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/PrisonerModalController.ts) 實裝母國城池數（`controlledNodes.length`）與滅國狀態（`isFallenFaction`）檢定：
+      1. **🤝 招降加入**：若母國已滅亡，亡國名將享 **50% 半價招募特惠**，並宣誓感念明主恩德誓死效忠；未滅國維持原價。
+      2. **💰 贖金與私產處置**：若母國已滅亡，按鈕自適應轉為【📦 沒收私產流放】，提示沒收其舊貴族私產並驅逐出境；未滅國則維持由母國國庫支付贖金交還將領。
+      3. **⚰️ 處決示眾**：滅國狀態下提示一代名將殞命亂世；未滅國則扣除母國好感度。
+      4. **🔓 仁慈釋放**：若母國已滅亡，按鈕轉為【🔓 仁慈釋放流亡】，提示感激領主不殺之恩，隱姓埋名浪跡大陸化身在野傳奇；未滅國則回歸母國並提升母國好感度 +10。
+  - **驗證**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[UI/StoryStudio/InspectorCardModularLayout] 故事工坊右側屬性面板 (Inspector) 模組化卡片視覺架構升級（2026-08-30）**：
+  - **模組化卡片佈局與視覺層次提升**：
+    - 在 [story-editor.html](file:///i:/gameproject/Medieval/src/templates/story-editor.html) 將右側 Inspector 面板全面重構為 6 大獨立結構卡片：【📌 節點基本資訊】、【💬 NPC 訪客與對話演出】、【🔍 出現條件檢定】、【🎁 完成後結果／獎勵】、【🎯 懸賞／據點進階設定】、【🔀 玩家決策選項】。
+    - 在 [story-editor.css](file:///i:/gameproject/Medieval/src/styles/story-editor.css) 實裝 `.inspector-card` 質感深色卡片陰影、12px 呼吸間距、各區塊專屬主題色高亮邊框（暗金、琥珀橘、青藍、翡翠綠、寶藍、亮金）與精緻折疊標題列（`<summary>`）懸停光澤。
+    - 子清單（條件列、效果列、選項卡片）加上深色微內凹襯底（`rgba(0,0,0,0.4)`），徹底解決過去表單緊密黏合、難以分辨編輯區塊之視覺痛點。
+  - **驗證**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/CombatCapture/DynamicGradientCaptureRateEngine] 戰鬥將領動態梯度俘虜率與自訂俘虜率引擎實裝（2026-08-30）**：
+  - **資料模型擴充**：
+    - 在 [types.ts](file:///i:/gameproject/Medieval/src/models/types.ts) 的 `MonsterData` 與 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 的 `UniqueHeroDef` 新增 `captureRate?: number`（0~100，選填）。
+  - **戰鬥結算動態俘虜率計算與突圍機制**：
+    - 在 [ExplorationNarrativeEngine.ts](file:///i:/gameproject/Medieval/src/systems/ExplorationNarrativeEngine.ts) 實裝 `calculateCaptureRate` 演算法：
+      1. **滅國絕境圍城（敵方派系僅剩 1 座城或無城）** ➔ **100% 必定俘虜**（絕境無法突圍）。
+      2. **自訂機率優先** ➔ 若怪物或英雄有設定 `captureRate`（如 0% 狂熱死士、80% 投降派），優先採用。
+      3. **多城攻城戰** ➔ 預設 **40%** 俘虜率。
+      4. **野外遭遇/討伐據點** ➔ 預設 **25%** 俘虜率。
+      5. **逃脫回饋** ➔ 未被俘虜時發布 `💨【突圍】敵將在親衛掩護下負傷突圍逃脫！` 敘事回饋。
+  - **戰鬥工坊 UI 與讀寫實裝**：
+    - 在 [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html) 與 [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 的【編輯怪物單位】與【編輯英雄】彈窗中實裝【🎯 專屬被俘虜率 %】輸入欄位與資料庫雙向讀寫。
+  - **單元測試與驗證**：
+    - 在 [ExplorationNarrativeEngine.test.ts](file:///i:/gameproject/Medieval/src/systems/ExplorationNarrativeEngine.test.ts) 新增 4 項單元測試。
+    - 全專案 35 個測試檔案 159 項單元測試 100% 全部通過，TypeScript 嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/CombatStudio/MonsterEditorCharacterKeyAndSubstituteFields] 戰鬥工坊怪物編輯器新增唯一角色代碼與指定代理副將輸入欄位（2026-08-30）**：
+  - **UI 與雙向讀寫實裝**：
+    - 在 [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html) 怪物編輯彈窗中新增【🔗 唯一角色代碼 (`characterKey`)】與【🛡️ 指定代理副將 ID (`substituteMonsterId`)】輸入欄位。
+    - 在 [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 實裝開啟怪物編輯彈窗時的自動回填與保存時的雙向寫入。
+  - **驗證**：全數通過 34 個測試檔案 155 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Asset/UnusedImagesCleanup] 全專案未使用圖片資源深度掃描與清理瘦身（2026-08-30）**：
+  - **資產清理與瘦身**：
+    - 深度掃描全專案 74 張圖片之引用狀況，安全清理刪除 15 張未被任何程式碼/樣式/圖集引用的舊版、重複與暫存圖片（包含根目錄高解析度角色暫存圖 `man.png`、`woman.png`、舊版黑白圖標線稿、舊版 6x6 防具圖與舊版場景圖等）。
+    - 專案體積即時釋放 **29.93 MB**，剩餘 59 張圖片經二次掃描確認 100% 正常引用中，未引用圖片數降為 0。
+  - **驗證**：全數通過 34 個測試檔案 155 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Docs/DocumentationOverhaulAndCleanup] 全專案核心手冊全面校正重整與過時文件清理（2026-08-30）**：
+  - **過時與重複檔案清理**：
+    - 刪除已完全實裝且功能併入主線的 [TAVERN_SYSTEM_PLAN.md](file:///i:/gameproject/Medieval/docs/TAVERN_SYSTEM_PLAN.md)。
+    - 刪除早期審查備忘錄 [PROJECT_ARCHITECTURE_AND_BALANCE_REVIEW.md](file:///i:/gameproject/Medieval/docs/PROJECT_ARCHITECTURE_AND_BALANCE_REVIEW.md)。
+    - 清理早期程式碼模板目錄 `docs/systems/`（含 `COMBAT_SYSTEM_TEMPLATE.md`、`MAP_DYNAMICS_TEMPLATE.md`、`SKILL_SYSTEM_TEMPLATE.md`）。
+  - **五大核心指南全面重整對齊**：
+    - [game_system_guide.md](file:///i:/gameproject/Medieval/docs/game_system_guide.md)：重構為《全系統玩法指南》，徹底校正裝備穿戴限制為「職業嚴格綁定」，補齊五大開發工坊、12 大進階轉職與動態副將機制。
+    - [MONSTERS_AND_ELEMENTS.md](file:///i:/gameproject/Medieval/docs/MONSTERS_AND_ELEMENTS.md)：升級為《怪物母庫、元素相剋與動態副將手冊》，同步 64+ 隻全魔物母庫（含 6 款陣營軍團單位與 Boss），補齊雙實體綁定與副將接替規範。
+    - [MATERIALS_AND_ITEMS.md](file:///i:/gameproject/Medieval/docs/MATERIALS_AND_ITEMS.md)：升級為《全道具、特產、鍛造素材與附魔石手冊》，同步精靈圖圖標標籤與 30+ 款完整素材清單。
+    - [STORY_STUDIO_GUIDE.md](file:///i:/gameproject/Medieval/docs/STORY_STUDIO_GUIDE.md)：同步最新英雄狀態條件多選、傳奇英雄入隊獎勵與全視覺化 Modal 挑選器操作。
+    - [CHEATS.md](file:///i:/gameproject/Medieval/docs/CHEATS.md)：補齊全自訂積木技能工坊（`skill`）快捷指令、全域控制台後門與美術排版編輯器說明。
+  - **架構總綱目錄同步**：
+    - [ARCHITECTURE.md](file:///i:/gameproject/Medieval/docs/ARCHITECTURE.md)：同步更新 `docs/` 結構為 16 份權威文件。
+
+- **[Docs/ArchitectureUpdate] 全專案架構文件 ARCHITECTURE.md 模組樹與系統規格全面同步（2026-08-30）**：
+  - **檔案目錄結構樹校正**：
+    - 補齊 `tools/skill-workshop.html`（獨立全自訂積木技能工坊入口）與 `src/tools/SkillWorkshop.ts`。
+    - 補齊 `src/tools/story-studio/` 模組化子目錄（含全視覺化挑選器 `StoryStudioHeroPicker`、`StoryStudioItemPicker`、`StoryStudioSubjugationPicker` 等）。
+    - 補齊 `src/systems/combat/`（`SkillEffectEngine.ts`、`InteractiveCombatSession.ts`、`LordCommanderSystem.ts`、`OffensiveSiegeSystem.ts`）。
+    - 補齊 `src/data/`（`CustomSkillData.json`、`NarrativeData.ts`、`EventData.ts`、`RumorData.ts`）。
+    - 補齊 `docs/`（`SKILL_WORKSHOP_SPEC.md`、`LORE_AND_EVENT_SYSTEM_PLAN.md`、`NARRATIVE_BIBLE.md` 等）。
+  - **五大獨立開發工坊架構 (The 5 Developer Studios Ecosystem)**：
+    - 正式將開發工坊體系升級為五大獨立工坊，納入 **⚡ 全自訂積木技能工坊 (Skill Workshop)**，闡明積木堆疊、狀態挑選器與 `mpCost` SSOT 機制。
+  - **戰鬥與英雄系統架構更新**：
+    - 同步記錄 **自訂積木技能效果編譯引擎 (`SkillEffectEngine.ts`)** 與 **雙實體英雄唯一身分綁定與動態副將接替引擎 (`Dynamic Vice-Commander Engine`)**。
+    - 同步記錄全域圖標水平翻轉協議（`?flip` 語法糖）。
+
+- **[Feature/HeroStudio/DualEntityBindingAndDynamicViceCommander] 雙實體英雄唯一身分綁定與動態副將接替引擎實裝（2026-08-29）**：
+  - **資料結構與型別擴充**：
+    - 在 [types.ts](file:///i:/gameproject/Medieval/src/models/types.ts) 的 `MonsterData` 新增 `characterKey?: string`（唯一角色代碼）與 `substituteMonsterId?: string`（指定代理副將 ID）。
+    - 在 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 的 `UniqueHeroDef` 新增 `characterKey?: string` 與 `boundMonsterId?: string`。
+  - **英雄創作工坊 UI & 讀寫連動**：
+    - 在 [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html) 英雄創作者彈窗中實裝【🔗 唯一角色代碼】與【👾 綁定敵方怪物 ID】欄位。
+    - 在 [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 中完成雙向讀取、編輯與自訂英雄資料庫存檔。
+  - **動態副將接替引擎 (Dynamic Vice-Commander Engine)**：
+    - 在 [FactionArmyGenerator.ts](file:///i:/gameproject/Medieval/src/systems/map/FactionArmyGenerator.ts) 實裝 `resolveTroopMember`、`getBestSubstituteMonsterId` 與 `instantiateCombatGroup`。
+    - 當英雄被玩家俘虜、招募或陣亡時，戰鬥瞬間自動依「手動指定副將 ➔ 客觀保底演算法（同攻擊型態+人類正規軍+最高戰力階級）」動態生成代理副將實體（冠以 `【代理副將】` 稱號），據點工坊原始部隊藍圖 100% 保持唯讀隔離。
+  - **驗證**：34 個測試檔案 155 項單元測試 100% 全部通過，TypeScript 嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Refactor/SkillSystem/MpCostFieldStandardization] 技能系統與自訂積木技能全專案 MP 消耗欄位標準化 (mpCost SSOT 收斂)（2026-08-29）**：
+  - **資料庫與型別全面標準化為 `mpCost`**：
+    - 在 [Skill.ts](file:///i:/gameproject/Medieval/src/models/Skill.ts) 中將 `CompositeSkillDefinition` 標準化為 `mpCost: number`（保留 `totalMpCost?: number` 作為選填向下相容）。
+    - 批次更新 [CustomSkillData.json](file:///i:/gameproject/Medieval/src/data/CustomSkillData.json) 所有自訂技能的魔力消耗欄位為標準 `mpCost`。
+    - [SkillWorkshop.ts](file:///i:/gameproject/Medieval/src/tools/SkillWorkshop.ts) 與 [SkillEffectEngine.ts](file:///i:/gameproject/Medieval/src/systems/combat/SkillEffectEngine.ts) 全面以 `mpCost` 進行表單綁定、渲染、新技能初始化與編譯。
+  - **驗證**：33 個測試檔案 151 項單元測試 100% 全部通過，TypeScript 嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Fix/HeroStudio/CustomSkillMpCostDisplay] 英雄工坊技能卡槽自訂技能 MP 消耗 (totalMpCost) 讀取相容性修復（2026-08-29）**：
+  - 修復 [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 在渲染英雄編輯器 3 格初始技能卡槽與技能挑選器時，僅讀取官方技能欄位 `sk.mpCost` 而未相容自訂技能 `sk.totalMpCost` 導致自訂技能皆錯誤顯示為 `0 MP` 的問題。
+  - 升級為相容讀取 `sk.mpCost ?? sk.totalMpCost ?? sk.cost?.mpCost ?? 0`，使【赤鋼轟擊】(15 MP) 等所有工坊創作技能在卡片與 Tooltip 上皆 100% 正確顯示真實 MP 消耗。
+  - **驗證**：33 個測試檔案 151 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+- **[Feature/SkillWorkshop/StatusEffectVisualPicker] 技能工坊積木狀態類型 (StatusType) 全視覺化挑選器 Modal 與按鈕重構實裝（2026-08-29）**：
+  - **狀態類型輸入框重構為點擊式卡片按鈕**：
+    - 將 [skill-workshop.html](file:///i:/gameproject/Medieval/src/templates/skill-workshop.html) 與 [SkillWorkshop.ts](file:///i:/gameproject/Medieval/src/tools/SkillWorkshop.ts) 中原本自由輸入的文字框升級為自適應展示按鈕（未選擇時顯示 `🚫 無狀態 (點擊挑選)`，已選擇時顯示如 `🔥 灼燒 (BURN)`）。
+  - **全視覺化狀態選擇器 Modal (`#modal-sw-status-picker`)**：
+    - 分區展示 **🔥 異常與負面狀態 (DEBUFF)**（灼燒、中毒、流血、暈眩、破甲、感電、恐懼、嘲諷、烙印等 9 種）與 **🛡️ 正面增益 (BUFF)**（物攻提升、魔攻提升、物防提升、雙防提升、閃避提升、持續回血、持續回魔、傷害護盾等 8 種）。
+    - 提供【🚫 清空 / 不附加狀態】按鈕，點擊任何狀態卡片即時寫入積木設定、更新外觀並自動同步寫入 LocalStorage。
+  - **驗證**：33 個測試檔案 151 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+- **[Feature/SkillWorkshop/IdEditAndDiskSyncOverhaul] 全自訂積木技能工坊 ID 即時連動修復、雙向儲存同步與【🔄 從專案重載 (Git 同步)】實裝（2026-08-29）**：
+  - **技能 ID 雙向即時連動與指標修復**：
+    - 修復 [SkillWorkshop.ts](file:///i:/gameproject/Medieval/src/tools/SkillWorkshop.ts) 中修改技能 ID 後 `this.currentSkillId` 未同步更新而導致後續所有編輯（名稱、圖標、積木增刪、倍率調整）全部失效的致命 Bug。
+    - 新增 ID 重複性防呆檢查（即時紅色邊框與 Tooltip 警示）。
+  - **多層次穩健載入機制 (Multi-Tier Fallback)**：
+    - `loadSkills()` 升級為：優先從 `/api/get-custom-skills` 磁碟 API 載入 ➔ 次選從瀏覽器 `localStorage` 載入 ➔ 底層 Fallback 讀取靜態 `CustomSkillData.json`，絕不出現清空為 `[]` 的問題。
+  - **雙向儲存同步 (Dual-Sync SSOT)**：
+    - 儲存時自動同步寫入瀏覽器 `localStorage('MEDIEVAL_CUSTOM_COMPOSITE_SKILLS')` 與專案磁碟檔案 `src/data/CustomSkillData.json`。
+    - [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 自訂技能讀取同步支援 `CustomSkillData.json` 靜態 fallback，確保兩大工坊 100% 互通。
+  - **新增【🔄 從專案重載 (Git 同步)】按鈕**：
+    - 在 [skill-workshop.html](file:///i:/gameproject/Medieval/src/templates/skill-workshop.html) 頂部導航列新增 `#btn-sw-reload-disk` 按鈕，支援一鍵強制重新自專案磁碟載入技能資料庫並覆蓋草稿。
+  - **驗證**：33 個測試檔案 151 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+- **[Feature/HeroStudio/EquipPickerModalAndSkillTooltipRefactor] 英雄工坊三槽技能簡短ICON+Tooltip精簡化與三格裝備全視覺化Modal挑選器重構（2026-08-29）**：
+  - **技能三槽卡片排版極致精簡 (3 槽並排一覽無遺)**：
+    - 重構 [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html) 技能配置區，改為標準等寬三等分並排 `grid-template-columns: repeat(3, 1fr)`。
+    - 卡片內部只保留圖標、技能名稱與 MP 消耗標籤，詳細技能說明全面移至卡槽容器的 **懸浮提示（Tooltip / title）** 中，徹底解決卡片過大造成第 3 個進階終極技能被擠出畫面的問題。
+  - **三格裝備徹底移除 `<select>` 下拉選單 ➔ 全視覺化 Modal 挑選器 (對齊 SSOT)**：
+    - 徹底拔除武器、防具、飾品 3 處 `<select>` 下拉選單，改為點擊式展示卡片槽位（大圖標、名稱、T階標籤、空裝狀態）。
+    - 點擊卡片彈出全視覺化【⚔️ 英雄裝備挑選器 Modal】（`#modal-hc-equip-picker`）：支援關鍵字搜尋、階級 Tab 篩選。
+    - **100% 對齊視覺與數據唯一來源 (SSOT)**：全裝備圖標統一透過 `renderEquipIcon(item, sizePx)` 渲染，自動解析各武器類型（法杖/長弓/雙劍/巨劍/戰鐮/劍盾等）與防具（布甲/皮甲/重鎧）原生九宮格精靈圖與 T1~T4 品質光框；屬性數值統一對齊 `item.combatEffects`（正確顯示真實物攻/魔攻/物防/魔防/詞條），不再降級為 Emoji 或顯示 `+0`。
+  - **驗證**：33 個測試檔案 151 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+- **[Feature/StoryStudio/HeroIntegrationAndTestHeroIsolation] 故事工坊英雄連動機制（條件多選 + 獎勵加入英雄）與測試英雄嚴格隔離實裝（2026-08-29）**：
+  - **故事前置條件支援英雄狀態（多選、非下拉選單）**：
+    - 在 [Narrative.ts](file:///i:/gameproject/Medieval/src/models/Narrative.ts) 與 [NarrativeSystem.ts](file:///i:/gameproject/Medieval/src/systems/NarrativeSystem.ts) 中實裝 `HERO_EXISTS`（已擁有指定英雄）與 `HERO_MISSING`（尚未擁有指定英雄）條件判斷，支援多選名單與 `ANY` / `ALL` 匹配模式。
+  - **任務與故事節點獎勵支援贈送英雄（`GRANT_HERO`）**：
+    - 在 [NarrativeSystem.ts](file:///i:/gameproject/Medieval/src/systems/NarrativeSystem.ts) 的 `applyEffects` 中實裝 `GRANT_HERO`，自動呼叫 `createUniqueAdventurer` 並將英雄（含三格初始裝備與自訂技能）加入玩家領地名冊中。
+  - **故事工坊全視覺化英雄挑選器（Modal Grid）**：
+    - 建立 [StoryStudioHeroPicker.ts](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioHeroPicker.ts)，支援關鍵字即時搜尋、卡片立繪展示、單選模式（獎勵）與打勾多選模式（條件），在 [StoryStudioForm.ts](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioForm.ts) 中以徽章標籤清單與精美預覽卡片呈現，徹底摒棄下拉選單。
+  - **內部測試英雄【不滅誓約】神聖誓約騎士嚴格隔離**：
+    - 在 [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 中為 `oath` 標記 `isTestOnly: true`，並在 `getSelectableHeroes` 中 100% 過濾排除，確保測試專用數據不被選取且絕不出現在遊戲內故事與招募清單中。
+  - **驗證**：33 個測試檔案 151 項單元測試 100% 全部通過，新增 [NarrativeSystem.test.ts](file:///i:/gameproject/Medieval/src/systems/NarrativeSystem.test.ts) 與 [UniqueAdventurers.test.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.test.ts) 守護測試，Vite 生產打包 0 錯誤。
+
+- **[Feature/HeroStudio/EquipmentAndCustomSkills] 英雄工坊三格獨立裝備配置 (支援空裝) 與全視覺化三槽技能挑選器實裝（2026-08-29）**：
+  - **三格獨立初始裝備配給 (對齊遊戲本體)**：
+    - 重構 [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html) 英雄編輯彈窗，徹底移除死板神裝設定，改為與遊戲對齊的 **【⚔️ 主手武器 / 🛡️ 身體防具 / 💍 飾品槽】** 三格獨立槽位。
+    - 支援 `(無武器 / 空手)`、`(無防具)`、`(無飾品)`，可自由指定任何品項、附魔元素（火/冰/雷/暗/聖）與強化等級 (+0~+10)，並享有實時圖標預覽。
+  - **三槽自訂技能配置與全視覺化挑選器 Modal (非下拉選單)**：
+    - 英雄初始技能配置開放 3 槽（基礎 1、基礎 2、進階 3），切換基礎職業時自動切換為該職業預設 3 招。
+    - 點擊任一卡槽喚起全視覺化【🔮 技能挑選器 Modal】（支援分類 Tab、關鍵字即時搜尋、卡片網格展示圖標/名稱/耗藍 MP/詳細效果），點擊卡片一鍵替換。
+    - 整合官方全職業技能庫與技能工坊（Skill Workshop）玩家創作的自訂技能。
+  - **戰鬥與資料層單一真理來源 (SSOT)**：
+    - [UniqueAdventurers.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.ts) 與 [Adventurer.ts](file:///i:/gameproject/Medieval/src/models/Adventurer.ts) 支援 `customSkills?: string[]` 與靈活空裝備生成。
+    - [SkillData.ts](file:///i:/gameproject/Medieval/src/data/SkillData.ts) 與 [CombatSystem.ts](file:///i:/gameproject/Medieval/src/systems/CombatSystem.ts) 100% 優先讀取 `customSkills`，確保在戰鬥與屬性面板中絕對生效。
+  - **驗證**：33 個測試檔案 148 項單元測試 100% 全部通過，新增 [UniqueAdventurers.test.ts](file:///i:/gameproject/Medieval/src/data/UniqueAdventurers.test.ts) 守護測試，Vite 生產打包 0 錯誤。
+
+- **[Feature/Icon/UniversalFlipModifier] 通用圖標挑選器水平翻轉 (SSOT) 與全域 `?flip` 語法糖實裝（2026-08-29）**：
+  - **唯一真理來源 (SSOT) 圖標標識符協議升級**：
+    - 在 [IconSpriteHelper.ts](file:///i:/gameproject/Medieval/src/ui/IconSpriteHelper.ts) 的核心入口 `renderUniversalIcon` 與 `renderUniversalPortrait` 中原生實裝 `?flip` 語法糖解析。
+    - 當標識符包含 `?flip`（例如 `faction_units_8x8:f_lothgar_0?flip`）時，自動在 rendered 節點附加 `transform: scaleX(-1);` 達成零素材冗餘、純 CSS 實時水平鏡像。
+  - **全工坊通用圖標選擇器 (Universal Icon Picker) 翻轉按鈕**：
+    - 在 [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html) 與 [equipment-studio.html](file:///i:/gameproject/Medieval/src/templates/equipment-studio.html) 的圖標挑選器頂部加入【`↔️ 水平翻轉: 開/關`】Toggle 開關按鈕。
+    - [CombatStudio.ts](file:///i:/gameproject/Medieval/src/tools/CombatStudio.ts) 與 [EquipmentStudio.ts](file:///i:/gameproject/Medieval/src/tools/EquipmentStudio.ts) 同步實裝狀態管理，開啟翻轉時即時呈現鏡像預覽，選中時自動組合回傳 `${fullId}?flip`。
+  - **完美分離怪物與英雄實體**：
+    - 製作敵方怪物時使用原始朝向（朝左），製作招降後加入的英雄單位時打開翻轉（朝右），無需重複切圖即可各自維持獨立數值實體。
+  - **驗證**：33 個測試檔案 147 項單元測試 100% 全部通過，新增 [IconSpriteHelper.test.ts](file:///i:/gameproject/Medieval/src/ui/IconSpriteHelper.test.ts) 守護測試，Vite 生產打包 0 錯誤。
+
+- **[Refactor/GeographyAlignmentExecution] 全專案勢力地理稱謂全面校正實裝（2026-08-28）**：
+  - **全面校正並通過編譯**：
+    - [combat-studio.html](file:///i:/gameproject/Medieval/src/templates/combat-studio.html)：更新勢力篩選與編輯下拉選單，全面採用 `👑 洛斯加中央王室`、`❄️ 北境 赫斯特神聖教廷`、`🌹 西境 貝拉維亞商會`、`🌋 熔岩鍛爐 沃爾蒙德大公國`、`🏜️ 赤砂荒漠 達斯克城邦`、`🌾 橡木谷家族`、`🛡️ 黑木守衛`。
+    - [FactionData.ts](file:///i:/gameproject/Medieval/src/data/FactionData.ts)：校正各大陣營註解、簡介與武將封號描述。
+    - [MapData.ts](file:///i:/gameproject/Medieval/src/data/MapData.ts)：校正 27 處官方據點區塊分類與城鎮地理描述。
+    - [subjugation_nodes.json](file:///i:/gameproject/Medieval/src/data/subjugation_nodes.json)：校正所有官方據點與軍團範本中的歷史錯位文字。
+    - [FactionArmyGenerator.ts](file:///i:/gameproject/Medieval/src/systems/map/FactionArmyGenerator.ts)：同步更新軍團特質與生成註解。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **地理真實對齊**：
+    - 依據 `bg-map.webp` 與 `MapMaskData.ts` 畫布羅盤，全面校正歷史文案稱謂錯位：
+      1. 👑 `f_lothgar`：**👑 洛斯加中央王室**（中央平原）
+      2. ⛪ `f_hurst`：**❄️ 北境 赫斯特神聖教廷**（極北雪山 · 保留北境）
+      3. 🌹 `f_bellavia`：**🌹 西境 貝拉維亞商會**（翡翠林海 · 保留西境）
+      4. 🌋 `f_vormund`：**🌋 熔岩鍛爐 沃爾蒙德大公國**（西南火山群 · 地質文化稱謂）
+      5. 🏜️ `f_dusk`：**🏜️ 赤砂荒漠 達斯克城邦**（東南大沙漠 · 地質文化稱謂）
+      6. 🌾 `f_oakhaven`：**🌾 橡木谷家族**（西境隱世林地）
+      7. 🛡️ `f_blackwood`：**🛡️ 黑木守衛**（西境深林古印）
+      8. 🐉 `f_dragonkin`：**🐉 遠古龍裔**（遠古秘境）
+
+  - **邊境守備範本化**：
+    - 於 `subjugation_nodes.json` 建立邊境兩大家族專屬編制模板：
+      1. `oak_army_template`（🌿 橡木谷民兵自衛隊標準編制 - `f_oakhaven`）：長槍鄉勇、森林長弓手、草藥祭司。
+      2. `blk_army_template`（🌲 黑木守衛封印巡邏隊標準編制 - `f_blackwood`）：守印老兵、劫掠悍匪首領、林地暗殺刺客、黑木狂熱者。
+    - 同樣設定為 `worldGenMode: 'STORY_ONLY'`，完美融入據點工坊可編輯體系。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **九宮格純戰鬥化**：
+    - 將五大軍團範本（`royal_army_template`, `val_army_template`, `mor_army_template`, `lys_army_template`, `cas_army_template`）第二波 3×3 九宮格後排的攻城器械移除，替換為該勢力正規後衛（宮廷法師、重弩破甲手、神聖大主祭、隨軍鍊金術士、荒漠遊俠）。
+    - 攻城槌（Rams）與投石機（Catapults）回歸由 AI 出征決策與 `attackerConfig` / `military` 動態掛載與結算，不再佔用士兵肉身格位。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **據點工坊範本化**：
+    - 於 `subjugation_nodes.json` 建立 5 大 AI 勢力專屬軍團標準編制模板：
+      1. `royal_army_template`（👑 洛斯加王室軍團標準編制 - `f_lothgar`）
+      2. `val_army_template`（🌋 沃爾蒙德鐵血軍團標準編制 - `f_vormund`）
+      3. `mor_army_template`（⛪ 赫斯特神聖教廷標準編制 - `f_hurst`）
+      4. `lys_army_template`（🌹 貝拉維亞金玫瑰行會標準編制 - `f_bellavia`）
+      5. `cas_army_template`（🏜️ 達斯克城邦角鬥軍團標準編制 - `f_dusk`）
+    - 各範本均包含兩波完整 3×3 九宮格部隊編制（先鋒騎士隊 + 主力大軍/攻城器械），設定為 `worldGenMode: 'STORY_ONLY'`，可直接在據點工坊中自由編輯與測試。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **8×8 專屬圖集 (`faction_units_8x8`)**：
+    - 生成純黑底、全角色 100% 嚴格 3/4 側臉朝左（Facing Left `<-`）的 64 格精緻像素厚塗兵種圖集，儲存至 `public/assets/custom_icons/faction_units_8x8.jpg`。
+    - 於 `custom_icon_datasets.json` 完整註冊 `faction_units_8x8` 圖集，無縫支援全圖集圖標挑選器（Universal Icon Picker）。
+  - **特色兵種資料庫 (`monsters.json`)**：
+    - 完整錄入五大陣營（洛斯加王室、沃爾蒙德大公國、神聖教廷、金玫瑰商會、達斯克城邦）以及邊境（橡木谷、黑木悍匪、龍裔）共 26 種特色正規軍團單位。
+    - 包含：皇家重劍禁衛、金獅重騎兵、極地黑鐵重甲衛、鍛爐狂戰斧手、聖耀十字軍、天罰聖殿騎士、金玫瑰決鬥家、暗鴉劇毒刺客、赤砂角鬥士、黑鐵長槍兵、龍裔龍衛等。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **根本原因**：先前怪物工坊彈窗儲存按鈕（`btn-save-monster-item`）無條件執行 `monstersDb.push()`，未做 ID 比對更新；當使用者建立怪物後再次點擊「✏️ 編輯」或更換圖標保存時，會將同一隻怪物重複推入陣列中，導致清單與 `monsters.json` 出現兩隻一模一樣的 `goblin_archr`。
+  - **修復**：改為以 `findIndex(m => m.id === id)` 進行防重比對更新；同時修復儲存時自動帶入選擇的 `avatarIcon` 與打勾的 `terrains` 地形；並清理了 `monsters.json` 結尾處的重複項目。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **ID 大一統**：
+    - 將 `subjugation_nodes.json` 裡的 27 處官方預設模板 ID（如 `val_forge_capital`、`royal_eternal_city`、`royal_scholar_tower`）全面校正為權威大地圖標準代號（`n_val_1` 鍛主之城、`n_royal_1` 舊王都、`n_adv_1` 學士塔 等）。
+    - 徹底消除了陣營首都、領地控制、道路拓撲、大地圖渲染與據點工坊之間的別名分裂，實現真正的「唯一真理來源 (SSOT)」。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **根本原因**：原生節點（`INITIAL_MAP_NODES`）採用縮寫 ID（如 `n_val_1` 對應 `鍛主之城`），而討伐據點庫模板採用英文全稱 ID（如 `forge_master_city` 對應 `鍛主之城`）。先前僅檢查 `existingNodeIds.has(tpl.id)`，導致比對落空，將官方 24 處原生據點當成新建常駐據點重複生成了一份。
+  - **修復**：在 `GameState.ts` 與 `NarrativeTestController.ts` 中加入 `existingNodeNames.has(tpl.name)` 雙重防重比對。原生同名據點只會同步圖標、特產與守軍編制，絕不再重複生成多餘節點；真正新創的自訂據點（如 `cas_red_sand_city_01`）則精確生成單一實體。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **問題修復**：原本故事工坊的即時沙盒測試控制器（`NarrativeTestController.ts`）僅載入硬編碼的 `INITIAL_MAP_NODES`，導致使用者在據點工坊新建的攻略據點（如 `cas_red_sand_city_01`）與秘境無法在大地圖測試中出現。
+  - **架構對齊**：已重構 `NarrativeTestController.ts`，與正式遊戲 `GameState.initGameState()` 對齊，全面動態讀取 `DataStore.getSubjugationTemplates()`，將所有自訂常駐據點與秘境（包含產銷特產配置與全開視野）完整生成至測試大地圖上。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **UI/UX 大升級**：
+    - 徹底移除內嵌醜陋的雙卷軸清單，改為優雅的 `【🎨 選擇盛產物資】` 與 `【🎨 選擇需求物資】` 按鈕。
+    - 主面板以彩色膠囊標籤（綠色盛產、金色需求）直觀展示已選物資（帶素材小圖標與名稱），點擊標籤上的 `✕` 即可秒速移除。
+    - 點擊按鈕彈出全物資視覺化彈窗選擇器（`#modal-material-picker`），支援即時關鍵字搜尋、卡片點擊多選切換、金色光環勾選反饋與一鍵清空。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **架構大一統**：
+    - 徹底廢除重複抽象的 `TradeGood` 分類宣告，將城鎮市場、商隊跑商、鐵匠鋪鍛造、強化素材與領地倉庫 100% 統一收斂至唯一權威資料庫 [src/data/materials.json](file:///i:/gameproject/Medieval/src/data/materials.json)。
+    - `src/systems/MarketSystem.ts` 中的 `TRADE_GOODS` 直接引用 `materials.json`，杜絕任何重複 ID、同名錯亂與物資轉換落差。
+  - **據點工坊 (Subjugation Studio) 產銷自訂對接**：
+    - 在據點屬性面板中新增「城鎮市場產銷配置」UI，可自由勾選指定該據點之【🛒 盛產／可買物資 (低價批發)】與【💰 短缺／需求物資 (高價收購)】。
+    - 勾選清單直接動態讀取 `materials.json`，即時支援在裝備工坊中新增的任何新素材。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **故事工坊選單擴充 (`src/models/Narrative.ts`, `src/tools/story-studio/StoryStudioTypes.ts`, `src/tools/story-studio/StoryStudioForm.ts`)**：
+    - 在故事編輯器「條件選單」中無縫新增 3 大沙盒狀態條件：
+      1. 🏰 **`NODE_OWNER_IS`（據點控制權）**：指定據點（如 `n_royal_1`）當前是否被特定派系佔領。
+      2. ⚔️ **`FACTION_AT_WAR`（派系交戰中）**：指定派系是否處於交戰宣戰狀態。
+      3. 🌾 **`FACTION_STARVING`（派系陷入糧荒）**：指定派系是否因斷糧陷入飢荒。
+  - **敘事判定與文案描述 (`src/systems/NarrativeSystem.ts`)**：
+    - 在 `checkCondition` 與 `describeCondition` 中完整實裝沙盒條件比對，與動態文字插值器協同運作。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **大地圖軍團道路渲染 (`src/ui/MapScene.ts`)**：
+    - 在 Phaser 地圖引擎中新增 `renderCampaignLegions()`，依據出征陣營代表色、兵種 Emoji（`🏰` 圍城 / `🐎` 掠奪）與道路進度平滑繪製行軍軍團標籤。
+    - 支援軍團點擊互動與滑鼠懸停，發布 `faction-campaign-clicked` 全域自訂事件。
+  - **軍情刺探與野外攔截彈窗 (`src/templates/modals-combat-trade.html`, `src/ui/modals/FactionCampaignModalController.ts`)**：
+    - 實裝 `#modal-faction-campaign-intel` 彈窗，展示進攻方勢力、目標據點、敵軍編制、預估抵達天數與外交後果提示。
+    - 實裝【⚔️ 發動野外攔截伏擊】與【🕊️ 放行旁觀】交互，攔截成功後即時瓦解進攻軍團，並結算雙向外交好感度（進攻方 -35、防守方 +40）。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **戰役與行軍系統 (`src/systems/faction/FactionCampaignSystem.ts`)**：
+    - 實裝軍事戰役生命週期（出征調集 `MARCHING` ➔ 圍城轟擊/掠奪 `SIEGING` / `BORDER_RAID` ➔ 班師回朝 `RETURNING` ➔ 結算 `RESOLVED`）。
+    - 邊境掠奪即時結算：掠奪目標國庫與糧草，重挫目標領地安定度並提升厭戰度。
+    - 要塞圍城決戰：攻守雙方戰力與城門器械比對，破城時轉移據點控制權並自動簽訂 180 天停戰保護協定。
+  - **故事與傳聞橋接 (`src/systems/faction/FactionNarrativeBridge.ts`)**：
+    - 自動將重大戰役事件轉譯為酒館流動傳聞與歷史捷報。
+    - 實裝故事工坊動態文字插值（`{NODE_NAME}`、`{NODE_OCCUPIER}`、`{NODE_RULER_NAME}`、`{WAR_ATMOSPHERE}`）與三大沙盒狀態條件判定，大幅降低劇情創作文本負擔。
+  - **驗證**：32 個測試檔案 143 項單元測試 100% 全部通過，Vite 生產打包 0 錯誤。
+
+  - **陣營深度資料模型 (`src/models/FactionProfile.ts`)**：
+    - 定義 `FactionEconomicProfile`（國庫、糧草天數、稅收、關稅、軍餉、淨盈虧）、`FactionMilitaryProfile`（步兵/弓兵/騎兵編制、後備兵源池、攻城器械庫存）、`FactionPersonalityTraits`（好戰、貪婪、猜忌、榮譽與核心慾望）與 `FactionMemory`（事件記憶與停戰期）。
+  - **經濟與兵源引擎 (`src/systems/faction/FactionEconomyEngine.ts`)**：
+    - 每日動態結算各據點階級稅收與農村糧食收成、扣除軍隊軍餉與糧食消耗。
+    - 飢荒與破產連鎖反應：糧盡觸發民心動盪與逃兵潮；國庫空虛壓制安定度；和平與繁榮期自適應提升安定度與兵源恢復。
+  - **決策大腦與 4 大保命煞車機制 (`src/systems/faction/FactionDecisionAI.ts`)**：
+    - 實裝 4 大強制保命煞車（國庫緊繃凍結進攻轉入防守、厭戰度過高強制發起停戰求和並享有 180 天停戰保護、出征中鎖定、缺糧向玩家發布重金運糧委託）。
+    - 實裝多維度效用評估模型（經商休養、僱傭玩家第三方作戰、邊境掠奪與大軍圍城攻防）。
+  - **驗證**：31 個測試檔案 140 項單元測試 100% 通過、TypeScript 0 型別錯誤與 Vite 生產打包驗證通過。
+
   - **根本原因**：HTML 模板為 JS 動態字串注入，行內樣式 `style="background-image: url('/...')"` 不受 Vite 編譯期路徑重寫，導致瀏覽器直連根域名 404 使街道建築與傭兵面板隱形。
   - **解決方案**：
     - 將街道建築（領主自宅、謁見廳、酒館、改造所、二手商、防禦工事、鍛造屋、教會）與傭兵面板的背景圖與尺寸**全部集中至 [style.css](file:///i:/gameproject/Medieval/style.css) 作為 SSOT**，徹底由 Vite 編譯器轉換為帶 `/Medieval/` 前綴之正確路徑。

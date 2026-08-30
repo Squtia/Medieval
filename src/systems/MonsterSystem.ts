@@ -1,10 +1,11 @@
-import { TerrainType, MonsterData, MonsterRace, MonsterProfile, MonsterInstance, ElementType, MapNode, StrongholdAffix } from '../models/types';
+import { TerrainType, MonsterData, MonsterRace, MonsterProfile, MonsterInstance, ElementType, MapNode, StrongholdAffix, FormationRow } from '../models/types';
+import { SubjugationTemplate } from '../models/Narrative';
 import { Random } from '../core/Random';
 import monstersJson from '../data/monsters.json';
-
 import nestNamesJson from '../data/nestNames.json';
 import { GameState } from '../core/GameState';
 import { FactionArmyGenerator } from './map/FactionArmyGenerator';
+import { DataStore } from './DataStore';
 
 export class MonsterSystem {
   private monsters: MonsterData[] = [];
@@ -277,6 +278,91 @@ export class MonsterSystem {
   }
 
   /**
+   * 從討伐據點模板中將自訂波次守軍轉換為精確的 MonsterInstance 陣容 (支援九宮格站位與副將自動接替)
+   */
+  public createInstancesFromTemplateWaves(tpl: SubjugationTemplate): MonsterInstance[] {
+    if (!tpl.waves || tpl.waves.length === 0) return [];
+
+    // 取得當前不可用角色名單（已招募為冒險者、被關押在地牢等）
+    const allCapturedPrisoners: { id: string; characterKey?: string; boundMonsterId?: string }[] = [];
+    
+    // 1. 領地自身地牢俘虜 (UniqueHeroDef ID)
+    const territoryPrisonerHeroIds = GameState.myTerritory?.dungeonPrisonerHeroIds || [];
+    territoryPrisonerHeroIds.forEach(hid => {
+      allCapturedPrisoners.push({ id: hid });
+    });
+
+    // 2. AI 派系俘虜
+    const factions = GameState.mapSystem?.getFactions() || [];
+    factions.forEach(f => {
+      if (f.capturedChampionIds) {
+        f.capturedChampionIds.forEach(cid => {
+          const champ = f.champions?.find(c => c.id === cid);
+          allCapturedPrisoners.push({
+            id: cid,
+            characterKey: (champ as any)?.characterKey,
+            boundMonsterId: (champ as any)?.boundMonsterId
+          });
+        });
+      }
+    });
+
+    const unavailableSet = FactionArmyGenerator.buildUnavailableCharacterSet(
+      (GameState.adventurers as any) || [],
+      allCapturedPrisoners,
+      []
+    );
+
+    const encounter: MonsterInstance[] = [];
+    const firstWave = tpl.waves[0];
+    const waveMonsters = firstWave?.monsters || [];
+
+    for (const mDef of waveMonsters) {
+      let monsterId = mDef.monsterId;
+      let base = this.getMonsterById(monsterId);
+      if (!base) continue;
+
+      let isSubstituted = false;
+      const isUnavailable = (
+        (base.characterKey && unavailableSet.has(base.characterKey)) ||
+        unavailableSet.has(base.id)
+      );
+
+      // 檢查副將接替 (若名將已入隊/被俘/在地牢)
+      if (isUnavailable) {
+        let substituteId = base.substituteMonsterId;
+        if (!substituteId || !this.getMonsterById(substituteId)) {
+          substituteId = FactionArmyGenerator.getBestSubstituteMonsterId(base);
+        }
+        const subMonster = this.getMonsterById(substituteId);
+        if (subMonster) {
+          base = subMonster;
+          isSubstituted = true;
+        }
+      }
+
+      const powerTier = mDef.powerTier || base.powerTier || 1.0;
+      const element = base.defaultElement || ElementType.NONE;
+      const race = base.race;
+      
+      const instance = this.createMonsterInstance(base, race, element, powerTier * 3);
+      if (isSubstituted && !instance.name.includes('【代理副將】')) {
+        instance.name = `【代理副將】${instance.name}`;
+      }
+      instance.gridR = mDef.gridR;
+      instance.gridC = mDef.gridC;
+      instance.slotId = mDef.slotId;
+      instance.formationRow = mDef.formationRow;
+      if (mDef.powerTier) {
+        instance.calculatedPowerScore = Math.round((instance.damage || 20) * powerTier * 10);
+      }
+      encounter.push(instance);
+    }
+
+    return encounter;
+  }
+
+  /**
    * 為特定地圖據點生成並持久化駐軍資訊 (確保偵查內容與戰鬥 100% 一致，且動態據點擴張時主題不變)
    */
   public generateNodeEncounter(node: MapNode): MonsterInstance[] {
@@ -285,7 +371,25 @@ export class MonsterSystem {
     
     let encounter: MonsterInstance[];
 
-    if (node.ownerFactionId && node.ownerFactionId !== 'player') {
+    // 1. 優先比對據點工坊自訂模板 (SubjugationNodeDB)
+    const allTemplates = DataStore.getSubjugationTemplates();
+    const tpl = allTemplates.find(t => 
+      t.id === node.id || 
+      t.id === node.narrativeSubjugation?.templateId || 
+      t.id === node.narrativeSubjugation?.sourceNodeId || 
+      t.name === node.name
+    );
+
+    if (tpl && tpl.waves && tpl.waves.length > 0) {
+      const templateInstances = this.createInstancesFromTemplateWaves(tpl);
+      if (templateInstances.length > 0) {
+        encounter = templateInstances;
+        if (tpl.description) node.description = tpl.description;
+        if (tpl.difficulty) node.baseDifficulty = tpl.difficulty;
+      } else {
+        encounter = this.generateEncounter(node.terrain, baseDifficulty, isNecroticTheme, node.establishedBaseMonsterId);
+      }
+    } else if (node.ownerFactionId && node.ownerFactionId !== 'player') {
       // 這是陣營的據點，生成陣營正規軍與傳奇 Boss
       const factions = GameState.mapSystem.getFactions();
       const faction = factions.find(f => f.id === node.ownerFactionId);

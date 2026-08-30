@@ -5,12 +5,13 @@ import { AdventureLogEntry, AdventureLogSegment, SegmentType, AdventureLogReward
 import { EXPLORATION_EVENTS, getRandomNarrativePool } from '../data/NarrativeData';
 import { CombatSystem } from './CombatSystem';
 import { EnemyFeature, SubjugationMode, TaskType } from '../models/DispatchTask';
-import { MapNode, NodeLevel } from '../models/types';
+import { MapNode, NodeLevel, MonsterRace } from '../models/types';
 import { getDifficultyModifiers, getCombatPrestigeReward } from '../data/BalanceData';
 import { monsterSystem } from './MonsterSystem';
 import { EventBus } from '../core/EventBus';
 import { EquipmentGenerator } from './EquipmentGenerator';
 import { GameEventType } from '../core/GameEvents';
+import { findHeroDef } from '../data/UniqueAdventurers';
 
 export class ExplorationNarrativeEngine {
   
@@ -205,20 +206,82 @@ export class ExplorationNarrativeEngine {
          heroXpReward += bonus;
       }
       
-      // 3. 戰俘判定 (Dungeon System)
+      // 3. 戰俘判定 (Dungeon System - 以英雄名單 UniqueHeroDef 為 SSOT 資格)
       if (enemyLineup && enemyLineup.length > 0) {
-        const bosses = enemyLineup.filter(e => (e as any).isBoss && (e as any).factionId);
-        for (const boss of bosses) {
-          const bossAny = boss as any;
-          const faction = GameState.mapSystem.getFactions().find(f => f.id === bossAny.factionId);
-          if (faction) {
-            if (!faction.capturedChampionIds) faction.capturedChampionIds = [];
-            if (!faction.capturedChampionIds.includes(bossAny.id)) {
-              faction.capturedChampionIds.push(bossAny.id);
-              import('../ui/ToastManager').then(({ ToastManager }) => {
-                ToastManager.show(`🏆 戰鬥勝利！你俘虜了【傳奇騎士】${bossAny.name}，已押送至領地地牢。`, 'success');
-              });
+        for (const captive of enemyLineup) {
+          const captiveAny = captive as any;
+          
+          // 查詢是否具備英雄名冊資格 (或派系將領)
+          const heroDef = findHeroDef(captiveAny.id) || 
+                          (captiveAny.characterKey ? findHeroDef(captiveAny.characterKey) : null);
+          
+          const faction = captiveAny.factionId ? GameState.mapSystem?.getFactions().find(f => f.id === captiveAny.factionId) : undefined;
+          const isFactionChampion = Boolean(faction && faction.champions?.some(c => c.id === captiveAny.id));
+
+          // 只有匹配到英雄名單，或是派系名將者，才具備被俘虜資格！
+          if (!heroDef && !isFactionChampion) {
+            continue;
+          }
+
+          // 若該單位已被副將替換，或其本尊英雄已在玩家麾下/已在地牢中，禁止再次俘虜！
+          if (captiveAny.name && captiveAny.name.includes('【代理副將】')) {
+            continue;
+          }
+
+          if (heroDef) {
+            const alreadyInParty = GameState.adventurers.some(a => 
+              a.id === heroDef.id || 
+              (a as any).characterKey === heroDef.characterKey ||
+              (a as any).boundMonsterId === heroDef.boundMonsterId ||
+              a.name.includes(heroDef.name)
+            );
+            const alreadyInDungeon = GameState.myTerritory?.dungeonPrisonerHeroIds?.includes(heroDef.id);
+            if (alreadyInParty || alreadyInDungeon) {
+              continue;
             }
+          }
+
+          // 判定情境：若派系所屬城池 <= 1 (最後一城/滅國戰)，則為滅國絕境
+          const controlledCount = faction?.controlledNodes ? faction.controlledNodes.length : 0;
+          const isLastStand = faction ? (controlledCount <= 1) : false;
+          const isSiege = Boolean(faction && controlledCount > 1);
+
+          const candidateCaptureRate = heroDef?.captureRate ?? captiveAny.captureRate;
+          const finalCaptureRate = ExplorationNarrativeEngine.calculateCaptureRate(
+            candidateCaptureRate,
+            isLastStand,
+            isSiege
+          );
+
+          const roll = Math.random() * 100;
+          if (roll < finalCaptureRate) {
+            // 俘虜成功：押送至領地地牢
+            if (heroDef) {
+              if (!GameState.myTerritory.dungeonPrisonerHeroIds) {
+                GameState.myTerritory.dungeonPrisonerHeroIds = [];
+              }
+              if (!GameState.myTerritory.dungeonPrisonerHeroIds.includes(heroDef.id)) {
+                GameState.myTerritory.dungeonPrisonerHeroIds.push(heroDef.id);
+              }
+            }
+
+            if (faction) {
+              if (!faction.capturedChampionIds) faction.capturedChampionIds = [];
+              if (!faction.capturedChampionIds.includes(captiveAny.id)) {
+                faction.capturedChampionIds.push(captiveAny.id);
+              }
+            }
+
+            const heroName = heroDef ? `${heroDef.title || ''}${heroDef.name}` : captiveAny.name;
+            import('../ui/ToastManager').then(({ ToastManager }) => {
+              ToastManager.show(`🏆 戰鬥勝利！你成功生擒俘虜了【傳奇名將】${heroName}，已押送至領地地牢！`, 'success');
+            });
+          } else {
+            // 未被俘虜：敵將負傷突圍逃脫
+            const heroName = heroDef ? `${heroDef.title || ''}${heroDef.name}` : captiveAny.name;
+            import('../ui/ToastManager').then(({ ToastManager }) => {
+              ToastManager.show(`💨【突圍】敵將 ${heroName} 在親衛掩護下負傷突圍逃脫！`, 'info');
+            });
           }
         }
       }
@@ -244,5 +307,29 @@ export class ExplorationNarrativeEngine {
       playerHpMap: finalReport.playerHpMap,
       playerMpMap: finalReport.playerMpMap
     };
+  }
+
+  /**
+   * 計算將領在當前情境下的最終被俘虜機率 (0~100)
+   * 1. 滅國絕境 (isLastStand)：100%
+   * 2. 自訂機率 (customRate !== undefined)：優先採用自訂設定 (0~100)
+   * 3. 多城守城 (isSiege)：預設 40%
+   * 4. 野外遭遇/討伐據點：預設 25%
+   */
+  public static calculateCaptureRate(
+    customRate?: number,
+    isLastStand: boolean = false,
+    isSiege: boolean = false
+  ): number {
+    if (isLastStand) {
+      return 100;
+    }
+    if (customRate !== undefined && customRate !== null && !isNaN(customRate)) {
+      return Math.max(0, Math.min(100, customRate));
+    }
+    if (isSiege) {
+      return 40;
+    }
+    return 25;
   }
 }

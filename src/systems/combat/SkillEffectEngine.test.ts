@@ -77,7 +77,7 @@ describe('SkillEffectEngine 積木技能引擎測試 (Phase 1)', () => {
       icon: '🩸',
       description: '測試吸血與連擊',
       category: 'MONSTER',
-      totalMpCost: 10,
+      mpCost: 10,
       blocks: [
         {
           trigger: 'ACTIVE',
@@ -114,7 +114,7 @@ describe('SkillEffectEngine 積木技能引擎測試 (Phase 1)', () => {
       icon: '✨',
       description: '施加烙印',
       category: 'MONSTER',
-      totalMpCost: 5,
+      mpCost: 5,
       blocks: [
         {
           trigger: 'ACTIVE',
@@ -130,7 +130,7 @@ describe('SkillEffectEngine 積木技能引擎測試 (Phase 1)', () => {
       icon: '💥',
       description: '引爆烙印',
       category: 'MONSTER',
-      totalMpCost: 15,
+      mpCost: 15,
       blocks: [
         {
           trigger: 'ACTIVE',
@@ -162,7 +162,7 @@ describe('SkillEffectEngine 積木技能引擎測試 (Phase 1)', () => {
       icon: '🛡️',
       description: '測試護盾',
       category: 'MONSTER',
-      totalMpCost: 10,
+      mpCost: 10,
       blocks: [{ trigger: 'ACTIVE', effectType: 'APPLY_BARRIER', targetType: 'SELF' as any, barrierAmount: 50 }]
     };
     const executeDef: CompositeSkillDefinition = {
@@ -171,7 +171,7 @@ describe('SkillEffectEngine 積木技能引擎測試 (Phase 1)', () => {
       icon: '🪓',
       description: '測試斬殺',
       category: 'MONSTER',
-      totalMpCost: 10,
+      mpCost: 10,
       blocks: [{ trigger: 'ACTIVE', effectType: 'EXECUTE', targetType: 'SINGLE_ENEMY' as any, executeThreshold: 0.3, multiplier: 1.0 }]
     };
     const dispelDef: CompositeSkillDefinition = {
@@ -180,7 +180,7 @@ describe('SkillEffectEngine 積木技能引擎測試 (Phase 1)', () => {
       icon: '✨',
       description: '測試驅散',
       category: 'MONSTER',
-      totalMpCost: 5,
+      mpCost: 5,
       blocks: [{ trigger: 'ACTIVE', effectType: 'DISPEL', targetType: 'SINGLE_ENEMY' as any }]
     };
 
@@ -212,7 +212,7 @@ describe('SkillEffectEngine 積木技能引擎測試 (Phase 1)', () => {
       icon: '⚔️',
       description: '測試混合傷害',
       category: 'MONSTER',
-      totalMpCost: 15,
+      mpCost: 15,
       blocks: [
         { trigger: 'ACTIVE', effectType: 'DAMAGE_MIXED', targetType: 'SINGLE_ENEMY' as any, multiplier: 1.0, physRatio: 0.5 },
         { trigger: 'ACTIVE', effectType: 'MP_DRAIN', targetType: 'SINGLE_ENEMY' as any, multiplier: 1.0 }

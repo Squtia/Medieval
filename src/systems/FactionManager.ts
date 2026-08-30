@@ -3,29 +3,14 @@ import { INITIAL_FACTIONS } from '../data/FactionData';
 
 export const CUSTOM_FACTIONS_STORAGE_KEY = 'MEDIEVAL_CUSTOM_FACTIONS_V1';
 
-/** 預設內建的特殊自訂陣營：遠古龍裔 */
-export const DEFAULT_CUSTOM_FACTIONS: Faction[] = [
-  {
-    id: 'f_dragonkin',
-    factionName: '遠古龍裔',
-    description: '傳承古老巨龍血脈的神秘隱世氏族，崇尚力量與古老誓約。唯有完成特殊遠古考驗者方能贏得其敬重。',
-    factionType: FactionType.MINOR_HOUSE,
-    color: '#ea580c', // 龍息琥珀橙
-    resources: 2000,
-    controlledNodes: [],
-    capitalNodeId: '',
-    playerFavor: 0,
-    relations: {},
-    atWarWith: [],
-    personality: FactionPersonality.WARMONGER
-  }
-];
+/** 預設自訂陣營：由創作者於勢力工坊中全權自訂管理 */
+export const DEFAULT_CUSTOM_FACTIONS: Faction[] = [];
 
 export class FactionManager {
   private static cachedCustomFactions: Faction[] | null = null;
 
   /**
-   * 取得所有自訂陣營（若無則初始化並回傳預設的遠古龍裔）
+   * 取得所有自訂陣營（若無則為空陣列）
    */
   public static getCustomFactions(): Faction[] {
     if (this.cachedCustomFactions) {
@@ -37,7 +22,7 @@ export class FactionManager {
         const raw = localStorage.getItem(CUSTOM_FACTIONS_STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
+          if (Array.isArray(parsed)) {
             this.cachedCustomFactions = parsed;
             return parsed;
           }
@@ -47,9 +32,8 @@ export class FactionManager {
       }
     }
 
-    this.cachedCustomFactions = JSON.parse(JSON.stringify(DEFAULT_CUSTOM_FACTIONS));
-    this.saveCustomFactions(this.cachedCustomFactions!);
-    return this.cachedCustomFactions!;
+    this.cachedCustomFactions = [];
+    return this.cachedCustomFactions;
   }
 
   /**

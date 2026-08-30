@@ -38,6 +38,8 @@ export class Adventurer {
 
   public quality: 'N' | 'R' | 'SR' | 'SSR' | 'UR';
   public isGuardian: boolean = false;
+  public customSkills?: string[];
+  public avatarIcon?: string;
 
   // 🏥 持久生命、魔力與傷病狀態 (Persistent Vitals & Injury System)
   public currentHp?: number;

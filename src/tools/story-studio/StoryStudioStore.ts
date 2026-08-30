@@ -164,6 +164,32 @@ export class StoryStudioStore {
     this.emit('nodeSelected');
   }
 
+  public createBountyNode(): void {
+    const story = this.getActiveStory();
+    if (!story) return;
+    const id = uniqueId('bounty_task', story.nodes.map(n => n.id));
+    const node = makeNode(id);
+    node.channel = 'BOUNTY_BOARD';
+    node.title = '新懸賞委託';
+    node.description = '一張張貼在告示欄上的懸賞委託，等待有能力的傭兵接取。';
+    node.repeatable = true;
+    node.cooldownDays = 3;
+    node.bounty = {
+      duration: 2,
+      expireDays: 4,
+      gold: 50,
+      exp: 30,
+      type: 'NORMAL'
+    };
+    story.nodes.push(node);
+    this.selectedNodeId = id;
+    this.autoLayoutMissing();
+    this.saveGraphPos(story.id);
+    this.autoSaveDraft();
+    this.emit('storyUpdated');
+    this.emit('nodeSelected');
+  }
+
   public deleteNode(nodeId: string): void {
     const story = this.getActiveStory();
     if (!story) return;

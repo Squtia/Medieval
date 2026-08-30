@@ -42,10 +42,7 @@ export class BountySystem {
       if (bounty.status === 'PENDING') {
         bounty.expireDays--;
         if (bounty.expireDays <= 0) {
-          // 任務過期，移除
-          if (bounty.type === 'BANDIT') {
-            gameState.pendingExtortionEvent = true;
-          }
+          // 任務過期，自然移除
           gameState.bounties.splice(i, 1);
         }
       } else if (bounty.status === 'IN_PROGRESS' && bounty.remainingDuration !== undefined) {

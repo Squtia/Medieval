@@ -2,6 +2,37 @@ import { CompositeSkillDefinition, EffectBlock, SkillTrigger, SkillEffectType, S
 import templateHtml from '../templates/skill-workshop.html?raw';
 import { renderUniversalIcon } from '../ui/IconSpriteHelper';
 import defaultCustomDatasets from '../data/custom_icon_datasets.json';
+import customSkillsJson from '../data/CustomSkillData.json';
+
+export interface StatusOptionDef {
+  key: string;
+  name: string;
+  icon: string;
+  category: 'DEBUFF' | 'BUFF';
+  desc: string;
+}
+
+export const STATUS_OPTIONS: StatusOptionDef[] = [
+  // 🔥 DEBUFF 負面異常
+  { key: 'BURN', name: '灼燒', icon: '🔥', category: 'DEBUFF', desc: '火系持續傷害 (每回合結算)' },
+  { key: 'POISON', name: '中毒', icon: '🧪', category: 'DEBUFF', desc: '毒系持續傷害，可疊加層數' },
+  { key: 'BLEED', name: '流血', icon: '🩸', category: 'DEBUFF', desc: '物理流血傷害 (每回合結算)' },
+  { key: 'STUN', name: '暈眩', icon: '💫', category: 'DEBUFF', desc: '強控無法行動，跳過當前回合' },
+  { key: 'ARMOR_BREAK', name: '破甲', icon: '🛡️', category: 'DEBUFF', desc: '降低目標物理與魔法防禦 20%' },
+  { key: 'SHOCK', name: '感電', icon: '⚡', category: 'DEBUFF', desc: '受到雷系傷害額外加深' },
+  { key: 'FEAR', name: '恐懼', icon: '😱', category: 'DEBUFF', desc: '受驚擾降低命中並可能跳過行動' },
+  { key: 'TAUNT', name: '嘲諷', icon: '🎯', category: 'DEBUFF', desc: '強制將敵方攻擊鎖定為施術者' },
+  { key: 'MARK', name: '烙印', icon: '🏷️', category: 'DEBUFF', desc: '標記目標，供引爆積木炸出巨額傷害' },
+  // 🛡️ BUFF 正面增益
+  { key: 'BUFF_PATK', name: '物攻提升', icon: '⚔️', category: 'BUFF', desc: '物理攻擊力提升 20%~40%' },
+  { key: 'BUFF_MATK', name: '魔攻提升', icon: '🔮', category: 'BUFF', desc: '魔法攻擊力提升 20%~40%' },
+  { key: 'BUFF_PDEF', name: '物防提升', icon: '🛡️', category: 'BUFF', desc: '物理防禦力提升 20%~40%' },
+  { key: 'BUFF_DEF', name: '雙防提升', icon: '🏰', category: 'BUFF', desc: '物理與魔法防禦力全面提升' },
+  { key: 'BUFF_EVADE', name: '閃避提升', icon: '💨', category: 'BUFF', desc: '提升迴避率點數' },
+  { key: 'REGEN_HP', name: '持續回血', icon: '💖', category: 'BUFF', desc: '每回合開始時持續恢復生命' },
+  { key: 'REGEN_MP', name: '持續回魔', icon: '💧', category: 'BUFF', desc: '每回合開始時持續恢復魔力' },
+  { key: 'BARRIER', name: '吸收護盾', icon: '🔰', category: 'BUFF', desc: '吸收等量傷害的保護力場' }
+];
 
 export class SkillWorkshop {
   private static instance: SkillWorkshop;
@@ -10,6 +41,7 @@ export class SkillWorkshop {
   private isDirty: boolean = false;
   private currentIconTab: string = 'skill_emoji';
   private iconPickerCallback: ((icon: string) => void) | null = null;
+  private currentStatusPickingBlockIndex: number | null = null;
 
   public static getInstance(): SkillWorkshop {
     if (!SkillWorkshop.instance) {
@@ -26,6 +58,7 @@ export class SkillWorkshop {
     root.innerHTML = templateHtml;
     this.bindEvents();
     this.bindIconPickerEvents();
+    this.bindStatusPickerEvents();
     await this.loadSkills();
   }
 
@@ -110,6 +143,7 @@ export class SkillWorkshop {
 
   private bindEvents(): void {
     document.getElementById('btn-sw-new-skill')?.addEventListener('click', () => this.createNewSkill());
+    document.getElementById('btn-sw-reload-disk')?.addEventListener('click', () => this.reloadFromDisk());
     document.getElementById('btn-sw-save-disk')?.addEventListener('click', () => this.saveToDisk());
     document.getElementById('btn-sw-delete-skill')?.addEventListener('click', () => this.deleteCurrentSkill());
     document.getElementById('btn-sw-duplicate-skill')?.addEventListener('click', () => this.duplicateCurrentSkill());
@@ -128,6 +162,7 @@ export class SkillWorkshop {
         (document.getElementById('inp-sw-icon') as HTMLInputElement).value = selectedIcon;
         this.updateIconPreview(selectedIcon);
         this.isDirty = true;
+        this.saveToLocalStorage();
         this.renderSkillList();
       });
     };
@@ -147,7 +182,33 @@ export class SkillWorkshop {
     });
     document.getElementById('btn-sw-history')?.addEventListener('click', () => this.showHistoryModal());
 
-    // 表單雙向綁定
+    // 技能 ID 獨立雙向綁定 (確保 this.currentSkillId 與各項編輯指標同步更新，絕不脫節)
+    document.getElementById('inp-sw-id')?.addEventListener('input', (e) => {
+      if (!this.currentSkillId) return;
+      const cur = this.getCurrentSkill();
+      if (!cur) return;
+      const newId = (e.target as HTMLInputElement).value.trim();
+      if (!newId) return;
+
+      const isDuplicate = this.skills.some(s => s !== cur && s.id === newId);
+      const inputEl = e.target as HTMLInputElement;
+      if (isDuplicate) {
+        inputEl.style.borderColor = 'var(--sw-danger)';
+        inputEl.title = '⚠️ 此技能 ID 已存在，請使用唯一 ID！';
+        return;
+      } else {
+        inputEl.style.borderColor = '';
+        inputEl.title = '';
+      }
+
+      cur.id = newId;
+      this.currentSkillId = newId;
+      this.isDirty = true;
+      this.saveToLocalStorage();
+      this.renderSkillList();
+    });
+
+    // 表單其餘欄位雙向綁定
     const bindInput = (id: string, prop: keyof CompositeSkillDefinition, isNum = false) => {
       document.getElementById(id)?.addEventListener('input', (e) => {
         if (!this.currentSkillId) return;
@@ -159,15 +220,15 @@ export class SkillWorkshop {
           this.updateIconPreview(val);
         }
         this.isDirty = true;
+        this.saveToLocalStorage();
         this.renderSkillList();
       });
     };
 
-    bindInput('inp-sw-id', 'id');
     bindInput('inp-sw-name', 'name');
     bindInput('inp-sw-icon', 'icon');
     bindInput('inp-sw-category', 'category');
-    bindInput('inp-sw-mp', 'totalMpCost', true);
+    bindInput('inp-sw-mp', 'mpCost', true);
     bindInput('inp-sw-cd', 'cooldown', true);
     bindInput('inp-sw-desc', 'description');
   }
@@ -310,23 +371,170 @@ export class SkillWorkshop {
     });
   }
 
-  private async loadSkills(): Promise<void> {
+  private saveToLocalStorage(): void {
+    try {
+      localStorage.setItem('MEDIEVAL_CUSTOM_COMPOSITE_SKILLS', JSON.stringify(this.skills));
+    } catch (e) {
+      console.warn('寫入 localStorage 失敗:', e);
+    }
+  }
+
+  // ── 狀態選擇器輔助函式 ──
+  private getStatusButtonLabel(statusKey?: string): string {
+    if (!statusKey || statusKey === 'NONE') {
+      return '<span style="color: var(--sw-text-muted);">🚫 無狀態 (點擊挑選)</span>';
+    }
+    const opt = STATUS_OPTIONS.find(s => s.key === statusKey);
+    if (opt) {
+      return `${opt.icon} <span style="font-weight: 600; color: #fff;">${opt.name}</span> <span class="font-mono" style="font-size: 0.72rem; color: #94a3b8;">(${opt.key})</span>`;
+    }
+    return `⚡ <span style="font-weight: 600; color: #fff;">${statusKey}</span>`;
+  }
+
+  private openStatusPicker(blockIndex: number): void {
+    this.currentStatusPickingBlockIndex = blockIndex;
+    const modal = document.getElementById('modal-sw-status-picker');
+    const debuffGrid = document.getElementById('sw-status-debuff-grid');
+    const buffGrid = document.getElementById('sw-status-buff-grid');
+    if (!modal || !debuffGrid || !buffGrid) return;
+
+    const curSkill = this.getCurrentSkill();
+    const curBlock = curSkill?.blocks?.[blockIndex];
+    const curStatus = curBlock?.statusType || curBlock?.buffType || '';
+
+    const renderCard = (opt: StatusOptionDef) => `
+      <button type="button" class="sw-status-card-btn ${curStatus === opt.key ? 'active' : ''}" data-key="${opt.key}" style="background: #1e293b; border: 1px solid ${curStatus === opt.key ? 'var(--sw-primary)' : 'var(--sw-border)'}; border-radius: 8px; padding: 10px 12px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: all 0.15s; ${curStatus === opt.key ? 'box-shadow: 0 0 10px rgba(99, 102, 241, 0.4); background: #283554;' : ''}">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="font-weight: 600; color: #fff; font-size: 0.88rem; display: flex; align-items: center; gap: 6px;">
+            <span>${opt.icon}</span>
+            <span>${opt.name}</span>
+          </div>
+          <span class="font-mono" style="font-size: 0.7rem; color: #94a3b8; background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 4px;">${opt.key}</span>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--sw-text-muted); line-height: 1.3;">${opt.desc}</div>
+      </button>
+    `;
+
+    debuffGrid.innerHTML = STATUS_OPTIONS.filter(s => s.category === 'DEBUFF').map(renderCard).join('');
+    buffGrid.innerHTML = STATUS_OPTIONS.filter(s => s.category === 'BUFF').map(renderCard).join('');
+
+    const bindSelectHandler = (btn: Element) => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-key');
+        if (this.currentStatusPickingBlockIndex !== null && curSkill && curSkill.blocks && curSkill.blocks[this.currentStatusPickingBlockIndex]) {
+          const targetBlock = curSkill.blocks[this.currentStatusPickingBlockIndex];
+          targetBlock.statusType = key || undefined;
+          const opt = STATUS_OPTIONS.find(s => s.key === key);
+          if (opt && opt.category === 'BUFF') {
+            targetBlock.buffType = key || undefined;
+          } else {
+            targetBlock.buffType = undefined;
+          }
+          this.isDirty = true;
+          this.saveToLocalStorage();
+          this.renderBlocksList();
+        }
+        modal.style.display = 'none';
+      });
+    };
+
+    debuffGrid.querySelectorAll('.sw-status-card-btn').forEach(bindSelectHandler);
+    buffGrid.querySelectorAll('.sw-status-card-btn').forEach(bindSelectHandler);
+
+    modal.style.display = 'flex';
+  }
+
+  private bindStatusPickerEvents(): void {
+    const modal = document.getElementById('modal-sw-status-picker');
+    document.getElementById('btn-sw-status-picker-close')?.addEventListener('click', () => {
+      if (modal) modal.style.display = 'none';
+    });
+    document.getElementById('btn-sw-status-clear')?.addEventListener('click', () => {
+      const curSkill = this.getCurrentSkill();
+      if (this.currentStatusPickingBlockIndex !== null && curSkill && curSkill.blocks && curSkill.blocks[this.currentStatusPickingBlockIndex]) {
+        const targetBlock = curSkill.blocks[this.currentStatusPickingBlockIndex];
+        targetBlock.statusType = undefined;
+        targetBlock.buffType = undefined;
+        this.isDirty = true;
+        this.saveToLocalStorage();
+        this.renderBlocksList();
+      }
+      if (modal) modal.style.display = 'none';
+    });
+  }
+
+  private async loadSkills(forceDisk: boolean = false): Promise<void> {
+    let loadedList: CompositeSkillDefinition[] = [];
+
+    // 1. 若強制從專案磁碟重載
+    if (forceDisk) {
+      try {
+        const res = await fetch('/api/get-custom-skills');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            loadedList = data;
+          }
+        }
+      } catch {}
+      if (!loadedList || loadedList.length === 0) {
+        loadedList = JSON.parse(JSON.stringify(customSkillsJson || []));
+      }
+      this.skills = loadedList;
+      this.saveToLocalStorage();
+      this.isDirty = false;
+      this.renderSkillList();
+      if (this.skills.length > 0) {
+        this.selectSkill(this.skills[0].id);
+      }
+      return;
+    }
+
+    // 2. 常規載入：優先嘗試 API 磁碟資料庫
     try {
       const res = await fetch('/api/get-custom-skills');
       if (res.ok) {
-        this.skills = await res.json();
-      } else {
-        this.skills = [];
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          loadedList = data;
+        }
       }
-    } catch (e) {
-      console.warn('載入技能失敗，使用預設值', e);
-      this.skills = [];
+    } catch {}
+
+    // 3. 次選：讀取瀏覽器 LocalStorage 本機草稿
+    if (loadedList.length === 0) {
+      try {
+        const raw = localStorage.getItem('MEDIEVAL_CUSTOM_COMPOSITE_SKILLS');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            loadedList = parsed;
+          }
+        }
+      } catch {}
     }
 
+    // 4. 底層 Fallback：打包靜態 JSON 檔案
+    if (loadedList.length === 0) {
+      loadedList = JSON.parse(JSON.stringify(customSkillsJson || []));
+    }
+
+    this.skills = loadedList;
+    this.saveToLocalStorage();
     this.renderSkillList();
     if (this.skills.length > 0) {
       this.selectSkill(this.skills[0].id);
     }
+  }
+
+  private async reloadFromDisk(): Promise<void> {
+    if (this.isDirty) {
+      if (!confirm('⚠️ 當前有未儲存的技能草稿，重新從專案磁碟載入將會覆蓋當前變更，確定要繼續嗎？')) {
+        return;
+      }
+    }
+    await this.loadSkills(true);
+    alert(`🔄 已成功從專案磁碟重載 (共 ${this.skills.length} 個技能)！`);
   }
 
   private renderSkillList(): void {
@@ -351,7 +559,7 @@ export class SkillWorkshop {
         <div class="sw-card-info">
           <div class="sw-card-name">${skill.name}</div>
           <div class="sw-card-meta">
-            <span>💧 ${skill.totalMpCost} MP</span>
+            <span>💧 ${skill.mpCost ?? skill.totalMpCost ?? 0} MP</span>
             <span>⏱️ ${skill.cooldown || 0} CD</span>
             <span>🧩 ${skill.blocks?.length || 0} 積木</span>
           </div>
@@ -387,7 +595,7 @@ export class SkillWorkshop {
     (document.getElementById('inp-sw-icon') as HTMLInputElement).value = skill.icon || '🔮';
     this.updateIconPreview(skill.icon || '🔮');
     (document.getElementById('inp-sw-category') as HTMLSelectElement).value = skill.category || 'MONSTER';
-    (document.getElementById('inp-sw-mp') as HTMLInputElement).value = (skill.totalMpCost ?? 20).toString();
+    (document.getElementById('inp-sw-mp') as HTMLInputElement).value = (skill.mpCost ?? skill.totalMpCost ?? 20).toString();
     (document.getElementById('inp-sw-cd') as HTMLInputElement).value = (skill.cooldown ?? 0).toString();
     (document.getElementById('inp-sw-desc') as HTMLTextAreaElement).value = skill.description || '';
 
@@ -502,7 +710,9 @@ export class SkillWorkshop {
           </div>
           <div class="sw-form-group">
             <label class="sw-label">狀態類型 (StatusType / BUFF)</label>
-            <input type="text" class="sw-input font-mono inp-status" data-index="${index}" value="${block.statusType || block.buffType || ''}" placeholder="如: BURN / STUN">
+            <button type="button" class="sw-btn sw-btn-sm btn-pick-status" data-index="${index}" style="width: 100%; justify-content: flex-start; background: #131d31; height: 33px; border: 1px solid var(--sw-border); font-size: 0.8rem; padding: 4px 8px;">
+              ${this.getStatusButtonLabel(block.statusType || block.buffType)}
+            </button>
           </div>
           <div class="sw-form-group">
             <label class="sw-label">持續回合 (Duration)</label>
@@ -516,6 +726,14 @@ export class SkillWorkshop {
       </div>
     `).join('');
 
+    // 綁定狀態挑選按鈕
+    container.querySelectorAll('.btn-pick-status').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = Number((e.currentTarget as HTMLElement).getAttribute('data-index'));
+        this.openStatusPicker(idx);
+      });
+    });
+
     // 綁定積木內部事件
     container.querySelectorAll('.btn-block-up').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -524,6 +742,8 @@ export class SkillWorkshop {
           const temp = skill.blocks[idx];
           skill.blocks[idx] = skill.blocks[idx - 1];
           skill.blocks[idx - 1] = temp;
+          this.isDirty = true;
+          this.saveToLocalStorage();
           this.renderBlocksList();
         }
       });
@@ -536,6 +756,8 @@ export class SkillWorkshop {
           const temp = skill.blocks[idx];
           skill.blocks[idx] = skill.blocks[idx + 1];
           skill.blocks[idx + 1] = temp;
+          this.isDirty = true;
+          this.saveToLocalStorage();
           this.renderBlocksList();
         }
       });
@@ -546,6 +768,8 @@ export class SkillWorkshop {
         const idx = Number((e.currentTarget as HTMLElement).getAttribute('data-index'));
         if (skill.blocks) {
           skill.blocks.splice(idx, 1);
+          this.isDirty = true;
+          this.saveToLocalStorage();
           this.renderBlocksList();
         }
       });
@@ -559,6 +783,7 @@ export class SkillWorkshop {
             const val = (e.target as HTMLInputElement).value;
             (skill.blocks[idx] as any)[prop] = isNum ? Number(val) : val;
             this.isDirty = true;
+            this.saveToLocalStorage();
           }
         });
       });
@@ -568,7 +793,6 @@ export class SkillWorkshop {
     bindBlockProp('.sel-effect', 'effectType');
     bindBlockProp('.sel-target', 'targetType');
     bindBlockProp('.inp-mult', 'multiplier', true);
-    bindBlockProp('.inp-status', 'statusType');
     bindBlockProp('.inp-duration', 'statusDuration', true);
     bindBlockProp('.inp-chance', 'statusChance', true);
 
@@ -592,7 +816,7 @@ export class SkillWorkshop {
       icon: '✨',
       description: '自訂積木技能描述',
       category: 'MONSTER',
-      totalMpCost: 20,
+      mpCost: 20,
       cooldown: 0,
       blocks: [
         {
@@ -605,6 +829,7 @@ export class SkillWorkshop {
     };
     this.skills.push(newSkill);
     this.isDirty = true;
+    this.saveToLocalStorage();
     this.selectSkill(id);
   }
 
@@ -616,6 +841,7 @@ export class SkillWorkshop {
     copy.name = `${cur.name} (複製)`;
     this.skills.push(copy);
     this.isDirty = true;
+    this.saveToLocalStorage();
     this.selectSkill(copy.id);
   }
 
@@ -626,6 +852,7 @@ export class SkillWorkshop {
     this.skills = this.skills.filter(s => s.id !== cur.id);
     this.currentSkillId = this.skills.length > 0 ? this.skills[0].id : null;
     this.isDirty = true;
+    this.saveToLocalStorage();
     this.selectSkill(this.currentSkillId || '');
   }
 
@@ -640,10 +867,15 @@ export class SkillWorkshop {
       multiplier: 1.0
     });
     this.isDirty = true;
+    this.saveToLocalStorage();
     this.renderBlocksList();
   }
 
   private async saveToDisk(): Promise<void> {
+    // 1. 同步寫入 LocalStorage
+    this.saveToLocalStorage();
+
+    // 2. 寫入專案磁碟
     try {
       const res = await fetch('/api/save-custom-skills', {
         method: 'POST',
@@ -655,10 +887,10 @@ export class SkillWorkshop {
         this.isDirty = false;
         alert(`💾 儲存成功！已永久寫入專案磁碟 (共 ${this.skills.length} 個技能)，快照: ${data.snapshot}`);
       } else {
-        alert(`❌ 儲存失敗: ${data.error}`);
+        alert(`⚠️ 專案磁碟寫入失敗 (${data.error})，但技能已成功暫存於瀏覽器 LocalStorage！`);
       }
     } catch (e: any) {
-      alert(`❌ 寫入錯誤: ${e.message}`);
+      alert(`⚠️ 暫無法連線至寫入伺服器 (${e.message})，但技能已成功暫存於瀏覽器 LocalStorage！`);
     }
   }
 
@@ -688,7 +920,7 @@ export class SkillWorkshop {
       const restoreData = await restoreRes.json();
       if (restoreData.success) {
         alert(`✅ 已成功還原至快照 ${targetBackup.filename}！`);
-        await this.loadSkills();
+        await this.loadSkills(true);
       } else {
         alert(`❌ 還原失敗: ${restoreData.error}`);
       }

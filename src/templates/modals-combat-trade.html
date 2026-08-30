@@ -566,4 +566,41 @@
     </div>
   </div>
 
+  <!-- 🚩 陣營軍情刺探與野外攔截 Modal -->
+  <div id="modal-faction-campaign-intel" class="modal-overlay" style="display: none; z-index: 2100;">
+    <div class="glass-panel modal-content" style="width: min(600px, 94vw); background: rgba(18, 14, 11, 0.96); border: 2px solid #d97706; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.9); border-radius: 8px;">
+      <button class="close-btn" id="btn-close-campaign-intel">×</button>
+      <h2 id="campaign-intel-title" style="color: #fbbf24; text-align: center; font-family: 'Cinzel', serif; margin-bottom: 6px; font-size: 1.25rem;">🚩 遭遇敵方軍團：北境先鋒部隊</h2>
+      <p id="campaign-intel-subtitle" style="text-align: center; color: #94a3b8; font-size: 0.88rem; margin-bottom: 16px;">正在前往【黃金要塞】發起戰役</p>
+      
+      <!-- 軍情詳情卡片 -->
+      <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(234,179,8,0.3); border-radius: 6px; padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+          <span style="color: #cbd5e1;">行軍狀態：</span>
+          <span id="campaign-intel-status" style="color: #f59e0b; font-weight: bold;">🐎 行軍中 (預計 2 天後抵達)</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+          <span style="color: #cbd5e1;">作戰目標：</span>
+          <span id="campaign-intel-target" style="color: #ef4444; font-weight: bold;">🏰 要塞圍城</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem;">
+          <span style="color: #cbd5e1;">敵軍編制：</span>
+          <span id="campaign-intel-troops" style="color: #e2e8f0; font-weight: bold;">120 步兵、40 弓兵、20 騎兵、1 衝車</span>
+        </div>
+        
+        <!-- 外交後果警告 -->
+        <div style="margin-top: 12px; padding: 10px; background: rgba(220,38,38,0.15); border-left: 3px solid #ef4444; border-radius: 4px; font-size: 0.82rem; color: #fca5a5; line-height: 1.4;">
+          ⚠️ <strong>外交後果提示</strong>：攔截此軍團將使進攻方好感 <span style="color: #ef4444; font-weight: bold;">-35</span> 並結怨；但若擊退敵軍，將獲得防守方好感 <span style="color: #4ade80; font-weight: bold;">+40</span> 與豐厚謝禮！
+        </div>
+      </div>
+
+      <!-- 操作按鈕列 -->
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button id="btn-campaign-let-pass" class="action-btn" style="background: #334155; color: #cbd5e1; border: 1px solid #64748b; padding: 8px 18px; font-size: 0.9rem;">🕊️ 放行旁觀</button>
+        <button id="btn-campaign-intercept" class="action-btn" style="background: linear-gradient(135deg, #b91c1c, #dc2626); color: #fff; border: 1px solid #ef4444; padding: 8px 24px; font-weight: bold; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(220,38,38,0.5);">⚔️ 發動野外攔截伏擊</button>
+      </div>
+    </div>
+  </div>
+
+
 

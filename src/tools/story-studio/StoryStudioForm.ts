@@ -14,6 +14,8 @@ import { renderUniversalPortrait, renderUniversalIcon } from '../../ui/IconSprit
 import defaultCustomDatasets from '../../data/custom_icon_datasets.json';
 import { StoryStudioItemPicker } from './StoryStudioItemPicker';
 import { StoryStudioSubjugationPicker } from './StoryStudioSubjugationPicker';
+import { StoryStudioHeroPicker } from './StoryStudioHeroPicker';
+import { getSelectableHeroes } from '../../data/UniqueAdventurers';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
 import equipmentWeaponsJson from '../../data/equipment_weapons.json';
@@ -112,8 +114,11 @@ export class StoryStudioForm {
       this.setValue('story-node-bounty-exp', node.bounty?.exp ?? 30);
       this.setValue('story-node-bounty-type', node.bounty?.type ?? 'NORMAL');
 
-      const bountyFields = this.byId('story-editor-bounty-fields');
-      if (bountyFields) bountyFields.hidden = node.channel !== 'BOUNTY_BOARD';
+      const bountyFields = this.byId<HTMLDetailsElement>('story-editor-bounty-fields');
+      if (bountyFields) {
+        bountyFields.hidden = node.channel !== 'BOUNTY_BOARD';
+        if (node.channel === 'BOUNTY_BOARD') bountyFields.open = true;
+      }
       const mapFields = this.byId('story-editor-map-target-fields');
       if (mapFields) mapFields.hidden = node.channel !== 'STORY_NODE';
 
@@ -203,8 +208,11 @@ export class StoryStudioForm {
       type: (this.byId<HTMLSelectElement>('story-node-bounty-type')?.value || 'NORMAL') as 'NORMAL' | 'BANDIT'
     } : undefined;
 
-    const bountyFields = this.byId('story-editor-bounty-fields');
-    if (bountyFields) bountyFields.hidden = node.channel !== 'BOUNTY_BOARD';
+    const bountyFields = this.byId<HTMLDetailsElement>('story-editor-bounty-fields');
+    if (bountyFields) {
+      bountyFields.hidden = node.channel !== 'BOUNTY_BOARD';
+      if (node.channel === 'BOUNTY_BOARD') bountyFields.open = true;
+    }
     const mapFields = this.byId('story-editor-map-target-fields');
     if (mapFields) mapFields.hidden = node.channel !== 'STORY_NODE';
 
@@ -310,7 +318,7 @@ export class StoryStudioForm {
           </select>
           <button type="button" class="action-btn story-danger" data-remove>刪除</button>
         </div>
-        <div class="story-condition-fields">${this.conditionFields(condition)}</div>
+        <div class="story-condition-fields">${this.conditionFields(condition, index)}</div>
       `;
 
       row.querySelector<HTMLSelectElement>('[data-condition-type]')!.addEventListener('change', event => {
@@ -325,6 +333,52 @@ export class StoryStudioForm {
         this.store.autoSaveDraft();
         this.store.emit('validationChanged');
       });
+
+      // 綁定英雄多選挑選器按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-pick-hero-cond]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (condition.type === 'HERO_EXISTS' || condition.type === 'HERO_MISSING') {
+            const currentIds = condition.heroIds || [];
+            StoryStudioHeroPicker.getInstance().open({
+              mode: 'MULTI',
+              selectedHeroIds: currentIds,
+              title: condition.type === 'HERO_EXISTS' ? '👤 挑選已擁有英雄 (可多選)' : '👤 挑選尚未擁有英雄 (可多選)',
+              onConfirm: (selectedHeroIds) => {
+                condition.heroIds = selectedHeroIds;
+                this.renderConditionList(node);
+                this.store.autoSaveDraft();
+                this.store.emit('validationChanged');
+              }
+            });
+          }
+        });
+      });
+
+      // 綁定單個英雄移除標籤按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-remove-hero-cond]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (condition.type === 'HERO_EXISTS' || condition.type === 'HERO_MISSING') {
+            const hId = btn.dataset.btnRemoveHeroCond!;
+            condition.heroIds = (condition.heroIds || []).filter(id => id !== hId);
+            this.renderConditionList(node);
+            this.store.autoSaveDraft();
+            this.store.emit('validationChanged');
+          }
+        });
+      });
+
+      // 綁定匹配模式切換按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-toggle-hero-matchmode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (condition.type === 'HERO_EXISTS' || condition.type === 'HERO_MISSING') {
+            condition.matchMode = condition.matchMode === 'ALL' ? 'ANY' : 'ALL';
+            this.renderConditionList(node);
+            this.store.autoSaveDraft();
+            this.store.emit('validationChanged');
+          }
+        });
+      });
+
       row.querySelectorAll<HTMLInputElement | HTMLSelectElement>('[data-field]').forEach(field => {
         field.addEventListener('input', () => {
           (condition as any)[field.dataset.field!] = field instanceof HTMLInputElement && field.type === 'number'
@@ -338,7 +392,7 @@ export class StoryStudioForm {
     });
   }
 
-  private conditionFields(condition: NarrativeCondition): string {
+  private conditionFields(condition: NarrativeCondition, condIndex: number = 0): string {
     const input = (label: string, field: string, val: any, type: string = 'text', list: string = '') =>
       `<label>${label}<input data-field="${field}" type="${type}" value="${escapeHtml(String(val ?? ''))}"${list ? ` list="${list}"` : ''}></label>`;
     const select = (label: string, field: string, current: string, options: { value: string; label: string }[]) =>
@@ -353,6 +407,49 @@ export class StoryStudioForm {
       case 'DAYS_SINCE_FACT': return `${input('線索代號', 'fact', condition.fact, 'text', 'story-fact-datalist')}${input('等待天數', 'value', condition.value, 'number')}`;
       case 'NODE_EXPLORED': return input('地圖節點 ID', 'nodeId', condition.nodeId);
       case 'SUBJUGATION_COUNT_AT_LEAST': return input('最少討伐數（動態據點）', 'value', condition.value, 'number');
+      case 'NODE_OWNER_IS':
+        return `${input('據點 ID (如 n_royal_1)', 'nodeId', condition.nodeId)}${select('佔領者派系', 'factionId', condition.factionId, this.getFactionOptions())}`;
+      case 'FACTION_AT_WAR': case 'FACTION_STARVING':
+        return select('目標派系', 'factionId', condition.factionId, this.getFactionOptions());
+      case 'HERO_EXISTS': case 'HERO_MISSING': {
+        const allHeroes = getSelectableHeroes();
+        const selectedIds = condition.heroIds || [];
+        const matchMode = condition.matchMode || 'ANY';
+        const matchModeLabel = matchMode === 'ALL' ? '全數符合 (ALL)' : '任一符合 (ANY)';
+
+        const heroBadgesHtml = selectedIds.length > 0 ? selectedIds.map(hId => {
+          const h = allHeroes.find(item => item.id === hId || item.name === hId);
+          const qColor = h?.quality === 'UR' ? '#ef4444' : h?.quality === 'SSR' ? '#f59e0b' : h?.quality === 'SR' ? '#a855f7' : '#3b82f6';
+          const icon = h?.avatarIcon || 'heroes:reyn';
+          const displayName = h ? `${h.title} ${h.name}` : hId;
+          return `
+            <span style="display:inline-flex; align-items:center; gap:6px; background:#292524; border:1px solid ${qColor}; padding:3px 8px; border-radius:4px; font-size:0.78rem;">
+              ${renderUniversalIcon(icon, 20)}
+              <strong style="color:#fde68a;">${escapeHtml(displayName)}</strong>
+              <button type="button" data-btn-remove-hero-cond="${escapeHtml(hId)}" style="background:transparent; border:none; color:#ef4444; cursor:pointer; font-weight:bold; font-size:0.85rem; padding:0 2px;">✕</button>
+            </span>
+          `;
+        }).join('') : '<span style="color:#a8a29e; font-size:0.78rem;">尚未選擇任何英雄 (請點擊下方按鈕進行挑選)</span>';
+
+        return `
+          <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:4px;">
+            <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; justify-content:space-between;">
+              <span>目標英雄名單：</span>
+              <button type="button" class="action-btn" data-btn-toggle-hero-matchmode style="padding:2px 8px; font-size:0.72rem; background:#3c3836; color:#fbbf24; border-radius:4px; cursor:pointer;">
+                比對模式：<strong>${matchModeLabel}</strong> (點擊切換)
+              </button>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; border:1px solid rgba(255,255,255,0.08); min-height:36px; align-items:center;">
+              ${heroBadgesHtml}
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="action-btn" data-btn-pick-hero-cond style="padding:6px 14px; font-size:0.8rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer; border-radius:4px;">
+                ➕ 選擇目標英雄 (全視覺化多選)
+              </button>
+            </div>
+          </div>
+        `;
+      }
     }
   }
 
@@ -391,6 +488,24 @@ export class StoryStudioForm {
             setter([...effects]);
             this.renderEffectList(id, effects, setter);
           });
+        });
+      });
+
+      // 綁定英雄獎勵挑選器按鈕
+      row.querySelectorAll<HTMLButtonElement>('[data-btn-pick-hero-effect]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (effect.type === 'GRANT_HERO') {
+            StoryStudioHeroPicker.getInstance().open({
+              mode: 'SINGLE',
+              selectedHeroIds: effect.heroId ? [effect.heroId] : [],
+              title: '👑 挑選加入領地的英雄 (單選)',
+              onConfirm: (selectedHeroIds) => {
+                effect.heroId = selectedHeroIds[0] || 'reyn';
+                setter([...effects]);
+                this.renderEffectList(id, effects, setter);
+              }
+            });
+          }
         });
       });
 
@@ -485,12 +600,35 @@ export class StoryStudioForm {
       case 'ADD_PRESTIGE': return input('聲望變化量（負數為扣除）', 'value', effect.value, 'number');
       case 'ADD_RESTED_EXP': return input('經驗池獎勵量', 'value', effect.value, 'number');
       case 'CHANGE_FACTION_FAVOR': return `${select('目標派系', 'factionId', effect.factionId, this.getFactionOptions())}${input('好感度增減量', 'value', effect.value, 'number')}`;
+      case 'GRANT_HERO': {
+        const allHeroes = getSelectableHeroes();
+        const hero = allHeroes.find(h => h.id === effect.heroId || h.name === effect.heroId);
+        const qColor = hero?.quality === 'UR' ? '#ef4444' : hero?.quality === 'SSR' ? '#f59e0b' : hero?.quality === 'SR' ? '#a855f7' : '#3b82f6';
+        const display = hero ? `${hero.title} ${hero.name}` : (effect.heroId || '尚未指定英雄');
+        const iconHtml = hero ? renderUniversalIcon(hero.avatarIcon || 'heroes:reyn', 32) : '👑';
+        return `
+          <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
+            <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
+              <span>贈送英雄：</span>
+              <div style="display:inline-flex; align-items:center; gap:8px; background:rgba(0,0,0,0.3); padding:3px 10px; border-radius:6px; border:1.5px solid ${qColor};">
+                ${iconHtml}
+                <strong style="color:#fde68a; font-size:0.86rem;">${escapeHtml(display)}</strong>
+                ${hero ? `<span style="font-size:0.68rem; background:${qColor}22; color:${qColor}; border:1px solid ${qColor}; padding:0 4px; border-radius:3px; font-weight:bold;">${hero.quality}</span>` : ''}
+              </div>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button type="button" class="action-btn" data-btn-pick-hero-effect style="padding:6px 14px; font-size:0.8rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer; border-radius:4px;">👑 挑選指定英雄 (全視覺化單選)</button>
+              <input data-field="heroId" type="hidden" value="${escapeHtml(effect.heroId || '')}">
+            </div>
+          </div>
+        `;
+      }
       case 'GRANT_MATERIAL': {
         const mat = (materialsJson as any[]).find(m => m.id === effect.itemId) || DataStore.MaterialDB[effect.itemId];
         const display = mat ? `${mat.name} (${mat.id})` : (effect.itemId || '尚未選擇素材');
         const iconHtml = mat ? renderUniversalIcon(mat.icon || '💎', 26) : '💎';
         return `
-          <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;">
+          <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
             <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
               <span>素材項目：</span>
               <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
@@ -498,10 +636,13 @@ export class StoryStudioForm {
                 <strong style="color:#fde68a;">${escapeHtml(display)}</strong>
               </div>
             </div>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <button type="button" class="action-btn" data-btn-pick-item="MATERIAL" style="padding:5px 12px; font-size:0.78rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer;">🔍 挑選素材</button>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="action-btn" data-btn-pick-item="MATERIAL" style="padding:5px 14px; font-size:0.8rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer; border-radius:4px;">🔍 挑選素材</button>
               <input data-field="itemId" type="hidden" value="${escapeHtml(effect.itemId || '')}">
-              <div style="flex:1;">${input('數量', 'quantity', effect.quantity, 'number')}</div>
+              <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; color:#f59e0b; font-weight:bold;">
+                <span>發放數量：</span>
+                <input data-field="quantity" type="number" min="1" max="999" value="${effect.quantity ?? 1}" style="width:75px; min-width:75px; padding:4px 8px; font-size:0.85rem; font-weight:bold; color:#fde68a; background:#0f131a; border:1px solid rgba(245,158,11,0.6); border-radius:4px; text-align:center; box-sizing:border-box;">
+              </label>
             </div>
           </div>
         `;
@@ -511,7 +652,7 @@ export class StoryStudioForm {
         const display = tg ? `${tg.name} (${tg.id})` : (effect.itemId || '尚未選擇特產');
         const iconHtml = tg ? renderUniversalIcon(tg.icon || '🍷', 26) : '🍷';
         return `
-          <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;">
+          <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
             <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
               <span>特產項目：</span>
               <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
@@ -519,10 +660,13 @@ export class StoryStudioForm {
                 <strong style="color:#fde68a;">${escapeHtml(display)}</strong>
               </div>
             </div>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <button type="button" class="action-btn" data-btn-pick-item="TRADE_GOOD" style="padding:5px 12px; font-size:0.78rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer;">🔍 挑選特產</button>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="action-btn" data-btn-pick-item="TRADE_GOOD" style="padding:5px 14px; font-size:0.8rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer; border-radius:4px;">🔍 挑選特產</button>
               <input data-field="itemId" type="hidden" value="${escapeHtml(effect.itemId || '')}">
-              <div style="flex:1;">${input('數量', 'quantity', effect.quantity, 'number')}</div>
+              <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; color:#f59e0b; font-weight:bold;">
+                <span>發放數量：</span>
+                <input data-field="quantity" type="number" min="1" max="999" value="${effect.quantity ?? 1}" style="width:75px; min-width:75px; padding:4px 8px; font-size:0.85rem; font-weight:bold; color:#fde68a; background:#0f131a; border:1px solid rgba(245,158,11,0.6); border-radius:4px; text-align:center; box-sizing:border-box;">
+              </label>
             </div>
           </div>
         `;
@@ -533,7 +677,7 @@ export class StoryStudioForm {
         const display = eq ? `${eq.name} (${eq.id})` : (effect.templateId || '尚未指定裝備');
         const iconHtml = eq ? renderUniversalIcon(eq.icon || '⚔️', 26) : '⚔️';
         return `
-          <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:4px;">
+          <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
             <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
               <span>指定裝備：</span>
               <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
@@ -541,10 +685,13 @@ export class StoryStudioForm {
                 <strong style="color:#fde68a;">${escapeHtml(display)}</strong>
               </div>
             </div>
-            <div style="display:flex; gap:6px; align-items:center;">
-              <button type="button" class="action-btn" data-btn-pick-item="EQUIPMENT" style="padding:5px 12px; font-size:0.78rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer;">🔍 挑選裝備庫</button>
-              <input data-field="templateId" type="text" value="${escapeHtml(effect.templateId || '')}" placeholder="或手動填入裝備 ID" style="flex:1; font-size:0.78rem;">
-              <div style="width:75px;">${input('數量', 'quantity', effect.quantity, 'number')}</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button type="button" class="action-btn" data-btn-pick-item="EQUIPMENT" style="padding:5px 14px; font-size:0.8rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer; border-radius:4px;">🔍 挑選裝備庫</button>
+              <input data-field="templateId" type="text" value="${escapeHtml(effect.templateId || '')}" placeholder="或手動填入裝備 ID" style="flex:1; min-width:140px; font-size:0.78rem; padding:4px 8px;">
+              <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.8rem; color:#f59e0b; font-weight:bold;">
+                <span>數量：</span>
+                <input data-field="quantity" type="number" min="1" max="99" value="${effect.quantity ?? 1}" style="width:65px; min-width:65px; padding:4px 6px; font-size:0.85rem; font-weight:bold; color:#fde68a; background:#0f131a; border:1px solid rgba(245,158,11,0.6); border-radius:4px; text-align:center; box-sizing:border-box;">
+              </label>
             </div>
           </div>
         `;

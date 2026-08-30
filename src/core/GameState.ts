@@ -67,7 +67,6 @@ export const GameState = {
   unlockedFormations: ['DEFAULT'] as string[],
   formationPresets: [] as FormationPreset[],
   bounties: [] as any[],
-  pendingExtortionEvent: false,
   narrativeState: createEmptyNarrativeState()
 };
 
@@ -108,14 +107,17 @@ export function initGameState(options: NewGameOptions = {
     if (tpl) {
       if (tpl.icon) node.customIcon = tpl.icon;
       if (tpl.allowTroops !== undefined) node.allowTroops = tpl.allowTroops;
+      if (tpl.producedGoods) node.producedGoods = tpl.producedGoods;
+      if (tpl.demandedGoods) node.demandedGoods = tpl.demandedGoods;
     }
   });
 
   const existingNodeIds = new Set(mapNodes.map(n => n.id));
+  const existingNodeNames = new Set(mapNodes.map(n => n.name));
 
   // 1. 隱藏秘境節點 (迷霧中探索發現)
   const secretStrongholds: MapNode[] = allTemplates
-    .filter(tpl => tpl.worldGenMode === 'WORLD_SECRET' || (tpl.isWorldSecret && tpl.worldGenMode !== 'STORY_ONLY'))
+    .filter(tpl => (tpl.worldGenMode === 'WORLD_SECRET' || (tpl.isWorldSecret && tpl.worldGenMode !== 'STORY_ONLY')) && !existingNodeIds.has(tpl.id) && !existingNodeNames.has(tpl.name))
     .map(tpl => ({
       id: `secret_${tpl.id}`,
       name: tpl.name,
@@ -138,6 +140,8 @@ export function initGameState(options: NewGameOptions = {
       customIcon: tpl.icon,
       fogRumor: tpl.fogRumor,
       revealRumor: tpl.revealRumor,
+      producedGoods: tpl.producedGoods,
+      demandedGoods: tpl.demandedGoods,
       narrativeSubjugation: {
         storyId: 'world_secret',
         sourceNodeId: tpl.id,
@@ -149,7 +153,7 @@ export function initGameState(options: NewGameOptions = {
 
   // 2. 自訂常駐攻略據點 (非 STORY_ONLY 且非秘境，且不在原生 INITIAL_MAP_NODES 中的新據點)
   const customPermanentNodes: MapNode[] = allTemplates
-    .filter(tpl => (tpl.worldGenMode === 'PERMANENT_VISIBLE' || (!tpl.worldGenMode && !tpl.isWorldSecret)) && !existingNodeIds.has(tpl.id))
+    .filter(tpl => (tpl.worldGenMode === 'PERMANENT_VISIBLE' || (!tpl.worldGenMode && !tpl.isWorldSecret)) && !existingNodeIds.has(tpl.id) && !existingNodeNames.has(tpl.name))
     .map(tpl => ({
       id: tpl.id,
       name: tpl.name,
@@ -170,6 +174,8 @@ export function initGameState(options: NewGameOptions = {
       baseDifficulty: tpl.difficulty || 2,
       isScouted: !tpl.requiresScouting,
       customIcon: tpl.icon,
+      producedGoods: tpl.producedGoods,
+      demandedGoods: tpl.demandedGoods,
       narrativeSubjugation: {
         storyId: 'custom_stronghold',
         sourceNodeId: tpl.id,
@@ -214,7 +220,6 @@ export function initGameState(options: NewGameOptions = {
   GameState.unlockedFormations = ['DEFAULT'];
   GameState.formationPresets = [];
   GameState.bounties = [];
-  GameState.pendingExtortionEvent = false;
   GameState.narrativeState = createEmptyNarrativeState();
   
   // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次

@@ -286,6 +286,8 @@ export interface MapNode {
   
   // 市場資料
   marketData?: NodeMarketData;
+  producedGoods?: string[]; // 盛產/可買物資 ID 清單 (從 materials.json 讀取)
+  demandedGoods?: string[]; // 需求/高價收購 ID 清單 (從 materials.json 讀取)
   
   // 圍城資料
   siegeData?: SiegeData;
@@ -324,6 +326,7 @@ export interface MaterialItem {
   name: string;
   icon: string;
   category: 'TRADE_GOOD' | 'CRAFTING_MATERIAL';
+  type?: 'FOOD' | 'MATERIAL' | 'LUXURY' | 'SPECIALTY';
   tier: number;
   description: string;
   basePrice: number;
@@ -697,6 +700,9 @@ export interface MonsterData {
   isBoss?: boolean;                     // 是否為 Boss
   isMagicalAttacker?: boolean;          // 是否為法系攻擊者 (相容性標記)
   avatarIcon?: string;                  // 怪物專屬 Sprite / Emoji 圖標
+  characterKey?: string;                // 唯一角色身分代碼 (跨型態綁定，例如 CHAR_RYAN)
+  substituteMonsterId?: string;         // 指定代理副將怪物 ID (當角色已被玩家獲得時替換)
+  captureRate?: number;                 // 專屬被俘虜機率 0~100 (選填，未填則依情境預設)
   lootConfig?: {
     goldBase: number;
     expBase: number;

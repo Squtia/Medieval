@@ -345,6 +345,9 @@ function bindMainEvents(): void {
   byId('btn-story-add-node')?.addEventListener('click', () => {
     store.createNode();
   });
+  byId('btn-story-add-bounty-node')?.addEventListener('click', () => {
+    store.createBountyNode();
+  });
   byId('btn-story-delete-node')?.addEventListener('click', () => {
     const node = store.getActiveNode();
     if (!node || !confirm(`確定刪除節點「${node.title}」？`)) return;

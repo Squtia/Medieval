@@ -1,11 +1,11 @@
 import { Faction, FactionType, FactionPersonality } from '../models/types';
 
 export const INITIAL_FACTIONS: Faction[] = [
-  // --- 1. 洛斯加王室 (中央) ---
+  // --- 1. 洛斯加中央王室 (中央平原) ---
   {
     id: 'f_lothgar',
     factionName: '洛斯加王室與舊貴族',
-    description: '老王猝死，新君年幼。攝政太后為了維持搖搖欲墜的中央皇權，以高壓統治與秘密情報網控制各方舊貴族。',
+    description: '老王猝死，新君年幼。攝政太后為了維持搖搖欲墜的中央皇權，以高壓統治與秘密情報網控制中央平原各方舊貴族。',
     factionType: FactionType.ROYAL,
     color: '#4c1d95',
     resources: 5000,
@@ -27,11 +27,11 @@ export const INITIAL_FACTIONS: Faction[] = [
     ]
   },
   
-  // --- 2. 鐵血大公國 (北境) ---
+  // --- 2. 熔岩鍛爐 沃爾蒙德大公國 (西南火山) ---
   {
     id: 'f_vormund',
-    factionName: '鐵血大公國',
-    description: '以防禦北方蠻族為由成立的軍事獨裁聯盟，拒絕交出兵權，並試圖維持全大陸最大的常備軍。',
+    factionName: '鐵血大公國 沃爾蒙德',
+    description: '盤據於西南熔岩鍛爐之地的軍事獨裁聯盟，掌控全大陸最精湛的黑鐵鍛造與軍事重裝步兵。',
     factionType: FactionType.GREAT_HOUSE,
     color: '#7f1d1d',
     resources: 1200,
@@ -43,8 +43,8 @@ export const INITIAL_FACTIONS: Faction[] = [
     personality: FactionPersonality.WARMONGER,
     champions: [
       {
-        id: 'champ_vormund_01', name: '沃爾蒙德公爵', title: '極地暴君騎士', factionId: 'f_vormund', powerTier: 8, isBoss: true,
-        jobId: 'WARRIOR', traitId: 'BLOODTHIRSTY', portraitEmoji: '🐺', description: '擁兵自重的北境大公，藉由恐懼與高壓統治著整片荒原。', rarity: 'LEGENDARY'
+        id: 'champ_vormund_01', name: '沃爾蒙德公爵', title: '鍛爐暴君騎士', factionId: 'f_vormund', powerTier: 8, isBoss: true,
+        jobId: 'WARRIOR', traitId: 'BLOODTHIRSTY', portraitEmoji: '🐺', description: '擁兵自重的軍事大公，藉由恐懼與熔岩鍛爐的高壓統治著整片西南要塞。', rarity: 'LEGENDARY'
       },
       {
         id: 'champ_vormund_02', name: '格里姆·瓦萊里烏斯', title: '黑鐵傭兵團長', factionId: 'f_vormund', powerTier: 6, isBoss: true,
@@ -53,11 +53,11 @@ export const INITIAL_FACTIONS: Faction[] = [
     ]
   },
 
-  // --- 3. 神聖教廷 (東境) ---
+  // --- 3. 北境 赫斯特神聖教廷 (極北雪山) ---
   {
     id: 'f_hurst',
-    factionName: '神聖教廷與異端審判庭',
-    description: '政教合一的狂熱宗教國度，企圖透過宗教狂熱來合法吞併政敵的富庶領地。',
+    factionName: '北境神聖教廷 赫斯特',
+    description: '座落於極北冰封雪山的政教合一宗教國度，企圖透過宗教狂熱來合法吞併政敵的富庶領地。',
     factionType: FactionType.GREAT_HOUSE,
     color: '#1e3a8a',
     resources: 1000,
@@ -70,7 +70,7 @@ export const INITIAL_FACTIONS: Faction[] = [
     champions: [
       {
         id: 'champ_hurst_01', name: '赫斯特侯爵', title: '異端審判長騎士', factionId: 'f_hurst', powerTier: 7, isBoss: true,
-        jobId: 'CLERIC', traitId: 'HOLY_AURA', portraitEmoji: '✝️', description: '掌控大主教席位，利用信仰洗腦平民，假借神意發動清洗。', rarity: 'LEGENDARY'
+        jobId: 'CLERIC', traitId: 'HOLY_AURA', portraitEmoji: '✝️', description: '掌控大主教席位，利用信仰洗腦平民，假借神意在北境發動清洗。', rarity: 'LEGENDARY'
       },
       {
         id: 'champ_hurst_02', name: '艾莉西亞·莫凡恩', title: '霜寒處刑傭兵', factionId: 'f_hurst', powerTier: 6, isBoss: true,
@@ -79,11 +79,11 @@ export const INITIAL_FACTIONS: Faction[] = [
     ]
   },
 
-  // --- 4. 金流商會聯盟 (南境) ---
+  // --- 4. 西境 貝拉維亞金玫瑰商會 (翡翠林海) ---
   {
     id: 'f_bellavia',
-    factionName: '金流商會聯盟',
-    description: '看似鬆散，實則壟斷大陸經濟的聯合壟斷企業。',
+    factionName: '西境商會聯盟 貝拉維亞',
+    description: '盤據於西境翡翠林海半島、看似鬆散實則壟斷大陸經濟的富商聯合企業。',
     factionType: FactionType.GREAT_HOUSE,
     color: '#064e3b',
     resources: 1100,
@@ -105,11 +105,11 @@ export const INITIAL_FACTIONS: Faction[] = [
     ]
   },
 
-  // --- 5. 深淵礦業財閥 (西境) ---
+  // --- 5. 赤砂荒漠 達斯克城邦 (東南大沙漠) ---
   {
     id: 'f_dusk',
-    factionName: '深淵礦業財閥',
-    description: '為了供應全國鐵礦而形成的極端血汗工業區。面對上層剝削，選擇將壓力極限向下轉嫁。',
+    factionName: '赤砂礦業城邦 達斯克',
+    description: '坐落於東南赤砂荒漠、為了供應全大陸礦產而形成的極端血汗工業與傭兵城邦。',
     factionType: FactionType.GREAT_HOUSE,
     color: '#b45309',
     resources: 1500,
@@ -121,7 +121,7 @@ export const INITIAL_FACTIONS: Faction[] = [
     personality: FactionPersonality.WARMONGER,
     champions: [
       {
-        id: 'champ_dusk_01', name: '達斯克子爵', title: '血汗礦主騎士', factionId: 'f_dusk', powerTier: 7, isBoss: true,
+        id: 'champ_dusk_01', name: '達斯克子爵', title: '赤砂礦主騎士', factionId: 'f_dusk', powerTier: 7, isBoss: true,
         jobId: 'WARRIOR', traitId: 'RUTHLESS', portraitEmoji: '⛏️', description: '冷酷的礦場主，推行連坐法，強制平民在無防護狀態下進入瘴氣深淵挖礦。', rarity: 'LEGENDARY'
       },
       {

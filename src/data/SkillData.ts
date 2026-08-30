@@ -3,6 +3,7 @@ import { DamageType } from '../models/types';
 import { Random } from '../core/Random';
 import { TargetType, Skill, SkillDisplayInfo, PassiveDisplayInfo } from '../models/Skill';
 import { getElementalMultiplier, getPatk, getMatk, calculateSkillDamage } from '../utils/CombatMath';
+import { SkillRegistry } from '../systems/combat/SkillRegistry';
 
 export const SKILLS: Record<string, Skill> = {
   // --- 戰士系基礎技能 ---
@@ -1589,11 +1590,32 @@ export const SKILLS: Record<string, Skill> = {
  */
 export function getAdventurerSkillInfo(adv: any): SkillDisplayInfo[] {
   const result: SkillDisplayInfo[] = [];
-  const jobName = adv.job?.name || adv.currentClass || '';
   const weapon = adv.equipment?.WEAPON;
   const wpnType = weapon?.weaponType;
   const isAdvanced = !!adv.isAdvanced;
   const lvl = adv.level || 1;
+
+  // 0. 優先使用客製化技能 (Custom Skills SSOT)
+  if (adv.customSkills && Array.isArray(adv.customSkills) && adv.customSkills.length > 0) {
+    adv.customSkills.forEach((skillId: string, idx: number) => {
+      const sk = SkillRegistry.getSkill(skillId) || SKILLS[skillId];
+      if (sk) {
+        result.push({
+          skill: sk,
+          isLearned: true,
+          category: idx === 2 ? 'ADVANCED' : 'BASE'
+        });
+      }
+    });
+
+    // 裝備技能
+    if (weapon && weapon.grantedSkill && SKILLS[weapon.grantedSkill]) {
+      result.push({ skill: SKILLS[weapon.grantedSkill], isLearned: true, category: 'EQUIPMENT' });
+    }
+    return result;
+  }
+
+  const jobName = adv.job?.name || adv.currentClass || '';
 
   // 1. 基礎職業技能
   if (jobName.includes('戰士') || jobName.includes('狂戰') || jobName.includes('魔劍')) {

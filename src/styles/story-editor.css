@@ -124,15 +124,129 @@ button, input, select, textarea { font: inherit; }
 .story-editor-facts, .story-editor-blocked { font-size: .76rem; line-height: 1.45; color: #b9ad98; white-space: pre-wrap; }
 .story-editor-blocked { color: #fbbf24; margin-top: 8px; }
 .story-editor-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.story-editor-node-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-.story-effect-list { display: grid; gap: 8px; margin: 8px 0; }
-.story-effect-row { padding: 8px; border: 1px solid rgba(180,140,70,.35); border-radius: 5px; background: rgba(0,0,0,.25); }
+.story-editor-node-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; margin-bottom: 20px; }
+
+/* 📦 右側欄卡片化容器 (Inspector Cards) */
+.story-inspector-form { display: flex; flex-direction: column; gap: 12px; }
+
+.inspector-card {
+  border: 1px solid rgba(180, 140, 70, 0.25);
+  border-radius: 8px;
+  background: rgba(18, 14, 10, 0.88);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.inspector-card:hover {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+}
+
+/* 各區塊主題邊框與標題色 */
+.inspector-card-base {
+  border-color: rgba(212, 175, 55, 0.35);
+  background: linear-gradient(180deg, rgba(28, 22, 15, 0.95), rgba(16, 12, 8, 0.9));
+}
+.inspector-card-base .inspector-card-title {
+  color: #fde68a;
+}
+
+.inspector-card-dialogue {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.inspector-card-dialogue .inspector-card-summary {
+  color: #fbbf24;
+}
+
+.inspector-card-conditions {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+.inspector-card-conditions .inspector-card-summary {
+  color: #7dd3fc;
+}
+
+.inspector-card-effects {
+  border-color: rgba(16, 185, 129, 0.35);
+}
+.inspector-card-effects .inspector-card-summary {
+  color: #86efac;
+}
+
+.inspector-card-maptarget {
+  border-color: rgba(192, 132, 252, 0.35);
+}
+.inspector-card-maptarget .inspector-card-summary {
+  color: #d8b4fe;
+}
+
+.inspector-card-bounty {
+  border-color: rgba(96, 165, 250, 0.35);
+}
+.inspector-card-bounty .inspector-card-summary {
+  color: #93c5fd;
+}
+
+.inspector-card-choices {
+  border-color: rgba(251, 191, 36, 0.45);
+  background: linear-gradient(180deg, rgba(26, 20, 12, 0.9), rgba(15, 11, 7, 0.95));
+}
+.inspector-card-choices .inspector-card-summary {
+  color: #fef08a;
+}
+
+/* 卡片標題與折疊 Summary 樣式 */
+.inspector-card-header {
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border-bottom: 1px solid rgba(180, 140, 70, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspector-card-title {
+  font-weight: 700;
+  font-size: 0.86rem;
+  letter-spacing: 0.02em;
+}
+
+.inspector-card-summary {
+  padding: 10px 14px;
+  background: rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  transition: background 0.12s, color 0.12s;
+}
+
+.inspector-card-summary:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+details.inspector-card[open] > .inspector-card-summary {
+  border-bottom: 1px solid rgba(180, 140, 70, 0.2);
+}
+
+.inspector-card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 子清單與效果項目深度襯底 */
+.story-effect-list { display: grid; gap: 8px; margin: 4px 0 8px; }
+.story-effect-row { padding: 9px 10px; border: 1px solid rgba(180, 140, 70, 0.25); border-radius: 6px; background: rgba(0, 0, 0, 0.4); box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }
 .story-effect-head { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; margin-bottom: 6px; }
 .story-effect-head .story-danger { padding: 4px 8px; font-size: .75rem; }
 .story-effect-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 8px; }
 .story-effect-fields .wide { grid-column: 1 / -1; }
-.story-choices-list { display: grid; gap: 10px; margin: 9px 0; }
-.story-choice-card { padding: 9px; border: 1px solid rgba(210,165,85,.35); border-radius: 6px; background: rgba(30,22,14,.75); }
+
+.story-choices-list { display: grid; gap: 10px; margin: 6px 0 10px; }
+.story-choice-card { padding: 10px 12px; border: 1px solid rgba(210, 165, 85, 0.35); border-radius: 6px; background: rgba(0, 0, 0, 0.45); box-shadow: inset 0 1px 4px rgba(0,0,0,0.5); }
 .story-choice-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .story-choice-title { color: #fde68a; font-weight: 700; font-size: .82rem; }
 .story-choice-head .story-danger { padding: 3px 7px; font-size: .72rem; }

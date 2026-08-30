@@ -1,4 +1,261 @@
-- **[Fix/Build/AssetsPath] 全域街道建築圖示 SSOT 與 CSS/HTML 紋理背景路徑全面修復（2026-08-28）**：
+- **[Fix/NarrativeSystem/TriggerRaidSuccessFailNodeUnconditionalFire] TRIGGER_RAID 守城/城防後續節點修復全系列（2026-08-30）**：
+  - **模組架構**：
+    - `src/systems/NarrativeSystem.ts`：新增 `isRaidTargetNode(storyId, nodeId)` 掃描 `TRIGGER_RAID.successNodeId` 與 `failNodeId`；在 `explainBlocked()` 加入對應阻擋邏輯，防止每日輪詢無條件觸發；在 `resolveChoice` 與 `applyEffects` 加入 `sourceNodeId` 傳遞鏈。
+    - `src/systems/TerritoryDefenseSystem.ts`：在 `startLiveSiegeDefense`、`executeLiveSiegeDefenseWithSquads`、`settleSiegeDefenseResults` 與 `settleFieldInterceptionResults` 接受 `sourceNodeId`，並於結算 `onClose` 呼叫 `NarrativeSystem.completeNode` 標記源節點完成。
+    - `src/ui/modals/TerritoryDefenseModalController.ts`：新增 `currentSourceNodeId` 欄位並傳遞至結算與放棄按鈕（`btnCancel`），確保放棄防守時亦能標記源節點完成，解決守城編組彈窗反覆彈出的問題。
+    - `src/tools/story-studio/StoryStudioGraph.ts`：補齊 `TRIGGER_RAID` 跳轉連線繪製（勝利綠線 `victory` / 失敗紅線 `defeat`）。
+    - `src/systems/NarrativeSystem.test.ts`：新增專屬單元測試驗證阻擋與觸發邏輯。
+  - **進度**：全數通過 35 個測試檔案 163 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Fix/StoryStudio/GrantItemQuantityInputUI] 故事工坊素材/特產/裝備發放數量輸入框佈局與可視性全面修復（2026-08-30）**：
+  - **模組架構**：
+    - `src/tools/story-studio/StoryStudioForm.ts`：全面重構 `GRANT_MATERIAL`、`GRANT_TRADE_GOOD` 與 `GRANT_EQUIPMENT` 效果卡片中的數量輸入樣式，提供明確標籤與 `75px` 置中寬度，修復被 flex 擠壓導致無法看清的問題。
+  - **進度**：全數通過 35 個測試檔案 162 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/CombatStudio/HeroCreatorLevelAdvancementAndEquipGuard] 英雄工坊等級與滿等進階防呆、品級標準點數標註與職業裝備限制防呆實裝（2026-08-30）**：
+  - **模組架構**：
+    - `src/templates/combat-studio.html`：新增 `hc-level` 等級輸入欄位、`hc-is-advanced-hint` 防呆提示、六維各品級標準點數對照標籤 (`ref-q-n` ~ `ref-q-ur`)。
+    - `src/tools/CombatStudio.ts`：實裝等級與進階狀態即時連動防呆（< 10 等 disabled）、六維總點數與品級標準即時高亮差額提示、職業裝備相容性字典 (`JOB_ALLOWED_WEAPON_TYPES` / `JOB_ALLOWED_ARMOR_TYPES`)、裝備庫挑選本職過濾與切換職業自動修正。
+    - `src/data/UniqueAdventurers.ts`：`UniqueHeroDef` 加入 `isAdvanced?: boolean`，`createUniqueAdventurer` 加入滿 10 等方可進階防呆。
+    - `src/tools/CombatStudio.test.ts`：新增等級進階防呆與職業裝備相容性單元測試。
+  - **進度**：全數通過 35 個測試檔案 162 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/StoryStudio/BountyBoardWorkflowUpgrade] 故事工坊懸賞委託 (BOUNTY_BOARD) 全鏈路可視化與快捷建立升級（2026-08-30）**：
+  - **模組架構**：
+    - `src/tools/story-studio/StoryStudioStore.ts`：實裝 `createBountyNode()` 懸賞節點一鍵快速建立。
+    - `src/templates/story-editor.html`：工具列新增 `📜 ＋新增懸賞委託` 按鈕，預設展開懸賞設定區塊。
+    - `src/tools/story-studio/StoryStudioGraph.ts`：流程圖節點展示 `⏱️ 執行天數 | 💰 金幣 | ⏳ 保留天數` 金色摘要徽章。
+    - `src/tools/story-studio/StoryStudioForm.ts`：切換/選取 `BOUNTY_BOARD` 時自動展開並同步設定。
+  - **進度**：全數通過 35 個測試檔案 160 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Refactor/LegacyCleanup/AbolishLegacyInvasionAndExtortion] 徹底拔除舊時代強盜勒索 (Extortion) 與純數值侵襲洗劫 (processInvasionCombat) 歷史遺留代碼（2026-08-30）**：
+  - **模組架構**：
+    - `src/systems/BountySystem.ts`：移除強盜懸賞過期時觸發 `pendingExtortionEvent = true` 的舊邏輯。
+    - `src/core/GameState.ts`：移除 `pendingExtortionEvent` 屬性與重設邏輯。
+    - `src/core/GameLoop.ts`：彻底刪除 `processInvasionCombat`、`processInvasionDefeat` 與 `showInvasionReport`（哨所抵抗羊皮紙彈窗）。
+    - `src/ui/ExtortionModalController.ts`：徹底廢棄停用。
+  - **進度**：全數通過 35 個測試檔案 160 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/HeroExclusivity/DynamicViceCommanderSubstitution] 傳奇唯一英雄全球排他性與據點戰鬥全鏈路智慧副將接替引擎實裝（2026-08-30）**：
+  - **模組架構**：
+    - `src/data/UniqueAdventurers.ts`：冒險者實體化注入 `characterKey` 與 `boundMonsterId`。
+    - `src/systems/map/FactionArmyGenerator.ts`：`buildUnavailableCharacterSet` 強化 `findHeroDef` 雙向英雄綁定解析。
+    - `src/systems/MonsterSystem.ts`：`createInstancesFromTemplateWaves` 討伐據點波次守軍全面接入 `FactionArmyGenerator.getBestSubstituteMonsterId` 智慧副將替換。
+    - `src/systems/CombatSystem.ts` 與 `src/systems/combat/InteractiveCombatSession.ts`：實裝戰鬥敵人不可用名將二次安檢防禦與自動副將替補；補齊 `avatarIcon` 參戰者與初始狀態傳遞。
+    - `src/systems/ExplorationNarrativeEngine.ts`：戰後俘虜判定嚴格排除 `【代理副將】` 與已歸順/已在地牢之傳奇英雄。
+    - `src/systems/MonsterAndSkillSystem.test.ts`：新增專屬全球唯一性排他與代理副將替補全鏈路單元測試。
+  - **進度**：全數通過 35 個測試檔案 160 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Architecture/HeroDatabase/JSONPersistenceAutoSync] 英雄資料庫實體 JSON 化 (unique_heroes.json) 與工坊自動同步寫入硬碟重構實裝（2026-08-30）**：
+  - **模組架構**：
+    - `src/data/unique_heroes.json`：建立純淨實體英雄資料庫檔案（SSOT）。
+    - `vite.config.ts`：接通 `/api/get-hero-definitions` 與 `/api/save-hero-definitions` 自動硬碟同步與備份端點。
+    - `src/tools/CombatStudio.ts`：英雄工坊保存時自動調用 API 同步寫入硬碟。
+    - `src/data/UniqueAdventurers.ts`：徹底精簡，直連 `unique_heroes.json`。
+    - `src/data/SkillData.ts`：`getAdventurerSkillInfo` 支援動態解析自訂工坊技能。
+    - `src/ui/modals/PrisonerModalController.ts`：地牢招降扣款/沒收後即時調用 `UIManager.updateUI()` 刷新頂部 HUD。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Fix/HeroWorkshop/StorageKeyAndAvatarAlignment] 英雄工坊儲存鍵值對齊 (MEDIEVAL_CUSTOM_HEROES) 與全鏈路專屬立繪渲染修復（2026-08-30）**：
+  - **模組架構**：
+    - `src/data/UniqueAdventurers.ts`：修復 `localStorage` 讀取鍵值對齊 `MEDIEVAL_CUSTOM_HEROES`。
+    - `src/ui/IconSpriteHelper.ts`、`src/ui/components/AdventurerCard.ts`、`src/ui/modals/PartyModalController.ts`、`src/ui/CombatUIManager.ts`：實裝 `adv.avatarIcon` 全鏈路渲染支援。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Refactor/HeroWorkshop/SSOTWorkshopPriority] 英雄名單 SSOT 權威統一與工坊自訂資料優先覆蓋實裝（2026-08-30）**：
+  - **模組架構**：
+    - `src/data/UniqueAdventurers.ts`：重構 `getSelectableHeroes`（工坊自訂資料 100% 覆寫官方預設）、`findHeroDef`、`createUniqueAdventurer`。
+    - `src/data/monsters.json`：補齊 `enemy_ryan` 的 `characterKey: "char_ryan"` 與 `captureRate: 100`。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/Dungeon/UniqueHeroSSOTCaptureDungeonSystem] 以英雄名單 (UniqueHeroDef) 為 SSOT 的全鏈路俘虜資格、地牢收押與提審招降實裝（2026-08-30）**：
+  - **模組架構**：
+    - `src/data/UniqueAdventurers.ts`：導出 `findHeroDef` 查詢方法。
+    - `src/models/Territory.ts`：擴充 `dungeonPrisonerHeroIds` 地牢名冊。
+    - `src/systems/ExplorationNarrativeEngine.ts`：以英雄名冊判定俘虜資格並押送領地地牢。
+    - `src/ui/modals/PrisonerModalController.ts`：重構 `openDungeonList` 支援英雄名單與頭像渲染，提審招降調用 `createUniqueAdventurer` 完整還原屬性與裝備。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Fix/MonsterSystem/SubjugationWavesSSOTAlignment] 討伐據點工坊自訂波次守軍精確載入與 SSOT 對齊修復（2026-08-30）**：
+  - **模組架構**：
+    - `src/systems/MonsterSystem.ts`：實裝 `createInstancesFromTemplateWaves`，重構 `generateNodeEncounter` 優先讀取 `DataStore.getSubjugationTemplates()` 自訂波次守軍、站位與副將自動接替。
+    - `src/ui/modals/NodeDetailModalController.ts`：修復天氣持續天數防呆（預設 3 天）。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/Dungeon/FallenFactionPrisonerActions] 地牢俘虜系統滅國與常規情境差異化處置邏輯實裝（2026-08-30）**：
+  - **模組架構**：
+    - `src/ui/modals/PrisonerModalController.ts`：實裝滅國檢定（`isFallenFaction`）、招降半價加盟、沒收私產流放、化身在野傳奇之自適應按鈕標籤與 Toast 敘事回饋。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[UI/StoryStudio/InspectorCardModularLayout] 故事工坊右側屬性面板 (Inspector) 模組化卡片視覺架構升級（2026-08-30）**：
+  - **模組架構**：
+    - `src/templates/story-editor.html`：重構 Inspector 表單為 6 大獨立卡片（`.inspector-card`）。
+    - `src/styles/story-editor.css`：實裝卡片微陰影、12px 呼吸間距、各區塊專屬主題色高亮邊框（暗金、琥珀橘、青藍、翡翠綠、寶藍、亮金）與精緻折疊標題列。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/CombatCapture/DynamicGradientCaptureRateEngine] 戰鬥將領動態梯度俘虜率與自訂俘虜率引擎實裝（2026-08-30）**：
+  - **模組架構**：
+    - `src/models/types.ts` & `src/data/UniqueAdventurers.ts`：新增 `captureRate?: number`。
+    - `src/systems/ExplorationNarrativeEngine.ts`：實裝 `calculateCaptureRate`（滅國絕境 100%、自訂優先、多城 40%、野外 25% 與突圍敘事）。
+    - `src/templates/combat-studio.html` & `src/tools/CombatStudio.ts`：怪物與英雄編輯彈窗實裝專屬被俘虜率欄位與雙向讀寫。
+    - `src/systems/ExplorationNarrativeEngine.test.ts`：4 項單元測試。
+  - **進度**：全數通過 35 個測試檔案 159 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Feature/CombatStudio/MonsterEditorCharacterKeyAndSubstituteFields] 戰鬥工坊怪物編輯器新增唯一角色代碼與指定代理副將輸入欄位（2026-08-30）**：
+  - **模組架構**：
+    - `src/templates/combat-studio.html`：怪物編輯彈窗新增【🔗 唯一角色代碼 (`characterKey`)】與【🛡️ 指定代理副將 ID (`substituteMonsterId`)】輸入欄位。
+    - `src/tools/CombatStudio.ts`：實裝編輯怪物時自動回填與保存時的雙向寫入。
+  - **進度**：全數通過 34 個測試檔案 155 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Asset/UnusedImagesCleanup] 全專案未使用圖片資源深度掃描與清理瘦身（2026-08-30）**：
+  - **模組架構**：
+    - 深度掃描全專案 74 張圖片之引用狀況，安全清理刪除 15 張未被任何程式碼/樣式/圖集引用的舊版、重複與暫存圖片。
+    - 專案體積即時釋放 **29.93 MB**，剩餘 59 張圖片經二次掃描確認 100% 正常引用中，未引用圖片數降為 0。
+  - **進度**：全數通過 34 個測試檔案 155 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包 0 錯誤。
+
+- **[Docs/DocumentationOverhaulAndCleanup] 全專案核心手冊全面校正重整與過時文件清理（2026-08-30）**：
+  - **模組架構**：
+    - 清理刪除 `TAVERN_SYSTEM_PLAN.md`、`PROJECT_ARCHITECTURE_AND_BALANCE_REVIEW.md` 與 `docs/systems/` 早期模板目錄。
+    - 全面重整五大核心手冊：`game_system_guide.md`（修正職業裝備限制、五大工坊、戰術戰鬥）、`MONSTERS_AND_ELEMENTS.md`（同步 64+ 隻全魔物母庫與動態副將接替規範）、`MATERIALS_AND_ITEMS.md`（同步 30+ 款素材特產與精靈圖圖標標籤）、`STORY_STUDIO_GUIDE.md`（同步英雄條件/獎勵與視覺化挑選器）、`CHEATS.md`（同步全自訂積木技能工坊 `skill` 密技與全域函式）。
+    - `docs/ARCHITECTURE.md`：同步目錄樹為 16 份權威文件。
+  - **進度**：全數通過 34 個測試檔案 155 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包。
+
+- **[Docs/ArchitectureUpdate] 全專案架構文件 ARCHITECTURE.md 模組樹與系統規格全面同步（2026-08-30）**：
+  - **模組架構**：
+    - `docs/ARCHITECTURE.md`：校正目錄結構樹（補齊 `tools/skill-workshop.html`、`src/tools/SkillWorkshop.ts`、`src/tools/story-studio/` 模組化組件、`src/systems/combat/` 新增子模組、`src/data/` 資料庫與 `docs/` 核心規範文件）。
+    - 升級為五大獨立開發工坊體系（納入全自訂積木技能工坊）；同步更新戰鬥與技能架構、雙實體英雄唯一代碼綁定與動態副將接替引擎、全域圖標水平鏡像協議等。
+  - **進度**：全數通過 34 個測試檔案 155 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包。
+
+- **[Feature/HeroStudio/DualEntityBindingAndDynamicViceCommander] 雙實體英雄唯一身分綁定與動態副將接替引擎實裝（2026-08-29）**：
+  - **模組架構**：
+    - `src/models/types.ts` & `src/data/UniqueAdventurers.ts`：擴充 `MonsterData` 與 `UniqueHeroDef` 支援 `characterKey`、`boundMonsterId` 與 `substituteMonsterId`。
+    - `src/templates/combat-studio.html` & `src/tools/CombatStudio.ts`：英雄創作工坊實裝身分綁定欄位 UI 與雙向資料庫存檔。
+    - `src/systems/map/FactionArmyGenerator.ts`：實裝 `resolveTroopMember`、`getBestSubstituteMonsterId` 與 `instantiateCombatGroup` 動態副將接替引擎。
+    - `src/systems/map/FactionArmyGenerator.test.ts`：4 項單元測試覆蓋未收編生成、指定副將替換、演算法自動副將替換與部隊藍圖唯讀隔離性。
+  - **進度**：全數通過 34 個測試檔案 155 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包。
+
+- **[Refactor/SkillSystem/MpCostFieldStandardization] 技能系統與自訂積木技能全專案 MP 消耗欄位標準化 (mpCost SSOT 收斂)（2026-08-29）**：
+  - **模組架構**：
+    - `src/models/Skill.ts`、`src/data/CustomSkillData.json`、`src/tools/SkillWorkshop.ts`、`src/systems/combat/SkillEffectEngine.ts`、`src/tools/CombatStudio.ts`：全專案技能系統將魔力消耗欄位 100% 收斂統一為 `mpCost`（同時支援 `totalMpCost` 向下相容）。
+  - **進度**：全數通過 33 個測試檔案 151 項單元測試、TypeScript 型別嚴格檢查與 Vite 生產打包。
+
+- **[Fix/HeroStudio/CustomSkillMpCostDisplay] 英雄工坊技能卡槽自訂技能 MP 消耗 (totalMpCost) 讀取相容性修復（2026-08-29）**：
+  - **模組架構**：
+    - `src/tools/CombatStudio.ts`：修復 `renderHeroSkillSlots` 與 `renderHeroSkillPickerGrid`，升級為相容讀取 `sk.mpCost ?? sk.totalMpCost ?? sk.cost?.mpCost ?? 0`，使工坊自訂技能正確顯示真實 MP 消耗。
+  - **進度**：全數通過 33 個測試檔案 151 項單元測試與 Vite 生產打包。
+
+- **[Feature/SkillWorkshop/StatusEffectVisualPicker] 技能工坊積木狀態類型 (StatusType) 全視覺化挑選器 Modal 與按鈕重構實裝（2026-08-29）**：
+  - **模組架構**：
+    - `src/templates/skill-workshop.html`：新增 `#modal-sw-status-picker` 視覺化彈窗，提供 DEBUFF 與 BUFF 網格與清空按鈕。
+    - `src/tools/SkillWorkshop.ts`：定義 `STATUS_OPTIONS`（包含 17 種狀態與中文描述），將積木內的文字輸入框全面替換為點擊式卡片按鈕，支援點擊直接喚起彈窗挑選並即時綁定與儲存。
+  - **進度**：全數通過 33 個測試檔案 151 項單元測試與 Vite 生產打包。
+
+- **[Feature/SkillWorkshop/IdEditAndDiskSyncOverhaul] 全自訂積木技能工坊 ID 即時連動修復、雙向儲存同步與【🔄 從專案重載 (Git 同步)】實裝（2026-08-29）**：
+  - **模組架構**：
+    - `src/templates/skill-workshop.html`：頂部導航列新增 `#btn-sw-reload-disk`【🔄 從專案重載 (Git 同步)】按鈕。
+    - `src/tools/SkillWorkshop.ts`：修復修改技能 ID 後 `this.currentSkillId` 指標脫節導致後續所有編輯（名稱、圖標、積木增刪、倍率調整）全部失效的 Bug；實裝 ID 重複性防呆檢查；實裝 `loadSkills` 多層次穩健載入（磁碟 API ➔ 本機 LocalStorage ➔ 靜態 JSON）與 `reloadFromDisk`；儲存時雙軌同步寫入磁碟與 LocalStorage。
+    - `src/tools/CombatStudio.ts`：自訂技能讀取同步支援 `CustomSkillData.json` 靜態 fallback。
+  - **進度**：全數通過 33 個測試檔案 151 項單元測試與 Vite 生產打包。
+
+- **[Feature/HeroStudio/EquipPickerModalAndSkillTooltipRefactor] 英雄工坊三槽技能簡短ICON+Tooltip精簡化與三格裝備全視覺化Modal挑選器重構（2026-08-29）**：
+  - **模組架構**：
+    - `src/templates/combat-studio.html`：將技能槽位排版改為緊湊等寬 3 格並排（`grid-template-columns: repeat(3, 1fr)`），詳細技能說明全面改置於卡槽容器之 `title` Tooltip 中，3 招一覽無遺；徹底拔除裝備 3 處 `<select>` 下拉選單，改為點擊式展示卡片槽位並新增全視覺化【⚔️ 英雄裝備挑選器 Modal】（`#modal-hc-equip-picker`）。
+    - `src/tools/CombatStudio.ts`：實裝 `updateHeroCreatorEquipmentDisplays`、`openHeroEquipmentPicker`、`renderHeroEquipmentPickerGrid`，支援階級篩選、搜尋、卡片即時穿戴與一鍵【🚫 卸下裝備 (留空)】。全裝備圖標 100% 透過 `renderEquipIcon(item, sizePx)` 渲染（SSOT），屬性數值統一對齊 `item.combatEffects`。
+  - **進度**：全數通過 33 個測試檔案 151 項單元測試與 Vite 生產打包。
+
+- **[Feature/StoryStudio/HeroIntegrationAndTestHeroIsolation] 故事工坊英雄連動機制與測試英雄嚴格隔離（2026-08-29）**：
+  - **模組架構**：
+    - `src/models/Narrative.ts` & `src/systems/NarrativeSystem.ts`：實裝 `HERO_EXISTS` 與 `HERO_MISSING` 條件（支援多選名單與 `ANY`/`ALL` 比對），實裝 `GRANT_HERO` 獎勵效果（生成英雄並加入玩家領地）。
+    - `src/tools/story-studio/StoryStudioHeroPicker.ts`：新建全視覺化英雄挑選器 Modal，支援即時關鍵字搜尋、卡片立繪展示、單選（獎勵）與多選打勾（條件）。
+    - `src/tools/story-studio/StoryStudioForm.ts` & `StoryStudioTypes.ts`：表單支援英雄條件多選徽章標籤展示、移除與模式切換，效果表單支援贈送英雄卡片預覽。
+    - `src/data/UniqueAdventurers.ts`：將【不滅誓約】神聖誓約騎士 `oath` 標記 `isTestOnly: true`，在 `getSelectableHeroes()` 中 100% 過濾排除，確保測試專用數據不被選取且絕不出現在遊戲內故事與招募清單中。
+  - **進度**：全數通過 33 個測試檔案 151 項單元測試與 Vite 生產打包。
+
+- **[Feature/HeroStudio/EquipmentAndCustomSkills] 英雄工坊三格獨立裝備配置與三槽自訂技能挑選器（2026-08-29）**：
+  - **模組架構**：
+    - `src/templates/combat-studio.html`：重構英雄編輯彈窗，徹底移除肖像體系下拉選單與死板神裝設定，改為與遊戲對齊的 **【⚔️ 主手武器 / 🛡️ 身體防具 / 💍 飾品槽】** 三格獨立槽位（支援空手/空防具/空飾品）與全視覺化卡片式【🔮 技能挑選器 Modal】。
+    - `src/models/Adventurer.ts` & `src/data/UniqueAdventurers.ts`：升級 `UniqueHeroDef` 與 `Adventurer` 支援 `customSkills?: string[]` 與靈活空裝備生成。
+    - `src/data/SkillData.ts` & `src/systems/CombatSystem.ts`：將技能加載順序全面升級為優先使用 `adv.customSkills` (SSOT)。
+    - `src/tools/CombatStudio.ts`：實裝三槽技能槽即時渲染、職業切換預設技能連動、全視覺化技能挑選器網格搜尋與分類 Tab、三格裝備圖標連動與持久化儲存。
+  - **進度**：全數通過 33 個測試檔案 148 項單元測試與 Vite 生產打包。
+
+- **[Feature/Icon/UniversalFlipModifier] 通用圖標挑選器水平翻轉 (SSOT) 與全域 `?flip` 語法糖實裝（2026-08-29）**：
+  - **模組架構**：
+    - `src/ui/IconSpriteHelper.ts`：`renderUniversalIcon` 與 `renderUniversalPortrait` 支援 `?flip` 語法糖。
+    - `src/tools/CombatStudio.ts` & `src/tools/EquipmentStudio.ts`：圖標挑選器頂部提供【↔️ 水平翻轉: 開/關】按鈕與即時鏡像。
+  - **進度**：全數通過 33 個測試檔案 148 項單元測試與 Vite 生產打包。
+
+- **[Refactor/GeographyAlignmentExecution] 全專案勢力地理稱謂實裝完成（2026-08-28）**：
+  - **模組架構**：完成 `combat-studio.html`、`FactionData.ts`、`MapData.ts`、`subjugation_nodes.json` 與 `FactionArmyGenerator.ts` 命名大掃除，徹底清除舊有錯位稱呼（東境/南境及火山被誤叫北境等）。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：定案八大勢力標準稱謂（北境赫斯特、西境貝拉維亞、熔岩鍛爐沃爾蒙德、赤砂荒漠達斯克、中央王室洛斯加、橡木谷、黑木守衛、遠古龍裔），解決舊文案與大地圖畫布方向錯位問題。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/data/subjugation_nodes.json`：新增 `oak_army_template` 與 `blk_army_template` 範本。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/data/subjugation_nodes.json`：五大軍團範本九宮格全數回歸純戰鬥士兵編制，攻城器械改由 AI 出征決策與 `attackerConfig` 動態調用。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/data/subjugation_nodes.json`：新增 5 個軍團範本（`royal_army_template`, `val_army_template`, `mor_army_template`, `lys_army_template`, `cas_army_template`），均包含完整 3×3 九宮格兩波部隊與軍團戰力設定。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `public/assets/custom_icons/faction_units_8x8.jpg`：8×8 全角色嚴格統一面朝向左的勢力軍團頭像圖集。
+    - `src/data/custom_icon_datasets.json`：註冊 `faction_units_8x8`（64 格圖標）。
+    - `src/data/monsters.json`：註冊 26 種各勢力專屬特色正規軍團單位。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/tools/CombatStudio.ts`：修復 `btn-save-monster-item` 邏輯，改為 ID 存在時覆蓋更新、不存在時新增，並完整持久化 `avatarIcon` 與 `terrains`。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/data/subjugation_nodes.json`：將全部 27 處官方據點的別名 ID 徹底統一校正為 `n_val_1`, `n_royal_1`, `n_adv_1` 等標準權威代號。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/core/GameState.ts` & `src/ui/NarrativeTestController.ts`：在過濾常駐自訂據點與秘境時，加入 `existingNodeNames` 雙重比對，徹底消除原生同名據點被重複生成的問題。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/ui/NarrativeTestController.ts`：對齊 `GameState.initGameState()`，自動動態讀取 `DataStore.getSubjugationTemplates()`，將所有使用者在據點工坊自訂的常駐攻略據點與秘境注入測試大地圖。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/templates/combat-studio.html` & `src/tools/CombatStudio.ts`：實裝 `#modal-material-picker`，將長卷軸清單全面替換為「🎨 選擇物資按鈕 + 標籤膠囊」，支援搜尋與圖卡多選。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/systems/MarketSystem.ts`：徹底廢除獨立硬編碼的 `TradeGood` 宣告，全面改為直接引用 [src/data/materials.json](file:///i:/gameproject/Medieval/src/data/materials.json) 作為唯一權威來源。
+    - `src/templates/combat-studio.html` & `src/tools/CombatStudio.ts`：在據點工坊實裝「市場產銷配置」面板，支援自訂勾選【🛒 盛產／可買 (0.5x 批發價)】與【💰 短缺／需求 (1.6x 高價收購)】。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/tools/story-studio/StoryStudioTypes.ts` & `StoryStudioForm.ts`：在視覺化故事工坊條件選單中加入 3 大沙盒條件（據點控制權 `NODE_OWNER_IS`、派系交戰中 `FACTION_AT_WAR`、派系糧荒中 `FACTION_STARVING`）。
+    - `src/systems/NarrativeSystem.ts`：實裝底層對應條件檢查與自適應文案描述。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/ui/MapScene.ts`：實裝 `renderCampaignLegions()` 大地圖道路軍團標記即時渲染與點擊互動發布。
+    - `src/templates/modals-combat-trade.html` & `src/ui/modals/FactionCampaignModalController.ts`：實裝軍情刺探與野外攔截彈窗 (`#modal-faction-campaign-intel`)，整合雙向外交好感連動（進攻方 -35、防守方 +40）。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組架構**：
+    - `src/systems/faction/FactionCampaignSystem.ts`：實裝戰役生命週期、道路行軍、邊境掠奪奪金奪糧、圍城決戰與據點控制權轉移 + 180 天停戰協議。
+    - `src/systems/faction/FactionNarrativeBridge.ts`：實裝酒館連續劇傳聞轉譯、故事工坊動態文字插值與三大沙盒狀態條件判定。
+  - **進度**：全數通過 32 個測試檔案 143 項單元測試與 Vite 生產打包。
+
+  - **模組化架構**：
+    - `src/models/FactionProfile.ts`：封裝五大模組 18 項數值矩陣（國庫/糧草/性格/記憶/常備軍/安定度）。
+    - `src/systems/faction/FactionEconomyEngine.ts`：實裝每日稅收、軍餉糧草結算、飢荒逃兵與破產動態演變。
+    - `src/systems/faction/FactionDecisionAI.ts`：實裝 4 大強制保命煞車與可插拔行為效用評估模型。
+  - **後續步驟**：推進第二階段，實裝 `FactionCampaignSystem.ts`（大地圖軍團道路行軍實體與遭遇攔截）以及 `FactionNarrativeBridge.ts`（酒館連續劇傳聞與故事工坊雙軌插值對接）。
+
   - **根本原因**：HTML 模板中的行內樣式 `url('/...')` 在執行期未受 Vite 編譯處理，導致瀏覽器發出錯誤路徑請求（404）造成街道建築與傭兵面板透明隱形。
   - **解決方案**：全面將街道建築與傭兵面板背景樣式由 HTML 模板移至 [style.css](file:///i:/gameproject/Medieval/style.css) 統一以 CSS 類別宣告（SSOT），使 Vite 打包時 100% 正確編譯並注入 base 前綴。已全數通過 132 項自動化測試與生產打包。
 

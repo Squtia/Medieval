@@ -124,7 +124,8 @@ export interface CompositeSkillDefinition {
   icon: string;
   description: string;
   category: SkillCategory;
-  totalMpCost: number;
+  mpCost?: number;
+  totalMpCost?: number;
   cooldown?: number;
   blocks: EffectBlock[];
 }

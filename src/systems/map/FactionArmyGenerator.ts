@@ -1,8 +1,9 @@
-import { Faction, MonsterInstance, MonsterRace, ElementType, FactionChampionInstance } from '../../models/types';
+import { Faction, MonsterInstance, MonsterRace, ElementType, FactionChampionInstance, CustomCombatGroup, MonsterData } from '../../models/types';
 import { MonsterSystem } from '../MonsterSystem';
 import monstersJson from '../../data/monsters.json';
 import { GameState } from '../../core/GameState';
 import { Random } from '../../core/Random';
+import { findHeroDef } from '../../data/UniqueAdventurers';
 
 export class FactionArmyGenerator {
   /**
@@ -98,22 +99,22 @@ export class FactionArmyGenerator {
         instance.evade = 0;
         break;
       case 'f_vormund':
-        // 沃爾蒙德 (北境)：狂暴與高壓統治，攻擊力極高，捨棄防禦
+        // 沃爾蒙德 (熔岩鍛爐)：狂暴與高壓統治，攻擊力極高，捨棄防禦
         instance.damage = Math.floor(instance.damage * 1.4);
         instance.defense = Math.floor(instance.defense * 0.8);
         break;
       case 'f_hurst':
-        // 赫斯特 (神聖教廷)：狂熱信仰，魔防極高，且自帶部分神聖抗性
+        // 赫斯特 (北境神聖教廷)：狂熱信仰，魔防極高，且自帶部分神聖抗性
         instance.hp = Math.floor(instance.hp * 1.2);
         // 若系統未來有獨立魔防，可在此加成；目前以血量與自帶元素替代
         break;
       case 'f_bellavia':
-        // 貝拉維亞 (南境)：暗殺與用毒，擁有高閃避與爆發傷害
+        // 貝拉維亞 (西境商會)：暗殺與用毒，擁有高閃避與爆發傷害
         instance.evade = Math.min(500, instance.evade + 20);
         instance.damage = Math.floor(instance.damage * 1.2);
         break;
       case 'f_dusk':
-        // 達斯克 (西境)：血汗礦工，血量極多但攻擊力較低
+        // 達斯克 (赤砂荒漠)：血汗礦工，血量極多但攻擊力較低
         instance.hp = Math.floor(instance.hp * 1.5);
         instance.damage = Math.floor(instance.damage * 0.9);
         break;
@@ -162,5 +163,137 @@ export class FactionArmyGenerator {
     }
 
     return army;
+  }
+
+  /**
+   * 根據原怪物定位與陣營，客觀演算法挑選最佳代理副將
+   * 規則：同攻擊型態 (MELEE/RANGED/MAGIC) + 人類正規軍 (HUMAN) + 非Boss + powerTier 最高者
+   */
+  public static getBestSubstituteMonsterId(originalDef?: MonsterData, _factionId?: string): string {
+    const targetAttackType = originalDef?.attackType || 'MELEE';
+    
+    // 1. 優先從人類正規軍中過濾符合攻擊型態之士兵
+    const candidates = (monstersJson as MonsterData[]).filter(m => 
+      m.race === MonsterRace.HUMAN && 
+      !m.isBoss && 
+      !m.characterKey && // 代理副將不能也是具名英雄
+      m.attackType === targetAttackType
+    );
+
+    if (candidates.length > 0) {
+      // 依 powerTier 降序排序，取最高戰力者
+      candidates.sort((a, b) => (b.powerTier || 0) - (a.powerTier || 0));
+      return candidates[0].id;
+    }
+
+    // 2. 次選保底：通用人類正規士兵 (不限攻擊型態)
+    const fallbackHumans = (monstersJson as MonsterData[]).filter(m => m.race === MonsterRace.HUMAN && !m.isBoss && !m.characterKey);
+    if (fallbackHumans.length > 0) {
+      fallbackHumans.sort((a, b) => (b.powerTier || 0) - (a.powerTier || 0));
+      return fallbackHumans[0].id;
+    }
+
+    // 3. 終極保底
+    return 'bandit';
+  }
+
+  /**
+   * 從目前領地的冒險者、俘虜與陣亡名單中，自動構建不可用角色 Set (包含 characterKey, boundMonsterId, heroId)
+   */
+  public static buildUnavailableCharacterSet(
+    adventurers: { id: string; characterKey?: string; boundMonsterId?: string }[] = [],
+    prisoners: { id: string; characterKey?: string; boundMonsterId?: string }[] = [],
+    deadCharacters: string[] = []
+  ): Set<string> {
+    const set = new Set<string>(deadCharacters);
+    const collect = (list: { id: string; characterKey?: string; boundMonsterId?: string }[]) => {
+      for (const item of list) {
+        if (item.characterKey) set.add(item.characterKey);
+        if (item.boundMonsterId) set.add(item.boundMonsterId);
+        if (item.id) {
+          set.add(item.id);
+          const heroDef = findHeroDef(item.id);
+          if (heroDef) {
+            if (heroDef.characterKey) set.add(heroDef.characterKey);
+            if (heroDef.boundMonsterId) set.add(heroDef.boundMonsterId);
+            set.add(heroDef.id);
+          }
+        }
+      }
+    };
+    collect(adventurers);
+    collect(prisoners);
+    return set;
+  }
+
+  /**
+   * 解析並生成部隊單一成員實體 (支援唯一英雄被俘/招募後的動態副將接替)
+   * @param monsterId 原始配置的怪物/首領 ID
+   * @param factionId 所屬陣營 ID
+   * @param unavailableCharacters 已被玩家俘虜、已招募入隊或已死亡的角色 characterKey / boundMonsterId 集合
+   * @param baseDifficulty 難度等級
+   */
+  public static resolveTroopMember(
+    monsterId: string,
+    factionId: string = 'f_lothgar',
+    unavailableCharacters?: Set<string>,
+    baseDifficulty: number = 1
+  ): MonsterInstance {
+    const monsterSys = new MonsterSystem();
+    const allDefs = monstersJson as MonsterData[];
+    const originalDef = allDefs.find(m => m.id === monsterId);
+
+    // 檢查是否為具名角色且當前不可用 (已被玩家俘虜、招募或陣亡)
+    // 支援 1: 透過 characterKey 判定
+    // 支援 2: 英雄方直接設定 boundMonsterId (怪物方無需重複設定)
+    const isCharacterUnavailable = (
+      (originalDef?.characterKey && unavailableCharacters?.has(originalDef.characterKey)) ||
+      (originalDef?.id && unavailableCharacters?.has(originalDef.id))
+    );
+
+    if (isCharacterUnavailable && originalDef) {
+      // 觸發動態副將接替 (Dynamic Vice-Commander Substitution)
+      let substituteId = originalDef.substituteMonsterId;
+      if (!substituteId || !allDefs.some(m => m.id === substituteId)) {
+        substituteId = this.getBestSubstituteMonsterId(originalDef, factionId);
+      }
+
+      const subDef = allDefs.find(m => m.id === substituteId) || allDefs[0];
+      const element = this.getFactionElement(factionId);
+      const instance = monsterSys.createMonsterInstance(subDef, MonsterRace.HUMAN, element, baseDifficulty);
+      
+      const factionTag = this.getFactionTag(factionId);
+      instance.name = `${factionTag} 【代理副將】${instance.name}`;
+      this.applyFactionBuffs(factionId, instance);
+      return instance;
+    }
+
+    // 正常生成原始實體
+    const targetDef = originalDef || allDefs[0];
+    const race = targetDef.race || MonsterRace.HUMAN;
+    const element = targetDef.defaultElement || this.getFactionElement(factionId);
+    const instance = monsterSys.createMonsterInstance(targetDef, race, element, baseDifficulty);
+
+    const factionTag = this.getFactionTag(factionId);
+    if (!instance.name.startsWith('[')) {
+      instance.name = `${factionTag} ${instance.name}`;
+    }
+    this.applyFactionBuffs(factionId, instance);
+    return instance;
+  }
+
+  /**
+   * 將據點工坊自訂戰鬥團體 (CustomCombatGroup) 實例化為戰鬥怪物實體陣列
+   * 保證工坊原始藍圖唯讀隔離，並自動套用動態副將接替引擎
+   */
+  public static instantiateCombatGroup(
+    group: CustomCombatGroup,
+    factionId: string = 'f_lothgar',
+    unavailableCharacters?: Set<string>,
+    baseDifficulty: number = 1
+  ): MonsterInstance[] {
+    return (group.monsterIds || []).map(id => 
+      this.resolveTroopMember(id, factionId, unavailableCharacters, baseDifficulty)
+    );
   }
 }

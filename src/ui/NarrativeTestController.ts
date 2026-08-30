@@ -8,7 +8,7 @@ import { MapGenerator } from '../systems/MapGenerator';
 import { MapDynamicsSystem } from '../systems/MapDynamicsSystem';
 import { Territory } from '../models/Territory';
 import { Adventurer } from '../models/Adventurer';
-import { Gender } from '../models/types';
+import { Gender, MapNode, NodeLevel, TerrainType, NodeFeature } from '../models/types';
 import { GameDifficulty } from '../models/WorldGeneration';
 import { startGameLoop, advanceDay } from '../core/GameLoop';
 import { refreshGlobalUI } from '../main';
@@ -57,9 +57,96 @@ export async function initNarrativeTestController(): Promise<void> {
     ? paramNodeId
     : (story?.nodes[0]?.id ?? '');
 
-  // 3. 建立 100% 獨立且視野全開的專用測試沙盒世界（不被正式存檔覆蓋或干擾）
+  // 3. 建立 100% 獨立且視野全開的專用測試沙盒世界（同步載入所有據點工坊中的自訂據點）
+  const allTemplates = DataStore.getSubjugationTemplates();
+  const templateMap = new Map(allTemplates.map(t => [t.id, t]));
+  const mapNodesCopy: MapNode[] = JSON.parse(JSON.stringify(INITIAL_MAP_NODES));
+
+  // 同步原生節點與自訂圖標
+  mapNodesCopy.forEach(node => {
+    const tpl = templateMap.get(node.id) || allTemplates.find(t => t.name === node.name);
+    if (tpl) {
+      if (tpl.icon) node.customIcon = tpl.icon;
+      if (tpl.allowTroops !== undefined) node.allowTroops = tpl.allowTroops;
+      if (tpl.producedGoods) node.producedGoods = tpl.producedGoods;
+      if (tpl.demandedGoods) node.demandedGoods = tpl.demandedGoods;
+    }
+  });
+
+  const existingNodeIds = new Set(mapNodesCopy.map(n => n.id));
+  const existingNodeNames = new Set(mapNodesCopy.map(n => n.name));
+
+  // 自訂常駐攻略據點 (如 cas_red_sand_city_01 等，排重 ID 與名稱)
+  const customPermanentNodes: MapNode[] = allTemplates
+    .filter(tpl => (tpl.worldGenMode === 'PERMANENT_VISIBLE' || (!tpl.worldGenMode && !tpl.isWorldSecret)) && !existingNodeIds.has(tpl.id) && !existingNodeNames.has(tpl.name))
+    .map(tpl => ({
+      id: tpl.id,
+      name: tpl.name,
+      description: tpl.description || '',
+      x: 0,
+      y: 0,
+      population: tpl.nodeLevel ? (tpl.nodeLevel * 500) : 0,
+      prosperity: tpl.nodeLevel ? (tpl.nodeLevel * 100) : 0,
+      nodeLevel: tpl.nodeLevel ?? NodeLevel.WILDERNESS,
+      ownerFactionId: tpl.factionId || null,
+      isPlayerBase: false,
+      isDiscovered: true,
+      terrain: (TerrainType as any)[tpl.terrain] || TerrainType.PLAINS,
+      feature: (tpl.nodeLevel && tpl.nodeLevel > 0) ? NodeFeature.OCCUPIABLE : NodeFeature.SUBJUGATION,
+      isHidden: false,
+      isDynamic: false,
+      allowTroops: tpl.allowTroops !== false,
+      baseDifficulty: tpl.difficulty || 2,
+      isScouted: true,
+      customIcon: tpl.icon,
+      producedGoods: tpl.producedGoods,
+      demandedGoods: tpl.demandedGoods,
+      narrativeSubjugation: {
+        storyId: 'custom_stronghold',
+        sourceNodeId: tpl.id,
+        templateId: tpl.id,
+        journeyNodeIds: [],
+        removeOnVictory: tpl.removeOnVictory === true
+      }
+    } as unknown as MapNode));
+
+  // 隱藏秘境據點
+  const secretStrongholds: MapNode[] = allTemplates
+    .filter(tpl => (tpl.worldGenMode === 'WORLD_SECRET' || (tpl.isWorldSecret && tpl.worldGenMode !== 'STORY_ONLY')) && !existingNodeIds.has(tpl.id) && !existingNodeNames.has(tpl.name))
+    .map(tpl => ({
+      id: `secret_${tpl.id}`,
+      name: tpl.name,
+      description: tpl.description || '',
+      x: 0,
+      y: 0,
+      population: 0,
+      prosperity: 0,
+      nodeLevel: tpl.nodeLevel ?? NodeLevel.WILDERNESS,
+      ownerFactionId: tpl.factionId || null,
+      isPlayerBase: false,
+      isDiscovered: true,
+      terrain: (TerrainType as any)[tpl.terrain] || TerrainType.RUINS,
+      feature: NodeFeature.SUBJUGATION,
+      isHidden: false,
+      isDynamic: true,
+      allowTroops: tpl.allowTroops !== false,
+      baseDifficulty: tpl.difficulty || 2,
+      isScouted: true,
+      customIcon: tpl.icon,
+      producedGoods: tpl.producedGoods,
+      demandedGoods: tpl.demandedGoods,
+      narrativeSubjugation: {
+        storyId: 'world_secret',
+        sourceNodeId: tpl.id,
+        templateId: tpl.id,
+        journeyNodeIds: [],
+        removeOnVictory: tpl.removeOnVictory !== false
+      }
+    } as unknown as MapNode));
+
+  const allTestNodes = [...mapNodesCopy, ...customPermanentNodes, ...secretStrongholds];
   const seed = 'narrative_test_sandbox';
-  const world = MapGenerator.generateWorld(INITIAL_MAP_NODES, seed, GameDifficulty.NORMAL);
+  const world = MapGenerator.generateWorld(allTestNodes, seed, GameDifficulty.NORMAL);
   const nodes = world.nodes;
   
   // 開闢所有節點與地圖視野

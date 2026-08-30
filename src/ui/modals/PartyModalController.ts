@@ -102,7 +102,7 @@ export class PartyModalController {
       const avatarIndex = adv.avatarIndex ?? (nameHash % 25);
       adv.avatarIndex = avatarIndex;
   
-      const avatarStyle = getAvatarSpriteStyle(adv.gender, avatarIndex, adv.isGuardian);
+      const avatarStyle = getAvatarSpriteStyle(adv.gender, avatarIndex, adv.isGuardian, (adv as any).avatarIcon);
       avatarWrapper.innerHTML = `
         <div style="aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: ${avatarStyle.backgroundImage}; background-size: ${avatarStyle.backgroundSize}; background-position: ${avatarStyle.backgroundPosition};"></div>
       `;

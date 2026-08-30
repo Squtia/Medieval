@@ -460,6 +460,141 @@ describe('NarrativeSystem', () => {
 
     expect(mockNodes.some(n => n.id === 'story_sub_story_temp_cave')).toBe(false);
   });
+
+  it('支援 GRANT_HERO 效果將傳奇/自訂英雄加入領地冒險者名冊', () => {
+    GameState.adventurers = [];
+    NarrativeSystem.applyEffects('test_story', [
+      { type: 'GRANT_HERO', heroId: 'reyn' }
+    ]);
+
+    expect(GameState.adventurers.length).toBe(1);
+    expect(GameState.adventurers[0].name).toContain('雷恩');
+    expect(GameState.adventurers[0].quality).toBe('UR');
+  });
+
+  it('支援 HERO_EXISTS 與 HERO_MISSING 條件判斷（支援多選）', () => {
+    GameState.adventurers = [];
+    const heroStory: NarrativeStory = {
+      id: 'hero_test_story',
+      title: '英雄測試故事',
+      summary: '',
+      version: 1,
+      enabled: true,
+      nodes: [
+        {
+          id: 'need_reyn',
+          title: '雷恩專屬事件',
+          description: '',
+          channel: 'TERRITORY_EVENT',
+          conditions: [{ type: 'HERO_EXISTS', heroIds: ['reyn'], matchMode: 'ANY' }],
+          choices: [],
+          completionEffects: []
+        },
+        {
+          id: 'missing_luna',
+          title: '尋找露娜事件',
+          description: '',
+          channel: 'TERRITORY_EVENT',
+          conditions: [{ type: 'HERO_MISSING', heroIds: ['luna'], matchMode: 'ANY' }],
+          choices: [],
+          completionEffects: []
+        }
+      ]
+    };
+    NarrativeSystem.setDefinitionsForTesting([heroStory]);
+
+    // 初始狀態無任何英雄：need_reyn 被阻擋，missing_luna 允許出現
+    expect(NarrativeSystem.explainBlocked(heroStory, heroStory.nodes[0])).toContain('需要已招募英雄「reyn」');
+    expect(NarrativeSystem.explainBlocked(heroStory, heroStory.nodes[1])).toHaveLength(0);
+
+    // 加入雷恩
+    NarrativeSystem.applyEffects('hero_test_story', [{ type: 'GRANT_HERO', heroId: 'reyn' }]);
+    expect(NarrativeSystem.explainBlocked(heroStory, heroStory.nodes[0])).toHaveLength(0); // need_reyn 解鎖
+
+    // 加入露娜
+    NarrativeSystem.applyEffects('hero_test_story', [{ type: 'GRANT_HERO', heroId: 'luna' }]);
+    expect(NarrativeSystem.explainBlocked(heroStory, heroStory.nodes[1])).toContain('需要尚未擁有英雄「luna」'); // missing_luna 被阻擋
+  });
+
+  it('TRIGGER_RAID 的 successNodeId/failNodeId 後續節點在戰役結算前被嚴格阻擋，不得被每日輪詢無條件觸發', () => {
+    const raidStory: NarrativeStory = {
+      id: 'raid_story',
+      title: '攻城戰故事',
+      summary: '',
+      version: 1,
+      enabled: true,
+      nodes: [
+        {
+          id: 'raid_trigger',
+          title: '召喚大軍',
+          description: '敵人準備攻城！',
+          channel: 'TERRITORY_EVENT',
+          conditions: [],
+          choices: [],
+          completionEffects: [
+            {
+              type: 'TRIGGER_RAID',
+              raidName: '龍族大軍攻城',
+              isSiege: true,
+              successNodeId: 'raid_win',
+              failNodeId: 'raid_lose'
+            }
+          ]
+        },
+        {
+          id: 'raid_win',
+          title: '守城大捷',
+          description: '英勇擊退了敵人！',
+          channel: 'TERRITORY_EVENT',
+          conditions: [],
+          choices: [],
+          completionEffects: []
+        },
+        {
+          id: 'raid_lose',
+          title: '城防失守',
+          description: '城牆被攻破了！',
+          channel: 'TERRITORY_EVENT',
+          conditions: [],
+          choices: [],
+          completionEffects: []
+        }
+      ]
+    };
+
+    NarrativeSystem.setDefinitionsForTesting([raidStory]);
+
+    // 1. isRaidTargetNode 應正確辨識 successNodeId 與 failNodeId
+    expect(NarrativeSystem.isRaidTargetNode('raid_story', 'raid_win')).toBe(true);
+    expect(NarrativeSystem.isRaidTargetNode('raid_story', 'raid_lose')).toBe(true);
+    // 觸發節點本身不是後續節點
+    expect(NarrativeSystem.isRaidTargetNode('raid_story', 'raid_trigger')).toBe(false);
+
+    // 2. explainBlocked 對 raid_win / raid_lose 回傳阻擋原因，即使無任何 conditions
+    const winNode = raidStory.nodes.find(n => n.id === 'raid_win')!;
+    const loseNode = raidStory.nodes.find(n => n.id === 'raid_lose')!;
+    const blockedWin = NarrativeSystem.explainBlocked(raidStory, winNode);
+    const blockedLose = NarrativeSystem.explainBlocked(raidStory, loseNode);
+
+    expect(blockedWin.length).toBeGreaterThan(0);
+    expect(blockedWin[0]).toContain('戰役結算專屬後續節點');
+    expect(blockedLose.length).toBeGreaterThan(0);
+    expect(blockedLose[0]).toContain('戰役結算專屬後續節點');
+
+    // 3. getEligibleNodes 每日輪詢時，raid_win / raid_lose 不應出現在可用節點清單中
+    const eligible = NarrativeSystem.getEligibleNodes('TERRITORY_EVENT');
+    const eligibleIds = eligible.map(ref => ref.node.id);
+    expect(eligibleIds).not.toContain('raid_win');
+    expect(eligibleIds).not.toContain('raid_lose');
+
+    // 4. 觸發節點 raid_trigger 本身應正常出現在可用節點清單中
+    expect(eligibleIds).toContain('raid_trigger');
+
+    // 5. 以 force=true 主動觸發（模擬 TerritoryDefenseSystem.onClose 回調）應成功
+    const success = NarrativeSystem.presentInteractiveNode('raid_story', 'raid_win', true);
+    expect(success).toBe(true);
+  });
 });
+
 
 

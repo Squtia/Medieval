@@ -44,6 +44,7 @@ export class Territory {
 
   // 據點與國家屬性
   public currentCountryId: string | null; // 當前選擇建立據點的國家/節點 ID，初期可能為空
+  public dungeonPrisonerHeroIds: string[] = []; // 收押於領地地牢的英雄 ID 名冊
   
   // 事件與狀態屬性
   public pendingEvents: string[]; // 待處理的普通事件 ID

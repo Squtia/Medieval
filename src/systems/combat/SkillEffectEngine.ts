@@ -13,16 +13,17 @@ export class SkillEffectEngine {
 
   /** 將積木定義編譯為可執行的 Skill 物件 */
   public static compile(def: CompositeSkillDefinition): Skill {
+    const cost = def.mpCost ?? def.totalMpCost ?? 0;
     return {
       id: def.id,
       name: def.name,
-      mpCost: def.totalMpCost,
+      mpCost: cost,
       targetType: def.blocks[0]?.targetType ?? TargetType.SINGLE_ENEMY,
       description: def.description,
       cooldown: def.cooldown,
       category: def.category,
       icon: def.icon,
-      aiWeight: (_caster, targets) => def.totalMpCost * targets.length,
+      aiWeight: (_caster, targets) => cost * targets.length,
       execute: (caster, targets, allEnemies, allAllies) => {
         const events: CombatEvent[] = [];
         for (const block of def.blocks) {

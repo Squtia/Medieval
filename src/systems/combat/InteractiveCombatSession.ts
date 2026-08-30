@@ -10,6 +10,7 @@ import {
 } from '../../models/Combat';
 import { TerrainType, NobleTitle, FormationRow, MonsterInstance, ElementType, MonsterRace, SiegeBattleMode, SiegeRole } from '../../models/types';
 import { LordCommanderSystem } from './LordCommanderSystem';
+import { FactionArmyGenerator } from '../map/FactionArmyGenerator';
 
 export type CommanderOrderType = 'SHIELD_WALL' | 'VOLLEY_FIRE' | 'CAVALRY_CHARGE' | 'INSPIRE' | 'STANDBY';
 
@@ -168,6 +169,7 @@ export class InteractiveCombatSession {
           gridR,
           gridC,
           avatarIndex: adv.avatarIndex || 0,
+          avatarIcon: (adv as any).avatarIcon,
           gender: adv.gender,
           isGuardian: adv.isGuardian || false,
           isAdvanced: adv.isAdvanced && adv.level >= 10
@@ -217,7 +219,49 @@ export class InteractiveCombatSession {
     const lineup = this.allWavesEnemyLineups[waveIdx - 1] || this.allWavesEnemyLineups[0] || [];
     this.enemyTeam = [];
 
-    lineup.forEach((m, idx) => {
+    // 構建當前不可用英雄名冊 (SSOT)
+    const allCapturedPrisoners: { id: string; characterKey?: string; boundMonsterId?: string }[] = [];
+    const territoryPrisonerHeroIds = GameState.myTerritory?.dungeonPrisonerHeroIds || [];
+    territoryPrisonerHeroIds.forEach(hid => {
+      allCapturedPrisoners.push({ id: hid });
+    });
+    const factions = GameState.mapSystem?.getFactions() || [];
+    factions.forEach(f => {
+      if (f.capturedChampionIds) {
+        f.capturedChampionIds.forEach(cid => {
+          const champ = f.champions?.find(c => c.id === cid);
+          allCapturedPrisoners.push({
+            id: cid,
+            characterKey: (champ as any)?.characterKey,
+            boundMonsterId: (champ as any)?.boundMonsterId
+          });
+        });
+      }
+    });
+    const unavailableSet = FactionArmyGenerator.buildUnavailableCharacterSet(
+      (GameState.adventurers as any) || [],
+      allCapturedPrisoners,
+      []
+    );
+
+    lineup.forEach((rawMonster, idx) => {
+      let m = rawMonster;
+      // 戰鬥前二次安檢：若敵人為已被收服之具名英雄，強制觸發副將接替引擎
+      if (m) {
+        const isUnavailable = (
+          (m.characterKey && unavailableSet.has(m.characterKey)) ||
+          (m.id && unavailableSet.has(m.id))
+        );
+        if (isUnavailable) {
+          m = FactionArmyGenerator.resolveTroopMember(
+            m.id,
+            'f_neutral',
+            unavailableSet,
+            5
+          );
+        }
+      }
+
       const maxHp = m.maxHp || m.hp || 100;
       const currentHp = (m.hp !== undefined && m.hp <= maxHp) ? m.hp : maxHp;
       const stats = {

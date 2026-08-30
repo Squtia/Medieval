@@ -1,0 +1,300 @@
+{
+  "timestamp": "2026-08-29T13:32:38.196Z",
+  "note": "使用者在技能工坊儲存",
+  "skills": [
+    {
+      "id": "CATACLYSM_FLAME",
+      "name": "末日焰炎",
+      "icon": "🔥",
+      "description": "消耗 30 MP。對全體敵人釋放末日烈焰，造成 180% 火屬性魔法傷害，並附加【燃燒】3 回合。",
+      "category": "MONSTER",
+      "totalMpCost": 30,
+      "cooldown": 3,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_MAGICAL",
+          "targetType": "ALL_ENEMIES",
+          "multiplier": 1.8,
+          "element": "FIRE",
+          "scaleType": "FIXED"
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "APPLY_STATUS",
+          "targetType": "ALL_ENEMIES",
+          "statusType": "BURN",
+          "statusDuration": 3,
+          "statusValue": 20
+        }
+      ]
+    },
+    {
+      "id": "DRAGON_ROAR",
+      "name": "龍吟咆哮",
+      "icon": "🐉",
+      "description": "消耗 25 MP。對全體敵人造成 60% 魔法傷害，40% 機率附加【暈眩】1 回合，自身攻擊力提升 40%（2 回合）。",
+      "category": "MONSTER",
+      "totalMpCost": 25,
+      "cooldown": 3,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_MAGICAL",
+          "targetType": "ALL_ENEMIES",
+          "multiplier": 0.6,
+          "scaleType": "FIXED"
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "APPLY_STATUS",
+          "targetType": "ALL_ENEMIES",
+          "statusType": "STUN",
+          "statusDuration": 1,
+          "statusChance": 0.4
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "BUFF_SELF",
+          "targetType": "SELF",
+          "buffType": "BUFF_PATK",
+          "buffValue": 40,
+          "buffDuration": 2
+        }
+      ]
+    },
+    {
+      "id": "SKILL_TOXIC_SPRAY",
+      "name": "劇毒噴吐",
+      "icon": "🧪",
+      "description": "消耗 15 MP。對前排敵人造成 100% 魔法傷害，並附加【中毒】2 回合。",
+      "category": "MONSTER",
+      "totalMpCost": 15,
+      "cooldown": 2,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_MAGICAL",
+          "targetType": "FRONT_ENEMIES",
+          "multiplier": 1
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "APPLY_STATUS",
+          "targetType": "FRONT_ENEMIES",
+          "statusType": "POISON",
+          "statusDuration": 2,
+          "statusValue": 10
+        }
+      ]
+    },
+    {
+      "id": "SKILL_SAVAGE_REND",
+      "name": "撕裂爪擊",
+      "icon": "🐾",
+      "description": "消耗 12 MP。對單體敵人造成 140% 物理傷害，並附加【流血】2 回合。",
+      "category": "MONSTER",
+      "totalMpCost": 12,
+      "cooldown": 2,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_PHYSICAL",
+          "targetType": "SINGLE_ENEMY",
+          "multiplier": 1.4
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "APPLY_STATUS",
+          "targetType": "SINGLE_ENEMY",
+          "statusType": "BLEED",
+          "statusDuration": 2,
+          "statusValue": 12
+        }
+      ]
+    },
+    {
+      "id": "SKILL_CRUSHING_SLAM",
+      "name": "粉碎重擊",
+      "icon": "🔨",
+      "description": "消耗 18 MP。對單體敵人造成 150% 物理傷害，並附加【破甲】2 回合。",
+      "category": "MONSTER",
+      "totalMpCost": 18,
+      "cooldown": 2,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_PHYSICAL",
+          "targetType": "SINGLE_ENEMY",
+          "multiplier": 1.5
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "APPLY_STATUS",
+          "targetType": "SINGLE_ENEMY",
+          "statusType": "ARMOR_BREAK",
+          "statusDuration": 2
+        }
+      ]
+    },
+    {
+      "id": "SKILL_BLOOD_DRAIN",
+      "name": "嗜血打擊",
+      "icon": "🩸",
+      "description": "消耗 15 MP。對單體敵人造成 120% 物理傷害，並將 50% 傷害轉化為自身生命。",
+      "category": "MONSTER",
+      "totalMpCost": 15,
+      "cooldown": 2,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "LIFESTEAL",
+          "targetType": "SINGLE_ENEMY",
+          "multiplier": 1.2,
+          "lifeStealRate": 0.5
+        }
+      ]
+    },
+    {
+      "id": "SKILL_TERROR_SCREECH",
+      "name": "尖嘯震懾",
+      "icon": "🦇",
+      "description": "消耗 20 MP。對全體敵人造成 60% 魔法傷害，30% 機率附加【暈眩】1 回合。",
+      "category": "MONSTER",
+      "totalMpCost": 20,
+      "cooldown": 3,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_MAGICAL",
+          "targetType": "ALL_ENEMIES",
+          "multiplier": 0.6
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "APPLY_STATUS",
+          "targetType": "ALL_ENEMIES",
+          "statusType": "STUN",
+          "statusDuration": 1,
+          "statusChance": 0.3
+        }
+      ]
+    },
+    {
+      "id": "SKILL_SHADOW_ASSAULT",
+      "name": "暗影突襲",
+      "icon": "🗡️",
+      "description": "消耗 16 MP。跨越前排突襲後排單體敵人，造成 195% 物理傷害。",
+      "category": "MONSTER",
+      "totalMpCost": 16,
+      "cooldown": 2,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_PHYSICAL",
+          "targetType": "BACK_ENEMY",
+          "multiplier": 1.95
+        }
+      ]
+    },
+    {
+      "id": "SKILL_FLAME_BURST",
+      "name": "烈焰轟爆",
+      "icon": "💥",
+      "description": "消耗 18 MP。對前排敵人造成 120% 火屬性魔法傷害，並附加【燃燒】2 回合。",
+      "category": "MONSTER",
+      "totalMpCost": 18,
+      "cooldown": 2,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_MAGICAL",
+          "targetType": "FRONT_ENEMIES",
+          "multiplier": 1.2,
+          "element": "FIRE"
+        },
+        {
+          "trigger": "ACTIVE",
+          "effectType": "APPLY_STATUS",
+          "targetType": "FRONT_ENEMIES",
+          "statusType": "BURN",
+          "statusDuration": 2,
+          "statusValue": 15
+        }
+      ]
+    },
+    {
+      "id": "SKILL_FROST_BREATH",
+      "name": "冰霜吐息",
+      "icon": "❄️",
+      "description": "消耗 16 MP。對前排敵人噴吐冰霜，造成 110% 冰屬性魔法傷害。",
+      "category": "MONSTER",
+      "totalMpCost": 16,
+      "cooldown": 2,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_MAGICAL",
+          "targetType": "FRONT_ENEMIES",
+          "multiplier": 1.1,
+          "element": "ICE"
+        }
+      ]
+    },
+    {
+      "id": "SKILL_IRON_DEFENSE",
+      "name": "堅石甲殼",
+      "icon": "🛡️",
+      "description": "消耗 10 MP。硬化甲殼，使自身防禦力提升 40%（持續 2 回合）。",
+      "category": "MONSTER",
+      "totalMpCost": 10,
+      "cooldown": 3,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "BUFF_SELF",
+          "targetType": "SELF",
+          "buffType": "BUFF_DEF",
+          "buffValue": 40,
+          "buffDuration": 2
+        }
+      ]
+    },
+    {
+      "id": "SKILL_FRENZY_ROAR",
+      "name": "狂暴怒吼",
+      "icon": "🦁",
+      "description": "消耗 10 MP。發出震耳欲聾的咆哮，自身攻擊力提升 30%（持續 2 回合）。",
+      "category": "MONSTER",
+      "totalMpCost": 10,
+      "cooldown": 3,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "BUFF_SELF",
+          "targetType": "SELF",
+          "buffType": "BUFF_PATK",
+          "buffValue": 30,
+          "buffDuration": 2
+        }
+      ]
+    },
+    {
+      "id": "SKILL_CUSTOM_7038",
+      "name": "赤鋼轟擊",
+      "icon": "✨",
+      "description": "自訂積木技能描述",
+      "category": "MONSTER",
+      "totalMpCost": 20,
+      "cooldown": 0,
+      "blocks": [
+        {
+          "trigger": "ACTIVE",
+          "effectType": "DAMAGE_MAGICAL",
+          "targetType": "SINGLE_ENEMY",
+          "multiplier": 1.2
+        }
+      ]
+    }
+  ]
+}

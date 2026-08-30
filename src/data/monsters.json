@@ -1046,22 +1046,6 @@
     "attackType": "MAGIC"
   },
   {
-    "id": "faction_siege_weapon",
-    "name": "攻城器械",
-    "race": "MONSTER",
-    "compatibleRaces": [
-      "MONSTER"
-    ],
-    "terrains": [],
-    "powerTier": 2.5,
-    "profile": "TANK",
-    "skills": [
-      "SKILL_CRUSHING_SLAM"
-    ],
-    "avatarIcon": "3_icons_materials:3_icons_materials_49",
-    "attackType": "MELEE"
-  },
-  {
     "id": "young_dragon",
     "name": "幼年火龍",
     "race": "DRAGON",
@@ -1405,24 +1389,7 @@
     "attackType": "MELEE"
   },
   {
-    "id": "goblin_Archer",
-    "name": "哥布林投石手",
-    "race": "MONSTER",
-    "defaultElement": "NONE",
-    "powerTier": 1,
-    "attackType": "RANGED",
-    "isMagicalAttacker": false,
-    "compatibleRaces": [
-      "MONSTER"
-    ],
-    "terrains": [
-      "PLAINS",
-      "FOREST"
-    ],
-    "avatarIcon": "monster_icon1:monster_icon1_7"
-  },
-  {
-    "id": "goblin_Archer",
+    "id": "goblin_archr",
     "name": "哥布林投石手",
     "race": "MONSTER",
     "defaultElement": "NONE",
@@ -1435,6 +1402,599 @@
     "terrains": [
       "PLAINS",
       "FOREST"
+    ],
+    "avatarIcon": "monster_icon1:monster_icon1_7"
+  },
+  {
+    "id": "lothgar_royal_guard",
+    "name": "皇家重劍禁衛",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 1.8,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "PLAINS",
+      "RUINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_1",
+    "profile": "TANK",
+    "skills": [
+      "SKILL_IRON_DEFENSE",
+      "SKILL_SHIELD_BASH"
     ]
+  },
+  {
+    "id": "lothgar_lion_knight",
+    "name": "金獅皇家重騎兵",
+    "race": "HUMAN",
+    "defaultElement": "HOLY",
+    "powerTier": 2.2,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "PLAINS",
+      "RUINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_2",
+    "profile": "JUGGERNAUT",
+    "skills": [
+      "SKILL_CHARGE",
+      "SKILL_VALOR_STRIKE"
+    ]
+  },
+  {
+    "id": "lothgar_inquisitor",
+    "name": "樞密院密探執法官",
+    "race": "HUMAN",
+    "defaultElement": "DARK",
+    "powerTier": 1.9,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "PLAINS",
+      "RUINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_4",
+    "profile": "ASSASSIN",
+    "skills": [
+      "SKILL_SHADOW_STEP",
+      "SKILL_BACKSTAB"
+    ]
+  },
+  {
+    "id": "lothgar_court_mage",
+    "name": "皇家宮廷法師",
+    "race": "HUMAN",
+    "defaultElement": "FIRE",
+    "powerTier": 2,
+    "attackType": "MAGIC",
+    "isMagicalAttacker": true,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "PLAINS",
+      "RUINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_12",
+    "profile": "CASTER",
+    "skills": [
+      "SKILL_FIREBALL",
+      "SKILL_ARCANE_BLAST"
+    ]
+  },
+  {
+    "id": "lothgar_marksman",
+    "name": "帝國宮廷神射手",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 1.7,
+    "attackType": "RANGED",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "PLAINS",
+      "FOREST"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_6",
+    "profile": "MARKSMAN",
+    "skills": [
+      "SKILL_SNIPE",
+      "SKILL_PIERCING_SHOT"
+    ]
+  },
+  {
+    "id": "vormund_iron_guard",
+    "name": "極地黑鐵重甲衛",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 2,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "VOLCANO",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_17",
+    "profile": "TANK",
+    "skills": [
+      "SKILL_IRON_DEFENSE",
+      "SKILL_CRUSHING_SLAM"
+    ]
+  },
+  {
+    "id": "vormund_berserker",
+    "name": "鍛爐狂戰斧手",
+    "race": "HUMAN",
+    "defaultElement": "FIRE",
+    "powerTier": 2.2,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "VOLCANO",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_19",
+    "profile": "BERSERKER",
+    "skills": [
+      "SKILL_BERSERK",
+      "SKILL_WHIRLWIND"
+    ]
+  },
+  {
+    "id": "vormund_arbalest",
+    "name": "燃鐵重弩破甲手",
+    "race": "HUMAN",
+    "defaultElement": "FIRE",
+    "powerTier": 1.8,
+    "attackType": "RANGED",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "VOLCANO",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_23",
+    "profile": "MARKSMAN",
+    "skills": [
+      "SKILL_ARMOR_BREAKER",
+      "SKILL_FIRE_ARROW"
+    ]
+  },
+  {
+    "id": "hurst_crusader",
+    "name": "聖耀十字軍修士",
+    "race": "HUMAN",
+    "defaultElement": "HOLY",
+    "powerTier": 1.9,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "RUINS",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_33",
+    "profile": "TANK",
+    "skills": [
+      "SKILL_HOLY_STRIKE",
+      "SKILL_DIVINE_SHIELD"
+    ]
+  },
+  {
+    "id": "hurst_paladin",
+    "name": "天罰裁決聖殿騎士",
+    "race": "HUMAN",
+    "defaultElement": "HOLY",
+    "powerTier": 2.3,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "RUINS",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_34",
+    "profile": "JUGGERNAUT",
+    "skills": [
+      "SKILL_JUDGMENT",
+      "SKILL_HOLY_AURA"
+    ]
+  },
+  {
+    "id": "hurst_prelate",
+    "name": "神聖祝福大主祭",
+    "race": "HUMAN",
+    "defaultElement": "HOLY",
+    "powerTier": 1.8,
+    "attackType": "MAGIC",
+    "isMagicalAttacker": true,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "RUINS",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_36",
+    "profile": "HEALER",
+    "skills": [
+      "SKILL_DIVINE_HEAL",
+      "SKILL_BLESSING"
+    ]
+  },
+  {
+    "id": "hurst_executioner",
+    "name": "異端審判處刑官",
+    "race": "HUMAN",
+    "defaultElement": "DARK",
+    "powerTier": 2.1,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "RUINS",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_37",
+    "profile": "BERSERKER",
+    "skills": [
+      "SKILL_EXECUTION",
+      "SKILL_TERROR"
+    ]
+  },
+  {
+    "id": "hurst_repeater",
+    "name": "教廷銀矢連弩手",
+    "race": "HUMAN",
+    "defaultElement": "HOLY",
+    "powerTier": 1.8,
+    "attackType": "RANGED",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "RUINS",
+      "SNOW_MOUNTAIN"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_39",
+    "profile": "MARKSMAN",
+    "skills": [
+      "SKILL_RAPID_FIRE",
+      "SKILL_SILVER_ARROW"
+    ]
+  },
+  {
+    "id": "bellavia_duelist",
+    "name": "金玫瑰刺劍決鬥家",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 1.9,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "FOREST",
+      "PLAINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_40",
+    "profile": "DUELIST",
+    "skills": [
+      "SKILL_RIPOSTE",
+      "SKILL_PRECISION_THRUST"
+    ]
+  },
+  {
+    "id": "bellavia_assassin",
+    "name": "暗鴉劇毒刺客",
+    "race": "HUMAN",
+    "defaultElement": "DARK",
+    "powerTier": 2.1,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "FOREST",
+      "PLAINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_42",
+    "profile": "ASSASSIN",
+    "skills": [
+      "SKILL_POISON_BLADE",
+      "SKILL_ASSASSINATE"
+    ]
+  },
+  {
+    "id": "bellavia_halberdier",
+    "name": "金玫瑰僱傭長戟兵",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 1.8,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "FOREST",
+      "PLAINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_45",
+    "profile": "TANK",
+    "skills": [
+      "SKILL_PIKE_WALL",
+      "SKILL_SPEAR_THRUST"
+    ]
+  },
+  {
+    "id": "bellavia_alchemist",
+    "name": "行會隨軍鍊金術士",
+    "race": "HUMAN",
+    "defaultElement": "DARK",
+    "powerTier": 1.8,
+    "attackType": "MAGIC",
+    "isMagicalAttacker": true,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "FOREST",
+      "PLAINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_46",
+    "profile": "CASTER",
+    "skills": [
+      "SKILL_ACID_FLASK",
+      "SKILL_HEALING_POTION"
+    ]
+  },
+  {
+    "id": "dusk_ranger",
+    "name": "荒漠遊俠獵手",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 1.7,
+    "attackType": "RANGED",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "DESERT",
+      "WILDERNESS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_48",
+    "profile": "MARKSMAN",
+    "skills": [
+      "SKILL_DESERT_CAMO",
+      "SKILL_AIMED_SHOT"
+    ]
+  },
+  {
+    "id": "dusk_scimitar",
+    "name": "沙丘彎刀突騎",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 2,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "DESERT",
+      "WILDERNESS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_50",
+    "profile": "JUGGERNAUT",
+    "skills": [
+      "SKILL_SCIMITAR_SLASH",
+      "SKILL_FLANKING_CHARGE"
+    ]
+  },
+  {
+    "id": "dusk_spearman",
+    "name": "黑鐵重裝長槍兵",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 1.9,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "DESERT",
+      "WILDERNESS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_52",
+    "profile": "TANK",
+    "skills": [
+      "SKILL_SPEAR_WALL",
+      "SKILL_IMPALE"
+    ]
+  },
+  {
+    "id": "dusk_gladiator",
+    "name": "赤砂古銅角鬥士",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 2.2,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "DESERT",
+      "WILDERNESS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_54",
+    "profile": "BERSERKER",
+    "skills": [
+      "SKILL_GLADIATOR_RAGE",
+      "SKILL_SHIELD_SLAM"
+    ]
+  },
+  {
+    "id": "oakhaven_longbowman",
+    "name": "橡木谷森林長弓手",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 1.7,
+    "attackType": "RANGED",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "FOREST",
+      "PLAINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_57",
+    "profile": "MARKSMAN",
+    "skills": [
+      "SKILL_VOLLEY",
+      "SKILL_SNIPER_FOCUS"
+    ]
+  },
+  {
+    "id": "blackwood_marauder",
+    "name": "黑木劫掠悍匪首領",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 2.1,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "FOREST",
+      "WILDERNESS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_58",
+    "profile": "BERSERKER",
+    "skills": [
+      "SKILL_INTIMIDATE",
+      "SKILL_CLEAVE"
+    ]
+  },
+  {
+    "id": "dragonkin_warrior",
+    "name": "龍裔重甲龍衛",
+    "race": "DRAGON",
+    "defaultElement": "FIRE",
+    "powerTier": 2.4,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "DRAGON"
+    ],
+    "terrains": [
+      "VOLCANO",
+      "RUINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_61",
+    "profile": "JUGGERNAUT",
+    "skills": [
+      "SKILL_DRAGON_SCALE",
+      "SKILL_FLAME_STRIKE"
+    ]
+  },
+  {
+    "id": "dragonkin_frost_knight",
+    "name": "龍裔霜龍騎士",
+    "race": "DRAGON",
+    "defaultElement": "ICE",
+    "powerTier": 2.4,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "DRAGON"
+    ],
+    "terrains": [
+      "SNOW_MOUNTAIN",
+      "RUINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_62",
+    "profile": "JUGGERNAUT",
+    "skills": [
+      "SKILL_FROST_BREATH",
+      "SKILL_GLACIAL_STRIKE"
+    ]
+  },
+  {
+    "id": "dragonkin_gold_champion",
+    "name": "龍裔金鱗龍皇尊者",
+    "race": "DRAGON",
+    "defaultElement": "HOLY",
+    "powerTier": 2.6,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "DRAGON"
+    ],
+    "terrains": [
+      "VOLCANO",
+      "RUINS"
+    ],
+    "avatarIcon": "faction_units_8x8:faction_units_8x8_63",
+    "profile": "JUGGERNAUT",
+    "skills": [
+      "SKILL_HOLY_BREATH",
+      "SKILL_DRAGON_ROAR"
+    ],
+    "isBoss": true
+  },
+  {
+    "id": "enemy_ryan",
+    "name": "赤焰戰神雷恩",
+    "race": "HUMAN",
+    "defaultElement": "NONE",
+    "powerTier": 2.5,
+    "attackType": "MELEE",
+    "isMagicalAttacker": false,
+    "compatibleRaces": [
+      "HUMAN"
+    ],
+    "terrains": [
+      "PLAINS",
+      "FOREST"
+    ],
+    "avatarIcon": "heroes_male:heroes_male_13?flip",
+    "characterKey": "char_ryan",
+    "captureRate": 100
   }
 ]

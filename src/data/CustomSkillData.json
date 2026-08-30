@@ -5,7 +5,7 @@
     "icon": "🔥",
     "description": "消耗 30 MP。對全體敵人釋放末日烈焰，造成 180% 火屬性魔法傷害，並附加【燃燒】3 回合。",
     "category": "MONSTER",
-    "totalMpCost": 30,
+    "mpCost": 30,
     "cooldown": 3,
     "blocks": [
       {
@@ -32,7 +32,7 @@
     "icon": "🐉",
     "description": "消耗 25 MP。對全體敵人造成 60% 魔法傷害，40% 機率附加【暈眩】1 回合，自身攻擊力提升 40%（2 回合）。",
     "category": "MONSTER",
-    "totalMpCost": 25,
+    "mpCost": 25,
     "cooldown": 3,
     "blocks": [
       {
@@ -66,14 +66,14 @@
     "icon": "🧪",
     "description": "消耗 15 MP。對前排敵人造成 100% 魔法傷害，並附加【中毒】2 回合。",
     "category": "MONSTER",
-    "totalMpCost": 15,
+    "mpCost": 15,
     "cooldown": 2,
     "blocks": [
       {
         "trigger": "ACTIVE",
         "effectType": "DAMAGE_MAGICAL",
         "targetType": "FRONT_ENEMIES",
-        "multiplier": 1.0
+        "multiplier": 1
       },
       {
         "trigger": "ACTIVE",
@@ -91,7 +91,7 @@
     "icon": "🐾",
     "description": "消耗 12 MP。對單體敵人造成 140% 物理傷害，並附加【流血】2 回合。",
     "category": "MONSTER",
-    "totalMpCost": 12,
+    "mpCost": 12,
     "cooldown": 2,
     "blocks": [
       {
@@ -116,7 +116,7 @@
     "icon": "🔨",
     "description": "消耗 18 MP。對單體敵人造成 150% 物理傷害，並附加【破甲】2 回合。",
     "category": "MONSTER",
-    "totalMpCost": 18,
+    "mpCost": 18,
     "cooldown": 2,
     "blocks": [
       {
@@ -140,7 +140,7 @@
     "icon": "🩸",
     "description": "消耗 15 MP。對單體敵人造成 120% 物理傷害，並將 50% 傷害轉化為自身生命。",
     "category": "MONSTER",
-    "totalMpCost": 15,
+    "mpCost": 15,
     "cooldown": 2,
     "blocks": [
       {
@@ -158,7 +158,7 @@
     "icon": "🦇",
     "description": "消耗 20 MP。對全體敵人造成 60% 魔法傷害，30% 機率附加【暈眩】1 回合。",
     "category": "MONSTER",
-    "totalMpCost": 20,
+    "mpCost": 20,
     "cooldown": 3,
     "blocks": [
       {
@@ -183,7 +183,7 @@
     "icon": "🗡️",
     "description": "消耗 16 MP。跨越前排突襲後排單體敵人，造成 195% 物理傷害。",
     "category": "MONSTER",
-    "totalMpCost": 16,
+    "mpCost": 16,
     "cooldown": 2,
     "blocks": [
       {
@@ -200,7 +200,7 @@
     "icon": "💥",
     "description": "消耗 18 MP。對前排敵人造成 120% 火屬性魔法傷害，並附加【燃燒】2 回合。",
     "category": "MONSTER",
-    "totalMpCost": 18,
+    "mpCost": 18,
     "cooldown": 2,
     "blocks": [
       {
@@ -226,7 +226,7 @@
     "icon": "❄️",
     "description": "消耗 16 MP。對前排敵人噴吐冰霜，造成 110% 冰屬性魔法傷害。",
     "category": "MONSTER",
-    "totalMpCost": 16,
+    "mpCost": 16,
     "cooldown": 2,
     "blocks": [
       {
@@ -244,7 +244,7 @@
     "icon": "🛡️",
     "description": "消耗 10 MP。硬化甲殼，使自身防禦力提升 40%（持續 2 回合）。",
     "category": "MONSTER",
-    "totalMpCost": 10,
+    "mpCost": 10,
     "cooldown": 3,
     "blocks": [
       {
@@ -263,7 +263,7 @@
     "icon": "🦁",
     "description": "消耗 10 MP。發出震耳欲聾的咆哮，自身攻擊力提升 30%（持續 2 回合）。",
     "category": "MONSTER",
-    "totalMpCost": 10,
+    "mpCost": 10,
     "cooldown": 3,
     "blocks": [
       {
@@ -273,6 +273,48 @@
         "buffType": "BUFF_PATK",
         "buffValue": 30,
         "buffDuration": 2
+      }
+    ]
+  },
+  {
+    "id": "rayn_SKILL_CUSTOM_0001",
+    "name": "赤鋼轟擊",
+    "icon": "2_icons_materials:2_icons_materials_1",
+    "description": "巨力摩擦地板向上揮出的一斬，此刃永不鋒利。",
+    "category": "HERO_BASE",
+    "mpCost": 15,
+    "cooldown": 1,
+    "blocks": [
+      {
+        "trigger": "ACTIVE",
+        "effectType": "DAMAGE_PHYSICAL",
+        "targetType": "SINGLE_ENEMY",
+        "multiplier": 1.5
+      }
+    ]
+  },
+  {
+    "id": "eitsk_SKILL_Claw_Strike",
+    "name": "龍爪",
+    "icon": "🐾",
+    "description": "消耗 10 MP。對單體敵人造成 100% 魔法傷害，並附加【流血】2 回合。",
+    "category": "MONSTER",
+    "mpCost": 10,
+    "cooldown": 1,
+    "blocks": [
+      {
+        "trigger": "ACTIVE",
+        "effectType": "DAMAGE_MAGICAL",
+        "targetType": "SINGLE_ENEMY",
+        "multiplier": 1
+      },
+      {
+        "trigger": "ACTIVE",
+        "effectType": "APPLY_STATUS",
+        "targetType": "SINGLE_ENEMY",
+        "statusType": "BLEED",
+        "statusDuration": 2,
+        "statusValue": 12
       }
     ]
   }

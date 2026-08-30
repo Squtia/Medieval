@@ -530,8 +530,8 @@ export class CombatUIManager {
     
     let avatarHtml = '';
     if (state.isPlayer) {
-      if (state.avatarIndex !== undefined) {
-        const avatarStyle = getAvatarSpriteStyle((state.gender as any) || 'MALE', state.avatarIndex, state.isGuardian);
+      if (state.avatarIndex !== undefined || (state as any).avatarIcon) {
+        const avatarStyle = getAvatarSpriteStyle((state.gender as any) || 'MALE', state.avatarIndex ?? 0, state.isGuardian, (state as any).avatarIcon);
         avatarHtml = `<div class="combat-p-avatar-sq" style="background-image: ${avatarStyle.backgroundImage}; background-size: ${avatarStyle.backgroundSize}; background-position: ${avatarStyle.backgroundPosition};"></div>`;
       } else {
         avatarHtml = '<span style="font-size: 2.5rem;">🦸</span>';

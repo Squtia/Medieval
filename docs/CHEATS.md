@@ -46,14 +46,15 @@
 *   `addoath`：**召喚唯一 UR【神聖誓約騎士】**
     *   作用：直接生成滿等進階、裝備 T4 +7 皇家聖騎士劍盾與誓約守衛專屬立繪之 UR 聖騎士。
 
-### 4. 開發工坊（無須輸入，立即開啟）
+### 4. 五大開發工坊與美術編輯器（無須輸入，立即開啟）
 
-*   `studio`：在新分頁開啟圖標工坊。
-*   `story`：在新分頁開啟故事工坊。
-    *   也可以在瀏覽器控制台執行 `openStoryStudio()`。
-    *   僅開發環境註冊此指令，正式遊戲不提供故事編輯入口。
-*   `combat` / `battle`：在新分頁開啟戰術遭遇與戰鬥平衡工坊。
-*   `equip` / `material` / `forge`：在新分頁開啟裝備、素材與配方工坊。
+*   `studio`：在新分頁開啟全圖集圖標工坊 (`icon-studio.html` / `openIconStudio()`)。
+*   `story`：在新分頁開啟故事工坊 (`story-studio.html` / `openStoryStudio()`)。
+*   `combat` / `battle`：在新分頁開啟戰術遭遇與戰鬥平衡工坊 (`combat-studio.html` / `openCombatStudio()`)。
+*   `equip` / `material` / `forge`：在新分頁開啟裝備、素材與配方工坊 (`equipment-studio.html` / `openEquipmentStudio()`)。
+*   `skill`：在新分頁開啟全自訂積木技能工坊 (`skill-workshop.html` / `openSkillWorkshop()`)。
+*   `layout` / `edit`：在遊戲畫面直接喚醒即時排版與美術佈局編輯器 (`LiveLayoutEditor.toggle()`)。
+*   `theme`：開啟全域視覺主題工坊 (`UIThemeStudio.open()`)。
 
 > [!WARNING]
-> 這些指令僅存在於開發環境 (DEV) 或特別保留的後門，請確保在正式發佈前將 `CheatController.ts` 的載入關閉或隱藏，避免玩家破壞遊戲體驗。
+> 這些指令僅存在於開發環境 (DEV) 或特別保留的後門，在正式發佈環境中 `CheatController.ts` 不會執行，避免破壞玩家體驗。

@@ -65,6 +65,7 @@
           <div class="graph-toolbar">
             <div class="graph-toolbar-main">
               <button id="btn-story-add-node" class="action-btn story-primary">＋ 新增節點</button>
+              <button id="btn-story-add-bounty-node" class="action-btn" style="background: rgba(234, 179, 8, 0.2); border: 1px solid #eab308; color: #fde047; font-weight: bold;">📜 ＋新增懸賞委託</button>
               <button id="btn-graph-relayout" class="action-btn">🔀 重排</button>
               <button id="btn-graph-fit" class="action-btn">🔍 適應全景</button>
               <div class="graph-zoom-controls">
@@ -99,98 +100,126 @@
         <!-- 右欄：節點屬性 Inspector -->
         <aside class="story-editor-inspector">
           <div id="story-editor-empty">在流程圖或上方列表選擇一個節點開始編輯。</div>
-          <div id="story-editor-node-form" hidden>
-            <div class="story-editor-section-title">節點內容</div>
-            <label>節點代號<input id="story-node-id" type="text" placeholder="小寫英文＋底線，例：quest_dragon"></label>
-            <label>出現機制
-              <select id="story-node-channel">
-                <option value="BOUNTY_BOARD">懸賞板 (BOUNTY_BOARD)</option>
-                <option value="STREET_EVENT">街道訪客事件 (STREET_EVENT)</option>
-                <option value="TAVERN_RUMOR">酒館傳聞 (TAVERN_RUMOR)</option>
-                <option value="TERRITORY_EVENT">領地突發事件 (TERRITORY_EVENT)</option>
-                <option value="TODO_LIST">領地待辦清單 (TODO_LIST)</option>
-                <option value="EXPLORATION">發現據點時 (EXPLORATION)</option>
-                <option value="SUBJUGATION">討伐結束後 (SUBJUGATION)</option>
-                <option value="SUBJUGATION_JOURNEY">討伐途中 (SUBJUGATION_JOURNEY)</option>
-                <option value="STORY_NODE">解鎖預設故事據點 (STORY_NODE)</option>
-              </select>
-            </label>
-            <label>標題<input id="story-node-title" type="text"></label>
-            <label>故事敘述（預設/首段）<textarea id="story-node-description" rows="3"></textarea></label>
-
-            <!-- 💬 街道訪客與 NPC 對話演出設定 -->
-            <details id="story-editor-npc-dialogue-fields" open>
-              <summary>💬 NPC 訪客與對話演出設定</summary>
-              <div class="story-editor-pair" style="margin-top: 6px;">
-                <label>訪客 NPC 名稱<input id="story-node-npc-name" type="text" placeholder="例：神秘學者"></label>
-                <label>訪客 NPC 肖像
-                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                    <div id="story-node-npc-avatar-preview" style="width: 32px; height: 59px; border-radius: 4px; border: 1px solid #d97706; overflow: hidden; background: #0c0a09; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"></div>
-                    <input id="story-node-npc-avatar" type="hidden" value="npc:npc_0">
-                    <button id="btn-pick-node-npc-avatar" type="button" class="action-btn" style="flex: 1; padding: 6px 10px; font-size: 0.8rem; background: rgba(217, 119, 6, 0.2); border-color: rgba(217, 119, 6, 0.4); color: #fbbf24;">🔍 挑選 NPC 肖像</button>
-                  </div>
-                </label>
+          <div id="story-editor-node-form" class="story-inspector-form" hidden>
+            
+            <!-- 📌 區塊 1：節點基本資訊卡片 -->
+            <div class="inspector-card inspector-card-base">
+              <div class="inspector-card-header">
+                <span class="inspector-card-title">📌 節點基本資訊 (Basic Info)</span>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0 4px;">
-                <div style="font-size: 0.78rem; font-weight: bold; color: #fde68a;">多段對話列表 (支援切換 NPC / 玩家守衛)：</div>
-                <button id="btn-story-preview-dialogue" type="button" class="action-btn" style="padding: 4px 10px; font-size: 0.75rem; background: linear-gradient(135deg, #d97706, #b45309); border: 1px solid #fbbf24; color: #fff; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">💬 即時預覽此對話</button>
+              <div class="inspector-card-body">
+                <div class="story-editor-pair">
+                  <label>節點代號<input id="story-node-id" type="text" placeholder="小寫英文＋底線，例：quest_dragon"></label>
+                  <label>出現機制
+                    <select id="story-node-channel">
+                      <option value="BOUNTY_BOARD">懸賞板 (BOUNTY_BOARD)</option>
+                      <option value="STREET_EVENT">街道訪客事件 (STREET_EVENT)</option>
+                      <option value="TAVERN_RUMOR">酒館傳聞 (TAVERN_RUMOR)</option>
+                      <option value="TERRITORY_EVENT">領地突發事件 (TERRITORY_EVENT)</option>
+                      <option value="TODO_LIST">領地待辦清單 (TODO_LIST)</option>
+                      <option value="EXPLORATION">發現據點時 (EXPLORATION)</option>
+                      <option value="SUBJUGATION">討伐結束後 (SUBJUGATION)</option>
+                      <option value="SUBJUGATION_JOURNEY">討伐途中 (SUBJUGATION_JOURNEY)</option>
+                      <option value="STORY_NODE">解鎖預設故事據點 (STORY_NODE)</option>
+                    </select>
+                  </label>
+                </div>
+                <label style="margin-top: 6px;">節點標題<input id="story-node-title" type="text" placeholder="例：來自北境的神秘訪客"></label>
+                <label style="margin-top: 6px;">故事敘述（預設/首段）<textarea id="story-node-description" rows="3" placeholder="輸入此故事節點的劇情敘述與情境描述……"></textarea></label>
               </div>
-              <div id="story-node-dialogue-pages-list" class="story-dialogue-pages-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
-              <button id="btn-story-add-dialogue-page" type="button" class="action-btn" style="width: 100%;">＋ 新增對話段落</button>
-            </details>
+            </div>
 
-            <details open>
-              <summary>出現條件</summary>
-              <div id="story-node-conditions-list" class="story-effect-list"></div>
-              <button id="btn-story-add-condition" type="button" class="action-btn">＋ 新增條件</button>
-            </details>
-
-            <details open>
-              <summary>完成後結果／獎勵</summary>
-              <div id="story-node-effects-list" class="story-effect-list"></div>
-              <button id="btn-story-add-effect" type="button" class="action-btn">＋ 新增結果／獎勵</button>
-            </details>
-
-            <details id="story-editor-map-target-fields">
-              <summary>解鎖預設故事據點設定</summary>
-              <label>既有地圖節點 ID<input id="story-node-target-map" type="text" placeholder="例：node_fortress_gate"></label>
-            </details>
-
-            <details id="story-editor-bounty-fields">
-              <summary>懸賞設定</summary>
-              <div style="margin-bottom: 8px;">
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold; color: #60a5fa;">
-                  <input id="story-node-bounty-repeatable" type="checkbox"> 🔄 允許日常重複輪替 (Repeatable)
-                </label>
-              </div>
-              <div class="story-editor-pair">
-                <label>執行天數<input id="story-node-bounty-duration" type="number" min="1" value="2"></label>
-                <label>保留天數<input id="story-node-bounty-expire" type="number" min="1" value="4"></label>
-              </div>
-              <div class="story-editor-pair">
-                <label>金幣獎勵<input id="story-node-bounty-gold" type="number" min="0" value="50"></label>
-                <label>經驗獎勵<input id="story-node-bounty-exp" type="number" min="0" value="30"></label>
-              </div>
-              <div class="story-editor-pair">
-                <label>任務類型
-                  <select id="story-node-bounty-type">
-                    <option value="NORMAL">普通任務 (NORMAL)</option>
-                    <option value="BANDIT">強盜治安 (BANDIT - 過期增威脅)</option>
-                  </select>
-                </label>
-                <label>刷新冷卻天數<input id="story-node-bounty-cooldown" type="number" min="0" value="3"></label>
+            <!-- 💬 區塊 2：街道訪客與 NPC 對話演出設定 -->
+            <details id="story-editor-npc-dialogue-fields" class="inspector-card inspector-card-dialogue" open>
+              <summary class="inspector-card-summary">💬 NPC 訪客與對話演出設定</summary>
+              <div class="inspector-card-body">
+                <div class="story-editor-pair" style="margin-top: 4px;">
+                  <label>訪客 NPC 名稱<input id="story-node-npc-name" type="text" placeholder="例：神秘學者"></label>
+                  <label>訪客 NPC 肖像
+                    <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                      <div id="story-node-npc-avatar-preview" style="width: 32px; height: 59px; border-radius: 4px; border: 1px solid #d97706; overflow: hidden; background: #0c0a09; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"></div>
+                      <input id="story-node-npc-avatar" type="hidden" value="npc:npc_0">
+                      <button id="btn-pick-node-npc-avatar" type="button" class="action-btn" style="flex: 1; padding: 6px 10px; font-size: 0.8rem; background: rgba(217, 119, 6, 0.2); border-color: rgba(217, 119, 6, 0.4); color: #fbbf24;">🔍 挑選 NPC 肖像</button>
+                    </div>
+                  </label>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px;">
+                  <div style="font-size: 0.78rem; font-weight: bold; color: #fde68a;">多段對話列表 (支援切換 NPC / 玩家守衛)：</div>
+                  <button id="btn-story-preview-dialogue" type="button" class="action-btn" style="padding: 4px 10px; font-size: 0.75rem; background: linear-gradient(135deg, #d97706, #b45309); border: 1px solid #fbbf24; color: #fff; font-weight: bold; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">💬 即時預覽此對話</button>
+                </div>
+                <div id="story-node-dialogue-pages-list" class="story-dialogue-pages-list" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px;"></div>
+                <button id="btn-story-add-dialogue-page" type="button" class="action-btn" style="width: 100%;">＋ 新增對話段落</button>
               </div>
             </details>
 
-            <details open>
-              <summary>玩家決策選項（支援自由多選項）</summary>
-              <div id="story-node-choices-list" class="story-choices-list"></div>
-              <button id="btn-story-add-choice" type="button" class="action-btn">＋ 新增決策選項</button>
+            <!-- 🔍 區塊 3：出現條件檢定 -->
+            <details class="inspector-card inspector-card-conditions" open>
+              <summary class="inspector-card-summary">🔍 出現條件檢定 (Conditions)</summary>
+              <div class="inspector-card-body">
+                <div id="story-node-conditions-list" class="story-effect-list"></div>
+                <button id="btn-story-add-condition" type="button" class="action-btn">＋ 新增條件</button>
+              </div>
             </details>
 
+            <!-- 🎁 區塊 4：完成後結果／獎勵 -->
+            <details class="inspector-card inspector-card-effects" open>
+              <summary class="inspector-card-summary">🎁 完成後結果／獎勵 (Effects & Rewards)</summary>
+              <div class="inspector-card-body">
+                <div id="story-node-effects-list" class="story-effect-list"></div>
+                <button id="btn-story-add-effect" type="button" class="action-btn">＋ 新增結果／獎勵</button>
+              </div>
+            </details>
+
+            <!-- 🗺️ 區塊 5-1：解鎖預設故事據點設定 -->
+            <details id="story-editor-map-target-fields" class="inspector-card inspector-card-maptarget">
+              <summary class="inspector-card-summary">🗺️ 解鎖預設故事據點設定</summary>
+              <div class="inspector-card-body">
+                <label>既有地圖節點 ID<input id="story-node-target-map" type="text" placeholder="例：node_fortress_gate"></label>
+              </div>
+            </details>
+
+            <!-- 🎯 區塊 5-2：懸賞任務專屬設定 -->
+            <details id="story-editor-bounty-fields" class="inspector-card inspector-card-bounty" open>
+              <summary class="inspector-card-summary">🎯 懸賞任務專屬設定 (Bounty Config)</summary>
+              <div class="inspector-card-body">
+                <div style="margin-bottom: 8px;">
+                  <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; font-weight: bold; color: #60a5fa;">
+                    <input id="story-node-bounty-repeatable" type="checkbox"> 🔄 允許日常重複輪替 (Repeatable)
+                  </label>
+                </div>
+                <div class="story-editor-pair">
+                  <label>執行天數<input id="story-node-bounty-duration" type="number" min="1" value="2"></label>
+                  <label>保留天數<input id="story-node-bounty-expire" type="number" min="1" value="4"></label>
+                </div>
+                <div class="story-editor-pair" style="margin-top: 6px;">
+                  <label>金幣獎勵<input id="story-node-bounty-gold" type="number" min="0" value="50"></label>
+                  <label>經驗獎勵<input id="story-node-bounty-exp" type="number" min="0" value="30"></label>
+                </div>
+                <div class="story-editor-pair" style="margin-top: 6px;">
+                  <label>任務類型
+                    <select id="story-node-bounty-type">
+                      <option value="NORMAL">普通任務 (NORMAL)</option>
+                      <option value="BANDIT">強盜治安 (BANDIT - 過期增威脅)</option>
+                    </select>
+                  </label>
+                  <label>刷新冷卻天數<input id="story-node-bounty-cooldown" type="number" min="0" value="3"></label>
+                </div>
+              </div>
+            </details>
+
+            <!-- 🔀 區塊 6：玩家決策選項 -->
+            <details class="inspector-card inspector-card-choices" open>
+              <summary class="inspector-card-summary">🔀 玩家決策選項 (Choices & Branches)</summary>
+              <div class="inspector-card-body">
+                <div id="story-node-choices-list" class="story-choices-list"></div>
+                <button id="btn-story-add-choice" type="button" class="action-btn">＋ 新增決策選項</button>
+              </div>
+            </details>
+
+            <!-- ⚡ 底部操作條 -->
             <div class="story-editor-node-actions">
-              <button id="btn-story-test-node" class="action-btn story-primary">強制測試節點</button>
-              <button id="btn-story-delete-node" class="action-btn story-danger">刪除節點</button>
+              <button id="btn-story-test-node" class="action-btn story-primary">⚡ 強制測試節點</button>
+              <button id="btn-story-delete-node" class="action-btn story-danger">🗑️ 刪除節點</button>
             </div>
             <div id="story-editor-blocked-reasons" class="story-editor-blocked"></div>
           </div>

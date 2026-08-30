@@ -325,7 +325,22 @@
         </div>
       </div>
 
-      <div class="cs-form-row">
+      <div style="background: rgba(212, 175, 55, 0.05); padding: 8px; border-radius: 6px; border: 1px dashed rgba(212, 175, 55, 0.25); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+        <div class="cs-form-row" style="margin-bottom: 0;">
+          <label class="cs-label" style="color: var(--cs-gold-light);">🔗 唯一角色代碼 (characterKey，選填)</label>
+          <input type="text" class="cs-input" id="mc-character-key" placeholder="如: char_reyn">
+        </div>
+        <div class="cs-form-row" style="margin-bottom: 0;">
+          <label class="cs-label" style="color: var(--cs-gold-light);">🛡️ 指定代理副將 ID (選填)</label>
+          <input type="text" class="cs-input" id="mc-substitute-id" placeholder="如: f_lothgar_4 (未填自動匹配)">
+        </div>
+        <div class="cs-form-row" style="margin-bottom: 0;">
+          <label class="cs-label" style="color: var(--cs-gold-light);">🎯 專屬被俘虜率 % (選填)</label>
+          <input type="number" min="0" max="100" class="cs-input" id="mc-capture-rate" placeholder="預設依戰場(野外25/城40)">
+        </div>
+      </div>
+
+      <div class="cs-form-row" style="margin-top: 10px;">
         <label class="cs-label">出沒地形 (可複選)</label>
         <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.78rem; color: var(--cs-text-main);">
           <label><input type="checkbox" name="mc-terrain" value="PLAINS" checked> 平原</label>
@@ -396,10 +411,14 @@
         <label class="cs-label">派系歸屬 (Faction)</label>
         <select class="cs-select" id="sd-faction">
           <option value="none">中立荒野/魔物巢穴</option>
-          <option value="f_lothgar">洛斯加王室</option>
-          <option value="f_vormund">沃爾蒙德大公</option>
-          <option value="f_hurst">神聖教廷</option>
-          <option value="f_bellavia">金流商會</option>
+          <option value="f_lothgar">👑 洛斯加中央王室</option>
+          <option value="f_hurst">❄️ 北境 赫斯特神聖教廷</option>
+          <option value="f_bellavia">🌹 西境 貝拉維亞商會</option>
+          <option value="f_vormund">🌋 熔岩鍛爐 沃爾蒙德大公國</option>
+          <option value="f_dusk">🏜️ 赤砂荒漠 達斯克城邦</option>
+          <option value="f_dragonkin">🐉 遠古龍裔</option>
+          <option value="f_blackwood">🛡️ 黑木守衛</option>
+          <option value="f_oakhaven">🌾 橡木谷家族</option>
         </select>
       </div>
 
@@ -537,7 +556,10 @@
 <div class="cs-modal-overlay" id="modal-icon-picker" style="display: none;">
   <div class="cs-modal-box" style="max-width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
     <div class="cs-modal-header">
-      <span class="cs-modal-title">🖼️ 視覺化全圖集選擇器 (Universal Icon Picker)</span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span class="cs-modal-title">🖼️ 視覺化全圖集選擇器 (Universal Icon Picker)</span>
+        <button type="button" class="cs-btn cs-btn-sm" id="btn-icon-picker-flip" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.76rem; padding: 2px 8px;" title="點擊切換水平鏡像翻轉">↔️ 水平翻轉: 關</button>
+      </div>
       <button class="cs-btn cs-btn-sm" id="btn-close-icon-picker">✕</button>
     </div>
     <div class="cs-modal-body" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
@@ -561,6 +583,34 @@
     </div>
     <div class="cs-modal-footer">
       <button class="cs-btn" id="btn-close-icon-picker-footer">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：全物資與特產視覺化選擇器 (Material & Trade Good Picker Modal) -->
+<div class="cs-modal-overlay" id="modal-material-picker" style="display: none; z-index: 2200;">
+  <div class="cs-modal-box" style="max-width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="cs-modal-header">
+      <span class="cs-modal-title" id="material-picker-title">📦 選擇城鎮物資</span>
+      <button class="cs-btn cs-btn-sm" id="btn-close-material-picker">✕</button>
+    </div>
+    <div class="cs-modal-body" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px;">
+      <!-- 搜尋與快速操作 -->
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" class="cs-input" id="material-picker-search" placeholder="🔍 搜尋素材名稱或 ID..." style="flex: 1; padding: 6px 10px; font-size: 0.82rem;">
+        <button type="button" class="cs-btn cs-btn-sm" id="btn-material-picker-clear-all" style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444;">清空全部</button>
+      </div>
+      <!-- 網格卡片清單 -->
+      <div id="material-picker-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 48vh; overflow-y: auto; padding: 4px;">
+        <!-- JS 動態生成素材卡片 -->
+      </div>
+    </div>
+    <div class="cs-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+      <span id="material-picker-selected-count" style="font-size: 0.8rem; color: #94a3b8;">已選取 0 項物資</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="cs-btn" id="btn-cancel-material-picker">取消</button>
+        <button class="cs-btn cs-btn-primary" id="btn-confirm-material-picker">✅ 確認套用選取</button>
+      </div>
     </div>
   </div>
 </div>
@@ -693,10 +743,24 @@
               <input type="text" id="hc-name" class="cs-input" placeholder="例如: 雷恩·瓦倫泰" style="width: 100%; box-sizing: border-box;">
             </div>
           </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px;">
+            <div>
+              <label class="cs-label" title="跨系統唯一角色代碼，用以消除俘虜/招募後的雙胞胎分身矛盾">🔗 唯一角色代碼 (Character Key):</label>
+              <input type="text" id="hc-character-key" class="cs-input" placeholder="例如: CHAR_RYAN" style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div>
+              <label class="cs-label" title="對應據點/怪物資料庫中的敵方首領怪物 ID">👾 綁定敵方怪物 ID (Bound Monster):</label>
+              <input type="text" id="hc-bound-monster-id" class="cs-input" placeholder="例如: boss_lothgar_ryan" style="width: 100%; box-sizing: border-box;">
+            </div>
+            <div>
+              <label class="cs-label" title="戰鬥中被生擒俘虜的機率 (0~100，留空則依戰場情境)">🎯 專屬被俘虜率 % (Capture Rate):</label>
+              <input type="number" min="0" max="100" id="hc-capture-rate" class="cs-input" placeholder="預設依戰場(野外25/城40)" style="width: 100%; box-sizing: border-box;">
+            </div>
+          </div>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr 0.8fr 1.2fr 1.5fr; gap: 8px;">
         <div>
           <label class="cs-label">品質稀有度:</label>
           <select id="hc-quality" class="cs-select" style="width: 100%;">
@@ -726,32 +790,26 @@
           </select>
         </div>
         <div>
-          <label class="cs-label">滿等進階狀態:</label>
+          <label class="cs-label" title="英雄等級 (1~10 級)">等級:</label>
+          <input type="number" id="hc-level" class="cs-input" min="1" max="10" value="10" style="width: 100%; box-sizing: border-box;">
+        </div>
+        <div>
+          <label class="cs-label" title="10 等滿等方可開啟進階轉職">進階轉職狀態:</label>
           <select id="hc-is-advanced" class="cs-select" style="width: 100%;">
             <option value="true">⭐ 已滿等轉職 (Lv.10)</option>
-            <option value="false">見習成長期 (Lv.1~9)</option>
+            <option value="false">見習成長期 (未轉職)</option>
           </select>
-        </div>
-      </div>
-
-      <!-- 誓約守衛立繪、肖像與性格特質 -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; background: #141a24; padding: 10px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
-        <div>
-          <label class="cs-label">肖像體系:</label>
-          <select id="hc-is-guardian" class="cs-select" style="width: 100%;">
-            <option value="false">一般傭兵圖集 (25款)</option>
-            <option value="true">🛡️ 誓約男女守衛大圖集 (20款)</option>
-          </select>
-        </div>
-        <div>
-          <label class="cs-label">立繪肖像選擇:</label>
-          <select id="hc-avatar-select" class="cs-select" style="width: 100%;">
-            <!-- 動態載入立繪清單 -->
-          </select>
+          <div id="hc-is-advanced-hint" style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px; display: none;">🔒 須 Lv.10 方可開啟進階</div>
         </div>
         <div>
           <label class="cs-label">性格特質:</label>
           <select id="hc-trait" class="cs-select" style="width: 100%;">
+            <optgroup label="🌟 通用英雄特質">
+              <option value="BRAVE">🦁 勇敢無畏 (攻擊力+10%)</option>
+              <option value="METICULOUS">🔍 縝密專注 (暴擊率+10%)</option>
+              <option value="STURDY">🛡️ 堅如磐石 (防禦力+10%)</option>
+              <option value="SWIFT">⚡ 迅捷如風 (敏捷+10%)</option>
+            </optgroup>
             <optgroup label="🛡️ 誓約守衛專屬特質">
               <option value="GUARDIAN_LOYAL">🛡️ 忠誠護衛 (體+20% 力+10%)</option>
               <option value="GUARDIAN_PRUDENT">🧠 沉著參謀 (敏+15% 智+15%)</option>
@@ -759,21 +817,20 @@
               <option value="GUARDIAN_DEVOUT">✨ 堅毅信仰 (精+20% 體+10%)</option>
               <option value="GUARDIAN_SCOUT">🏹 敏銳斥候 (敏+20% 幸+10%)</option>
             </optgroup>
-            <optgroup label="🌟 通用英雄特質">
-              <option value="BRAVE">🦁 勇敢無畏 (攻擊力+10%)</option>
-              <option value="METICULOUS">🔍 縝密專注 (暴擊率+10%)</option>
-              <option value="STURDY">🛡️ 堅如磐石 (防禦力+10%)</option>
-              <option value="SWIFT">⚡ 迅捷如風 (敏捷+10%)</option>
-            </optgroup>
           </select>
         </div>
       </div>
 
       <!-- 六維屬性自由配點 (3 欄 x 2 列，防止溢出) -->
       <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">📊 六維屬性極限配點</span>
-          <span style="font-size: 0.72rem; color: var(--cs-text-muted);">總點數: <strong id="hc-total-stats" style="color: var(--cs-gold);">75</strong></span>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">📊 六維屬性極限配點</span>
+            <span id="hc-quality-stats-ref" style="font-size: 0.7rem; color: #94a3b8;">基準參考: <span style="color:#60a5fa" id="ref-q-n">N:45</span> | <span style="color:#3b82f6" id="ref-q-r">R:60</span> | <span style="color:#a855f7" id="ref-q-sr">SR:72</span> | <span style="color:#f59e0b" id="ref-q-ssr">SSR:88</span> | <span style="color:#ef4444" id="ref-q-ur">UR:110</span></span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--cs-text-muted);">
+            總點數: <strong id="hc-total-stats" style="color: var(--cs-gold);">75</strong> <span id="hc-stats-diff-hint" style="font-size: 0.7rem; font-weight: normal;"></span>
+          </div>
         </div>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;">
           <div><label class="cs-label" style="color: #ef4444;">💪 STR 力量</label><input type="number" id="hc-str" class="cs-input" min="0" value="20" style="width: 100%; box-sizing: border-box;"></div>
@@ -785,28 +842,119 @@
         </div>
       </div>
 
-      <!-- 專屬神裝設定 -->
+      <!-- 技能三槽配置區 (簡短 ICON 選擇，說明在 Tooltip) -->
       <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
-        <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">⚔️ 專屬神裝配給</span>
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px;">
-          <div>
-            <label class="cs-label">武器附魔元素:</label>
-            <select id="hc-weapon-element" class="cs-select" style="width: 100%;">
-              <option value="NONE">無附魔 (NONE)</option>
-              <option value="FIRE">🔥 火焰 (FIRE)</option>
-              <option value="ICE">❄️ 冰霜 (ICE)</option>
-              <option value="LIGHTNING">⚡ 雷電 (LIGHTNING)</option>
-              <option value="DARK">🌑 黑暗 (DARK)</option>
-              <option value="HOLY">✨ 神聖 (HOLY)</option>
-            </select>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">🔮 初始技能配置 (點擊卡槽自由替換)</span>
+          <span style="font-size: 0.7rem; color: var(--cs-text-muted);">滑鼠懸浮查看說明 · 切換職業時重置</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+          <!-- 技能槽 0 -->
+          <div id="hc-skill-slot-0" class="cs-skill-card-slot" style="background: #161b26; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 6px; padding: 6px 8px; cursor: pointer; transition: all 0.15s; display: flex; gap: 8px; align-items: center; min-width: 0;" title="基礎技能 1">
+            <div id="hc-skill-icon-0" style="font-size: 1.3rem; line-height: 1; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #0d1117; border-radius: 4px; flex-shrink: 0;">🗡️</div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span id="hc-skill-name-0" style="font-size: 0.78rem; font-weight: bold; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">奮力一擊</span>
+              <span id="hc-skill-mp-0" class="cs-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.65rem; width: fit-content; padding: 0 4px;">5 MP</span>
+            </div>
           </div>
-          <div>
-            <label class="cs-label">武器強化等級:</label>
-            <input type="number" id="hc-weapon-enhance" class="cs-input" min="0" max="10" value="7" style="width: 100%; box-sizing: border-box;">
+          <!-- 技能槽 1 -->
+          <div id="hc-skill-slot-1" class="cs-skill-card-slot" style="background: #161b26; border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 6px; padding: 6px 8px; cursor: pointer; transition: all 0.15s; display: flex; gap: 8px; align-items: center; min-width: 0;" title="基礎技能 2">
+            <div id="hc-skill-icon-1" style="font-size: 1.3rem; line-height: 1; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #0d1117; border-radius: 4px; flex-shrink: 0;">💥</div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span id="hc-skill-name-1" style="font-size: 0.78rem; font-weight: bold; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">破甲碎擊</span>
+              <span id="hc-skill-mp-1" class="cs-badge" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; font-size: 0.65rem; width: fit-content; padding: 0 4px;">12 MP</span>
+            </div>
           </div>
-          <div>
-            <label class="cs-label">防具強化等級:</label>
-            <input type="number" id="hc-armor-enhance" class="cs-input" min="0" max="10" value="7" style="width: 100%; box-sizing: border-box;">
+          <!-- 技能槽 2 -->
+          <div id="hc-skill-slot-2" class="cs-skill-card-slot" style="background: #161b26; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; padding: 6px 8px; cursor: pointer; transition: all 0.15s; display: flex; gap: 8px; align-items: center; min-width: 0;" title="進階終極技">
+            <div id="hc-skill-icon-2" style="font-size: 1.3rem; line-height: 1; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #0d1117; border-radius: 4px; flex-shrink: 0;">🌀</div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+              <span id="hc-skill-name-2" style="font-size: 0.78rem; font-weight: bold; color: #fbbf24; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">旋風斬</span>
+              <span id="hc-skill-mp-2" class="cs-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.65rem; width: fit-content; padding: 0 4px;">30 MP</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 三格裝備設定 (武器 / 防具 / 飾品 - 全視覺化卡片，絕無下拉選單) -->
+      <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">🎽 英雄初始裝備配給 (點擊卡片開啟裝備庫挑選)</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px;">
+          <!-- 武器槽位 -->
+          <div style="background: #151a24; padding: 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.3); display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.74rem; font-weight: bold; color: var(--cs-gold);">⚔️ 主手武器</span>
+              <span id="hc-wpn-type-badge" class="cs-badge" style="font-size: 0.65rem; background: rgba(245, 158, 11, 0.15); color: var(--cs-gold);">WEAPON</span>
+            </div>
+            <!-- 視覺化武器卡片槽 -->
+            <div id="hc-wpn-slot-card" style="display: flex; gap: 8px; align-items: center; background: #0f1218; padding: 6px; border-radius: 6px; border: 1px dashed rgba(245, 158, 11, 0.4); cursor: pointer; transition: all 0.15s;" title="點擊開啟武器庫挑選">
+              <div id="hc-wpn-icon-preview" style="width: 36px; height: 36px; border-radius: 4px; border: 1px solid var(--cs-gold); background: #131722; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;">⚔️</div>
+              <div style="flex: 1; min-width: 0;">
+                <div id="hc-wpn-name-display" style="font-size: 0.78rem; font-weight: bold; color: #fde68a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">(空手 / 無武器)</div>
+                <div style="font-size: 0.68rem; color: #94a3b8;">點擊更換武器</div>
+              </div>
+              <input type="hidden" id="hc-wpn-template" value="">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+              <div>
+                <label class="cs-label" style="font-size: 0.65rem;">附魔元素:</label>
+                <select id="hc-weapon-element" class="cs-select" style="width: 100%; font-size: 0.72rem; padding: 2px 4px;">
+                  <option value="NONE">無附魔 (NONE)</option>
+                  <option value="FIRE">🔥 火焰 (FIRE)</option>
+                  <option value="ICE">❄️ 冰霜 (ICE)</option>
+                  <option value="LIGHTNING">⚡ 雷電 (LIGHTNING)</option>
+                  <option value="DARK">🌑 黑暗 (DARK)</option>
+                  <option value="HOLY">✨ 神聖 (HOLY)</option>
+                </select>
+              </div>
+              <div>
+                <label class="cs-label" style="font-size: 0.65rem;">強化等級:</label>
+                <input type="number" id="hc-weapon-enhance" class="cs-input" min="0" max="10" value="0" style="width: 100%; font-size: 0.72rem; padding: 2px 4px; box-sizing: border-box;">
+              </div>
+            </div>
+          </div>
+
+          <!-- 防具槽位 -->
+          <div style="background: #151a24; padding: 8px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.74rem; font-weight: bold; color: var(--cs-blue);">🛡️ 身體防具</span>
+              <span id="hc-arm-type-badge" class="cs-badge" style="font-size: 0.65rem; background: rgba(59, 130, 246, 0.15); color: var(--cs-blue);">ARMOR</span>
+            </div>
+            <!-- 視覺化防具卡片槽 -->
+            <div id="hc-arm-slot-card" style="display: flex; gap: 8px; align-items: center; background: #0f1218; padding: 6px; border-radius: 6px; border: 1px dashed rgba(59, 130, 246, 0.4); cursor: pointer; transition: all 0.15s;" title="點擊開啟防具庫挑選">
+              <div id="hc-arm-icon-preview" style="width: 36px; height: 36px; border-radius: 4px; border: 1px solid var(--cs-blue); background: #131722; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;">🛡️</div>
+              <div style="flex: 1; min-width: 0;">
+                <div id="hc-arm-name-display" style="font-size: 0.78rem; font-weight: bold; color: #93c5fd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">(無防具)</div>
+                <div style="font-size: 0.68rem; color: #94a3b8;">點擊更換防具</div>
+              </div>
+              <input type="hidden" id="hc-arm-template" value="">
+            </div>
+            <div>
+              <label class="cs-label" style="font-size: 0.65rem;">強化等級:</label>
+              <input type="number" id="hc-armor-enhance" class="cs-input" min="0" max="10" value="0" style="width: 100%; font-size: 0.72rem; padding: 2px 4px; box-sizing: border-box;">
+            </div>
+          </div>
+
+          <!-- 飾品槽位 -->
+          <div style="background: #151a24; padding: 8px; border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3); display: flex; flex-direction: column; gap: 6px;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.74rem; font-weight: bold; color: #c084fc;">💍 飾品槽</span>
+              <span class="cs-badge" style="font-size: 0.65rem; background: rgba(168, 85, 247, 0.15); color: #c084fc;">ACCESSORY</span>
+            </div>
+            <!-- 視覺化飾品卡片槽 -->
+            <div id="hc-acc-slot-card" style="display: flex; gap: 8px; align-items: center; background: #0f1218; padding: 6px; border-radius: 6px; border: 1px dashed rgba(168, 85, 247, 0.4); cursor: pointer; transition: all 0.15s;" title="點擊開啟飾品庫挑選">
+              <div id="hc-acc-icon-preview" style="width: 36px; height: 36px; border-radius: 4px; border: 1px solid #c084fc; background: #131722; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden;">💍</div>
+              <div style="flex: 1; min-width: 0;">
+                <div id="hc-acc-name-display" style="font-size: 0.78rem; font-weight: bold; color: #d8b4fe; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">(無飾品)</div>
+                <div style="font-size: 0.68rem; color: #94a3b8;">點擊更換飾品</div>
+              </div>
+              <input type="hidden" id="hc-acc-template" value="">
+            </div>
+            <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 4px;">
+              特定飾品具備專屬技能與屬性加成
+            </div>
           </div>
         </div>
       </div>
@@ -814,12 +962,74 @@
       <!-- 傳奇傳記 -->
       <div>
         <label class="cs-label">傳奇傳記 / 歷史故事:</label>
-        <textarea id="hc-biography" class="cs-input" style="height: 60px; resize: vertical;" placeholder="描述這位傳奇英雄的生平與傳奇戰役..."></textarea>
+        <textarea id="hc-biography" class="cs-input" style="height: 50px; resize: vertical;" placeholder="描述這位傳奇英雄的生平與傳奇戰役..."></textarea>
       </div>
     </div>
     <div class="cs-modal-footer">
       <button class="cs-btn" id="btn-cancel-hero-creator">取消</button>
       <button class="cs-btn cs-btn-gold" id="btn-save-hero-creator">💾 儲存英雄</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：英雄工坊全視覺化裝備挑選器 (Hero Equipment Picker Modal) -->
+<div class="cs-modal-overlay" id="modal-hc-equip-picker" style="display: none; z-index: 1250;">
+  <div class="cs-modal-box" style="max-width: 720px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="cs-modal-header">
+      <span class="cs-modal-title" id="hc-equip-picker-title">⚔️ 挑選裝備</span>
+      <button class="cs-btn cs-btn-sm" id="btn-close-hc-equip-picker">✕</button>
+    </div>
+    <!-- 頂部搜尋、分類與卸下裝備按鈕 -->
+    <div style="padding: 10px 15px; background: #131822; border-bottom: 1px solid var(--cs-panel-border); display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="inp-hc-equip-search" class="cs-input" placeholder="🔍 搜尋裝備名稱、類型、T階或效果..." style="flex: 1; box-sizing: border-box;">
+        <button type="button" class="cs-btn cs-btn-sm" id="btn-hc-equip-clear" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; font-weight: bold; white-space: nowrap;">🚫 卸下裝備 (留空)</button>
+      </div>
+      <div id="hc-equip-picker-tabs" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;">
+        <button class="cs-btn cs-btn-sm cs-btn-gold active" data-equip-tier="ALL">全部階級</button>
+        <button class="cs-btn cs-btn-sm" data-equip-tier="1">T1 初階</button>
+        <button class="cs-btn cs-btn-sm" data-equip-tier="2">T2 精良</button>
+        <button class="cs-btn cs-btn-sm" data-equip-tier="3">T3 卓越</button>
+        <button class="cs-btn cs-btn-sm" data-equip-tier="4">T4 史詩/傳奇</button>
+      </div>
+    </div>
+    <!-- 裝備卡片網格 -->
+    <div id="hc-equip-picker-grid" style="flex: 1; overflow-y: auto; padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; background: #0c0f14;">
+      <!-- 動態注入裝備卡片 -->
+    </div>
+    <div class="cs-modal-footer" style="padding: 8px 15px;">
+      <button class="cs-btn" id="btn-cancel-hc-equip-picker">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗：全視覺化技能挑選器 (Skill Picker Modal) -->
+<div class="cs-modal-overlay" id="modal-hc-skill-picker" style="display: none; z-index: 1200;">
+  <div class="cs-modal-box" style="max-width: 680px; max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="cs-modal-header">
+      <span class="cs-modal-title">🔮 挑選技能 (替換至 <span id="hc-skill-picker-target-slot-title" style="color: var(--cs-gold);">技能槽 1</span>)</span>
+      <button class="cs-btn cs-btn-sm" id="btn-close-hc-skill-picker">✕</button>
+    </div>
+    <!-- 頂部搜尋與分類 Tabs -->
+    <div style="padding: 10px 15px; background: #131822; border-bottom: 1px solid var(--cs-panel-border); display: flex; flex-direction: column; gap: 8px;">
+      <input type="text" id="inp-hc-skill-search" class="cs-input" placeholder="🔍 搜尋技能名稱、描述或關鍵字..." style="width: 100%; box-sizing: border-box;">
+      <div id="hc-skill-picker-tabs" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">
+        <button class="cs-btn cs-btn-sm cs-btn-gold active" data-skill-tab="ALL">全部</button>
+        <button class="cs-btn cs-btn-sm" data-skill-tab="WARRIOR">⚔️ 戰士</button>
+        <button class="cs-btn cs-btn-sm" data-skill-tab="KNIGHT">🛡️ 騎士</button>
+        <button class="cs-btn cs-btn-sm" data-skill-tab="MAGE">🔮 法師</button>
+        <button class="cs-btn cs-btn-sm" data-skill-tab="ARCHER">🏹 弓手</button>
+        <button class="cs-btn cs-btn-sm" data-skill-tab="THIEF">🗡️ 盜賊</button>
+        <button class="cs-btn cs-btn-sm" data-skill-tab="PRAYER">📖 祈禱</button>
+        <button class="cs-btn cs-btn-sm" data-skill-tab="CUSTOM">🛠️ 工坊自訂</button>
+      </div>
+    </div>
+    <!-- 技能卡片網格 -->
+    <div id="hc-skill-picker-grid" style="flex: 1; overflow-y: auto; padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <!-- 動態注入技能卡片 -->
+    </div>
+    <div class="cs-modal-footer" style="padding: 8px 15px;">
+      <button class="cs-btn" id="btn-cancel-hc-skill-picker">取消</button>
     </div>
   </div>
 </div>
@@ -874,14 +1084,14 @@
             <select id="sh-filter-faction" class="cs-select" style="flex: 1; padding: 2px 4px; font-size: 0.72rem;">
               <option value="ALL">全部勢力</option>
               <option value="NEUTRAL">無主荒野/巢穴</option>
-              <option value="f_lothgar">👑 舊帝國王室</option>
-              <option value="f_vormund">🌋 北境 沃爾蒙德</option>
-              <option value="f_hurst">⛪ 東境 赫斯特</option>
-              <option value="f_bellavia">🌹 南境 貝拉維亞</option>
-              <option value="f_dusk">🏜️ 西境 達斯克</option>
+              <option value="f_lothgar">👑 洛斯加中央王室</option>
+              <option value="f_hurst">❄️ 北境 赫斯特神聖教廷</option>
+              <option value="f_bellavia">🌹 西境 貝拉維亞商會</option>
+              <option value="f_vormund">🌋 熔岩鍛爐 沃爾蒙德大公國</option>
+              <option value="f_dusk">🏜️ 赤砂荒漠 達斯克城邦</option>
               <option value="f_dragonkin">🐉 遠古龍裔</option>
               <option value="f_blackwood">🛡️ 黑木守衛</option>
-              <option value="f_oakhaven">🌾 橡木谷</option>
+              <option value="f_oakhaven">🌾 橡木谷家族</option>
             </select>
           </div>
         </div>
@@ -920,11 +1130,11 @@
           <label class="cs-label">所屬國家 / 勢力:</label>
           <select id="sh-faction" class="cs-select" style="width: 100%;">
             <option value="NEUTRAL">无主中立 / 荒野巢穴</option>
-            <option value="f_lothgar">👑 舊帝國王室 (洛斯加)</option>
-            <option value="f_vormund">🌋 北境 沃爾蒙德大公領</option>
-            <option value="f_hurst">⛪ 東境 赫斯特侯爵領</option>
-            <option value="f_bellavia">🌹 南境 貝拉維亞伯爵領</option>
-            <option value="f_dusk">🏜️ 西境 達斯克子爵領</option>
+            <option value="f_lothgar">👑 洛斯加中央王室</option>
+            <option value="f_hurst">❄️ 北境 赫斯特神聖教廷</option>
+            <option value="f_bellavia">🌹 西境 貝拉維亞商會</option>
+            <option value="f_vormund">🌋 熔岩鍛爐 沃爾蒙德大公國</option>
+            <option value="f_dusk">🏜️ 赤砂荒漠 達斯克城邦</option>
             <option value="f_dragonkin">🐉 遠古龍裔</option>
             <option value="f_blackwood">🛡️ 黑木守衛</option>
             <option value="f_oakhaven">🌾 橡木谷家族</option>
@@ -1006,6 +1216,36 @@
             <div>
               <label class="cs-label" style="font-size: 0.72rem; color: #94a3b8;">🗺️ 已開迷霧時（明確解鎖情報）:</label>
               <input type="text" id="sh-reveal-rumor" class="cs-input" style="width: 100%; font-size: 0.78rem;" placeholder="例: 你之前探過的那座雪山峭壁，終於發現了龍晶洞入口！">
+            </div>
+          </div>
+        </div>
+
+        <!-- 📦 市場貿易產銷配置 (按鈕彈窗選擇) -->
+        <div id="sh-trade-panel" style="grid-column: span 4; background: #0e121a; padding: 12px 14px; border-radius: 6px; border: 1px solid rgba(234,179,8,0.25); display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.85rem; font-weight: bold; color: var(--cs-gold);">📦 城鎮市場產銷配置 (唯一素材庫 materials.json 對齊)</span>
+            <span style="font-size: 0.75rem; color: #94a3b8;">留空則自動依據地形產出預設特產</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+            <!-- 🛒 可買/盛產物資 -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="cs-label" style="color: #4ade80; font-weight: bold; margin: 0;">🛒 盛產／可買物資 (低價批發):</label>
+                <button type="button" id="btn-pick-produced-goods" class="cs-btn cs-btn-sm" style="background: rgba(74,222,128,0.15); color: #4ade80; border: 1px solid #4ade80;">🎨 選擇盛產物資</button>
+              </div>
+              <div id="sh-produced-goods-badges" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; background: #07090e; padding: 6px 8px; border-radius: 4px; border: 1px dashed rgba(255,255,255,0.1); align-items: center;">
+                <!-- JS 動態生成已選標籤 -->
+              </div>
+            </div>
+            <!-- 💰 可賣/需求收購 -->
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="cs-label" style="color: #f59e0b; font-weight: bold; margin: 0;">💰 短缺／需求物資 (高價收購):</label>
+                <button type="button" id="btn-pick-demanded-goods" class="cs-btn cs-btn-sm" style="background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid #f59e0b;">🎨 選擇需求物資</button>
+              </div>
+              <div id="sh-demanded-goods-badges" style="display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; background: #07090e; padding: 6px 8px; border-radius: 4px; border: 1px dashed rgba(255,255,255,0.1); align-items: center;">
+                <!-- JS 動態生成已選標籤 -->
+              </div>
             </div>
           </div>
         </div>

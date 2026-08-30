@@ -1,0 +1,2330 @@
+{
+  "timestamp": "2026-08-28T14:53:06.418Z",
+  "note": "在戰鬥工坊中儲存",
+  "strongholds": [
+    {
+      "id": "cas_red_sand_city_01",
+      "name": "沙漠民族小鎮",
+      "description": "一個默默生活與世無爭的小鎮。",
+      "terrain": "DESERT",
+      "icon": "settlement_sheet:settlement_sheet_14",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "nodeLevel": 3,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：先鋒部隊",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 100,
+        "exp": 120,
+        "prestige": 15
+      },
+      "enemyLegion": {
+        "enabled": false,
+        "infantry": 0,
+        "archer": 0,
+        "cavalry": 0
+      },
+      "combatRole": "DEFENDER_ONLY",
+      "defenderConfig": {
+        "gateMaxHp": 300,
+        "watchtowerCount": 0,
+        "watchtowerDmg": 0,
+        "rampartArrowBonusPct": 0
+      },
+      "attackerConfig": {
+        "ramCount": 1,
+        "trebuchetCount": 1,
+        "tacticalStance": "GATE_FOCUS"
+      },
+      "producedGoods": [
+        "tg_silk",
+        "tg_spice"
+      ]
+    },
+    {
+      "id": "dragon_fam_dun_2",
+      "name": "充滿龍晶的洞穴深處",
+      "description": "描述此據點的敵方勢力與地理環境...",
+      "terrain": "RUINS",
+      "icon": "cave_node_01:cave_node_01_16",
+      "difficulty": 10,
+      "worldGenMode": "STORY_ONLY",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "factionId": "f_dragonkin",
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": true,
+      "waves": [
+        {
+          "name": "第 1 波：先鋒部隊",
+          "monsters": [
+            {
+              "monsterId": "lizard",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "lizard",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "lizard",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：據點首領",
+          "monsters": [
+            {
+              "monsterId": "ancient_black_dragon",
+              "powerTier": 5,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 100,
+        "exp": 120,
+        "prestige": 15
+      },
+      "enemyLegion": {
+        "enabled": false,
+        "infantry": 0,
+        "archer": 0,
+        "cavalry": 0
+      },
+      "combatRole": "VERSATILE",
+      "defenderConfig": {
+        "gateMaxHp": 3000,
+        "watchtowerCount": 1,
+        "watchtowerDmg": 50,
+        "rampartArrowBonusPct": 15
+      },
+      "attackerConfig": {
+        "ramCount": 1,
+        "trebuchetCount": 1,
+        "tacticalStance": "GATE_FOCUS"
+      }
+    },
+    {
+      "id": "dragon_fam_dun",
+      "name": "神秘的隱藏洞窟",
+      "description": "描述此據點的敵方勢力與地理環境...",
+      "terrain": "RUINS",
+      "icon": "cave_node_01:cave_node_01_6",
+      "difficulty": 5,
+      "worldGenMode": "STORY_ONLY",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": true,
+      "waves": [
+        {
+          "name": "第 1 波：先鋒部隊",
+          "monsters": [
+            {
+              "monsterId": "lizard",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "lizard",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "lizard",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：據點首領",
+          "monsters": [
+            {
+              "monsterId": "naga",
+              "powerTier": 1.5,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 1000,
+        "exp": 250,
+        "prestige": 50
+      },
+      "factionId": "f_dragonkin",
+      "enemyLegion": {
+        "enabled": false,
+        "infantry": 0,
+        "archer": 0,
+        "cavalry": 0
+      },
+      "combatRole": "VERSATILE",
+      "defenderConfig": {
+        "gateMaxHp": 3000,
+        "watchtowerCount": 1,
+        "watchtowerDmg": 50,
+        "rampartArrowBonusPct": 15
+      },
+      "attackerConfig": {
+        "ramCount": 1,
+        "trebuchetCount": 1,
+        "tacticalStance": "GATE_FOCUS"
+      }
+    },
+    {
+      "id": "smuggler_checkpoint",
+      "name": "走私者的廢棄關卡",
+      "description": "廢棄的石砌關卡被走私販與僱傭流寇佔據，裡面藏有未及轉運的走私物資與軍械。",
+      "terrain": "RUINS",
+      "icon": "cave_node_01:cave_node_01_0",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "nodeLevel": 1,
+      "requiresScouting": false,
+      "removeOnVictory": true,
+      "waves": [
+        {
+          "name": "第 1 波：關卡暗哨",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "shaman",
+              "powerTier": 1.3,
+              "gridR": 1,
+              "gridC": 0,
+              "slotId": "1_0",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：走私頭目守衛",
+          "monsters": [
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 120,
+        "exp": 150,
+        "prestige": 20,
+        "items": [
+          {
+            "id": "tg_obsidian",
+            "amount": 2
+          },
+          {
+            "id": "mat_iron_ingot",
+            "amount": 5
+          }
+        ]
+      }
+    },
+    {
+      "id": "goblin_den",
+      "name": "哥布林潮濕洞穴",
+      "description": "深藏在森林岩壁下的巢穴，聚集了成群掠奪過往旅人的哥布林與兇猛野狼。",
+      "terrain": "CAVE",
+      "icon": "cave_node_01:cave_node_01_15",
+      "difficulty": 1,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": true,
+      "waves": [
+        {
+          "name": "第 1 波：洞口斥候",
+          "monsters": [
+            {
+              "monsterId": "goblin",
+              "powerTier": 0.6,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "wild_wolf",
+              "powerTier": 0.6,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：哥布林薩滿與長矛隊",
+          "monsters": [
+            {
+              "monsterId": "goblin_shaman",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "goblin",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "goblin",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 60,
+        "exp": 80,
+        "prestige": 10,
+        "items": [
+          {
+            "id": "mat_wood_plank",
+            "amount": 4
+          }
+        ]
+      }
+    },
+    {
+      "id": "undead_crypt",
+      "name": "荒塚古代地下墓穴",
+      "description": "古代戰場遺留的陰暗地宮，受到黑魔法侵蝕的不死骷髏與食屍鬼在此遊蕩。",
+      "terrain": "RUINS",
+      "icon": "cave_node_01:cave_node_01_14",
+      "difficulty": 3,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "nodeLevel": 0,
+      "requiresScouting": true,
+      "removeOnVictory": true,
+      "waves": [
+        {
+          "name": "第 1 波：甦醒的骸骨",
+          "monsters": [
+            {
+              "monsterId": "skeleton",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "skeleton",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：墓室食屍鬼群",
+          "monsters": [
+            {
+              "monsterId": "ghoul",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "skeleton",
+              "powerTier": 0.7,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 3 波：死靈騎士領主",
+          "monsters": [
+            {
+              "monsterId": "death_knight",
+              "powerTier": 2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "specter",
+              "powerTier": 1.5,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 250,
+        "exp": 300,
+        "prestige": 35,
+        "items": [
+          {
+            "id": "tg_obsidian",
+            "amount": 3
+          },
+          {
+            "id": "mat_steel_ingot",
+            "amount": 3
+          }
+        ]
+      }
+    },
+    {
+      "id": "frost_dragon_lair",
+      "name": "霜風王陵與冰龍巢",
+      "description": "屹立於極寒雪山頂峰的古老龍族巢穴，常年被暴風雪籠罩，封印著強大的冰霜巨龍。",
+      "terrain": "SNOW_MOUNTAIN",
+      "icon": "cave_node_01:cave_node_01_8",
+      "difficulty": 10,
+      "worldGenMode": "WORLD_SECRET",
+      "isWorldSecret": true,
+      "allowTroops": true,
+      "nodeLevel": 0,
+      "requiresScouting": true,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：雪山霜狼群",
+          "monsters": [
+            {
+              "monsterId": "frost_wolf",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "frost_wolf",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "frost_wolf",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "frost_wolf",
+              "powerTier": 1.2,
+              "gridR": 1,
+              "gridC": 0,
+              "slotId": "1_0",
+              "formationRow": "MIDDLE"
+            },
+            {
+              "monsterId": "yeti",
+              "powerTier": 1.9,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：冰霜魔像守衛",
+          "monsters": [
+            {
+              "monsterId": "elemental_golem",
+              "powerTier": 2.3,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "yeti",
+              "powerTier": 3,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK",
+              "skills": [
+                "SKILL_FROST_BREATH",
+                "SKILL_CRUSHING_SLAM"
+              ]
+            },
+            {
+              "monsterId": "elemental_golem",
+              "powerTier": 2.3,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 3 波：極寒古霜龍",
+          "monsters": [
+            {
+              "monsterId": "elemental_golem",
+              "powerTier": 2.3,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "frost_dragon",
+              "powerTier": 3.5,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            },
+            {
+              "monsterId": "elemental_golem",
+              "powerTier": 2.3,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 800,
+        "exp": 1000,
+        "prestige": 100
+      },
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 100,
+        "archer": 100,
+        "cavalry": 50
+      }
+    },
+    {
+      "id": "n_val_3",
+      "name": "硫磺深淵",
+      "description": "不斷噴發有毒硫磺氣體的危險地底深坑，熔岩蜥與惡魔犬群聚於此。",
+      "terrain": "VOLCANO",
+      "icon": "cave_node_01:cave_node_01_1",
+      "difficulty": 4,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：深淵惡魔犬",
+          "monsters": [
+            {
+              "monsterId": "hellhound",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "hellhound",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：熔岩蜥與石化傀儡",
+          "monsters": [
+            {
+              "monsterId": "golem",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "salamander",
+              "powerTier": 1.5,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 300,
+        "exp": 350,
+        "prestige": 30
+      }
+    },
+    {
+      "id": "n_mor_5",
+      "name": "飢餓冰窟",
+      "description": "曾發生駭人慘劇的極寒冰穴，瀰漫著凍餒怨靈與飢餓雪怪的咆哮。",
+      "terrain": "SNOW_MOUNTAIN",
+      "icon": "cave_node_01:cave_node_01_3",
+      "difficulty": 4,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：飢餓霜狼群",
+          "monsters": [
+            {
+              "monsterId": "frost_wolf",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "frost_wolf",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：狂暴雪怪與怨靈",
+          "monsters": [
+            {
+              "monsterId": "yeti",
+              "powerTier": 1.9,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "specter",
+              "powerTier": 1.3,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 320,
+        "exp": 380,
+        "prestige": 35
+      }
+    },
+    {
+      "id": "n_lys_4",
+      "name": "幻毒沼澤",
+      "description": "瀰漫著致幻毒氣的古老黑沼，潛伏著巨型毒蛛與劇毒蛇人領主。",
+      "terrain": "FOREST",
+      "icon": "cave_node_01:cave_node_01_4",
+      "difficulty": 4,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：泥沼巨蛛",
+          "monsters": [
+            {
+              "monsterId": "spider",
+              "powerTier": 0.9,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "spider",
+              "powerTier": 0.9,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "spider",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：蛇人部族領袖",
+          "monsters": [
+            {
+              "monsterId": "naga",
+              "powerTier": 1.5,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "swamp_drake",
+              "powerTier": 1.9,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 350,
+        "exp": 400,
+        "prestige": 40
+      }
+    },
+    {
+      "id": "n_cas_3",
+      "name": "死寂深淵",
+      "description": "被瘴氣吞噬的古老沙漠深坑，遊蕩著無數吞食生者的食屍鬼與沙蠕蟲。",
+      "terrain": "DESERT",
+      "icon": "cave_node_01:cave_node_01_5",
+      "difficulty": 4,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": false,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：荒漠食屍鬼",
+          "monsters": [
+            {
+              "monsterId": "ghoul",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "ghoul",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：深淵沙蠕蟲",
+          "monsters": [
+            {
+              "monsterId": "sand_worm",
+              "powerTier": 1.7,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "scorpion",
+              "powerTier": 1.1,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 320,
+        "exp": 360,
+        "prestige": 35
+      }
+    },
+    {
+      "id": "n_wild_3",
+      "name": "染血的丘陵",
+      "description": "盜匪與流寇盤踞的險峻山丘，時常襲擊過往商隊。",
+      "terrain": "PLAINS",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_22",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：丘陵伏兵",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：悍匪頭目",
+          "monsters": [
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 140,
+        "exp": 160,
+        "prestige": 15
+      }
+    },
+    {
+      "id": "n_wild_1",
+      "name": "嘆息平原",
+      "description": "古老王國血戰的無主古戰場，無數含恨戰死的亡魂在長夜中悲鳴。",
+      "terrain": "PLAINS",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_20",
+      "difficulty": 3,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：陣亡步兵隊",
+          "monsters": [
+            {
+              "monsterId": "skeleton",
+              "powerTier": 0.7,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "skeleton",
+              "powerTier": 0.7,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "skeleton",
+              "powerTier": 0.7,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：怨靈騎士領主",
+          "monsters": [
+            {
+              "monsterId": "death_knight",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "phantom_warrior",
+              "powerTier": 1.8,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 220,
+        "exp": 260,
+        "prestige": 25
+      }
+    },
+    {
+      "id": "n_wild_4",
+      "name": "無名塚",
+      "description": "埋葬著無數無法辨識身份的戰死者，受到黑魔法死氣浸染。",
+      "terrain": "PLAINS",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_20",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：甦醒的遊魂",
+          "monsters": [
+            {
+              "monsterId": "zombie",
+              "powerTier": 0.6,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "zombie",
+              "powerTier": 0.6,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：墓穴屍魔",
+          "monsters": [
+            {
+              "monsterId": "wight",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 120,
+        "exp": 140,
+        "prestige": 15
+      }
+    },
+    {
+      "id": "n_val_5",
+      "name": "灼喉隘口",
+      "description": "扼守火山要道的險要峽谷，充斥著叛軍逃兵與強盜哨站。",
+      "terrain": "VOLCANO",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_23",
+      "difficulty": 3,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：隘口伏兵",
+          "monsters": [
+            {
+              "monsterId": "rebel",
+              "powerTier": 1.3,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：叛軍突擊隊長",
+          "monsters": [
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "assassin",
+              "powerTier": 1.6,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 220,
+        "exp": 260,
+        "prestige": 25
+      }
+    },
+    {
+      "id": "n_royal_1",
+      "name": "舊王都 永恆之城",
+      "description": "洛斯加皇朝的最高權力中樞，高聳的白石城牆與皇家禁衛軍象徵著舊帝國最後的尊嚴。",
+      "terrain": "PLAINS",
+      "icon": "settlement_sheet:settlement_sheet_15",
+      "difficulty": 9,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_lothgar",
+      "nodeLevel": 4,
+      "requiresScouting": true,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：王城外圍重甲衛隊",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.9,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.9,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.9,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1.5,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：皇家御前騎士團",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "shaman",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            },
+            {
+              "monsterId": "death_knight",
+              "powerTier": 2.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 3000,
+        "archer": 1500,
+        "cavalry": 1000
+      },
+      "rewards": {
+        "gold": 2500,
+        "exp": 3000,
+        "prestige": 300
+      },
+      "combatRole": "DEFENDER_ONLY",
+      "defenderConfig": {
+        "gateMaxHp": 30000,
+        "watchtowerCount": 1,
+        "watchtowerDmg": 50,
+        "rampartArrowBonusPct": 15
+      },
+      "attackerConfig": {
+        "ramCount": 1,
+        "trebuchetCount": 1,
+        "tacticalStance": "GATE_FOCUS"
+      }
+    },
+    {
+      "id": "n_adv_1",
+      "name": "學士塔",
+      "description": "培提爾樞密院的最高知識中樞，由古代魔像與樞密院侍衛層層把守。",
+      "terrain": "PLAINS",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_9",
+      "difficulty": 5,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_lothgar",
+      "nodeLevel": 3,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：學士塔侍衛",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.5,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.5,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "shaman",
+              "powerTier": 1.4,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：守護者魔像",
+          "monsters": [
+            {
+              "monsterId": "golem",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 600,
+        "exp": 700,
+        "prestige": 60
+      }
+    },
+    {
+      "id": "n_val_1",
+      "name": "鍛主之城",
+      "description": "沃爾蒙德大公的權力堡壘，城中日夜燃燒著熊熊烈焰，北境最精銳的重甲鐵衛駐紮於此。",
+      "terrain": "VOLCANO",
+      "icon": "settlement_sheet:settlement_sheet_11",
+      "difficulty": 8,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_vormund",
+      "nodeLevel": 4,
+      "requiresScouting": true,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：熔爐先鋒步兵",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1.4,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：大公親衛重裝軍團",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "barbarian",
+              "powerTier": 2.4,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 250,
+        "archer": 100,
+        "cavalry": 80
+      },
+      "rewards": {
+        "gold": 2000,
+        "exp": 2500,
+        "prestige": 250
+      }
+    },
+    {
+      "id": "n_val_6",
+      "name": "黑曜石堡",
+      "description": "北境重裝步兵的軍事要塞，控制著通往大公領地的咽喉要道。",
+      "terrain": "PLAINS",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_1",
+      "difficulty": 6,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_vormund",
+      "nodeLevel": 3,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：要塞戍衛",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.6,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.6,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：要塞指揮官",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1.5,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 150,
+        "archer": 60,
+        "cavalry": 30
+      },
+      "rewards": {
+        "gold": 1000,
+        "exp": 1200,
+        "prestige": 120
+      }
+    },
+    {
+      "id": "n_val_2",
+      "name": "鐵血前哨",
+      "description": "扼守北境邊界的第一道防線，駐守著大公麾下的巡邏衛隊。",
+      "terrain": "VOLCANO",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_5",
+      "difficulty": 3,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_vormund",
+      "nodeLevel": 1,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：邊境巡邏隊",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 300,
+        "exp": 350,
+        "prestige": 30
+      }
+    },
+    {
+      "id": "n_mor_1",
+      "name": "聖耀王座",
+      "description": "神聖教廷的大本營，雄偉的大教堂頂端閃爍著聖光，狂熱的聖殿騎士守衛著信仰之座。",
+      "terrain": "SNOW_MOUNTAIN",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_2",
+      "difficulty": 8,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_hurst",
+      "nodeLevel": 4,
+      "requiresScouting": true,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：聖殿騎士先鋒",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "cultist",
+              "powerTier": 1.4,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：異端審判庭狂熱長老",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "shaman",
+              "powerTier": 2.2,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 220,
+        "archer": 120,
+        "cavalry": 60
+      },
+      "rewards": {
+        "gold": 1800,
+        "exp": 2200,
+        "prestige": 220
+      }
+    },
+    {
+      "id": "n_mor_4",
+      "name": "裁決要塞",
+      "description": "審判庭騎士駐紮的巨型雪山堡壘，執行神聖教廷的一切審判與討伐。",
+      "terrain": "PLAINS",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_6",
+      "difficulty": 6,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_hurst",
+      "nodeLevel": 3,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：審判庭戍衛",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.5,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.5,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：異端審判長",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.9,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "cultist",
+              "powerTier": 1.5,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 120,
+        "archer": 60,
+        "cavalry": 20
+      },
+      "rewards": {
+        "gold": 950,
+        "exp": 1100,
+        "prestige": 110
+      }
+    },
+    {
+      "id": "n_lys_1",
+      "name": "金玫瑰城",
+      "description": "貝拉維亞伯爵領的奢華貿易之都，暗處則由無數致命刺客與劇毒暗哨守衛。",
+      "terrain": "FOREST",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_3",
+      "difficulty": 7,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_bellavia",
+      "nodeLevel": 4,
+      "requiresScouting": true,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：商會僱傭重兵",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "bandit",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1.6,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：影刃刺客軍團",
+          "monsters": [
+            {
+              "monsterId": "assassin",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "assassin",
+              "powerTier": 2.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "shadow_blade",
+              "powerTier": 2.4,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 180,
+        "archer": 120,
+        "cavalry": 40
+      },
+      "rewards": {
+        "gold": 1600,
+        "exp": 2000,
+        "prestige": 200
+      }
+    },
+    {
+      "id": "n_cas_1",
+      "name": "黑鐵樞紐",
+      "description": "西境達斯克子爵統治的血汗礦業總部，終日瀰漫著礦塵與暴烈兇悍的礦工衛隊。",
+      "terrain": "DESERT",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_5",
+      "difficulty": 7,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_dusk",
+      "nodeLevel": 4,
+      "requiresScouting": true,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：礦山先鋒守衛",
+          "monsters": [
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.6,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.6,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：黑鐵狂暴督軍",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "barbarian",
+              "powerTier": 2.4,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 200,
+        "archer": 80,
+        "cavalry": 50
+      },
+      "rewards": {
+        "gold": 1500,
+        "exp": 1900,
+        "prestige": 190
+      }
+    },
+    {
+      "id": "n_blk_1",
+      "name": "黑木崗哨",
+      "description": "黑木守衛駐紮的破舊林間碉堡，防範森林中的魔物與外來侵略。",
+      "terrain": "FOREST",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_6",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_blackwood",
+      "nodeLevel": 1,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：黑木守衛隊",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.9,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 200,
+        "exp": 240,
+        "prestige": 20
+      }
+    },
+    {
+      "id": "n_oak_1",
+      "name": "橡木谷",
+      "description": "與世無爭的寧靜農耕村莊，村民組織了基本的鄉勇維持治安。",
+      "terrain": "FOREST",
+      "icon": "settlement_sheet:settlement_sheet_14",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_oakhaven",
+      "nodeLevel": 2,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：橡木谷民兵",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.8,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 180,
+        "exp": 200,
+        "prestige": 15
+      }
+    },
+    {
+      "id": "n_val_4",
+      "name": "燃鐵礦場",
+      "description": "奴隸與礦工日夜開採的巨型礦坑，由附庸瓦萊里烏斯家族管理，守衛配備沉重的鍛鐵兵器。",
+      "terrain": "VOLCANO",
+      "icon": "settlement_sheet:settlement_sheet_13",
+      "difficulty": 4,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_vormund",
+      "nodeLevel": 2,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：礦山巡邏守衛",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.2,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：黑鐵礦坑工頭",
+          "monsters": [
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.6,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 450,
+        "exp": 500,
+        "prestige": 45
+      }
+    },
+    {
+      "id": "n_mor_2",
+      "name": "無光修道院",
+      "description": "舉行古老血脈儀式的隱秘之地，莫凡恩家族與狂熱信徒的藏身處。",
+      "terrain": "SNOW_MOUNTAIN",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_2",
+      "difficulty": 5,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_hurst",
+      "nodeLevel": 0,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：黑袍血脈狂信徒",
+          "monsters": [
+            {
+              "monsterId": "cultist",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "cultist",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：無光秘儀大司祭",
+          "monsters": [
+            {
+              "monsterId": "cultist",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 600,
+        "exp": 750,
+        "prestige": 70
+      }
+    },
+    {
+      "id": "n_mor_3",
+      "name": "碎冰灣",
+      "description": "漁民在破冰後捕撈深海盲魚的極寒村落，沿岸駐紮著抵禦海獸與雪怪的霜雪守衛。",
+      "terrain": "SNOW_MOUNTAIN",
+      "icon": "cave_node_01:cave_node_01_8",
+      "difficulty": 3,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_hurst",
+      "nodeLevel": 2,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：極北霜雪守備隊",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1.2,
+              "gridR": 1,
+              "gridC": 2,
+              "slotId": "1_2",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 300,
+        "exp": 350,
+        "prestige": 30
+      }
+    },
+    {
+      "id": "n_lys_2",
+      "name": "荊棘谷",
+      "description": "滿佈毒蛇與有毒植物的險惡要塞城鎮，萊桑德家族的發源地，由劇毒暗殺者與密林重兵嚴密駐守。",
+      "terrain": "FOREST",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_11",
+      "difficulty": 5,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_bellavia",
+      "nodeLevel": 3,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：林地伏擊射手",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 1.3,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "crossbowman",
+              "powerTier": 1.4,
+              "gridR": 1,
+              "gridC": 1,
+              "slotId": "1_1",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：荊棘劇毒影刃",
+          "monsters": [
+            {
+              "monsterId": "assassin",
+              "powerTier": 1.9,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 80,
+        "archer": 50,
+        "cavalry": 10
+      },
+      "rewards": {
+        "gold": 700,
+        "exp": 850,
+        "prestige": 80
+      }
+    },
+    {
+      "id": "n_lys_3",
+      "name": "暗鴉村",
+      "description": "由刺客與情報販子組成的偽裝村落，表面平靜卻暗藏無數致命陷阱。",
+      "terrain": "FOREST",
+      "icon": "settlement_sheet:settlement_sheet_1",
+      "difficulty": 3,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_bellavia",
+      "nodeLevel": 2,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：暗鴉斥候密探",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 1.1,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "assassin",
+              "powerTier": 1.3,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 350,
+        "exp": 400,
+        "prestige": 35
+      }
+    },
+    {
+      "id": "n_cas_2",
+      "name": "赤砂城",
+      "description": "因開採特殊赤礦而崛起的傭兵要塞城市，卡西恩商團的西境防禦核心。",
+      "terrain": "DESERT",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_4",
+      "difficulty": 5,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_dusk",
+      "nodeLevel": 3,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：赤砂重裝傭兵隊",
+          "monsters": [
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "barbarian",
+              "powerTier": 1.4,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：赤砂要塞守備長",
+          "monsters": [
+            {
+              "monsterId": "iron_guard",
+              "powerTier": 1.8,
+              "gridR": 0,
+              "gridC": 1,
+              "slotId": "0_1",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "enemyLegion": {
+        "enabled": true,
+        "infantry": 100,
+        "archer": 60,
+        "cavalry": 30
+      },
+      "rewards": {
+        "gold": 800,
+        "exp": 950,
+        "prestige": 90
+      }
+    },
+    {
+      "id": "n_cas_4",
+      "name": "枯骨綠洲",
+      "description": "只有奴隸販子才知道的隱秘沙漠水源與中途補給營地。",
+      "terrain": "DESERT",
+      "icon": "settlement_sheet:settlement_sheet_3",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "factionId": "f_dusk",
+      "nodeLevel": 1,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：綠洲奴隸捕手",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.9,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.9,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 220,
+        "exp": 260,
+        "prestige": 20
+      }
+    },
+    {
+      "id": "n_wild_2",
+      "name": "十字路口旅店",
+      "description": "形形色色的人們在此歇腳與交換情報，時常有醉漢、通緝犯與保鏢發生衝突。",
+      "terrain": "PLAINS",
+      "icon": "settlement_sheet:settlement_sheet_14",
+      "difficulty": 2,
+      "worldGenMode": "PERMANENT_VISIBLE",
+      "isWorldSecret": false,
+      "allowTroops": true,
+      "nodeLevel": 1,
+      "requiresScouting": false,
+      "removeOnVictory": false,
+      "waves": [
+        {
+          "name": "第 1 波：鬧事酒客與路霸",
+          "monsters": [
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.9,
+              "gridR": 0,
+              "gridC": 0,
+              "slotId": "0_0",
+              "formationRow": "FRONT"
+            },
+            {
+              "monsterId": "bandit",
+              "powerTier": 0.9,
+              "gridR": 0,
+              "gridC": 2,
+              "slotId": "0_2",
+              "formationRow": "FRONT"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 200,
+        "exp": 220,
+        "prestige": 15
+      }
+    }
+  ]
+}

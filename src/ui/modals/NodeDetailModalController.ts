@@ -57,7 +57,8 @@ export class NodeDetailModalController {
       case 'FOG': weatherStr = '🌫️ 濃霧'; weatherColor = '#94a3b8'; break;
       default: weatherStr = '☀️ 晴朗'; weatherColor = '#eab308'; break;
     }
-    weatherEl.textContent = `${weatherStr} (剩餘 ${node.weatherDuration} 天)`;
+    const duration = (node.weatherDuration !== undefined && node.weatherDuration > 0) ? node.weatherDuration : 3;
+    weatherEl.textContent = `${weatherStr} (剩餘 ${duration} 天)`;
     weatherEl.style.color = weatherColor;
   
     document.getElementById('nd-desc')!.textContent = node.description;

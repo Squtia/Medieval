@@ -135,7 +135,7 @@
     },
     "hide": {
       "zoom": 100,
-      "bgX": 0,
+      "bgX": 35.29,
       "bgY": 0
     },
     "cloth": {
@@ -3974,6 +3974,906 @@
       "zoom": 100,
       "bgX": 100,
       "bgY": 98.5
+    }
+  },
+  "faction_units_8x8": {
+    "faction_units_8x8_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "faction_units_8x8_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 0
+    },
+    "faction_units_8x8_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 0
+    },
+    "faction_units_8x8_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 0
+    },
+    "faction_units_8x8_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 0
+    },
+    "faction_units_8x8_5": {
+      "col": 5,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 0
+    },
+    "faction_units_8x8_6": {
+      "col": 6,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 0
+    },
+    "faction_units_8x8_7": {
+      "col": 7,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "faction_units_8x8_8": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_9": {
+      "col": 1,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_10": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_11": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_12": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_13": {
+      "col": 5,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_14": {
+      "col": 6,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_15": {
+      "col": 7,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_16": {
+      "col": 0,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_17": {
+      "col": 1,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_18": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_19": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_20": {
+      "col": 4,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_21": {
+      "col": 5,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_22": {
+      "col": 6,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_23": {
+      "col": 7,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_24": {
+      "col": 0,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_25": {
+      "col": 1,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_26": {
+      "col": 2,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_27": {
+      "col": 3,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_28": {
+      "col": 4,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_29": {
+      "col": 5,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_30": {
+      "col": 6,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_31": {
+      "col": 7,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_32": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_33": {
+      "col": 1,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_34": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_35": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_36": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_37": {
+      "col": 5,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_38": {
+      "col": 6,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_39": {
+      "col": 7,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_40": {
+      "col": 0,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_41": {
+      "col": 1,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_42": {
+      "col": 2,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_43": {
+      "col": 3,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_44": {
+      "col": 4,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_45": {
+      "col": 5,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_46": {
+      "col": 6,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_47": {
+      "col": 7,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_48": {
+      "col": 0,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_49": {
+      "col": 1,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_50": {
+      "col": 2,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_51": {
+      "col": 3,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_52": {
+      "col": 4,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_53": {
+      "col": 5,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_54": {
+      "col": 6,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_55": {
+      "col": 7,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_56": {
+      "col": 0,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "faction_units_8x8_57": {
+      "col": 1,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 100
+    },
+    "faction_units_8x8_58": {
+      "col": 2,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 100
+    },
+    "faction_units_8x8_59": {
+      "col": 3,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 100
+    },
+    "faction_units_8x8_60": {
+      "col": 4,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 100
+    },
+    "faction_units_8x8_61": {
+      "col": 5,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 100
+    },
+    "faction_units_8x8_62": {
+      "col": 6,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 100
+    },
+    "faction_units_8x8_63": {
+      "col": 7,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
+    }
+  },
+  "faction_units_8x8_01": {
+    "faction_units_8x8_01_0": {
+      "col": 0,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_1": {
+      "col": 1,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_2": {
+      "col": 2,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_3": {
+      "col": 3,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_4": {
+      "col": 4,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_5": {
+      "col": 5,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_6": {
+      "col": 6,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_7": {
+      "col": 7,
+      "row": 0,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 0
+    },
+    "faction_units_8x8_01_8": {
+      "col": 0,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_9": {
+      "col": 1,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_10": {
+      "col": 2,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_11": {
+      "col": 3,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_12": {
+      "col": 4,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_13": {
+      "col": 5,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_14": {
+      "col": 6,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_15": {
+      "col": 7,
+      "row": 1,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 14.3
+    },
+    "faction_units_8x8_01_16": {
+      "col": 0,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_17": {
+      "col": 1,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_18": {
+      "col": 2,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_19": {
+      "col": 3,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_20": {
+      "col": 4,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_21": {
+      "col": 5,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_22": {
+      "col": 6,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_23": {
+      "col": 7,
+      "row": 2,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 28.6
+    },
+    "faction_units_8x8_01_24": {
+      "col": 0,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_25": {
+      "col": 1,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_26": {
+      "col": 2,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_27": {
+      "col": 3,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_28": {
+      "col": 4,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_29": {
+      "col": 5,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_30": {
+      "col": 6,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_31": {
+      "col": 7,
+      "row": 3,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 42.9
+    },
+    "faction_units_8x8_01_32": {
+      "col": 0,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_33": {
+      "col": 1,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_34": {
+      "col": 2,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_35": {
+      "col": 3,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_36": {
+      "col": 4,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_37": {
+      "col": 5,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_38": {
+      "col": 6,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_39": {
+      "col": 7,
+      "row": 4,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 57.1
+    },
+    "faction_units_8x8_01_40": {
+      "col": 0,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_41": {
+      "col": 1,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_42": {
+      "col": 2,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_43": {
+      "col": 3,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_44": {
+      "col": 4,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_45": {
+      "col": 5,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_46": {
+      "col": 6,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_47": {
+      "col": 7,
+      "row": 5,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 71.4
+    },
+    "faction_units_8x8_01_48": {
+      "col": 0,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_49": {
+      "col": 1,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_50": {
+      "col": 2,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_51": {
+      "col": 3,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_52": {
+      "col": 4,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_53": {
+      "col": 5,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_54": {
+      "col": 6,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_55": {
+      "col": 7,
+      "row": 6,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 85.7
+    },
+    "faction_units_8x8_01_56": {
+      "col": 0,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 0,
+      "bgY": 100
+    },
+    "faction_units_8x8_01_57": {
+      "col": 1,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 14.3,
+      "bgY": 100
+    },
+    "faction_units_8x8_01_58": {
+      "col": 2,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 28.6,
+      "bgY": 100
+    },
+    "faction_units_8x8_01_59": {
+      "col": 3,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 42.9,
+      "bgY": 100
+    },
+    "faction_units_8x8_01_60": {
+      "col": 4,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 57.1,
+      "bgY": 100
+    },
+    "faction_units_8x8_01_61": {
+      "col": 5,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 71.4,
+      "bgY": 100
+    },
+    "faction_units_8x8_01_62": {
+      "col": 6,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 85.7,
+      "bgY": 100
+    },
+    "faction_units_8x8_01_63": {
+      "col": 7,
+      "row": 7,
+      "zoom": 100,
+      "bgX": 100,
+      "bgY": 100
     }
   }
 }

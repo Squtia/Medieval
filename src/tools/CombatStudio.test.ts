@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { MonsterSystem } from '../systems/MonsterSystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { Adventurer } from '../models/Adventurer';
-import { ElementType, EquipmentSlot, FormationRow, MonsterRace, TerrainType, WeaponType } from '../models/types';
+import { ElementType, EquipmentSlot, FormationRow, Gender, MonsterRace, TerrainType, WeaponType } from '../models/types';
 import { SubjugationTemplate } from '../models/Narrative';
 import { GameState } from '../core/GameState';
 import monstersJson from '../data/monsters.json';
 import { CombatStudioController } from './CombatStudio';
+import { createUniqueAdventurer } from '../data/UniqueAdventurers';
 
 describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Tests)', () => {
   const monsterSys = new MonsterSystem();
@@ -308,5 +309,64 @@ describe('戰鬥平衡與遭遇工坊核心功能測試 (Combat Studio Core Test
     expect(siegeCapital.enemyLegion?.enabled).toBe(true);
     expect(siegeCapital.enemyLegion?.infantry).toBe(250);
   });
+
+  it('英雄工坊嚴格遵守職業裝備綁定表與相容性防呆', () => {
+    const warriorWpns = CombatStudioController.JOB_ALLOWED_WEAPON_TYPES.WARRIOR;
+    const mageWpns = CombatStudioController.JOB_ALLOWED_WEAPON_TYPES.MAGE;
+    const knightArms = CombatStudioController.JOB_ALLOWED_ARMOR_TYPES.KNIGHT;
+    const archerArms = CombatStudioController.JOB_ALLOWED_ARMOR_TYPES.ARCHER;
+
+    // 戰士可裝備巨劍與雙劍，不可裝備法杖
+    expect(warriorWpns).toContain('GREATSWORD');
+    expect(warriorWpns).toContain('DUAL_SWORDS');
+    expect(warriorWpns).not.toContain('STAFF');
+
+    // 法師可裝備法杖與戰鐮，不可裝備巨劍
+    expect(mageWpns).toContain('STAFF');
+    expect(mageWpns).toContain('SCYTHE');
+    expect(mageWpns).not.toContain('GREATSWORD');
+
+    // 騎士穿著重鎧，弓手穿著輕甲/皮甲
+    expect(knightArms).toContain('HEAVY');
+    expect(archerArms).toContain('LEATHER');
+  });
+
+  it('唯一英雄實例化時遵守未滿 10 等禁止進階轉職之防呆規則', () => {
+    // Lv.5 英雄：即便 def.isAdvanced 為 true，實例化後強制為 false
+    const noviceHeroDef = {
+      id: 'test_novice_hero',
+      name: '見習勇士',
+      title: '【初出茅廬】',
+      quality: 'SR' as const,
+      jobKey: 'WARRIOR',
+      traitKey: 'BRAVE',
+      gender: Gender.MALE,
+      isGuardian: false,
+      avatarIndex: 0,
+      level: 5,
+      isAdvanced: true,
+      biography: '修煉中的見習戰士',
+      customAttributes: { str: 20, agi: 10, con: 15, int: 5, spr: 5, luk: 5 },
+      equipment: {}
+    };
+
+    const noviceAdv = createUniqueAdventurer(noviceHeroDef);
+    expect(noviceAdv).not.toBeNull();
+    expect(noviceAdv!.level).toBe(5);
+    expect(noviceAdv!.isAdvanced).toBe(false);
+
+    // Lv.10 滿等英雄：isAdvanced 正常為 true
+    const maxHeroDef = {
+      ...noviceHeroDef,
+      id: 'test_master_hero',
+      level: 10,
+      isAdvanced: true
+    };
+    const masterAdv = createUniqueAdventurer(maxHeroDef);
+    expect(masterAdv).not.toBeNull();
+    expect(masterAdv!.level).toBe(10);
+    expect(masterAdv!.isAdvanced).toBe(true);
+  });
 });
+
 

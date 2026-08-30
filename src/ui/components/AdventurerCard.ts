@@ -128,7 +128,7 @@ export function renderAdventurerCard(adv: Adventurer | null, options: CardOption
   }
 
   // 取得自訂或預設頭像樣式
-  const avatarStyleObj = getAvatarSpriteStyle(adv.gender, avatarIndex, adv.isGuardian);
+  const avatarStyleObj = getAvatarSpriteStyle(adv.gender, avatarIndex, adv.isGuardian, (adv as any).avatarIcon);
   const spriteStyle = `aspect-ratio: 1/1; min-width: 100%; min-height: 100%; flex-shrink: 0; background-image: ${avatarStyleObj.backgroundImage}; background-size: ${avatarStyleObj.backgroundSize}; background-position: ${avatarStyleObj.backgroundPosition};`;
 
   const qualityColor = adv.quality === 'SSR' ? '#eab308' : adv.quality === 'SR' ? '#c084fc' : adv.quality === 'R' ? '#60a5fa' : '#cbd5e1';

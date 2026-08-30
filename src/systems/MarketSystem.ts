@@ -1,19 +1,9 @@
-import { MapNode, NodeLevel, TradeGood, WeatherType, TerrainType } from '../models/types';
+import { MapNode, NodeLevel, MaterialItem, WeatherType, TerrainType } from '../models/types';
 import { Random } from '../core/Random';
+import materialsJson from '../data/materials.json';
 
-export const TRADE_GOODS: TradeGood[] = [
-  { id: 'tg_wheat', name: '小麥', description: '基礎糧食，平原多產。', basePrice: 10, type: 'FOOD', icon: 'icons_materials:icons_materials_0' },
-  { id: 'tg_cotton', name: '棉麻', description: '紡織基礎原料，平原多產。', basePrice: 4, type: 'MATERIAL', icon: 'icons_materials:icons_materials_1' },
-  { id: 'tg_meat', name: '獸肉', description: '高營養食物，森林與荒野多產。', basePrice: 5, type: 'FOOD', icon: 'icons_materials:icons_materials_2' },
-  { id: 'tg_hide', name: '生皮', description: '未加工的獸皮，森林狩獵特產。', basePrice: 5, type: 'MATERIAL', icon: 'icons_materials:icons_materials_3' },
-  { id: 'tg_timber', name: '木材', description: '基礎建材，森林特產。', basePrice: 4, type: 'MATERIAL', icon: 'icons_materials:icons_materials_4' },
-  { id: 'tg_stone', name: '石材', description: '進階建材，山地特產。', basePrice: 6, type: 'MATERIAL', icon: 'icons_materials:icons_materials_5' },
-  { id: 'tg_iron', name: '鐵礦石', description: '金屬材料，火山與雪山常見。', basePrice: 10, type: 'MATERIAL', icon: 'icons_materials:icons_materials_54' },
-  { id: 'tg_spice', name: '香料', description: '沙漠地帶的昂貴特產。', basePrice: 100, type: 'LUXURY', icon: '3_icons_materials:3_icons_materials_24' },
-  { id: 'tg_silk', name: '絲綢', description: '粗布精煉而成的高級布料。', basePrice: 150, type: 'LUXURY', icon: 'icons_materials:icons_materials_6' },
-  { id: 'tg_ice_crystal', name: '冰晶', description: '雪山獨有的魔法素材。', basePrice: 80, type: 'SPECIALTY', icon: 'icons_materials:icons_materials_7' },
-  { id: 'tg_obsidian', name: '黑曜石', description: '火山深處出產的堅硬礦石。', basePrice: 90, type: 'SPECIALTY', icon: 'icons_materials:icons_materials_8' }
-];
+// 全遊戲唯一真理來源：直接由 materials.json 讀取所有素材與物資
+export const TRADE_GOODS: MaterialItem[] = materialsJson as MaterialItem[];
 
 export class MarketSystem {
   /**
@@ -28,7 +18,7 @@ export class MarketSystem {
       goods: []
     };
     
-    // OPT-05: 地形特產必定出現，其餘隨機補充至 3~5 種
+    // 預設地形特產對照
     const TERRAIN_SPECIALTY: Partial<Record<string, string[]>> = {
       PLAINS:        ['tg_wheat', 'tg_cotton'],
       FOREST:        ['tg_timber', 'tg_meat', 'tg_hide'],
@@ -37,41 +27,45 @@ export class MarketSystem {
       DESERT:        ['tg_spice']
     };
 
-    const specialtyIds = TERRAIN_SPECIALTY[node.terrain] ?? [];
+    // 優先使用自訂盛產物資，若無則依地形回退
+    const specialtyIds = (node.producedGoods && node.producedGoods.length > 0)
+      ? node.producedGoods
+      : (TERRAIN_SPECIALTY[node.terrain] ?? []);
+
     const specialtyGoods = specialtyIds
       .map(id => TRADE_GOODS.find(g => g.id === id))
       .filter(Boolean) as typeof TRADE_GOODS;
 
-    const numGoods = Random.int(3, 5);
+    const numGoods = Math.max(specialtyGoods.length, Random.int(3, 5));
     const otherGoods = TRADE_GOODS.filter(g => !specialtyIds.includes(g.id));
     const shuffled = [...otherGoods].sort(() => 0.5 - Random.next());
     const extras = shuffled.slice(0, Math.max(0, numGoods - specialtyGoods.length));
     const selected = [...specialtyGoods, ...extras];
 
+    const demandedSet = new Set(node.demandedGoods || []);
+
     for (const good of selected) {
       let multiplier = 1.0;
       
-      // 地形特產半價（原產地優惠）
-      if (node.terrain === TerrainType.DESERT && good.id === 'tg_spice') multiplier = 0.5;
-      if (node.terrain === TerrainType.SNOW_MOUNTAIN && good.id === 'tg_ice_crystal') multiplier = 0.5;
-      if (node.terrain === TerrainType.VOLCANO && good.id === 'tg_obsidian') multiplier = 0.5;
-      if (node.terrain === TerrainType.FOREST && good.id === 'tg_timber') multiplier = 0.5;
-      if (node.terrain === TerrainType.PLAINS && good.id === 'tg_wheat') multiplier = 0.5;
-      if (node.terrain === TerrainType.PLAINS && good.id === 'tg_cotton') multiplier = 0.6;
-      if (node.terrain === TerrainType.SNOW_MOUNTAIN && good.id === 'tg_stone') multiplier = 0.5;
-      if (node.terrain === TerrainType.VOLCANO && good.id === 'tg_iron') multiplier = 0.6;
-      if (node.terrain === TerrainType.FOREST && good.id === 'tg_meat') multiplier = 0.6;
-      if (node.terrain === TerrainType.FOREST && good.id === 'tg_hide') multiplier = 0.6;
+      // 盛產/自訂特產半價（原產地批發優惠）
+      if (specialtyIds.includes(good.id)) {
+        multiplier = 0.5;
+      }
 
       const baseValue = good.basePrice * multiplier;
       const fluctuation = 0.8 + Random.next() * 0.4; // 0.8 ~ 1.2
-      const finalPrice = Math.max(1, Math.floor(baseValue * fluctuation));
+      let finalPrice = Math.max(1, Math.floor(baseValue * fluctuation));
+
+      // 若該物資為該城鎮短缺/高價收購需求品 (Demanded)
+      const isDemanded = demandedSet.has(good.id);
+      const buyMultiplier = isDemanded ? 1.6 : 1.2;
+      const sellMultiplier = isDemanded ? 1.4 : 1.0;
 
       node.marketData.goods.push({
         goodId: good.id,
-        buyPrice: Math.floor(finalPrice * 1.2), // 買入價較貴
-        sellPrice: finalPrice,                  // 賣出價較低
-        stock: Random.int(0, 49) + 10 * node.nodeLevel // 依據等級決定庫存
+        buyPrice: Math.floor(finalPrice * buyMultiplier), // 買入價
+        sellPrice: Math.floor(finalPrice * sellMultiplier), // 賣出價
+        stock: isDemanded ? Random.int(0, 5) : (Random.int(10, 49) + 10 * node.nodeLevel) // 需求品缺貨，盛產品充裕
       });
     }
   }
