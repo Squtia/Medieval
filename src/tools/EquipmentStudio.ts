@@ -13,6 +13,15 @@ import '../styles/equipment-studio.css';
 
 const byId = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as unknown as T;
 const clone = <T>(data: T): T => JSON.parse(JSON.stringify(data));
+export const EQUIPMENT_STUDIO_DRAFT_KEY = 'MEDIEVAL_EQUIPMENT_STUDIO_DRAFT_V1';
+
+interface EquipmentStudioDraft {
+  materials: MaterialItem[];
+  items: ConsumableItem[];
+  equipment: CustomEquipmentTemplate[];
+  recipes: CustomCraftingRecipe[];
+  timestamp: number;
+}
 
 export interface ConsumableItem {
   id: string;
@@ -83,11 +92,12 @@ export interface CustomCraftingRecipe {
   isLocked?: boolean;
 }
 
-class EquipmentStudioController {
+export class EquipmentStudioController {
   private materials: MaterialItem[] = [];
   private items: ConsumableItem[] = [];
   private equipment: CustomEquipmentTemplate[] = [];
   private recipes: CustomCraftingRecipe[] = [];
+  private draftRevision = 0;
   private iconDatasets: Record<string, any> = defaultCustomDatasets || {};
   private currentIconPickerTab: string = 'materials';
 
@@ -116,20 +126,26 @@ class EquipmentStudioController {
   }
 
   private async loadData(): Promise<void> {
+    let loadedFromDisk = false;
     try {
       const res = await fetch('/api/get-equipment-studio-data');
       if (res.ok) {
         const data = await res.json();
-        this.materials = (data.materials?.length ? data.materials : clone(materialsJson)) as MaterialItem[];
-        this.items = (data.items?.length ? data.items : clone(itemsJson)) as ConsumableItem[];
-        this.equipment = data.equipment ? this.normalizeEquipmentList(data.equipment) : this.getFallbackEquipmentList();
-        this.recipes = (data.recipes?.length ? data.recipes : clone(craftingRecipesJson)) as any;
-      } else {
-        this.fallbackLocalData();
+        this.materials = (Array.isArray(data.materials) ? data.materials : clone(materialsJson)) as MaterialItem[];
+        this.items = (Array.isArray(data.items) ? data.items : clone(itemsJson)) as ConsumableItem[];
+        this.equipment = data.equipment !== undefined ? this.normalizeEquipmentList(data.equipment) : this.getFallbackEquipmentList();
+        this.recipes = (Array.isArray(data.recipes) ? data.recipes : clone(craftingRecipesJson)) as CustomCraftingRecipe[];
+        loadedFromDisk = true;
       }
-    } catch {
+    } catch (err) {
+      console.warn('讀取裝備工坊專案資料失敗，改用內建資料:', err);
+    }
+
+    if (!loadedFromDisk) {
       this.fallbackLocalData();
     }
+
+    this.restoreDraft();
 
     try {
       const iconRes = await fetch('/api/get-icon-config');
@@ -205,6 +221,48 @@ class EquipmentStudioController {
     this.items = clone(itemsJson) as ConsumableItem[];
     this.equipment = this.getFallbackEquipmentList();
     this.recipes = clone(craftingRecipesJson) as any;
+  }
+
+  private restoreDraft(): void {
+    try {
+      const raw = localStorage.getItem(EQUIPMENT_STUDIO_DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as Partial<EquipmentStudioDraft>;
+      if (!Array.isArray(draft.materials) || !Array.isArray(draft.items) || !Array.isArray(draft.equipment) || !Array.isArray(draft.recipes)) {
+        throw new Error('草稿格式不完整');
+      }
+      this.materials = draft.materials;
+      this.items = draft.items;
+      this.equipment = this.normalizeEquipmentList(draft.equipment);
+      this.recipes = draft.recipes;
+      console.info('📝 已恢復裝備工坊本機草稿');
+    } catch (err) {
+      console.warn('讀取裝備工坊草稿失敗，保留專案磁碟資料:', err);
+    }
+  }
+
+  private saveDraft(): void {
+    try {
+      this.draftRevision += 1;
+      const draft: EquipmentStudioDraft = {
+        materials: this.materials,
+        items: this.items,
+        equipment: this.equipment,
+        recipes: this.recipes,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(EQUIPMENT_STUDIO_DRAFT_KEY, JSON.stringify(draft));
+    } catch (err) {
+      console.warn('寫入裝備工坊草稿失敗:', err);
+    }
+  }
+
+  private clearDraft(): void {
+    try {
+      localStorage.removeItem(EQUIPMENT_STUDIO_DRAFT_KEY);
+    } catch (err) {
+      console.warn('清除裝備工坊草稿失敗:', err);
+    }
   }
 
   private render(): void {
@@ -534,6 +592,34 @@ class EquipmentStudioController {
     });
   }
 
+  private async saveAllToDisk(): Promise<boolean> {
+    this.saveDraft();
+    const savingRevision = this.draftRevision;
+    try {
+      const res = await fetch('/api/save-equipment-studio-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materials: this.materials,
+          items: this.items,
+          equipment: this.equipment,
+          recipes: this.recipes,
+          note: '在裝備與素材工坊中儲存'
+        })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      if (this.draftRevision === savingRevision) this.clearDraft();
+      alert(`💾 成功永久寫入專案磁碟！快照版本：${data.snapshot}`);
+      return true;
+    } catch (err: any) {
+      alert(`⚠️ 寫入專案磁碟失敗：${err.message}\n你的修改已保存在本機草稿，重開工坊仍可恢復。`);
+      return false;
+    }
+  }
+
   private bindEvents(): void {
     byId('btn-nav-combat').onclick = () => window.open('combat-studio.html', '_blank');
     byId('btn-nav-skill').onclick = () => window.open('skill-workshop.html', '_blank');
@@ -572,29 +658,7 @@ class EquipmentStudioController {
     byId('btn-create-equipment').onclick = () => this.openEquipmentEditor(null);
     byId('btn-create-recipe').onclick = () => this.openRecipeEditor(null);
 
-    byId('btn-save-all-disk').onclick = async () => {
-      try {
-        const res = await fetch('/api/save-equipment-studio-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            materials: this.materials,
-            items: this.items,
-            equipment: this.equipment,
-            recipes: this.recipes,
-            note: '在裝備與素材工坊中儲存'
-          })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          alert(`💾 成功永久寫入專案磁碟！快照版本：${data.snapshot}`);
-        } else {
-          alert('寫入磁碟失敗，請確認 Vite 開發伺服器正常運作中');
-        }
-      } catch (err: any) {
-        alert(`寫入失敗: ${err.message}`);
-      }
-    };
+    byId('btn-save-all-disk').onclick = () => { void this.saveAllToDisk(); };
 
     byId('btn-history-backups').onclick = async () => {
       try {
@@ -656,25 +720,25 @@ class EquipmentStudioController {
       if (target.dataset.toggleLockMat) {
         const id = target.dataset.toggleLockMat;
         const m = this.materials.find(mat => mat.id === id);
-        if (m) { m.isLocked = !m.isLocked; this.renderLeftColumn(); }
+        if (m) { m.isLocked = !m.isLocked; this.saveDraft(); this.renderLeftColumn(); }
         return;
       }
       if (target.dataset.toggleLockItem) {
         const id = target.dataset.toggleLockItem;
         const it = this.items.find(item => item.id === id);
-        if (it) { it.isLocked = !it.isLocked; this.renderLeftColumn(); }
+        if (it) { it.isLocked = !it.isLocked; this.saveDraft(); this.renderLeftColumn(); }
         return;
       }
       if (target.dataset.toggleLockEquip) {
         const id = target.dataset.toggleLockEquip;
         const eq = this.equipment.find(e => e.id === id);
-        if (eq) { eq.isLocked = !eq.isLocked; this.renderEquipColumn(); }
+        if (eq) { eq.isLocked = !eq.isLocked; this.saveDraft(); this.renderEquipColumn(); }
         return;
       }
       if (target.dataset.toggleLockRecipe) {
         const id = target.dataset.toggleLockRecipe;
         const r = this.recipes.find(rec => rec.id === id);
-        if (r) { r.isLocked = !r.isLocked; this.renderRecipeColumn(); }
+        if (r) { r.isLocked = !r.isLocked; this.saveDraft(); this.renderRecipeColumn(); }
         return;
       }
 
@@ -691,6 +755,7 @@ class EquipmentStudioController {
         if (m?.isLocked) { alert(`🔒 素材 [${m.name}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除素材 [${id}] 嗎？`)) {
           this.materials = this.materials.filter(m => m.id !== id);
+          this.saveDraft();
           this.renderLeftColumn();
         }
       }
@@ -702,6 +767,7 @@ class EquipmentStudioController {
         if (it?.isLocked) { alert(`🔒 道具 [${it.name}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除道具 [${id}] 嗎？`)) {
           this.items = this.items.filter(it => it.id !== id);
+          this.saveDraft();
           this.renderLeftColumn();
         }
       }
@@ -713,6 +779,7 @@ class EquipmentStudioController {
         if (eq?.isLocked) { alert(`🔒 裝備 [${eq.name}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除裝備 [${id}] 嗎？`)) {
           this.equipment = this.equipment.filter(eq => eq.id !== id);
+          this.saveDraft();
           this.renderEquipColumn();
         }
       }
@@ -724,6 +791,7 @@ class EquipmentStudioController {
         if (r?.isLocked) { alert(`🔒 鍛造配方 [${r.name || id}] 已上鎖保護，請解鎖後再刪除。`); return; }
         if (confirm(`確定要刪除配方 [${id}] 嗎？`)) {
           this.recipes = this.recipes.filter(r => r.id !== id);
+          this.saveDraft();
           this.renderRecipeColumn();
         }
       }
@@ -742,6 +810,7 @@ class EquipmentStudioController {
         if (m) {
           this.openIconPicker(ic => {
             m.icon = ic;
+            this.saveDraft();
             this.renderLeftColumn();
           });
         }
@@ -752,6 +821,7 @@ class EquipmentStudioController {
         if (it) {
           this.openIconPicker(ic => {
             it.icon = ic;
+            this.saveDraft();
             this.renderLeftColumn();
           });
         }
@@ -762,6 +832,7 @@ class EquipmentStudioController {
         if (eq) {
           this.openIconPicker(ic => {
             eq.icon = ic;
+            this.saveDraft();
             this.renderEquipColumn();
           });
         }
@@ -778,6 +849,7 @@ class EquipmentStudioController {
             if (eq) { eq.icon = ic; this.renderEquipColumn(); }
             else if (mat) { mat.icon = ic; this.renderLeftColumn(); }
             else if (it) { it.icon = ic; this.renderLeftColumn(); }
+            this.saveDraft();
             this.renderRecipeColumn();
           });
         }
@@ -795,8 +867,9 @@ class EquipmentStudioController {
             const data = await res.json();
             this.materials = data.materials;
             this.items = data.items;
-            this.equipment = data.equipment;
+            this.equipment = this.normalizeEquipmentList(data.equipment);
             this.recipes = data.recipes;
+            this.clearDraft();
             byId('modal-history-backups').style.display = 'none';
             alert('已成功還原快照！');
             this.render();
@@ -1081,12 +1154,14 @@ class EquipmentStudioController {
         icon: byId('me-icon').dataset.iconVal || 'materials:mat_iron_ingot'
       };
 
-      const existingIdx = this.materials.findIndex(m => m.id === id);
-      if (existingIdx >= 0) this.materials[existingIdx] = mat;
+      const existingIdx = this.materials.findIndex(m => m.id === (this.activeEditingId || id));
+      if (existingIdx >= 0) this.materials[existingIdx] = { ...this.materials[existingIdx], ...mat };
       else this.materials.push(mat);
+      this.saveDraft();
 
       byId('modal-material-editor').style.display = 'none';
       this.renderLeftColumn();
+      void this.saveAllToDisk();
     };
 
     byId('btn-save-ie').onclick = () => {
@@ -1109,12 +1184,14 @@ class EquipmentStudioController {
         flavorText: (byId('ie-flavor') as HTMLTextAreaElement).value.trim()
       };
 
-      const existingIdx = this.items.findIndex(i => i.id === id);
-      if (existingIdx >= 0) this.items[existingIdx] = it;
+      const existingIdx = this.items.findIndex(i => i.id === (this.activeEditingId || id));
+      if (existingIdx >= 0) this.items[existingIdx] = { ...this.items[existingIdx], ...it };
       else this.items.push(it);
+      this.saveDraft();
 
       byId('modal-item-editor').style.display = 'none';
       this.renderLeftColumn();
+      void this.saveAllToDisk();
     };
 
     byId('btn-save-ee').onclick = () => {
@@ -1234,12 +1311,14 @@ class EquipmentStudioController {
         flavorText: (byId('ee-flavor') as HTMLTextAreaElement).value.trim()
       };
 
-      const existingIdx = this.equipment.findIndex(e => e.id === id);
-      if (existingIdx >= 0) this.equipment[existingIdx] = eq;
+      const existingIdx = this.equipment.findIndex(e => e.id === (this.activeEditingId || id));
+      if (existingIdx >= 0) this.equipment[existingIdx] = { ...this.equipment[existingIdx], ...eq };
       else this.equipment.push(eq);
+      this.saveDraft();
 
       byId('modal-equipment-editor').style.display = 'none';
       this.renderEquipColumn();
+      void this.saveAllToDisk();
     };
 
     byId('btn-save-re').onclick = () => {
@@ -1276,12 +1355,14 @@ class EquipmentStudioController {
         goldCost: Number((byId('re-gold') as HTMLInputElement).value) || 100
       };
 
-      const existingIdx = this.recipes.findIndex(r => r.id === id);
-      if (existingIdx >= 0) this.recipes[existingIdx] = rec;
+      const existingIdx = this.recipes.findIndex(r => r.id === (this.activeEditingId || id));
+      if (existingIdx >= 0) this.recipes[existingIdx] = { ...this.recipes[existingIdx], ...rec };
       else this.recipes.push(rec);
+      this.saveDraft();
 
       byId('modal-recipe-editor').style.display = 'none';
       this.renderRecipeColumn();
+      void this.saveAllToDisk();
     };
   }
 
@@ -1566,7 +1647,9 @@ class EquipmentStudioController {
 }
 
 // 啟動裝備素材工坊
-window.addEventListener('DOMContentLoaded', () => {
-  const controller = new EquipmentStudioController();
-  controller.init();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    const controller = new EquipmentStudioController();
+    controller.init();
+  });
+}

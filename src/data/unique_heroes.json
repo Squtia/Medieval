@@ -145,7 +145,7 @@
     "avatarIndex": 0,
     "avatarIcon": "npc_common:npc_dragon_f",
     "characterKey": "char_eitsk",
-    "level": 7,
+    "level": 5,
     "isAdvanced": false,
     "customSkills": [
       "eitsk_SKILL_Claw_Strike",

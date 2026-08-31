@@ -1,6 +1,7 @@
 import { FactionProfile } from '../../models/FactionProfile';
 import { MapNode, NodeLevel } from '../../models/types';
 import { MapUtils } from '../map/MapUtils';
+import { GameState } from '../../core/GameState';
 
 export type CampaignStatus = 'MARCHING' | 'SIEGING' | 'RETURNING' | 'RESOLVED';
 export type CampaignType = 'BORDER_RAID' | 'SIEGE';
@@ -42,14 +43,14 @@ export class FactionCampaignSystem {
    */
   public static launchCampaign(
     attacker: FactionProfile,
-    targetFaction: FactionProfile,
+    targetFactionId: string,
     originNode: MapNode,
     targetNode: MapNode,
     type: CampaignType
   ): FactionCampaign {
     const dist = MapUtils.getDistance(originNode, targetNode);
     const baseDays = Math.max(2, Math.ceil(dist / 12));
-    
+
     // 攻城器械拖慢行軍速度
     const rams = type === 'SIEGE' ? Math.min(attacker.military.siegeRams, 1) : 0;
     const catapults = type === 'SIEGE' ? Math.min(attacker.military.siegeCatapults, 1) : 0;
@@ -73,7 +74,7 @@ export class FactionCampaignSystem {
     return {
       id: campaignId,
       attackerFactionId: attacker.id,
-      targetFactionId: targetFaction.id,
+      targetFactionId,
       originNodeId: originNode.id,
       targetNodeId: targetNode.id,
       type,
@@ -107,7 +108,8 @@ export class FactionCampaignSystem {
       if (camp.status === 'RESOLVED') continue;
 
       const attacker = factionMap.get(camp.attackerFactionId);
-      const defender = factionMap.get(camp.targetFactionId);
+      const isTargetPlayer = camp.targetFactionId === 'player';
+      const defender = !isTargetPlayer ? factionMap.get(camp.targetFactionId) : null;
       const targetNode = nodeMap.get(camp.targetNodeId);
 
       // ── 1. 行軍階段 (MARCHING) ──
@@ -118,11 +120,19 @@ export class FactionCampaignSystem {
         if (camp.elapsedDays >= camp.totalDays) {
           // 兵臨城下
           if (camp.type === 'BORDER_RAID') {
-            // 邊境掠奪立即結算：搶走金幣與糧草，削減目標安定度
-            const lootedGold = Math.min(400, defender ? Math.floor(defender.economy.treasury * 0.2) : 200);
-            const lootedGrain = Math.min(15, defender ? Math.floor(defender.economy.grainDays * 0.25) : 10);
-            
-            if (defender) {
+            let lootedGold = 0;
+            let lootedGrain = 0;
+
+            if (isTargetPlayer) {
+              // 掠奪玩家資源
+              lootedGold = Math.min(300, Math.floor(GameState.myTerritory.gold * 0.15));
+              lootedGrain = Math.min(10, Math.floor(GameState.myTerritory.food * 0.2));
+              GameState.myTerritory.gold = Math.max(0, GameState.myTerritory.gold - lootedGold);
+              GameState.myTerritory.food = Math.max(0, GameState.myTerritory.food - lootedGrain);
+              GameState.myTerritory.prestige = Math.max(0, GameState.myTerritory.prestige - 25);
+            } else if (defender) {
+              lootedGold = Math.min(400, Math.floor(defender.economy.treasury * 0.2));
+              lootedGrain = Math.min(15, Math.floor(defender.economy.grainDays * 0.25));
               defender.economy.treasury = Math.max(0, defender.economy.treasury - lootedGold);
               defender.economy.grainDays = Math.max(0, defender.economy.grainDays - lootedGrain);
               defender.stabilityIndex = Math.max(10, defender.stabilityIndex - 8);
@@ -137,7 +147,7 @@ export class FactionCampaignSystem {
             results.push({
               campaignId: camp.id,
               event: 'RAID_COMPLETED',
-              message: `🔥 【${attacker?.factionName}】襲擊了【${targetNode?.name}】，掠奪了 ${lootedGold}G 與 ${lootedGrain}天糧草！`,
+              message: `🔥 【${attacker?.factionName || '敵軍'}】襲擊了【${targetNode?.name || '目標據點'}】，掠奪了 ${lootedGold}G 與物資！`,
             });
           } else {
             // 進入圍城階段
@@ -145,14 +155,14 @@ export class FactionCampaignSystem {
             results.push({
               campaignId: camp.id,
               event: 'ARRIVED_AT_TARGET',
-              message: `⚔️ 【${attacker?.factionName}】主力大軍已兵臨【${targetNode?.name}】城下，正式展開圍城！`,
+              message: `⚔️ 【${attacker?.factionName || '敵軍'}】主力大軍已兵臨【${targetNode?.name || '目標據點'}】城下，正式展開圍城！`,
             });
           }
         } else {
           results.push({
             campaignId: camp.id,
             event: 'MARCH_ADVANCED',
-            message: `🐎 【${attacker?.factionName}】軍團正在前往【${targetNode?.name}】(進度 ${Math.round(camp.currentPositionRatio * 100)}%)`,
+            message: `🐎 【${attacker?.factionName || '軍團'}】正在前往【${targetNode?.name || '目標據點'}】(進度 ${Math.round(camp.currentPositionRatio * 100)}%)`,
           });
         }
       }
@@ -162,50 +172,64 @@ export class FactionCampaignSystem {
         camp.siegeDaysLeft = (camp.siegeDaysLeft ?? 1) - 1;
 
         if (camp.siegeDaysLeft <= 0) {
-          // 圍城決戰結算：比對進攻軍力與防守軍力
-          const attackPower = camp.infantry * 1.0 + camp.archers * 1.2 + camp.cavalry * 1.5 + (camp.siegeRams * 50) + (camp.siegeCatapults * 80);
-          const defInf = defender ? defender.military.infantry : 50;
-          const defArc = defender ? defender.military.archers : 30;
-          const defensePower = (defInf * 1.2) + (defArc * 1.4); // 守方城防加成
-
-          if (attackPower >= defensePower) {
-            // 攻方破城勝利！
-            if (targetNode && defender && attacker) {
-              // 轉移據點控制權
-              targetNode.ownerFactionId = attacker.id;
-              defender.controlledNodes = defender.controlledNodes.filter(id => id !== targetNode.id);
-              if (!attacker.controlledNodes.includes(targetNode.id)) {
-                attacker.controlledNodes.push(targetNode.id);
-              }
-              // 簽訂 180 天停戰保護
-              attacker.truceWith[defender.id] = 180;
-              defender.truceWith[attacker.id] = 180;
-            }
-
+          if (isTargetPlayer) {
+            // 對玩家圍城結算
             camp.status = 'RETURNING';
             camp.elapsedDays = 0;
             camp.currentPositionRatio = 1;
+            GameState.myTerritory.prestige = Math.max(0, GameState.myTerritory.prestige - 50);
 
             results.push({
               campaignId: camp.id,
               event: 'CITY_FALLEN',
               isCityFallen: true,
               winnerFactionId: attacker?.id,
-              message: `🏆 城破！【${attacker?.factionName}】攻克了【${targetNode?.name}】！雙方簽訂 180 天停戰協議。`,
+              message: `🚨 您的據點【${targetNode?.name}】承受了【${attacker?.factionName}】的圍攻轟擊，聲望受損！`,
             });
           } else {
-            // 守方擊退進攻！
-            camp.status = 'RETURNING';
-            camp.elapsedDays = 0;
-            camp.currentPositionRatio = 1;
+            // NPC vs NPC 圍城決戰結算：比對進攻軍力與防守軍力
+            const attackPower = camp.infantry * 1.0 + camp.archers * 1.2 + camp.cavalry * 1.5 + (camp.siegeRams * 50) + (camp.siegeCatapults * 80);
+            const defInf = defender ? defender.military.infantry : 50;
+            const defArc = defender ? defender.military.archers : 30;
+            const defensePower = (defInf * 1.2) + (defArc * 1.4); // 守方城防加成
 
-            results.push({
-              campaignId: camp.id,
-              event: 'SIEGE_REPELLED',
-              isCityFallen: false,
-              winnerFactionId: defender?.id,
-              message: `🛡️ 守城大捷！【${defender?.factionName}】在【${targetNode?.name}】重挫了敵方攻城部隊！`,
-            });
+            if (attackPower >= defensePower) {
+              // 攻方破城勝利！
+              if (targetNode && defender && attacker) {
+                targetNode.ownerFactionId = attacker.id;
+                defender.controlledNodes = defender.controlledNodes.filter(id => id !== targetNode.id);
+                if (!attacker.controlledNodes.includes(targetNode.id)) {
+                  attacker.controlledNodes.push(targetNode.id);
+                }
+                attacker.truceWith[defender.id] = 180;
+                defender.truceWith[attacker.id] = 180;
+              }
+
+              camp.status = 'RETURNING';
+              camp.elapsedDays = 0;
+              camp.currentPositionRatio = 1;
+
+              results.push({
+                campaignId: camp.id,
+                event: 'CITY_FALLEN',
+                isCityFallen: true,
+                winnerFactionId: attacker?.id,
+                message: `🏆 城破！【${attacker?.factionName}】攻克了【${targetNode?.name}】！雙方簽訂 180 天停戰協議。`,
+              });
+            } else {
+              // 守方擊退進攻！
+              camp.status = 'RETURNING';
+              camp.elapsedDays = 0;
+              camp.currentPositionRatio = 1;
+
+              results.push({
+                campaignId: camp.id,
+                event: 'SIEGE_REPELLED',
+                isCityFallen: false,
+                winnerFactionId: defender?.id,
+                message: `🛡️ 守城大捷！【${defender?.factionName}】在【${targetNode?.name}】重挫了敵方攻城部隊！`,
+              });
+            }
           }
         } else {
           results.push({
@@ -222,9 +246,7 @@ export class FactionCampaignSystem {
         camp.currentPositionRatio = Math.max(0, 1 - (camp.elapsedDays / camp.totalDays));
 
         if (camp.elapsedDays >= camp.totalDays) {
-          // 返抵老巢
           if (attacker) {
-            // 歸還部隊與繳獲戰利品
             attacker.military.infantry += camp.infantry;
             attacker.military.archers += camp.archers;
             attacker.military.cavalry += camp.cavalry;
@@ -249,5 +271,28 @@ export class FactionCampaignSystem {
     }
 
     return results;
+  }
+
+  /**
+   * 執行割地與賠款求和協議 (SEEK_TRUCE)
+   */
+  public static executeTruce(
+    loser: FactionProfile,
+    winner: FactionProfile,
+    allNodes?: MapNode[]
+  ): string {
+    const indemnity = Math.min(500, Math.floor(loser.economy.treasury * 0.3));
+    loser.economy.treasury = Math.max(0, loser.economy.treasury - indemnity);
+    winner.economy.treasury += indemnity;
+
+    loser.truceWith[winner.id] = 180;
+    winner.truceWith[loser.id] = 180;
+    loser.warWeariness = Math.max(0, loser.warWeariness - 40);
+
+    // 移除交戰狀態
+    loser.atWarWith = (loser.atWarWith || []).filter(id => id !== winner.id);
+    winner.atWarWith = (winner.atWarWith || []).filter(id => id !== loser.id);
+
+    return `🕊️ 【${loser.factionName}】向【${winner.factionName}】支付了 ${indemnity}G 賠款，雙方正式簽署 180 天停戰協議！`;
   }
 }

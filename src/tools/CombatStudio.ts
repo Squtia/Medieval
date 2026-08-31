@@ -23,6 +23,7 @@ import '../styles/combat-studio.css';
 // 工具函式
 const byId = <T extends HTMLElement = HTMLElement>(id: string): T => document.getElementById(id) as unknown as T;
 const clone = <T>(data: T): T => JSON.parse(JSON.stringify(data));
+const MONSTER_WORKSHOP_DRAFT_KEY = 'MEDIEVAL_CUSTOM_MONSTERS_V1';
 
 type Quality = 'N' | 'R' | 'SR' | 'SSR' | 'UR';
 
@@ -150,6 +151,7 @@ class CombatStudioController {
   private activeEditingMonsterWaveIdx = 0;
   private activeEditingMonsterIdx = 0;
   private tempMonsterSkills: string[] = [];
+  private monsterDraftRevision = 0;
 
   // 討伐據點怪物進階配置狀態
   private currentConfiguringWaveIdx = 0;
@@ -321,16 +323,24 @@ class CombatStudioController {
     }
   }
 
-  private async saveCustomHeroesToStorage(): Promise<void> {
+  private async saveCustomHeroesToStorage(): Promise<boolean> {
     localStorage.setItem('MEDIEVAL_CUSTOM_HEROES', JSON.stringify(this.customHeroesDb));
     try {
       const allHeroes = this.getAllHeroes().filter(h => h.id !== 'save_guardian_hero');
-      await fetch('/api/save-hero-definitions', {
+      const response = await fetch('/api/save-hero-definitions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(allHeroes)
       });
-    } catch {}
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${response.status}`);
+      }
+      return true;
+    } catch (err) {
+      console.error('英雄已保存為本機草稿，但寫入專案磁碟失敗:', err);
+      return false;
+    }
   }
 
   private getAllHeroes(): UniqueHeroDef[] {
@@ -409,6 +419,19 @@ class CombatStudioController {
 
   private async loadMonsters(): Promise<void> {
     try {
+      const saved = localStorage.getItem(MONSTER_WORKSHOP_DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          this.monstersDb = parsed;
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('讀取怪物工坊草稿失敗:', err);
+    }
+
+    try {
       const response = await fetch('/api/get-monster-definitions');
       if (response.ok) {
         this.monstersDb = await response.json();
@@ -417,6 +440,23 @@ class CombatStudioController {
       }
     } catch {
       this.monstersDb = clone(monstersJson) as MonsterData[];
+    }
+  }
+
+  private saveMonsterDraft(): void {
+    try {
+      this.monsterDraftRevision += 1;
+      localStorage.setItem(MONSTER_WORKSHOP_DRAFT_KEY, JSON.stringify(this.monstersDb));
+    } catch (err) {
+      console.warn('寫入怪物工坊草稿失敗:', err);
+    }
+  }
+
+  private clearMonsterDraft(): void {
+    try {
+      localStorage.removeItem(MONSTER_WORKSHOP_DRAFT_KEY);
+    } catch (err) {
+      console.warn('清除怪物工坊草稿失敗:', err);
     }
   }
 
@@ -1023,6 +1063,8 @@ class CombatStudioController {
 
   // ── 一鍵永久寫入專案磁碟 (monsters.json & subjugation_nodes.json) ──
   private async saveMonstersToDisk(): Promise<void> {
+    this.saveMonsterDraft();
+    const savingRevision = this.monsterDraftRevision;
     try {
       const resMon = await fetch('/api/save-monster-definitions', {
         method: 'POST',
@@ -1038,6 +1080,7 @@ class CombatStudioController {
       if (resMon.ok && resSh.ok) {
         const dataMon = await resMon.json();
         const dataSh = await resSh.json();
+        if (this.monsterDraftRevision === savingRevision) this.clearMonsterDraft();
         alert(`💾 成功永久寫入專案磁碟！\n- 👾 怪物庫：共 ${dataMon.total} 隻單位\n- 🏰 討伐據點庫：共 ${dataSh.total} 處據點`);
       } else {
         alert('寫入磁碟失敗，請確認 Vite 開發伺服器正常運行中');
@@ -3116,7 +3159,7 @@ class CombatStudioController {
     modal.style.display = 'flex';
   }
 
-  private saveHeroCreator(): void {
+  private async saveHeroCreator(): Promise<void> {
     const editIdInput = byId<HTMLInputElement>('hc-edit-id');
     const titleInput = byId<HTMLInputElement>('hc-title');
     const nameInput = byId<HTMLInputElement>('hc-name');
@@ -3212,10 +3255,14 @@ class CombatStudioController {
       this.customHeroesDb.push(heroDef);
     }
 
-    this.saveCustomHeroesToStorage();
+    const savedToDisk = await this.saveCustomHeroesToStorage();
     byId('modal-hero-creator').style.display = 'none';
     this.renderHeroDatabase();
-    alert(`🎉 已成功儲存英雄【${title} ${name}】！`);
+    if (savedToDisk) {
+      alert(`🎉 已成功儲存英雄【${title} ${name}】至專案磁碟！`);
+    } else {
+      alert(`⚠️ 英雄【${title} ${name}】已保存為本機草稿，但專案磁碟寫入失敗。`);
+    }
   }
 
   private renderWaveTabs(): void {
@@ -4534,11 +4581,12 @@ class CombatStudioController {
       } else {
         this.monstersDb.push(newMonster);
       }
+      this.saveMonsterDraft();
 
       byId('modal-monster-creator').style.display = 'none';
       this.renderMonsterDatabase();
       this.renderEnemyList();
-      alert(`已成功保存單位【${name}】！`);
+      void this.saveMonstersToDisk();
     };
 
     // 磁碟持久化 (怪物庫 + 討伐據點庫同步寫入專案硬碟)
@@ -4760,6 +4808,7 @@ class CombatStudioController {
           if (res.ok) {
             const data = await res.json();
             this.monstersDb = data.monsters;
+            this.clearMonsterDraft();
             byId('modal-history-backups').style.display = 'none';
             alert('已成功還原快照！');
             this.render();
@@ -4972,6 +5021,7 @@ class CombatStudioController {
         if (mon) {
           this.openIconPicker(newIcon => {
             mon.avatarIcon = newIcon;
+            this.saveMonsterDraft();
             this.renderMonsterDatabase();
           });
         }
@@ -4988,6 +5038,7 @@ class CombatStudioController {
         const mon = this.monstersDb.find(m => m.id === monId);
         if (mon && confirm(`確定要刪除怪物【${mon.name}】嗎？`)) {
           this.monstersDb = this.monstersDb.filter(m => m.id !== monId);
+          this.saveMonsterDraft();
           this.renderMonsterDatabase();
         }
         return;

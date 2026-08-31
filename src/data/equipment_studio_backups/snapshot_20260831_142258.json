@@ -1,0 +1,4108 @@
+{
+  "timestamp": "2026-08-31T06:22:58.262Z",
+  "note": "在裝備與素材工坊中儲存",
+  "materials": [
+    {
+      "id": "tg_wheat",
+      "name": "小麥",
+      "icon": "icons_materials:icons_materials_0",
+      "category": "TRADE_GOOD",
+      "tier": 1,
+      "description": "基礎糧食，平原多產。",
+      "basePrice": 10,
+      "isLocked": true
+    },
+    {
+      "id": "tg_cotton",
+      "name": "棉麻",
+      "icon": "icons_materials:icons_materials_1",
+      "category": "TRADE_GOOD",
+      "tier": 1,
+      "description": "紡織基礎原料，平原多產。",
+      "basePrice": 4,
+      "isLocked": true
+    },
+    {
+      "id": "tg_meat",
+      "name": "獸肉",
+      "icon": "icons_materials:icons_materials_2",
+      "category": "TRADE_GOOD",
+      "tier": 1,
+      "description": "高營養食物，森林與荒野多產。",
+      "basePrice": 5,
+      "isLocked": true
+    },
+    {
+      "id": "tg_hide",
+      "name": "生皮",
+      "icon": "icons_materials:icons_materials_3",
+      "category": "TRADE_GOOD",
+      "tier": 1,
+      "description": "未加工的獸皮，森林狩獵特產。",
+      "basePrice": 5,
+      "isLocked": true
+    },
+    {
+      "id": "tg_timber",
+      "name": "原木",
+      "icon": "icons_materials:icons_materials_4",
+      "category": "TRADE_GOOD",
+      "tier": 1,
+      "description": "基礎木材原料，森林特產。",
+      "basePrice": 4,
+      "isLocked": true
+    },
+    {
+      "id": "tg_stone",
+      "name": "石材",
+      "icon": "icons_materials:icons_materials_5",
+      "category": "TRADE_GOOD",
+      "tier": 1,
+      "description": "進階建材，山地特產。",
+      "basePrice": 6,
+      "isLocked": true
+    },
+    {
+      "id": "tg_iron",
+      "name": "鐵礦石",
+      "icon": "icons_materials:icons_materials_54",
+      "category": "TRADE_GOOD",
+      "tier": 1,
+      "description": "金屬材料，火山與雪山常見。",
+      "basePrice": 10,
+      "isLocked": true
+    },
+    {
+      "id": "tg_spice",
+      "name": "香料",
+      "icon": "3_icons_materials:3_icons_materials_24",
+      "category": "TRADE_GOOD",
+      "tier": 2,
+      "description": "沙漠地帶的昂貴特產。",
+      "basePrice": 100,
+      "isLocked": true
+    },
+    {
+      "id": "tg_silk",
+      "name": "絲綢",
+      "icon": "icons_materials:icons_materials_6",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "粗布精煉而成的高級布料。",
+      "basePrice": 150,
+      "isLocked": true
+    },
+    {
+      "id": "tg_ice_crystal",
+      "name": "冰晶",
+      "icon": "icons_materials:icons_materials_7",
+      "category": "TRADE_GOOD",
+      "tier": 2,
+      "description": "雪山獨有的魔法素材。",
+      "basePrice": 80,
+      "isLocked": true
+    },
+    {
+      "id": "tg_obsidian",
+      "name": "黑曜石",
+      "icon": "icons_materials:icons_materials_8",
+      "category": "TRADE_GOOD",
+      "tier": 3,
+      "description": "火山深處出產的堅硬礦石。",
+      "basePrice": 90,
+      "isLocked": true
+    },
+    {
+      "id": "mat_wood_plank",
+      "name": "木板",
+      "icon": "icons_materials:icons_materials_9",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 1,
+      "description": "加工過後的平整木材，弓與法杖的基礎素材。",
+      "basePrice": 35,
+      "isLocked": true
+    },
+    {
+      "id": "mat_cloth",
+      "name": "粗布",
+      "icon": "icons_materials:icons_materials_10",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 1,
+      "description": "棉麻編織而成的基礎布料，法袍材料。",
+      "basePrice": 30,
+      "isLocked": true
+    },
+    {
+      "id": "mat_leather",
+      "name": "皮革",
+      "icon": "icons_materials:icons_materials_11",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 1,
+      "description": "生皮鞣製而成的皮革，皮甲與弓弦材料。",
+      "basePrice": 35,
+      "isLocked": true
+    },
+    {
+      "id": "mat_whetstone",
+      "name": "磨刀石",
+      "icon": "icons_materials:icons_materials_12",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 1,
+      "description": "石材打磨而成，用於煉鋼與打磨武器。",
+      "basePrice": 25,
+      "isLocked": true
+    },
+    {
+      "id": "mat_stone_brick",
+      "name": "石磚",
+      "icon": "icons_materials:icons_materials_13",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 1,
+      "description": "切割整齊的石材，進階建築物必備。",
+      "basePrice": 35,
+      "isLocked": true
+    },
+    {
+      "id": "mat_iron_ingot",
+      "name": "鐵錠",
+      "icon": "icons_materials:icons_materials_14",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 1,
+      "description": "精鍊鐵礦石，基礎裝備鍛造材料。",
+      "basePrice": 40,
+      "isLocked": true
+    },
+    {
+      "id": "mat_steel_ingot",
+      "name": "鋼錠",
+      "icon": "2_icons_materials:2_icons_materials_25",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "鐵錠與磨刀石淬火而成的堅硬金屬。",
+      "basePrice": 100,
+      "isLocked": true
+    },
+    {
+      "id": "mat_mithril_ingot",
+      "name": "秘銀錠",
+      "icon": "3_icons_materials:3_icons_materials_25",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "傳說中的金屬，輕巧且無比堅硬。",
+      "basePrice": 250,
+      "isLocked": true
+    },
+    {
+      "id": "mat_gold_ingot",
+      "name": "金錠",
+      "icon": "icons_materials:icons_materials_15",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "精鍊黃金，高級裝備與飾品材料。",
+      "basePrice": 120,
+      "isLocked": true
+    },
+    {
+      "id": "mat_magic_steel",
+      "name": "融煉魔鋼",
+      "icon": "icons_materials:icons_materials_16",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "魔氣侵蝕之礦石煉製而成，魔劍士重鑄雙劍專用。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "mat_magic_wood",
+      "name": "精靈木",
+      "icon": "icons_materials:icons_materials_17",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "蘊含自然魔力的古木，法杖與強弓製作材料。",
+      "basePrice": 150,
+      "isLocked": true
+    },
+    {
+      "id": "mat_world_tree_branch",
+      "name": "世界樹枝",
+      "icon": "icons_materials:icons_materials_18",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "最高階的木材素材，散發強大生命力。",
+      "basePrice": 250,
+      "isLocked": true
+    },
+    {
+      "id": "mat_lich_ash",
+      "name": "死靈骨灰",
+      "icon": "icons_materials:icons_materials_19",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "巫妖燃燒後殘留之骨灰，死靈法師重鑄戰鐮專用。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "mat_spirit_crystal",
+      "name": "精靈水晶",
+      "icon": "icons_materials:icons_materials_20",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "純淨元素所凝結的水晶，精靈使重鑄魔法弓專用。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "mat_rune_metal",
+      "name": "符文金屬",
+      "icon": "icons_materials:icons_materials_21",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "刻滿古代符文之合金，符文騎士重鑄符文盾專用。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "mat_phantom_gem",
+      "name": "幻影寶石",
+      "icon": "icons_materials:icons_materials_22",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "折射幻影光芒之寶石，詭術師重鑄魔法戒指專用。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "mat_holy_steel",
+      "name": "熔煉神鋼",
+      "icon": "icons_materials:icons_materials_23",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "經過聖水淬火之神聖金屬，異端拷問官重鑄戰鎚專用。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "mat_meteoric_ore",
+      "name": "隕鐵礦石",
+      "icon": "icons_materials:icons_materials_24",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "天外隕石碎屑，用於鍛造隕鐵巨劍。",
+      "basePrice": 250,
+      "isLocked": true
+    },
+    {
+      "id": "mat_mana_core",
+      "name": "魔力核心",
+      "icon": "icons_materials:icons_materials_25",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 3,
+      "description": "高階魔物之魔核，用於鍛造賢者法杖。",
+      "basePrice": 250,
+      "isLocked": true
+    },
+    {
+      "id": "mat_hard_leather",
+      "name": "硬化皮革",
+      "icon": "icons_materials:icons_materials_26",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "經過特殊鞣製之堅硬皮張，用於複合強弓與皮甲。",
+      "basePrice": 100,
+      "isLocked": true
+    },
+    {
+      "id": "mat_venom_gland",
+      "name": "毒腺",
+      "icon": "icons_materials:icons_materials_27",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "劇毒魔物之腺體，用於鍛造毒牙雙刃與淬毒。",
+      "basePrice": 120,
+      "isLocked": true
+    },
+    {
+      "id": "mat_parchment",
+      "name": "羊皮紙",
+      "icon": "icons_materials:icons_materials_28",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 1,
+      "description": "平滑羊皮紙，用於抄寫恩典聖典。",
+      "basePrice": 30,
+      "isLocked": true
+    },
+    {
+      "id": "mat_holy_water",
+      "name": "聖水",
+      "icon": "icons_materials:icons_materials_29",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "經過祝聖之清泉，用於恩典聖典與神聖裝備鍛造。",
+      "basePrice": 80,
+      "isLocked": true
+    },
+    {
+      "id": "mat_element_fire",
+      "name": "熾炎附魔石",
+      "icon": "icons_materials:icons_materials_30",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "蘊含地熱烈焰能量之晶石，用於對裝備進行火元素附魔。",
+      "basePrice": 200,
+      "isLocked": true
+    },
+    {
+      "id": "mat_element_ice",
+      "name": "霜冰附魔石",
+      "icon": "icons_materials:icons_materials_31",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "極北雪域凝結之冰核，用於對裝備進行冰元素附魔。",
+      "basePrice": 200,
+      "isLocked": true
+    },
+    {
+      "id": "mat_element_lightning",
+      "name": "疾雷附魔石",
+      "icon": "icons_materials:icons_materials_32",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "引動雷霆落電之晶石，用於對裝備進行雷元素附魔。",
+      "basePrice": 200,
+      "isLocked": true
+    },
+    {
+      "id": "mat_element_holy",
+      "name": "聖光附魔石",
+      "icon": "icons_materials:icons_materials_33",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "受高階神官祈禱祝福之光石，用於對裝備進行光元素附魔。",
+      "basePrice": 250,
+      "isLocked": true
+    },
+    {
+      "id": "mat_element_dark",
+      "name": "暗影附魔石",
+      "icon": "icons_materials:icons_materials_34",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 2,
+      "description": "深淵暗影凝結之黑石，用於對裝備進行暗元素附魔。",
+      "basePrice": 250,
+      "isLocked": true
+    },
+    {
+      "id": "mat_reforge_scroll",
+      "name": "古代神兵重鑄卷軸",
+      "icon": "icons_materials:icons_materials_35",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載失傳神兵重鑄鍛造法的古代秘卷，可用於替代任意神兵重鑄書。",
+      "basePrice": 1000,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_mithril_dual_swords",
+      "name": "秘銀重鑄雙劍鍛造書",
+      "icon": "icons_materials:icons_materials_36",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載魔劍士專屬神兵「秘銀重鑄雙劍」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_reaper_scythe",
+      "name": "死靈收割戰鐮鍛造書",
+      "icon": "2_icons_materials:2_icons_materials_27",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載死靈法師專屬神兵「死靈收割戰鐮」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_spirit_magic_bow",
+      "name": "精靈使魔法弓鍛造書",
+      "icon": "icons_materials:icons_materials_38",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載精靈使專屬神兵「精靈使魔法弓」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_rune_counter_shield",
+      "name": "破魔符文巨盾鍛造書",
+      "icon": "icons_materials:icons_materials_39",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載符文騎士專屬神兵「破魔符文巨盾」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_trickster_ring",
+      "name": "詭術魔導戒鍛造書",
+      "icon": "icons_materials:icons_materials_40",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載詭術師專屬神兵「詭術魔導戒」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_holy_war_hammer",
+      "name": "破空聖鎚鍛造書",
+      "icon": "2_icons_materials:2_icons_materials_26",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載異端拷問官專屬神兵「破空聖鎚」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_meteoric_greatsword",
+      "name": "隕鐵巨劍鍛造書",
+      "icon": "icons_materials:icons_materials_42",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載狂戰士專屬神兵「隕鐵巨劍」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_archmage_staff",
+      "name": "賢者法杖鍛造書",
+      "icon": "icons_materials:icons_materials_43",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載大魔導士專屬神兵「賢者法杖」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_composite_bow",
+      "name": "複合強弓鍛造書",
+      "icon": "icons_materials:icons_materials_44",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載神射手專屬神兵「複合強弓」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_royal_paladin_sword",
+      "name": "皇家聖騎士劍盾鍛造書",
+      "icon": "icons_materials:icons_materials_45",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載聖騎士專屬神兵「皇家聖騎士劍盾」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_poison_fanged_daggers",
+      "name": "毒牙雙刃鍛造書",
+      "icon": "icons_materials:icons_materials_46",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載暗殺者專屬神兵「毒牙雙刃」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "tome_wpn_grace_tome",
+      "name": "恩典聖典鍛造書",
+      "icon": "icons_materials:icons_materials_47",
+      "category": "CRAFTING_MATERIAL",
+      "tier": 4,
+      "description": "記載大主教專屬神兵「恩典聖典」鍛造技術的秘傳典籍。",
+      "basePrice": 800,
+      "isLocked": true
+    },
+    {
+      "id": "ADVANCE_WARRIOR",
+      "name": "狂怒之鋒",
+      "icon": "icons_materials:icons_materials_48",
+      "category": "ADVANCEMENT_MATERIAL",
+      "tier": 3,
+      "description": "戰士進階轉職為狂戰士或魔劍士所需的認證信物。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "ADVANCE_MAGE",
+      "name": "秘法魔典",
+      "icon": "icons_materials:icons_materials_49",
+      "category": "ADVANCEMENT_MATERIAL",
+      "tier": 3,
+      "description": "法師進階轉職為大魔導士或死靈法師所需的認證信物。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "ADVANCE_ARCHER",
+      "name": "鷹隼之眼",
+      "icon": "icons_materials:icons_materials_50",
+      "category": "ADVANCEMENT_MATERIAL",
+      "tier": 3,
+      "description": "弓箭手進階轉職為神射手或精靈使所需的認證信物。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "ADVANCE_KNIGHT",
+      "name": "守護者之盾",
+      "icon": "icons_materials:icons_materials_51",
+      "category": "ADVANCEMENT_MATERIAL",
+      "tier": 3,
+      "description": "騎士進階轉職為聖騎士或符文騎士所需的認證信物。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "ADVANCE_THIEF",
+      "name": "幽影之塵",
+      "icon": "icons_materials:icons_materials_52",
+      "category": "ADVANCEMENT_MATERIAL",
+      "tier": 3,
+      "description": "盜賊進階轉職為暗殺者或詭術師所需的認證信物。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "ADVANCE_PRAYER",
+      "name": "信仰之證",
+      "icon": "icons_materials:icons_materials_53",
+      "category": "ADVANCEMENT_MATERIAL",
+      "tier": 3,
+      "description": "祈禱者進階轉職為大主教或異端拷問官所需的認證信物。",
+      "basePrice": 300,
+      "isLocked": true
+    },
+    {
+      "id": "mat_new_6491",
+      "name": "疫病龍鱗",
+      "tier": 4,
+      "category": "LEATHER",
+      "basePrice": 300000,
+      "description": "一片稀有的龍鱗。",
+      "flavorText": "從人類身上掉落的稀有龍鱗，價值不斐。",
+      "icon": "icons_materials:icons_materials_60",
+      "isLocked": true
+    },
+    {
+      "id": "tg_Medicinal_herbs",
+      "name": "藥草",
+      "tier": 1,
+      "category": "WOOD",
+      "basePrice": 10,
+      "description": "用於治療的藥草。",
+      "flavorText": "",
+      "icon": "icons_materials:icons_materials_59",
+      "isLocked": true
+    }
+  ],
+  "items": [
+    {
+      "id": "item_healing_potion_s",
+      "name": "小型生命藥水",
+      "category": "CONSUMABLE",
+      "icon": "🧪",
+      "tier": 1,
+      "effectType": "HEAL_HP",
+      "effectValue": 80,
+      "description": "消耗品。在戰鬥中或領地使用，立即恢復目標 80 點生命值。",
+      "flavorText": "用基礎草藥混合蒸餾水製成的簡易傷藥，傭兵外出冒險的必備品。",
+      "maxStack": 99,
+      "buyPrice": 25,
+      "sellPrice": 10
+    },
+    {
+      "id": "item_mana_potion_s",
+      "name": "小型魔力藥水",
+      "category": "CONSUMABLE",
+      "icon": "💧",
+      "tier": 1,
+      "effectType": "HEAL_MP",
+      "effectValue": 40,
+      "description": "消耗品。在戰鬥中或領地使用，立即恢復目標 40 點魔力值。",
+      "flavorText": "散發微弱藍光的神秘藥劑，能稍微刺激使用者的精神脈絡。",
+      "maxStack": 99,
+      "buyPrice": 35,
+      "sellPrice": 15
+    },
+    {
+      "id": "item_antidote",
+      "name": "解毒劑",
+      "category": "CONSUMABLE",
+      "icon": "🌿",
+      "tier": 1,
+      "effectType": "REMOVE_STATUS",
+      "targetStatus": "POISON",
+      "description": "消耗品。立即解除目標的中毒狀態。",
+      "flavorText": "以蛇毒血清與解毒草提煉的苦味藥劑，能迅速中和毒蜥與巨蛛的劇毒。",
+      "maxStack": 99,
+      "buyPrice": 20,
+      "sellPrice": 8
+    },
+    {
+      "id": "item_smoke_bomb",
+      "name": "戰術煙霧彈",
+      "category": "TACTICAL",
+      "icon": "💨",
+      "tier": 2,
+      "effectType": "TACTICAL_ESCAPE",
+      "description": "戰術道具。在戰鬥中引爆，使全體隊伍本回合迴避率提升 50%。",
+      "flavorText": "盜賊工會秘製的快速煙幕發生裝置，關鍵時刻能救人一命。",
+      "maxStack": 20,
+      "buyPrice": 60,
+      "sellPrice": 25
+    },
+    {
+      "id": "item_whetstone",
+      "name": "附魔磨刀石",
+      "category": "BUFF",
+      "icon": "🪨",
+      "tier": 2,
+      "effectType": "BUFF_PATK",
+      "effectValue": 15,
+      "description": "消耗品。為武器塗抹微量魔力粉末，使下一場戰鬥物理攻擊力提升 15 點。",
+      "flavorText": "含有細微剛玉微粒的砥石，能讓劍刃更加銳利奪目。",
+      "maxStack": 50,
+      "buyPrice": 45,
+      "sellPrice": 18
+    }
+  ],
+  "equipment": [
+    {
+      "id": "wpn_heirloom_sword",
+      "name": "破敗的傳家寶劍",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 1,
+      "element": "NONE",
+      "allowedJobs": [
+        "戰士",
+        "法師",
+        "弓箭手",
+        "騎士",
+        "盜賊",
+        "祈禱者"
+      ],
+      "icon": "weapons:GREATSWORD",
+      "craftable": false,
+      "droppable": false,
+      "shopBuyable": false,
+      "baseEffects": {
+        "str": 5,
+        "con": 5
+      },
+      "combatEffects": {
+        "patk": 15,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 10,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "con"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "fixedSkill": "FIGHTER_HEAVY_STRIKE",
+      "skillRollChance": 100,
+      "skillRollCount": 1,
+      "extraSkills": [
+        "FIGHTER_HEAVY_STRIKE"
+      ],
+      "description": "領主家族代代相傳的大劍，雖已斑駁破舊，但隱約散發著先祖不滅的戰意。",
+      "flavorText": "這把劍曾見證了領地最初的奠基與榮耀。",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_iron_greatsword",
+      "name": "鐵大劍",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 1,
+      "icon": "weapons:GREATSWORD",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 3
+      },
+      "combatEffects": {
+        "patk": 12,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "con"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_horse_chopper",
+      "name": "斬馬劍",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 2,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 6
+      },
+      "combatEffects": {
+        "patk": 25,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "con"
+        ],
+        "combatStats": [
+          "patk",
+          "hit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_knight_greatsword",
+      "name": "騎士巨劍",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 3,
+      "icon": "2_icons_materials:2_icons_materials_0",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 10,
+        "con": 4
+      },
+      "combatEffects": {
+        "patk": 45,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "con"
+        ],
+        "combatStats": [
+          "patk",
+          "hit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_meteoric_greatsword",
+      "name": "隕鐵巨劍",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 4,
+      "icon": "weapons_t3:GREATSWORD",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 18,
+        "con": 8
+      },
+      "combatEffects": {
+        "patk": 75,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "con"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": false
+    },
+    {
+      "id": "wpn_mithril_dual_swords",
+      "name": "秘銀重鑄雙劍",
+      "slot": "WEAPON",
+      "weaponType": "DUAL_SWORDS",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 12,
+        "int": 12
+      },
+      "combatEffects": {
+        "patk": 40,
+        "matk": 40,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 10,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "int"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "hit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_wooden_staff",
+      "name": "木杖",
+      "slot": "WEAPON",
+      "weaponType": "STAFF",
+      "tier": 1,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 3
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 10,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 15,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_apprentice_staff",
+      "name": "學徒法杖",
+      "slot": "WEAPON",
+      "weaponType": "STAFF",
+      "tier": 2,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 6
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 22,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 35,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_elemental_staff",
+      "name": "元素法杖",
+      "slot": "WEAPON",
+      "weaponType": "STAFF",
+      "tier": 3,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 10,
+        "spr": 4
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 42,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 60,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_archmage_staff",
+      "name": "賢者法杖",
+      "slot": "WEAPON",
+      "weaponType": "STAFF",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 18,
+        "spr": 8
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 72,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 100,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_reaper_scythe",
+      "name": "死靈收割戰鐮",
+      "slot": "WEAPON",
+      "weaponType": "SCYTHE",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 15,
+        "spr": 8
+      },
+      "combatEffects": {
+        "patk": 35,
+        "matk": 45,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 80,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_short_bow",
+      "name": "短弓",
+      "slot": "WEAPON",
+      "weaponType": "BOW",
+      "tier": 1,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 3
+      },
+      "combatEffects": {
+        "patk": 10,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "hit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_long_bow",
+      "name": "長弓",
+      "slot": "WEAPON",
+      "weaponType": "BOW",
+      "tier": 2,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 6
+      },
+      "combatEffects": {
+        "patk": 22,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "hit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_hunter_bow",
+      "name": "精鋼獵弓",
+      "slot": "WEAPON",
+      "weaponType": "BOW",
+      "tier": 3,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 10,
+        "luk": 4
+      },
+      "combatEffects": {
+        "patk": 40,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "hit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_composite_bow",
+      "name": "複合強弓",
+      "slot": "WEAPON",
+      "weaponType": "BOW",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 18,
+        "luk": 8
+      },
+      "combatEffects": {
+        "patk": 70,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "hit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_spirit_magic_bow",
+      "name": "精靈使魔法弓",
+      "slot": "WEAPON",
+      "weaponType": "MAGIC_BOW",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 12,
+        "int": 10
+      },
+      "combatEffects": {
+        "patk": 40,
+        "matk": 35,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "int"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "critRate"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_wooden_shield_sword",
+      "name": "鐵盾長劍",
+      "slot": "WEAPON",
+      "weaponType": "SWORD_AND_SHIELD",
+      "tier": 1,
+      "icon": "weapons:SWORD_AND_SHIELD",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 3
+      },
+      "combatEffects": {
+        "patk": 8,
+        "matk": 0,
+        "pdef": 4,
+        "mdef": 2,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "con"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": false
+    },
+    {
+      "id": "wpn_steel_shield_sword",
+      "name": "鋼盾長劍",
+      "slot": "WEAPON",
+      "weaponType": "SWORD_AND_SHIELD",
+      "tier": 2,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 6
+      },
+      "combatEffects": {
+        "patk": 18,
+        "matk": 0,
+        "pdef": 10,
+        "mdef": 5,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "str"
+        ],
+        "combatStats": [
+          "patk",
+          "pdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_tower_shield_sword",
+      "name": "塔盾長劍",
+      "slot": "WEAPON",
+      "weaponType": "SWORD_AND_SHIELD",
+      "tier": 3,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 10,
+        "str": 4
+      },
+      "combatEffects": {
+        "patk": 32,
+        "matk": 0,
+        "pdef": 20,
+        "mdef": 10,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "str"
+        ],
+        "combatStats": [
+          "patk",
+          "pdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_royal_paladin_sword",
+      "name": "皇家聖騎士劍盾",
+      "slot": "WEAPON",
+      "weaponType": "SWORD_AND_SHIELD",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 18,
+        "str": 8
+      },
+      "combatEffects": {
+        "patk": 58,
+        "matk": 0,
+        "pdef": 38,
+        "mdef": 18,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "str"
+        ],
+        "combatStats": [
+          "patk",
+          "pdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_rune_counter_shield",
+      "name": "破魔符文巨盾",
+      "slot": "WEAPON",
+      "weaponType": "RUNE_SHIELD",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 15,
+        "spr": 10
+      },
+      "combatEffects": {
+        "patk": 45,
+        "matk": 0,
+        "pdef": 25,
+        "mdef": 35,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "spr"
+        ],
+        "combatStats": [
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_iron_daggers",
+      "name": "鐵匕首",
+      "slot": "WEAPON",
+      "weaponType": "DAGGERS",
+      "tier": 1,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 3
+      },
+      "combatEffects": {
+        "patk": 9,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 2,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_hunter_daggers",
+      "name": "獵人雙刃",
+      "slot": "WEAPON",
+      "weaponType": "DAGGERS",
+      "tier": 2,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 6
+      },
+      "combatEffects": {
+        "patk": 20,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 5,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_shadow_daggers",
+      "name": "暗影雙匕",
+      "slot": "WEAPON",
+      "weaponType": "DAGGERS",
+      "tier": 3,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 10,
+        "luk": 4
+      },
+      "combatEffects": {
+        "patk": 36,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 9,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_poison_fanged_daggers",
+      "name": "毒牙雙刃",
+      "slot": "WEAPON",
+      "weaponType": "DAGGERS",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 18,
+        "luk": 8
+      },
+      "combatEffects": {
+        "patk": 66,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 15,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_trickster_ring",
+      "name": "詭術魔導戒",
+      "slot": "WEAPON",
+      "weaponType": "MAGIC_RING",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 14,
+        "int": 10
+      },
+      "combatEffects": {
+        "patk": 30,
+        "matk": 40,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 18,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "int"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_prayer_handbook",
+      "name": "祈禱手札",
+      "slot": "WEAPON",
+      "weaponType": "HOLY_BOOK",
+      "tier": 1,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "spr": 3
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 8,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 20,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_gospel_tome",
+      "name": "福音書",
+      "slot": "WEAPON",
+      "weaponType": "HOLY_BOOK",
+      "tier": 2,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "spr": 6
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 18,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 40,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_archbishop_tome",
+      "name": "主教聖典",
+      "slot": "WEAPON",
+      "weaponType": "HOLY_BOOK",
+      "tier": 3,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "spr": 10,
+        "int": 4
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 36,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 70,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_grace_tome",
+      "name": "恩典聖典",
+      "slot": "WEAPON",
+      "weaponType": "HOLY_BOOK",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "spr": 18,
+        "int": 8
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 68,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 120,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr"
+        ],
+        "combatStats": [
+          "matk",
+          "mp"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_holy_war_hammer",
+      "name": "破空聖鎚",
+      "slot": "WEAPON",
+      "weaponType": "HAMMER",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 12,
+        "spr": 12
+      },
+      "combatEffects": {
+        "patk": 40,
+        "matk": 35,
+        "pdef": 15,
+        "mdef": 10,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "spr"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "wpn_T5_greatsword_0001",
+      "name": "炎魔巨刃",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 5,
+      "icon": "3_icons_materials:3_icons_materials_1",
+      "element": "FIRE",
+      "baseEffects": {
+        "str": 25,
+        "luk": 5
+      },
+      "combatEffects": {
+        "patk": 90,
+        "matk": 10,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 50,
+        "mp": 0,
+        "hit": 10,
+        "evade": 0,
+        "crit": 10
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "致命"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": false
+    },
+    {
+      "id": "arm_cloth_robe_t1",
+      "name": "粗布長袍",
+      "slot": "ARMOR",
+      "armorType": "CLOTH",
+      "tier": 1,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 2,
+        "spr": 2
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 2,
+        "mdef": 6,
+        "hp": 15,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_cloth_robe_t2",
+      "name": "學徒法袍",
+      "slot": "ARMOR",
+      "armorType": "CLOTH",
+      "tier": 2,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 4,
+        "spr": 4
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 5,
+        "mdef": 14,
+        "hp": 40,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_cloth_robe_t3",
+      "name": "祭司長袍",
+      "slot": "ARMOR",
+      "armorType": "CLOTH",
+      "tier": 3,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 8,
+        "spr": 8
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 10,
+        "mdef": 28,
+        "hp": 90,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_cloth_robe_t4",
+      "name": "大法師法袍",
+      "slot": "ARMOR",
+      "armorType": "CLOTH",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 14,
+        "spr": 14
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 18,
+        "mdef": 50,
+        "hp": 170,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "int",
+          "spr",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_leather_t1",
+      "name": "輕皮甲",
+      "slot": "ARMOR",
+      "armorType": "LEATHER",
+      "tier": 1,
+      "icon": "armors:LEATHER_T1",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 2,
+        "luk": 2
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 4,
+        "mdef": 4,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 2,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_leather_t2",
+      "name": "硬皮甲",
+      "slot": "ARMOR",
+      "armorType": "LEATHER",
+      "tier": 2,
+      "icon": "armors:LEATHER_T2",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 4,
+        "luk": 4
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 10,
+        "mdef": 10,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 5,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_leather_t3",
+      "name": "游俠皮甲",
+      "slot": "ARMOR",
+      "armorType": "LEATHER",
+      "tier": 3,
+      "icon": "armors:LEATHER_T3",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 8,
+        "luk": 8
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 20,
+        "mdef": 20,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 10,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_leather_t4",
+      "name": "影子獵人皮甲",
+      "slot": "ARMOR",
+      "armorType": "LEATHER",
+      "tier": 4,
+      "icon": "armors:LEATHER_T4",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 14,
+        "luk": 14
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 36,
+        "mdef": 36,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 18,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "agi",
+          "luk",
+          "charm"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef",
+          "evade"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_heavy_t1",
+      "name": "生鐵環甲",
+      "slot": "ARMOR",
+      "armorType": "HEAVY",
+      "tier": 1,
+      "icon": "armors:HEAVY_T1",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 3,
+        "str": 1
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 10,
+        "mdef": 3,
+        "hp": 30,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "str",
+          "command"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_heavy_t2",
+      "name": "鏈甲",
+      "slot": "ARMOR",
+      "armorType": "HEAVY",
+      "tier": 2,
+      "icon": "armors:HEAVY_T2",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 6,
+        "str": 3
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 24,
+        "mdef": 8,
+        "hp": 75,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "str",
+          "command"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_heavy_t3",
+      "name": "板甲",
+      "slot": "ARMOR",
+      "armorType": "HEAVY",
+      "tier": 3,
+      "icon": "armors:HEAVY_T3",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 12,
+        "str": 6
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 48,
+        "mdef": 15,
+        "hp": 160,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "str",
+          "command"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "arm_heavy_t4",
+      "name": "皇家重鎧",
+      "slot": "ARMOR",
+      "armorType": "HEAVY",
+      "tier": 4,
+      "icon": "",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 20,
+        "str": 10
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 80,
+        "mdef": 25,
+        "hp": 300,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "con",
+          "str",
+          "command"
+        ],
+        "combatStats": [
+          "hp",
+          "pdef",
+          "mdef"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_brave_ring",
+      "name": "勇氣指環",
+      "slot": "ACCESSORY",
+      "tier": 1,
+      "icon": "2_icons_materials:2_icons_materials_32",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 2,
+        "con": 1
+      },
+      "combatEffects": {
+        "patk": 4,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 20,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "堅定",
+        "鋒利",
+        "嗜血"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "鐫刻著猛獅圖騰的厚重銅戒，給予佩戴者不屈的勇氣。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_wind_amulet",
+      "name": "風行者護符",
+      "slot": "ACCESSORY",
+      "tier": 1,
+      "icon": "2_icons_materials:2_icons_materials_42",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 2,
+        "luk": 1
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 4,
+        "evade": 3,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "疾風",
+        "致命",
+        "破甲"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "以風靈鳥羽毛編織的精緻護符，腳步如林間疾風般輕盈。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_scholar_pendant",
+      "name": "學者智慧墜飾",
+      "slot": "ACCESSORY",
+      "tier": 1,
+      "icon": "2_icons_materials:2_icons_materials_40",
+      "element": "NONE",
+      "baseEffects": {
+        "int": 2,
+        "spr": 1
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 5,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 15,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "奧術",
+        "冥想",
+        "全能"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "鑲嵌微型紫水晶的銀質吊墜，時刻保持心靈澄澈清明。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_guardian_medal",
+      "name": "守護者青銅勳章",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "icon": "2_icons_materials:2_icons_materials_48",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 3,
+        "command": 2
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 6,
+        "mdef": 4,
+        "hp": 40,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "鐵壁",
+        "堅定",
+        "格擋"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "王國退役老衛士流出的榮譽勳章，散發著沉穩的護衛氣息。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_thief_band",
+      "name": "暗影夜行手鐲",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "icon": "3_icons_materials:3_icons_materials_50",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 3,
+        "luk": 2
+      },
+      "combatEffects": {
+        "patk": 4,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 5,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "致命",
+        "疾風",
+        "鋒利"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "黑市流通的漆黑手鐲，能在月光下隱匿身影與行蹤。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_holy_relic_cross",
+      "name": "神聖救贖十字",
+      "slot": "ACCESSORY",
+      "tier": 3,
+      "icon": "3_icons_materials:3_icons_materials_57",
+      "element": "NONE",
+      "baseEffects": {
+        "spr": 4,
+        "con": 2,
+        "charm": 2
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 10,
+        "hp": 50,
+        "mp": 30,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "抗魔",
+        "冥想",
+        "全能"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": false,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "古老修道院典藏之神聖遺物，受聖光長久庇佑。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_ruby_ring",
+      "name": "紅寶石生命之戒",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "icon": "2_icons_materials:2_icons_materials_33",
+      "element": "NONE",
+      "baseEffects": {
+        "con": 3
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 60,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "堅定",
+        "嗜血",
+        "鐵壁"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "以璀璨紅寶石鍛造之指環，源源不絕注入充沛的生命元氣。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_sapphire_necklace",
+      "name": "藍寶石魔力項鍊",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "icon": "2_icons_materials:2_icons_materials_41",
+      "element": "NONE",
+      "baseEffects": {
+        "spr": 3,
+        "int": 2
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 8,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 30,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "奧術",
+        "冥想",
+        "抗魔"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "沉澱著海洋魔力的藍寶石吊墜，能穩定引導奧術能量流通。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_berserk_badge",
+      "name": "狂暴暴擊徽章",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "icon": "2_icons_materials:2_icons_materials_49",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 2,
+        "luk": 2
+      },
+      "combatEffects": {
+        "patk": 6,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "致命",
+        "鋒利",
+        "破甲"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "刻有狂戰士面具的鋼鐵徽章，大幅提升打擊要害的致命機率。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_gale_amulet",
+      "name": "疾風敏捷護符",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "icon": "2_icons_materials:2_icons_materials_43",
+      "element": "NONE",
+      "baseEffects": {
+        "agi": 3,
+        "luk": 1
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 15,
+        "evade": 15,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "疾風",
+        "致命",
+        "格擋"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "蘊含暴風核心的輕盈墜飾，給予佩戴者迅捷身法與精準視力。",
+      "flavorText": "",
+      "isLocked": true
+    },
+    {
+      "id": "acc_holy_cross",
+      "name": "神聖祈禱十字架",
+      "slot": "ACCESSORY",
+      "tier": 2,
+      "icon": "2_icons_materials:2_icons_materials_56",
+      "element": "NONE",
+      "baseEffects": {
+        "spr": 4,
+        "con": 1
+      },
+      "combatEffects": {
+        "patk": 0,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 20,
+        "hp": 0,
+        "mp": 20,
+        "hit": 0,
+        "evade": 0,
+        "crit": 0
+      },
+      "combatStatRanges": {},
+      "randomPool": {},
+      "affixPool": [
+        "抗魔",
+        "冥想",
+        "全能"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "純銀打造的教廷十字架，具備極強的魔法防禦與精神庇佑效果。",
+      "flavorText": "",
+      "isLocked": true
+    }
+  ],
+  "recipes": [
+    {
+      "id": "recipe_iron_greatsword",
+      "name": "鐵大劍",
+      "tier": 1,
+      "targetEquipmentId": "wpn_iron_greatsword",
+      "requiredMaterials": {
+        "mat_iron_ingot": 3,
+        "mat_wood_plank": 1
+      },
+      "goldCost": 150,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_wooden_staff",
+      "name": "木杖",
+      "tier": 1,
+      "targetEquipmentId": "wpn_wooden_staff",
+      "requiredMaterials": {
+        "mat_wood_plank": 3,
+        "mat_cloth": 1
+      },
+      "goldCost": 100,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_short_bow",
+      "name": "短弓",
+      "tier": 1,
+      "targetEquipmentId": "wpn_short_bow",
+      "requiredMaterials": {
+        "mat_wood_plank": 2,
+        "mat_leather": 1
+      },
+      "goldCost": 120,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_wooden_shield_sword",
+      "name": "鐵盾長劍",
+      "tier": 1,
+      "targetEquipmentId": "wpn_wooden_shield_sword",
+      "requiredMaterials": {
+        "mat_iron_ingot": 2,
+        "mat_wood_plank": 2
+      },
+      "goldCost": 150,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_iron_daggers",
+      "name": "鐵匕首",
+      "tier": 1,
+      "targetEquipmentId": "wpn_iron_daggers",
+      "requiredMaterials": {
+        "mat_iron_ingot": 2,
+        "mat_leather": 1
+      },
+      "goldCost": 120,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_prayer_handbook",
+      "name": "祈禱手札",
+      "tier": 1,
+      "targetEquipmentId": "wpn_prayer_handbook",
+      "requiredMaterials": {
+        "mat_cloth": 2,
+        "mat_wood_plank": 1
+      },
+      "goldCost": 100,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_cloth_robe_t1",
+      "name": "粗布長袍",
+      "tier": 1,
+      "targetEquipmentId": "arm_cloth_robe_t1",
+      "requiredMaterials": {
+        "mat_cloth": 3
+      },
+      "goldCost": 100,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_leather_t1",
+      "name": "輕皮甲",
+      "tier": 1,
+      "targetEquipmentId": "arm_leather_t1",
+      "requiredMaterials": {
+        "mat_leather": 3,
+        "mat_wood_plank": 1
+      },
+      "goldCost": 120,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_heavy_t1",
+      "name": "生鐵環甲",
+      "tier": 1,
+      "targetEquipmentId": "arm_heavy_t1",
+      "requiredMaterials": {
+        "mat_iron_ingot": 4
+      },
+      "goldCost": 200,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_horse_chopper",
+      "name": "斬馬劍",
+      "tier": 2,
+      "targetEquipmentId": "wpn_horse_chopper",
+      "requiredMaterials": {
+        "mat_steel_ingot": 3,
+        "mat_wood_plank": 2,
+        "mat_whetstone": 2
+      },
+      "goldCost": 450,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_apprentice_staff",
+      "name": "學徒法杖",
+      "tier": 2,
+      "targetEquipmentId": "wpn_apprentice_staff",
+      "requiredMaterials": {
+        "mat_wood_plank": 4,
+        "mat_cloth": 3,
+        "mat_whetstone": 1
+      },
+      "goldCost": 350,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_long_bow",
+      "name": "長弓",
+      "tier": 2,
+      "targetEquipmentId": "wpn_long_bow",
+      "requiredMaterials": {
+        "mat_wood_plank": 3,
+        "mat_hard_leather": 2,
+        "mat_leather": 1
+      },
+      "goldCost": 380,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_steel_shield_sword",
+      "name": "鋼盾長劍",
+      "tier": 2,
+      "targetEquipmentId": "wpn_steel_shield_sword",
+      "requiredMaterials": {
+        "mat_steel_ingot": 3,
+        "mat_wood_plank": 2,
+        "mat_iron_ingot": 2
+      },
+      "goldCost": 450,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_hunter_daggers",
+      "name": "獵人雙刃",
+      "tier": 2,
+      "targetEquipmentId": "wpn_hunter_daggers",
+      "requiredMaterials": {
+        "mat_steel_ingot": 2,
+        "mat_hard_leather": 2,
+        "mat_whetstone": 1
+      },
+      "goldCost": 380,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_gospel_tome",
+      "name": "福音書",
+      "tier": 2,
+      "targetEquipmentId": "wpn_gospel_tome",
+      "requiredMaterials": {
+        "mat_cloth": 4,
+        "mat_wood_plank": 2,
+        "mat_leather": 2
+      },
+      "goldCost": 350,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_cloth_robe_t2",
+      "name": "學徒法袍",
+      "tier": 2,
+      "targetEquipmentId": "arm_cloth_robe_t2",
+      "requiredMaterials": {
+        "tg_silk": 2,
+        "mat_cloth": 3
+      },
+      "goldCost": 350,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_leather_t2",
+      "name": "硬皮甲",
+      "tier": 2,
+      "targetEquipmentId": "arm_leather_t2",
+      "requiredMaterials": {
+        "mat_hard_leather": 3,
+        "mat_leather": 2,
+        "mat_steel_ingot": 1
+      },
+      "goldCost": 400,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_heavy_t2",
+      "name": "鏈甲",
+      "tier": 2,
+      "targetEquipmentId": "arm_heavy_t2",
+      "requiredMaterials": {
+        "mat_steel_ingot": 4,
+        "mat_iron_ingot": 3
+      },
+      "goldCost": 500,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_knight_greatsword",
+      "name": "騎士巨劍",
+      "tier": 3,
+      "targetEquipmentId": "wpn_knight_greatsword",
+      "requiredMaterials": {
+        "mat_steel_ingot": 6,
+        "mat_iron_ingot": 4,
+        "mat_whetstone": 3,
+        "mat_mithril_ingot": 1
+      },
+      "goldCost": 1200,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_elemental_staff",
+      "name": "元素法杖",
+      "tier": 3,
+      "targetEquipmentId": "wpn_elemental_staff",
+      "requiredMaterials": {
+        "mat_wood_plank": 8,
+        "mat_cloth": 5,
+        "tg_ice_crystal": 2
+      },
+      "goldCost": 1000,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_hunter_bow",
+      "name": "精鋼獵弓",
+      "tier": 3,
+      "targetEquipmentId": "wpn_hunter_bow",
+      "requiredMaterials": {
+        "mat_wood_plank": 6,
+        "mat_hard_leather": 4,
+        "mat_mithril_ingot": 1
+      },
+      "goldCost": 1100,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_tower_shield_sword",
+      "name": "塔盾長劍",
+      "tier": 3,
+      "targetEquipmentId": "wpn_tower_shield_sword",
+      "requiredMaterials": {
+        "mat_steel_ingot": 6,
+        "mat_iron_ingot": 4,
+        "mat_stone_brick": 2,
+        "mat_mithril_ingot": 1
+      },
+      "goldCost": 1200,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_shadow_daggers",
+      "name": "暗影雙匕",
+      "tier": 3,
+      "targetEquipmentId": "wpn_shadow_daggers",
+      "requiredMaterials": {
+        "mat_steel_ingot": 4,
+        "mat_hard_leather": 4,
+        "mat_venom_gland": 2
+      },
+      "goldCost": 1100,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_archbishop_tome",
+      "name": "主教聖典",
+      "tier": 3,
+      "targetEquipmentId": "wpn_archbishop_tome",
+      "requiredMaterials": {
+        "tg_silk": 3,
+        "mat_cloth": 6,
+        "mat_holy_water": 2
+      },
+      "goldCost": 1000,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_cloth_robe_t3",
+      "name": "祭司長袍",
+      "tier": 3,
+      "targetEquipmentId": "arm_cloth_robe_t3",
+      "requiredMaterials": {
+        "tg_silk": 4,
+        "mat_cloth": 6,
+        "mat_holy_water": 1
+      },
+      "goldCost": 1000,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_leather_t3",
+      "name": "游俠皮甲",
+      "tier": 3,
+      "targetEquipmentId": "arm_leather_t3",
+      "requiredMaterials": {
+        "mat_hard_leather": 6,
+        "mat_leather": 4,
+        "mat_mithril_ingot": 1
+      },
+      "goldCost": 1100,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_heavy_t3",
+      "name": "板甲",
+      "tier": 3,
+      "targetEquipmentId": "arm_heavy_t3",
+      "requiredMaterials": {
+        "mat_steel_ingot": 8,
+        "mat_iron_ingot": 6,
+        "mat_whetstone": 4,
+        "mat_mithril_ingot": 2
+      },
+      "goldCost": 1300,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_mithril_dual_swords",
+      "name": "秘銀重鑄雙劍 (魔劍士專用)",
+      "tier": 4,
+      "targetEquipmentId": "wpn_mithril_dual_swords",
+      "baseEquipmentId": "wpn_knight_greatsword",
+      "requiredMaterials": {
+        "mat_steel_ingot": 10,
+        "mat_iron_ingot": 10,
+        "mat_magic_steel": 2
+      },
+      "goldCost": 1500,
+      "isVariant": true,
+      "requireTomeId": "tome_wpn_mithril_dual_swords",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_reaper_scythe",
+      "name": "死靈收割戰鐮 (死靈法師專用)",
+      "tier": 4,
+      "targetEquipmentId": "wpn_reaper_scythe",
+      "baseEquipmentId": "wpn_elemental_staff",
+      "requiredMaterials": {
+        "mat_wood_plank": 12,
+        "mat_cloth": 10,
+        "mat_lich_ash": 2
+      },
+      "goldCost": 1500,
+      "isVariant": true,
+      "requireTomeId": "tome_wpn_reaper_scythe",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_spirit_magic_bow",
+      "name": "精靈使魔法弓 (精靈使專用)",
+      "tier": 4,
+      "targetEquipmentId": "wpn_spirit_magic_bow",
+      "baseEquipmentId": "wpn_hunter_bow",
+      "requiredMaterials": {
+        "mat_wood_plank": 10,
+        "mat_hard_leather": 8,
+        "mat_spirit_crystal": 2
+      },
+      "goldCost": 1500,
+      "isVariant": true,
+      "requireTomeId": "tome_wpn_spirit_magic_bow",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_rune_counter_shield",
+      "name": "破魔符文巨盾 (符文騎士專用)",
+      "tier": 4,
+      "targetEquipmentId": "wpn_rune_counter_shield",
+      "baseEquipmentId": "wpn_tower_shield_sword",
+      "requiredMaterials": {
+        "mat_steel_ingot": 10,
+        "mat_stone_brick": 6,
+        "mat_rune_metal": 2
+      },
+      "goldCost": 1500,
+      "isVariant": true,
+      "requireTomeId": "tome_wpn_rune_counter_shield",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_trickster_ring",
+      "name": "詭術魔導戒 (詭術師專用)",
+      "tier": 4,
+      "targetEquipmentId": "wpn_trickster_ring",
+      "baseEquipmentId": "wpn_shadow_daggers",
+      "requiredMaterials": {
+        "tg_silk": 6,
+        "mat_steel_ingot": 6,
+        "mat_phantom_gem": 2
+      },
+      "goldCost": 1500,
+      "isVariant": true,
+      "requireTomeId": "tome_wpn_trickster_ring",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_holy_war_hammer",
+      "name": "破空聖鎚 (異端拷問官專用)",
+      "tier": 4,
+      "targetEquipmentId": "wpn_holy_war_hammer",
+      "baseEquipmentId": "wpn_archbishop_tome",
+      "requiredMaterials": {
+        "mat_steel_ingot": 10,
+        "mat_iron_ingot": 10,
+        "mat_holy_steel": 2
+      },
+      "goldCost": 1500,
+      "isVariant": true,
+      "requireTomeId": "tome_wpn_holy_war_hammer",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_meteoric_greatsword",
+      "name": "隕鐵巨劍",
+      "tier": 4,
+      "targetEquipmentId": "wpn_meteoric_greatsword",
+      "baseEquipmentId": "wpn_knight_greatsword",
+      "requiredMaterials": {
+        "mat_steel_ingot": 12,
+        "mat_whetstone": 6,
+        "mat_meteoric_ore": 3
+      },
+      "goldCost": 1200,
+      "requireTomeId": "tome_wpn_meteoric_greatsword",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_archmage_staff",
+      "name": "賢者法杖",
+      "tier": 4,
+      "targetEquipmentId": "wpn_archmage_staff",
+      "baseEquipmentId": "wpn_elemental_staff",
+      "requiredMaterials": {
+        "mat_wood_plank": 12,
+        "tg_silk": 6,
+        "mat_mana_core": 3
+      },
+      "goldCost": 1200,
+      "requireTomeId": "tome_wpn_archmage_staff",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_composite_bow",
+      "name": "複合強弓",
+      "tier": 4,
+      "targetEquipmentId": "wpn_composite_bow",
+      "baseEquipmentId": "wpn_hunter_bow",
+      "requiredMaterials": {
+        "mat_wood_plank": 10,
+        "mat_hard_leather": 8,
+        "mat_venom_gland": 3
+      },
+      "goldCost": 1200,
+      "requireTomeId": "tome_wpn_composite_bow",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_royal_paladin_sword",
+      "name": "皇家聖騎士劍盾",
+      "tier": 4,
+      "targetEquipmentId": "wpn_royal_paladin_sword",
+      "baseEquipmentId": "wpn_tower_shield_sword",
+      "requiredMaterials": {
+        "mat_steel_ingot": 12,
+        "mat_iron_ingot": 8,
+        "mat_gold_ingot": 3
+      },
+      "goldCost": 1200,
+      "requireTomeId": "tome_wpn_royal_paladin_sword",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_poison_fanged_daggers",
+      "name": "毒牙雙刃",
+      "tier": 4,
+      "targetEquipmentId": "wpn_poison_fanged_daggers",
+      "baseEquipmentId": "wpn_shadow_daggers",
+      "requiredMaterials": {
+        "mat_steel_ingot": 8,
+        "mat_hard_leather": 6,
+        "mat_venom_gland": 4
+      },
+      "goldCost": 1200,
+      "requireTomeId": "tome_wpn_poison_fanged_daggers",
+      "isLocked": true
+    },
+    {
+      "id": "recipe_grace_tome",
+      "name": "恩典聖典",
+      "tier": 4,
+      "targetEquipmentId": "wpn_grace_tome",
+      "baseEquipmentId": "wpn_archbishop_tome",
+      "requiredMaterials": {
+        "tg_silk": 6,
+        "mat_cloth": 10,
+        "mat_holy_water": 3
+      },
+      "goldCost": 1200,
+      "requireTomeId": "tome_wpn_grace_tome",
+      "isLocked": true
+    },
+    {
+      "id": "smelt_iron_ingot",
+      "name": "提煉鐵錠",
+      "tier": 1,
+      "targetEquipmentId": "mat_iron_ingot",
+      "requiredMaterials": {
+        "tg_iron": 3
+      },
+      "goldCost": 5,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_wood_plank",
+      "name": "製作木板",
+      "tier": 1,
+      "targetEquipmentId": "mat_wood_plank",
+      "requiredMaterials": {
+        "tg_timber": 3
+      },
+      "goldCost": 5,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_leather",
+      "name": "鞣製皮革",
+      "tier": 1,
+      "targetEquipmentId": "mat_leather",
+      "requiredMaterials": {
+        "tg_hide": 2
+      },
+      "goldCost": 5,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_cloth",
+      "name": "編織粗布",
+      "tier": 1,
+      "targetEquipmentId": "mat_cloth",
+      "requiredMaterials": {
+        "tg_cotton": 3
+      },
+      "goldCost": 5,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_whetstone",
+      "name": "打磨磨刀石",
+      "tier": 1,
+      "targetEquipmentId": "mat_whetstone",
+      "requiredMaterials": {
+        "tg_stone": 2
+      },
+      "goldCost": 5,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_stone_brick",
+      "name": "切割石磚",
+      "tier": 1,
+      "targetEquipmentId": "mat_stone_brick",
+      "requiredMaterials": {
+        "tg_stone": 3
+      },
+      "goldCost": 5,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_steel_ingot",
+      "name": "提煉鋼錠",
+      "tier": 2,
+      "targetEquipmentId": "mat_steel_ingot",
+      "requiredMaterials": {
+        "mat_iron_ingot": 2,
+        "mat_whetstone": 1
+      },
+      "goldCost": 15,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_hard_leather",
+      "name": "製作硬化皮革",
+      "tier": 2,
+      "targetEquipmentId": "mat_hard_leather",
+      "requiredMaterials": {
+        "mat_leather": 2,
+        "tg_iron": 1
+      },
+      "goldCost": 10,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_silk",
+      "name": "精製絲綢",
+      "tier": 2,
+      "targetEquipmentId": "tg_silk",
+      "requiredMaterials": {
+        "mat_cloth": 2
+      },
+      "goldCost": 25,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_gold_ingot",
+      "name": "精鍊金錠",
+      "tier": 2,
+      "targetEquipmentId": "mat_gold_ingot",
+      "requiredMaterials": {
+        "tg_spice": 2,
+        "mat_iron_ingot": 2
+      },
+      "goldCost": 50,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "smelt_mithril_ingot",
+      "name": "提煉秘銀錠",
+      "tier": 3,
+      "targetEquipmentId": "mat_mithril_ingot",
+      "requiredMaterials": {
+        "mat_steel_ingot": 2,
+        "tg_obsidian": 1
+      },
+      "goldCost": 60,
+      "isMaterialRecipe": true,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_acc_brave_ring",
+      "name": "勇氣指環",
+      "tier": 1,
+      "targetEquipmentId": "acc_brave_ring",
+      "requiredMaterials": {
+        "mat_iron_ingot": 2,
+        "mat_leather": 2
+      },
+      "goldCost": 120,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_acc_scholar_pendant",
+      "name": "學者智慧墜飾",
+      "tier": 1,
+      "targetEquipmentId": "acc_scholar_pendant",
+      "requiredMaterials": {
+        "mat_cloth": 2,
+        "mat_spirit_crystal": 1
+      },
+      "goldCost": 150,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_acc_ruby_ring",
+      "name": "紅寶石生命之戒",
+      "tier": 2,
+      "targetEquipmentId": "acc_ruby_ring",
+      "requiredMaterials": {
+        "mat_gold_ingot": 2,
+        "mat_element_fire": 1
+      },
+      "goldCost": 350,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_acc_sapphire_necklace",
+      "name": "藍寶石魔力項鍊",
+      "tier": 2,
+      "targetEquipmentId": "acc_sapphire_necklace",
+      "requiredMaterials": {
+        "mat_gold_ingot": 1,
+        "mat_element_ice": 1
+      },
+      "goldCost": 350,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_acc_berserk_badge",
+      "name": "狂暴暴擊徽章",
+      "tier": 2,
+      "targetEquipmentId": "acc_berserk_badge",
+      "requiredMaterials": {
+        "mat_steel_ingot": 4,
+        "mat_hard_leather": 2
+      },
+      "goldCost": 400,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_acc_gale_amulet",
+      "name": "疾風敏捷護符",
+      "tier": 2,
+      "targetEquipmentId": "acc_gale_amulet",
+      "requiredMaterials": {
+        "tg_silk": 3,
+        "mat_element_lightning": 1
+      },
+      "goldCost": 380,
+      "isLocked": true
+    },
+    {
+      "id": "recipe_acc_holy_cross",
+      "name": "神聖祈禱十字架",
+      "tier": 2,
+      "targetEquipmentId": "acc_holy_cross",
+      "requiredMaterials": {
+        "mat_gold_ingot": 2,
+        "mat_element_holy": 1
+      },
+      "goldCost": 450,
+      "isLocked": true
+    }
+  ]
+}

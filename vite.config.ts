@@ -2,6 +2,27 @@ import { defineConfig, Plugin } from 'vite';
 import fs from 'fs';
 import path from 'path';
 
+let atomicWriteSequence = 0;
+let snapshotSequence = 0;
+
+function atomicWriteFileSync(filePath: string, data: string | NodeJS.ArrayBufferView): void {
+  const tempPath = `${filePath}.${process.pid}.${Date.now()}.${atomicWriteSequence++}.tmp`;
+  try {
+    fs.writeFileSync(tempPath, data);
+    fs.renameSync(tempPath, filePath);
+  } catch (err) {
+    try {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    } catch {}
+    throw err;
+  }
+}
+
+function createSnapshotStamp(now: Date): string {
+  const pad = (value: number, width = 2) => value.toString().padStart(width, '0');
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}_${pad(now.getMilliseconds(), 3)}_${pad(snapshotSequence++ % 1000, 3)}`;
+}
+
 function developmentStudioPlugin(): Plugin {
   return {
     name: 'development-studio-api',
@@ -25,16 +46,15 @@ function developmentStudioPlugin(): Plugin {
               const payload = JSON.parse(body);
               if (!Array.isArray(payload.stories)) throw new Error('stories 必須是陣列');
               fs.mkdirSync(storyBackupsDir, { recursive: true });
-              fs.writeFileSync(storyFile, JSON.stringify(payload.stories, null, 2), 'utf-8');
+              atomicWriteFileSync(storyFile, JSON.stringify(payload.stories, null, 2));
               const now = new Date();
-              const pad = (value: number) => value.toString().padStart(2, '0');
-              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const stamp = createSnapshotStamp(now);
               const snapshot = `snapshot_${stamp}.json`;
-              fs.writeFileSync(path.resolve(storyBackupsDir, snapshot), JSON.stringify({
+              atomicWriteFileSync(path.resolve(storyBackupsDir, snapshot), JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在故事工坊儲存',
                 stories: payload.stories
-              }, null, 2), 'utf-8');
+              }, null, 2));
               const backups = fs.readdirSync(storyBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(storyBackupsDir, oldFile));
               res.setHeader('Content-Type', 'application/json');
@@ -76,7 +96,7 @@ function developmentStudioPlugin(): Plugin {
               }
               const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               if (!Array.isArray(snapshot.stories)) throw new Error('快照內容不合法');
-              fs.writeFileSync(storyFile, JSON.stringify(snapshot.stories, null, 2), 'utf-8');
+              atomicWriteFileSync(storyFile, JSON.stringify(snapshot.stories, null, 2));
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: true, stories: snapshot.stories }));
             } catch (err: any) {
@@ -137,7 +157,7 @@ function developmentStudioPlugin(): Plugin {
                       const buffer = Buffer.from(matches[2], 'base64');
                       const filename = `${key}.${ext}`;
                       const filePath = path.resolve(customIconsDir, filename);
-                      fs.writeFileSync(filePath, buffer);
+                      atomicWriteFileSync(filePath, buffer);
                       cat.spriteUrl = `../public/assets/custom_icons/${filename}`;
                     }
                   }
@@ -147,27 +167,26 @@ function developmentStudioPlugin(): Plugin {
               // 寫入主檔案 custom_icon_config.json
               const mainFile = path.resolve(dataDir, 'custom_icon_config.json');
               const contentToSave = payload.configs ? payload.configs : payload;
-              fs.writeFileSync(mainFile, JSON.stringify(contentToSave, null, 2), 'utf-8');
+              atomicWriteFileSync(mainFile, JSON.stringify(contentToSave, null, 2));
 
               // 寫入自訂圖集定義檔案 custom_icon_datasets.json
               if (datasetsToSave) {
                 const datasetsMainFile = path.resolve(dataDir, 'custom_icon_datasets.json');
-                fs.writeFileSync(datasetsMainFile, JSON.stringify(datasetsToSave, null, 2), 'utf-8');
+                atomicWriteFileSync(datasetsMainFile, JSON.stringify(datasetsToSave, null, 2));
               }
 
               // 建立輕量化歷史快照 (自動保留最近 20 份，完全不含 Base64，單檔 3~25KB)
               const now = new Date();
-              const pad = (n: number) => n.toString().padStart(2, '0');
-              const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const dateStr = createSnapshotStamp(now);
               const snapshotFile = `snapshot_${dateStr}.json`;
               const snapshotPath = path.resolve(backupsDir, snapshotFile);
 
-              fs.writeFileSync(snapshotPath, JSON.stringify({
+              atomicWriteFileSync(snapshotPath, JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在圖標工坊儲存',
                 data: contentToSave,
                 datasets: datasetsToSave || null
-              }, null, 2), 'utf-8');
+              }, null, 2));
 
               // 清理超過 20 份的舊快照
               const allSnapshots = fs.readdirSync(backupsDir).filter((f: string) => f.startsWith('snapshot_')).sort().reverse();
@@ -239,11 +258,11 @@ function developmentStudioPlugin(): Plugin {
               const content = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               const mainFile = path.resolve(__dirname, 'src/data/custom_icon_config.json');
               const configData = content.data || content;
-              fs.writeFileSync(mainFile, JSON.stringify(configData, null, 2), 'utf-8');
+              atomicWriteFileSync(mainFile, JSON.stringify(configData, null, 2));
 
               if (content.datasets) {
                 const datasetsMainFile = path.resolve(__dirname, 'src/data/custom_icon_datasets.json');
-                fs.writeFileSync(datasetsMainFile, JSON.stringify(content.datasets, null, 2), 'utf-8');
+                atomicWriteFileSync(datasetsMainFile, JSON.stringify(content.datasets, null, 2));
               }
 
               res.setHeader('Content-Type', 'application/json');
@@ -283,18 +302,17 @@ function developmentStudioPlugin(): Plugin {
               if (!Array.isArray(skillList)) throw new Error('skills 必須是陣列');
 
               fs.mkdirSync(skillBackupsDir, { recursive: true });
-              fs.writeFileSync(skillFile, JSON.stringify(skillList, null, 2), 'utf-8');
+              atomicWriteFileSync(skillFile, JSON.stringify(skillList, null, 2));
 
               const now = new Date();
-              const pad = (value: number) => value.toString().padStart(2, '0');
-              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const stamp = createSnapshotStamp(now);
               const snapshot = `snapshot_${stamp}.json`;
 
-              fs.writeFileSync(path.resolve(skillBackupsDir, snapshot), JSON.stringify({
+              atomicWriteFileSync(path.resolve(skillBackupsDir, snapshot), JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在技能工坊儲存技能資料庫',
                 skills: skillList
-              }, null, 2), 'utf-8');
+              }, null, 2));
 
               const backups = fs.readdirSync(skillBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(skillBackupsDir, oldFile));
@@ -338,7 +356,7 @@ function developmentStudioPlugin(): Plugin {
               }
               const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               if (!Array.isArray(snapshot.skills)) throw new Error('快照內容不合法');
-              fs.writeFileSync(skillFile, JSON.stringify(snapshot.skills, null, 2), 'utf-8');
+              atomicWriteFileSync(skillFile, JSON.stringify(snapshot.skills, null, 2));
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: true, skills: snapshot.skills }));
             } catch (err: any) {
@@ -371,18 +389,17 @@ function developmentStudioPlugin(): Plugin {
               if (!Array.isArray(monsterList)) throw new Error('monsters 必須是陣列');
 
               fs.mkdirSync(monsterBackupsDir, { recursive: true });
-              fs.writeFileSync(monsterFile, JSON.stringify(monsterList, null, 2), 'utf-8');
+              atomicWriteFileSync(monsterFile, JSON.stringify(monsterList, null, 2));
 
               const now = new Date();
-              const pad = (value: number) => value.toString().padStart(2, '0');
-              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const stamp = createSnapshotStamp(now);
               const snapshot = `snapshot_${stamp}.json`;
 
-              fs.writeFileSync(path.resolve(monsterBackupsDir, snapshot), JSON.stringify({
+              atomicWriteFileSync(path.resolve(monsterBackupsDir, snapshot), JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在戰術平衡工坊儲存怪物資料庫',
                 monsters: monsterList
-              }, null, 2), 'utf-8');
+              }, null, 2));
 
               const backups = fs.readdirSync(monsterBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(monsterBackupsDir, oldFile));
@@ -426,7 +443,7 @@ function developmentStudioPlugin(): Plugin {
               }
               const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               if (!Array.isArray(snapshot.monsters)) throw new Error('快照內容不合法');
-              fs.writeFileSync(monsterFile, JSON.stringify(snapshot.monsters, null, 2), 'utf-8');
+              atomicWriteFileSync(monsterFile, JSON.stringify(snapshot.monsters, null, 2));
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: true, monsters: snapshot.monsters }));
             } catch (err: any) {
@@ -457,16 +474,15 @@ function developmentStudioPlugin(): Plugin {
               const payload = JSON.parse(body);
               if (!Array.isArray(payload.strongholds)) throw new Error('strongholds 必須是陣列');
               fs.mkdirSync(subjugationBackupsDir, { recursive: true });
-              fs.writeFileSync(subjugationFile, JSON.stringify(payload.strongholds, null, 2), 'utf-8');
+              atomicWriteFileSync(subjugationFile, JSON.stringify(payload.strongholds, null, 2));
               const now = new Date();
-              const pad = (value: number) => value.toString().padStart(2, '0');
-              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const stamp = createSnapshotStamp(now);
               const snapshot = `snapshot_${stamp}.json`;
-              fs.writeFileSync(path.resolve(subjugationBackupsDir, snapshot), JSON.stringify({
+              atomicWriteFileSync(path.resolve(subjugationBackupsDir, snapshot), JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在戰鬥工坊儲存據點',
                 strongholds: payload.strongholds
-              }, null, 2), 'utf-8');
+              }, null, 2));
               const backups = fs.readdirSync(subjugationBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(subjugationBackupsDir, oldFile));
               res.setHeader('Content-Type', 'application/json');
@@ -501,18 +517,17 @@ function developmentStudioPlugin(): Plugin {
               if (!Array.isArray(heroList)) throw new Error('heroes 必須是陣列');
 
               fs.mkdirSync(heroBackupsDir, { recursive: true });
-              fs.writeFileSync(heroFile, JSON.stringify(heroList, null, 2), 'utf-8');
+              atomicWriteFileSync(heroFile, JSON.stringify(heroList, null, 2));
 
               const now = new Date();
-              const pad = (value: number) => value.toString().padStart(2, '0');
-              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const stamp = createSnapshotStamp(now);
               const snapshot = `snapshot_${stamp}.json`;
 
-              fs.writeFileSync(path.resolve(heroBackupsDir, snapshot), JSON.stringify({
+              atomicWriteFileSync(path.resolve(heroBackupsDir, snapshot), JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在英雄工坊儲存英雄資料庫',
                 heroes: heroList
-              }, null, 2), 'utf-8');
+              }, null, 2));
 
               const backups = fs.readdirSync(heroBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(heroBackupsDir, oldFile));
@@ -556,7 +571,7 @@ function developmentStudioPlugin(): Plugin {
               }
               const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               if (!Array.isArray(snapshot.heroes)) throw new Error('快照內容不合法');
-              fs.writeFileSync(heroFile, JSON.stringify(snapshot.heroes, null, 2), 'utf-8');
+              atomicWriteFileSync(heroFile, JSON.stringify(snapshot.heroes, null, 2));
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: true, heroes: snapshot.heroes }));
             } catch (err: any) {
@@ -623,10 +638,10 @@ function developmentStudioPlugin(): Plugin {
             armors = rawEquip.armors || [];
             accessories = rawEquip.accessories || [];
           }
-          fs.writeFileSync(weaponsFile, JSON.stringify(weapons, null, 2), 'utf-8');
-          fs.writeFileSync(armorsFile, JSON.stringify(armors, null, 2), 'utf-8');
-          fs.writeFileSync(accessoriesFile, JSON.stringify(accessories, null, 2), 'utf-8');
-          fs.writeFileSync(equipmentFile, JSON.stringify({ weapons, armors, accessories }, null, 2), 'utf-8');
+          atomicWriteFileSync(weaponsFile, JSON.stringify(weapons, null, 2));
+          atomicWriteFileSync(armorsFile, JSON.stringify(armors, null, 2));
+          atomicWriteFileSync(accessoriesFile, JSON.stringify(accessories, null, 2));
+          atomicWriteFileSync(equipmentFile, JSON.stringify({ weapons, armors, accessories }, null, 2));
         };
 
         if (url === '/api/get-equipment-studio-data' && req.method === 'GET') {
@@ -648,31 +663,30 @@ function developmentStudioPlugin(): Plugin {
               fs.mkdirSync(eqStudioBackupsDir, { recursive: true });
 
               if (Array.isArray(payload.materials)) {
-                fs.writeFileSync(materialsFile, JSON.stringify(payload.materials, null, 2), 'utf-8');
+                atomicWriteFileSync(materialsFile, JSON.stringify(payload.materials, null, 2));
               }
               if (Array.isArray(payload.items)) {
-                fs.writeFileSync(itemsFile, JSON.stringify(payload.items, null, 2), 'utf-8');
+                atomicWriteFileSync(itemsFile, JSON.stringify(payload.items, null, 2));
               }
               if (payload.equipment) {
                 saveEquipmentData(payload.equipment);
               }
               if (Array.isArray(payload.recipes)) {
-                fs.writeFileSync(recipesFile, JSON.stringify(payload.recipes, null, 2), 'utf-8');
+                atomicWriteFileSync(recipesFile, JSON.stringify(payload.recipes, null, 2));
               }
 
               const now = new Date();
-              const pad = (value: number) => value.toString().padStart(2, '0');
-              const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+              const stamp = createSnapshotStamp(now);
               const snapshot = `snapshot_${stamp}.json`;
 
-              fs.writeFileSync(path.resolve(eqStudioBackupsDir, snapshot), JSON.stringify({
+              atomicWriteFileSync(path.resolve(eqStudioBackupsDir, snapshot), JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在裝備與素材工坊儲存',
                 materials: payload.materials,
                 items: payload.items,
                 equipment: payload.equipment,
                 recipes: payload.recipes
-              }, null, 2), 'utf-8');
+              }, null, 2));
 
               const backups = fs.readdirSync(eqStudioBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(eqStudioBackupsDir, oldFile));
@@ -715,10 +729,10 @@ function developmentStudioPlugin(): Plugin {
                 return res.end(JSON.stringify({ success: false, error: '找不到該快照' }));
               }
               const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
-              if (Array.isArray(snapshot.materials)) fs.writeFileSync(materialsFile, JSON.stringify(snapshot.materials, null, 2), 'utf-8');
-              if (Array.isArray(snapshot.items)) fs.writeFileSync(itemsFile, JSON.stringify(snapshot.items, null, 2), 'utf-8');
+              if (Array.isArray(snapshot.materials)) atomicWriteFileSync(materialsFile, JSON.stringify(snapshot.materials, null, 2));
+              if (Array.isArray(snapshot.items)) atomicWriteFileSync(itemsFile, JSON.stringify(snapshot.items, null, 2));
               if (snapshot.equipment) saveEquipmentData(snapshot.equipment);
-              if (Array.isArray(snapshot.recipes)) fs.writeFileSync(recipesFile, JSON.stringify(snapshot.recipes, null, 2), 'utf-8');
+              if (Array.isArray(snapshot.recipes)) atomicWriteFileSync(recipesFile, JSON.stringify(snapshot.recipes, null, 2));
 
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({

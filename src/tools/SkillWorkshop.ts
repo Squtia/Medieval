@@ -4,6 +4,8 @@ import { renderUniversalIcon } from '../ui/IconSpriteHelper';
 import defaultCustomDatasets from '../data/custom_icon_datasets.json';
 import customSkillsJson from '../data/CustomSkillData.json';
 
+export const SKILL_WORKSHOP_DRAFT_KEY = 'MEDIEVAL_CUSTOM_COMPOSITE_SKILLS';
+
 export interface StatusOptionDef {
   key: string;
   name: string;
@@ -42,6 +44,7 @@ export class SkillWorkshop {
   private currentIconTab: string = 'skill_emoji';
   private iconPickerCallback: ((icon: string) => void) | null = null;
   private currentStatusPickingBlockIndex: number | null = null;
+  private draftRevision = 0;
 
   public static getInstance(): SkillWorkshop {
     if (!SkillWorkshop.instance) {
@@ -373,9 +376,18 @@ export class SkillWorkshop {
 
   private saveToLocalStorage(): void {
     try {
-      localStorage.setItem('MEDIEVAL_CUSTOM_COMPOSITE_SKILLS', JSON.stringify(this.skills));
+      this.draftRevision += 1;
+      localStorage.setItem(SKILL_WORKSHOP_DRAFT_KEY, JSON.stringify(this.skills));
     } catch (e) {
       console.warn('寫入 localStorage 失敗:', e);
+    }
+  }
+
+  private clearLocalDraft(): void {
+    try {
+      localStorage.removeItem(SKILL_WORKSHOP_DRAFT_KEY);
+    } catch (e) {
+      console.warn('清除技能工坊草稿失敗:', e);
     }
   }
 
@@ -465,23 +477,28 @@ export class SkillWorkshop {
 
   private async loadSkills(forceDisk: boolean = false): Promise<void> {
     let loadedList: CompositeSkillDefinition[] = [];
+    let hasLoadedData = false;
+    let loadedFromDraft = false;
 
-    // 1. 若強制從專案磁碟重載
+    // 強制重載明確捨棄草稿，僅讀取專案磁碟。
     if (forceDisk) {
       try {
         const res = await fetch('/api/get-custom-skills');
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
+          if (Array.isArray(data)) {
             loadedList = data;
+            hasLoadedData = true;
           }
         }
-      } catch {}
-      if (!loadedList || loadedList.length === 0) {
+      } catch (err) {
+        console.warn('從專案磁碟重載技能失敗:', err);
+      }
+      if (!hasLoadedData) {
         loadedList = JSON.parse(JSON.stringify(customSkillsJson || []));
       }
       this.skills = loadedList;
-      this.saveToLocalStorage();
+      this.clearLocalDraft();
       this.isDirty = false;
       this.renderSkillList();
       if (this.skills.length > 0) {
@@ -490,37 +507,43 @@ export class SkillWorkshop {
       return;
     }
 
-    // 2. 常規載入：優先嘗試 API 磁碟資料庫
+    // 一般開啟時優先恢復本機草稿，避免尚未提交的工作被磁碟舊版覆蓋。
     try {
-      const res = await fetch('/api/get-custom-skills');
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          loadedList = data;
+      const raw = localStorage.getItem(SKILL_WORKSHOP_DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          loadedList = parsed;
+          hasLoadedData = true;
+          loadedFromDraft = true;
         }
       }
-    } catch {}
-
-    // 3. 次選：讀取瀏覽器 LocalStorage 本機草稿
-    if (loadedList.length === 0) {
-      try {
-        const raw = localStorage.getItem('MEDIEVAL_CUSTOM_COMPOSITE_SKILLS');
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            loadedList = parsed;
-          }
-        }
-      } catch {}
+    } catch (err) {
+      console.warn('讀取技能工坊草稿失敗:', err);
     }
 
-    // 4. 底層 Fallback：打包靜態 JSON 檔案
-    if (loadedList.length === 0) {
+    // 沒有草稿才讀取專案磁碟。
+    if (!hasLoadedData) {
+      try {
+        const res = await fetch('/api/get-custom-skills');
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            loadedList = data;
+            hasLoadedData = true;
+          }
+        }
+      } catch (err) {
+        console.warn('讀取技能專案資料失敗:', err);
+      }
+    }
+
+    if (!hasLoadedData) {
       loadedList = JSON.parse(JSON.stringify(customSkillsJson || []));
     }
 
     this.skills = loadedList;
-    this.saveToLocalStorage();
+    this.isDirty = loadedFromDraft;
     this.renderSkillList();
     if (this.skills.length > 0) {
       this.selectSkill(this.skills[0].id);
@@ -874,6 +897,7 @@ export class SkillWorkshop {
   private async saveToDisk(): Promise<void> {
     // 1. 同步寫入 LocalStorage
     this.saveToLocalStorage();
+    const savingRevision = this.draftRevision;
 
     // 2. 寫入專案磁碟
     try {
@@ -885,6 +909,7 @@ export class SkillWorkshop {
       const data = await res.json();
       if (data.success) {
         this.isDirty = false;
+        if (this.draftRevision === savingRevision) this.clearLocalDraft();
         alert(`💾 儲存成功！已永久寫入專案磁碟 (共 ${this.skills.length} 個技能)，快照: ${data.snapshot}`);
       } else {
         alert(`⚠️ 專案磁碟寫入失敗 (${data.error})，但技能已成功暫存於瀏覽器 LocalStorage！`);

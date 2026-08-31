@@ -1,8 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import customSkillData from '../data/CustomSkillData.json';
 import { SkillEffectEngine } from '../systems/combat/SkillEffectEngine';
 import { SkillRegistry } from '../systems/combat/SkillRegistry';
 import { CombatParticipant } from '../models/Combat';
+import { SkillWorkshop, SKILL_WORKSHOP_DRAFT_KEY } from './SkillWorkshop';
+
+const originalLocalStorage = globalThis.localStorage;
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  Object.defineProperty(globalThis, 'localStorage', { value: originalLocalStorage, configurable: true });
+  Object.defineProperty(globalThis, 'fetch', { value: originalFetch, configurable: true });
+  vi.restoreAllMocks();
+});
 
 function createMockFighter(id: string, name: string, isPlayer: boolean): CombatParticipant {
   return {
@@ -34,6 +44,29 @@ function createMockFighter(id: string, name: string, isPlayer: boolean): CombatP
 }
 
 describe('SkillWorkshop 技能工坊與積木遷移驗證 (Phase 3)', () => {
+  it('重開工坊時應優先恢復未提交的本機草稿', async () => {
+    const draft = [{ id: 'DRAFT_SKILL', name: '草稿技能', blocks: [] }];
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: {
+        getItem: (key: string) => key === SKILL_WORKSHOP_DRAFT_KEY ? JSON.stringify(draft) : null,
+        setItem: vi.fn(),
+        removeItem: vi.fn()
+      },
+      configurable: true
+    });
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => [{ id: 'DISK_SKILL', name: '磁碟技能', blocks: [] }] }));
+    Object.defineProperty(globalThis, 'fetch', { value: fetchMock, configurable: true });
+
+    const workshop = new SkillWorkshop() as any;
+    workshop.renderSkillList = vi.fn();
+    workshop.selectSkill = vi.fn();
+    await workshop.loadSkills();
+
+    expect(workshop.skills).toEqual(draft);
+    expect(workshop.isDirty).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('CustomSkillData.json 應包含至少 12 個完整積木技能定義', () => {
     expect(Array.isArray(customSkillData)).toBe(true);
     expect(customSkillData.length).toBeGreaterThanOrEqual(12);

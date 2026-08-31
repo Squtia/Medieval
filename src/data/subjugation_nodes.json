@@ -1,5 +1,89 @@
 [
   {
+    "id": "army_bandit_attack",
+    "name": "強盜侵襲團",
+    "description": "描述此據點的敵方勢力與地理環境...",
+    "terrain": "PLAINS",
+    "icon": "faction_units_8x8_01:faction_units_8x8_01_57?flip",
+    "difficulty": 2,
+    "worldGenMode": "STORY_ONLY",
+    "isWorldSecret": false,
+    "allowTroops": false,
+    "nodeLevel": 1,
+    "requiresScouting": false,
+    "removeOnVictory": false,
+    "waves": [
+      {
+        "name": "第 1 波：先鋒部隊",
+        "monsters": [
+          {
+            "monsterId": "bandit",
+            "powerTier": 0.8,
+            "gridR": 0,
+            "gridC": 0,
+            "slotId": "0_0",
+            "formationRow": "FRONT"
+          },
+          {
+            "monsterId": "bandit",
+            "powerTier": 0.8,
+            "gridR": 1,
+            "gridC": 1,
+            "slotId": "1_1",
+            "formationRow": "MIDDLE"
+          },
+          {
+            "monsterId": "bandit",
+            "powerTier": 0.8,
+            "gridR": 0,
+            "gridC": 2,
+            "slotId": "0_2",
+            "formationRow": "FRONT"
+          },
+          {
+            "monsterId": "crossbowman",
+            "powerTier": 1,
+            "gridR": 2,
+            "gridC": 0,
+            "slotId": "2_0",
+            "formationRow": "BACK"
+          },
+          {
+            "monsterId": "crossbowman",
+            "powerTier": 1,
+            "gridR": 2,
+            "gridC": 2,
+            "slotId": "2_2",
+            "formationRow": "BACK"
+          }
+        ]
+      }
+    ],
+    "rewards": {
+      "gold": 100,
+      "exp": 120,
+      "prestige": 15
+    },
+    "enemyLegion": {
+      "enabled": false,
+      "infantry": 0,
+      "archer": 0,
+      "cavalry": 0
+    },
+    "combatRole": "ATTACKER_ONLY",
+    "defenderConfig": {
+      "gateMaxHp": 3000,
+      "watchtowerCount": 1,
+      "watchtowerDmg": 50,
+      "rampartArrowBonusPct": 15
+    },
+    "attackerConfig": {
+      "ramCount": 0,
+      "trebuchetCount": 0,
+      "tacticalStance": "ENEMY_FOCUS"
+    }
+  },
+  {
     "id": "test_army",
     "name": "測試據點",
     "description": "描述此據點的敵方勢力與地理環境...",

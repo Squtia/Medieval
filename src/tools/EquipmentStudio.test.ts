@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import materialsJson from '../data/materials.json';
 import itemsJson from '../data/items.json';
 import equipmentWeaponsJson from '../data/equipment_weapons.json';
@@ -8,8 +8,42 @@ import craftingRecipesJson from '../data/CraftingRecipes.json';
 import { DataStore } from '../systems/DataStore';
 import { SkillRegistry } from '../systems/combat/SkillRegistry';
 import { EquipmentGenerator } from '../systems/EquipmentGenerator';
+import { EQUIPMENT_STUDIO_DRAFT_KEY, EquipmentStudioController } from './EquipmentStudio';
+
+const originalLocalStorage = globalThis.localStorage;
+
+afterEach(() => {
+  Object.defineProperty(globalThis, 'localStorage', { value: originalLocalStorage, configurable: true });
+});
 
 describe('裝備、素材、道具與鍛造工坊核心功能測試 (Equipment Studio Tests)', () => {
+  it('重開工坊時應優先恢復草稿，且允許合法的空清單', () => {
+    const values = new Map<string, string>();
+    values.set(EQUIPMENT_STUDIO_DRAFT_KEY, JSON.stringify({
+      materials: [], items: [], equipment: [], recipes: [], timestamp: Date.now()
+    }));
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+        removeItem: (key: string) => values.delete(key)
+      },
+      configurable: true
+    });
+
+    const studio = new EquipmentStudioController() as any;
+    studio.materials = [{ id: 'fallback' }];
+    studio.items = [{ id: 'fallback' }];
+    studio.equipment = [{ id: 'fallback' }];
+    studio.recipes = [{ id: 'fallback' }];
+    studio.restoreDraft();
+
+    expect(studio.materials).toEqual([]);
+    expect(studio.items).toEqual([]);
+    expect(studio.equipment).toEqual([]);
+    expect(studio.recipes).toEqual([]);
+  });
+
   it('素材資料庫包含必要欄位與合法階級 (Tier 1~4)', () => {
     expect(materialsJson.length).toBeGreaterThan(0);
     materialsJson.forEach((mat: any) => {

@@ -19,6 +19,7 @@ import { getTitleConfig, ThreatType } from '../models/types';
 import { DataStore } from '../systems/DataStore';
 import { EquipmentGenerator } from '../systems/EquipmentGenerator';
 import { calculateNodeLevel } from '../data/BalanceData';
+import { createDefaultFactionProfile } from '../models/FactionProfile';
 
 export function restoreOriginalPlayerBaseInSave(data: any): boolean {
   const nodes = Array.isArray(data?.mapNodes) ? data.mapNodes : [];
@@ -36,12 +37,12 @@ export function restoreOriginalPlayerBaseInSave(data: any): boolean {
   const originalBase = difficulty && seed
     ? MapGenerator.findOriginalPlayerBase(nodes, seed, difficulty)
     : nodes.find((node: any) =>
-        node.id !== legacyBase.id &&
-        !node.isPlayerBase &&
-        node.nodeLevel === legacyBase.nodeLevel &&
-        node.feature === 'OCCUPIABLE' &&
-        !node.isHidden
-      );
+      node.id !== legacyBase.id &&
+      !node.isPlayerBase &&
+      node.nodeLevel === legacyBase.nodeLevel &&
+      node.feature === 'OCCUPIABLE' &&
+      !node.isHidden
+    );
   if (!originalBase) return false;
 
   const oldId = legacyBase.id;
@@ -127,7 +128,7 @@ export class SaveManager {
 
   public static saveGame(slot: number): void {
     const currentPlayTime = GameState.playTime + (Date.now() - GameState.sessionStartTime);
-    
+
     const saveData = {
       schemaVersion: CURRENT_SAVE_SCHEMA_VERSION,
       timestamp: Date.now(),
@@ -136,6 +137,8 @@ export class SaveManager {
       adventurers: GameState.adventurers,
       activeMissions: GameState.system ? GameState.system.getActiveMissions() : [],
       factions: GameState.mapSystem.getFactions(),
+      factionProfiles: GameState.factionProfiles,
+      campaigns: GameState.campaigns || [],
       mapNodes: GameState.mapSystem.getNodes(),
       currentDay: GameState.currentDay,
       currentMonth: GameState.currentMonth,
@@ -155,12 +158,10 @@ export class SaveManager {
     };
 
     localStorage.setItem(`${this.SAVE_KEY_PREFIX}${slot}`, JSON.stringify(saveData));
-    // 儲存時不再使用 console.log 印出以免污染遊戲日誌
   }
 
   public static deleteGame(slot: number): void {
     localStorage.removeItem(`${this.SAVE_KEY_PREFIX}${slot}`);
-    // 不使用 console.log 以免污染遊戲日誌
   }
 
   public static loadGame(slot: number): boolean {
@@ -170,12 +171,11 @@ export class SaveManager {
     try {
       const data = migrateSaveData(JSON.parse(dataStr));
       const restoredLegacyBase = restoreOriginalPlayerBaseInSave(data);
-      
+
       // 1. 還原 Territory
       const t = new Territory(data.territory.name, data.territory.currentCountryId);
       Object.assign(t, data.territory);
-      
-      // 確保酒館的客人中的 Adventurer 是正確的類別實例
+
       if (t.tavernGuests && Array.isArray(t.tavernGuests)) {
         t.tavernGuests = t.tavernGuests.map((guest: any) => {
           const advData = guest.adventurer;
@@ -187,10 +187,9 @@ export class SaveManager {
           return guest;
         });
       }
-      
+
       t.prestige = Math.max(t.prestige || 0, getTitleConfig(t.title).reqPrestige);
-      
-      // 相容舊存檔預設值
+
       if (t.exploredToday === undefined) t.exploredToday = 0;
       if (t.maxExplorationsPerDay === undefined) t.maxExplorationsPerDay = 1;
       if (t.tavernLevel === undefined) t.tavernLevel = 0;
@@ -199,9 +198,8 @@ export class SaveManager {
       if (t.forgeLevel === undefined) t.forgeLevel = 0;
       if (t.exploreCount === undefined) t.exploreCount = 0;
       if (t.hasRecruitedFromFirstExplorations === undefined) t.hasRecruitedFromFirstExplorations = false;
-        if (!t.adventureLogs) t.adventureLogs = [];
-      // 由於 population 已改為動態 Getter，不再需要同步閒置人力落差
-      
+      if (!t.adventureLogs) t.adventureLogs = [];
+
       GameState.myTerritory = t;
 
       // 2. 還原 Adventurers
@@ -212,14 +210,12 @@ export class SaveManager {
       });
 
       // 3. 還原 Systems
-      // 先清除舊的 EventBus 訂閱，避免讀檔後系統被訂閱多次
       EventBus.getInstance().clearAll();
       GameState.system = new DispatchSystem(GameState.myTerritory);
       if (data.activeMissions) {
         GameState.system.loadActiveMissions(data.activeMissions);
       }
 
-      // 同步原生節點與據點工坊中的自訂圖標與配置 (SSOT)
       const allTemplates = DataStore.getSubjugationTemplates();
       const templateMap = new Map(allTemplates.map(t => [t.id, t]));
 
@@ -233,9 +229,20 @@ export class SaveManager {
             (!node.isDynamic ? node.nodeLevel : undefined)
         };
       });
+
       GameState.mapSystem = new MapDynamicsSystem(restoredMapNodes, data.factions);
+
+      // ── 還原 AI 勢力深層資料與戰役 ──
+      if (data.factionProfiles && Array.isArray(data.factionProfiles) && data.factionProfiles.length > 0) {
+        GameState.factionProfiles = data.factionProfiles;
+      } else if (data.factions) {
+        GameState.factionProfiles = data.factions.map((f: any) => createDefaultFactionProfile(f));
+      }
+      GameState.campaigns = data.campaigns || [];
+
       GameState.explorationSystem = new ExplorationSystem(data.exploration);
       GameState.roadSystem = new RoadSystem(data.roads);
+
       const playerBase = GameState.mapSystem.getNodes().find(node => node.isPlayerBase);
       if (playerBase && GameState.myTerritory?.getRealtimeProsperity) {
         playerBase.prosperity = GameState.myTerritory.getRealtimeProsperity(
@@ -247,25 +254,23 @@ export class SaveManager {
       if (!data.exploration || restoredLegacyBase) {
         if (playerBase) GameState.explorationSystem.revealCircle(playerBase.x, playerBase.y, 90);
       }
+
       new TownManagementSystem();
       new HeroSystem();
       new CombatSystem();
       new ThreatSystem();
 
-      // 4. 更新時間紀錄與日曆
       GameState.playTime = data.playTime || 0;
-      
+
       const now = Date.now();
       if (data.timestamp) {
         const offlineMs = now - data.timestamp;
         const offlineHours = offlineMs / (1000 * 60 * 60);
-        // 每離線一小時給予 1000 點雙倍經驗，最多累積 24 小時
         const gainedRested = Math.min(24, Math.floor(offlineHours)) * 1000;
         GameState.restedExpPool = (data.restedExpPool || 0) + gainedRested;
-        
+
         if (gainedRested > 0) {
           console.log(`[系統] 💤 領主歸來！離線期間累積了 ${gainedRested} 點雙倍經驗 (Rested EXP)。`);
-
         } else {
           GameState.restedExpPool = data.restedExpPool || 0;
         }
@@ -289,22 +294,18 @@ export class SaveManager {
         facts: {}, completedNodeIds: [], presentedNodeIds: [], scheduledNodes: {}, exploredNodeIds: []
       };
 
-      // 還原 currentViewNode
       if (t.currentCountryId) {
         GameState.currentViewNode = GameState.mapSystem.getNodes().find(n => n.id === t.currentCountryId) || null;
       } else {
         GameState.currentViewNode = null;
       }
-      
+
       GameState.currentSaveSlot = slot;
 
-      // 成功載入後，確保市場資料有被初始化 (相容舊存檔)
       MarketSystem.updateMarkets(GameState.mapSystem.getNodes(), GameState.totalDays);
 
-      // 🌟 一勞永逸：全域自動同步所有裝備實例至最新資料庫模板 (名稱、圖標、屬性)
       autoSyncAllEquipmentWithTemplates();
 
-      // 成功載入不需使用 console.log 印出以免污染遊戲日誌
       return true;
     } catch (e) {
       console.error('Failed to load save file:', e);
@@ -317,7 +318,7 @@ export class SaveManager {
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}小時 ${minutes}分`;
     } else {
@@ -366,7 +367,7 @@ export function autoSyncAllEquipmentWithTemplates(): void {
     }
 
     // 5. 同步/洗鍊 Scaling 屬性補正 (若裝備為舊版殘留的 STR(E)/INT(E) 或缺失，自動洗鍊至最新標準)
-    const isOldBrokenScaling = !eq.scaling || 
+    const isOldBrokenScaling = !eq.scaling ||
       (eq.slot === 'WEAPON' && eq.scaling.patk?.str === 'E' && eq.scaling.matk?.int === 'E' && Object.keys(eq.scaling.patk || {}).length === 1 && Object.keys(eq.scaling.matk || {}).length === 1 && template.weaponType !== 'GREATSWORD') ||
       (eq.slot === 'ARMOR' && eq.scaling.pdef?.con === 'E' && eq.scaling.mdef?.spr === 'E');
 

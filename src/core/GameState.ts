@@ -22,6 +22,8 @@ import { getDifficultyModifiers } from '../data/BalanceData';
 import { createEmptyNarrativeState } from '../models/Narrative';
 
 import { FactionManager } from '../systems/FactionManager';
+import { FactionProfile, createDefaultFactionProfile } from '../models/FactionProfile';
+import { FactionCampaign } from '../systems/faction/FactionCampaignSystem';
 
 export const factions: Faction[] = INITIAL_FACTIONS;
 export const mapNodes: MapNode[] = INITIAL_MAP_NODES;
@@ -59,15 +61,17 @@ export const GameState = {
     populationDelta: number;
     missionsCompleted: number;
   },
-  milestones: [] as string[],         // 已達成的里程碑 ID 列表
-  pendingMilestones: [] as string[],  // 當日待顯示的里程碑（每日摘要後清空）
+  milestones: [] as string[],
+  pendingMilestones: [] as string[],
   worldGeneration: null as WorldGenerationMeta | null,
   explorationSystem: null as unknown as ExplorationSystem,
   roadSystem: null as unknown as RoadSystem,
   unlockedFormations: ['DEFAULT'] as string[],
   formationPresets: [] as FormationPreset[],
   bounties: [] as any[],
-  narrativeState: createEmptyNarrativeState()
+  narrativeState: createEmptyNarrativeState(),
+  factionProfiles: [] as FactionProfile[],
+  campaigns: [] as FactionCampaign[]
 };
 
 export function initGameState(options: NewGameOptions = {
@@ -94,14 +98,16 @@ export function initGameState(options: NewGameOptions = {
   };
   GameState.adventurers = [];
   GameState.system = new DispatchSystem(GameState.myTerritory);
-  
+
   const factionsCopy = JSON.parse(JSON.stringify(FactionManager.getAllFactions()));
-  
-  // 自動載入討伐據點庫中標記為「開局常駐生成」與「開局世界隱藏秘境」的自訂/固定據點
+
+  // 初始化完整 AI 勢力經濟與軍事檔案
+  GameState.factionProfiles = factionsCopy.map((f: Faction) => createDefaultFactionProfile(f));
+  GameState.campaigns = [];
+
   const allTemplates = DataStore.getSubjugationTemplates();
   const templateMap = new Map(allTemplates.map(t => [t.id, t]));
 
-  // 同步原生節點與據點工坊中的自訂圖標與配置
   mapNodes.forEach(node => {
     const tpl = templateMap.get(node.id) || allTemplates.find(t => t.name === node.name);
     if (tpl) {
@@ -115,7 +121,6 @@ export function initGameState(options: NewGameOptions = {
   const existingNodeIds = new Set(mapNodes.map(n => n.id));
   const existingNodeNames = new Set(mapNodes.map(n => n.name));
 
-  // 1. 隱藏秘境節點 (迷霧中探索發現)
   const secretStrongholds: MapNode[] = allTemplates
     .filter(tpl => (tpl.worldGenMode === 'WORLD_SECRET' || (tpl.isWorldSecret && tpl.worldGenMode !== 'STORY_ONLY')) && !existingNodeIds.has(tpl.id) && !existingNodeNames.has(tpl.name))
     .map(tpl => ({
@@ -151,7 +156,6 @@ export function initGameState(options: NewGameOptions = {
       }
     } as unknown as MapNode));
 
-  // 2. 自訂常駐攻略據點 (非 STORY_ONLY 且非秘境，且不在原生 INITIAL_MAP_NODES 中的新據點)
   const customPermanentNodes: MapNode[] = allTemplates
     .filter(tpl => (tpl.worldGenMode === 'PERMANENT_VISIBLE' || (!tpl.worldGenMode && !tpl.isWorldSecret)) && !existingNodeIds.has(tpl.id) && !existingNodeNames.has(tpl.name))
     .map(tpl => ({
@@ -221,11 +225,9 @@ export function initGameState(options: NewGameOptions = {
   GameState.formationPresets = [];
   GameState.bounties = [];
   GameState.narrativeState = createEmptyNarrativeState();
-  
-  // ⚠️ 關鍵：清除所有舊的 EventBus 訂閱，防止重新開局/讀檔時事件被觸發多次
+
   EventBus.getInstance().clearAll();
 
-  // 初始化 EventBus 關聯的新系統
   new TownManagementSystem();
   new HeroSystem();
   new CombatSystem();
@@ -247,7 +249,7 @@ export function initGameState(options: NewGameOptions = {
   if (startWpn) {
     const eq = {
       uuid: 'eq_start_01', id: startWpn.id, name: startWpn.name, slot: startWpn.slot, icon: startWpn.icon,
-      enhancementLevel: 0, requirements: {...startWpn.baseRequirements}, effects: {...startWpn.baseEffects}, combatEffects: {...startWpn.baseCombatEffects}
+      enhancementLevel: 0, requirements: { ...startWpn.baseRequirements }, effects: { ...startWpn.baseEffects }, combatEffects: { ...startWpn.baseCombatEffects }
     };
     try {
       GameState.adventurers[0].equip(eq);
@@ -256,7 +258,6 @@ export function initGameState(options: NewGameOptions = {
     }
   }
 
-  // 初始化所有節點的市場資料
   MarketSystem.updateMarkets(GameState.mapSystem.getNodes(), GameState.totalDays);
 
   console.log('[系統] ⚔️ 遊戲啟動：您的冒險在 ' + GameState.myTerritory.name + ' 開始了。');
