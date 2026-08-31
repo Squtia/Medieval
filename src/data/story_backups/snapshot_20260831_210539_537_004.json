@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-30T09:01:34.520Z",
+  "timestamp": "2026-08-31T13:05:39.537Z",
   "note": "故事內容調整",
   "stories": [
     {
@@ -206,7 +206,8 @@
               "tier": 2,
               "quantity": 1
             }
-          ]
+          ],
+          "dialoguePages": []
         },
         {
           "id": "checkpoint_defeat",
@@ -431,7 +432,8 @@
               ]
             }
           ],
-          "completionEffects": []
+          "completionEffects": [],
+          "dialoguePages": []
         },
         {
           "id": "evt_royal_tax",
@@ -482,7 +484,8 @@
               ]
             }
           ],
-          "completionEffects": []
+          "completionEffects": [],
+          "dialoguePages": []
         }
       ]
     },
@@ -604,7 +607,8 @@
               ]
             }
           ],
-          "completionEffects": []
+          "completionEffects": [],
+          "dialoguePages": []
         }
       ]
     },
@@ -675,7 +679,13 @@
           "cooldownDays": 3,
           "conditions": [],
           "choices": [],
-          "completionEffects": [],
+          "completionEffects": [
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "e_bandit",
+              "value": 5
+            }
+          ],
           "bounty": {
             "duration": 2,
             "expireDays": 3,
@@ -700,6 +710,11 @@
               "itemId": "tg_wheat",
               "quantity": 3,
               "mode": "FIXED"
+            },
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "f_vormund",
+              "value": 5
             }
           ],
           "bounty": {
@@ -765,7 +780,8 @@
             "gold": 80,
             "exp": 50,
             "type": "NORMAL"
-          }
+          },
+          "dialoguePages": []
         },
         {
           "id": "routine_rare_herbs",
@@ -782,6 +798,11 @@
               "itemId": "tg_cotton",
               "quantity": 2,
               "mode": "FIXED"
+            },
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "e_bandit",
+              "value": 5
             }
           ],
           "bounty": {
@@ -808,7 +829,13 @@
           "cooldownDays": 3,
           "conditions": [],
           "choices": [],
-          "completionEffects": [],
+          "completionEffects": [
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "e_bandit",
+              "value": 10
+            }
+          ],
           "bounty": {
             "duration": 1,
             "expireDays": 3,
@@ -833,6 +860,11 @@
               "itemId": "mat_stone_brick",
               "quantity": 3,
               "mode": "FIXED"
+            },
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "e_bandit",
+              "value": -5
             }
           ],
           "bounty": {
@@ -897,6 +929,11 @@
               "itemId": "mat_wood_plank",
               "quantity": 3,
               "mode": "FIXED"
+            },
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "f_vormund",
+              "value": -5
             }
           ],
           "bounty": {
@@ -936,7 +973,7 @@
         {
           "id": "routine_hunt_wolves",
           "title": "捕捉破壞農田的野狼",
-          "description": "一群野狼正在襲擊家畜，需要強者去解決。",
+          "description": "一群野狼正在襲��家畜，需要強者去解決。",
           "channel": "BOUNTY_BOARD",
           "repeatable": true,
           "cooldownDays": 3,
@@ -1003,7 +1040,13 @@
           "cooldownDays": 4,
           "conditions": [],
           "choices": [],
-          "completionEffects": [],
+          "completionEffects": [
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "e_bandit",
+              "value": -5
+            }
+          ],
           "bounty": {
             "duration": 3,
             "expireDays": 3,
@@ -1193,14 +1236,20 @@
           "id": "dragon_fam_3w_01l",
           "title": "神秘女性",
           "description": "",
-          "channel": "TERRITORY_EVENT",
+          "channel": "STREET_EVENT",
           "conditions": [],
           "choices": [
             {
               "id": "choice_1",
               "text": "讓傭兵們等等，我們先釐清事實!",
               "resultText": "",
-              "effects": []
+              "effects": [
+                {
+                  "type": "SCHEDULE_NODE",
+                  "nodeId": "dragon_fam_good",
+                  "delayDays": 0
+                }
+              ]
             },
             {
               "id": "choice_2",
@@ -1321,7 +1370,7 @@
                 {
                   "type": "CHANGE_FACTION_FAVOR",
                   "factionId": "f_vormund",
-                  "value": 10
+                  "value": 2
                 },
                 {
                   "type": "GRANT_MATERIAL",
@@ -1355,7 +1404,7 @@
         {
           "id": "dragon_fam_3w_02l",
           "title": "黑龍的反擊",
-          "description": "",
+          "description": "古老的黑龍被你的行為觸怒，決定為了被侵犯的尊嚴而發動反擊!!",
           "channel": "TERRITORY_EVENT",
           "conditions": [],
           "choices": [],
@@ -1363,7 +1412,7 @@
             {
               "type": "TRIGGER_RAID",
               "raidName": "黑龍軍團圍城戰",
-              "warningDays": 4,
+              "warningDays": 1,
               "waves": [
                 {
                   "waveIndex": 1,
@@ -1371,8 +1420,227 @@
                   "customName": "充滿龍晶的洞穴深處"
                 }
               ],
-              "successNodeId": "",
-              "failNodeId": ""
+              "successNodeId": "dragon_fam_final_win",
+              "failNodeId": "dragon_fam_final_lose"
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "dragon_fam_final_win",
+          "title": "守城大捷!!",
+          "description": "費盡千辛萬苦與耗費所有資源的結果，並沒有你想的這麼愉快。",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "REDUCE_PRESTIGE_PERCENT",
+              "minPercent": 10,
+              "maxPercent": 10
+            },
+            {
+              "type": "REDUCE_RESOURCE_PERCENT",
+              "resource": "ALL",
+              "minPercent": 20,
+              "maxPercent": 40
+            },
+            {
+              "type": "GRANT_MATERIAL",
+              "itemId": "mat_new_6491",
+              "quantity": 1,
+              "mode": "FIXED"
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "dragon_fam_final_lose",
+          "title": "你遭受到古老黑龍的憤怒清剿!!",
+          "description": "你所累積的一切都付之一炬，這是貪婪的懲罰嗎?",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "forge",
+              "levels": 2
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "farmland",
+              "levels": 3
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "lumberMill",
+              "levels": 3
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "quarry",
+              "levels": 3
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "huntingGround",
+              "levels": 3
+            },
+            {
+              "type": "REDUCE_POPULATION_PERCENT",
+              "minPercent": 40,
+              "maxPercent": 70
+            },
+            {
+              "type": "REDUCE_PRESTIGE_PERCENT",
+              "minPercent": 10,
+              "maxPercent": 20
+            },
+            {
+              "type": "REDUCE_RESOURCE_PERCENT",
+              "resource": "ALL",
+              "minPercent": 70,
+              "maxPercent": 90
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "defense",
+              "levels": 3
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "dragon_fam_good",
+          "title": "龍裔來由",
+          "description": "",
+          "channel": "STREET_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "SCHEDULE_NODE",
+              "nodeId": "new_char_eitsk",
+              "delayDays": 0
+            }
+          ],
+          "dialoguePages": [
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerName": "艾特絲克",
+              "speakerTitle": "【龍裔女法師】",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": "「大人的意志已決。我們不會為了不義之財毀掉無辜者的安息所。響箭傳令，讓外圍的傭兵團立刻撤回！」\n「大人的意思是：第一，傭兵可以撤回，但洞窟周邊必須劃為領地的『管制保護區』；第二，我們將定期向你們發放糧食與醫療物資；第三，相對地，你們必須允許領地的學者進駐調查遺跡。」"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "神秘女性",
+              "speakerTitle": "",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": "「您……居然真的願意放棄那些金幣？」\n（皺起眉頭，猶豫地握緊雙拳）\n「這無異於將我們納入您的統治之下……但如果這能讓老龍大人安心離去，並讓我的同胞不再流離失所，我們接受這個盟約。」"
+            },
+            {
+              "speakerType": "PLAYER_GUARDIAN",
+              "speakerName": "艾特絲克",
+              "speakerTitle": "【街角遇見的旅人】",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": "「這不是奴役，而是庇護盟約。從今以後，動你們的人，就是與本領地為敵。」"
+            },
+            {
+              "speakerType": "NPC",
+              "speakerName": "艾特絲克",
+              "speakerTitle": "【龍裔女法師】",
+              "speakerAvatar": "npc_common:npc_dragon_f",
+              "text": "我代替虛弱的老龍向您感謝，感謝您的寬容與庇護。\n我名為艾特絲克，為了報答您，我會為您效力，藉以確保老龍的安身之處。"
+            }
+          ],
+          "npcName": "艾特絲克",
+          "npcAvatar": "npc_common:npc_dragon_f"
+        },
+        {
+          "id": "new_char_eitsk",
+          "title": "【龍裔女法師】加入陣營",
+          "description": "",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "GRANT_HERO",
+              "heroId": "custom_hero_1788078225739"
+            },
+            {
+              "type": "SET_FACT",
+              "fact": "dragon_fam_tax",
+              "value": true
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "dragon_fam_tax",
+          "title": "龍裔的研究。",
+          "description": "在你麾下的龍裔族群們送來這個月的龍鱗與龍晶的研究資料。",
+          "channel": "TODO_LIST",
+          "conditions": [
+            {
+              "type": "FACTION_FAVOR_AT_MOST",
+              "factionId": "f_dragonkin",
+              "value": 50
+            },
+            {
+              "type": "FACT_EXISTS",
+              "fact": "dragon_fam_tax"
+            }
+          ],
+          "choices": [
+            {
+              "id": "choice_1",
+              "text": "接收並支出本季的庇護支援。",
+              "resultText": "依照先前的盟約支出龍裔的生存資源。\n龍裔們向領主感謝。",
+              "effects": [
+                {
+                  "type": "REDUCE_RESOURCE_PERCENT",
+                  "resource": "ALL",
+                  "minPercent": 5,
+                  "maxPercent": 10
+                },
+                {
+                  "type": "CHANGE_FACTION_FAVOR",
+                  "factionId": "f_dragonkin",
+                  "value": 5
+                },
+                {
+                  "type": "GRANT_MATERIAL",
+                  "itemId": "mat_Dragon_Scales_01",
+                  "quantity": 1,
+                  "mode": "FIXED"
+                }
+              ]
+            },
+            {
+              "id": "choice_2",
+              "text": "委婉的拒絕。",
+              "resultText": "本季度財政吃緊，無法撥出該有的支援。\n龍裔失望地離開領地。",
+              "effects": [
+                {
+                  "type": "CHANGE_FACTION_FAVOR",
+                  "factionId": "f_dragonkin",
+                  "value": -10
+                }
+              ]
+            }
+          ],
+          "completionEffects": [
+            {
+              "type": "SCHEDULE_NODE",
+              "nodeId": "dragon_fam_tax",
+              "delayDays": 2
             }
           ],
           "dialoguePages": [],
@@ -1531,6 +1799,127 @@
           "conditions": [],
           "choices": [],
           "completionEffects": [],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        }
+      ]
+    },
+    {
+      "id": "new_story_3",
+      "title": "領地侵襲總攬",
+      "summary": "",
+      "version": 1,
+      "enabled": true,
+      "nodes": [
+        {
+          "id": "bandit_attack_01",
+          "title": "強盜團侵襲",
+          "description": "",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [
+            {
+              "type": "FACTION_FAVOR_AT_LEAST",
+              "factionId": "e_bandit",
+              "value": -30
+            }
+          ],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "TRIGGER_RAID",
+              "raidName": "強盜團侵襲",
+              "warningDays": 3,
+              "waves": [
+                {
+                  "waveIndex": 1,
+                  "templateId": "army_bandit_attack",
+                  "customName": "強盜侵襲團"
+                }
+              ],
+              "successNodeId": "bandit_attack_01_w",
+              "failNodeId": "bandit_attack_01_l"
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "bandit_attack_01_w",
+          "title": "強盜團戰敗逃亡",
+          "description": "你成功守下了領地，但下次不一定會這麼容易。",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "SCHEDULE_NODE",
+              "nodeId": "bandit_attack_01",
+              "delayDays": 30
+            }
+          ],
+          "dialoguePages": [],
+          "npcAvatar": "npc:npc_0"
+        },
+        {
+          "id": "bandit_attack_01_l",
+          "title": "領地被強盜團掠奪資源",
+          "description": "你的領民被殺、資源被掠奪，領地損失慘重。",
+          "channel": "TERRITORY_EVENT",
+          "conditions": [],
+          "choices": [],
+          "completionEffects": [
+            {
+              "type": "SCHEDULE_NODE",
+              "nodeId": "bandit_attack_01",
+              "delayDays": 90
+            },
+            {
+              "type": "REDUCE_RESOURCE_PERCENT",
+              "resource": "ALL",
+              "minPercent": 30,
+              "maxPercent": 60
+            },
+            {
+              "type": "REDUCE_POPULATION_PERCENT",
+              "minPercent": 20,
+              "maxPercent": 50
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "defense",
+              "levels": 1
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "tavern",
+              "levels": 1
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "farmland",
+              "levels": 1
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "lumberMill",
+              "levels": 1
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "quarry",
+              "levels": 1
+            },
+            {
+              "type": "REDUCE_BUILDING_LEVEL",
+              "buildingId": "huntingGround",
+              "levels": 1
+            },
+            {
+              "type": "CHANGE_FACTION_FAVOR",
+              "factionId": "e_bandit",
+              "value": 50
+            }
+          ],
           "dialoguePages": [],
           "npcAvatar": "npc:npc_0"
         }

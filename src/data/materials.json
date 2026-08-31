@@ -600,5 +600,16 @@
     "flavorText": "",
     "icon": "icons_materials:icons_materials_59",
     "isLocked": true
+  },
+  {
+    "id": "mat_Dragon_Scales_01",
+    "name": "退色龍鱗",
+    "tier": 3,
+    "category": "MONSTER_PART",
+    "basePrice": 1000,
+    "description": "從老化的龍身上掉落的龍鱗。",
+    "flavorText": "",
+    "icon": "icons_materials:icons_materials_60",
+    "isLocked": true
   }
 ]

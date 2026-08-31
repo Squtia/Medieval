@@ -5,19 +5,8 @@
     "slot": "WEAPON",
     "weaponType": "GREATSWORD",
     "tier": 1,
-    "element": "NONE",
-    "allowedJobs": [
-      "戰士",
-      "法師",
-      "弓箭手",
-      "騎士",
-      "盜賊",
-      "祈禱者"
-    ],
     "icon": "weapons:GREATSWORD",
-    "craftable": false,
-    "droppable": false,
-    "shopBuyable": false,
+    "element": "NONE",
     "baseEffects": {
       "str": 5,
       "con": 5
@@ -30,6 +19,7 @@
       "hp": 0,
       "mp": 0,
       "hit": 10,
+      "evade": 0,
       "crit": 5
     },
     "combatStatRanges": {},
@@ -51,12 +41,21 @@
       "鋒利",
       "堅定"
     ],
-    "fixedSkill": "FIGHTER_HEAVY_STRIKE",
-    "skillRollChance": 100,
-    "skillRollCount": 1,
     "extraSkills": [
       "FIGHTER_HEAVY_STRIKE"
     ],
+    "skillTriggerChances": [],
+    "allowedJobs": [
+      "戰士",
+      "法師",
+      "弓箭手",
+      "騎士",
+      "盜賊",
+      "祈禱者"
+    ],
+    "craftable": false,
+    "droppable": false,
+    "shopBuyable": false,
     "description": "領主家族代代相傳的大劍，雖已斑駁破舊，但隱約散發著先祖不滅的戰意。",
     "flavorText": "這把劍曾見證了領地最初的奠基與榮耀。",
     "isLocked": true

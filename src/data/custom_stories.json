@@ -1569,6 +1569,75 @@
           {
             "type": "GRANT_HERO",
             "heroId": "custom_hero_1788078225739"
+          },
+          {
+            "type": "SET_FACT",
+            "fact": "dragon_fam_tax",
+            "value": true
+          }
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      },
+      {
+        "id": "dragon_fam_tax",
+        "title": "龍裔的研究。",
+        "description": "在你麾下的龍裔族群們送來這個月的龍鱗與龍晶的研究資料。",
+        "channel": "TODO_LIST",
+        "conditions": [
+          {
+            "type": "FACTION_FAVOR_AT_MOST",
+            "factionId": "f_dragonkin",
+            "value": 50
+          },
+          {
+            "type": "FACT_EXISTS",
+            "fact": "dragon_fam_tax"
+          }
+        ],
+        "choices": [
+          {
+            "id": "choice_1",
+            "text": "接收並支出本季的庇護支援。",
+            "resultText": "依照先前的盟約支出龍裔的生存資源。\n龍裔們向領主感謝。",
+            "effects": [
+              {
+                "type": "REDUCE_RESOURCE_PERCENT",
+                "resource": "ALL",
+                "minPercent": 5,
+                "maxPercent": 10
+              },
+              {
+                "type": "CHANGE_FACTION_FAVOR",
+                "factionId": "f_dragonkin",
+                "value": 5
+              },
+              {
+                "type": "GRANT_MATERIAL",
+                "itemId": "mat_Dragon_Scales_01",
+                "quantity": 1,
+                "mode": "FIXED"
+              }
+            ]
+          },
+          {
+            "id": "choice_2",
+            "text": "委婉的拒絕。",
+            "resultText": "本季度財政吃緊，無法撥出該有的支援。\n龍裔失望地離開領地。",
+            "effects": [
+              {
+                "type": "CHANGE_FACTION_FAVOR",
+                "factionId": "f_dragonkin",
+                "value": -10
+              }
+            ]
+          }
+        ],
+        "completionEffects": [
+          {
+            "type": "SCHEDULE_NODE",
+            "nodeId": "dragon_fam_tax",
+            "delayDays": 2
           }
         ],
         "dialoguePages": [],
@@ -1737,7 +1806,7 @@
     "title": "領地侵襲總攬",
     "summary": "",
     "version": 1,
-    "enabled": false,
+    "enabled": true,
     "nodes": [
       {
         "id": "bandit_attack_01",

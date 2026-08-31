@@ -90,7 +90,7 @@
     "terrain": "RUINS",
     "icon": "heroes_male:heroes_male_13?flip",
     "difficulty": 1,
-    "worldGenMode": "PERMANENT_VISIBLE",
+    "worldGenMode": "STORY_ONLY",
     "isWorldSecret": false,
     "allowTroops": true,
     "nodeLevel": 1,

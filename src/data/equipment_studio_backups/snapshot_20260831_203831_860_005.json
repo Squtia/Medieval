@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-21T07:09:40.582Z",
+  "timestamp": "2026-08-31T12:38:31.860Z",
   "note": "在裝備與素材工坊中儲存",
   "materials": [
     {
@@ -175,7 +175,7 @@
     {
       "id": "mat_steel_ingot",
       "name": "鋼錠",
-      "icon": "icons_materials:icons_materials_14",
+      "icon": "2_icons_materials:2_icons_materials_25",
       "category": "CRAFTING_MATERIAL",
       "tier": 2,
       "description": "鐵錠與磨刀石淬火而成的堅硬金屬。",
@@ -581,6 +581,39 @@
       "description": "祈禱者進階轉職為大主教或異端拷問官所需的認證信物。",
       "basePrice": 300,
       "isLocked": true
+    },
+    {
+      "id": "mat_new_6491",
+      "name": "疫病龍鱗",
+      "tier": 4,
+      "category": "LEATHER",
+      "basePrice": 300000,
+      "description": "一片稀有的龍鱗。",
+      "flavorText": "從人類身上掉落的稀有龍鱗，價值不斐。",
+      "icon": "icons_materials:icons_materials_60",
+      "isLocked": true
+    },
+    {
+      "id": "tg_Medicinal_herbs",
+      "name": "藥草",
+      "tier": 1,
+      "category": "WOOD",
+      "basePrice": 10,
+      "description": "用於治療的藥草。",
+      "flavorText": "",
+      "icon": "icons_materials:icons_materials_59",
+      "isLocked": true
+    },
+    {
+      "id": "mat_Dragon_Scales_01",
+      "name": "退色龍鱗",
+      "tier": 3,
+      "category": "MONSTER_PART",
+      "basePrice": 1000,
+      "description": "從老化的龍身上掉落的龍鱗。",
+      "flavorText": "",
+      "icon": "icons_materials:icons_materials_60",
+      "isLocked": true
     }
   ],
   "items": [
@@ -656,12 +689,73 @@
   ],
   "equipment": [
     {
+      "id": "wpn_heirloom_sword",
+      "name": "破敗的傳家寶劍",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 1,
+      "icon": "weapons:GREATSWORD",
+      "element": "NONE",
+      "baseEffects": {
+        "str": 5,
+        "con": 5
+      },
+      "combatEffects": {
+        "patk": 15,
+        "matk": 0,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 0,
+        "mp": 0,
+        "hit": 10,
+        "evade": 0,
+        "crit": 5
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "con"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "堅定"
+      ],
+      "extraSkills": [
+        "FIGHTER_HEAVY_STRIKE"
+      ],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "法師",
+        "弓箭手",
+        "騎士",
+        "盜賊",
+        "祈禱者"
+      ],
+      "craftable": false,
+      "droppable": false,
+      "shopBuyable": false,
+      "description": "領主家族代代相傳的大劍，雖已斑駁破舊，但隱約散發著先祖不滅的戰意。",
+      "flavorText": "這把劍曾見證了領地最初的奠基與榮耀。",
+      "isLocked": true
+    },
+    {
       "id": "wpn_iron_greatsword",
       "name": "鐵大劍",
       "slot": "WEAPON",
       "weaponType": "GREATSWORD",
       "tier": 1,
-      "icon": "",
+      "icon": "weapons:GREATSWORD",
       "element": "NONE",
       "baseEffects": {
         "str": 3
@@ -685,7 +779,11 @@
         ],
         "combatStats": [
           "patk",
-          "hit"
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
         ]
       },
       "affixPool": [
@@ -694,6 +792,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -740,6 +841,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -753,7 +857,7 @@
       "slot": "WEAPON",
       "weaponType": "GREATSWORD",
       "tier": 3,
-      "icon": "",
+      "icon": "2_icons_materials:2_icons_materials_0",
       "element": "NONE",
       "baseEffects": {
         "str": 10,
@@ -787,6 +891,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -800,7 +907,7 @@
       "slot": "WEAPON",
       "weaponType": "GREATSWORD",
       "tier": 4,
-      "icon": "",
+      "icon": "weapons_t3:GREATSWORD",
       "element": "NONE",
       "baseEffects": {
         "str": 18,
@@ -825,7 +932,11 @@
         ],
         "combatStats": [
           "patk",
-          "hit"
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
         ]
       },
       "affixPool": [
@@ -834,12 +945,15 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
       "description": "",
       "flavorText": "",
-      "isLocked": true
+      "isLocked": false
     },
     {
       "id": "wpn_mithril_dual_swords",
@@ -882,6 +996,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -928,6 +1045,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -974,6 +1094,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1021,6 +1144,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1068,6 +1194,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1115,6 +1244,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1161,6 +1293,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1207,6 +1342,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1254,6 +1392,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1301,6 +1442,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1349,6 +1493,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1358,11 +1505,11 @@
     },
     {
       "id": "wpn_wooden_shield_sword",
-      "name": "木盾長劍",
+      "name": "鐵盾長劍",
       "slot": "WEAPON",
       "weaponType": "SWORD_AND_SHIELD",
       "tier": 1,
-      "icon": "",
+      "icon": "weapons:SWORD_AND_SHIELD",
       "element": "NONE",
       "baseEffects": {
         "con": 3
@@ -1381,12 +1528,16 @@
       "combatStatRanges": {},
       "randomPool": {
         "attributes": [
-          "con",
-          "str"
+          "str",
+          "con"
         ],
         "combatStats": [
           "patk",
-          "pdef"
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
         ]
       },
       "affixPool": [
@@ -1395,12 +1546,15 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
       "description": "",
       "flavorText": "",
-      "isLocked": true
+      "isLocked": false
     },
     {
       "id": "wpn_steel_shield_sword",
@@ -1441,6 +1595,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1488,6 +1645,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1535,6 +1695,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1582,6 +1745,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1628,6 +1794,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1674,6 +1843,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1721,6 +1893,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1768,6 +1943,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1816,6 +1994,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1862,6 +2043,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1908,6 +2092,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -1955,6 +2142,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2002,6 +2192,9 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2050,12 +2243,69 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
       "description": "",
       "flavorText": "",
       "isLocked": true
+    },
+    {
+      "id": "wpn_T5_greatsword_0001",
+      "name": "炎魔巨刃",
+      "slot": "WEAPON",
+      "weaponType": "GREATSWORD",
+      "tier": 5,
+      "icon": "3_icons_materials:3_icons_materials_1",
+      "element": "FIRE",
+      "baseEffects": {
+        "str": 25,
+        "luk": 5
+      },
+      "combatEffects": {
+        "patk": 90,
+        "matk": 10,
+        "pdef": 0,
+        "mdef": 0,
+        "hp": 50,
+        "mp": 0,
+        "hit": 10,
+        "evade": 0,
+        "crit": 10
+      },
+      "combatStatRanges": {},
+      "randomPool": {
+        "attributes": [
+          "str",
+          "luk"
+        ],
+        "combatStats": [
+          "patk",
+          "matk",
+          "pdef",
+          "mdef",
+          "hit",
+          "crit"
+        ]
+      },
+      "affixPool": [
+        "鋒利",
+        "致命"
+      ],
+      "extraSkills": [],
+      "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士"
+      ],
+      "craftable": true,
+      "droppable": true,
+      "shopBuyable": true,
+      "description": "",
+      "flavorText": "",
+      "isLocked": false
     },
     {
       "id": "arm_cloth_robe_t1",
@@ -2099,6 +2349,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2148,6 +2402,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2197,6 +2455,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2246,6 +2508,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "法師",
+        "祈禱者"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2259,7 +2525,7 @@
       "slot": "ARMOR",
       "armorType": "LEATHER",
       "tier": 1,
-      "icon": "",
+      "icon": "armors:LEATHER_T1",
       "element": "NONE",
       "baseEffects": {
         "agi": 2,
@@ -2296,6 +2562,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2309,7 +2579,7 @@
       "slot": "ARMOR",
       "armorType": "LEATHER",
       "tier": 2,
-      "icon": "",
+      "icon": "armors:LEATHER_T2",
       "element": "NONE",
       "baseEffects": {
         "agi": 4,
@@ -2346,6 +2616,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2359,7 +2633,7 @@
       "slot": "ARMOR",
       "armorType": "LEATHER",
       "tier": 3,
-      "icon": "",
+      "icon": "armors:LEATHER_T3",
       "element": "NONE",
       "baseEffects": {
         "agi": 8,
@@ -2396,6 +2670,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2409,7 +2687,7 @@
       "slot": "ARMOR",
       "armorType": "LEATHER",
       "tier": 4,
-      "icon": "",
+      "icon": "armors:LEATHER_T4",
       "element": "NONE",
       "baseEffects": {
         "agi": 14,
@@ -2446,6 +2724,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "弓箭手",
+        "盜賊"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2459,7 +2741,7 @@
       "slot": "ARMOR",
       "armorType": "HEAVY",
       "tier": 1,
-      "icon": "",
+      "icon": "armors:HEAVY_T1",
       "element": "NONE",
       "baseEffects": {
         "con": 3,
@@ -2495,6 +2777,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2508,7 +2794,7 @@
       "slot": "ARMOR",
       "armorType": "HEAVY",
       "tier": 2,
-      "icon": "",
+      "icon": "armors:HEAVY_T2",
       "element": "NONE",
       "baseEffects": {
         "con": 6,
@@ -2544,6 +2830,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2557,7 +2847,7 @@
       "slot": "ARMOR",
       "armorType": "HEAVY",
       "tier": 3,
-      "icon": "",
+      "icon": "armors:HEAVY_T3",
       "element": "NONE",
       "baseEffects": {
         "con": 12,
@@ -2593,6 +2883,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2642,6 +2936,10 @@
       ],
       "extraSkills": [],
       "skillTriggerChances": [],
+      "allowedJobs": [
+        "戰士",
+        "騎士"
+      ],
       "craftable": true,
       "droppable": true,
       "shopBuyable": true,
@@ -2654,7 +2952,7 @@
       "name": "勇氣指環",
       "slot": "ACCESSORY",
       "tier": 1,
-      "icon": "3_icons_materials:3_icons_materials_32",
+      "icon": "2_icons_materials:2_icons_materials_32",
       "element": "NONE",
       "baseEffects": {
         "str": 2,
@@ -2692,7 +2990,7 @@
       "name": "風行者護符",
       "slot": "ACCESSORY",
       "tier": 1,
-      "icon": "3_icons_materials:3_icons_materials_42",
+      "icon": "2_icons_materials:2_icons_materials_42",
       "element": "NONE",
       "baseEffects": {
         "agi": 2,
@@ -2730,7 +3028,7 @@
       "name": "學者智慧墜飾",
       "slot": "ACCESSORY",
       "tier": 1,
-      "icon": "📿",
+      "icon": "2_icons_materials:2_icons_materials_40",
       "element": "NONE",
       "baseEffects": {
         "int": 2,
@@ -2768,7 +3066,7 @@
       "name": "守護者青銅勳章",
       "slot": "ACCESSORY",
       "tier": 2,
-      "icon": "3_icons_materials:3_icons_materials_40",
+      "icon": "2_icons_materials:2_icons_materials_48",
       "element": "NONE",
       "baseEffects": {
         "con": 3,
@@ -2883,7 +3181,7 @@
       "name": "紅寶石生命之戒",
       "slot": "ACCESSORY",
       "tier": 2,
-      "icon": "3_icons_materials:3_icons_materials_33",
+      "icon": "2_icons_materials:2_icons_materials_33",
       "element": "NONE",
       "baseEffects": {
         "con": 3
@@ -2920,7 +3218,7 @@
       "name": "藍寶石魔力項鍊",
       "slot": "ACCESSORY",
       "tier": 2,
-      "icon": "3_icons_materials:3_icons_materials_41",
+      "icon": "2_icons_materials:2_icons_materials_41",
       "element": "NONE",
       "baseEffects": {
         "spr": 3,
@@ -2958,7 +3256,7 @@
       "name": "狂暴暴擊徽章",
       "slot": "ACCESSORY",
       "tier": 2,
-      "icon": "3_icons_materials:3_icons_materials_49",
+      "icon": "2_icons_materials:2_icons_materials_49",
       "element": "NONE",
       "baseEffects": {
         "str": 2,
@@ -2996,7 +3294,7 @@
       "name": "疾風敏捷護符",
       "slot": "ACCESSORY",
       "tier": 2,
-      "icon": "3_icons_materials:3_icons_materials_43",
+      "icon": "2_icons_materials:2_icons_materials_43",
       "element": "NONE",
       "baseEffects": {
         "agi": 3,
@@ -3034,7 +3332,7 @@
       "name": "神聖祈禱十字架",
       "slot": "ACCESSORY",
       "tier": 2,
-      "icon": "3_icons_materials:3_icons_materials_56",
+      "icon": "2_icons_materials:2_icons_materials_56",
       "element": "NONE",
       "baseEffects": {
         "spr": 4,
@@ -3107,7 +3405,7 @@
     },
     {
       "id": "recipe_wooden_shield_sword",
-      "name": "木盾長劍",
+      "name": "鐵盾長劍",
       "tier": 1,
       "targetEquipmentId": "wpn_wooden_shield_sword",
       "requiredMaterials": {
