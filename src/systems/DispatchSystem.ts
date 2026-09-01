@@ -11,6 +11,7 @@ import { TRADE_GOODS } from './MarketSystem';
 import { CombatSystem } from './CombatSystem';
 import { ExplorationNarrativeEngine } from './ExplorationNarrativeEngine';
 import { NarrativeSystem } from './NarrativeSystem';
+import { BountySystem } from './BountySystem';
 import { Random } from '../core/Random';
 import { getDifficultyModifiers } from '../data/BalanceData';
 
@@ -498,6 +499,7 @@ export class DispatchSystem {
         isVictory = ExplorationNarrativeEngine.generateSubjugationLog(adventurers, node, task.baseDifficulty, task.enemyFeature || EnemyFeature.BALANCED, task.formationId, task.gridMap);
       }
       NarrativeSystem.handleSubjugationCompleted(task.targetNodeId, isVictory, task.narrativeSubjugation);
+      BountySystem.handleSubjugationCompleted(GameState, task.targetNodeId, isVictory);
     }
 
     // 解除派遣狀態並處理戰敗休養

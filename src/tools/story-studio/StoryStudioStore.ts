@@ -1,5 +1,6 @@
 import type { NarrativeNode, NarrativeStory } from '../../models/Narrative';
 import { BUILTIN_STORIES } from '../../data/StoryData';
+import { FactionManager } from '../../systems/FactionManager';
 import {
   DRAFT_STORAGE_KEY,
   GRAPH_COLS,
@@ -61,7 +62,17 @@ export class StoryStudioStore {
     return this.getActiveStory()?.nodes.find(n => n.id === this.selectedNodeId);
   }
 
-  public async loadFromProject(): Promise<void> {
+  public async loadFromProject(preserveFactionDraft = true): Promise<void> {
+    try {
+      const factionResponse = await fetch('/api/get-custom-factions');
+      if (factionResponse.ok) {
+        const factions = await factionResponse.json();
+        if (Array.isArray(factions)) FactionManager.loadProjectFactions(factions, preserveFactionDraft);
+      }
+    } catch (e) {
+      console.warn('讀取專案自訂陣營失敗，保留目前資料', e);
+    }
+
     // 1. 優先檢查是否有草稿
     const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
     if (savedDraft) {
@@ -255,6 +266,7 @@ export class StoryStudioStore {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         stories: this.stories,
+        customFactions: FactionManager.getCustomFactions(),
         note
       })
     });
@@ -266,6 +278,7 @@ export class StoryStudioStore {
 
     const res = await response.json();
     localStorage.removeItem(DRAFT_STORAGE_KEY);
+    FactionManager.markPublished(FactionManager.getCustomFactions());
     return res.snapshot || '完成';
   }
 
@@ -283,6 +296,25 @@ export class StoryStudioStore {
         if (!node.id) errors.push(`故事【${story.title}】中有未設定 ID 的節點。`);
         if (nodeIds.has(node.id)) errors.push(`故事【${story.title}】中節點 ID 重複：「${node.id}」。`);
         nodeIds.add(node.id);
+        if (node.isEnding && node.loop) {
+          errors.push(`故事【${story.title}】節點【${node.title}】不能同時是結束點與迴圈節點。`);
+        }
+        if (node.loop && !story.nodes.some(candidate => candidate.id === node.loop!.targetNodeId)) {
+          errors.push(`故事【${story.title}】節點【${node.title}】的迴圈起點不存在：「${node.loop.targetNodeId}」。`);
+        }
+
+        const effectGroups = [node.completionEffects, ...node.choices.map(choice => choice.effects)];
+        if (effectGroups.some(effects => effects.filter(effect => effect.type === 'PRESENT_NODE').length > 1)) {
+          errors.push(`故事【${story.title}】節點【${node.title}】不可設定多個「立即前往下一節點」。`);
+        }
+        const transitionEffects = effectGroups
+          .flat()
+          .filter(effect => effect.type === 'SCHEDULE_NODE' || effect.type === 'PRESENT_NODE');
+        for (const effect of transitionEffects) {
+          if (!story.nodes.some(candidate => candidate.id === effect.nodeId)) {
+            errors.push(`故事【${story.title}】節點【${node.title}】指定的後續節點不存在：「${effect.nodeId}」。`);
+          }
+        }
       }
     }
     return errors;

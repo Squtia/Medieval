@@ -124,14 +124,14 @@ export async function initNarrativeTestController(): Promise<void> {
       nodeLevel: tpl.nodeLevel ?? NodeLevel.WILDERNESS,
       ownerFactionId: tpl.factionId || null,
       isPlayerBase: false,
-      isDiscovered: true,
+      isDiscovered: false,
       terrain: (TerrainType as any)[tpl.terrain] || TerrainType.RUINS,
       feature: NodeFeature.SUBJUGATION,
-      isHidden: false,
+      isHidden: true,
       isDynamic: true,
       allowTroops: tpl.allowTroops !== false,
       baseDifficulty: tpl.difficulty || 2,
-      isScouted: true,
+      isScouted: false,
       customIcon: tpl.icon,
       producedGoods: tpl.producedGoods,
       demandedGoods: tpl.demandedGoods,
@@ -149,10 +149,12 @@ export async function initNarrativeTestController(): Promise<void> {
   const world = MapGenerator.generateWorld(allTestNodes, seed, GameDifficulty.NORMAL);
   const nodes = world.nodes;
   
-  // 開闢所有節點與地圖視野
+  // 開闢一般節點與地圖視野；秘密據點必須保留隱藏，才能驗證故事解鎖效果。
   nodes.forEach(n => {
-    n.isDiscovered = true;
-    n.isScouted = true;
+    if (!n.isHidden) {
+      n.isDiscovered = true;
+      n.isScouted = true;
+    }
   });
 
   const playerBase = nodes.find(n => n.isPlayerBase) || nodes[0];

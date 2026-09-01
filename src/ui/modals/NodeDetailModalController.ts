@@ -68,6 +68,12 @@ export class NodeDetailModalController {
     
     const btnScout = document.getElementById('btn-scout-node')!;
     const btnAction = document.getElementById('btn-nd-action')!;
+
+    // 詳情視窗會重複使用；切換節點前先清空上一個節點的偵察資料。
+    document.getElementById('nd-danger')!.textContent = '-';
+    document.getElementById('nd-treasure')!.textContent = '-';
+    document.getElementById('nd-garrison')!.textContent = '-';
+    document.getElementById('nd-garrison-box')!.style.display = 'none';
     
     // 清除舊的事件監聽器
     const newBtnScout = btnScout.cloneNode(true) as HTMLButtonElement;

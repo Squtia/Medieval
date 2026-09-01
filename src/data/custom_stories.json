@@ -119,7 +119,8 @@
             ]
           }
         ],
-        "completionEffects": []
+        "completionEffects": [],
+        "dialoguePages": []
       },
       {
         "id": "checkpoint_approach",
@@ -278,6 +279,10 @@
           {
             "type": "GOLD_AT_LEAST",
             "value": 5000
+          },
+          {
+            "type": "PRESTIGE_AT_LEAST",
+            "value": 500
           }
         ],
         "choices": [
@@ -347,14 +352,17 @@
             ]
           }
         ],
-        "completionEffects": [
-          {
-            "type": "SCHEDULE_NODE",
-            "nodeId": "evt_vormund_demand",
-            "delayDays": 180
-          }
-        ],
-        "dialoguePages": []
+        "completionEffects": [],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0",
+        "loop": {
+          "mode": "SELF",
+          "targetNodeId": "evt_vormund_demand",
+          "resetNodeIds": [
+            "evt_vormund_demand"
+          ],
+          "cooldownDays": 180
+        }
       },
       {
         "id": "evt_hurst_assassin",
@@ -688,9 +696,13 @@
           "expireDays": 3,
           "gold": 30,
           "exp": 40,
-          "type": "BANDIT"
+          "type": "NORMAL",
+          "objective": {
+            "type": "DURATION"
+          }
         },
-        "dialoguePages": []
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
       },
       {
         "id": "routine_farmer_harvest",
@@ -830,7 +842,7 @@
           {
             "type": "CHANGE_FACTION_FAVOR",
             "factionId": "e_bandit",
-            "value": 10
+            "value": -10
           }
         ],
         "bounty": {
@@ -838,9 +850,13 @@
           "expireDays": 3,
           "gold": 40,
           "exp": 20,
-          "type": "BANDIT"
+          "type": "NORMAL",
+          "objective": {
+            "type": "DURATION"
+          }
         },
-        "dialoguePages": []
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
       },
       {
         "id": "routine_repair_wall",
@@ -930,7 +946,7 @@
           {
             "type": "CHANGE_FACTION_FAVOR",
             "factionId": "f_vormund",
-            "value": -5
+            "value": 5
           }
         ],
         "bounty": {
@@ -938,15 +954,13 @@
           "expireDays": 3,
           "gold": 30,
           "exp": 25,
-          "type": "BANDIT",
-          "items": [
-            {
-              "id": "mat_wood_plank",
-              "amount": 3
-            }
-          ]
+          "type": "NORMAL",
+          "objective": {
+            "type": "DURATION"
+          }
         },
-        "dialoguePages": []
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
       },
       {
         "id": "routine_heirloom_ring",
@@ -1041,7 +1055,7 @@
           {
             "type": "CHANGE_FACTION_FAVOR",
             "factionId": "e_bandit",
-            "value": -5
+            "value": 5
           }
         ],
         "bounty": {
@@ -1049,9 +1063,13 @@
           "expireDays": 3,
           "gold": 60,
           "exp": 60,
-          "type": "BANDIT"
+          "type": "NORMAL",
+          "objective": {
+            "type": "DURATION"
+          }
         },
-        "dialoguePages": []
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
       }
     ]
   },
@@ -1116,13 +1134,7 @@
             "id": "choice_2",
             "text": "應該只是常見的那種說大話的酒客，不用理他了。",
             "resultText": "",
-            "effects": [
-              {
-                "type": "SCHEDULE_NODE",
-                "nodeId": "",
-                "delayDays": 1
-              }
-            ]
+            "effects": []
           }
         ],
         "completionEffects": [],
@@ -1448,6 +1460,10 @@
             "itemId": "mat_new_6491",
             "quantity": 1,
             "mode": "FIXED"
+          },
+          {
+            "type": "PRESENT_NODE",
+            "nodeId": "dragon_fam_die_02"
           }
         ],
         "dialoguePages": [],
@@ -1513,7 +1529,7 @@
       },
       {
         "id": "dragon_fam_good",
-        "title": "龍裔來由",
+        "title": "龍裔的去留",
         "description": "",
         "channel": "STREET_EVENT",
         "conditions": [],
@@ -1531,7 +1547,7 @@
             "speakerName": "艾特絲克",
             "speakerTitle": "【龍裔女法師】",
             "speakerAvatar": "npc_common:npc_dragon_f",
-            "text": "「大人的意志已決。我們不會為了不義之財毀掉無辜者的安息所。響箭傳令，讓外圍的傭兵團立刻撤回！」\n「大人的意思是：第一，傭兵可以撤回，但洞窟周邊必須劃為領地的『管制保護區』；第二，我們將定期向你們發放糧食與醫療物資；第三，相對地，你們必須允許領地的學者進駐調查遺跡。」"
+            "text": "「大人的意志已決。我們不會為了不義之財毀掉無辜者的安息所。響箭傳令，讓外圍的傭兵團立刻撤回！」\n「大人的意思是：第一，傭兵可以撤回，但洞窟周邊必須劃為領地的庇護；第二，我們將定期向你們發放糧食與醫療物資；第三，相對地，你們必須允許領地的學者進駐調查遺跡。」"
           },
           {
             "speakerType": "NPC",
@@ -1610,7 +1626,7 @@
               {
                 "type": "CHANGE_FACTION_FAVOR",
                 "factionId": "f_dragonkin",
-                "value": 5
+                "value": 10
               },
               {
                 "type": "GRANT_MATERIAL",
@@ -1633,13 +1649,208 @@
             ]
           }
         ],
+        "completionEffects": [],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0",
+        "loop": {
+          "mode": "SELF",
+          "targetNodeId": "dragon_fam_tax",
+          "resetNodeIds": [
+            "dragon_fam_tax"
+          ],
+          "cooldownDays": 90
+        }
+      },
+      {
+        "id": "dragon_fam_history",
+        "title": "逝去的歷史",
+        "description": "老龍即將嚥下最後一口氣，洞窟深處的古老壁畫與石碑在長達十季的研究中被逐一拼湊完整。隨著真相揭曉，「龍裔」這一存在的本質並非天生的高貴血統，而是一段被歷史刻意抹去的殘酷悲劇。",
+        "channel": "TERRITORY_EVENT",
+        "conditions": [
+          {
+            "type": "DAYS_SINCE_FACT",
+            "fact": "dragon_fam_tax",
+            "value": 510
+          },
+          {
+            "type": "FACTION_FAVOR_AT_LEAST",
+            "factionId": "f_dragonkin",
+            "value": 50
+          }
+        ],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "PRESENT_NODE",
+            "nodeId": "dragon_fam_history_01"
+          }
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      },
+      {
+        "id": "dragon_fam_die_01",
+        "title": "逝去的古龍",
+        "description": "老龍即將嚥下最後一口氣，洞窟深處龍的氣息慢慢的消散去，遺跡的謎團漸漸的被掩埋在過去的時間裡，似乎可以感覺到世界正在慢慢地異動。",
+        "channel": "TERRITORY_EVENT",
+        "conditions": [
+          {
+            "type": "DAYS_SINCE_FACT",
+            "fact": "dragon_fam_tax",
+            "value": 510
+          },
+          {
+            "type": "FACTION_FAVOR_AT_MOST",
+            "factionId": "f_dragonkin",
+            "value": 49
+          }
+        ],
+        "choices": [],
         "completionEffects": [
           {
             "type": "SCHEDULE_NODE",
-            "nodeId": "dragon_fam_tax",
-            "delayDays": 2
+            "nodeId": "dragon_fam_die_02",
+            "delayDays": 3
           }
         ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      },
+      {
+        "id": "dragon_fam_history_01",
+        "title": "過往的歷史",
+        "description": "",
+        "channel": "TERRITORY_EVENT",
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "SCHEDULE_NODE",
+            "nodeId": "dragon_fam_die_02",
+            "delayDays": 3
+          }
+        ],
+        "dialoguePages": [
+          {
+            "speakerType": "NPC",
+            "speakerName": "洞窟最深處・古龍遺骸祭壇",
+            "speakerTitle": " ",
+            "speakerAvatar": "materials:cotton",
+            "text": "洞窟內的空氣灼熱而微弱，龐大的老龍靜靜伏在石台上，胸膛的起伏微不可察。石壁四周刻滿了人類王國早期的古文字。艾特絲克站在老龍身旁，神色複雜地撫摸著石壁上的刻痕。"
+          },
+          {
+            "speakerType": "PLAYER_GUARDIAN",
+            "speakerName": "艾特絲克",
+            "speakerTitle": "【街角遇見的旅人】",
+            "speakerAvatar": "npc_common:npc_dragon_f",
+            "text": "（手持火把，仔細端詳石壁，向領主低語）\n「大人，這些壁畫記錄的……不是神話，而是三百年以前的先祖聖戰。但上面的記載與王國正史完全相反。」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "艾特絲克",
+            "speakerTitle": " ",
+            "speakerAvatar": "npc_common:npc_dragon_f",
+            "text": "「正史說，龍是帶來毀滅的天災，而人類英雄斬殺了惡龍，對吧？但你們研究了這麼多季的文獻，應該已經察覺到了——世上本沒有『龍裔』這個種族。」"
+          },
+          {
+            "speakerType": "PLAYER_GUARDIAN",
+            "speakerName": "艾特絲克",
+            "speakerTitle": "【街角遇見的旅人】",
+            "speakerAvatar": "npc_common:npc_dragon_f",
+            "text": "「那你們身上的鱗片與這股力量……」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "艾特絲克",
+            "speakerTitle": " ",
+            "speakerAvatar": "npc_common:npc_dragon_f",
+            "text": "（拉開頸部的衣領，露出鱗片與人類皮膚交界處那撕裂般的深紅痕跡）\n「這不是血統，是一場無法治癒的異化病。三百年前，人類的先祖為了爭奪大陸霸權，在戰爭中以無數俘虜與死囚的性命為代價，強行抽取垂死巨龍的精血進行活體融合。數以萬計的人在痛苦中爆體而亡，只有極其罕見、體質特殊的人在感染中活了下來，身體異化，獲得了部分龍的力量。」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "艾特絲克",
+            "speakerTitle": " ",
+            "speakerAvatar": "npc_common:npc_dragon_f",
+            "text": "（看向老龍）\n「先祖利用這股殘酷的病變贏得了戰爭，隨後卻懼怕這股力量失控，將所有染病倖存者冠上『惡魔之血』的名號進行秘密清洗。只有這頭被人類囚禁、抽血數百年的老龍，在臨死前逃進了這座洞窟，並在數百年間，收容了零星因誤觸古龍遺物而極低機率染上此病的人類逃難者。」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "艾特絲克",
+            "speakerTitle": " ",
+            "speakerAvatar": "npc_common:npc_dragon_f",
+            "text": "「先祖利用這股殘酷的病變贏得了戰爭，隨後卻懼怕這股力量失控，將所有染病倖存者冠上『惡魔之血』的名號進行秘密清洗。只有這頭被人類囚禁、抽血數百年的老龍，在臨死前逃進了這座洞窟，並在數百年間，收容了零星因誤觸古龍遺物而極低機率染上此病的人類逃難者。」"
+          },
+          {
+            "speakerType": "NPC",
+            "speakerName": "古老黑龍",
+            "speakerTitle": " ",
+            "speakerAvatar": "materials:cloth",
+            "text": "（發出一聲悠長而沉重的龍吟，將最後一顆散發微光的灰白晶核吐在領主腳邊，隨後永遠閉上了雙眼）"
+          },
+          {
+            "speakerType": "PLAYER_GUARDIAN",
+            "speakerName": "艾特絲克",
+            "speakerTitle": "【街角遇見的旅人】",
+            "speakerAvatar": "npc_common:npc_dragon_f",
+            "text": "「大人……老龍斷氣了。而且這段歷史一旦外洩，王國的教會與其他舊貴族絕不會坐視不管，他們當年抹去真相的手段，如今同樣能用在我們的領地上。」"
+          }
+        ],
+        "npcName": "艾特絲克",
+        "npcAvatar": "npc_common:npc_dragon_f"
+      },
+      {
+        "id": "never",
+        "title": "揭示的世界觀與歷史暗線",
+        "description": "龍裔病的真相（蝕血異化）：\n感染並非自然演化，而是古代人類違背禁忌進行人造融合留下的殘存詛咒。世間只有極少數具備特定體質的人，在接觸到古龍精血或高濃度龍息殘留時，才會引發極低機率的變異生存下來。\n\n教廷與王國正統的謊言：\n王國建立的合法性建立在「純潔人類驅逐惡龍」的正義敘事上。領地接納龍裔並研究遺跡的行為，本質上是在觸碰王國統治者最恐懼的歷史黑幕。\n\n未來的潛在危機：\n老龍的死亡讓洞窟內的古龍氣息徹底散逸，外面的探子與敵對勢力即將察覺這片封閉區域的異動。領地保護的不僅是幾個染病的異類，而是動搖王國正統歷史的活證據。",
+        "channel": "SUBJUGATION_JOURNEY",
+        "conditions": [
+          {
+            "type": "FACT_EXISTS",
+            "fact": "never_open"
+          }
+        ],
+        "choices": [],
+        "completionEffects": [],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      },
+      {
+        "id": "dragon_fam_die_02",
+        "title": "天地異動",
+        "description": "領主與守衛們只以為這是一場因古龍逝去、魔力崩解而引發的局部地脈震盪，然而他們並不知道——\n\n這場震顫並非僅限於這座無名洞窟，而是以無法阻擋的威勢，瞬間席捲了整座凡斯提亞大陸。",
+        "channel": "TERRITORY_EVENT",
+        "conditions": [],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "UNLOCK_MAP_NODE",
+            "nodeId": "frost_dragon_lair"
+          },
+          {
+            "type": "UNLOCK_MAP_NODE",
+            "nodeId": "emerald_dragon_lair"
+          },
+          {
+            "type": "UNLOCK_MAP_NODE",
+            "nodeId": "fire_dragon_lair"
+          }
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0"
+      },
+      {
+        "id": "never01",
+        "title": "在領主看不見的極遠之地：",
+        "description": "極北的永凍冰原深處，萬年不化的萬丈冰川在一聲驚天動地的轟鳴中撕裂開巨大的深淵，一雙被冰封數百年的蒼藍巨翼伴隨著刺骨寒風緩緩展開；\n\n南方炙熱的活火山群，翻滾的岩漿池中央驟然陷落，熔岩逆流沖天，滾燙的灰燼雲層中隱約浮現出遮天蔽日的赤紅陰影；\n\n西方被王國列為禁地的迷霧荒沼，沉睡在地底深處的龐然巨物睜開了古老而暴戾的金色豎瞳，撕裂沼澤的泥濘，發出震碎雲霄的咆哮。\n\n三百年前被王國先祖以禁忌秘術強行驅逐、沉眠或封印於大陸極境的巨龍們，隨著世間最後一頭純血原初古龍的逝去，維繫了數個世紀的禁錮枷鎖在同一瞬間徹底崩解。\n\n天空被異樣的雲層遮蔽，凡斯提亞大陸的舊時代已然隨著老龍的合眼而宣告終結，一場席捲整個大陸的浩劫與巨變，正悄然在陰影之中拉開序幕。",
+        "channel": "SUBJUGATION_JOURNEY",
+        "conditions": [
+          {
+            "type": "FACT_EXISTS",
+            "fact": "never_open"
+          }
+        ],
+        "choices": [],
+        "completionEffects": [],
         "dialoguePages": [],
         "npcAvatar": "npc:npc_0"
       }
@@ -1815,9 +2026,17 @@
         "channel": "TERRITORY_EVENT",
         "conditions": [
           {
-            "type": "FACTION_FAVOR_AT_LEAST",
+            "type": "FACTION_FAVOR_AT_MOST",
             "factionId": "e_bandit",
-            "value": -30
+            "value": 30
+          },
+          {
+            "type": "GOLD_AT_LEAST",
+            "value": 3000
+          },
+          {
+            "type": "PRESTIGE_AT_LEAST",
+            "value": 50
           }
         ],
         "choices": [],
@@ -1825,7 +2044,7 @@
           {
             "type": "TRIGGER_RAID",
             "raidName": "強盜團侵襲",
-            "warningDays": 3,
+            "warningDays": 0,
             "waves": [
               {
                 "waveIndex": 1,
@@ -1849,13 +2068,25 @@
         "choices": [],
         "completionEffects": [
           {
-            "type": "SCHEDULE_NODE",
-            "nodeId": "bandit_attack_01",
-            "delayDays": 30
+            "type": "ADD_GOLD",
+            "value": 3000
+          },
+          {
+            "type": "CHANGE_FACTION_FAVOR",
+            "factionId": "e_bandit",
+            "value": 20
           }
         ],
         "dialoguePages": [],
-        "npcAvatar": "npc:npc_0"
+        "npcAvatar": "npc:npc_0",
+        "loop": {
+          "mode": "CHAIN",
+          "targetNodeId": "bandit_attack_01",
+          "resetNodeIds": [
+            "bandit_attack_01_w"
+          ],
+          "cooldownDays": 30
+        }
       },
       {
         "id": "bandit_attack_01_l",
@@ -1865,11 +2096,6 @@
         "conditions": [],
         "choices": [],
         "completionEffects": [
-          {
-            "type": "SCHEDULE_NODE",
-            "nodeId": "bandit_attack_01",
-            "delayDays": 90
-          },
           {
             "type": "REDUCE_RESOURCE_PERCENT",
             "resource": "ALL",
@@ -1918,7 +2144,45 @@
           }
         ],
         "dialoguePages": [],
-        "npcAvatar": "npc:npc_0"
+        "npcAvatar": "npc:npc_0",
+        "loop": {
+          "mode": "CHAIN",
+          "targetNodeId": "bandit_attack_01",
+          "resetNodeIds": [
+            "bandit_attack_01_l"
+          ],
+          "cooldownDays": 90
+        }
+      },
+      {
+        "id": "bandit_attack_check",
+        "title": "新故事節點",
+        "description": "",
+        "channel": "SUBJUGATION_JOURNEY",
+        "conditions": [
+          {
+            "type": "GOLD_AT_LEAST",
+            "value": 3000
+          }
+        ],
+        "choices": [],
+        "completionEffects": [
+          {
+            "type": "CHANGE_FACTION_FAVOR",
+            "factionId": "e_bandit",
+            "value": -5
+          }
+        ],
+        "dialoguePages": [],
+        "npcAvatar": "npc:npc_0",
+        "loop": {
+          "mode": "SELF",
+          "targetNodeId": "bandit_attack_check",
+          "resetNodeIds": [
+            "bandit_attack_check"
+          ],
+          "cooldownDays": 1
+        }
       }
     ]
   }

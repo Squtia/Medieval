@@ -147,17 +147,18 @@ export type NarrativeCondition =
 export type NarrativeEquipmentSlot = 'ANY' | 'WEAPON' | 'ARMOR' | 'ACCESSORY';
 export type NarrativeEquipmentTier = 'ANY' | 1 | 2 | 3 | 4;
 
-export type NarrativeEffect =
+export type NarrativeEffect = (
   | { type: 'SET_FACT'; fact: string; value?: string | number | boolean }
   | { type: 'ADD_GOLD'; value: number }
   | { type: 'ADD_PRESTIGE'; value: number }
   | { type: 'ADD_RESTED_EXP'; value: number }
   | { type: 'CHANGE_FACTION_FAVOR'; factionId: string; value: number }
-  | { type: 'GRANT_MATERIAL'; itemId: string; quantity: number; mode?: 'FIXED' | 'RANDOM' }
+  | { type: 'GRANT_MATERIAL'; itemId: string; itemIds?: string[]; quantity: number; mode?: 'FIXED' | 'RANDOM' }
   | { type: 'GRANT_TRADE_GOOD'; itemId: string; quantity: number; mode?: 'FIXED' | 'RANDOM' }
   | { type: 'GRANT_EQUIPMENT'; templateId?: string; mode?: 'FIXED' | 'RANDOM'; slot?: NarrativeEquipmentSlot; tier?: NarrativeEquipmentTier; quantity: number }
   | { type: 'GRANT_HERO'; heroId: string }
   | { type: 'SCHEDULE_NODE'; nodeId: string; delayDays: number }
+  | { type: 'PRESENT_NODE'; nodeId: string }
   | { type: 'UNLOCK_MAP_NODE'; nodeId: string }
   | { type: 'REMOVE_MAP_NODE'; nodeId: string }
   | { type: 'CREATE_SUBJUGATION_NODE'; definition: NarrativeSubjugationDefinition }
@@ -174,7 +175,7 @@ export type NarrativeEffect =
       waves?: SiegeWaveConfig[];
       successNodeId?: string;
       failNodeId?: string;
-    };
+    }) & { chancePercent?: number };
 
 export interface SiegeWaveConfig {
   waveIndex: number;
@@ -200,6 +201,13 @@ export interface NarrativeNode {
   targetNodeId?: string;
   repeatable?: boolean;
   cooldownDays?: number;
+  isEnding?: boolean;
+  loop?: {
+    mode: 'SELF' | 'CHAIN';
+    targetNodeId: string;
+    resetNodeIds?: string[];
+    cooldownDays?: number;
+  };
   npcAvatar?: string;
   npcName?: string;
   dialoguePages?: NarrativeDialoguePage[];
@@ -210,6 +218,7 @@ export interface NarrativeNode {
     exp: number;
     type?: 'NORMAL' | 'BANDIT';
     items?: { id: string; amount: number }[];
+    objective?: { type: 'DURATION' | 'SUBJUGATE_NODE'; targetNodeId?: string };
   };
 }
 

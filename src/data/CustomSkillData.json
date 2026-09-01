@@ -280,7 +280,7 @@
     "id": "rayn_SKILL_CUSTOM_0001",
     "name": "赤鋼轟擊",
     "icon": "2_icons_materials:2_icons_materials_1",
-    "description": "巨力摩擦地板向上揮出的一斬，此刃永不鋒利。",
+    "description": "巨力摩擦地板向上揮出的一斬，對目標造成150%物理傷害並附加灼燒兩回合，此刃永不鋒利。",
     "category": "HERO_BASE",
     "mpCost": 15,
     "cooldown": 1,
@@ -289,7 +289,15 @@
         "trigger": "ACTIVE",
         "effectType": "DAMAGE_PHYSICAL",
         "targetType": "SINGLE_ENEMY",
-        "multiplier": 1.5
+        "multiplier": 1.5,
+        "statusDuration": 1
+      },
+      {
+        "trigger": "ACTIVE",
+        "effectType": "APPLY_STATUS",
+        "targetType": "SINGLE_ENEMY",
+        "multiplier": 1,
+        "statusType": "BURN"
       }
     ]
   },
@@ -315,6 +323,49 @@
         "statusType": "BLEED",
         "statusDuration": 2,
         "statusValue": 12
+      }
+    ]
+  },
+  {
+    "id": "Vulkan_SKILL_blood_01",
+    "name": "龍血術",
+    "icon": "🩸",
+    "description": "龍裔之血反噬，對自身造成50%魔法傷害，對隊伍全體治療100%的生命值，提升自身魔法傷害與全體物理傷害。",
+    "category": "HERO_BASE",
+    "mpCost": 20,
+    "cooldown": 2,
+    "blocks": [
+      {
+        "trigger": "ACTIVE",
+        "effectType": "DAMAGE_MAGICAL",
+        "targetType": "SELF",
+        "multiplier": 0.5,
+        "statusDuration": 1
+      },
+      {
+        "trigger": "ACTIVE",
+        "effectType": "HEAL",
+        "targetType": "ALL_ALLIES",
+        "multiplier": 1,
+        "statusDuration": 1
+      },
+      {
+        "trigger": "ACTIVE",
+        "effectType": "BUFF_SELF",
+        "targetType": "SELF",
+        "multiplier": 1,
+        "statusType": "BUFF_MATK",
+        "buffType": "BUFF_MATK",
+        "statusDuration": 3
+      },
+      {
+        "trigger": "ACTIVE",
+        "effectType": "BUFF_ALLIES",
+        "targetType": "ALL_ALLIES",
+        "multiplier": 1,
+        "statusType": "BUFF_PATK",
+        "buffType": "BUFF_PATK",
+        "statusDuration": 3
       }
     ]
   }

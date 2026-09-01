@@ -35,7 +35,7 @@ export class StoryStudioFactionManager {
           </div>
 
           <div style="padding: 12px 16px; border-bottom: 1px solid #332f2c; background: #141210; font-size: 0.78rem; color: #a8a29e; line-height: 1.4;">
-            在此新增的陣營將自動註冊為全域聲望項目（如遠古龍裔），可在故事條件、任務結算與遊戲內外交面板中直接使用。
+            在此新增的陣營會先保存為瀏覽器草稿；按故事工坊右上角「寫入專案」後，會連同故事一起寫入 custom_factions.json，供 Git／Google Drive 同步。
           </div>
 
           <div id="faction-list-container" style="flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; max-height: 380px;">

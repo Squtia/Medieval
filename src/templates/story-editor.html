@@ -161,6 +161,19 @@
               </div>
             </details>
 
+            <details class="inspector-card" open>
+              <summary class="inspector-card-summary">🔁 節點結束／迴圈設定</summary>
+              <div class="inspector-card-body">
+                <label style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"><input id="story-node-is-ending" type="checkbox"> 此節點是故事結束點</label>
+                <label>迴圈模式<select id="story-node-loop-mode"><option value="NONE">不迴圈</option><option value="SELF">單一節點自我迴圈</option><option value="CHAIN">多節點迴圈</option></select></label>
+                <div id="story-node-loop-fields" style="margin-top:8px;display:none;">
+                  <label>迴圈起點節點 ID<input id="story-node-loop-target" type="text" placeholder="例：opening"></label>
+                  <label style="margin-top:6px;">要重置的節點 IDs（逗號分隔）<input id="story-node-loop-reset" type="text" placeholder="例：opening, middle, ending"></label>
+                  <label style="margin-top:6px;">再次開放前等待天數<input id="story-node-loop-cooldown" type="number" min="0" value="0"></label>
+                </div>
+              </div>
+            </details>
+
             <!-- 🎁 區塊 4：完成後結果／獎勵 -->
             <details class="inspector-card inspector-card-effects" open>
               <summary class="inspector-card-summary">🎁 完成後結果／獎勵 (Effects & Rewards)</summary>
@@ -203,6 +216,10 @@
                     </select>
                   </label>
                   <label>刷新冷卻天數<input id="story-node-bounty-cooldown" type="number" min="0" value="3"></label>
+                </div>
+                <div class="story-editor-pair" style="margin-top: 6px;">
+                  <label>完成方式<select id="story-node-bounty-objective"><option value="DURATION">派遣計時完成</option><option value="SUBJUGATE_NODE">討伐指定據點後驗收</option></select></label>
+                  <label>討伐目標節點 ID<input id="story-node-bounty-target" type="text" placeholder="例：bandit_camp"></label>
                 </div>
               </div>
             </details>

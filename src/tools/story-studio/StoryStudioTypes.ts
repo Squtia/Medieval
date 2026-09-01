@@ -56,6 +56,7 @@ export const EFFECT_LABELS: Record<NarrativeEffect['type'], string> = {
   GRANT_MATERIAL: '物品：素材獎勵 (GRANT_MATERIAL)',
   GRANT_TRADE_GOOD: '物品：貿易特產 (GRANT_TRADE_GOOD)',
   SCHEDULE_NODE: '流程：延遲排程節點 (SCHEDULE_NODE)',
+  PRESENT_NODE: '流程：立即前往下一節點 (PRESENT_NODE)',
   UNLOCK_MAP_NODE: '地圖：解鎖預設地圖據點 (UNLOCK_MAP_NODE)',
   REMOVE_MAP_NODE: '地圖：移除／銷毀地圖據點 (REMOVE_MAP_NODE)',
   CREATE_SUBJUGATION_NODE: '討伐：創造故事討伐據點 (CREATE_SUBJUGATION_NODE)',
@@ -137,6 +138,7 @@ export function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): Narra
     case 'GRANT_TRADE_GOOD': return { type, itemId: 'tg_spice', quantity: 1, mode: 'FIXED' };
     case 'GRANT_EQUIPMENT': return { type, templateId: 'wpn_iron_greatsword', mode: 'FIXED', slot: 'ANY', tier: 'ANY', quantity: 1 };
     case 'SCHEDULE_NODE': return { type, nodeId: '', delayDays: 1 };
+    case 'PRESENT_NODE': return { type, nodeId: '' };
     case 'UNLOCK_MAP_NODE': return { type, nodeId: '' };
     case 'REMOVE_MAP_NODE': return { type, nodeId: '' };
     case 'REDUCE_POPULATION_PERCENT': return { type, minPercent: 10, maxPercent: 20 };

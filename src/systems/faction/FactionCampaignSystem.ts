@@ -112,6 +112,20 @@ export class FactionCampaignSystem {
       const defender = !isTargetPlayer ? factionMap.get(camp.targetFactionId) : null;
       const targetNode = nodeMap.get(camp.targetNodeId);
 
+      // 多支軍隊可能同時鎖定同一據點。若途中據點已易主，舊戰役不得再次覆寫所有權。
+      if (camp.status !== 'RETURNING' && (!targetNode || (!isTargetPlayer && targetNode.ownerFactionId !== camp.targetFactionId))) {
+        camp.status = 'RETURNING';
+        camp.elapsedDays = 0;
+        camp.currentPositionRatio = 1;
+        results.push({
+          campaignId: camp.id,
+          event: 'SIEGE_REPELLED',
+          isCityFallen: false,
+          message: `↩️ 【${attacker?.factionName || '遠征軍'}】的目標已易主或不存在，取消攻勢並班師。`,
+        });
+        continue;
+      }
+
       // ── 1. 行軍階段 (MARCHING) ──
       if (camp.status === 'MARCHING') {
         camp.elapsedDays += 1;

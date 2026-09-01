@@ -88,6 +88,90 @@ describe('NarrativeSystem', () => {
     expect(NarrativeSystem.getEligibleNodes('TERRITORY_EVENT')).toHaveLength(1);
   });
 
+  it('立即前往效果會封鎖後續節點，直到前置事件完成後才觸發', async () => {
+    const immediateStory: NarrativeStory = {
+      id: 'immediate_story',
+      title: '立即接續測試',
+      summary: '',
+      version: 1,
+      enabled: true,
+      nodes: [
+        {
+          id: 'opening', title: '前置事件', description: '', channel: 'TERRITORY_EVENT',
+          conditions: [], choices: [],
+          completionEffects: [{ type: 'PRESENT_NODE', nodeId: 'followup' }]
+        },
+        {
+          id: 'followup', title: '立即後續', description: '', channel: 'TERRITORY_EVENT',
+          conditions: [], choices: [], completionEffects: []
+        }
+      ]
+    };
+    NarrativeSystem.setDefinitionsForTesting([immediateStory]);
+
+    expect(NarrativeSystem.getEligibleNodes('TERRITORY_EVENT').map(ref => ref.node.id))
+      .toEqual(['opening']);
+
+    let triggeredNodeId = '';
+    const unsubscribe = EventBus.getInstance().subscribe(
+      GameEventType.NARRATIVE_NODE_TRIGGERED,
+      payload => { triggeredNodeId = payload.nodeId; },
+      'test-immediate-node'
+    );
+
+    NarrativeSystem.completeNode('immediate_story', 'opening');
+    expect(triggeredNodeId).toBe('');
+    await Promise.resolve();
+
+    expect(triggeredNodeId).toBe('followup');
+    expect(GameState.narrativeState.presentedNodeIds).toContain('immediate_story:followup');
+    unsubscribe();
+  });
+
+  it('解鎖地圖據點可用工坊範本 ID 找到秘密據點實例', () => {
+    const secretNode = {
+      id: 'secret_frost_dragon_lair',
+      isHidden: true,
+      isDiscovered: false,
+      narrativeSubjugation: { templateId: 'frost_dragon_lair' }
+    };
+    const nodes = [secretNode];
+    GameState.mapSystem = {
+      getNodes: () => nodes,
+      getNodeById: (id: string) => nodes.find(node => node.id === id)
+    } as any;
+
+    let changedNodeId = '';
+    const unsubscribe = EventBus.getInstance().subscribe(
+      GameEventType.MAP_NODES_CHANGED,
+      payload => { changedNodeId = payload.nodeId; },
+      'test-unlock-map-node'
+    );
+
+    NarrativeSystem.applyEffects('test_story', [
+      { type: 'UNLOCK_MAP_NODE', nodeId: 'frost_dragon_lair' }
+    ]);
+
+    expect(secretNode.isHidden).toBe(false);
+    expect(secretNode.isDiscovered).toBe(true);
+    expect(changedNodeId).toBe('secret_frost_dragon_lair');
+    unsubscribe();
+  });
+
+  it('多節點迴圈會重置指定節點並依冷卻重新開放起點', () => {
+    const loopStory = JSON.parse(JSON.stringify(TEST_STORY)) as NarrativeStory;
+    loopStory.nodes[1].loop = { mode: 'CHAIN', targetNodeId: 'opening', resetNodeIds: ['opening', 'followup'], cooldownDays: 2 };
+    loopStory.nodes[0].conditions = [];
+    NarrativeSystem.setDefinitionsForTesting([loopStory]);
+    NarrativeSystem.completeNode('test_story', 'opening', false);
+    NarrativeSystem.completeNode('test_story', 'followup', false);
+    expect(GameState.narrativeState.completedNodeIds).not.toContain('test_story:opening');
+    expect(GameState.narrativeState.completedNodeIds).not.toContain('test_story:followup');
+    expect(NarrativeSystem.getEligibleNodes('BOUNTY_BOARD')).toHaveLength(0);
+    GameState.totalDays = 3;
+    expect(NarrativeSystem.getEligibleNodes('BOUNTY_BOARD')).toHaveLength(1);
+  });
+
   it('重置故事會清除該故事產生的線索與節點狀態', () => {
     GameState.totalDays = 3;
     NarrativeSystem.completeNode('test_story', 'opening');

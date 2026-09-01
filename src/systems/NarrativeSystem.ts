@@ -14,6 +14,7 @@ import {
 import { NarrativeContentStore } from './NarrativeContentStore';
 import { DataStore } from './DataStore';
 import { EquipmentGenerator } from './EquipmentGenerator';
+import { AcquisitionItem, AcquisitionNotification } from '../ui/AcquisitionNotification';
 import { TRADE_GOODS } from './MarketSystem';
 import { EnemyFeature } from '../models/DispatchTask';
 import { MapNode, NodeFeature, NodeLevel, TerrainType, WeatherType } from '../models/types';
@@ -98,20 +99,20 @@ export class NarrativeSystem {
     });
   }
 
-  /** 檢查某個節點是否被劇本中其他節點的 SCHEDULE_NODE 指名為目標後續節點 */
+  /** 檢查某個節點是否被其他節點指定為排程或立即接續目標。 */
   static isScheduledTargetNode(storyId: string, nodeId: string): boolean {
     for (const story of this.getStories()) {
       if (!story.enabled) continue;
       for (const n of story.nodes) {
         // 若為自排程（自身完成後重新排程自身）則不視為前置依賴阻擋
         for (const eff of n.completionEffects || []) {
-          if (eff.type === 'SCHEDULE_NODE' && eff.nodeId === nodeId && (story.id !== storyId || n.id !== nodeId)) {
+          if ((eff.type === 'SCHEDULE_NODE' || eff.type === 'PRESENT_NODE') && eff.nodeId === nodeId && (story.id !== storyId || n.id !== nodeId)) {
             return true;
           }
         }
         for (const choice of n.choices || []) {
           for (const eff of choice.effects || []) {
-            if (eff.type === 'SCHEDULE_NODE' && eff.nodeId === nodeId && (story.id !== storyId || n.id !== nodeId)) {
+            if ((eff.type === 'SCHEDULE_NODE' || eff.type === 'PRESENT_NODE') && eff.nodeId === nodeId && (story.id !== storyId || n.id !== nodeId)) {
               return true;
             }
           }
@@ -418,6 +419,14 @@ export class NarrativeSystem {
     if (!state.nodeLastCompletedDay) state.nodeLastCompletedDay = {};
     state.nodeLastCompletedDay[key] = GameState.totalDays;
     if (!state.completedNodeIds.includes(key)) state.completedNodeIds.push(key);
+    if (ref.node.loop?.targetNodeId) {
+      const loopNodeIds = new Set([ref.node.loop.targetNodeId, ...(ref.node.loop.resetNodeIds || [])]);
+      const loopKeys = new Set([...loopNodeIds].map(id => this.getNodeKey(storyId, id)));
+      state.completedNodeIds = state.completedNodeIds.filter(completedKey => !loopKeys.has(completedKey));
+      state.presentedNodeIds = state.presentedNodeIds.filter(presentedKey => !loopKeys.has(presentedKey));
+      state.scheduledNodes[this.getNodeKey(storyId, ref.node.loop.targetNodeId)] =
+        GameState.totalDays + Math.max(0, ref.node.loop.cooldownDays ?? 0);
+    }
     GameState.bounties = GameState.bounties.filter((bounty: any) => bounty.narrativeNodeKey !== key);
   }
 
@@ -456,7 +465,10 @@ export class NarrativeSystem {
 
   static applyEffects(storyId: string, effects: NarrativeEffect[], sourceNodeId?: string): void {
     const state = this.ensureState();
+    const acquisitions: AcquisitionItem[] = [];
     for (const effect of effects) {
+      const chance = Math.max(0, Math.min(100, effect.chancePercent ?? 100));
+      if (chance < 100 && Math.random() * 100 >= chance) continue;
       switch (effect.type) {
         case 'SET_FACT':
           state.facts[effect.fact] = { value: effect.value ?? true, day: GameState.totalDays };
@@ -478,10 +490,13 @@ export class NarrativeSystem {
         case 'GRANT_MATERIAL':
           GameState.myTerritory.materials = GameState.myTerritory.materials || {};
           if (effect.mode === 'RANDOM') {
-            const allMatKeys = Object.keys(DataStore.MaterialDB);
+            const requestedKeys = (effect.itemIds || []).filter(key => !!DataStore.MaterialDB[key]);
+            const allMatKeys = requestedKeys.length > 0 ? requestedKeys : Object.keys(DataStore.MaterialDB);
             if (allMatKeys.length > 0) {
               const pickedKey = allMatKeys[Math.floor(Math.random() * allMatKeys.length)];
               GameState.myTerritory.materials[pickedKey] = (GameState.myTerritory.materials[pickedKey] || 0) + Math.max(1, effect.quantity);
+              const material = DataStore.MaterialDB[pickedKey];
+              acquisitions.push({ name: material?.name || pickedKey, icon: material?.icon || '💎', quantity: Math.max(1, effect.quantity) });
             }
           } else if (effect.itemId) {
             const current = GameState.myTerritory.materials[effect.itemId] || 0;
@@ -490,6 +505,10 @@ export class NarrativeSystem {
               delete GameState.myTerritory.materials[effect.itemId];
             } else {
               GameState.myTerritory.materials[effect.itemId] = updated;
+              if (effect.quantity > 0) {
+                const material = DataStore.MaterialDB[effect.itemId];
+                acquisitions.push({ name: material?.name || effect.itemId, icon: material?.icon || '💎', quantity: effect.quantity });
+              }
             }
           }
           break;
@@ -499,6 +518,7 @@ export class NarrativeSystem {
             if (TRADE_GOODS.length > 0) {
               const pickedGood = TRADE_GOODS[Math.floor(Math.random() * TRADE_GOODS.length)];
               GameState.myTerritory.tradeInventory[pickedGood.id] = (GameState.myTerritory.tradeInventory[pickedGood.id] || 0) + Math.max(1, effect.quantity);
+              acquisitions.push({ name: pickedGood.name, icon: pickedGood.icon || '📦', quantity: Math.max(1, effect.quantity) });
             }
           } else if (effect.itemId) {
             const current = GameState.myTerritory.tradeInventory[effect.itemId] || 0;
@@ -507,6 +527,7 @@ export class NarrativeSystem {
               delete GameState.myTerritory.tradeInventory[effect.itemId];
             } else {
               GameState.myTerritory.tradeInventory[effect.itemId] = updated;
+              if (effect.quantity > 0) acquisitions.push({ name: TRADE_GOODS.find(g => g.id === effect.itemId)?.name || effect.itemId, icon: TRADE_GOODS.find(g => g.id === effect.itemId)?.icon || '📦', quantity: effect.quantity });
             }
           }
           break;
@@ -515,7 +536,10 @@ export class NarrativeSystem {
             const equipment = effect.mode === 'RANDOM'
               ? EquipmentGenerator.generateByFilter(effect.slot, effect.tier)
               : (effect.templateId ? EquipmentGenerator.generate(effect.templateId) : null);
-            if (equipment) GameState.myTerritory.addEquipmentToWarehouse(equipment);
+            if (equipment) {
+              GameState.myTerritory.addEquipmentToWarehouse(equipment);
+              acquisitions.push({ name: equipment.name, icon: equipment.icon || '⚔️', quantity: 1 });
+            }
           }
           break;
         case 'GRANT_HERO': {
@@ -523,6 +547,7 @@ export class NarrativeSystem {
             const hero = createUniqueAdventurer(effect.heroId);
             if (hero) {
               GameState.adventurers.push(hero);
+              acquisitions.push({ name: hero.name, icon: hero.avatarIcon || '👑', quantity: 1 });
               console.log(`🎉【英雄加入】${hero.name} 已正式加入您的領地麾下！`);
             }
           }
@@ -531,11 +556,22 @@ export class NarrativeSystem {
         case 'SCHEDULE_NODE':
           state.scheduledNodes[this.getNodeKey(storyId, effect.nodeId)] = GameState.totalDays + Math.max(0, effect.delayDays);
           break;
+        case 'PRESENT_NODE':
+          // 等目前對話的同步關閉流程完成後再開下一節，避免兩個 modal 互相覆蓋。
+          queueMicrotask(() => this.presentInteractiveNode(storyId, effect.nodeId, true));
+          break;
         case 'UNLOCK_MAP_NODE': {
-          const target = GameState.mapSystem?.getNodeById(effect.nodeId);
+          const mapSystem = GameState.mapSystem;
+          const target = mapSystem?.getNodeById(effect.nodeId)
+            || mapSystem?.getNodeById(`secret_${effect.nodeId}`)
+            || mapSystem?.getNodes().find(node => node.narrativeSubjugation?.templateId === effect.nodeId);
           if (target) {
             target.isHidden = false;
             target.isDiscovered = true;
+            EventBus.getInstance().publish({
+              type: GameEventType.MAP_NODES_CHANGED,
+              payload: { reason: 'UNLOCKED', nodeId: target.id }
+            });
           }
           break;
         }
@@ -629,6 +665,7 @@ export class NarrativeSystem {
         }
       }
     }
+    AcquisitionNotification.enqueue(acquisitions);
   }
 
   private static createSubjugationNode(storyId: string, definition: Extract<NarrativeEffect, { type: 'CREATE_SUBJUGATION_NODE' }>['definition']): MapNode | null {

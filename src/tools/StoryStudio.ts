@@ -3,6 +3,7 @@ import { StoryStudioGraph } from './story-studio/StoryStudioGraph';
 import { StoryStudioForm } from './story-studio/StoryStudioForm';
 import { StoryStudioPreview } from './story-studio/StoryStudioPreview';
 import { StoryStudioFactionManager } from './story-studio/StoryStudioFactionManager';
+import { FactionManager } from '../systems/FactionManager';
 import {
   channelName,
   DRAFT_STORAGE_KEY,
@@ -295,9 +296,10 @@ async function showHistory(): Promise<void> {
     const restored = await fetch('/api/restore-story-backup', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ filename: target.dataset.file }) });
     if (!restored.ok) return alert('還原失敗。');
     localStorage.removeItem(DRAFT_STORAGE_KEY);
+    FactionManager.discardDraft();
     dialog.close();
     dialog.remove();
-    await store.loadFromProject();
+    await store.loadFromProject(false);
   });
   dialog.querySelector('[data-close]')!.addEventListener('click', () => { dialog.close(); dialog.remove(); });
   dialog.showModal();
@@ -379,12 +381,14 @@ function bindMainEvents(): void {
     StoryStudioFactionManager.getInstance().open(() => {
       // 自訂陣營更新後，重新建構 datalist 與刷新表單
       store.emit('validationChanged');
+      updateDraftBanner();
     });
   });
 
   byId('btn-story-publish')?.addEventListener('click', async () => {
     try {
       const snapshot = await store.saveProject();
+      updateDraftBanner();
       alert(`🎉 故事資料已成功寫入專案！\n快照記錄：${snapshot}`);
     } catch (err: any) {
       alert(`寫入失敗：${err.message}`);
@@ -397,7 +401,8 @@ function bindMainEvents(): void {
   const handleReloadProject = async () => {
     if (confirm('🔄 確定放棄本機暫存草稿，重新從專案檔案載入（Git 最新進度）？\n\n注意：這將清空此瀏覽器中尚未「寫入專案」的暫存，適合在其他電腦 Push 並於此處 Git Pull 後執行。')) {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
-      await store.loadFromProject();
+      FactionManager.discardDraft();
+      await store.loadFromProject(false);
       updateDraftBanner();
       alert('✅ 已成功從專案檔案重新載入最新故事！');
     }
@@ -425,7 +430,9 @@ function bindMainEvents(): void {
 function updateDraftBanner(): void {
   const banner = byId('story-draft-alert-banner');
   if (!banner) return;
-  const hasDraft = typeof localStorage !== 'undefined' && !!localStorage.getItem(DRAFT_STORAGE_KEY);
+  const hasDraft = typeof localStorage !== 'undefined' && (
+    !!localStorage.getItem(DRAFT_STORAGE_KEY) || FactionManager.hasDraft()
+  );
   banner.style.display = hasDraft ? 'flex' : 'none';
 }
 

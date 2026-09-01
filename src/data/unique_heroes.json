@@ -171,5 +171,43 @@
       "armorEnhance": 0,
       "accessoryId": "acc_scholar_pendant"
     }
+  },
+  {
+    "id": "custom_hero_1788240895824",
+    "name": "瓦爾坎",
+    "title": "【龍裔之末】",
+    "quality": "UR",
+    "jobKey": "PRAYER",
+    "traitKey": "STURDY",
+    "gender": "MALE",
+    "isGuardian": false,
+    "avatarIndex": 0,
+    "avatarIcon": "npc_common:npc_dragon_m",
+    "characterKey": "char_Vulkan",
+    "level": 5,
+    "isAdvanced": false,
+    "customSkills": [
+      "Vulkan_SKILL_blood_01",
+      "SKILL_FLAME_BURST",
+      "PRAYER_ARCHBISHOP_MASS_HEAL"
+    ],
+    "biography": "",
+    "customAttributes": {
+      "str": 20,
+      "agi": 5,
+      "con": 25,
+      "int": 20,
+      "spr": 35,
+      "luk": 20,
+      "charm": 10,
+      "command": 10
+    },
+    "equipment": {
+      "weaponTemplateId": "wpn_T1_holy_book_0001",
+      "weaponEnhance": 7,
+      "weaponElement": "NONE",
+      "armorTemplateId": "arm_cloth_t1",
+      "armorEnhance": 7
+    }
   }
 ]

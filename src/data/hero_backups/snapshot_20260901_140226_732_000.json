@@ -1,0 +1,217 @@
+{
+  "timestamp": "2026-09-01T06:02:26.732Z",
+  "note": "使用者在英雄工坊儲存英雄資料庫",
+  "heroes": [
+    {
+      "id": "unique_reyn_valentine",
+      "name": "雷恩·瓦倫泰",
+      "title": "【赤焰戰神】",
+      "quality": "UR",
+      "jobKey": "WARRIOR",
+      "traitKey": "BRAVE",
+      "gender": "MALE",
+      "isGuardian": false,
+      "avatarIndex": 0,
+      "avatarIcon": "heroes_male:heroes_male_13",
+      "characterKey": "char_ryan",
+      "boundMonsterId": "enemy_ryan",
+      "level": 10,
+      "isAdvanced": true,
+      "customSkills": [
+        "rayn_SKILL_CUSTOM_0001",
+        "FIGHTER_ARMOR_BREAK",
+        "GREATSWORD_WHIRLWIND"
+      ],
+      "biography": "昔日瓦倫泰王國的護國大將軍，曾於北方焦土隻身斬殺炎魔，巨劍揮舞之處化為熔岩火海。",
+      "customAttributes": {
+        "str": 45,
+        "agi": 15,
+        "con": 30,
+        "int": 3,
+        "spr": 10,
+        "luk": 2,
+        "charm": 10,
+        "command": 10
+      },
+      "equipment": {
+        "weaponTemplateId": "wpn_T5_greatsword_0001",
+        "weaponEnhance": 0,
+        "weaponElement": "NONE",
+        "armorTemplateId": "arm_heavy_t4",
+        "armorEnhance": 0,
+        "accessoryId": "acc_berserk_badge"
+      }
+    },
+    {
+      "id": "unique_luna_starfall",
+      "name": "露娜·星輝",
+      "title": "【霜語大魔導】",
+      "quality": "SSR",
+      "jobKey": "MAGE",
+      "traitKey": "METICULOUS",
+      "gender": "FEMALE",
+      "isGuardian": false,
+      "avatarIndex": 0,
+      "avatarIcon": "heroes_female:heroes_female_16",
+      "level": 10,
+      "customSkills": [
+        "MAGE_ARCANE_MISSILES",
+        "MAGE_STATIC_FIELD",
+        "STAFF_METEOR"
+      ],
+      "biography": "星界方尖碑的首席守護者，掌握著精確引導極寒魔力的新星魔法，被譽為冰封萬物的霜語者。",
+      "customAttributes": {
+        "str": 2,
+        "agi": 6,
+        "con": 12,
+        "int": 42,
+        "spr": 26,
+        "luk": 2,
+        "charm": 10,
+        "command": 10
+      },
+      "equipment": {
+        "weaponTemplateId": "wpn_archmage_staff",
+        "weaponEnhance": 5,
+        "weaponElement": "ICE",
+        "armorTemplateId": "arm_cloth_robe_t4",
+        "armorEnhance": 4,
+        "accessoryId": "acc_scholar_pendant"
+      }
+    },
+    {
+      "id": "unique_oath_guardian_champion",
+      "name": "神聖誓約騎士",
+      "title": "【不滅誓約】",
+      "quality": "UR",
+      "jobKey": "WARRIOR",
+      "traitKey": "GUARDIAN_VALIANT",
+      "gender": "MALE",
+      "isGuardian": true,
+      "avatarIndex": 1,
+      "avatarIcon": "guardian_m_1",
+      "level": 10,
+      "biography": "領主身旁最忠誠的守護者，立下神聖誓約的鋼鐵壁壘，其盾牌能抵禦一切黑暗衝擊。",
+      "customAttributes": {
+        "str": 25,
+        "agi": 10,
+        "con": 38,
+        "int": 5,
+        "spr": 22,
+        "luk": 5,
+        "charm": 15,
+        "command": 15
+      },
+      "equipment": {
+        "weaponTemplateId": "wpn_meteoric_greatsword",
+        "weaponEnhance": 7,
+        "weaponElement": "HOLY",
+        "armorTemplateId": "arm_heavy_t4",
+        "armorEnhance": 7,
+        "accessoryId": "acc_guardian_shield"
+      }
+    },
+    {
+      "id": "test_guardian_hero",
+      "name": "測試用守護騎士",
+      "title": "【測試用騎士】",
+      "quality": "R",
+      "jobKey": "KNIGHT",
+      "traitKey": "GUARDIAN",
+      "gender": "MALE",
+      "isGuardian": true,
+      "isTestOnly": true,
+      "avatarIndex": 0,
+      "level": 1,
+      "biography": "僅供自動化測試驗證守護傭兵死亡繼承機制的專用英雄。",
+      "customAttributes": {
+        "str": 10,
+        "con": 10,
+        "agi": 10,
+        "spr": 10,
+        "int": 10,
+        "luk": 10,
+        "charm": 5,
+        "command": 5
+      },
+      "equipment": {}
+    },
+    {
+      "id": "custom_hero_1788078225739",
+      "name": "艾特絲克",
+      "title": "【龍裔女法師】",
+      "quality": "SSR",
+      "jobKey": "MAGE",
+      "traitKey": "METICULOUS",
+      "gender": "FEMALE",
+      "isGuardian": false,
+      "avatarIndex": 0,
+      "avatarIcon": "npc_common:npc_dragon_f",
+      "characterKey": "char_eitsk",
+      "level": 5,
+      "isAdvanced": false,
+      "customSkills": [
+        "eitsk_SKILL_Claw_Strike",
+        "SKILL_FLAME_BURST",
+        "STAFF_METEOR"
+      ],
+      "biography": "身患龍裔病的一位女性法師，與相同病患一起與古老黑龍一起生活著。",
+      "customAttributes": {
+        "str": 5,
+        "agi": 10,
+        "con": 5,
+        "int": 45,
+        "spr": 20,
+        "luk": 10,
+        "charm": 10,
+        "command": 10
+      },
+      "equipment": {
+        "weaponTemplateId": "wpn_elemental_staff",
+        "weaponEnhance": 0,
+        "weaponElement": "NONE",
+        "armorTemplateId": "arm_cloth_robe_t3",
+        "armorEnhance": 0,
+        "accessoryId": "acc_scholar_pendant"
+      }
+    },
+    {
+      "id": "custom_hero_1788240895824",
+      "name": "瓦爾坎",
+      "title": "【龍裔之末】",
+      "quality": "UR",
+      "jobKey": "PRAYER",
+      "traitKey": "BRAVE",
+      "gender": "MALE",
+      "isGuardian": false,
+      "avatarIndex": 0,
+      "avatarIcon": "npc_common:npc_dragon_m",
+      "characterKey": "char_Vulkan",
+      "level": 5,
+      "isAdvanced": false,
+      "customSkills": [
+        "Vulkan_SKILL_blood_01",
+        "SKILL_FLAME_BURST",
+        "PRAYER_ARCHBISHOP_MASS_HEAL"
+      ],
+      "biography": "",
+      "customAttributes": {
+        "str": 20,
+        "agi": 5,
+        "con": 25,
+        "int": 20,
+        "spr": 35,
+        "luk": 20,
+        "charm": 10,
+        "command": 10
+      },
+      "equipment": {
+        "weaponTemplateId": "wpn_T1_holy_book_0001",
+        "weaponEnhance": 7,
+        "weaponElement": "NONE",
+        "armorTemplateId": "arm_cloth_t1",
+        "armorEnhance": 7
+      }
+    }
+  ]
+}

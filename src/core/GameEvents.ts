@@ -20,6 +20,7 @@ export enum GameEventType {
   PROSPERITY_CHANGED = 'PROSPERITY_CHANGED', // C1: 月底繁榮度結算通知
   POPULATION_CHANGED = 'POPULATION_CHANGED',
   NARRATIVE_NODE_TRIGGERED = 'NARRATIVE_NODE_TRIGGERED',
+  MAP_NODES_CHANGED = 'MAP_NODES_CHANGED',
 }
 
 export interface GameEventPayloads {
@@ -51,6 +52,7 @@ export interface GameEventPayloads {
   [GameEventType.PROSPERITY_CHANGED]: { delta: number; current: number; nextThreshold: number; levelName: string };
   [GameEventType.POPULATION_CHANGED]: { delta: number; currentPopulation: number; reason: string };
   [GameEventType.NARRATIVE_NODE_TRIGGERED]: { storyId: string; nodeId: string };
+  [GameEventType.MAP_NODES_CHANGED]: { reason: 'UNLOCKED' | 'REMOVED' | 'CREATED'; nodeId: string };
 }
 
 export interface GameEvent<T extends GameEventType = GameEventType> {

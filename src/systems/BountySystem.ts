@@ -3,6 +3,7 @@ import { GameLog } from '../ui/GameLog';
 import { Adventurer } from '../models/Adventurer';
 import { AdventurerState } from '../models/types';
 import { NarrativeSystem } from './NarrativeSystem';
+import { AcquisitionItem, AcquisitionNotification } from '../ui/AcquisitionNotification';
 import { DataStore } from './DataStore';
 import { TRADE_GOODS } from './MarketSystem';
 
@@ -24,6 +25,7 @@ export interface BountyQuest {
   narrativeStoryId?: string;
   narrativeNodeId?: string;
   narrativeNodeKey?: string;
+  objective?: { type: 'DURATION' | 'SUBJUGATE_NODE'; targetNodeId?: string };
 }
 
 export class BountySystem {
@@ -49,11 +51,17 @@ export class BountySystem {
         bounty.remainingDuration--;
         if (bounty.remainingDuration <= 0) {
           bounty.status = 'COMPLETED';
+          const merc = gameState.adventurers?.find((a: Adventurer) => a.id === bounty.dispatchedMercId);
+          if (merc?.currentState === AdventurerState.DISPATCHED) merc.currentState = AdventurerState.IDLE;
           if (bounty.type === 'BANDIT' && gameState.myTerritory) {
             gameState.myTerritory.security = Math.min(100, (gameState.myTerritory.security || 100) + 20);
           }
           GameLog.add(`✅ 委託【${bounty.name}】已完成！請至懸賞欄領取獎勵。`, 'info');
         }
+      } else if (bounty.status === 'COMPLETED' && bounty.dispatchedMercId) {
+        // 修復舊存檔：過去版本會讓已完成但尚未領獎的傭兵持續卡在派遣狀態。
+        const merc = gameState.adventurers?.find((a: Adventurer) => a.id === bounty.dispatchedMercId);
+        if (merc?.currentState === AdventurerState.DISPATCHED) merc.currentState = AdventurerState.IDLE;
       }
     }
 
@@ -104,6 +112,7 @@ export class BountySystem {
               narrativeNodeKey: key,
               narrativeStoryId: story.id,
               narrativeNodeId: node.id,
+              objective: bountyConfig.objective,
               rewards: {
                 gold: bountyConfig.gold,
                 exp: bountyConfig.exp,
@@ -129,11 +138,26 @@ export class BountySystem {
 
     bounty.status = 'IN_PROGRESS';
     bounty.dispatchedMercId = mercId;
-    bounty.remainingDuration = bounty.duration;
+    bounty.remainingDuration = bounty.objective?.type === 'SUBJUGATE_NODE' ? undefined : bounty.duration;
     merc.currentState = AdventurerState.DISPATCHED; // 設定傭兵狀態為派遣中
 
     GameLog.add(`📜 ${merc.name} 接取了委託【${bounty.name}】，預計需要 ${bounty.duration} 回合。`, 'info');
     return true;
+  }
+
+  public static handleSubjugationCompleted(gameState: any, nodeId: string, isVictory: boolean): number {
+    if (!isVictory || !Array.isArray(gameState.bounties)) return 0;
+    let completed = 0;
+    for (const bounty of gameState.bounties as BountyQuest[]) {
+      if (bounty.status !== 'IN_PROGRESS' || bounty.objective?.type !== 'SUBJUGATE_NODE') continue;
+      if (bounty.objective.targetNodeId && bounty.objective.targetNodeId !== nodeId) continue;
+      bounty.status = 'COMPLETED';
+      const merc = gameState.adventurers?.find((a: Adventurer) => a.id === bounty.dispatchedMercId);
+      if (merc?.currentState === AdventurerState.DISPATCHED) merc.currentState = AdventurerState.IDLE;
+      GameLog.add(`✅ 已完成據點討伐委託【${bounty.name}】，請至懸賞欄驗收獎勵。`, 'info');
+      completed++;
+    }
+    return completed;
   }
 
   /**
@@ -148,6 +172,7 @@ export class BountySystem {
     if (bounty.status !== 'COMPLETED' || !bounty.dispatchedMercId) return false;
 
     const merc = gameState.adventurers.find((a: Adventurer) => a.id === bounty.dispatchedMercId);
+    const acquisitions: AcquisitionItem[] = [];
     
     // 給予獎勵
     gameState.myTerritory.gold += bounty.rewards.gold;
@@ -168,6 +193,7 @@ export class BountySystem {
           if (mat) itemName = mat.name;
         }
         rewardText += `、${itemName} x${item.amount}`;
+        acquisitions.push({ name: itemName, icon: item.id, quantity: item.amount });
       });
     }
 
@@ -178,6 +204,7 @@ export class BountySystem {
     }
 
     GameLog.add(`💰 領取【${bounty.name}】報酬！${rewardText}`, 'info');
+    AcquisitionNotification.enqueue(acquisitions);
 
     if (bounty.narrativeStoryId && bounty.narrativeNodeId) {
       NarrativeSystem.completeNode(bounty.narrativeStoryId, bounty.narrativeNodeId);

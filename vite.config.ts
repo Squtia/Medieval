@@ -31,11 +31,17 @@ function developmentStudioPlugin(): Plugin {
         const url = req.url || '';
 
         const storyFile = path.resolve(__dirname, 'src/data/custom_stories.json');
+        const customFactionsFile = path.resolve(__dirname, 'src/data/custom_factions.json');
         const storyBackupsDir = path.resolve(__dirname, 'src/data/story_backups');
 
         if (url === '/api/get-story-definitions' && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
           return res.end(fs.existsSync(storyFile) ? fs.readFileSync(storyFile, 'utf-8') : '[]');
+        }
+
+        if (url === '/api/get-custom-factions' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(fs.existsSync(customFactionsFile) ? fs.readFileSync(customFactionsFile, 'utf-8') : '[]');
         }
 
         if (url === '/api/save-story-definitions' && req.method === 'POST') {
@@ -45,15 +51,18 @@ function developmentStudioPlugin(): Plugin {
             try {
               const payload = JSON.parse(body);
               if (!Array.isArray(payload.stories)) throw new Error('stories 必須是陣列');
+              if (!Array.isArray(payload.customFactions)) throw new Error('customFactions 必須是陣列');
               fs.mkdirSync(storyBackupsDir, { recursive: true });
               atomicWriteFileSync(storyFile, JSON.stringify(payload.stories, null, 2));
+              atomicWriteFileSync(customFactionsFile, JSON.stringify(payload.customFactions, null, 2));
               const now = new Date();
               const stamp = createSnapshotStamp(now);
               const snapshot = `snapshot_${stamp}.json`;
               atomicWriteFileSync(path.resolve(storyBackupsDir, snapshot), JSON.stringify({
                 timestamp: now.toISOString(),
                 note: payload.note || '使用者在故事工坊儲存',
-                stories: payload.stories
+                stories: payload.stories,
+                customFactions: payload.customFactions
               }, null, 2));
               const backups = fs.readdirSync(storyBackupsDir).filter((file: string) => file.startsWith('snapshot_')).sort().reverse();
               for (const oldFile of backups.slice(20)) fs.unlinkSync(path.resolve(storyBackupsDir, oldFile));
@@ -97,6 +106,9 @@ function developmentStudioPlugin(): Plugin {
               const snapshot = JSON.parse(fs.readFileSync(targetPath, 'utf-8'));
               if (!Array.isArray(snapshot.stories)) throw new Error('快照內容不合法');
               atomicWriteFileSync(storyFile, JSON.stringify(snapshot.stories, null, 2));
+              if (Array.isArray(snapshot.customFactions)) {
+                atomicWriteFileSync(customFactionsFile, JSON.stringify(snapshot.customFactions, null, 2));
+              }
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: true, stories: snapshot.stories }));
             } catch (err: any) {

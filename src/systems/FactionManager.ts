@@ -1,10 +1,11 @@
 import { Faction, FactionType, FactionPersonality } from '../models/types';
 import { INITIAL_FACTIONS } from '../data/FactionData';
+import customFactionsJson from '../data/custom_factions.json';
 
 export const CUSTOM_FACTIONS_STORAGE_KEY = 'MEDIEVAL_CUSTOM_FACTIONS_V1';
 
 /** 預設自訂陣營：由創作者於勢力工坊中全權自訂管理 */
-export const DEFAULT_CUSTOM_FACTIONS: Faction[] = [];
+export const DEFAULT_CUSTOM_FACTIONS: Faction[] = customFactionsJson as Faction[];
 
 export class FactionManager {
   private static cachedCustomFactions: Faction[] | null = null;
@@ -32,15 +33,15 @@ export class FactionManager {
       }
     }
 
-    this.cachedCustomFactions = [];
-    return this.cachedCustomFactions;
+    this.cachedCustomFactions = JSON.parse(JSON.stringify(DEFAULT_CUSTOM_FACTIONS));
+    return this.cachedCustomFactions!;
   }
 
   /**
    * 儲存自訂陣營列表
    */
   public static saveCustomFactions(factions: Faction[]): void {
-    this.cachedCustomFactions = factions;
+    this.cachedCustomFactions = JSON.parse(JSON.stringify(factions));
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem(CUSTOM_FACTIONS_STORAGE_KEY, JSON.stringify(factions));
@@ -48,6 +49,29 @@ export class FactionManager {
         console.error('儲存自訂陣營至 localStorage 失敗', err);
       }
     }
+  }
+
+  public static hasDraft(): boolean {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(CUSTOM_FACTIONS_STORAGE_KEY) !== null;
+  }
+
+  public static loadProjectFactions(factions: Faction[], preserveDraft = true): void {
+    if (preserveDraft && this.hasDraft()) {
+      this.cachedCustomFactions = null;
+      this.getCustomFactions();
+      return;
+    }
+    this.cachedCustomFactions = JSON.parse(JSON.stringify(factions));
+  }
+
+  public static markPublished(factions: Faction[]): void {
+    this.cachedCustomFactions = JSON.parse(JSON.stringify(factions));
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(CUSTOM_FACTIONS_STORAGE_KEY);
+  }
+
+  public static discardDraft(): void {
+    this.cachedCustomFactions = null;
+    if (typeof localStorage !== 'undefined') localStorage.removeItem(CUSTOM_FACTIONS_STORAGE_KEY);
   }
 
   /**

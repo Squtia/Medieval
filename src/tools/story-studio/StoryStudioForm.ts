@@ -18,9 +18,6 @@ import { StoryStudioHeroPicker } from './StoryStudioHeroPicker';
 import { getSelectableHeroes } from '../../data/UniqueAdventurers';
 import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
-import equipmentWeaponsJson from '../../data/equipment_weapons.json';
-import equipmentArmorsJson from '../../data/equipment_armors.json';
-import equipmentAccessoriesJson from '../../data/equipment_accessories.json';
 
 export class StoryStudioForm {
   private store: StoryStudioStore;
@@ -99,6 +96,14 @@ export class StoryStudioForm {
       this.setValue('story-node-target-map', node.targetNodeId ?? '');
       this.setValue('story-node-npc-name', node.npcName ?? '');
       this.setValue('story-node-npc-avatar', node.npcAvatar ?? 'npc:npc_0');
+      const endingBox = this.byId<HTMLInputElement>('story-node-is-ending');
+      if (endingBox) endingBox.checked = !!node.isEnding;
+      this.setValue('story-node-loop-mode', node.loop?.mode ?? 'NONE');
+      this.setValue('story-node-loop-target', node.loop?.targetNodeId ?? node.id);
+      this.setValue('story-node-loop-reset', (node.loop?.resetNodeIds || []).join(', '));
+      this.setValue('story-node-loop-cooldown', node.loop?.cooldownDays ?? 0);
+      const loopFields = this.byId('story-node-loop-fields');
+      if (loopFields) loopFields.style.display = node.loop ? 'block' : 'none';
 
       const avatarPreview = this.byId('story-node-npc-avatar-preview');
       if (avatarPreview) {
@@ -113,6 +118,8 @@ export class StoryStudioForm {
       this.setValue('story-node-bounty-gold', node.bounty?.gold ?? 50);
       this.setValue('story-node-bounty-exp', node.bounty?.exp ?? 30);
       this.setValue('story-node-bounty-type', node.bounty?.type ?? 'NORMAL');
+      this.setValue('story-node-bounty-objective', node.bounty?.objective?.type ?? 'DURATION');
+      this.setValue('story-node-bounty-target', node.bounty?.objective?.targetNodeId ?? '');
 
       const bountyFields = this.byId<HTMLDetailsElement>('story-editor-bounty-fields');
       if (bountyFields) {
@@ -167,8 +174,10 @@ export class StoryStudioForm {
 
     // 自動遷移故事內其他節點對此 ID 的引用（如排程與討伐）
     for (const other of story.nodes) {
+      if (other.loop?.targetNodeId === oldId) other.loop.targetNodeId = newId;
+      if (other.loop?.resetNodeIds) other.loop.resetNodeIds = other.loop.resetNodeIds.map(id => id === oldId ? newId : id);
       for (const fx of [...other.completionEffects, ...other.choices.flatMap(c => c.effects)]) {
-        if (fx.type === 'SCHEDULE_NODE' && fx.nodeId === oldId) fx.nodeId = newId;
+        if ((fx.type === 'SCHEDULE_NODE' || fx.type === 'PRESENT_NODE') && fx.nodeId === oldId) fx.nodeId = newId;
         if (fx.type === 'CREATE_SUBJUGATION_NODE') {
           if (fx.definition.victoryNodeId === oldId) fx.definition.victoryNodeId = newId;
           if (fx.definition.defeatNodeId === oldId) fx.definition.defeatNodeId = newId;
@@ -197,6 +206,16 @@ export class StoryStudioForm {
     node.description = this.value('story-node-description');
     node.npcName = this.value('story-node-npc-name') || undefined;
     node.npcAvatar = this.value('story-node-npc-avatar') || undefined;
+    node.isEnding = this.byId<HTMLInputElement>('story-node-is-ending')?.checked || undefined;
+    const loopMode = this.value('story-node-loop-mode') as 'NONE' | 'SELF' | 'CHAIN';
+    node.loop = loopMode === 'NONE' ? undefined : {
+      mode: loopMode,
+      targetNodeId: loopMode === 'SELF' ? node.id : this.value('story-node-loop-target'),
+      resetNodeIds: loopMode === 'SELF' ? [node.id] : this.value('story-node-loop-reset').split(',').map(id => id.trim()).filter(Boolean),
+      cooldownDays: Math.max(0, this.numberValue('story-node-loop-cooldown'))
+    };
+    const loopFields = this.byId('story-node-loop-fields');
+    if (loopFields) loopFields.style.display = loopMode === 'NONE' ? 'none' : 'block';
     node.targetNodeId = node.channel === 'STORY_NODE' ? this.value('story-node-target-map') || undefined : undefined;
     node.repeatable = node.channel === 'BOUNTY_BOARD' ? this.byId<HTMLInputElement>('story-node-bounty-repeatable')?.checked : undefined;
     node.cooldownDays = node.channel === 'BOUNTY_BOARD' && node.repeatable ? Math.max(0, this.numberValue('story-node-bounty-cooldown')) : undefined;
@@ -205,7 +224,11 @@ export class StoryStudioForm {
       expireDays: Math.max(1, this.numberValue('story-node-bounty-expire')),
       gold: Math.max(0, this.numberValue('story-node-bounty-gold')),
       exp: Math.max(0, this.numberValue('story-node-bounty-exp')),
-      type: (this.byId<HTMLSelectElement>('story-node-bounty-type')?.value || 'NORMAL') as 'NORMAL' | 'BANDIT'
+      type: (this.byId<HTMLSelectElement>('story-node-bounty-type')?.value || 'NORMAL') as 'NORMAL' | 'BANDIT',
+      objective: {
+        type: (this.value('story-node-bounty-objective') || 'DURATION') as 'DURATION' | 'SUBJUGATE_NODE',
+        targetNodeId: this.value('story-node-bounty-target') || undefined
+      }
     } : undefined;
 
     const bountyFields = this.byId<HTMLDetailsElement>('story-editor-bounty-fields');
@@ -460,7 +483,7 @@ export class StoryStudioForm {
     effects.forEach((effect, index) => {
       const row = document.createElement('div');
       row.className = 'story-effect-row';
-      row.innerHTML = `<div class="story-effect-head"><select data-effect-type>${Object.entries(EFFECT_LABELS).map(([type, label]) => `<option value="${type}"${type === effect.type ? ' selected' : ''}>${label}</option>`).join('')}</select><button type="button" class="action-btn story-danger" data-remove>刪除</button></div><div class="story-effect-fields">${this.effectFields(effect)}</div>`;
+      row.innerHTML = `<div class="story-effect-head"><select data-effect-type>${Object.entries(EFFECT_LABELS).map(([type, label]) => `<option value="${type}"${type === effect.type ? ' selected' : ''}>${label}</option>`).join('')}</select><button type="button" class="action-btn story-danger" data-remove>刪除</button></div><div class="story-effect-fields"><label>觸發機率 (%)<input data-field="chancePercent" type="number" min="0" max="100" value="${effect.chancePercent ?? 100}"></label>${this.effectFields(effect)}</div>`;
       row.querySelector<HTMLSelectElement>('[data-effect-type]')!.addEventListener('change', event => {
         const next = [...effects];
         next[index] = defaultEffect((event.target as HTMLSelectElement).value as NarrativeEffect['type']);
@@ -559,7 +582,7 @@ export class StoryStudioForm {
             ? field.checked
             : field instanceof HTMLInputElement && field.type === 'number'
               ? Number(field.value) || 0
-              : property === 'journeyNodeIds'
+              : property === 'journeyNodeIds' || property === 'itemIds'
                 ? field.value.split(',').map(item => item.trim()).filter(Boolean)
                 : field.value;
 
@@ -629,6 +652,13 @@ export class StoryStudioForm {
         const iconHtml = mat ? renderUniversalIcon(mat.icon || '💎', 26) : '💎';
         return `
           <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
+            ${select('發放模式', 'mode', effect.mode || 'FIXED', [
+              { value: 'FIXED', label: '固定指定素材' },
+              { value: 'RANDOM', label: '從候選素材隨機抽取' }
+            ])}
+            ${effect.mode === 'RANDOM' ? `
+              ${input('隨機候選素材 IDs（逗號分隔；留空＝全部素材）', 'itemIds', (effect.itemIds || []).join(', '))}
+            ` : `
             <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
               <span>素材項目：</span>
               <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
@@ -639,6 +669,9 @@ export class StoryStudioForm {
             <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <button type="button" class="action-btn" data-btn-pick-item="MATERIAL" style="padding:5px 14px; font-size:0.8rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer; border-radius:4px;">🔍 挑選素材</button>
               <input data-field="itemId" type="hidden" value="${escapeHtml(effect.itemId || '')}">
+            </div>
+            `}
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
               <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.8rem; color:#f59e0b; font-weight:bold;">
                 <span>發放數量：</span>
                 <input data-field="quantity" type="number" min="1" max="999" value="${effect.quantity ?? 1}" style="width:75px; min-width:75px; padding:4px 8px; font-size:0.85rem; font-weight:bold; color:#fde68a; background:#0f131a; border:1px solid rgba(245,158,11,0.6); border-radius:4px; text-align:center; box-sizing:border-box;">
@@ -653,6 +686,10 @@ export class StoryStudioForm {
         const iconHtml = tg ? renderUniversalIcon(tg.icon || '🍷', 26) : '🍷';
         return `
           <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
+            ${select('發放模式', 'mode', effect.mode || 'FIXED', [
+              { value: 'FIXED', label: '固定指定特產' },
+              { value: 'RANDOM', label: '全部特產隨機抽取' }
+            ])}
             <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
               <span>特產項目：</span>
               <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
@@ -672,12 +709,27 @@ export class StoryStudioForm {
         `;
       }
       case 'GRANT_EQUIPMENT': {
-        const allEq = [...(equipmentWeaponsJson as any[]), ...(equipmentArmorsJson as any[]), ...(equipmentAccessoriesJson as any[])];
-        const eq = allEq.find(e => e.id === effect.templateId);
+        const eq = effect.templateId ? DataStore.getEquipmentTemplate(effect.templateId) : null;
         const display = eq ? `${eq.name} (${eq.id})` : (effect.templateId || '尚未指定裝備');
         const iconHtml = eq ? renderUniversalIcon(eq.icon || '⚔️', 26) : '⚔️';
         return `
           <div style="display:flex; flex-direction:column; gap:6px; margin-bottom:4px;">
+            ${select('發放模式', 'mode', effect.mode || 'FIXED', [
+              { value: 'FIXED', label: '固定指定裝備' },
+              { value: 'RANDOM', label: '依條件隨機生成裝備' }
+            ])}
+            ${effect.mode === 'RANDOM' ? `
+              <div style="display:flex; gap:8px;">
+                ${select('隨機部位', 'slot', effect.slot || 'ANY', [
+                  { value: 'ANY', label: '全部部位' }, { value: 'WEAPON', label: '武器' },
+                  { value: 'ARMOR', label: '防具' }, { value: 'ACCESSORY', label: '飾品' }
+                ])}
+                ${select('隨機階級', 'tier', String(effect.tier || 'ANY'), [
+                  { value: 'ANY', label: '全部階級' }, { value: '1', label: 'Tier 1' },
+                  { value: '2', label: 'Tier 2' }, { value: '3', label: 'Tier 3' }, { value: '4', label: 'Tier 4' }
+                ])}
+              </div>
+            ` : `
             <div style="font-size:0.78rem; color:#a8a29e; display:flex; align-items:center; gap:6px;">
               <span>指定裝備：</span>
               <div style="display:inline-flex; align-items:center; gap:6px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:4px; border:1px solid rgba(255,255,255,0.08);">
@@ -688,6 +740,9 @@ export class StoryStudioForm {
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <button type="button" class="action-btn" data-btn-pick-item="EQUIPMENT" style="padding:5px 14px; font-size:0.8rem; background:#d97706; color:#fff; border-color:#f59e0b; font-weight:bold; cursor:pointer; border-radius:4px;">🔍 挑選裝備庫</button>
               <input data-field="templateId" type="text" value="${escapeHtml(effect.templateId || '')}" placeholder="或手動填入裝備 ID" style="flex:1; min-width:140px; font-size:0.78rem; padding:4px 8px;">
+            </div>
+            `}
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
               <label style="display:inline-flex; align-items:center; gap:4px; font-size:0.8rem; color:#f59e0b; font-weight:bold;">
                 <span>數量：</span>
                 <input data-field="quantity" type="number" min="1" max="99" value="${effect.quantity ?? 1}" style="width:65px; min-width:65px; padding:4px 6px; font-size:0.85rem; font-weight:bold; color:#fde68a; background:#0f131a; border:1px solid rgba(245,158,11,0.6); border-radius:4px; text-align:center; box-sizing:border-box;">
@@ -697,6 +752,7 @@ export class StoryStudioForm {
         `;
       }
       case 'SCHEDULE_NODE': return `${input('目標故事節點 ID', 'nodeId', effect.nodeId)}${input('等待天數', 'delayDays', effect.delayDays, 'number')}`;
+      case 'PRESENT_NODE': return `${input('立即接續的故事節點 ID', 'nodeId', effect.nodeId)}<div style="font-size:.72rem;color:#fde68a;">目前對話關閉後立刻開啟；關鍵銜接請保持 100% 觸發。</div>`;
       case 'UNLOCK_MAP_NODE': return input('解鎖地圖節點 ID', 'nodeId', effect.nodeId);
       case 'REMOVE_MAP_NODE': {
         const allTemplates = DataStore.getSubjugationTemplates();
@@ -1034,8 +1090,11 @@ export class StoryStudioForm {
     const nodeFieldIds = [
       'story-node-channel', 'story-node-title', 'story-node-description',
       'story-node-target-map', 'story-node-npc-name', 'story-node-npc-avatar',
+      'story-node-is-ending', 'story-node-loop-mode', 'story-node-loop-target',
+      'story-node-loop-reset', 'story-node-loop-cooldown',
       'story-node-bounty-repeatable', 'story-node-bounty-cooldown', 'story-node-bounty-duration',
-      'story-node-bounty-expire', 'story-node-bounty-gold', 'story-node-bounty-exp', 'story-node-bounty-type'
+      'story-node-bounty-expire', 'story-node-bounty-gold', 'story-node-bounty-exp', 'story-node-bounty-type',
+      'story-node-bounty-objective', 'story-node-bounty-target'
     ];
 
     nodeFieldIds.forEach(id => {

@@ -219,7 +219,9 @@ export class BountyModalController {
     const elDesc = document.getElementById('bounty-detail-desc');
     if (elDesc) elDesc.innerText = bounty.desc;
     const elDuration = document.getElementById('bounty-detail-duration');
-    if (elDuration) elDuration.innerText = bounty.duration.toString();
+    if (elDuration) elDuration.innerText = bounty.objective?.type === 'SUBJUGATE_NODE'
+      ? `討伐據點：${bounty.objective.targetNodeId || '任意據點'}`
+      : bounty.duration.toString();
 
     // 獎勵字串
     let rewardText = `💰 ${bounty.rewards.gold} 金幣, ✨ ${bounty.rewards.exp} 經驗`;

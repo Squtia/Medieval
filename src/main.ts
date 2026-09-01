@@ -54,6 +54,10 @@ export function initGlobalUIEvents() {
     UIManager.updateUI();
     refreshExplorationUI();
   }, 'ui');
+  EventBus.getInstance().subscribe(GameEventType.MAP_NODES_CHANGED, () => {
+    renderMap();
+    UIManager.updateUI();
+  }, 'ui');
   EventBus.getInstance().subscribe(GameEventType.NARRATIVE_NODE_TRIGGERED, ({ storyId, nodeId }) => {
     const ref = NarrativeSystem.findNode(storyId, nodeId);
     if (!ref) return;

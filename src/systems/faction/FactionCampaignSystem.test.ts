@@ -79,7 +79,7 @@ describe('FactionCampaignSystem & FactionNarrativeBridge', () => {
     const atk = createDefaultFactionProfile(dummyAttacker);
     const def = createDefaultFactionProfile(dummyDefender);
 
-    const campaign = FactionCampaignSystem.launchCampaign(atk, def, dummyOrigin, dummyTarget, 'BORDER_RAID');
+    const campaign = FactionCampaignSystem.launchCampaign(atk, def.id, dummyOrigin, dummyTarget, 'BORDER_RAID');
     expect(campaign.status).toBe('MARCHING');
     expect(campaign.infantry).toBeGreaterThan(0);
     expect(atk.military.activeCampaignId).toBe(campaign.id);
@@ -100,7 +100,7 @@ describe('FactionCampaignSystem & FactionNarrativeBridge', () => {
     atk.military.infantry = 300; // 強大攻城主力
     atk.military.siegeRams = 2;
 
-    const campaign = FactionCampaignSystem.launchCampaign(atk, def, dummyOrigin, dummyTarget, 'SIEGE');
+    const campaign = FactionCampaignSystem.launchCampaign(atk, def.id, dummyOrigin, dummyTarget, 'SIEGE');
     
     // 行軍抵達
     while (campaign.status === 'MARCHING') {
