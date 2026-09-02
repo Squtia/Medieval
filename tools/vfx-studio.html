@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>專業遊戲 3D 特效與 Shader 工坊 (VFX Studio)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #090c10;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 左側 3D 視窗容器 */
+    .viewport-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #0d1117;
+      position: relative;
+    }
+
+    /* 頂部工具列 */
+    .top-toolbar {
+      height: 54px;
+      background: #161b22;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 10;
+    }
+    .top-title {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .playback-controls {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-tool {
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 7px 15px;
+      font-size: 0.88rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-tool:hover {
+      background: #30363d;
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+    .btn-tool.primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+      color: #ffffff;
+      font-weight: bold;
+    }
+    .btn-tool.primary:hover {
+      background: #0369a1;
+    }
+
+    /* 3D 畫布與 2D 舞台容器 */
+    .viewport-canvas-container {
+      flex: 1;
+      position: relative;
+      background: #090d16;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 頂層：完全透明的 Three.js 3D 特效畫布 */
+    #three-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2; /* 關鍵：特效在最上層 */
+      pointer-events: none;
+      background: transparent;
+    }
+
+    /* 底層：原生的 2D HTML/CSS 角色卡牌舞台 */
+    .scene-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1; /* 關鍵：卡牌在底層 */
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 120px;
+    }
+    .ref-card {
+      width: 130px;
+      height: 180px;
+      border: 2px solid #334155;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1e293b;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+      transition: transform 0.1s ease;
+      position: relative;
+    }
+    .ref-card.caster {
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    }
+    .ref-card.target {
+      border-color: #ef4444;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+    }
+    .ref-card-icon { font-size: 3.2rem; }
+    .ref-card-label {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    /* 受擊震顫動畫 */
+    .target-hit {
+      animation: anim-hit 0.3s ease-out;
+    }
+    @keyframes anim-hit {
+      0% { transform: scale(1); filter: brightness(1.8); }
+      30% { transform: scale(0.95) translate(10px, -4px); filter: brightness(2.2); }
+      100% { transform: scale(1) translate(0, 0); filter: none; }
+    }
+
+    /* 右側 Inspector 面板 */
+    .inspector-panel {
+      width: 440px;
+      min-width: 420px;
+      height: 100vh;
+      background: #161b22;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      border-left: 1px solid #30363d;
+    }
+    .inspector-panel::-webkit-scrollbar { width: 8px; }
+    .inspector-panel::-webkit-scrollbar-track { background: #0d1117; }
+    .inspector-panel::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+    .inspector-panel::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+    .inspector-header {
+      padding: 14px 18px;
+      background: #0d1117;
+      border-bottom: 1px solid #30363d;
+      flex-shrink: 0;
+    }
+    .inspector-header label {
+      font-size: 0.8rem;
+      color: #8b949e;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: bold;
+    }
+    .preset-select {
+      width: 100%;
+      margin-top: 8px;
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      outline: none;
+      cursor: pointer;
+    }
+    .preset-select:focus { border-color: #38bdf8; }
+
+    /* Inspector 卡片群組 */
+    .inspector-card {
+      margin: 10px 14px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .inspector-card-title {
+      padding: 10px 14px;
+      background: #1c2128;
+      border-bottom: 1px solid #30363d;
+      font-size: 0.88rem;
+      font-weight: bold;
+      color: #58a6ff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .inspector-card-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* 參數行 */
+    .param-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .param-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.84rem;
+    }
+    .param-label { color: #c9d1d9; font-weight: 500; }
+    .param-value {
+      color: #38bdf8;
+      font-family: 'Consolas', monospace;
+      font-size: 0.88rem;
+      font-weight: bold;
+      background: #21262d;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid #30363d;
+    }
+    .param-control { display: flex; align-items: center; gap: 12px; }
+    .param-slider {
+      flex: 1;
+      height: 6px;
+      accent-color: #38bdf8;
+      cursor: pointer;
+      background: #21262d;
+      border-radius: 3px;
+    }
+    .param-color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+    .param-color-input {
+      width: 50px;
+      height: 28px;
+      border: 1px solid #484f58;
+      border-radius: 6px;
+      background: none;
+      cursor: pointer;
+      padding: 1px;
+    }
+
+    /* 下拉選單小元件 */
+    .param-select {
+      width: 100%;
+      background: #21262d;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      padding: 7px 10px;
+      border-radius: 5px;
+      font-size: 0.88rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* 底部 JSON 輸出區 */
+    .inspector-footer {
+      padding: 14px;
+      margin-top: 10px;
+      border-top: 1px solid #30363d;
+      background: #0d1117;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+    }
+    .btn-save-json {
+      background: #238636;
+      color: #ffffff;
+      border: 1px solid rgba(240, 246, 252, 0.1);
+      padding: 11px;
+      font-size: 0.9rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s ease;
+    }
+    .btn-save-json:hover { background: #2ea043; }
+  </style>
+</head>
+<body>
+
+  <!-- 左側 3D 視窗 -->
+  <div class="viewport-container">
+    <div class="top-toolbar">
+      <div class="top-title">
+        <span>🌟 專業遊戲 3D 特效與 Shader 工坊 (VFX Studio)</span>
+      </div>
+      <div class="playback-controls">
+        <button id="btn-play" class="btn-tool primary">▶ 播放 (Space)</button>
+        <button id="btn-loop" class="btn-tool" style="border-color: #38bdf8; color: #38bdf8;">🔄 自動循環: 開</button>
+        <button id="btn-slow" class="btn-tool">🐢 慢動作 (0.3x)</button>
+        <button id="btn-bg-toggle" class="btn-tool">🎨 背景: 純黑暗房</button>
+      </div>
+    </div>
+
+    <div class="viewport-canvas-container" id="viewport">
+      <!-- 底層：原生的 2D HTML/CSS 角色卡牌舞台 -->
+      <div class="scene-overlay" id="scene-overlay">
+        <div class="ref-card caster" id="ref-caster">
+          <div class="ref-card-icon">🦸</div>
+          <div class="ref-card-label">施法者 (Start)</div>
+        </div>
+        <div class="ref-card target" id="ref-target">
+          <div class="ref-card-icon">👺</div>
+          <div class="ref-card-label">受擊目標 (End)</div>
+        </div>
+      </div>
+      <!-- 頂層：完全透明的 3D 特效畫布 -->
+      <canvas id="three-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- 右側 Inspector 專業調參面板 -->
+  <div class="inspector-panel">
+    <div class="inspector-header">
+      <label>特效預設範例 (VFX Preset)</label>
+      <select id="preset-select" class="preset-select">
+        <option value="FROST_LANCE">❄️ 冰霜之矛 (Frost Lance - 水平飛射)</option>
+        <option value="GLACIER_SPIKE">🧊 極地冰川裂地 (Glacier Eruption - 地表突起)</option>
+        <option value="STORM_BOLT">⚡ 風暴狂雷 (Storm Bolt - 天空垂直狂劈)</option>
+        <option value="VOLUMETRIC_METEOR">☄️ 體積流星 (Volumetric Meteor - 斜向天降)</option>
+        <option value="NOVA_BEAM">💫 雙頻高能雷射 (Nova Beam - 貫穿光柱)</option>
+      </select>
+    </div>
+
+    <!-- 卡片 1: 🚀 空間軌跡與幾何運動 (Trajectory & Motion) -->
+    <div class="inspector-card">
+      <div class="inspector-card-title">🚀 空間軌跡與幾何運動 (Trajectory & Motion)</div>
+      <div class="inspector-card-body">
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">空間軌跡方向 (Trajectory Mode)</span>
+          </div>
+          <select id="param-trajectory" class="param-select">
+            <option value="HORIZONTAL">🎯 水平飛射 (Horizontal A ➔ B)</option>
+            <option value="DIAGONAL_DROP">☄️ 斜向天降 (Diagonal Sky ➔ Target)</option>
+            <option value="VERTICAL_DROP">⚡ 垂直天降 (Vertical Top ➔ Down)</option>
+            <option value="GROUND_ERUPTION">🌋 地表破土突起 (Ground Eruption Bottom ➔ Up)</option>
+            <option value="PARABOLA_ARC">🏹 拋物線拋射 (Parabolic Arc)</option>
+          </select>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">飛行/施法時長 (Duration)</span>
+            <span id="val-duration" class="param-value">0.35s</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-duration" class="param-slider" min="0.1" max="1.5" step="0.05" value="0.35">
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">自轉角速度 (Angular Spin)</span>
+            <span id="val-spin" class="param-value">22 rad/s</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-spin" class="param-slider" min="0" max="60" step="2" value="22">
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">本體尺寸縮放 (Scale)</span>
+            <span id="val-scale" class="param-value">1.0x</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-scale" class="param-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 卡片 2: 🧪 著色器模式與 HDR 光學 (Shader & Materials) -->
+    <div class="inspector-card">
+      <div class="inspector-card-title">🧪 著色器模式與 HDR 光學 (Shader Engine)</div>
+      <div class="inspector-card-body">
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">著色器演算法 (Shader Core)</span>
+          </div>
+          <select id="param-shader-mode" class="param-select">
+            <option value="FRESNEL_ICE">❄️ 菲涅爾冰晶折射 (Fresnel Ice/Crystal)</option>
+            <option value="VOLUMETRIC_FIRE">🔥 體積黑體輻射火焰 (Volumetric Black-Body)</option>
+            <option value="DIELECTRIC_LIGHTNING">⚡ 介質擊穿分形電弧 (Dielectric Lightning)</option>
+            <option value="ENERGY_BEAM">💫 雙頻高能脈衝光柱 (Dual-Freq Beam)</option>
+          </select>
+        </div>
+        <div class="param-color-row">
+          <span class="param-label">核心高溫顏色 (Core / Hot Color)</span>
+          <input type="color" id="param-color-core" class="param-color-input" value="#ffffff">
+        </div>
+        <div class="param-color-row">
+          <span class="param-label">邊緣/外層光顏色 (Rim / Outer Color)</span>
+          <input type="color" id="param-color-rim" class="param-color-input" value="#38bdf8">
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">菲涅爾指數 / 湍流強度 (Fresnel / Turbulence)</span>
+            <span id="val-fresnel" class="param-value">1.8</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-fresnel" class="param-slider" min="0.5" max="4.0" step="0.1" value="1.8">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 卡片 3: 💨 拖尾粒子系統 (Ribbon & Trail) -->
+    <div class="inspector-card">
+      <div class="inspector-card-title">💨 拖尾與伴隨粒子 (Trail Emitter)</div>
+      <div class="inspector-card-body">
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">拖尾發射數量 (Trail Count)</span>
+            <span id="val-trail-count" class="param-value">40</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-trail-count" class="param-slider" min="0" max="100" step="5" value="40">
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">拖尾粒子尺寸 (Particle Size)</span>
+            <span id="val-trail-size" class="param-value">10px</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-trail-size" class="param-slider" min="2" max="30" step="1" value="10">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 卡片 4: 💥 命中爆發與地面次生 (Impact Sub-Emitters) -->
+    <div class="inspector-card">
+      <div class="inspector-card-title">💥 命中爆發與地面次生 (Impact Sub-Emitters)</div>
+      <div class="inspector-card-body">
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">地面次生冰錐/岩刺 (Ground Spikes)</span>
+            <span id="val-spikes" class="param-value">8 根</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-spikes" class="param-slider" min="0" max="16" step="1" value="8">
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">地面次生物高度 (Spike Height)</span>
+            <span id="val-spike-height" class="param-value">60px</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-spike-height" class="param-slider" min="20" max="120" step="5" value="60">
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">碎裂火花/碎片數量 (Burst Debris)</span>
+            <span id="val-burst-count" class="param-value">60 顆</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-burst-count" class="param-slider" min="0" max="120" step="10" value="60">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 卡片 5: 🌈 全域 Bloom 高光後處理 (Post-Processing) -->
+    <div class="inspector-card">
+      <div class="inspector-card-title">🌈 全域 Bloom 高光後處理 (Post-Processing)</div>
+      <div class="inspector-card-body">
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">發光強度 (Bloom Strength)</span>
+            <span id="val-bloom-str" class="param-value">1.8</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-bloom-str" class="param-slider" min="0.0" max="4.0" step="0.1" value="1.8">
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">發光半徑 (Bloom Radius)</span>
+            <span id="val-bloom-rad" class="param-value">0.45</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-bloom-rad" class="param-slider" min="0.1" max="1.2" step="0.05" value="0.45">
+          </div>
+        </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">發光閾值 (Threshold)</span>
+            <span id="val-bloom-thresh" class="param-value">0.12</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-bloom-thresh" class="param-slider" min="0.0" max="0.6" step="0.02" value="0.12">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部保存 -->
+    <div class="inspector-footer">
+      <button id="btn-save" class="btn-save-json">💾 複製此特效 JSON 設定檔</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+    // ── 1. 初始化 Three.js 透明特效畫布 ──
+    const container = document.getElementById('viewport');
+    const canvas = document.getElementById('three-canvas');
+    const targetCardDOM = document.getElementById('ref-target');
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    const fovInRad = (camera.fov * Math.PI) / 180;
+    camera.position.z = height / (2 * Math.tan(fovInRad / 2));
+
+    // 關鍵：alpha: true 保持完全透明，完美穿透露出底層 2D 卡牌
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, premultipliedAlpha: false });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setClearColor(0x000000, 0); // 100% 透明
+
+    window.addEventListener('resize', () => {
+      width = container.clientWidth;
+      height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.position.z = height / (2 * Math.tan(fovInRad / 2));
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    });
+
+    // ── 2. 當前完整可控參數物件 (VFX Config State) ──
+    let isSlowMo = false;
+    let isDarkBg = true;
+    let isLooping = true;
+    let loopTimer = null;
+
+    const config = {
+      preset: 'FROST_LANCE',
+      trajectory: 'HORIZONTAL', // HORIZONTAL | VERTICAL_DROP | GROUND_ERUPTION | PARABOLA_ARC
+      shaderMode: 'FRESNEL_ICE', // FRESNEL_ICE | VOLUMETRIC_FIRE | DIELECTRIC_LIGHTNING | ENERGY_BEAM
+      duration: 0.35,
+      spin: 22,
+      scale: 1.0,
+      colorCore: '#ffffff',
+      colorRim: '#38bdf8',
+      fresnel: 1.8,
+      trailCount: 40,
+      trailSize: 10,
+      spikes: 8,
+      spikeHeight: 60,
+      burstCount: 60,
+      bloomStr: 1.8,
+      bloomRad: 0.45,
+      bloomThresh: 0.12
+    };
+
+    // ── 3. 綁定 UI 事件（拉動滑桿即時自動重播） ──
+    function bindParam(sliderId, valId, configKey, unit = '', shouldReplay = false) {
+      const slider = document.getElementById(sliderId);
+      const val = document.getElementById(valId);
+      slider.addEventListener('input', (e) => {
+        config[configKey] = parseFloat(e.target.value);
+        val.textContent = e.target.value + unit;
+        updateLiveSettings();
+        if (shouldReplay) {
+          playCurrentEffect();
+        }
+      });
+    }
+
+    bindParam('param-duration', 'val-duration', 'duration', 's', true);
+    bindParam('param-spin', 'val-spin', 'spin', ' rad/s');
+    bindParam('param-scale', 'val-scale', 'scale', 'x', true);
+    bindParam('param-fresnel', 'val-fresnel', 'fresnel', '', true);
+    bindParam('param-trail-count', 'val-trail-count', 'trailCount', '', true);
+    bindParam('param-trail-size', 'val-trail-size', 'trailSize', 'px', true);
+    bindParam('param-spikes', 'val-spikes', 'spikes', ' 根', true);
+    bindParam('param-spike-height', 'val-spike-height', 'spikeHeight', 'px', true);
+    bindParam('param-burst-count', 'val-burst-count', 'burstCount', ' 顆', true);
+    bindParam('param-bloom-str', 'val-bloom-str', 'bloomStr', '', true);
+    bindParam('param-bloom-rad', 'val-bloom-rad', 'bloomRad', '', true);
+    bindParam('param-bloom-thresh', 'val-bloom-thresh', 'bloomThresh', '', true);
+
+    document.getElementById('param-trajectory').addEventListener('change', (e) => {
+      config.trajectory = e.target.value;
+      playCurrentEffect();
+    });
+
+    document.getElementById('param-shader-mode').addEventListener('change', (e) => {
+      config.shaderMode = e.target.value;
+      playCurrentEffect();
+    });
+
+    document.getElementById('param-color-core').addEventListener('input', (e) => { 
+      config.colorCore = e.target.value; 
+      updateLiveSettings();
+      playCurrentEffect();
+    });
+    document.getElementById('param-color-rim').addEventListener('input', (e) => { 
+      config.colorRim = e.target.value; 
+      updateLiveSettings();
+      playCurrentEffect();
+    });
+
+    function updateLiveSettings() {
+      // 即時連動透明層發光濾鏡與光學強度
+      const blurRadius = Math.round(config.bloomRad * 36);
+      const brightness = (0.8 + config.bloomStr * 0.45).toFixed(2);
+      canvas.style.filter = `drop-shadow(0 0 ${blurRadius}px ${config.colorRim}) brightness(${brightness})`;
+    }
+
+    // 預設範本切換
+    document.getElementById('preset-select').addEventListener('change', (e) => {
+      config.preset = e.target.value;
+      if (config.preset === 'FROST_LANCE') {
+        config.trajectory = 'HORIZONTAL';
+        config.shaderMode = 'FRESNEL_ICE';
+        config.colorCore = '#ffffff';
+        config.colorRim = '#38bdf8';
+        config.duration = 0.35;
+        config.spikes = 8;
+      } else if (config.preset === 'GLACIER_SPIKE') {
+        config.trajectory = 'GROUND_ERUPTION';
+        config.shaderMode = 'FRESNEL_ICE';
+        config.colorCore = '#e0f2fe';
+        config.colorRim = '#0284c7';
+        config.duration = 0.45;
+        config.spikes = 12;
+        config.spikeHeight = 85;
+      } else if (config.preset === 'STORM_BOLT') {
+        config.trajectory = 'VERTICAL_DROP';
+        config.shaderMode = 'DIELECTRIC_LIGHTNING';
+        config.colorCore = '#ffffff';
+        config.colorRim = '#fef08a';
+        config.duration = 0.25;
+      } else if (config.preset === 'VOLUMETRIC_METEOR') {
+        config.trajectory = 'DIAGONAL_DROP';
+        config.shaderMode = 'VOLUMETRIC_FIRE';
+        config.colorCore = '#fef08a';
+        config.colorRim = '#ef4444';
+        config.duration = 0.55;
+        config.spikes = 0;
+      } else if (config.preset === 'NOVA_BEAM') {
+        config.trajectory = 'HORIZONTAL';
+        config.shaderMode = 'ENERGY_BEAM';
+        config.colorCore = '#ffffff';
+        config.colorRim = '#c084fc';
+        config.duration = 0.4;
+      }
+
+      // 同步表單控制項
+      document.getElementById('param-trajectory').value = config.trajectory;
+      document.getElementById('param-shader-mode').value = config.shaderMode;
+      document.getElementById('param-color-core').value = config.colorCore;
+      document.getElementById('param-color-rim').value = config.colorRim;
+      document.getElementById('param-duration').value = config.duration;
+      document.getElementById('val-duration').textContent = config.duration + 's';
+      document.getElementById('param-spikes').value = config.spikes;
+      document.getElementById('val-spikes').textContent = config.spikes + ' 根';
+      playCurrentEffect();
+    });
+
+    // 慢動作切換
+    document.getElementById('btn-slow').addEventListener('click', () => {
+      isSlowMo = !isSlowMo;
+      document.getElementById('btn-slow').style.borderColor = isSlowMo ? '#38bdf8' : '#30363d';
+      document.getElementById('btn-slow').style.color = isSlowMo ? '#38bdf8' : '#c9d1d9';
+    });
+
+    // 背景切換（只切換父容器背景，Canvas 永久保持完全透明）
+    document.getElementById('btn-bg-toggle').addEventListener('click', () => {
+      isDarkBg = !isDarkBg;
+      const viewportContainer = document.getElementById('viewport');
+      viewportContainer.style.background = isDarkBg ? '#090d16' : '#1e293b';
+      document.getElementById('btn-bg-toggle').textContent = isDarkBg ? '🎨 背景: 純黑暗房' : '🎨 背景: 戰鬥舞台';
+    });
+
+    // ── 4. 特效生命週期與渲染管線 ──
+    const activeEffects = [];
+
+    function screenToWorld(x, y) {
+      return new THREE.Vector3(x - width / 2, height / 2 - y, 0);
+    }
+
+    // 生成柔和發光光暈 Sprite (Glow Billboard)
+    function createGlowTexture(colorHex) {
+      const c = document.createElement('canvas');
+      c.width = 128;
+      c.height = 128;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.25, colorHex);
+      grad.addColorStop(0.6, colorHex + '66');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 128, 128);
+      return new THREE.CanvasTexture(c);
+    }
+
+    function createGlowSprite(colorHex, size) {
+      const mat = new THREE.SpriteMaterial({
+        map: createGlowTexture(colorHex),
+        color: 0xffffff,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(size, size, 1);
+      return sprite;
+    }
+
+    function createFresnelMaterial(coreHex, rimHex, fresnelPower) {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          colorCore: { value: new THREE.Color(coreHex) },
+          colorRim: { value: new THREE.Color(rimHex) },
+          fresnelPow: { value: fresnelPower },
+          uGlow: { value: config.bloomStr }
+        },
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vViewDir;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vec4 worldPos = modelViewMatrix * vec4(position, 1.0);
+            vViewDir = normalize(-worldPos.xyz);
+            gl_Position = projectionMatrix * worldPos;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 colorCore;
+          uniform vec3 colorRim;
+          uniform float fresnelPow;
+          uniform float uGlow;
+          varying vec3 vNormal;
+          varying vec3 vViewDir;
+          void main() {
+            float f = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), fresnelPow);
+            vec3 finalCol = mix(colorCore, colorRim, f);
+            gl_FragColor = vec4(finalCol * (1.0 + uGlow * 1.2), 0.95);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+    }
+
+    // 核心播放調度器 (依據 Trajectory 與 ShaderMode 動態生成)
+    function playCurrentEffect() {
+      activeEffects.forEach(e => e.dispose());
+      activeEffects.length = 0;
+
+      updateLiveSettings();
+
+      const endPt = screenToWorld(width - 160, height / 2);
+      let startPt = screenToWorld(160, height / 2);
+
+      if (config.trajectory === 'VERTICAL_DROP') {
+        // 從正上方天空垂直落下
+        startPt = new THREE.Vector3(endPt.x, endPt.y + 360, 0);
+      } else if (config.trajectory === 'DIAGONAL_DROP') {
+        // 從左上方 45°~60° 高空斜向轟擊目標 (經典流星墜落軌跡)
+        startPt = new THREE.Vector3(endPt.x - 260, endPt.y + 360, 0);
+      } else if (config.trajectory === 'GROUND_ERUPTION') {
+        // 從地底破土突起
+        startPt = new THREE.Vector3(endPt.x, endPt.y - 120, 0);
+      } else if (config.trajectory === 'PARABOLA_ARC') {
+        // 拋物線
+        startPt = screenToWorld(160, height / 2 + 60);
+      }
+
+      if (config.trajectory === 'GROUND_ERUPTION') {
+        // 地表破土突起（直接在目標處生長爆發）
+        triggerTargetHit();
+        spawnImpactBurst(endPt);
+        return;
+      }
+
+      if (config.shaderMode === 'DIELECTRIC_LIGHTNING') {
+        playLightningEffect(startPt, endPt);
+      } else if (config.shaderMode === 'VOLUMETRIC_FIRE') {
+        playFireMeteorEffect(startPt, endPt);
+      } else if (config.shaderMode === 'ENERGY_BEAM') {
+        playBeamEffect(startPt, endPt);
+      } else {
+        // 預設 FRESNEL_ICE (支援任何軌跡)
+        playGenericMeshEffect(startPt, endPt);
+      }
+    }
+
+    // ❄️ 通用晶體/幾何體特效 (支援水平、垂直天降、地底突起、拋物線)
+    function playGenericMeshEffect(startPos, endPos) {
+      const group = new THREE.Group();
+      group.position.copy(startPos);
+      group.scale.set(config.scale, config.scale, config.scale);
+      scene.add(group);
+
+      if (config.trajectory !== 'GROUND_ERUPTION') {
+        group.lookAt(endPos);
+      }
+
+      const spearGeo = new THREE.ConeGeometry(9, 70, 8);
+      spearGeo.rotateX(Math.PI / 2);
+      const spearMat = createFresnelMaterial(config.colorCore, config.colorRim, config.fresnel);
+      const spearMesh = new THREE.Mesh(spearGeo, spearMat);
+      group.add(spearMesh);
+
+      const ringGeo = new THREE.TorusGeometry(18, 2.5, 8, 24);
+      const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(config.colorRim), blending: THREE.AdditiveBlending });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      group.add(ringMesh);
+
+      // 柔和光暈 (Glow Aura)
+      const glowSprite = createGlowSprite(config.colorRim, 90 * config.scale);
+      group.add(glowSprite);
+
+      // 拖尾
+      const count = config.trailCount;
+      const trailGeo = new THREE.BufferGeometry();
+      const posArray = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        posArray[i * 3] = startPos.x;
+        posArray[i * 3 + 1] = startPos.y;
+        posArray[i * 3 + 2] = startPos.z;
+      }
+      trailGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      const trailMat = new THREE.PointsMaterial({ color: new THREE.Color(config.colorRim), size: config.trailSize, blending: THREE.AdditiveBlending });
+      const trailPoints = new THREE.Points(trailGeo, trailMat);
+      if (count > 0) scene.add(trailPoints);
+
+      let elapsed = 0;
+      let trailIdx = 0;
+
+      activeEffects.push({
+        update: (delta) => {
+          elapsed += delta;
+          const progress = Math.min(elapsed / config.duration, 1);
+
+          if (config.trajectory === 'PARABOLA_ARC') {
+            // 拋物線插值
+            const arcH = Math.sin(progress * Math.PI) * 140;
+            group.position.lerpVectors(startPos, endPos, progress);
+            group.position.y += arcH;
+          } else {
+            group.position.lerpVectors(startPos, endPos, progress);
+          }
+
+          spearMesh.rotateZ(delta * config.spin);
+          ringMesh.rotateZ(-delta * (config.spin * 1.3));
+
+          if (count > 0) {
+            const posAttr = trailGeo.getAttribute('position');
+            for (let k = 0; k < 3; k++) {
+              const idx = (trailIdx + k) % count;
+              posAttr.setXYZ(idx, group.position.x + (Math.random() - 0.5) * 12, group.position.y + (Math.random() - 0.5) * 12, group.position.z + (Math.random() - 0.5) * 12);
+            }
+            trailIdx = (trailIdx + 3) % count;
+            posAttr.needsUpdate = true;
+          }
+
+          if (progress >= 1) {
+            triggerTargetHit();
+            spawnImpactBurst(endPos);
+            return true;
+          }
+          return false;
+        },
+        dispose: () => {
+          scene.remove(group);
+          if (count > 0) scene.remove(trailPoints);
+          spearGeo.dispose();
+          spearMat.dispose();
+          ringGeo.dispose();
+          ringMat.dispose();
+          trailGeo.dispose();
+          trailMat.dispose();
+        }
+      });
+    }
+
+    // ⚡ 介質擊穿電弧 (支援多角度天降與水平狂劈)
+    function playLightningEffect(startSky, targetPos) {
+      const group = new THREE.Group();
+      scene.add(group);
+      const meshes = [];
+
+      for (let b = 0; b < 3; b++) {
+        const skyPt = new THREE.Vector3(startSky.x + (Math.random() - 0.5) * 80, startSky.y, 0);
+        const pts = [skyPt];
+        for (let i = 1; i < 14; i++) {
+          const alpha = i / 14;
+          const base = new THREE.Vector3().lerpVectors(skyPt, targetPos, alpha);
+          pts.push(new THREE.Vector3(base.x + (Math.random() - 0.5) * (b === 0 ? 55 : 30), base.y, base.z));
+        }
+        pts.push(targetPos);
+        const curve = new THREE.CatmullRomCurve3(pts);
+        const tubeGeo = new THREE.TubeGeometry(curve, 28, b === 0 ? 5.5 : 2.5, 6, false);
+        const tubeMat = new THREE.MeshBasicMaterial({ color: b === 0 ? new THREE.Color(config.colorCore) : new THREE.Color(config.colorRim), blending: THREE.AdditiveBlending });
+        const mesh = new THREE.Mesh(tubeGeo, tubeMat);
+        group.add(mesh);
+        meshes.push(mesh);
+      }
+
+      triggerTargetHit();
+      spawnImpactBurst(targetPos);
+
+      let life = 0.28;
+      activeEffects.push({
+        update: (delta) => {
+          life -= delta;
+          meshes.forEach(m => { m.material.opacity = Math.random() > 0.2 ? 1 : 0.3; });
+          return life <= 0;
+        },
+        dispose: () => {
+          scene.remove(group);
+          meshes.forEach(m => { m.geometry.dispose(); m.material.dispose(); });
+        }
+      });
+    }
+
+    // 3D Simplex Noise GLSL 函式庫
+    const simplexNoiseGLSL = `
+      vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+      vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+      vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+      float snoise(vec3 v) {
+        const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+        const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+        vec3 i  = floor(v + dot(v, C.yyy));
+        vec3 x0 = v - i + dot(i, C.xxx);
+        vec3 g = step(x0.yzx, x0.xyz);
+        vec3 l = 1.0 - g;
+        vec3 i1 = min(g.xyz, l.zxy);
+        vec3 i2 = max(g.xyz, l.zxy);
+        vec3 x1 = x0 - i1 + C.xxx;
+        vec3 x2 = x0 - i2 + C.yyy;
+        vec3 x3 = x0 - D.yyy;
+        i = mod289(i);
+        vec4 p = permute(permute(permute(
+                  i.z + vec4(0.0, i1.z, i2.z, 1.0))
+                + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+                + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+        float n_ = 0.142857142857;
+        vec3 ns = n_ * D.wyz - D.xzx;
+        vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+        vec4 x_ = floor(j * ns.z);
+        vec4 y_ = floor(j - 7.0 * x_);
+        vec4 x = x_ *ns.x + ns.yyyy;
+        vec4 y = y_ *ns.x + ns.yyyy;
+        vec4 h = 1.0 - abs(x) - abs(y);
+        vec4 b0 = vec4(x.xy, y.xy);
+        vec4 b1 = vec4(x.zw, y.zw);
+        vec4 s0 = floor(b0)*2.0 + 1.0;
+        vec4 s1 = floor(b1)*2.0 + 1.0;
+        vec4 sh = -step(h, vec4(0.0));
+        vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+        vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+        vec3 p0 = vec3(a0.xy, h.x);
+        vec3 p1 = vec3(a0.zw, h.y);
+        vec3 p2 = vec3(a1.xy, h.z);
+        vec3 p3 = vec3(a1.zw, h.w);
+        vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+        p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+        vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+        m = m * m;
+        return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+      }
+    `;
+
+    function createVolumetricFireMaterial() {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          uTime: { value: 0 },
+          uTurbulence: { value: config.fresnel },
+          uColorCore: { value: new THREE.Color(config.colorCore) },
+          uColorRim: { value: new THREE.Color(config.colorRim) },
+          uGlow: { value: config.bloomStr }
+        },
+        vertexShader: `
+          ${simplexNoiseGLSL}
+          uniform float uTime;
+          uniform float uTurbulence;
+          varying vec3 vPos;
+          varying vec3 vNorm;
+          varying float vDisp;
+          void main() {
+            vNorm = normalize(normalMatrix * normal);
+            float n = snoise(position * 0.06 + vec3(0.0, uTime * 3.5, 0.0));
+            vDisp = n;
+            vec3 newPos = position + normal * (n * 8.0 * (uTurbulence * 0.6));
+            vPos = newPos;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
+          }
+        `,
+        fragmentShader: `
+          ${simplexNoiseGLSL}
+          uniform float uTime;
+          uniform vec3 uColorCore;
+          uniform vec3 uColorRim;
+          uniform float uGlow;
+          varying vec3 vPos;
+          varying vec3 vNorm;
+          varying float vDisp;
+          void main() {
+            float n1 = snoise(vPos * 0.05 - vec3(uTime * 4.0, 0.0, 0.0));
+            float n2 = snoise(vPos * 0.12 + vec3(0.0, uTime * 5.0, 0.0));
+            float temp = clamp(n1 * 0.55 + n2 * 0.45 + vDisp * 0.3 + 0.5, 0.0, 1.0);
+            
+            // 黑體輻射漸變：核心白熱 -> 亮金黃 -> 暗紅 -> 焦黑
+            vec3 col = mix(uColorRim, uColorCore, pow(temp, 1.4));
+            float alpha = smoothstep(0.12, 0.55, temp);
+            
+            gl_FragColor = vec4(col * (1.2 + uGlow * 1.5), alpha * 0.95);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+    }
+
+    // 🔥 體積黑體輻射流星與火舌
+    function playFireMeteorEffect(startPos, endPos) {
+      const group = new THREE.Group();
+      group.position.copy(startPos);
+      scene.add(group);
+
+      // 火焰本體（自帶 3D 噪波火舌頂點位移）
+      const fireGeo = new THREE.IcosahedronGeometry(24 * config.scale, 5);
+      const fireMat = createVolumetricFireMaterial();
+      const fireMesh = new THREE.Mesh(fireGeo, fireMat);
+      group.add(fireMesh);
+
+      // 白熾發光核心
+      const coreGeo = new THREE.SphereGeometry(12 * config.scale, 16, 16);
+      const coreMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(config.colorCore), blending: THREE.AdditiveBlending });
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      group.add(coreMesh);
+
+      // 外層柔和火光光暈
+      const fireGlow = createGlowSprite(config.colorRim, 110 * config.scale);
+      group.add(fireGlow);
+
+      // 飛濺火星粒子群 (Ember Sparks)
+      const sparkCount = config.trailCount > 0 ? config.trailCount : 35;
+      const sparkGeo = new THREE.BufferGeometry();
+      const posArray = new Float32Array(sparkCount * 3);
+      const sparkVels = [];
+      for (let i = 0; i < sparkCount; i++) {
+        posArray[i * 3] = startPos.x;
+        posArray[i * 3 + 1] = startPos.y;
+        posArray[i * 3 + 2] = startPos.z;
+        sparkVels.push(new THREE.Vector3((Math.random() - 0.5) * 80, Math.random() * 90 + 30, (Math.random() - 0.5) * 60));
+      }
+      sparkGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      const sparkMat = new THREE.PointsMaterial({ color: new THREE.Color(config.colorCore), size: config.trailSize * 0.8, blending: THREE.AdditiveBlending, transparent: true });
+      const sparkPoints = new THREE.Points(sparkGeo, sparkMat);
+      scene.add(sparkPoints);
+
+      let elapsed = 0;
+      let sparkIdx = 0;
+
+      activeEffects.push({
+        update: (delta) => {
+          elapsed += delta;
+          const prog = Math.min(elapsed / config.duration, 1);
+          fireMat.uniforms.uTime.value = elapsed * 3.5;
+
+          if (config.trajectory === 'PARABOLA_ARC') {
+            const arcH = Math.sin(prog * Math.PI) * 140;
+            group.position.lerpVectors(startPos, endPos, prog);
+            group.position.y += arcH;
+          } else {
+            group.position.lerpVectors(startPos, endPos, prog);
+          }
+
+          // 火星發射
+          const posAttr = sparkGeo.getAttribute('position');
+          for (let k = 0; k < 2; k++) {
+            const idx = (sparkIdx + k) % sparkCount;
+            posAttr.setXYZ(
+              idx,
+              group.position.x + (Math.random() - 0.5) * 16,
+              group.position.y + (Math.random() - 0.5) * 16,
+              group.position.z + (Math.random() - 0.5) * 16
+            );
+          }
+          sparkIdx = (sparkIdx + 2) % sparkCount;
+
+          for (let i = 0; i < sparkCount; i++) {
+            posAttr.setXYZ(
+              i,
+              posAttr.getX(i) + (Math.random() - 0.5) * 3,
+              posAttr.getY(i) + sparkVels[i].y * delta,
+              posAttr.getZ(i) + (Math.random() - 0.5) * 3
+            );
+          }
+          posAttr.needsUpdate = true;
+
+          if (prog >= 1) {
+            triggerTargetHit();
+            spawnImpactBurst(endPos);
+            return true;
+          }
+          return false;
+        },
+        dispose: () => {
+          scene.remove(group);
+          scene.remove(sparkPoints);
+          fireGeo.dispose();
+          fireMat.dispose();
+          coreGeo.dispose();
+          coreMat.dispose();
+          sparkGeo.dispose();
+          sparkMat.dispose();
+        }
+      });
+    }
+
+    // 💫 高能雷射光束
+    function playBeamEffect(startPos, endPos) {
+      const dir = new THREE.Vector3().subVectors(endPos, startPos);
+      const len = dir.length();
+      const group = new THREE.Group();
+      group.position.copy(startPos);
+      group.lookAt(endPos);
+      scene.add(group);
+
+      const innerGeo = new THREE.CylinderGeometry(5 * config.scale, 5 * config.scale, len, 16);
+      innerGeo.rotateZ(Math.PI / 2);
+      innerGeo.translate(len / 2, 0, 0);
+      const innerMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(config.colorCore), blending: THREE.AdditiveBlending });
+      const inner = new THREE.Mesh(innerGeo, innerMat);
+      group.add(inner);
+
+      const outerGeo = new THREE.CylinderGeometry(18 * config.scale, 18 * config.scale, len, 16);
+      outerGeo.rotateZ(Math.PI / 2);
+      outerGeo.translate(len / 2, 0, 0);
+      const outerMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(config.colorRim), transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending });
+      const outer = new THREE.Mesh(outerGeo, outerMat);
+      group.add(outer);
+
+      triggerTargetHit();
+      spawnImpactBurst(endPos);
+
+      let life = config.duration;
+      activeEffects.push({
+        update: (delta) => {
+          life -= delta;
+          const sc = Math.max(0, life / config.duration);
+          inner.scale.set(sc, 1, sc);
+          outer.scale.set(sc, 1, sc);
+          return life <= 0;
+        },
+        dispose: () => {
+          scene.remove(group);
+          innerGeo.dispose();
+          innerMat.dispose();
+          outerGeo.dispose();
+          outerMat.dispose();
+        }
+      });
+    }
+
+    // 💥 命中爆發衍生器（地面拔地而起的 3D 巨型冰晶群 ＋ 碎裂火花）
+    function spawnImpactBurst(pos) {
+      const group = new THREE.Group();
+      group.position.set(pos.x, pos.y - 15, pos.z + 50); // 往前推至卡牌正前方
+      scene.add(group);
+
+      const spikeCount = config.spikes;
+      const spikeMeshes = [];
+      const spikeData = [];
+
+      // 產生粗壯且角度交錯的 3D 冰錐群
+      for (let i = 0; i < spikeCount; i++) {
+        const h = config.spikeHeight * (0.7 + Math.random() * 0.6); // 高低錯落
+        const radius = 10 * config.scale * (0.8 + Math.random() * 0.4);
+        const spikeGeo = new THREE.ConeGeometry(radius, h, 6);
+        spikeGeo.translate(0, h / 2, 0); // 讓支點在底部（破土生長）
+
+        const spikeMat = createFresnelMaterial(config.colorCore, config.colorRim, config.fresnel);
+        const m = new THREE.Mesh(spikeGeo, spikeMat);
+
+        // 分散在目標周圍，並朝外斜向傾斜
+        const angle = (i / spikeCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        const dist = 18 + Math.random() * 25;
+        m.position.set(Math.cos(angle) * dist, -30 + Math.sin(angle) * 10, (Math.random() - 0.5) * 40);
+
+        // 3D 傾角（向上突起，微朝外斜）
+        m.rotation.x = (Math.random() - 0.5) * 0.4;
+        m.rotation.z = -(Math.cos(angle) * 0.45);
+        m.rotation.y = Math.random() * Math.PI;
+
+        m.scale.set(0.01, 0.01, 0.01);
+        group.add(m);
+        spikeMeshes.push(m);
+        spikeData.push({ targetH: h, geo: spikeGeo, mat: spikeMat });
+      }
+
+      // 碎裂爆發火花
+      const burstCount = config.burstCount;
+      const geo = new THREE.BufferGeometry();
+      const posArray = new Float32Array(burstCount * 3);
+      const vels = [];
+      for (let i = 0; i < burstCount; i++) {
+        posArray[i * 3] = pos.x;
+        posArray[i * 3 + 1] = pos.y;
+        posArray[i * 3 + 2] = pos.z;
+        const angle = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 380 + 150;
+        vels.push(new THREE.Vector3(Math.cos(angle) * spd, Math.sin(angle) * spd, (Math.random() - 0.5) * 120));
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+      const mat = new THREE.PointsMaterial({ color: new THREE.Color(config.colorRim), size: 14, blending: THREE.AdditiveBlending, transparent: true });
+      const pts = new THREE.Points(geo, mat);
+      if (burstCount > 0) scene.add(pts);
+
+      // 命中光爆光暈 (Impact Flash Glow)
+      const impactGlow = createGlowSprite(config.colorRim, 200 * config.scale);
+      group.add(impactGlow);
+
+      const totalLife = 1.1; // 延長停留時間至 1.1 秒，讓美術清晰檢驗
+      let life = totalLife;
+
+      activeEffects.push({
+        update: (delta) => {
+          life -= delta;
+          const elapsed = totalLife - life;
+
+          // 命中光暈快速閃光後漸隱
+          const glowProg = Math.min(1.0, elapsed / 0.1);
+          impactGlow.material.opacity = Math.max(0, 1.0 - elapsed / 0.45);
+          impactGlow.scale.set(
+            (200 + elapsed * 100) * config.scale,
+            (200 + elapsed * 100) * config.scale,
+            1
+          );
+
+          // 冰錐生長曲線：前 0.12s 拔地破土快速長大 ➔ 中間停留 0.6s ➔ 後期融化消散
+          let scY = 1.0;
+          let scXZ = 1.0;
+          if (elapsed < 0.12) {
+            scY = elapsed / 0.12;
+            scXZ = Math.min(1.0, elapsed / 0.08);
+          } else if (life < 0.35) {
+            scY = life / 0.35;
+            scXZ = life / 0.35;
+          }
+
+          spikeMeshes.forEach(m => {
+            m.scale.set(scXZ, scY, scXZ);
+          });
+
+          // 碎片火花飛散
+          if (burstCount > 0) {
+            const attr = geo.getAttribute('position');
+            for (let i = 0; i < burstCount; i++) {
+              attr.setXYZ(i, attr.getX(i) + vels[i].x * delta, attr.getY(i) + vels[i].y * delta, attr.getZ(i) + vels[i].z * delta);
+              vels[i].y -= 260 * delta; // 重力下墜
+            }
+            attr.needsUpdate = true;
+            mat.opacity = Math.max(0, life / totalLife);
+          }
+
+          return life <= 0;
+        },
+        dispose: () => {
+          scene.remove(group);
+          if (burstCount > 0) scene.remove(pts);
+          spikeData.forEach(d => {
+            d.geo.dispose();
+            d.mat.dispose();
+          });
+          geo.dispose();
+          mat.dispose();
+        }
+      });
+    }
+
+    function triggerTargetHit() {
+      if (targetCardDOM) {
+        targetCardDOM.classList.remove('target-hit');
+        void targetCardDOM.offsetWidth;
+        targetCardDOM.classList.add('target-hit');
+      }
+    }
+
+    // ── 5. 主迴圈 ──
+    let lastTime = performance.now();
+    let isReplaying = false;
+
+    function animate(now) {
+      requestAnimationFrame(animate);
+      const rawDelta = (now - lastTime) / 1000;
+      lastTime = now;
+      const delta = Math.min(rawDelta, 0.1) * (isSlowMo ? 0.3 : 1.0);
+
+      for (let i = activeEffects.length - 1; i >= 0; i--) {
+        const isDone = activeEffects[i].update(delta);
+        if (isDone) {
+          activeEffects[i].dispose();
+          activeEffects.splice(i, 1);
+        }
+      }
+
+      // 自動循環播放調度 (當所有特效結束後，0.5s 自動觸發下一輪)
+      if (isLooping && activeEffects.length === 0 && !isReplaying) {
+        isReplaying = true;
+        clearTimeout(loopTimer);
+        loopTimer = setTimeout(() => {
+          if (isLooping) {
+            playCurrentEffect();
+          }
+          isReplaying = false;
+        }, 600);
+      }
+
+      // 關鍵：純透明 WebGL 渲染，完美穿透顯現底層 2D DOM 卡牌
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+
+    // 循環開關按鈕
+    document.getElementById('btn-loop').addEventListener('click', () => {
+      isLooping = !isLooping;
+      const btn = document.getElementById('btn-loop');
+      btn.textContent = isLooping ? '🔄 自動循環: 開' : '🔄 自動循環: 關';
+      btn.style.borderColor = isLooping ? '#38bdf8' : '#30363d';
+      btn.style.color = isLooping ? '#38bdf8' : '#c9d1d9';
+      if (isLooping && activeEffects.length === 0) {
+        playCurrentEffect();
+      }
+    });
+
+    // 快捷鍵 Space
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        playCurrentEffect();
+      }
+    });
+
+    document.getElementById('btn-play').addEventListener('click', playCurrentEffect);
+
+    // 複製 JSON
+    document.getElementById('btn-save').addEventListener('click', () => {
+      const jsonStr = JSON.stringify(config, null, 2);
+      navigator.clipboard.writeText(jsonStr);
+      const btn = document.getElementById('btn-save');
+      btn.textContent = '✅ 已複製到剪貼簿！';
+      setTimeout(() => { btn.textContent = '💾 複製此特效 JSON 設定檔'; }, 2000);
+    });
+
+    // 初次自動播放
+    setTimeout(() => {
+      playCurrentEffect();
+    }, 400);
+  </script>
+</body>
+</html>

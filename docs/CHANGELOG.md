@@ -1,3 +1,21 @@
+- **[Feature/VFXStudio/ThreeJSShaderAndTransparentOverlay] 專業遊戲 3D 特效工坊（VFX Studio）與透明 WebGL 頂層覆蓋架構實裝（2026-09-02）**：
+  - **🌟 獨立 3D 特效工坊 (`tools/vfx-studio.html`)**：
+    - 搭建專為遊戲美術設計的獨立視覺特效沙盒，具備 Unity / Niagara 風格的專業 Inspector 調參面板。
+    - **🚀 多維空間軌跡控制器 (Trajectory Mode)**：支援「🎯 水平飛射 (A ➔ B)」、「☄️ 斜向天降 (45° 俯衝流星)」、「⚡ 垂直天降 (雷擊)」、「🌋 地表破土突起 (冰川地裂)」與「🏹 拋物線拋射」。
+    - **🧪 高階 GLSL 著色器核心 (Shader Core)**：
+      - **❄️ 菲涅爾冰晶折射 (Fresnel Ice / Crystal)**：動態計算視角法線夾角與 SSS 假次表面透光。
+      - **🔥 體積黑體輻射火焰 (Volumetric Fire & Simplex Noise)**：頂點隨 3D Noise 劇烈翻滾位移，溫度驅動白熾核心 ➔ 亮金黃 ➔ 暗紅焦灼冷卻消散。
+      - **⚡ 介質擊穿分形電弧 (Dielectric Lightning)**：高頻放電分支電弧。
+      - **💫 雙頻高能雷射光柱 (Dual-Freq Beam)**：內外雙層旋轉脈衝能量束。
+    - **💥 Unity 式命中爆發衍生器 (Impact Sub-Emitters)**：支援自訂地面次生 3D 尖刺數量、生長高度、存活停留時間與碎裂火花/火星飛散。
+    - **🌈 全域發光與光暈 (Glow & Multiplier)**：Shader 像素級 `uGlow` 乘數注入 ＋ 柔和 Glow Billboard 光暈 ＋ 動態 Canvas Drop-Shadow 濾鏡。
+    - **🔄 調參輔助系統**：支援即時拉桿 0 秒重播 (Live Scrubbing)、自動循環播放 (Looping)、慢動作 (0.3x) 與 JSON 設定檔一鍵複製導出。
+  - **🎭 2D DOM 卡牌底層 ＋ 頂層透明 WebGL 特效覆蓋架構**：
+    - `renderer = new THREE.WebGLRenderer({ alpha: true })` ＋ `setClearColor(0x000000, 0)`，特效畫布 100% 透明懸浮於 2D 角色卡牌上方。
+    - 解決 WebGL 不透明背景遮擋 2D DOM 的衝突，讓 3D 冰錐、火舌與火花自然覆蓋於卡片前方爆發，受擊時精確連動 2D 卡牌物理晃動。
+  - **新增檔案**：[`tools/vfx-studio.html`](file:///i:/gameproject/Medieval/tools/vfx-studio.html)、[`src/ui/fx/CombatFXEngine.ts`](file:///i:/gameproject/Medieval/src/ui/fx/CombatFXEngine.ts)
+  - **修改檔案**：[`package.json`](file:///i:/gameproject/Medieval/package.json)、[`package-lock.json`](file:///i:/gameproject/Medieval/package-lock.json)
+
 - **[Feature/StoryStudio/NarrativeUpgradesAndFactionVisibility] 故事工房 5 大功能升級與陣營好感測試修復實裝（2026-09-02）**：
   - **🏛️ 建築物選項清理與 100% 對齊**：對齊遊戲內真實存在的 10 大建築與設施（含補齊 `church` 教會與醫療所），並新增萬用建築條件 `BUILDING_LEVEL_AT_LEAST`（支援自選任意建築與等級門檻）。
   - **🛡️ 治安度條件與 🎲 事件發生機率**：

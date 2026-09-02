@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>真實肢體揮劍與逐幀戰鬥動作展示 (Real Weapon Swing & Limb Action Demo)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #090c10;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .header-bar {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header-bar h1 {
+      font-size: 1.6rem;
+      color: #eab308;
+      letter-spacing: 1px;
+      text-shadow: 0 0 12px rgba(234, 179, 8, 0.4);
+    }
+    .header-bar p {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    /* 戰鬥舞台 */
+    .battle-stage {
+      position: relative;
+      width: 860px;
+      height: 480px;
+      background: radial-gradient(circle at 50% 60%, #1e293b 0%, #0f172a 60%, #020617 100%);
+      border: 2px solid #334155;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 80px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 地面 */
+    .ground-line {
+      position: absolute;
+      bottom: 70px;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, #475569 20%, #64748b 50%, #475569 80%, transparent 100%);
+      box-shadow: 0 0 12px rgba(100, 116, 139, 0.4);
+    }
+
+    /* 假人木樁目標 */
+    .target-dummy {
+      position: absolute;
+      right: 180px;
+      bottom: 72px;
+      width: 140px;
+      height: 240px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      transform-origin: bottom center;
+      transition: transform 0.1s ease;
+      z-index: 10;
+    }
+    .target-dummy .dummy-body {
+      width: 90px;
+      height: 160px;
+      background: #334155;
+      border: 3px solid #64748b;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+    .dummy-label {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .dummy-hp-bar {
+      width: 110px;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid #475569;
+      border-radius: 5px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .dummy-hp-fill {
+      width: 100%;
+      height: 100%;
+      background: #ef4444;
+      transition: width 0.25s ease;
+    }
+
+    /* 戰士角色根容器 */
+    .warrior-root {
+      position: absolute;
+      left: 160px;
+      bottom: 72px;
+      width: 180px;
+      height: 240px;
+      transform-origin: bottom center;
+      z-index: 20;
+    }
+
+    /* 腳底陰影 */
+    .warrior-shadow {
+      position: absolute;
+      bottom: -4px;
+      left: 20px;
+      width: 140px;
+      height: 20px;
+      background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.7) 0%, transparent 70%);
+      border-radius: 50%;
+      z-index: -1;
+    }
+
+    /* 戰士身體 SVG 部件容器 */
+    .warrior-rig {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-origin: bottom center;
+    }
+
+    /* ──────────────── 肢體與關節動畫 (Limb & Weapon Rig Animations) ──────────────── */
+
+    /* 待機呼吸：全身微動 */
+    .state-idle .rig-torso {
+      animation: anim-idle-torso 2s ease-in-out infinite;
+    }
+    .state-idle .rig-arm-right {
+      animation: anim-idle-arm 2s ease-in-out infinite;
+    }
+    .state-idle .rig-shield-arm {
+      animation: anim-idle-shield 2s ease-in-out infinite;
+    }
+
+    @keyframes anim-idle-torso {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-3px) rotate(0.5deg); }
+    }
+    @keyframes anim-idle-arm {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(-3deg); }
+    }
+    @keyframes anim-idle-shield {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(2deg); }
+    }
+
+    /* 🗡️ 動作 1：真正的普通斬擊（手臂高舉過頭 ➔ 長劍自上而下 120 度狂劈） */
+    .action-slash {
+      animation: rig-body-dash 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    .action-slash .rig-arm-right {
+      animation: rig-arm-heavy-slash 0.65s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    }
+    .action-slash .rig-sword {
+      animation: rig-sword-trail 0.65s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+    }
+
+    /* 身體前衝與彈回 */
+    @keyframes rig-body-dash {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-30px) rotate(-4deg); } /* 蓄力向後拉身 */
+      45% { transform: translateX(290px) rotate(6deg); } /* 衝至目標面前 */
+      60% { transform: translateX(280px) rotate(4deg); } /* 砍中停頓 (Hit-Stop) */
+      100% { transform: translateX(0) rotate(0deg); } /* 彈回原位 */
+    }
+
+    /* 右手臂揮動：從後背蓄力 ➔ 舉過頭頂 ➔ 猛力向下全力揮斬！ */
+    @keyframes rig-arm-heavy-slash {
+      0% {
+        transform: rotate(0deg);
+      }
+      25% {
+        /* 蓄力：手臂向後向上大幅抬起，劍尖指天 */
+        transform: rotate(-75deg);
+      }
+      45% {
+        /* 揮砍：手臂如鞭子般全力向下由上往下怒劈！(旋轉達 110 度) */
+        transform: rotate(65deg);
+      }
+      60% {
+        /* 劈到底部微震顫 */
+        transform: rotate(60deg);
+      }
+      100% {
+        /* 恢復自然持劍角度 */
+        transform: rotate(0deg);
+      }
+    }
+
+    /* 🔥 動作 2：赤鋼火焰三連斬（連續三次手部揮砍＋長劍纏繞烈焰） */
+    .action-flame {
+      animation: rig-flame-body 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      filter: drop-shadow(0 0 20px #f97316);
+    }
+    .action-flame .rig-arm-right {
+      animation: rig-arm-triple-slash 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    .action-flame .rig-sword-blade {
+      fill: #f97316 !important;
+      stroke: #fef08a !important;
+      filter: drop-shadow(0 0 12px #ef4444);
+    }
+
+    @keyframes rig-flame-body {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-40px) translateY(-20px) rotate(-8deg); }
+      40% { transform: translateX(290px) translateY(-10px) rotate(8deg); } /* 第 1 斬 */
+      65% { transform: translateX(310px) translateY(10px) rotate(12deg); } /* 第 2 斬 */
+      85% { transform: translateX(300px) translateY(0px) rotate(6deg); } /* 第 3 終結斬 */
+      100% { transform: translateX(0) translateY(0) rotate(0deg); }
+    }
+
+    @keyframes rig-arm-triple-slash {
+      0% { transform: rotate(0deg); }
+      15% { transform: rotate(-80deg); }
+      35% { transform: rotate(70deg); }  /* 第 1 下重劈 */
+      50% { transform: rotate(-60deg); } /* 快速反手提劍 */
+      65% { transform: rotate(65deg); }  /* 第 2 下橫斬 */
+      75% { transform: rotate(-85deg); } /* 雙手高舉蓄力大絕 */
+      85% { transform: rotate(80deg); }  /* 第 3 下暴擊下劈！ */
+      100% { transform: rotate(0deg); }
+    }
+
+    /* 🛡️ 動作 3：舉盾防禦（左臂大盾往前頂出） */
+    .action-guard .rig-shield-arm {
+      animation: rig-guard-shield 0.5s ease-out forwards;
+    }
+    .action-guard {
+      animation: rig-guard-body 0.5s ease-out forwards;
+    }
+    @keyframes rig-guard-shield {
+      0% { transform: translateX(0) rotate(0deg); }
+      35% { transform: translateX(35px) rotate(-15deg) scale(1.15); }
+      70% { transform: translateX(30px) rotate(-12deg) scale(1.15); }
+      100% { transform: translateX(0) rotate(0deg) scale(1); }
+    }
+    @keyframes rig-guard-body {
+      0% { transform: translateX(0); }
+      35% { transform: translateX(20px); }
+      100% { transform: translateX(0); }
+    }
+
+    /* 😣 動作 4：受擊（身體劇烈後仰晃動） */
+    .action-hurt {
+      animation: rig-hurt 0.4s ease-out forwards;
+    }
+    @keyframes rig-hurt {
+      0% { transform: translateX(0); filter: brightness(2.5); }
+      25% { transform: translateX(-45px) rotate(-12deg); filter: brightness(2) hue-rotate(-30deg); }
+      50% { transform: translateX(-20px) rotate(6deg); }
+      100% { transform: translateX(0) rotate(0deg); filter: none; }
+    }
+
+    /* 💀 動作 5：倒地陣亡 */
+    .action-death {
+      animation: rig-death 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes rig-death {
+      0% { transform: translateX(0) rotate(0deg); opacity: 1; }
+      35% { transform: translateX(-30px) rotate(-25deg); }
+      100% { transform: translateX(-60px) translateY(70px) rotate(-80deg); opacity: 0.4; filter: grayscale(1); }
+    }
+
+    /* ──────────────── 特效層 (Canvas & SVG Effects) ──────────────── */
+    #fx-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 30;
+    }
+
+    /* 劍刃實體揮砍弧光 (Blade Slash Arc) */
+    .slash-blade-arc {
+      position: absolute;
+      right: 140px;
+      top: 130px;
+      width: 240px;
+      height: 240px;
+      pointer-events: none;
+      opacity: 0;
+      transform-origin: center center;
+      z-index: 35;
+    }
+    .slash-blade-arc.active {
+      animation: play-blade-slash 0.35s ease-out forwards;
+    }
+    @keyframes play-blade-slash {
+      0% {
+        opacity: 1;
+        transform: scale(0.4) rotate(-90deg);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1.4) rotate(15deg);
+        filter: drop-shadow(0 0 20px #38bdf8);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.6) rotate(60deg);
+      }
+    }
+
+    /* 飄字傷害 */
+    .dmg-popup {
+      position: absolute;
+      right: 200px;
+      top: 110px;
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: #fef08a;
+      text-shadow: 0 0 10px #eab308, 0 4px 6px rgba(0, 0, 0, 0.9);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 40;
+    }
+    .dmg-popup.active {
+      animation: play-dmg 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes play-dmg {
+      0% { opacity: 1; transform: translateY(20px) scale(0.6); }
+      30% { opacity: 1; transform: translateY(-30px) scale(1.4); }
+      70% { opacity: 1; transform: translateY(-40px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-60px) scale(0.9); }
+    }
+
+    /* 目標受擊震動 */
+    .dummy-hit {
+      animation: anim-dummy-hit 0.3s ease-out !important;
+    }
+    @keyframes anim-dummy-hit {
+      0% { transform: translateX(0); filter: brightness(2); }
+      30% { transform: translateX(40px) rotate(15deg); filter: brightness(2) drop-shadow(0 0 20px #ef4444); }
+      100% { transform: translateX(0) rotate(0deg); filter: none; }
+    }
+
+    /* 操作按鈕面板 */
+    .controls-panel {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+      background: #1e293b;
+      padding: 16px 24px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    .btn-action {
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      padding: 12px 20px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+    .btn-action:hover {
+      background: #334155;
+      border-color: #38bdf8;
+      color: #38bdf8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+    }
+    .btn-action.flame:hover {
+      border-color: #f97316;
+      color: #f97316;
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.4);
+    }
+    .btn-action.death:hover {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <h1>⚔️ 真實肢體揮劍與長劍劈砍實機展示</h1>
+    <p>手臂由上至下 120 度揮舞長劍、蓄力重劈、連環烈焰三連斬與真實打擊反饋</p>
+  </div>
+
+  <div class="battle-stage">
+    <div class="ground-line"></div>
+    <canvas id="fx-canvas"></canvas>
+
+    <!-- 戰士實體肢體 (SVG 骨骼拆件系統) -->
+    <div id="warrior-root" class="warrior-root state-idle">
+      <div class="warrior-shadow"></div>
+      
+      <svg class="warrior-rig" viewBox="0 0 200 240">
+        <!-- 披風背影 -->
+        <path d="M 70 80 Q 40 140 30 200 Q 80 190 100 170 Q 90 120 80 80 Z" fill="#450a0a" opacity="0.9" />
+
+        <!-- 腿部與重裝鐵靴 -->
+        <g id="rig-legs">
+          <!-- 左腿 -->
+          <rect x="65" y="140" width="18" height="55" rx="6" fill="#334155" stroke="#1e293b" stroke-width="2" />
+          <path d="M 60 190 L 88 190 L 92 205 L 56 205 Z" fill="#475569" stroke="#1e293b" stroke-width="2" />
+          <!-- 右腿 -->
+          <rect x="95" y="140" width="18" height="55" rx="6" fill="#1e293b" stroke="#0f172a" stroke-width="2" />
+          <path d="M 90 190 L 118 190 L 124 205 L 86 205 Z" fill="#334155" stroke="#0f172a" stroke-width="2" />
+        </g>
+
+        <!-- 軀幹重裝板甲 (Torso) -->
+        <g id="rig-torso" class="rig-torso" style="transform-origin: 90px 140px;">
+          <path d="M 65 75 L 115 75 L 110 145 L 70 145 Z" fill="#475569" stroke="#1e293b" stroke-width="3" />
+          <!-- 護胸十字紋章 -->
+          <path d="M 85 85 L 95 85 L 95 135 L 85 135 Z" fill="#eab308" />
+          <path d="M 72 98 L 108 98 L 108 108 L 72 108 Z" fill="#eab308" />
+          <!-- 騎士頭盔 -->
+          <circle cx="90" cy="50" r="22" fill="#64748b" stroke="#1e293b" stroke-width="3" />
+          <!-- T 字型面甲視線孔 -->
+          <path d="M 80 48 L 102 48 M 90 48 L 90 62" stroke="#0f172a" stroke-width="3" stroke-linecap="round" />
+        </g>
+
+        <!-- 左臂與龍紋重盾 (Shield Arm) -->
+        <g id="rig-shield-arm" class="rig-shield-arm" style="transform-origin: 70px 80px;">
+          <!-- 盾牌本體 -->
+          <ellipse cx="60" cy="115" rx="26" ry="38" fill="#334155" stroke="#eab308" stroke-width="4" />
+          <!-- 盾面龍紋/骷髏飾條 -->
+          <circle cx="60" cy="115" r="14" fill="#1e293b" stroke="#94a3b8" stroke-width="2" />
+          <path d="M 54 112 L 66 112 L 60 124 Z" fill="#ef4444" />
+        </g>
+
+        <!-- 🗡️ 右手臂與長劍 (Right Arm & Greatsword) — 關節樞紐在肩膀 (115px, 80px) -->
+        <g id="rig-arm-right" class="rig-arm-right" style="transform-origin: 110px 80px;">
+          <!-- 肩甲 -->
+          <circle cx="110" cy="80" r="14" fill="#64748b" stroke="#1e293b" stroke-width="3" />
+          
+          <!-- 大手臂 -->
+          <rect x="105" y="80" width="14" height="28" rx="6" fill="#475569" stroke="#1e293b" stroke-width="2" />
+
+          <!-- 前臂與鐵手套（握劍處） -->
+          <g style="transform-origin: 112px 108px;">
+            <rect x="106" y="105" width="16" height="24" rx="5" fill="#334155" stroke="#1e293b" stroke-width="2" />
+            
+            <!-- ⚔️ 鋼劍本體 (Sword) -->
+            <g id="rig-sword" class="rig-sword">
+              <!-- 劍柄與劍格 (Crossguard) -->
+              <rect x="100" y="118" width="30" height="6" rx="2" fill="#eab308" stroke="#78350f" stroke-width="1.5" />
+              <circle cx="115" cy="132" r="4" fill="#eab308" />
+              <rect x="113" y="122" width="4" height="10" fill="#78350f" />
+              
+              <!-- 鋒利鋼劍刃 (Blade) — 朝斜下方延伸 70px -->
+              <path id="rig-sword-blade" class="rig-sword-blade" d="M 112 118 L 118 118 L 135 40 L 131 30 L 126 40 Z" fill="#f8fafc" stroke="#64748b" stroke-width="2" />
+              <!-- 劍刃發光血槽 -->
+              <line x1="115" y1="116" x2="130" y2="42" stroke="#38bdf8" stroke-width="1.5" />
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <!-- 目標假人 -->
+    <div id="target-dummy" class="target-dummy">
+      <div class="dummy-body">
+        🎯
+        <span class="dummy-label">訓練木樁</span>
+      </div>
+      <div class="dummy-hp-bar">
+        <div id="dummy-hp" class="dummy-hp-fill"></div>
+      </div>
+    </div>
+
+    <!-- 劍刃實體揮砍弧光 (SVG) -->
+    <svg id="slash-blade-arc" class="slash-blade-arc" viewBox="0 0 200 200">
+      <path d="M 20 180 Q 110 90 180 20 Q 90 110 20 180" fill="url(#blade-slash-grad)" opacity="0.95" />
+      <defs>
+        <linearGradient id="blade-slash-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#38bdf8" stop-opacity="0" />
+          <stop offset="35%" stop-color="#ffffff" stop-opacity="1" />
+          <stop offset="70%" stop-color="#38bdf8" stop-opacity="0.9" />
+          <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+    </svg>
+
+    <!-- 飄字傷害 -->
+    <div id="dmg-popup" class="dmg-popup">🗡️ 195</div>
+  </div>
+
+  <!-- 控制按鈕 -->
+  <div class="controls-panel">
+    <button class="btn-action" onclick="playAction('slash')">⚔️ 真實揮劍斬擊 (Real Slash)</button>
+    <button class="btn-action flame" onclick="playAction('flame')">🔥 赤鋼連環烈焰斬 (Flame 3-Slash)</button>
+    <button class="btn-action" onclick="playAction('guard')">🛡️ 舉盾格擋 (Shield Guard)</button>
+    <button class="btn-action" onclick="playAction('hurt')">😣 受擊後仰 (Get Hit)</button>
+    <button class="btn-action death" onclick="playAction('death')">💀 倒地陣亡 (Death)</button>
+    <button class="btn-action" onclick="playAction('idle')">🔁 恢復待機 (Reset)</button>
+  </div>
+
+  <script>
+    const warrior = document.getElementById('warrior-root');
+    const dummy = document.getElementById('target-dummy');
+    const slashArc = document.getElementById('slash-blade-arc');
+    const dmgPopup = document.getElementById('dmg-popup');
+    const dummyHp = document.getElementById('dummy-hp');
+    const canvas = document.getElementById('fx-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // 粒子系統
+    let particles = [];
+    class Particle {
+      constructor(x, y, color, vx, vy, size, life) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.vx = vx;
+        this.vy = vy;
+        this.size = size;
+        this.life = life;
+        this.maxLife = life;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.2;
+        this.life--;
+        this.size *= 0.95;
+      }
+      draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, this.life / this.maxLife);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 14;
+        ctx.shadowColor = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, Math.max(1, this.size), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function spawnSparks(x, y, count, color = '#38bdf8') {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 9 + 3;
+        particles.push(new Particle(
+          x,
+          y,
+          color,
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed - 3,
+          Math.random() * 5 + 3,
+          Math.floor(Math.random() * 25 + 20)
+        ));
+      }
+    }
+
+    function loopParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.update();
+        p.draw(ctx);
+        if (p.life <= 0 || p.size <= 0.5) {
+          particles.splice(i, 1);
+        }
+      }
+      requestAnimationFrame(loopParticles);
+    }
+    loopParticles();
+
+    function clearStates() {
+      warrior.className = 'warrior-root';
+      slashArc.classList.remove('active');
+      dmgPopup.classList.remove('active');
+      dummy.classList.remove('dummy-hit');
+    }
+
+    function playAction(type) {
+      clearStates();
+      void warrior.offsetWidth;
+
+      if (type === 'slash') {
+        warrior.classList.add('action-slash');
+
+        // 在長劍由上而下揮劈到最底部的瞬間 (約 290ms) 觸發打擊
+        setTimeout(() => {
+          slashArc.classList.add('active');
+          dummy.classList.add('dummy-hit');
+          dmgPopup.textContent = `⚔️ -${Math.floor(Math.random() * 30 + 180)}`;
+          dmgPopup.style.color = '#38bdf8';
+          dmgPopup.classList.add('active');
+          spawnSparks(620, 240, 30, '#38bdf8');
+          dummyHp.style.width = '60%';
+        }, 290);
+
+        setTimeout(() => {
+          dummyHp.style.width = '100%';
+          warrior.className = 'warrior-root state-idle';
+        }, 800);
+
+      } else if (type === 'flame') {
+        warrior.classList.add('action-flame');
+
+        // 第 1 斬 (380ms)
+        setTimeout(() => {
+          dummy.classList.add('dummy-hit');
+          dmgPopup.textContent = `🔥 -95`;
+          dmgPopup.style.color = '#f97316';
+          dmgPopup.classList.add('active');
+          spawnSparks(620, 220, 20, '#f97316');
+          dummyHp.style.width = '70%';
+        }, 380);
+
+        // 第 2 斬 (650ms)
+        setTimeout(() => {
+          dummy.classList.remove('dummy-hit');
+          void dummy.offsetWidth;
+          dummy.classList.add('dummy-hit');
+          dmgPopup.textContent = `🔥 -130`;
+          spawnSparks(620, 240, 25, '#f97316');
+          dummyHp.style.width = '40%';
+        }, 650);
+
+        // 第 3 終結斬 (880ms)
+        setTimeout(() => {
+          dummy.classList.remove('dummy-hit');
+          void dummy.offsetWidth;
+          dummy.classList.add('dummy-hit');
+          dmgPopup.textContent = `💥 CRIT -320`;
+          dmgPopup.style.color = '#ef4444';
+          spawnSparks(620, 250, 60, '#ef4444');
+          dummyHp.style.width = '0%';
+        }, 880);
+
+        setTimeout(() => {
+          dummyHp.style.width = '100%';
+          warrior.className = 'warrior-root state-idle';
+        }, 1400);
+
+      } else if (type === 'guard') {
+        warrior.classList.add('action-guard');
+        spawnSparks(240, 220, 15, '#eab308');
+        setTimeout(() => {
+          warrior.className = 'warrior-root state-idle';
+        }, 600);
+
+      } else if (type === 'hurt') {
+        warrior.classList.add('action-hurt');
+        setTimeout(() => {
+          warrior.className = 'warrior-root state-idle';
+        }, 500);
+
+      } else if (type === 'death') {
+        warrior.classList.add('action-death');
+
+      } else if (type === 'idle') {
+        warrior.className = 'warrior-root state-idle';
+        dummyHp.style.width = '100%';
+      }
+    }
+  </script>
+</body>
+</html>

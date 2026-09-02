@@ -1,3 +1,9 @@
+- **[Feature/VFXStudio/ThreeJSShaderAndTransparentOverlay] 專業遊戲 3D 特效工坊（VFX Studio）與透明 WebGL 頂層覆蓋架構（2026-09-02）**：
+  - **模組架構**：
+    - `tools/vfx-studio.html`：獨立視覺特效調參沙盒，具備 Inspector 面板、多維空間軌跡（水平、斜向天降 45°、垂直天降、地表破土、拋物線）、高階 GLSL 著色器（菲涅爾冰晶、3D Simplex Noise 黑體輻射火焰、介質擊穿電弧、雙頻高能雷射）、Unity 式次生冰刺爆發與火星飛散、Glow Sprite 光暈面片、即時重播 (Live Scrubbing) 與 JSON 導出。
+    - `src/ui/fx/CombatFXEngine.ts`：遊戲本體戰鬥 3D 特效引擎，採用 100% 透明 WebGL 頂層覆蓋層（Alpha Transparent Overlay），完美懸浮於 2D DOM 角色卡牌上方，徹底解決背景遮擋衝突。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤。
+
 - **[Fix/NarrativeSystem/TriggerRaidSuccessFailNodeUnconditionalFire] TRIGGER_RAID 守城/城防後續節點修復全系列（2026-08-30）**：
   - **模組架構**：
     - `src/systems/NarrativeSystem.ts`：新增 `isRaidTargetNode(storyId, nodeId)` 掃描 `TRIGGER_RAID.successNodeId` 與 `failNodeId`；在 `explainBlocked()` 加入對應阻擋邏輯，防止每日輪詢無條件觸發；在 `resolveChoice` 與 `applyEffects` 加入 `sourceNodeId` 傳遞鏈。

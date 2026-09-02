@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three.js 戰鬥 3D 魔法特效沙盒 (Combat 3D FX Studio)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background: #090c10;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .header-bar {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header-bar h1 {
+      font-size: 1.6rem;
+      color: #38bdf8;
+      letter-spacing: 1px;
+      text-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+    }
+    .header-bar p {
+      color: #94a3b8;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    /* 戰鬥舞台 */
+    .battle-stage {
+      position: relative;
+      width: 880px;
+      height: 480px;
+      background: radial-gradient(circle at 50% 60%, #1e293b 0%, #0f172a 60%, #020617 100%);
+      border: 2px solid #334155;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), inset 0 0 80px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 100px;
+    }
+
+    /* 地面格線 */
+    .ground-grid {
+      position: absolute;
+      bottom: 40px;
+      left: 0;
+      width: 100%;
+      height: 120px;
+      background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
+      transform: perspective(400px) rotateX(60deg);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      pointer-events: none;
+    }
+
+    /* 卡牌容器 */
+    .card-battler {
+      width: 130px;
+      height: 180px;
+      background: #1e293b;
+      border: 2px solid #475569;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 8px;
+      position: relative;
+      z-index: 10;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .card-battler.player {
+      border-color: #38bdf8;
+    }
+    .card-battler.enemy {
+      border-color: #ef4444;
+    }
+    .card-avatar {
+      font-size: 3.5rem;
+      margin-top: 10px;
+    }
+    .card-name {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #e2e8f0;
+    }
+    .card-hp-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .card-hp-fill {
+      width: 100%;
+      height: 100%;
+      background: #22c55e;
+      transition: width 0.3s ease;
+    }
+    .card-battler.enemy .card-hp-fill {
+      background: #ef4444;
+    }
+
+    /* 受擊晃動 */
+    .hit-shake {
+      animation: anim-shake 0.3s ease-out !important;
+    }
+    @keyframes anim-shake {
+      0% { transform: scale(1); filter: brightness(2); }
+      30% { transform: scale(0.95) translate(8px, -4px); filter: brightness(2.2); }
+      70% { transform: scale(1.02) translate(-6px, 2px); }
+      100% { transform: scale(1) translate(0, 0); filter: none; }
+    }
+
+    /* 飄字傷害 */
+    .dmg-popup {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: #fef08a;
+      text-shadow: 0 0 12px #eab308, 0 4px 6px rgba(0, 0, 0, 0.9);
+      pointer-events: none;
+      opacity: 0;
+      z-index: 40;
+    }
+    .dmg-popup.active {
+      animation: play-dmg 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes play-dmg {
+      0% { opacity: 1; transform: translate(-50%, 10px) scale(0.6); }
+      30% { opacity: 1; transform: translate(-50%, -30px) scale(1.3); }
+      70% { opacity: 1; transform: translate(-50%, -45px) scale(1.1); }
+      100% { opacity: 0; transform: translate(-50%, -60px) scale(0.9); }
+    }
+
+    /* 控制按鈕面板 */
+    .controls-panel {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+      background: #1e293b;
+      padding: 16px 24px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    .btn-fx {
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-fx:hover {
+      background: #334155;
+      transform: translateY(-2px);
+    }
+    .btn-fx.ice:hover { border-color: #60a5fa; color: #60a5fa; box-shadow: 0 4px 14px rgba(96, 165, 250, 0.35); }
+    .btn-fx.storm:hover { border-color: #fef08a; color: #fef08a; box-shadow: 0 4px 14px rgba(254, 240, 138, 0.35); }
+    .btn-fx.meteor:hover { border-color: #f97316; color: #f97316; box-shadow: 0 4px 14px rgba(249, 115, 22, 0.35); }
+    .btn-fx.beam:hover { border-color: #c084fc; color: #c084fc; box-shadow: 0 4px 14px rgba(192, 132, 252, 0.35); }
+    .btn-fx.slash:hover { border-color: #38bdf8; color: #38bdf8; box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35); }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <h1>✨ Three.js 戰鬥 3D 魔法特效沙盒</h1>
+    <p>借鑑 LinearAbiltyCasting 之 GLSL / 3D 粒子演算法，在 2D 卡牌舞台上方即時渲染 3A 級魔法</p>
+  </div>
+
+  <div id="battle-stage" class="battle-stage">
+    <div class="ground-grid"></div>
+
+    <!-- 玩家卡牌 -->
+    <div id="player-card" class="card-battler player">
+      <div class="card-name">🛡️ 領主戰士</div>
+      <div class="card-avatar">🦸</div>
+      <div class="card-hp-bar">
+        <div class="card-hp-fill"></div>
+      </div>
+    </div>
+
+    <!-- 敵方卡牌 -->
+    <div id="enemy-card" class="card-battler enemy">
+      <div id="enemy-dmg" class="dmg-popup">💥 -240</div>
+      <div class="card-name">👹 哥布林首領</div>
+      <div class="card-avatar">👺</div>
+      <div class="card-hp-bar">
+        <div id="enemy-hp" class="card-hp-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 特效觸發按鈕區 -->
+  <div class="controls-panel">
+    <button class="btn-fx ice" id="btn-frost">❄️ 冰霜之矛 (Frost Lance)</button>
+    <button class="btn-fx storm" id="btn-storm">⚡ 風暴狂雷 (Storm Bolt)</button>
+    <button class="btn-fx meteor" id="btn-meteor">☄️ 灰燼流星 (Cinder Fall)</button>
+    <button class="btn-fx beam" id="btn-beam">💫 新星光束 (Nova Beam)</button>
+    <button class="btn-fx slash" id="btn-slash">🗡️ 3D 半月刃 (Blade Slash)</button>
+  </div>
+
+  <script type="module">
+    import { CombatFXEngine } from '/src/ui/fx/CombatFXEngine.ts';
+
+    const stage = document.getElementById('battle-stage');
+    const playerCard = document.getElementById('player-card');
+    const enemyCard = document.getElementById('enemy-card');
+    const enemyHp = document.getElementById('enemy-hp');
+    const enemyDmg = document.getElementById('enemy-dmg');
+
+    const fxEngine = CombatFXEngine.getInstance();
+    fxEngine.mount(stage);
+
+    function getCardCenter(el) {
+      const stageRect = stage.getBoundingClientRect();
+      const cardRect = el.getBoundingClientRect();
+      return {
+        x: (cardRect.left - stageRect.left) + cardRect.width / 2,
+        y: (cardRect.top - stageRect.top) + cardRect.height / 2
+      };
+    }
+
+    function triggerEnemyHit(dmgText, color, hpPercent) {
+      enemyCard.classList.remove('hit-shake');
+      void enemyCard.offsetWidth;
+      enemyCard.classList.add('hit-shake');
+
+      enemyDmg.textContent = dmgText;
+      enemyDmg.style.color = color;
+      enemyDmg.classList.remove('active');
+      void enemyDmg.offsetWidth;
+      enemyDmg.classList.add('active');
+
+      enemyHp.style.width = hpPercent;
+      setTimeout(() => {
+        enemyHp.style.width = '100%';
+      }, 1500);
+    }
+
+    // 1. ❄️ 冰霜之矛
+    document.getElementById('btn-frost').addEventListener('click', () => {
+      const from = getCardCenter(playerCard);
+      const to = getCardCenter(enemyCard);
+      fxEngine.playFrostLance(from, to, () => {
+        triggerEnemyHit('❄️ -185', '#60a5fa', '55%');
+      });
+    });
+
+    // 2. ⚡ 風暴狂雷
+    document.getElementById('btn-storm').addEventListener('click', () => {
+      const target = getCardCenter(enemyCard);
+      fxEngine.playStormBolt(target, () => {
+        triggerEnemyHit('⚡ CRIT -290', '#fef08a', '30%');
+      });
+    });
+
+    // 3. ☄️ 灰燼流星
+    document.getElementById('btn-meteor').addEventListener('click', () => {
+      const target = getCardCenter(enemyCard);
+      fxEngine.playCinderFall(target, () => {
+        triggerEnemyHit('💥 -340', '#f97316', '15%');
+      });
+    });
+
+    // 4. 💫 新星光束
+    document.getElementById('btn-beam').addEventListener('click', () => {
+      const from = getCardCenter(playerCard);
+      const to = getCardCenter(enemyCard);
+      fxEngine.playNovaBeam(from, to, () => {
+        triggerEnemyHit('💫 -210', '#c084fc', '45%');
+      });
+    });
+
+    // 5. 🗡️ 3D 半月刃
+    document.getElementById('btn-slash').addEventListener('click', () => {
+      const target = getCardCenter(enemyCard);
+      fxEngine.playBladeSlash(target, () => {
+        triggerEnemyHit('⚔️ -160', '#38bdf8', '60%');
+      });
+    });
+  </script>
+</body>
+</html>
