@@ -35,21 +35,31 @@ export class SkillEffectEngine {
     };
   }
 
+  /** 積木遞迴最大深度（防止 onTrue/onFalse 巢狀過深造成 Stack Overflow） */
+  private static readonly MAX_BLOCK_DEPTH = 20;
+
   /** 執行單一積木（含條件判斷與分支） */
   public static executeBlock(
     block: EffectBlock,
     caster: CombatParticipant,
     targets: CombatParticipant[],
     allEnemies: CombatParticipant[],
-    allAllies: CombatParticipant[]
+    allAllies: CombatParticipant[],
+    _depth: number = 0
   ): CombatEvent[] {
+    // 🛡️ 遞迴深度防護：超過上限直接返回空事件，防止惡意或意外的無限巢狀積木
+    if (_depth > SkillEffectEngine.MAX_BLOCK_DEPTH) {
+      console.warn(`[SkillEffectEngine] 積木遞迴深度超過上限 (${SkillEffectEngine.MAX_BLOCK_DEPTH})，施術者：${caster.name}，已強制中斷。`);
+      return [];
+    }
+
     if (block.condition && block.condition.type !== 'NONE') {
       const met = SkillEffectEngine.checkCondition(block.condition, caster, targets, allAllies);
       if (!met) {
-        return (block.onFalse ?? []).flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies));
+        return (block.onFalse ?? []).flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies, _depth + 1));
       }
       if (block.onTrue) {
-        return block.onTrue.flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies));
+        return block.onTrue.flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies, _depth + 1));
       }
     }
     return SkillEffectEngine.applyEffect(block, caster, targets, allEnemies, allAllies);
@@ -508,7 +518,7 @@ export class SkillEffectEngine {
         break;
 
       case 'HEAL':
-        targets.forEach(target => {
+        targets.filter(t => t.currentHp > 0).forEach(target => {
           const healAmt = Math.floor(getMatk(caster) * mult);
           target.currentHp = Math.min(target.maxHp, target.currentHp + healAmt);
           events.push({
@@ -524,6 +534,28 @@ export class SkillEffectEngine {
             text: `${caster.name} 治療了 ${target.name}，恢復 ${healAmt} 點 HP！`
           });
         });
+        break;
+
+      case 'RESURRECT':
+        const deadAllies = _allAllies.filter(a => a.currentHp <= 0);
+        const targetToRevive = targets.find(t => t.currentHp <= 0) || deadAllies[0];
+        if (targetToRevive) {
+          const reviveHp = Math.max(1, Math.floor(targetToRevive.maxHp * (mult || 0.35)));
+          targetToRevive.currentHp = reviveHp;
+          (targetToRevive as any).isDead = false;
+          events.push({
+            type: CombatEventType.HEAL,
+            actorId: caster.id,
+            actorName: caster.name,
+            targetId: targetToRevive.id,
+            targetName: targetToRevive.name,
+            damage: reviveHp,
+            targetHp: targetToRevive.currentHp,
+            targetMaxHp: targetToRevive.maxHp,
+            healType: 'HP',
+            text: `✨ ${caster.name} 施展神聖復甦，將 ${targetToRevive.name} 復活歸隊（恢復 ${reviveHp} 點 HP）！`
+          });
+        }
         break;
 
       default:

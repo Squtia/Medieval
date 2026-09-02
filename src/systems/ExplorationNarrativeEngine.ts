@@ -45,59 +45,89 @@ export class ExplorationNarrativeEngine {
     let totalPrestige = 0;
     let totalItems: string[] = [];
 
-    // 2. 順序探索流 (節點推進)
-    for (let step = 1; step <= maxSteps; step++) {
-      // 30% 事件, 70% 戰鬥 (最後一步必定是戰鬥)
-      const isEvent = (step < maxSteps) && (Random.next() < 0.3);
+    // 判斷是否為「自訂/固定設計據點」（非動態生成、具備 templateId 或自訂守軍配置）
+    const isAuthoredStronghold = !node.isDynamic || Boolean(node.narrativeSubjugation?.templateId) || Boolean(node.scoutData?.garrisonEncounter && node.scoutData.garrisonEncounter.length > 0);
+
+    if (isAuthoredStronghold) {
+      // 🏰 固定/設計據點：直接發動據點攻堅戰（100% 依據點波次 Waves 進行一次性決戰，杜絕外層隨機遇敵干擾）
+      segments.push({ 
+        type: 'TEXT', 
+        content: `${leader.name} 率領討伐小隊抵達 ${node.name}，全員列陣完畢，正式發動據點攻堅戰！` 
+      });
+
+      const combatResult = this.runCombat(adventurers, node, baseDiff, enemyFeature, 1, currentHpOverrides, currentMpOverrides, formationId, gridMap);
       
-      if (isEvent && EXPLORATION_EVENTS.length > 0) {
-        const event = Random.pick(EXPLORATION_EVENTS);
-        segments.push({ type: 'TEXT', content: event.introText });
-
-        let matchedBranch = event.branches.find(b => 
-          b.targetTraits.some(t => leader.trait?.id === t)
-        );
+      if (combatResult && combatResult.combatId) {
+        segments.push({ type: 'COMBAT_LINK', content: combatResult.combatId });
         
-        if (!matchedBranch) {
-          matchedBranch = event.defaultBranch;
-        }
-
-        segments.push({ type: 'TEXT', content: matchedBranch.narrativeText });
-        matchedBranch.onResolve();
-      } else {
-        if (step === 1 && !isEvent) {
-          const encounterTexts = [
-            `剛進入目標區域，隊伍就遭到敵人的伏擊！`,
-            `路途不平靜，一隊魔物擋住了去路！`
-          ];
-          segments.push({ type: 'TEXT', content: Random.pick(encounterTexts) });
-        } else if (step === maxSteps) {
-          segments.push({ type: 'TEXT', content: `隊伍終於抵達了核心區域，與駐紮在此的主力部隊發生了激戰！` });
-        } else {
-          segments.push({ type: 'TEXT', content: `繼續推進時，又遭遇了另一波敵軍的阻撓。` });
-        }
-
-        const combatResult = this.runCombat(adventurers, node, baseDiff, enemyFeature, 1, currentHpOverrides, currentMpOverrides, formationId, gridMap);
-        
-        if (combatResult && combatResult.combatId) {
-          segments.push({ type: 'COMBAT_LINK', content: combatResult.combatId });
-          
-          if (combatResult.rewards) {
-             totalGold += combatResult.rewards.gold;
-             totalExp += combatResult.rewards.exp;
-             totalPrestige += combatResult.rewards.prestige;
-             if (combatResult.rewards.items) {
-               totalItems.push(...combatResult.rewards.items);
-             }
+        if (combatResult.rewards) {
+          totalGold += combatResult.rewards.gold;
+          totalExp += combatResult.rewards.exp;
+          totalPrestige += combatResult.rewards.prestige;
+          if (combatResult.rewards.items) {
+            totalItems.push(...combatResult.rewards.items);
           }
+        }
+        
+        if (!combatResult.isVictory) {
+          overallVictory = false;
+          segments.push({ type: 'TEXT', content: `❌ 敵方防線過於頑強，${leader.name} 傷亡慘重被迫撤退，攻堅任務宣告失敗...` });
+        }
+      }
+    } else {
+      // 🗺️ 野外探索 / 動態漫遊據點：保留 2~3 步順序探索流 (隨機事件與遭遇)
+      for (let step = 1; step <= maxSteps; step++) {
+        const isEvent = (step < maxSteps) && (Random.next() < 0.3);
+        
+        if (isEvent && EXPLORATION_EVENTS.length > 0) {
+          const event = Random.pick(EXPLORATION_EVENTS);
+          segments.push({ type: 'TEXT', content: event.introText });
+
+          let matchedBranch = event.branches.find(b => 
+            b.targetTraits.some(t => leader.trait?.id === t)
+          );
           
-          if (combatResult.playerHpMap) currentHpOverrides = combatResult.playerHpMap;
-          if (combatResult.playerMpMap) currentMpOverrides = combatResult.playerMpMap;
+          if (!matchedBranch) {
+            matchedBranch = event.defaultBranch;
+          }
+
+          segments.push({ type: 'TEXT', content: matchedBranch.narrativeText });
+          matchedBranch.onResolve();
+        } else {
+          if (step === 1 && !isEvent) {
+            const encounterTexts = [
+              `剛進入目標區域，隊伍就遭到敵人的伏擊！`,
+              `路途不平靜，一隊魔物擋住了去路！`
+            ];
+            segments.push({ type: 'TEXT', content: Random.pick(encounterTexts) });
+          } else if (step === maxSteps) {
+            segments.push({ type: 'TEXT', content: `隊伍終於抵達了核心區域，與駐紮在此的主力部隊發生了激戰！` });
+          } else {
+            segments.push({ type: 'TEXT', content: `繼續推進時，又遭遇了另一波敵軍的阻撓。` });
+          }
+
+          const combatResult = this.runCombat(adventurers, node, baseDiff, enemyFeature, 1, currentHpOverrides, currentMpOverrides, formationId, gridMap);
           
-          if (!combatResult.isVictory) {
-             overallVictory = false;
-             segments.push({ type: 'TEXT', content: `隊伍傷亡慘重，${leader.name} 下令立刻撤退，討伐任務宣告失敗...` });
-             break; // 戰敗立即中斷
+          if (combatResult && combatResult.combatId) {
+            segments.push({ type: 'COMBAT_LINK', content: combatResult.combatId });
+            
+            if (combatResult.rewards) {
+               totalGold += combatResult.rewards.gold;
+               totalExp += combatResult.rewards.exp;
+               totalPrestige += combatResult.rewards.prestige;
+               if (combatResult.rewards.items) {
+                 totalItems.push(...combatResult.rewards.items);
+               }
+            }
+            
+            if (combatResult.playerHpMap) currentHpOverrides = combatResult.playerHpMap;
+            if (combatResult.playerMpMap) currentMpOverrides = combatResult.playerMpMap;
+            
+            if (!combatResult.isVictory) {
+               overallVictory = false;
+               segments.push({ type: 'TEXT', content: `隊伍傷亡慘重，${leader.name} 下令立刻撤退，討伐任務宣告失敗...` });
+               break; // 戰敗立即中斷
+            }
           }
         }
       }

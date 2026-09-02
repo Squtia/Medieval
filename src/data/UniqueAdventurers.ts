@@ -168,7 +168,8 @@ export function createUniqueAdventurer(heroKeyOrDef: string | UniqueHeroDef): Ad
     charm: def.customAttributes.charm ?? 5,
     command: def.customAttributes.command ?? 5
   };
-  adv.unspentStatPoints = 0;
+  // 出廠等級若大於 1 等，給予對應等級的自由配點 (每級 2 點)，讓玩家招募英雄後可自由客製化強化
+  adv.unspentStatPoints = Math.max(0, (def.level - 1) * 2);
 
   // 生成並穿戴專屬裝備 (若有指定)
   if (def.equipment.weaponTemplateId) {

@@ -43,12 +43,17 @@ export class StoryStudioFactionManager {
 
           <div style="padding: 12px 16px; border-top: 1px solid #292524; background: #292524; display: flex; flex-direction: column; gap: 8px;">
             <div style="font-weight: bold; font-size: 0.85rem; color: #fde68a;">➕ 新增自訂陣營</div>
-            <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 8px;">
               <input type="text" id="new-faction-id" placeholder="陣營代號 (如 f_dragonkin)" style="padding: 5px 8px; background: #0c0a09; border: 1px solid #57534e; border-radius: 4px; color: #fff; font-size: 0.8rem;">
               <input type="text" id="new-faction-name" placeholder="陣營名稱 (如 遠古龍裔)" style="padding: 5px 8px; background: #0c0a09; border: 1px solid #57534e; border-radius: 4px; color: #fff; font-size: 0.8rem;">
+              <input type="number" id="new-faction-favor" placeholder="初始好感 (-100~100)" value="0" style="padding: 5px 8px; background: #0c0a09; border: 1px solid #57534e; border-radius: 4px; color: #fff; font-size: 0.8rem;">
             </div>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
               <input type="text" id="new-faction-desc" placeholder="陣營背景描述與特徵..." style="flex: 1; padding: 5px 8px; background: #0c0a09; border: 1px solid #57534e; border-radius: 4px; color: #fff; font-size: 0.8rem;">
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 0.78rem; color: #cbd5e1; cursor: pointer; white-space: nowrap;">
+                <input type="checkbox" id="new-faction-show-list" checked>
+                <span>在遊戲外交清單公開</span>
+              </label>
               <button type="button" id="btn-add-faction" class="action-btn" style="padding: 5px 16px; font-size: 0.8rem; background: #d97706; color: #fff; border-color: #f59e0b;">＋ 加入陣營</button>
             </div>
           </div>
@@ -72,6 +77,10 @@ export class StoryStudioFactionManager {
       const id = idInput?.value.trim().toLowerCase();
       const name = nameInput?.value.trim();
       const description = descInput?.value.trim() || '';
+      const favorInput = this.modalEl?.querySelector<HTMLInputElement>('#new-faction-favor');
+      const showListInput = this.modalEl?.querySelector<HTMLInputElement>('#new-faction-show-list');
+      const playerFavor = Number(favorInput?.value) || 0;
+      const showInDiplomacyList = showListInput ? showListInput.checked : true;
 
       if (!id || !name) {
         alert('請輸入完整的陣營代號與名稱');
@@ -93,10 +102,11 @@ export class StoryStudioFactionManager {
         resources: 1000,
         controlledNodes: [],
         capitalNodeId: '',
-        playerFavor: 0,
+        playerFavor,
         relations: {},
         atWarWith: [],
-        personality: FactionPersonality.WARMONGER
+        personality: FactionPersonality.WARMONGER,
+        showInDiplomacyList
       };
 
       FactionManager.upsertCustomFaction(newFaction);
@@ -139,19 +149,40 @@ export class StoryStudioFactionManager {
         ? `<span style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(217,119,6,0.2); color: #fbbf24; border: 1px solid #d97706;">自訂陣營</span>`
         : `<span style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: #292524; color: #a8a29e; border: 1px solid #44403c;">內建家族</span>`;
 
+      const isListed = faction.showInDiplomacyList !== false;
+      const listedBadge = isListed
+        ? `<span style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid #22c55e;">🌐 公開條列</span>`
+        : `<span style="font-size: 0.68rem; padding: 1px 6px; border-radius: 3px; background: rgba(148,163,184,0.15); color: #94a3b8; border: 1px solid #64748b;">🔒 隱藏勢力</span>`;
+
       row.innerHTML = `
         <div style="flex: 1;">
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span style="font-weight: bold; font-size: 0.88rem; color: #fde68a;">${escapeHtml(faction.factionName)}</span>
             <span style="font-size: 0.72rem; color: #a8a29e; font-family: monospace;">(${escapeHtml(faction.id)})</span>
             ${badge}
+            ${listedBadge}
+            <span style="font-size: 0.72rem; color: #38bdf8;">初始好感: ${faction.playerFavor ?? 0}</span>
           </div>
           <div style="font-size: 0.72rem; color: #78716c; margin-top: 2px;">${escapeHtml(faction.description || '')}</div>
         </div>
-        ${isCustom ? `<button type="button" class="action-btn story-danger" data-delete-faction="${faction.id}" style="padding: 2px 8px; font-size: 0.72rem; margin-left: 10px;">刪除</button>` : ''}
+        <div style="display: flex; align-items: center; gap: 6px;">
+          ${isCustom ? `
+            <button type="button" class="action-btn" data-toggle-list="${faction.id}" style="padding: 2px 6px; font-size: 0.72rem; background: #374151; color: #e5e7eb;">
+              ${isListed ? '設為隱藏' : '設為公開'}
+            </button>
+            <button type="button" class="action-btn story-danger" data-delete-faction="${faction.id}" style="padding: 2px 8px; font-size: 0.72rem;">刪除</button>
+          ` : ''}
+        </div>
       `;
 
       if (isCustom) {
+        row.querySelector(`[data-toggle-list="${faction.id}"]`)?.addEventListener('click', () => {
+          faction.showInDiplomacyList = !(faction.showInDiplomacyList !== false);
+          FactionManager.upsertCustomFaction(faction);
+          this.renderList();
+          if (this.onUpdatedCallback) this.onUpdatedCallback();
+        });
+
         row.querySelector(`[data-delete-faction="${faction.id}"]`)?.addEventListener('click', () => {
           if (confirm(`確定要刪除自訂陣營「${faction.factionName}」嗎？`)) {
             FactionManager.deleteCustomFaction(faction.id);

@@ -215,6 +215,24 @@ export class NarrativeSystem {
     switch (condition.type) {
       case 'DAY_AT_LEAST': return GameState.totalDays >= condition.value;
       case 'TAVERN_LEVEL_AT_LEAST': return GameState.myTerritory.tavernLevel >= condition.value;
+      case 'BUILDING_LEVEL_AT_LEAST': {
+        const territory = GameState.myTerritory;
+        const bId = condition.buildingId;
+        let lvl = 0;
+        if (bId === 'defense') lvl = territory.defenseLevel;
+        else if (bId === 'tavern') lvl = territory.tavernLevel;
+        else if (bId === 'forge') lvl = territory.forgeLevel;
+        else if (bId === 'weapon') lvl = territory.weaponShopLevel;
+        else if (bId === 'armor') lvl = territory.armorShopLevel;
+        else if (bId === 'church') lvl = territory.churchLevel;
+        else if (bId === 'farmland') lvl = territory.farmlandLevel;
+        else if (bId === 'lumberMill') lvl = territory.lumberMillLevel;
+        else if (bId === 'quarry') lvl = territory.quarryLevel;
+        else if (bId === 'huntingGround') lvl = territory.huntingGroundLevel;
+        return lvl >= condition.value;
+      }
+      case 'SECURITY_AT_LEAST': return (GameState.myTerritory.security ?? 100) >= condition.value;
+      case 'SECURITY_AT_MOST': return (GameState.myTerritory.security ?? 100) <= condition.value;
       case 'PRESTIGE_AT_LEAST': return GameState.myTerritory.prestige >= condition.value;
       case 'GOLD_AT_LEAST': return GameState.myTerritory.gold >= condition.value;
       case 'FACTION_FAVOR_AT_LEAST': {
@@ -278,6 +296,9 @@ export class NarrativeSystem {
     switch (condition.type) {
       case 'DAY_AT_LEAST': return `需要到第 ${condition.value} 天`;
       case 'TAVERN_LEVEL_AT_LEAST': return `酒館需要達到 ${condition.value} 級`;
+      case 'BUILDING_LEVEL_AT_LEAST': return `建築「${condition.buildingId}」需達到 ${condition.value} 級`;
+      case 'SECURITY_AT_LEAST': return `領地治安度需 ≥ ${condition.value}`;
+      case 'SECURITY_AT_MOST': return `領地治安度需 ≤ ${condition.value}`;
       case 'PRESTIGE_AT_LEAST': return `聲望需要達到 ${condition.value}`;
       case 'GOLD_AT_LEAST': return `金幣需要達到 ${condition.value}`;
       case 'FACTION_FAVOR_AT_LEAST': return `派系「${condition.factionId}」好感度需 ≥ ${condition.value}`;
@@ -652,11 +673,41 @@ export class NarrativeSystem {
           else if (bId === 'forge' && territory.forgeLevel > 0) territory.forgeLevel = Math.max(0, territory.forgeLevel - levels);
           else if (bId === 'weapon' && territory.weaponShopLevel > 0) territory.weaponShopLevel = Math.max(0, territory.weaponShopLevel - levels);
           else if (bId === 'armor' && territory.armorShopLevel > 0) territory.armorShopLevel = Math.max(0, territory.armorShopLevel - levels);
+          else if (bId === 'church' && territory.churchLevel > 0) territory.churchLevel = Math.max(0, territory.churchLevel - levels);
           else if (bId === 'farmland' && territory.farmlandLevel > 1) territory.farmlandLevel = Math.max(1, territory.farmlandLevel - levels);
           else if (bId === 'lumberMill' && territory.lumberMillLevel > 1) territory.lumberMillLevel = Math.max(1, territory.lumberMillLevel - levels);
           else if (bId === 'quarry' && territory.quarryLevel > 1) territory.quarryLevel = Math.max(1, territory.quarryLevel - levels);
           else if (bId === 'huntingGround' && territory.huntingGroundLevel > 1) territory.huntingGroundLevel = Math.max(1, territory.huntingGroundLevel - levels);
           console.log(`🏚️【建築受損】領地建築「${bId}」受損降低了 ${levels} 級！`);
+          break;
+        }
+        case 'REDUCE_RANDOM_BUILDING_LEVEL': {
+          const territory = GameState.myTerritory;
+          const count = Math.max(1, effect.count ?? 1);
+          const levels = Math.max(1, effect.levels ?? 1);
+
+          // 收集所有已建造/等級可降的建築
+          const candidates: { id: string; name: string; getLvl: () => number; setLvl: (v: number) => void; minLvl: number }[] = [];
+          if (territory.defenseLevel > 0) candidates.push({ id: 'defense', name: '城牆/城防', getLvl: () => territory.defenseLevel, setLvl: v => territory.defenseLevel = v, minLvl: 0 });
+          if (territory.tavernLevel > 0) candidates.push({ id: 'tavern', name: '酒館', getLvl: () => territory.tavernLevel, setLvl: v => territory.tavernLevel = v, minLvl: 0 });
+          if (territory.forgeLevel > 0) candidates.push({ id: 'forge', name: '鐵匠鋪', getLvl: () => territory.forgeLevel, setLvl: v => territory.forgeLevel = v, minLvl: 0 });
+          if (territory.weaponShopLevel > 0) candidates.push({ id: 'weapon', name: '武器店', getLvl: () => territory.weaponShopLevel, setLvl: v => territory.weaponShopLevel = v, minLvl: 0 });
+          if (territory.armorShopLevel > 0) candidates.push({ id: 'armor', name: '防具店', getLvl: () => territory.armorShopLevel, setLvl: v => territory.armorShopLevel = v, minLvl: 0 });
+          if (territory.churchLevel > 0) candidates.push({ id: 'church', name: '教會/醫療所', getLvl: () => territory.churchLevel, setLvl: v => territory.churchLevel = v, minLvl: 0 });
+          if (territory.farmlandLevel > 1) candidates.push({ id: 'farmland', name: '農田', getLvl: () => territory.farmlandLevel, setLvl: v => territory.farmlandLevel = v, minLvl: 1 });
+          if (territory.lumberMillLevel > 1) candidates.push({ id: 'lumberMill', name: '伐木場', getLvl: () => territory.lumberMillLevel, setLvl: v => territory.lumberMillLevel = v, minLvl: 1 });
+          if (territory.quarryLevel > 1) candidates.push({ id: 'quarry', name: '採石場', getLvl: () => territory.quarryLevel, setLvl: v => territory.quarryLevel = v, minLvl: 1 });
+          if (territory.huntingGroundLevel > 1) candidates.push({ id: 'huntingGround', name: '獵場', getLvl: () => territory.huntingGroundLevel, setLvl: v => territory.huntingGroundLevel = v, minLvl: 1 });
+
+          if (candidates.length > 0) {
+            const shuffled = candidates.sort(() => Math.random() - 0.5).slice(0, count);
+            shuffled.forEach(target => {
+              const curLvl = target.getLvl();
+              const newLvl = Math.max(target.minLvl, curLvl - levels);
+              target.setLvl(newLvl);
+              console.log(`💥【隨機災害】領地「${target.name}」受損降為 Lv.${newLvl} (扣減 ${curLvl - newLvl} 級)！`);
+            });
+          }
           break;
         }
         case 'TRIGGER_RAID': {

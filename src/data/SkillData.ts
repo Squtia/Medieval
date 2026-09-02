@@ -520,6 +520,7 @@ export const SKILLS: Record<string, Skill> = {
       const shieldAmount = Math.floor(caster.stats.def * 2.5);
       
       targets.forEach(target => {
+        if (target.currentHp <= 0) return; // 陣亡單位不可被常規治療
         const heal = shieldAmount;
         target.currentHp = Math.min(target.maxHp, target.currentHp + heal);
         events.push({
@@ -592,6 +593,7 @@ export const SKILLS: Record<string, Skill> = {
       if (caster.isAdvanced && caster.weaponType === 'HOLY_BOOK') {
         baseHeal *= 1.3; // 大主教被動：治療量 +30%
       }
+      if (!target || target.currentHp <= 0) return []; // 陣亡單位不可被常規治療
       const heal = Math.floor(baseHeal * (0.95 + Random.next() * 0.1));
       target.currentHp = Math.min(target.maxHp, target.currentHp + heal);
       return [{
@@ -660,6 +662,7 @@ export const SKILLS: Record<string, Skill> = {
         baseHeal *= 1.3; // 大主教被動：治療量 +30%
       }
       targets.forEach(target => {
+        if (target.currentHp <= 0) return; // 陣亡單位不可被常規治療
         const heal = Math.floor(baseHeal * (0.95 + Random.next() * 0.1));
         target.currentHp = Math.min(target.maxHp, target.currentHp + heal);
         target.statusEffects = target.statusEffects.filter(s => ['TAUNT', 'REGEN_HP', 'REGEN_MP'].includes(s.type));

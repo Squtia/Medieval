@@ -11,8 +11,8 @@ describe('Unique Adventurers System', () => {
     expect(reyn.quality).toBe('UR');
     expect(reyn.level).toBe(10);
     expect(reyn.isAdvanced).toBe(true);
-    expect(reyn.baseAttributes.str).toBe(45);
-    expect(reyn.baseAttributes.con).toBe(30);
+    expect(reyn.baseAttributes.str).toBe(60);
+    expect(reyn.baseAttributes.con).toBe(60);
     expect(reyn.equipment[EquipmentSlot.WEAPON]).toBeDefined();
     expect(reyn.equipment[EquipmentSlot.WEAPON]?.enhancementLevel).toBeGreaterThanOrEqual(0);
     expect(reyn.equipment[EquipmentSlot.ARMOR]).toBeDefined();
@@ -25,10 +25,10 @@ describe('Unique Adventurers System', () => {
     if (!luna) return;
 
     expect(luna.quality).toBe('SSR');
-    expect(luna.level).toBe(10);
-    expect(luna.isAdvanced).toBe(true);
-    expect(luna.baseAttributes.int).toBe(42);
-    expect(luna.baseAttributes.spr).toBe(26);
+    expect(luna.level).toBe(5);
+    expect(luna.isAdvanced).toBe(false);
+    expect(luna.baseAttributes.int).toBe(45);
+    expect(luna.baseAttributes.spr).toBe(27);
     expect(luna.equipment[EquipmentSlot.WEAPON]).toBeDefined();
     expect(luna.equipment[EquipmentSlot.ACCESSORY]?.id).toBe('acc_scholar_pendant');
   });

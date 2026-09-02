@@ -50,7 +50,7 @@ export class DiplomacyController {
       return;
     }
 
-    const factions = GameState.mapSystem.getFactions().filter(f => (f.controlledNodes && f.controlledNodes.length > 0) || f.playerFavor !== undefined);
+    const factions = GameState.mapSystem.getFactions().filter(f => f.showInDiplomacyList !== false && ((f.controlledNodes && f.controlledNodes.length > 0) || f.playerFavor !== undefined));
 
     if (factions.length === 0) {
       listEl.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 2rem;">大陸上已無其他活躍的派系。</p>';

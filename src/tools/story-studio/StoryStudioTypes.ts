@@ -28,7 +28,10 @@ export const SVG_NS = 'http://www.w3.org/2000/svg';
 
 export const CONDITION_LABELS: Record<NarrativeCondition['type'], string> = {
   DAY_AT_LEAST: '最早遊戲日',
-  TAVERN_LEVEL_AT_LEAST: '最低酒館等級',
+  TAVERN_LEVEL_AT_LEAST: '最低酒館等級 (舊版)',
+  BUILDING_LEVEL_AT_LEAST: '🏛️ 建築/設施等級 ≥',
+  SECURITY_AT_LEAST: '🛡️ 領地治安度 ≥',
+  SECURITY_AT_MOST: '⚠️ 領地治安度 ≤',
   PRESTIGE_AT_LEAST: '最低聲望',
   GOLD_AT_LEAST: '最低金幣',
   FACTION_FAVOR_AT_LEAST: '派系好感度 ≥',
@@ -63,7 +66,8 @@ export const EFFECT_LABELS: Record<NarrativeEffect['type'], string> = {
   REDUCE_POPULATION_PERCENT: '懲罰：隨機扣減人口百分比 (?%~?%)',
   REDUCE_RESOURCE_PERCENT: '懲罰：扣減資源庫存百分比 (?%~?%)',
   REDUCE_PRESTIGE_PERCENT: '懲罰：扣減聲望百分比 (?%~?%)',
-  REDUCE_BUILDING_LEVEL: '懲罰：建築/設施受損降級 (REDUCE_BUILDING_LEVEL)',
+  REDUCE_BUILDING_LEVEL: '懲罰：指定建築受損降級 (REDUCE_BUILDING_LEVEL)',
+  REDUCE_RANDOM_BUILDING_LEVEL: '💥 懲罰：隨機建築受損降級 (REDUCE_RANDOM_BUILDING_LEVEL)',
   TRIGGER_RAID: '戰役：觸發領地攻城/襲擊戰役 (TRIGGER_RAID)'
 };
 
@@ -113,6 +117,9 @@ export function makeNode(id: string): NarrativeNode {
 export function defaultCondition(type: NarrativeCondition['type'] = 'FACT_EXISTS'): NarrativeCondition {
   switch (type) {
     case 'DAY_AT_LEAST': case 'TAVERN_LEVEL_AT_LEAST': case 'PRESTIGE_AT_LEAST': return { type, value: 1 };
+    case 'BUILDING_LEVEL_AT_LEAST': return { type, buildingId: 'tavern', value: 1 };
+    case 'SECURITY_AT_LEAST': return { type, value: 60 };
+    case 'SECURITY_AT_MOST': return { type, value: 30 };
     case 'GOLD_AT_LEAST': return { type, value: 100 };
     case 'FACTION_FAVOR_AT_LEAST': case 'FACTION_FAVOR_AT_MOST': return { type, factionId: 'f_vormund', value: 30 };
     case 'FACT_EXISTS': case 'FACT_MISSING': return { type, fact: 'new_fact' };
@@ -145,6 +152,7 @@ export function defaultEffect(type: NarrativeEffect['type'] = 'SET_FACT'): Narra
     case 'REDUCE_RESOURCE_PERCENT': return { type, resource: 'GOLD', minPercent: 15, maxPercent: 30 };
     case 'REDUCE_PRESTIGE_PERCENT': return { type, minPercent: 10, maxPercent: 20 };
     case 'REDUCE_BUILDING_LEVEL': return { type, buildingId: 'defense', levels: 1 };
+    case 'REDUCE_RANDOM_BUILDING_LEVEL': return { type, count: 1, levels: 1 };
     case 'TRIGGER_RAID': return {
       type,
       raidName: '黑狼軍團圍城戰',

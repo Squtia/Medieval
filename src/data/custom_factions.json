@@ -11,7 +11,8 @@
     "playerFavor": 0,
     "relations": {},
     "atWarWith": [],
-    "personality": "WARMONGER"
+    "personality": "WARMONGER",
+    "showInDiplomacyList": false
   },
   {
     "id": "e_bandit",
@@ -25,6 +26,7 @@
     "playerFavor": 0,
     "relations": {},
     "atWarWith": [],
-    "personality": "WARMONGER"
+    "personality": "WARMONGER",
+    "showInDiplomacyList": false
   }
 ]

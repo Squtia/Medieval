@@ -92,6 +92,7 @@ export class StoryStudioForm {
       this.setValue('story-node-id', node.id);
       this.setValue('story-node-channel', node.channel);
       this.setValue('story-node-title', node.title);
+      this.setValue('story-node-trigger-chance', node.triggerChance ?? 100);
       this.setValue('story-node-description', node.description);
       this.setValue('story-node-target-map', node.targetNodeId ?? '');
       this.setValue('story-node-npc-name', node.npcName ?? '');
@@ -203,6 +204,8 @@ export class StoryStudioForm {
 
     node.channel = this.byId<HTMLSelectElement>('story-node-channel').value as NarrativeNode['channel'];
     node.title = this.value('story-node-title') || node.id;
+    const chanceVal = Number(this.value('story-node-trigger-chance'));
+    node.triggerChance = isNaN(chanceVal) || chanceVal >= 100 ? undefined : Math.max(1, Math.min(100, chanceVal));
     node.description = this.value('story-node-description');
     node.npcName = this.value('story-node-npc-name') || undefined;
     node.npcAvatar = this.value('story-node-npc-avatar') || undefined;
@@ -423,6 +426,23 @@ export class StoryStudioForm {
 
     switch (condition.type) {
       case 'DAY_AT_LEAST': case 'TAVERN_LEVEL_AT_LEAST': case 'PRESTIGE_AT_LEAST': return input('門檻數值', 'value', condition.value, 'number');
+      case 'BUILDING_LEVEL_AT_LEAST': {
+        const bOptions = [
+          { value: 'defense', label: '🏰 城防/城牆 (defense)' },
+          { value: 'tavern', label: '🍺 酒館 (tavern)' },
+          { value: 'forge', label: '🔨 鐵匠鋪 (forge)' },
+          { value: 'weapon', label: '⚔️ 武器店 (weapon)' },
+          { value: 'armor', label: '🛡️ 防具店 (armor)' },
+          { value: 'church', label: '⛪ 教會/醫療所 (church)' },
+          { value: 'farmland', label: '🌾 農田 (farmland)' },
+          { value: 'lumberMill', label: '🌲 伐木場 (lumberMill)' },
+          { value: 'quarry', label: '⛏️ 採石場 (quarry)' },
+          { value: 'huntingGround', label: '🏹 獵場 (huntingGround)' }
+        ];
+        return `${select('目標建築/設施', 'buildingId', condition.buildingId || 'tavern', bOptions)}${input('最低等級門檻', 'value', condition.value, 'number')}`;
+      }
+      case 'SECURITY_AT_LEAST': case 'SECURITY_AT_MOST':
+        return input('治安度門檻 (0~100)', 'value', condition.value, 'number');
       case 'GOLD_AT_LEAST': return input('金幣門檻', 'value', condition.value, 'number');
       case 'FACTION_FAVOR_AT_LEAST': case 'FACTION_FAVOR_AT_MOST':
         return `${select('目標派系', 'factionId', condition.factionId, this.getFactionOptions())}${input('好感度門檻 (-100~100)', 'value', condition.value, 'number')}`;
@@ -913,7 +933,10 @@ export class StoryStudioForm {
           ${input('途中事件節點 IDs (逗號隔開)', 'definition.journeyNodeIds', (d.journeyNodeIds || []).join(', '))}
         `;
       }
+      default:
+        return '';
     }
+    return '';
   }
 
   private renderChoicesList(node: NarrativeNode): void {
@@ -1088,7 +1111,7 @@ export class StoryStudioForm {
 
     // 專屬一般欄位即時監聽
     const nodeFieldIds = [
-      'story-node-channel', 'story-node-title', 'story-node-description',
+      'story-node-channel', 'story-node-title', 'story-node-trigger-chance', 'story-node-description',
       'story-node-target-map', 'story-node-npc-name', 'story-node-npc-avatar',
       'story-node-is-ending', 'story-node-loop-mode', 'story-node-loop-target',
       'story-node-loop-reset', 'story-node-loop-cooldown',

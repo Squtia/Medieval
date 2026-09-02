@@ -1,7 +1,278 @@
 {
-  "timestamp": "2026-09-01T06:49:16.461Z",
+  "timestamp": "2026-09-02T01:22:59.919Z",
   "note": "在戰鬥工坊中儲存",
   "strongholds": [
+    {
+      "id": "fire_dragon_lair",
+      "name": "熔岩火山與火龍巢",
+      "description": "描述此據點的敵方勢力與地理環境...",
+      "terrain": "VOLCANO",
+      "icon": "cave_node_01:cave_node_01_9",
+      "difficulty": 10,
+      "worldGenMode": "WORLD_SECRET",
+      "isWorldSecret": true,
+      "allowTroops": true,
+      "nodeLevel": 0,
+      "requiresScouting": true,
+      "removeOnVictory": true,
+      "waves": [
+        {
+          "name": "第 1 波：先鋒部隊",
+          "monsters": [
+            {
+              "monsterId": "wyvern",
+              "powerTier": 2.3,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            },
+            {
+              "monsterId": "hellhound",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 0,
+              "slotId": "1_0",
+              "formationRow": "MIDDLE",
+              "element": "FIRE",
+              "skills": [
+                "SKILL_FLAME_BURST",
+                "SKILL_SAVAGE_REND"
+              ]
+            },
+            {
+              "monsterId": "hellhound",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 2,
+              "slotId": "1_2",
+              "formationRow": "MIDDLE",
+              "element": "FIRE",
+              "skills": [
+                "SKILL_FLAME_BURST",
+                "SKILL_SAVAGE_REND"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：據點首領",
+          "monsters": [
+            {
+              "monsterId": "young_dragon",
+              "powerTier": 3,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK",
+              "skills": [
+                "DRAGON_BREATH"
+              ]
+            },
+            {
+              "monsterId": "salamander",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 0,
+              "slotId": "1_0",
+              "formationRow": "MIDDLE",
+              "element": "FIRE",
+              "skills": [
+                "SKILL_FLAME_BURST"
+              ]
+            },
+            {
+              "monsterId": "salamander",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 2,
+              "slotId": "1_2",
+              "formationRow": "MIDDLE",
+              "element": "FIRE",
+              "skills": [
+                "SKILL_FLAME_BURST"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第 3 波",
+          "monsters": [
+            {
+              "monsterId": "fire_dragon",
+              "powerTier": 7,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK",
+              "element": "FIRE",
+              "skills": [
+                "CATACLYSM_FLAME",
+                "DRAGON_ROAR",
+                "SKILL_CRUSHING_SLAM"
+              ]
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 100,
+        "exp": 120,
+        "prestige": 15
+      },
+      "enemyLegion": {
+        "enabled": false,
+        "infantry": 0,
+        "archer": 0,
+        "cavalry": 0
+      },
+      "combatRole": "DEFENDER_ONLY",
+      "defenderConfig": {
+        "gateMaxHp": 0,
+        "watchtowerCount": 0,
+        "watchtowerDmg": 0,
+        "rampartArrowBonusPct": 0
+      },
+      "attackerConfig": {
+        "ramCount": 1,
+        "trebuchetCount": 1,
+        "tacticalStance": "GATE_FOCUS"
+      }
+    },
+    {
+      "id": "emerald_dragon_lair",
+      "name": "翡翠鹽湖與翠龍巢",
+      "description": "描述此據點的敵方勢力與地理環境...",
+      "terrain": "FOREST",
+      "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_18",
+      "difficulty": 10,
+      "worldGenMode": "WORLD_SECRET",
+      "isWorldSecret": true,
+      "allowTroops": true,
+      "nodeLevel": 0,
+      "requiresScouting": true,
+      "removeOnVictory": true,
+      "waves": [
+        {
+          "name": "第 1 波：先鋒部隊",
+          "monsters": [
+            {
+              "monsterId": "slime",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 0,
+              "slotId": "1_0",
+              "formationRow": "MIDDLE"
+            },
+            {
+              "monsterId": "slime",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 2,
+              "slotId": "1_2",
+              "formationRow": "MIDDLE"
+            },
+            {
+              "monsterId": "basilisk",
+              "powerTier": 2.1,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            }
+          ]
+        },
+        {
+          "name": "第 2 波：據點首領",
+          "monsters": [
+            {
+              "monsterId": "draconic_lizard",
+              "powerTier": 2,
+              "gridR": 1,
+              "gridC": 0,
+              "slotId": "1_0",
+              "formationRow": "MIDDLE",
+              "skills": [
+                "SKILL_CRUSHING_SLAM",
+                "SKILL_IRON_DEFENSE"
+              ]
+            },
+            {
+              "monsterId": "basilisk",
+              "powerTier": 2.1,
+              "gridR": 1,
+              "gridC": 2,
+              "slotId": "1_2",
+              "formationRow": "MIDDLE"
+            },
+            {
+              "monsterId": "swamp_drake",
+              "powerTier": 3,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK",
+              "skills": [
+                "SKILL_TOXIC_SPRAY",
+                "SKILL_SAVAGE_REND"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "第 3 波",
+          "monsters": [
+            {
+              "monsterId": "emerald_dragon",
+              "powerTier": 4.8,
+              "gridR": 2,
+              "gridC": 1,
+              "slotId": "2_1",
+              "formationRow": "BACK"
+            },
+            {
+              "monsterId": "swamp_drake",
+              "powerTier": 1.9,
+              "gridR": 1,
+              "gridC": 0,
+              "slotId": "1_0",
+              "formationRow": "MIDDLE"
+            },
+            {
+              "monsterId": "swamp_drake",
+              "powerTier": 1.9,
+              "gridR": 1,
+              "gridC": 2,
+              "slotId": "1_2",
+              "formationRow": "MIDDLE"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "gold": 20000,
+        "exp": 1000,
+        "prestige": 250
+      },
+      "enemyLegion": {
+        "enabled": false,
+        "infantry": 0,
+        "archer": 0,
+        "cavalry": 0
+      },
+      "combatRole": "DEFENDER_ONLY",
+      "defenderConfig": {
+        "gateMaxHp": 0,
+        "watchtowerCount": 0,
+        "watchtowerDmg": 0,
+        "rampartArrowBonusPct": 0
+      },
+      "attackerConfig": {
+        "ramCount": 1,
+        "trebuchetCount": 1,
+        "tacticalStance": "GATE_FOCUS"
+      }
+    },
     {
       "id": "army_bandit_attack",
       "name": "強盜侵襲團",

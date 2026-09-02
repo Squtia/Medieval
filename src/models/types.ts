@@ -416,6 +416,7 @@ export interface Faction {
   champions?: FactionChampion[];     // 派系武將名冊
   capturedChampionIds?: string[];    // 目前被玩家俘虜的武將 ID
   defeatedChampionIds?: string[];    // 已陣亡的武將 ID
+  showInDiplomacyList?: boolean;     // 是否在遊戲外交介面中公開條列顯示 (預設 true)
 }
 
 /**

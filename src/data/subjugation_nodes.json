@@ -999,15 +999,11 @@
           },
           {
             "monsterId": "frost_dragon",
-            "powerTier": 4.5,
+            "powerTier": 3.5,
             "gridR": 2,
             "gridC": 1,
             "slotId": "2_1",
-            "formationRow": "BACK",
-            "skills": [
-              "SKILL_FROST_BREATH",
-              "SKILL_IRON_DEFENSE"
-            ]
+            "formationRow": "BACK"
           },
           {
             "monsterId": "elemental_golem",

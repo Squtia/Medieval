@@ -364,23 +364,150 @@ body {
   font-weight: bold;
 }
 
-/* 戰鬥對抗擂台 (Arena) */
-.cs-arena {
-  padding: 14px 16px;
-  display: grid;
-  grid-template-columns: 1fr 60px 1fr;
-  gap: 12px;
+/* 陣型選擇列 (Formation Bar) */
+.cs-formation-bar {
+  padding: 6px 16px;
+  background: #141922;
+  border-bottom: 1px solid var(--cs-panel-border);
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  flex-shrink: 0;
+}
+
+.cs-formation-badge {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cs-formation-badge.active {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: #10b981;
+}
+
+.cs-formation-badge.inactive {
+  background: rgba(234, 179, 8, 0.2);
+  color: #fbbf24;
+  border-color: #eab308;
+}
+
+.cs-formation-desc-text {
+  color: #94a3b8;
+  font-size: 0.72rem;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 戰鬥對抗擂台 (Arena - 雙向 3x3 棋盤) */
+.cs-arena {
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: 1fr 50px 1fr;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
   background: radial-gradient(circle at center, #1b2432 0%, #0d1117 75%);
   border-bottom: 1px solid var(--cs-panel-border);
   flex-shrink: 0;
-  min-height: 150px;
 }
 
-.cs-arena-team {
+.cs-arena-grid-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cs-grid-labels {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, 82px);
+  gap: 6px;
+  margin-bottom: 4px;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: bold;
+}
+
+.cs-3x3-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 82px);
+  grid-template-rows: repeat(3, 86px);
+  gap: 6px;
+  justify-content: center;
+  position: relative;
+}
+
+.cs-grid-slot {
+  width: 82px;
+  height: 86px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.35);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  overflow: visible;
+}
+
+.cs-grid-slot.required {
+  border-color: #eab308;
+  background: rgba(234, 179, 8, 0.08);
+}
+
+.cs-grid-slot.active-formation {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.3);
+}
+
+.cs-grid-slot.drag-over {
+  border-color: var(--cs-gold);
+  background: rgba(201, 169, 110, 0.25);
+  transform: scale(1.02);
+}
+
+.cs-grid-slot-label {
+  position: absolute;
+  bottom: 2px;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+.cs-slot-remove-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: #fff;
+  border: 1px solid #fff;
+  font-size: 0.6rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cs-grid-slot:hover .cs-slot-remove-btn {
+  opacity: 1;
 }
 
 .cs-arena-vs {

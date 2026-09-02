@@ -2033,10 +2033,6 @@
           {
             "type": "GOLD_AT_LEAST",
             "value": 3000
-          },
-          {
-            "type": "PRESTIGE_AT_LEAST",
-            "value": 50
           }
         ],
         "choices": [],
@@ -2156,13 +2152,17 @@
       },
       {
         "id": "bandit_attack_check",
-        "title": "新故事節點",
+        "title": "強盜團侵襲判定",
         "description": "",
         "channel": "SUBJUGATION_JOURNEY",
         "conditions": [
           {
-            "type": "GOLD_AT_LEAST",
-            "value": 3000
+            "type": "SECURITY_AT_MOST",
+            "value": 100
+          },
+          {
+            "type": "PRESTIGE_AT_LEAST",
+            "value": 50
           }
         ],
         "choices": [],
@@ -2181,8 +2181,9 @@
           "resetNodeIds": [
             "bandit_attack_check"
           ],
-          "cooldownDays": 1
-        }
+          "cooldownDays": 5
+        },
+        "triggerChance": 49
       }
     ]
   }

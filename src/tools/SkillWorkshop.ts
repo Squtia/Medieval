@@ -696,6 +696,7 @@ export class SkillWorkshop {
               <option value="BUFF_SELF" ${block.effectType === 'BUFF_SELF' ? 'selected' : ''}>BUFF_SELF (自身增益)</option>
               <option value="BUFF_ALLIES" ${block.effectType === 'BUFF_ALLIES' ? 'selected' : ''}>BUFF_ALLIES (全體增益)</option>
               <option value="HEAL" ${block.effectType === 'HEAL' ? 'selected' : ''}>HEAL (治療)</option>
+              <option value="RESURRECT" ${block.effectType === 'RESURRECT' ? 'selected' : ''}>✨ RESURRECT (復活隊友)</option>
             </select>
           </div>
           <div class="sw-form-group">
@@ -709,6 +710,7 @@ export class SkillWorkshop {
               <option value="SELF" ${block.targetType === TargetType.SELF ? 'selected' : ''}>SELF (自身)</option>
               <option value="ALL_ALLIES" ${block.targetType === TargetType.ALL_ALLIES ? 'selected' : ''}>ALL_ALLIES (我方全體)</option>
               <option value="ALLY_LOWEST_HP" ${block.targetType === TargetType.ALLY_LOWEST_HP ? 'selected' : ''}>ALLY_LOWEST_HP (我方最殘血)</option>
+              <option value="ALLY_DEAD" ${block.targetType === TargetType.ALLY_DEAD ? 'selected' : ''}>💀 ALLY_DEAD (陣亡隊友)</option>
             </select>
           </div>
           <div class="sw-form-group">

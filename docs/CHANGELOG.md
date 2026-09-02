@@ -1,3 +1,95 @@
+- **[Feature/StoryStudio/NarrativeUpgradesAndFactionVisibility] 故事工房 5 大功能升級與陣營好感測試修復實裝（2026-09-02）**：
+  - **🏛️ 建築物選項清理與 100% 對齊**：對齊遊戲內真實存在的 10 大建築與設施（含補齊 `church` 教會與醫療所），並新增萬用建築條件 `BUILDING_LEVEL_AT_LEAST`（支援自選任意建築與等級門檻）。
+  - **🛡️ 治安度條件與 🎲 事件發生機率**：
+    - 新增 `SECURITY_AT_LEAST`（治安度 $\ge$ X）與 `SECURITY_AT_MOST`（治安度 $\le$ X）條件。
+    - 故事節點表單新增 `triggerChance`（事件觸發機率 1~100%，預設 100%），支援創作者設計低機率偶發事件與奇遇。
+  - **💥 隨機建築受損降級效果實裝**：新增 `REDUCE_RANDOM_BUILDING_LEVEL` 效果，可指定隨機抽取 `count` 座已建建築各降級 `levels` 級，免去手動逐一配置繁複懲罰的痛點。
+  - **🔍 測試沙盒陣營好感即時同步修復**：修復 [`NarrativeTestController.ts`](file:///d:/tryagent/Medieval/src/ui/NarrativeTestController.ts) 過去寫死 `INITIAL_FACTIONS` 導致自訂陣營與好感度丟失的問題，全面改為載入 `FactionManager.getAllFactions()`。
+  - **🏷️ 自訂陣營好感度與外交清單顯示開關**：
+    - 在自訂陣營中新增 `showInDiplomacyList` 屬性與好感度輸入。
+    - 在故事工房陣營管理器中提供「☑️ 在遊戲外交清單公開」開關與「設為公開 / 設為隱藏」即時切換。
+    - 在 [`DiplomacyController.ts`](file:///d:/tryagent/Medieval/src/ui/DiplomacyController.ts) 中支援將隱藏勢力從主介面外交清單過濾。
+  - **修改檔案**：[`Narrative.ts`](file:///d:/tryagent/Medieval/src/models/Narrative.ts)、[`NarrativeSystem.ts`](file:///d:/tryagent/Medieval/src/systems/NarrativeSystem.ts)、[`types.ts`](file:///d:/tryagent/Medieval/src/models/types.ts)、[`StoryStudioTypes.ts`](file:///d:/tryagent/Medieval/src/tools/story-studio/StoryStudioTypes.ts)、[`StoryStudioForm.ts`](file:///d:/tryagent/Medieval/src/tools/story-studio/StoryStudioForm.ts)、[`StoryStudioFactionManager.ts`](file:///d:/tryagent/Medieval/src/tools/story-studio/StoryStudioFactionManager.ts)、[`NarrativeTestController.ts`](file:///d:/tryagent/Medieval/src/ui/NarrativeTestController.ts)、[`DiplomacyController.ts`](file:///d:/tryagent/Medieval/src/ui/DiplomacyController.ts)
+
+- **[Refactor/ExplorationNarrativeEngine/SubjugationWavesVsWildernessExploration] 據點攻堅戰（純 Waves 波次決戰）與野外探索（隨機事件流）雙軌分流實裝（2026-09-02）**：
+  - **問題根源**：過去討伐任何據點皆強制套用 `maxSteps = Random.int(2, 3)` 外層隨機輪次，導致工坊自訂的多波次據點（如 3 波火龍巢）在一次派遣中被重複觸發 2~3 次（相當於連續打 6~9 波），造成極端疲勞與滅團問題。
+  - **雙軌分流架構**：
+    - **🏰 固定 / 工坊設計據點**：識別 `!node.isDynamic`、自訂 `templateId` 或自訂 `garrisonEncounter` 據點，徹底拔除外層 2~3 輪隨機遇敵，抵達後直接發動純粹的據點攻堅戰，100% 忠實執行據點自身設計的波次（Waves）。
+    - **🗺️ 野外探索 / 動態漫遊據點**：保留 2~3 步探索流（30% 隨機事件、70% 遭遇戰），維持拓荒開荒的隨機冒險樂趣。
+  - **修改檔案**：[`ExplorationNarrativeEngine.ts`](file:///d:/tryagent/Medieval/src/systems/ExplorationNarrativeEngine.ts)
+
+- **[Feature/CombatStudio/HeroDynamicLevelGrowth] 戰鬥沙盒英雄「等級差動態自然成長六維」換算實裝（2026-09-02）**：
+  - **等級差動態成長**：在 `PlayerUnitConfig` 記錄英雄的原始出廠等級 `heroOriginalLevel`。當使用者在沙盒中升降英雄等級時（如 5 等 ➔ 10 等），系統自動計算等級差 $\Delta \text{Level}$ 並依照職業成長率為六維加上對應的自然成長點數（每級約 +6 點六維），杜絕過去升級六維靜止不動的問題。
+  - **全方位連動**：沙盒卡片六維面板、戰鬥實例化 `buildAdventurers()` 與九宮格戰場初始 HP/MP `renderArenaInitial()` 全面同步套用動態成長。
+  - **修改檔案**：[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)
+
+- **[Fix/SkillWorkshop/ResurrectOptionInEditorUI] 技能工坊介面「✨ RESURRECT 復活隊友」與「💀 ALLY_DEAD 陣亡隊友」選單實裝（2026-09-02）**：
+  - **效果選單 (WHAT)**：在 [`SkillWorkshop.ts`](file:///d:/tryagent/Medieval/src/tools/SkillWorkshop.ts) 的積木編輯器中正式加入 `<option value="RESURRECT">✨ RESURRECT (復活隊友)</option>`。
+  - **目標選單 (TARGET)**：正式加入 `<option value="ALLY_DEAD">💀 ALLY_DEAD (陣亡隊友)</option>`。
+  - **全鏈路生效**：建立的自訂復活技能會自動編譯並在 [`SkillEffectEngine.ts`](file:///d:/tryagent/Medieval/src/systems/combat/SkillEffectEngine.ts) 中執行，能精確將倒下角色以自訂倍率生命值拉回戰場！
+  - **修改檔案**：[`SkillWorkshop.ts`](file:///d:/tryagent/Medieval/src/tools/SkillWorkshop.ts)
+
+- **[Fix/CombatStudio/DynamicWeaponScalingDisplay] 沙盒角色卡片物攻魔攻改採「武器與職業主屬性動態補正換算」（2026-09-02）**：
+  - **問題根源**：沙盒卡片底部的 `patk` 與 `matk` 預覽過去寫死為 `STR * 2` 與 `INT * 2`，導致以敏捷為主的弓箭手/刺客、以體質為主的騎士、以精神為主的祈禱者在面板上顯示極低攻擊力，產生「敏捷/體質沒加到攻擊力」的誤導。
+  - **修復方案**：改為依照角色當前裝備的武器與職業體系進行動態主屬性換算：
+    - 弓箭手 / 盜賊（戰弓 / 雙匕首）：$\text{PATK} = \lfloor\text{AGI} \times 1.6 + \text{STR} \times 0.4\rfloor + \text{武器白字}$
+    - 騎士（劍盾 / 符文盾）：$\text{PATK} = \lfloor\text{CON} \times 1.4 + \text{STR} \times 0.6\rfloor + \text{武器白字}$
+    - 祈禱者（聖典 / 戰鎚）：$\text{MATK} = \lfloor\text{SPR} \times 1.6 + \text{INT} \times 0.4\rfloor + \text{武器白字}$
+    - 法師（法杖 / 戰鐮）：$\text{MATK} = \text{INT} \times 2.0 + \text{武器白字}$
+    - 戰士（巨劍 / 雙劍）：$\text{PATK} = \text{STR} \times 2.0 + \text{武器白字}$
+  - **修改檔案**：[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)
+
+- **[Fix/CombatSystem/DeadUnitActionPreventionAndResurrectBlock] 陣亡單位死者行動與假回血徹底修復 & 技能工坊【RESURRECT 復活積木】實裝（2026-09-02）**：
+  - **死者治療與增益徹底過濾**：在 `CombatSystem.ts`、`SkillData.ts` 與 `SkillEffectEngine.ts` 中，所有群體治療（`ALL_ALLIES`、`HEAL`）與增益效果全面過濾 `currentHp > 0` 的存活單位，杜絕常規回血將倒下角色「假復活」的問題。
+  - **每回合自然回復與行動前死者防呆**：每回合開始時的 CON/SPR 自然回血回魔加入 `actor.currentHp > 0` 判定；各單位行動前嚴格檢驗 `if (actor.currentHp <= 0 || (actor as any).isDead) continue;`，死者 100% 無法出手。
+  - **技能工坊支援「RESURRECT 復活積木」**：在 `Skill.ts`、`SkillEffectEngine.ts` 與 `SkillWorkshop.ts` 正式實裝 `RESURRECT` 效果類型與 `ALLY_DEAD` 目標類型，支援創作者設計能將倒下隊友以特定 HP% 拉回戰場的神聖復活技能！
+  - **修改檔案**：[`CombatSystem.ts`](file:///d:/tryagent/Medieval/src/systems/CombatSystem.ts)、[`SkillData.ts`](file:///d:/tryagent/Medieval/src/data/SkillData.ts)、[`SkillEffectEngine.ts`](file:///d:/tryagent/Medieval/src/systems/combat/SkillEffectEngine.ts)、[`Skill.ts`](file:///d:/tryagent/Medieval/src/models/Skill.ts)、[`SkillWorkshop.ts`](file:///d:/tryagent/Medieval/src/tools/SkillWorkshop.ts)
+
+- **[Feature/CombatStudio/DynamicLevelStatsAndHeroUnspentPoints] 英雄工坊動態等級標準提示、一鍵依職業等級推薦標準六維與遊戲本體出廠自由點數實裝（2026-09-02）**：
+  - **英雄工坊動態等級標準列**：將過去靜態的 Lv.1 提示升級為隨「設定等級」即時動態計算的標準標籤（`標準 = Lv.1 品質基準 + (等級 - 1) * 6`），例如 Lv.10 SSR 即時顯示 `142` 點，並提供高低差數值提示，徹底告別「拿 Lv.1 屬性填寫 Lv.10 英雄導致強度遠遜於普通傭兵」的問題。
+  - **一鍵推薦標準六維**：在工坊六維面板新增「⚡ 依職業與等級推薦標準六維」按鈕，能根據選取的職業權重、品質與等級一秒自動填入最佳六維分配。
+  - **常規傭兵自然成長對齊**：修正沙盒常規傭兵在各等級自然成長過度膨脹的問題，改為依各職業每級約 +6 點成長曲線對齊。
+  - **遊戲本體英雄入隊自由點數**：在 `UniqueAdventurers.createUniqueAdventurer()` 中新增 `adv.unspentStatPoints = Math.max(0, (def.level - 1) * 2)`，使玩家在故事或招募中獲得高級英雄時，身上帶有對應等級的自由點數可供手動配點強化。
+  - **修改檔案**：[`combat-studio.html`](file:///d:/tryagent/Medieval/src/templates/combat-studio.html)、[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)、[`UniqueAdventurers.ts`](file:///d:/tryagent/Medieval/src/data/UniqueAdventurers.ts)
+
+- **[Fix/CombatStudio/HeroAttributesAndSkillLockAlignment] 戰鬥沙盒英雄專屬基礎屬性獨立保存、每級2點自由配點與未滿10等終極大招鎖定對齊修復（2026-09-02）**：
+  - **英雄固有屬性獨立基準**：`PlayerUnitConfig` 新增 `customBaseAttributes` 欄位；載入傳奇/自訂英雄時將 `hero.customAttributes` 存為固有基準，`allocatedStats` 初始化為 0。`buildAdventurers()` 判斷若有 `customBaseAttributes` 則直接以此為基底疊加玩家配點，徹底解決過去 `職業預設屬性 + 等級成長 + 英雄屬性` 雙重疊加與點擊「重置」後英雄專屬數值蒸發被還原的 Bug。
+  - **自由配點上限完全對齊遊戲規範**：將過去沙盒面板與加點運算中的 `(level - 1) * 5` 全數修復為遊戲權威規範（`ATTRIBUTE_SYSTEM.md`）的 `(level - 1) * 2` 點（Lv.10 滿等共 18 點自由點數），重置配點只清空自由加點，英雄自訂出廠數值 100% 完好無損。
+  - **未滿 10 等 / 未轉職終極大招防呆鎖定**：修正 `applyHeroToPlayerSlot` 中 `isAdvanced` 盲目設為 `true` 的問題（改為 `level >= 10 ? (hero.isAdvanced !== false) : false`）；`buildAdventurers()` 在解析技能時嚴格檢查若未達 10 等或未轉職，自動截取前 2 招基礎技能，終極大招僅在滿等 10 級且轉職後才生效。
+  - **修改檔案**：[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)
+
+- **[Fix/CombatStudio/StrongholdMonsterGridPreservation] 據點怪物 3x3 九宮格座標未完整傳遞至沙盒與實例化修復（2026-09-02）**：
+  - **問題根源**：在 `CombatStudio.ts` 的 `loadStrongholdToBattleSandbox()` 與 `buildMonstersForWaves()` 中，讀取據點模板的怪物守軍時漏掉了複製 `gridR`、`gridC` 與 `slotId`，導致怪物進入戰鬥沙盒後丟失自訂的九宮格站位，被系統自動排回預設順序。
+  - **修復方案**：在 `loadStrongholdToBattleSandbox` 補上 `gridR`、`gridC` 與 `formationRow` 繼承解析；在 `buildMonstersForWaves` 實例化 `MonsterInstance` 時補上 `inst.gridR = cfg.gridR`、`inst.gridC = cfg.gridC` 與 `inst.formationRow`，與遊戲主程式 `MonsterSystem.createInstancesFromTemplateWaves()` 保持 100% 同步。
+  - **修改檔案**：[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)
+
+- **[Feature/CombatStudio/Tactical3x3ArenaAndRealEquipmentIntegration] 戰鬥沙盒 3x3 九宮格拖曳佈陣、FormationDB 陣型系統與真實裝備庫 100% 直連實裝（2026-09-02）**：
+  - **真實裝備庫直連**：`buildAdventurers()` 徹底移除過去自造假裝備白字與重複疊加 Scaling 的硬編碼，改為根據選取的 `weaponTemplateId`、`armorTemplateId`、`accessoryId` 直接自 `DataStore.EquipmentDB` 透過 `EquipmentGenerator.generateFromTemplate()` 生成原裝裝備實體，完整保留真實攻防白字、元素屬性、附加特技 (`extraSkills`)、固定特技 (`fixedSkill`) 與標準補正倍率，由 `Adventurer.getCombatStats()` 原生計算。
+  - **雙向 3x3 九宮格戰術棋盤**：將擂台升級為「我方 3x3 九宮格（後排 Row 2 ➔ 中排 Row 1 ➔ 前排 Row 0）」對峙「敵方 3x3 九宮格（前排 Row 0 ➔ 中排 Row 1 ➔ 後排 Row 2）」。
+  - **原生 HTML5 拖曳佈陣（Drag & Drop）**：
+    - 支援從左側自訂隊伍列表直接拖入九宮格各座標（`0_0` ~ `2_2`）。
+    - 支援九宮格內部格子任意拖曳對調位置，並提供 ❌ 移出陣位按鈕。
+  - **FormationDB 陣型系統連動**：實裝陣型下拉選單（盾牆陣、鋒矢陣、散兵陣、先鋒陣、自由陣型等），站位滿足要求時即時高亮（`#10b981`）並顯示加成描述；模擬戰鬥時將 `formationId` 與 `gridMap` 正式傳入 `CombatSystem.simulateCombat()` 啟用真實陣型 buff 與行排判定。
+  - **驗證**：TypeScript 嚴格型別檢查 0 錯誤，全套 36 個測試檔案 171 項單元測試 100% 通過。
+  - **修改檔案**：[`combat-studio.html`](file:///d:/tryagent/Medieval/src/templates/combat-studio.html)、[`combat-studio.css`](file:///d:/tryagent/Medieval/src/styles/combat-studio.css)、[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)
+
+- **[Fix/CombatStudio/SandboxSkillsNotPassedToCombatSystem] 戰鬥沙盒技能設定未傳入 CombatSystem 修復（2026-09-02）**：
+  - **問題根源**：`buildAdventurers()` 將沙盒 `PlayerUnitConfig` 轉換為 `Adventurer` 物件時，從未讀取 `cfg.skills` 並寫入 `adv.customSkills`，導致 `CombatSystem.simulateCombat()` 收到的角色技能列表永遠是 `undefined`，實際戰鬥中只能依職業名稱猜測技能，沙盒 UI 設定的技能完全無效。
+  - **修復方案**：在 `buildAdventurers()` 裝備設定後、`advList.push(adv)` 前，新增 `if (cfg.skills && cfg.skills.length > 0) adv.customSkills = [...cfg.skills]`，讓 CombatSystem 能正確讀取沙盒指定的技能清單。
+  - **驗證**：TypeScript 0 型別錯誤。
+  - **修改檔案**：[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)
+
+- **[Fix/SkillEffectEngine/RecursiveBlockOverflow] 積木技能 onTrue/onFalse 無限巢狀遞迴防護（2026-09-02）**：
+  - **問題根源**：`SkillEffectEngine.executeBlock()` 在執行條件分支（`onTrue`/`onFalse`）時會遞迴呼叫自身，若玩家在技能工坊設計出巢狀過深的積木結構，會導致 Stack Overflow 崩潰。
+  - **修復方案**：新增 `private static readonly MAX_BLOCK_DEPTH = 20` 上限常數，`executeBlock` 加入可選參數 `_depth: number = 0`，每次遞迴呼叫時傳入 `_depth + 1`；當深度超過上限時立即返回 `[]` 並輸出 `console.warn` 警告。
+  - **驗證**：TypeScript 0 型別錯誤，SkillEffectEngine 7 項單元測試全部通過。
+  - **修改檔案**：[`SkillEffectEngine.ts`](file:///d:/tryagent/Medieval/src/systems/combat/SkillEffectEngine.ts)
+
+- **[Fix/CombatStudio/StrongholdDesignerNotPersisted] 戰鬥工坊據點設計工坊建立的據點未寫入任何儲存媒介修復（2026-09-02）**：
+  - **問題根源**：在「戰鬥模擬沙盒」的 `btn-save-stronghold` onClick handler 中，建立的據點只存入 `this.customStrongholds`（純記憶體 `Record<string, CustomStrongholdConfig>`），既沒有寫入 `localStorage`，也沒有合併進 `this.strongholdsDb`，導致重整頁面後資料完全消失，且「💾 寫入專案硬碟」按鈕的 `saveMonstersToDisk()` 也讀不到該資料。
+  - **修復方案**：在儲存 `customStrongholds` 之後，新增將 `EnemyUnitConfig[][]` 轉換為 `SubjugationTemplate` 格式的邏輯，同步推入 `this.strongholdsDb`（若 id 重複則覆蓋），呼叫 `this.normalizeStrongholdWaves(subTemplate)` 正規化九宮格座標，最後呼叫 `this.saveStrongholdsToStorage()` 持久化至 `localStorage（MEDIEVAL_CUSTOM_STRONGHOLDS_V2）`。使用者之後點「💾 寫入專案硬碟」即可將自訂據點永久存入 `src/data/subjugation_nodes.json`。
+  - **修改檔案**：[`CombatStudio.ts`](file:///d:/tryagent/Medieval/src/tools/CombatStudio.ts)
+
 - **[Fix/NarrativeSystem/TriggerRaidSuccessFailNodeUnconditionalFire] TRIGGER_RAID 守城/城防後續節點修復全系列（2026-08-30）**：
   - **問題根源 1（邏輯層）**：`explainBlocked()` 缺少對 `TRIGGER_RAID.successNodeId/failNodeId` 的阻擋防護，導致每日輪詢無條件觸發後續節點。新增 `isRaidTargetNode()` 修復。
   - **問題根源 2（視覺層）**：[`StoryStudioGraph.ts`](file:///i:/gameproject/Medieval/src/tools/story-studio/StoryStudioGraph.ts) 的 `buildEdges()` 缺少 `TRIGGER_RAID` 的 `successNodeId`/`failNodeId` 連線繪製。補上後圖形正常顯示勝利（綠線）/失敗（紅線）箭頭。

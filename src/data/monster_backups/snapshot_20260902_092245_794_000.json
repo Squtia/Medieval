@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-01T06:49:16.437Z",
+  "timestamp": "2026-09-02T01:22:45.794Z",
   "note": "在戰鬥工坊中儲存",
   "monsters": [
     {
@@ -1045,7 +1045,7 @@
       "skills": [
         "SKILL_FLAME_BURST"
       ],
-      "avatarIcon": "monster_icon1:monster_icon1_52",
+      "avatarIcon": "faction_units_8x8_01:faction_units_8x8_01_4",
       "attackType": "MAGIC"
     },
     {
@@ -1071,14 +1071,14 @@
     },
     {
       "id": "frost_dragon",
-      "name": "霜寒古龍",
+      "name": "【霜寒古龍】凡洛斯",
       "race": "DRAGON",
       "compatibleRaces": [
         "DRAGON"
       ],
       "terrains": [
-        "SNOW_MOUNTAIN",
-        "RUINS"
+        "RUINS",
+        "SNOW_MOUNTAIN"
       ],
       "powerTier": 3.5,
       "element": "ICE",
@@ -1089,7 +1089,9 @@
       ],
       "isBoss": true,
       "avatarIcon": "monster_icon1:monster_icon1_54",
-      "attackType": "MELEE"
+      "attackType": "MAGIC",
+      "defaultElement": "ICE",
+      "isMagicalAttacker": true
     },
     {
       "id": "bandit_king",
@@ -1349,7 +1351,7 @@
     },
     {
       "id": "emerald_dragon",
-      "name": "翡翠毒龍皇",
+      "name": "【翡翠毒龍】凡高爾",
       "race": "DRAGON",
       "compatibleRaces": [
         "DRAGON"
@@ -1367,7 +1369,9 @@
       ],
       "isBoss": true,
       "avatarIcon": "monster_icon1:monster_icon1_57",
-      "attackType": "MELEE"
+      "attackType": "MAGIC",
+      "defaultElement": "DARK",
+      "isMagicalAttacker": true
     },
     {
       "id": "ancient_black_dragon",
@@ -1999,6 +2003,23 @@
       "avatarIcon": "heroes_male:heroes_male_13?flip",
       "characterKey": "char_ryan",
       "captureRate": 100
+    },
+    {
+      "id": "fire_dragon",
+      "name": "【熔岩巨龍】凡賽斯",
+      "race": "DRAGON",
+      "defaultElement": "FIRE",
+      "powerTier": 5,
+      "attackType": "MAGIC",
+      "isMagicalAttacker": true,
+      "compatibleRaces": [
+        "DRAGON"
+      ],
+      "terrains": [
+        "PLAINS",
+        "FOREST"
+      ],
+      "avatarIcon": "monster_icon1:monster_icon1_55"
     }
   ]
 }

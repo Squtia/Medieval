@@ -129,6 +129,9 @@ export interface NarrativeSubjugationDefinition {
 export type NarrativeCondition =
   | { type: 'DAY_AT_LEAST'; value: number }
   | { type: 'TAVERN_LEVEL_AT_LEAST'; value: number }
+  | { type: 'BUILDING_LEVEL_AT_LEAST'; buildingId: string; value: number }
+  | { type: 'SECURITY_AT_LEAST'; value: number }
+  | { type: 'SECURITY_AT_MOST'; value: number }
   | { type: 'PRESTIGE_AT_LEAST'; value: number }
   | { type: 'GOLD_AT_LEAST'; value: number }
   | { type: 'FACTION_FAVOR_AT_LEAST'; factionId: string; value: number }
@@ -166,6 +169,7 @@ export type NarrativeEffect = (
   | { type: 'REDUCE_RESOURCE_PERCENT'; resource: 'GOLD' | 'FOOD' | 'WOOD' | 'STONE' | 'IRON' | 'ALL'; minPercent: number; maxPercent: number }
   | { type: 'REDUCE_PRESTIGE_PERCENT'; minPercent: number; maxPercent: number }
   | { type: 'REDUCE_BUILDING_LEVEL'; buildingId: string; levels?: number }
+  | { type: 'REDUCE_RANDOM_BUILDING_LEVEL'; count?: number; levels?: number }
   | {
       type: 'TRIGGER_RAID';
       raidName: string;
@@ -199,6 +203,7 @@ export interface NarrativeNode {
   choices: NarrativeChoice[];
   completionEffects: NarrativeEffect[];
   targetNodeId?: string;
+  triggerChance?: number;
   repeatable?: boolean;
   cooldownDays?: number;
   isEnding?: boolean;

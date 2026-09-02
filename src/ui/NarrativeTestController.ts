@@ -1,3 +1,4 @@
+import { FactionManager } from '../systems/FactionManager';
 import { GameState } from '../core/GameState';
 import { createEmptyNarrativeState, NarrativeStory } from '../models/Narrative';
 import { NarrativeSystem } from '../systems/NarrativeSystem';
@@ -158,7 +159,7 @@ export async function initNarrativeTestController(): Promise<void> {
   });
 
   const playerBase = nodes.find(n => n.isPlayerBase) || nodes[0];
-  GameState.mapSystem = new MapDynamicsSystem(nodes, INITIAL_FACTIONS);
+  GameState.mapSystem = new MapDynamicsSystem(nodes, FactionManager.getAllFactions());
   GameState.myTerritory = new Territory('測試領地', playerBase.id);
   GameState.myTerritory.gold = 5000;
   GameState.myTerritory.food = 1000;

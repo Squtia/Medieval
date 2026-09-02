@@ -678,7 +678,55 @@ describe('NarrativeSystem', () => {
     const success = NarrativeSystem.presentInteractiveNode('raid_story', 'raid_win', true);
     expect(success).toBe(true);
   });
+
+  it('支援 BUILDING_LEVEL_AT_LEAST、SECURITY 條件判斷與 REDUCE_RANDOM_BUILDING_LEVEL 隨機降級效果', () => {
+    const territory = GameState.myTerritory;
+    territory.security = 45;
+    territory.tavernLevel = 2;
+    territory.forgeLevel = 1;
+    territory.churchLevel = 1;
+    territory.defenseLevel = 2;
+
+    const testStory: NarrativeStory = {
+      id: 'upgrade_test_story',
+      title: '條件與效果測試故事',
+      summary: '',
+      version: 1,
+      enabled: true,
+      nodes: [
+        {
+          id: 'cond_node',
+          title: '條件測試',
+          description: '',
+          channel: 'TERRITORY_EVENT',
+          conditions: [
+            { type: 'BUILDING_LEVEL_AT_LEAST', buildingId: 'tavern', value: 2 },
+            { type: 'BUILDING_LEVEL_AT_LEAST', buildingId: 'church', value: 1 },
+            { type: 'SECURITY_AT_LEAST', value: 40 },
+            { type: 'SECURITY_AT_MOST', value: 50 }
+          ],
+          choices: [],
+          completionEffects: [
+            { type: 'REDUCE_RANDOM_BUILDING_LEVEL', count: 2, levels: 1 }
+          ]
+        }
+      ]
+    };
+
+    NarrativeSystem.setDefinitionsForTesting([testStory]);
+    const eligible = NarrativeSystem.getEligibleNodes('TERRITORY_EVENT');
+    expect(eligible.some(ref => ref.node.id === 'cond_node')).toBe(true);
+
+    // 治安過高時應不符合 SECURITY_AT_MOST
+    territory.security = 80;
+    const blocked = NarrativeSystem.getEligibleNodes('TERRITORY_EVENT');
+    expect(blocked.some(ref => ref.node.id === 'cond_node')).toBe(false);
+
+    // 觸發效果執行隨機降級
+    territory.security = 45;
+    const initialSum = territory.tavernLevel + territory.forgeLevel + territory.churchLevel + territory.defenseLevel;
+    NarrativeSystem.completeNode('upgrade_test_story', 'cond_node');
+    const afterSum = territory.tavernLevel + territory.forgeLevel + territory.churchLevel + territory.defenseLevel;
+    expect(afterSum).toBeLessThan(initialSum);
+  });
 });
-
-
-

@@ -56,18 +56,48 @@
       </div>
     </div>
 
-    <!-- 視覺對抗擂台視圖 -->
+    <!-- 陣型與戰術控制列 -->
+    <div class="cs-formation-bar">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="cs-label" style="font-weight: bold; color: var(--cs-gold); white-space: nowrap;">🛡️ 隊伍陣型:</span>
+        <select class="cs-select" id="cs-formation-select" style="padding: 2px 8px; font-size: 0.76rem; min-width: 140px;">
+          <!-- 動態載入 FormationDB -->
+        </select>
+        <span id="cs-formation-status-badge" class="cs-formation-badge">自由陣型</span>
+      </div>
+      <div id="cs-formation-desc" class="cs-formation-desc-text">拖曳下方英雄卡片可自由排定九宮格站位</div>
+    </div>
+
+    <!-- 視覺對抗擂台視圖 (雙向 3x3 棋盤) -->
     <div id="cs-visual-view" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
       <div class="cs-arena">
-        <div class="cs-arena-team" id="cs-arena-left">
-          <!-- 左側我方 HP/MP 即時狀態 -->
+        <!-- 我方 3x3 九宮格 -->
+        <div class="cs-arena-grid-side">
+          <div class="cs-grid-labels">
+            <span style="color: #60a5fa;">後排 (Row 2)</span>
+            <span style="color: #fbbf24;">中排 (Row 1)</span>
+            <span style="color: #f87171;">前排 (Row 0)</span>
+          </div>
+          <div class="cs-3x3-grid player-grid" id="cs-player-3x3-grid">
+            <!-- 9 個格子 -->
+          </div>
         </div>
+
         <div class="cs-arena-vs">
           <span>VS</span>
           <div style="font-size: 0.72rem; color: var(--cs-gold-light); margin-top: 4px;" id="cs-arena-round">R0</div>
         </div>
-        <div class="cs-arena-team" id="cs-arena-right">
-          <!-- 右側敵方 HP/MP 即時狀態 -->
+
+        <!-- 敵方 3x3 九宮格 -->
+        <div class="cs-arena-grid-side">
+          <div class="cs-grid-labels">
+            <span style="color: #f87171;">前排 (Row 0)</span>
+            <span style="color: #fbbf24;">中排 (Row 1)</span>
+            <span style="color: #60a5fa;">後排 (Row 2)</span>
+          </div>
+          <div class="cs-3x3-grid enemy-grid" id="cs-enemy-3x3-grid">
+            <!-- 9 個格子 -->
+          </div>
         </div>
       </div>
       
@@ -823,13 +853,16 @@
 
       <!-- 六維屬性自由配點 (3 欄 x 2 列，防止溢出) -->
       <div style="background: #11141a; padding: 10px; border-radius: 6px; border: 1px solid var(--cs-panel-border);">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span style="font-size: 0.78rem; font-weight: bold; color: var(--cs-gold-light);">📊 六維屬性極限配點</span>
             <span id="hc-quality-stats-ref" style="font-size: 0.7rem; color: #94a3b8;">基準參考: <span style="color:#60a5fa" id="ref-q-n">N:45</span> | <span style="color:#3b82f6" id="ref-q-r">R:60</span> | <span style="color:#a855f7" id="ref-q-sr">SR:72</span> | <span style="color:#f59e0b" id="ref-q-ssr">SSR:88</span> | <span style="color:#ef4444" id="ref-q-ur">UR:110</span></span>
           </div>
-          <div style="font-size: 0.72rem; color: var(--cs-text-muted);">
-            總點數: <strong id="hc-total-stats" style="color: var(--cs-gold);">75</strong> <span id="hc-stats-diff-hint" style="font-size: 0.7rem; font-weight: normal;"></span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" class="cs-btn cs-btn-sm cs-btn-gold" id="btn-hc-auto-fill-stats" style="padding: 1px 8px; font-size: 0.7rem;" title="依選取的品質、等級與職業自動計算並填入最佳標準屬性">⚡ 依職業與等級推薦標準六維</button>
+            <div style="font-size: 0.72rem; color: var(--cs-text-muted);">
+              總點數: <strong id="hc-total-stats" style="color: var(--cs-gold);">75</strong> <span id="hc-stats-diff-hint" style="font-size: 0.7rem; font-weight: normal;"></span>
+            </div>
           </div>
         </div>
         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px;">

@@ -13,6 +13,8 @@ import { renderUniversalIcon, renderEquipIcon } from '../ui/IconSpriteHelper';
 import { UNIQUE_HEROES, UniqueHeroDef } from '../data/UniqueAdventurers';
 import { SkillRegistry } from '../systems/combat/SkillRegistry';
 import { DataStore } from '../systems/DataStore';
+import { FormationDB } from '../systems/FormationDB';
+import { EquipmentGenerator } from '../systems/EquipmentGenerator';
 import { SKILLS } from '../data/SkillData';
 import equipmentWeaponsJson from '../data/equipment_weapons.json';
 import equipmentArmorsJson from '../data/equipment_armors.json';
@@ -60,6 +62,8 @@ interface PlayerUnitConfig {
   isGuardian?: boolean;
   avatarIndex?: number;
   skills?: string[];
+  heroOriginalLevel?: number;
+  customBaseAttributes?: AllocatedStats;
   allocatedStats: AllocatedStats;
 }
 
@@ -70,6 +74,8 @@ interface EnemyUnitConfig {
   element: ElementType;
   isUndead: boolean;
   formationRow: FormationRow;
+  gridR?: number;
+  gridC?: number;
   affix?: string;
   avatarIcon?: string;
   profile?: MonsterProfile;
@@ -132,6 +138,12 @@ class CombatStudioController {
   private activeHeroSkillSlotIndex: number = 0;
   private currentSkillPickerTab: string = 'ALL';
   private skillPickerSearchQuery: string = '';
+
+  // 3x3 九宮格戰術佈陣與陣型狀態
+  private playerGridMap: Record<string, string> = {}; // 'r_c' -> 'p1' (0_0 .. 2_2)
+  private selectedFormationId: string = 'DEFAULT';
+  private draggedPlayerUnitId: string | null = null;
+  private dragSourceSlot: string | null = null;
 
   // 我方隊伍狀態
   private playerTeam: PlayerUnitConfig[] = [];
@@ -472,6 +484,29 @@ class CombatStudioController {
     }
   }
 
+  // ── 依職業計算每級自然成長六維 (每級約 6 點，與遊戲本體 Adventurer.ts 對齊) ──
+  private getJobNaturalGrowth(jobName: string, level: number): { str: number; agi: number; con: number; int: number; spr: number; luk: number } {
+    const lvlGain = Math.max(0, level - 1);
+    let perLvl = { str: 2, agi: 1, con: 2, int: 0, spr: 0, luk: 1 }; // 預設戰士系
+    if (jobName.includes('法師') || jobName.includes('魔導') || jobName.includes('死靈')) {
+      perLvl = { str: 0, agi: 1, con: 1, int: 2, spr: 2, luk: 0 };
+    } else if (jobName.includes('弓') || jobName.includes('神射') || jobName.includes('暗殺')) {
+      perLvl = { str: 1, agi: 2, con: 1, int: 0, spr: 0, luk: 2 };
+    } else if (jobName.includes('騎士') || jobName.includes('聖騎') || jobName.includes('符文')) {
+      perLvl = { str: 1, agi: 0, con: 3, int: 0, spr: 1, luk: 1 };
+    } else if (jobName.includes('祈禱') || jobName.includes('主教') || jobName.includes('拷問')) {
+      perLvl = { str: 0, agi: 0, con: 1, int: 1, spr: 3, luk: 1 };
+    }
+    return {
+      str: perLvl.str * lvlGain,
+      agi: perLvl.agi * lvlGain,
+      con: perLvl.con * lvlGain,
+      int: perLvl.int * lvlGain,
+      spr: perLvl.spr * lvlGain,
+      luk: perLvl.luk * lvlGain
+    };
+  }
+
   // ── 依職業權重分配基準六維 ──
   private getJobBaseAttributes(jobName: string, quality: Quality): { str: number; agi: number; con: number; int: number; spr: number; luk: number } {
     const total = this.getQualityBasePoints(quality);
@@ -639,71 +674,147 @@ class CombatStudioController {
       adv.isAdvanced = cfg.isAdvanced;
       adv.formationRow = (cfg.formationRow === 'MIDDLE' ? FormationRow.FRONT : cfg.formationRow);
 
-      // 套用真實六維基準 + 等級成長 + 自訂自由配點
-      adv.baseAttributes.str = baseAttr.str + (cfg.level - 1) * 2 + cfg.allocatedStats.str;
-      adv.baseAttributes.agi = baseAttr.agi + (cfg.level - 1) * 2 + cfg.allocatedStats.agi;
-      adv.baseAttributes.con = baseAttr.con + (cfg.level - 1) * 2 + cfg.allocatedStats.con;
-      adv.baseAttributes.int = baseAttr.int + (cfg.level - 1) * 2 + cfg.allocatedStats.int;
-      adv.baseAttributes.spr = baseAttr.spr + (cfg.level - 1) * 2 + cfg.allocatedStats.spr;
-      adv.baseAttributes.luk = baseAttr.luk + (cfg.level - 1) * 2 + cfg.allocatedStats.luk;
+      // 套用真實六維：自訂英雄以專屬出廠屬性為基準（支援等級差動態自然成長），普通傭兵以職業基準 + 等級自然成長
+      if (cfg.customBaseAttributes) {
+        let hStr = cfg.customBaseAttributes.str;
+        let hAgi = cfg.customBaseAttributes.agi;
+        let hCon = cfg.customBaseAttributes.con;
+        let hInt = cfg.customBaseAttributes.int;
+        let hSpr = cfg.customBaseAttributes.spr;
+        let hLuk = cfg.customBaseAttributes.luk;
 
-      // 裝備配置與標準 (A) 級屬性補正 (Scaling) 計算
-      const scaling = this.calculateWeaponScalingBonus(cfg.weaponType, adv.baseAttributes);
-      const baseWpnAtk = cfg.weaponTier * 15 + cfg.weaponEnhance * 4;
+        const origLvl = cfg.heroOriginalLevel || 1;
+        if (cfg.level > origLvl) {
+          const deltaGrowth = this.getJobNaturalGrowth(cfg.jobName, 1 + (cfg.level - origLvl));
+          hStr += deltaGrowth.str;
+          hAgi += deltaGrowth.agi;
+          hCon += deltaGrowth.con;
+          hInt += deltaGrowth.int;
+          hSpr += deltaGrowth.spr;
+          hLuk += deltaGrowth.luk;
+        } else if (cfg.level < origLvl) {
+          const deltaLoss = this.getJobNaturalGrowth(cfg.jobName, 1 + (origLvl - cfg.level));
+          hStr = Math.max(1, hStr - deltaLoss.str);
+          hAgi = Math.max(1, hAgi - deltaLoss.agi);
+          hCon = Math.max(1, hCon - deltaLoss.con);
+          hInt = Math.max(1, hInt - deltaLoss.int);
+          hSpr = Math.max(1, hSpr - deltaLoss.spr);
+          hLuk = Math.max(1, hLuk - deltaLoss.luk);
+        }
 
-      const weaponTpl: Equipment = {
-        id: `wpn_${cfg.id}`,
-        name: `${cfg.weaponElement !== ElementType.NONE ? '[' + cfg.weaponElement + ']' : ''}${cfg.weaponType}`,
-        slot: EquipmentSlot.WEAPON,
-        tier: cfg.weaponTier,
-        requirements: {},
-        effects: {},
-        combatEffects: {
-          atk: baseWpnAtk + Math.max(scaling.patkBonus, scaling.matkBonus),
-          patk: baseWpnAtk + scaling.patkBonus,
-          matk: baseWpnAtk + scaling.matkBonus,
-          def: scaling.defBonus
-        },
-        enhancementLevel: cfg.weaponEnhance,
-        weaponType: cfg.weaponType,
-        element: cfg.weaponElement
-      };
+        adv.baseAttributes.str = hStr + cfg.allocatedStats.str;
+        adv.baseAttributes.agi = hAgi + cfg.allocatedStats.agi;
+        adv.baseAttributes.con = hCon + cfg.allocatedStats.con;
+        adv.baseAttributes.int = hInt + cfg.allocatedStats.int;
+        adv.baseAttributes.spr = hSpr + cfg.allocatedStats.spr;
+        adv.baseAttributes.luk = hLuk + cfg.allocatedStats.luk;
+      } else {
+        const growth = this.getJobNaturalGrowth(cfg.jobName, cfg.level);
+        adv.baseAttributes.str = baseAttr.str + growth.str + cfg.allocatedStats.str;
+        adv.baseAttributes.agi = baseAttr.agi + growth.agi + cfg.allocatedStats.agi;
+        adv.baseAttributes.con = baseAttr.con + growth.con + cfg.allocatedStats.con;
+        adv.baseAttributes.int = baseAttr.int + growth.int + cfg.allocatedStats.int;
+        adv.baseAttributes.spr = baseAttr.spr + growth.spr + cfg.allocatedStats.spr;
+        adv.baseAttributes.luk = baseAttr.luk + growth.luk + cfg.allocatedStats.luk;
+      }
 
-      const armorTpl: Equipment = {
-        id: `arm_${cfg.id}`,
-        name: '防具',
-        slot: EquipmentSlot.ARMOR,
-        tier: cfg.armorTier,
-        requirements: {},
-        effects: {},
-        combatEffects: { def: cfg.armorTier * 10 + cfg.armorEnhance * 3, pdef: cfg.armorTier * 10, mdef: cfg.armorTier * 10, hp: cfg.armorTier * 30 },
-        enhancementLevel: cfg.armorEnhance,
-        element: ElementType.NONE
-      };
+      // 裝備配置：100% 直連 DataStore.EquipmentDB 真實裝備資料庫
+      let weaponTpl: Equipment;
+      const realWeaponTemplate = cfg.weaponTemplateId ? DataStore.EquipmentDB[cfg.weaponTemplateId] : null;
+      if (realWeaponTemplate) {
+        weaponTpl = EquipmentGenerator.generateFromTemplate(realWeaponTemplate);
+        if (cfg.weaponEnhance) weaponTpl.enhancementLevel = cfg.weaponEnhance;
+        if (cfg.weaponElement && cfg.weaponElement !== ElementType.NONE) weaponTpl.element = cfg.weaponElement;
+      } else {
+        // Fallback 基準武器：帶入標準武器補正 (Scaling)
+        const baseWpnAtk = cfg.weaponTier * 15 + cfg.weaponEnhance * 4;
+        const defaultScaling = EquipmentGenerator.generateEquipmentScaling({
+          slot: EquipmentSlot.WEAPON,
+          weaponType: cfg.weaponType,
+          tier: cfg.weaponTier
+        });
+        weaponTpl = {
+          id: `wpn_${cfg.id}`,
+          name: `${cfg.weaponElement !== ElementType.NONE ? '[' + cfg.weaponElement + ']' : ''}${cfg.weaponType}`,
+          slot: EquipmentSlot.WEAPON,
+          tier: cfg.weaponTier,
+          requirements: {},
+          effects: {},
+          combatEffects: {
+            atk: baseWpnAtk,
+            patk: baseWpnAtk,
+            matk: baseWpnAtk
+          },
+          scaling: defaultScaling,
+          enhancementLevel: cfg.weaponEnhance,
+          weaponType: cfg.weaponType,
+          element: cfg.weaponElement
+        };
+      }
 
-      let accCombatEffects: any = {};
-      if (cfg.accessoryType === 'RING_HP') accCombatEffects = { hp: 60 };
-      else if (cfg.accessoryType === 'RING_MP') accCombatEffects = { mp: 30 };
-      else if (cfg.accessoryType === 'BADGE_CRIT') accCombatEffects = { crit: 10 };
-      else if (cfg.accessoryType === 'AMULET_AGI') accCombatEffects = { hit: 15, evade: 15 };
-      else if (cfg.accessoryType === 'CROSS_HOLY') accCombatEffects = { spr: 20 };
+      let armorTpl: Equipment;
+      const realArmorTemplate = cfg.armorTemplateId ? DataStore.EquipmentDB[cfg.armorTemplateId] : null;
+      if (realArmorTemplate) {
+        armorTpl = EquipmentGenerator.generateFromTemplate(realArmorTemplate);
+        if (cfg.armorEnhance) armorTpl.enhancementLevel = cfg.armorEnhance;
+      } else {
+        const baseDef = cfg.armorTier * 10 + cfg.armorEnhance * 3;
+        const baseHp = cfg.armorTier * 30;
+        armorTpl = {
+          id: `arm_${cfg.id}`,
+          name: '防具',
+          slot: EquipmentSlot.ARMOR,
+          tier: cfg.armorTier,
+          requirements: {},
+          effects: {},
+          combatEffects: {
+            pdef: baseDef,
+            mdef: baseDef,
+            hp: baseHp
+          },
+          enhancementLevel: cfg.armorEnhance,
+          element: ElementType.NONE
+        };
+      }
 
-      const accessoryTpl: Equipment | undefined = cfg.accessoryType !== 'NONE' ? {
-        id: `acc_${cfg.id}`,
-        name: cfg.accessoryType,
-        slot: EquipmentSlot.ACCESSORY,
-        tier: 2,
-        requirements: {},
-        effects: {},
-        combatEffects: accCombatEffects,
-        element: ElementType.NONE
-      } : undefined;
+      let accessoryTpl: Equipment | undefined = undefined;
+      const realAccTemplate = cfg.accessoryId ? DataStore.EquipmentDB[cfg.accessoryId] : (cfg.accessoryType && cfg.accessoryType !== 'NONE' ? DataStore.EquipmentDB[cfg.accessoryType] : null);
+      if (realAccTemplate) {
+        accessoryTpl = EquipmentGenerator.generateFromTemplate(realAccTemplate);
+      } else if (cfg.accessoryType && cfg.accessoryType !== 'NONE') {
+        let accCombatEffects: any = {};
+        if (cfg.accessoryType === 'RING_HP') accCombatEffects = { hp: 60 };
+        else if (cfg.accessoryType === 'RING_MP') accCombatEffects = { mp: 30 };
+        else if (cfg.accessoryType === 'BADGE_CRIT') accCombatEffects = { critRate: 10 };
+        else if (cfg.accessoryType === 'AMULET_AGI') accCombatEffects = { hit: 15, evade: 15 };
+        else if (cfg.accessoryType === 'CROSS_HOLY') accCombatEffects = { mdef: 15, hp: 40 };
+
+        accessoryTpl = {
+          id: `acc_${cfg.id}`,
+          name: cfg.accessoryType,
+          slot: EquipmentSlot.ACCESSORY,
+          tier: 2,
+          requirements: {},
+          effects: {},
+          combatEffects: accCombatEffects,
+          element: ElementType.NONE
+        };
+      }
 
       adv.equipment = {
         [EquipmentSlot.WEAPON]: weaponTpl,
         [EquipmentSlot.ARMOR]: armorTpl,
         [EquipmentSlot.ACCESSORY]: accessoryTpl
       };
+
+      // ✅ 技能解析：未滿 10 等或未轉職嚴格只能使用前 2 招基礎技能，滿等 10 級且轉職才解鎖第 3 招終極大招
+      if (cfg.skills && cfg.skills.length > 0) {
+        if (!adv.isAdvanced || adv.level < 10) {
+          adv.customSkills = cfg.skills.slice(0, 2);
+        } else {
+          adv.customSkills = [...cfg.skills];
+        }
+      }
 
       advList.push(adv);
     });
@@ -793,6 +904,9 @@ class CombatStudioController {
         if (cfg.affix) {
           inst.name = `${cfg.affix}${inst.name}`;
         }
+        inst.gridR = cfg.gridR;
+        inst.gridC = cfg.gridC;
+        if (cfg.formationRow) inst.formationRow = cfg.formationRow;
         instances.push(inst);
       });
       return instances;
@@ -814,6 +928,7 @@ class CombatStudioController {
       this.renderStrongholdStudio();
       return;
     }
+    this.renderFormationSelector();
     this.renderPlayerList();
     this.renderWaveTabs();
     this.renderEnemyList();
@@ -1944,6 +2059,13 @@ class CombatStudioController {
         const isBoss = isBossWave && mIdx === w.monsters.length - 1;
         const diffMultiplier = mRef.powerTier || mon?.powerTier || 1.0;
         const finalDiff = Math.max(1, Math.round(((sh.difficulty || 2) + wIdx) * diffMultiplier));
+        let finalGridR = mRef.gridR;
+        let finalGridC = mRef.gridC;
+        if (finalGridR === undefined && mRef.slotId) {
+          finalGridR = parseInt(mRef.slotId.split('_')[0], 10);
+          finalGridC = parseInt(mRef.slotId.split('_')[1], 10);
+        }
+
         waveUnits.push({
           monsterId: mRef.monsterId,
           name: mName,
@@ -1952,7 +2074,9 @@ class CombatStudioController {
           isUndead: mon?.race === MonsterRace.UNDEAD,
           avatarIcon: mon?.avatarIcon || this.getMonsterAvatar(mRef.monsterId, mName),
           affix: mRef.affix || (isBoss ? '👑[守將]' : undefined),
-          formationRow: mRef.formationRow || (mIdx < 2 ? FormationRow.FRONT : FormationRow.BACK),
+          formationRow: mRef.formationRow || (finalGridR === 0 ? FormationRow.FRONT : (finalGridR === 1 ? FormationRow.MIDDLE : FormationRow.BACK)),
+          gridR: finalGridR,
+          gridC: finalGridC,
           profile: mRef.profile && (mRef.profile as any) !== 'DEFAULT' ? mRef.profile : mon?.profile,
           skills: mRef.skills && mRef.skills.length > 0 ? [...mRef.skills] : (mon?.skills ? [...mon.skills] : undefined)
         });
@@ -2343,13 +2467,15 @@ class CombatStudioController {
 
     const heroAvatar = hero.avatarIcon || (hero.isGuardian ? (hero.gender === Gender.FEMALE ? 'guardian_f_0' : 'guardian_m_1') : (hero.id.includes('reyn') ? 'heroes:reyn' : (hero.id.includes('luna') ? 'heroes:luna' : this.getJobEmoji(jobName))));
 
+    const isAdv = hero.level >= 10 ? (hero.isAdvanced !== false) : false;
+
     this.playerTeam[slotIdx] = {
       id: `p_${hero.id}_${Date.now()}`,
       name: `${hero.title}${hero.name}`,
       level: hero.level,
       quality: hero.quality,
       jobName: jobName,
-      isAdvanced: true,
+      isAdvanced: isAdv,
       isUnique: !hero.isGuardian,
       avatarIcon: heroAvatar,
       weaponType: wpnType,
@@ -2367,13 +2493,22 @@ class CombatStudioController {
       isGuardian: hero.isGuardian,
       avatarIndex: hero.avatarIndex,
       skills: hero.customSkills ? [...hero.customSkills] : undefined,
-      allocatedStats: {
+      heroOriginalLevel: hero.level,
+      customBaseAttributes: {
         str: hero.customAttributes.str,
         agi: hero.customAttributes.agi,
         con: hero.customAttributes.con,
         int: hero.customAttributes.int,
         spr: hero.customAttributes.spr,
         luk: hero.customAttributes.luk
+      },
+      allocatedStats: {
+        str: 0,
+        agi: 0,
+        con: 0,
+        int: 0,
+        spr: 0,
+        luk: 0
       }
     };
 
@@ -2946,7 +3081,7 @@ class CombatStudioController {
     const avatarPreview = byId('hc-avatar-preview');
     const customIconInput = byId<HTMLInputElement>('hc-avatar-icon-custom');
 
-    // 六維屬性總計即時連動與各品級標準點數參考高亮
+    // 六維屬性總計即時連動與各品級在當前等級的動態標準高亮
     const updateTotalStats = () => {
       const str = Number(strInput?.value) || 0;
       const agi = Number(agiInput?.value) || 0;
@@ -2957,14 +3092,19 @@ class CombatStudioController {
       const total = str + agi + con + int + spr + luk;
       if (totalStatsEl) totalStatsEl.textContent = String(total);
 
+      const lvl = Math.max(1, Math.min(10, parseInt(levelInput?.value || '10', 10) || 10));
       const q = qualitySelect?.value || 'SSR';
-      const stdPoints: Record<string, number> = { N: 45, R: 60, SR: 72, SSR: 88, UR: 110 };
-      const targetStd = stdPoints[q] || 88;
+      const baseStdPoints: Record<string, number> = { N: 45, R: 60, SR: 72, SSR: 88, UR: 110 };
+      const levelGrowth = (lvl - 1) * 6;
+      const targetStd = (baseStdPoints[q] || 88) + levelGrowth;
 
       ['n', 'r', 'sr', 'ssr', 'ur'].forEach(k => {
         const el = byId(`ref-q-${k}`);
         if (el) {
-          const isCur = k.toUpperCase() === q;
+          const uKey = k.toUpperCase();
+          const curVal = (baseStdPoints[uKey] || 45) + levelGrowth;
+          el.textContent = `${uKey}:${curVal}`;
+          const isCur = uKey === q;
           el.style.fontWeight = isCur ? 'bold' : 'normal';
           el.style.textDecoration = isCur ? 'underline' : 'none';
           el.style.padding = isCur ? '1px 4px' : '0';
@@ -2976,17 +3116,45 @@ class CombatStudioController {
       if (diffHintEl) {
         const diff = total - targetStd;
         if (diff === 0) {
-          diffHintEl.textContent = `(符合 ${q} 標準)`;
+          diffHintEl.textContent = `(✅ 符合 Lv.${lvl} ${q} 標準 ${targetStd} 點)`;
           diffHintEl.style.color = '#10b981';
         } else if (diff > 0) {
-          diffHintEl.textContent = `(+${diff} 高於 ${q} 基準)`;
+          diffHintEl.textContent = `(+${diff} 高於 Lv.${lvl} ${q} 標準 ${targetStd} 點)`;
           diffHintEl.style.color = '#f59e0b';
         } else {
-          diffHintEl.textContent = `(${diff} 低於 ${q} 基準)`;
-          diffHintEl.style.color = '#94a3b8';
+          diffHintEl.textContent = `(${diff} 低於 Lv.${lvl} ${q} 標準 ${targetStd} 點)`;
+          diffHintEl.style.color = '#ef4444';
         }
       }
     };
+
+    // 一鍵自動依職業與等級填入標準六維
+    const autoFillBtn = byId('btn-hc-auto-fill-stats');
+    if (autoFillBtn) {
+      autoFillBtn.onclick = () => {
+        const lvl = Math.max(1, Math.min(10, parseInt(levelInput?.value || '10', 10) || 10));
+        const q = (qualitySelect?.value || 'SSR') as Quality;
+        const jobKey = jobSelect?.value || 'WARRIOR';
+        const jobNameMap: Record<string, string> = {
+          WARRIOR: '戰士',
+          KNIGHT: '騎士',
+          MAGE: '法師',
+          ARCHER: '弓箭手',
+          THIEF: '盜賊',
+          PRAYER: '祈禱者'
+        };
+        const jName = jobNameMap[jobKey] || '戰士';
+        const base = this.getJobBaseAttributes(jName, q);
+        const growth = this.getJobNaturalGrowth(jName, lvl);
+        if (strInput) strInput.value = String(base.str + growth.str);
+        if (agiInput) agiInput.value = String(base.agi + growth.agi);
+        if (conInput) conInput.value = String(base.con + growth.con);
+        if (intInput) intInput.value = String(base.int + growth.int);
+        if (sprInput) sprInput.value = String(base.spr + growth.spr);
+        if (lukInput) lukInput.value = String(base.luk + growth.luk);
+        updateTotalStats();
+      };
+    }
 
     [strInput, agiInput, conInput, intInput, sprInput, lukInput].forEach(ipt => {
       if (ipt) ipt.oninput = updateTotalStats;
@@ -3292,28 +3460,116 @@ class CombatStudioController {
     this.playerTeam.forEach((p, idx) => {
       const card = document.createElement('div');
       card.className = 'cs-unit-card';
+      card.draggable = true;
+      card.style.cursor = 'grab';
+      card.ondragstart = (e) => {
+        this.draggedPlayerUnitId = p.id;
+        this.dragSourceSlot = null;
+        if (e.dataTransfer) {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', p.id);
+        }
+      };
       const elemBadge = p.weaponElement !== ElementType.NONE ? `<span style="color: var(--cs-gold); font-size: 0.72rem;">[${p.weaponElement}]</span>` : '';
       const accText = p.accessoryType && p.accessoryType !== 'NONE' ? `💍 ${this.getAccessoryShortName(p.accessoryType)}` : '💍 (無飾品)';
       
-      const maxStatPoints = (p.level - 1) * 5;
+      const maxStatPoints = (p.level - 1) * 2; // ✅ 每升 1 級給 2 點自由配點 (與遊戲專案完全對齊)
       const curAllocated = Object.values(p.allocatedStats).reduce((a, b) => a + b, 0);
       const unspent = Math.max(0, maxStatPoints - curAllocated);
 
-      // 計算真實資質 + 加點後的戰鬥數值
-      const baseAttr = this.getJobBaseAttributes(p.jobName, p.quality);
-      const totalStr = baseAttr.str + (p.level - 1) * 2 + p.allocatedStats.str;
-      const totalAgi = baseAttr.agi + (p.level - 1) * 2 + p.allocatedStats.agi;
-      const totalCon = baseAttr.con + (p.level - 1) * 2 + p.allocatedStats.con;
-      const totalInt = baseAttr.int + (p.level - 1) * 2 + p.allocatedStats.int;
-      const totalSpr = baseAttr.spr + (p.level - 1) * 2 + p.allocatedStats.spr;
-      const totalLuk = baseAttr.luk + (p.level - 1) * 2 + p.allocatedStats.luk;
+      // 計算基礎六維與配點後的戰鬥數值
+      let baseStr = 0, baseAgi = 0, baseCon = 0, baseInt = 0, baseSpr = 0, baseLuk = 0;
+      if (p.customBaseAttributes) {
+        let hStr = p.customBaseAttributes.str;
+        let hAgi = p.customBaseAttributes.agi;
+        let hCon = p.customBaseAttributes.con;
+        let hInt = p.customBaseAttributes.int;
+        let hSpr = p.customBaseAttributes.spr;
+        let hLuk = p.customBaseAttributes.luk;
+
+        const origLvl = p.heroOriginalLevel || 1;
+        if (p.level > origLvl) {
+          const deltaGrowth = this.getJobNaturalGrowth(p.jobName, 1 + (p.level - origLvl));
+          hStr += deltaGrowth.str;
+          hAgi += deltaGrowth.agi;
+          hCon += deltaGrowth.con;
+          hInt += deltaGrowth.int;
+          hSpr += deltaGrowth.spr;
+          hLuk += deltaGrowth.luk;
+        } else if (p.level < origLvl) {
+          const deltaLoss = this.getJobNaturalGrowth(p.jobName, 1 + (origLvl - p.level));
+          hStr = Math.max(1, hStr - deltaLoss.str);
+          hAgi = Math.max(1, hAgi - deltaLoss.agi);
+          hCon = Math.max(1, hCon - deltaLoss.con);
+          hInt = Math.max(1, hInt - deltaLoss.int);
+          hSpr = Math.max(1, hSpr - deltaLoss.spr);
+          hLuk = Math.max(1, hLuk - deltaLoss.luk);
+        }
+
+        baseStr = hStr;
+        baseAgi = hAgi;
+        baseCon = hCon;
+        baseInt = hInt;
+        baseSpr = hSpr;
+        baseLuk = hLuk;
+      } else {
+        const baseAttr = this.getJobBaseAttributes(p.jobName, p.quality);
+        const growth = this.getJobNaturalGrowth(p.jobName, p.level);
+        baseStr = baseAttr.str + growth.str;
+        baseAgi = baseAttr.agi + growth.agi;
+        baseCon = baseAttr.con + growth.con;
+        baseInt = baseAttr.int + growth.int;
+        baseSpr = baseAttr.spr + growth.spr;
+        baseLuk = baseAttr.luk + growth.luk;
+      }
+
+      const totalStr = baseStr + p.allocatedStats.str;
+      const totalAgi = baseAgi + p.allocatedStats.agi;
+      const totalCon = baseCon + p.allocatedStats.con;
+      const totalInt = baseInt + p.allocatedStats.int;
+      const totalSpr = baseSpr + p.allocatedStats.spr;
+      const totalLuk = baseLuk + p.allocatedStats.luk;
+
+      const wTpl = p.weaponTemplateId ? DataStore.EquipmentDB[p.weaponTemplateId] : null;
+      const wBonus = wTpl?.baseCombatEffects?.atk ?? (p.weaponTier * 15 + p.weaponEnhance * 4);
+      const aTpl = p.armorTemplateId ? DataStore.EquipmentDB[p.armorTemplateId] : null;
+      const aBonus = aTpl?.baseCombatEffects?.def ?? (p.armorTier * 10 + p.armorEnhance * 3);
 
       const hp = totalCon * 10 + p.armorTier * 30 + p.armorEnhance * 5 + (p.accessoryType === 'RING_HP' ? 60 : 0);
       const mp = totalSpr * 5 + (p.accessoryType === 'RING_MP' ? 30 : 0);
-      const patk = totalStr * 2 + p.weaponTier * 15 + p.weaponEnhance * 4;
-      const matk = totalInt * 2 + p.weaponTier * 15 + p.weaponEnhance * 4;
-      const pdef = totalCon + Math.floor(totalStr * 0.5) + p.armorTier * 10 + p.armorEnhance * 3;
-      const mdef = totalCon + Math.floor(totalSpr * 0.5) + p.armorTier * 10 + p.armorEnhance * 3;
+
+      let patk = totalStr * 2 + wBonus;
+      let matk = totalInt * 2 + wBonus;
+
+      const jn = p.jobName;
+      const wt = p.weaponType;
+
+      if (wt === WeaponType.BOW || wt === WeaponType.DAGGERS || jn.includes('弓') || jn.includes('神射') || jn.includes('暗殺') || jn.includes('盜賊')) {
+        patk = Math.floor(totalAgi * 1.6 + totalStr * 0.4) + wBonus;
+        matk = Math.floor(totalInt * 1.2 + totalSpr * 0.8) + wBonus;
+      } else if (wt === WeaponType.SWORD_AND_SHIELD || wt === WeaponType.RUNE_SHIELD || jn.includes('騎士') || jn.includes('聖騎')) {
+        patk = Math.floor(totalCon * 1.4 + totalStr * 0.6) + wBonus;
+        matk = Math.floor(totalSpr * 1.4 + totalInt * 0.6) + wBonus;
+      } else if (wt === WeaponType.HOLY_BOOK || wt === WeaponType.HAMMER || jn.includes('祈禱') || jn.includes('主教') || jn.includes('拷問')) {
+        matk = Math.floor(totalSpr * 1.6 + totalInt * 0.4) + wBonus;
+        patk = Math.floor(totalStr * 1.2 + totalSpr * 0.8) + wBonus;
+      } else if (wt === WeaponType.STAFF || wt === WeaponType.SCYTHE || jn.includes('法師') || jn.includes('魔導') || jn.includes('死靈')) {
+        matk = totalInt * 2 + wBonus;
+        patk = Math.floor(totalStr * 1.2 + totalInt * 0.8) + wBonus;
+      } else if (wt === WeaponType.MAGIC_RING || jn.includes('詭術')) {
+        matk = Math.floor(totalInt * 1.6 + totalAgi * 0.4) + wBonus;
+        patk = Math.floor(totalAgi * 1.4 + totalStr * 0.6) + wBonus;
+      } else if (wt === WeaponType.MAGIC_BOW || jn.includes('精靈使')) {
+        patk = Math.floor(totalAgi * 1.4 + totalInt * 0.6) + wBonus;
+        matk = Math.floor(totalInt * 1.4 + totalAgi * 0.6) + wBonus;
+      } else {
+        // 戰士 / 狂戰士 / 魔劍士
+        patk = totalStr * 2 + wBonus;
+        matk = Math.floor(totalInt * 1.4 + totalStr * 0.6) + wBonus;
+      }
+
+      const pdef = totalCon + Math.floor(totalStr * 0.5) + aBonus;
+      const mdef = totalCon + Math.floor(totalSpr * 0.5) + aBonus;
       const hit = totalAgi * 2 + totalLuk + (p.accessoryType === 'AMULET_AGI' ? 15 : 0);
       const evade = totalAgi + totalLuk + (p.accessoryType === 'AMULET_AGI' ? 15 : 0);
       const crit = Math.min(100, 5 + Math.floor(hit / 5) + (p.accessoryType === 'BADGE_CRIT' ? 10 : 0));
@@ -3362,8 +3618,6 @@ class CombatStudioController {
           </select>
         `;
 
-      const wTpl = p.weaponTemplateId ? DataStore.EquipmentDB[p.weaponTemplateId] : null;
-      const aTpl = p.armorTemplateId ? DataStore.EquipmentDB[p.armorTemplateId] : null;
       const accTpl = p.accessoryId ? DataStore.EquipmentDB[p.accessoryId] : (p.accessoryType && p.accessoryType !== 'NONE' ? DataStore.EquipmentDB[p.accessoryType] : null);
 
       const wName = wTpl ? wTpl.name : `T${p.weaponTier} ${p.weaponType}`;
@@ -3669,89 +3923,360 @@ class CombatStudioController {
     }
   }
 
-  private renderArenaInitial(): void {
-    const leftContainer = byId('cs-arena-left');
-    if (!leftContainer) return;
-    leftContainer.innerHTML = '';
-    this.arenaHpMp = {};
+  // ── 🛡️ 陣型系統與 3x3 九宮格戰術佈陣 ──
+  private ensurePlayerGridMap(): void {
+    const teamIds = new Set(this.playerTeam.map(p => p.id));
+    // 清理已不在隊伍中的無效 ID
+    for (const [slot, id] of Object.entries(this.playerGridMap)) {
+      if (!teamIds.has(id)) {
+        delete this.playerGridMap[slot];
+      }
+    }
 
-    this.playerTeam.forEach(p => {
-      const id = `arena_${p.id}`;
-      const baseAttr = this.getJobBaseAttributes(p.jobName, p.quality);
-      const totalCon = baseAttr.con + (p.level - 1) * 2 + p.allocatedStats.con;
-      const maxHp = totalCon * 10 + p.armorTier * 30 + (p.accessoryType === 'RING_HP' ? 60 : 0);
-      const totalSpr = baseAttr.spr + (p.level - 1) * 2 + p.allocatedStats.spr;
-      const maxMp = totalSpr * 5 + (p.accessoryType === 'RING_MP' ? 30 : 0);
-      const avatar = p.avatarIcon || this.getJobEmoji(p.jobName);
-      this.arenaHpMp[p.id] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: p.name, avatar };
+    const existingMappedIds = new Set<string>(Object.values(this.playerGridMap));
+    const unplacedUnits = this.playerTeam.filter(p => !existingMappedIds.has(p.id));
 
-      const card = document.createElement('div');
-      card.className = 'cs-arena-card player-side';
-      card.id = id;
-      card.innerHTML = `
-        <div style="margin-right: 6px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 26)}</div>
-        <div style="flex: 1; min-width: 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span style="font-size: 0.76rem; font-weight: bold; color: var(--cs-gold-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px;">${p.name}</span>
-            <span style="font-size: 0.66rem; color: #a1a1aa; font-family: monospace;" id="hp_txt_${p.id}">${maxHp}/${maxHp}</span>
-          </div>
-          <div class="cs-bars">
-            <div class="cs-bar-wrap"><div class="cs-hp-fill" id="hp_${p.id}" style="width: 100%;"></div></div>
-            <div class="cs-bar-wrap"><div class="cs-mp-fill" id="mp_${p.id}" style="width: 100%;"></div></div>
-          </div>
-        </div>
-      `;
-      leftContainer.appendChild(card);
+    // 自動安排未入座隊員至合適的空位
+    unplacedUnits.forEach(p => {
+      let preferredRows = [0, 1, 2];
+      if (p.formationRow === FormationRow.FRONT) preferredRows = [0, 1, 2];
+      else if (p.formationRow === 'MIDDLE') preferredRows = [1, 0, 2];
+      else if (p.formationRow === FormationRow.BACK) preferredRows = [2, 1, 0];
+
+      let placed = false;
+      for (const r of preferredRows) {
+        for (const c of [1, 0, 2]) { // 優先中路，再左右
+          const slotKey = `${r}_${c}`;
+          if (!this.playerGridMap[slotKey]) {
+            this.playerGridMap[slotKey] = p.id;
+            placed = true;
+            break;
+          }
+        }
+        if (placed) break;
+      }
     });
+  }
+
+  private renderFormationSelector(): void {
+    const select = byId<HTMLSelectElement>('cs-formation-select');
+    if (!select) return;
+
+    if (!select.dataset.bound) {
+      select.dataset.bound = 'true';
+      select.innerHTML = '';
+      Object.values(FormationDB.Formations).forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.id;
+        opt.textContent = `${f.icon} ${f.name}`;
+        if (f.id === this.selectedFormationId) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      select.onchange = () => {
+        this.selectedFormationId = select.value;
+        this.render();
+      };
+    }
+
+    this.updateFormationBadge();
+  }
+
+  private updateFormationBadge(): void {
+    const badge = byId('cs-formation-status-badge');
+    const desc = byId('cs-formation-desc');
+    const activeFormation = FormationDB.getFormation(this.selectedFormationId);
+
+    if (desc && activeFormation) {
+      desc.textContent = activeFormation.description;
+    }
+
+    if (badge && activeFormation) {
+      if (activeFormation.id === 'DEFAULT') {
+        badge.className = 'cs-formation-badge';
+        badge.textContent = '🏳️ 自由陣型 (無特殊加成)';
+      } else {
+        const isActive = FormationDB.isFormationActive(this.playerGridMap, this.selectedFormationId);
+        if (isActive) {
+          badge.className = 'cs-formation-badge active';
+          badge.textContent = `✅ ${activeFormation.name} (已激活加成)`;
+        } else {
+          badge.className = 'cs-formation-badge inactive';
+          badge.textContent = `⚠️ ${activeFormation.name} (未滿足站位需求)`;
+        }
+      }
+    }
+  }
+
+  private renderArenaInitial(): void {
+    const playerGridContainer = byId('cs-player-3x3-grid');
+    if (!playerGridContainer) return;
+    playerGridContainer.innerHTML = '';
+    this.arenaHpMp = {};
+    this.ensurePlayerGridMap();
+
+    const activeFormation = FormationDB.getFormation(this.selectedFormationId);
+    const isFormationActive = FormationDB.isFormationActive(this.playerGridMap, this.selectedFormationId);
+
+    // 我方 3x3 棋盤：視圖由左至右分別為 後排(vc=0, r=2) ➔ 中排(vc=1, r=1) ➔ 前排(vc=2, r=0)
+    for (let vr = 0; vr < 3; vr++) {
+      for (let vc = 0; vc < 3; vc++) {
+        const r = 2 - vc;
+        const c = vr;
+        const slotId = `${r}_${c}`;
+        const pId = this.playerGridMap[slotId];
+        const p = pId ? this.playerTeam.find(u => u.id === pId) : null;
+
+        const isRequired = activeFormation.requiredSlots.some(s => s.row === r && s.col === c);
+
+        const slot = document.createElement('div');
+        slot.className = 'cs-grid-slot';
+        slot.dataset.slotId = slotId;
+
+        if (isRequired) {
+          slot.classList.add(isFormationActive ? 'active-formation' : 'required');
+        }
+
+        // 標註底層座標標籤
+        const rowName = r === 0 ? '前排' : r === 1 ? '中排' : '後排';
+        const colName = c === 0 ? '上' : c === 1 ? '中' : '下';
+        const slotLabel = document.createElement('span');
+        slotLabel.className = 'cs-grid-slot-label';
+        slotLabel.textContent = `${rowName}${colName}`;
+        slot.appendChild(slotLabel);
+
+        // 拖曳事件綁定
+        slot.ondragover = (e) => {
+          e.preventDefault();
+          if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+          slot.classList.add('drag-over');
+        };
+        slot.ondragleave = () => {
+          slot.classList.remove('drag-over');
+        };
+        slot.ondrop = (e) => {
+          e.preventDefault();
+          slot.classList.remove('drag-over');
+          if (this.draggedPlayerUnitId) {
+            const targetSlotId = slotId;
+            const sourceSlot = this.dragSourceSlot;
+            const existingUnitIdInTarget = this.playerGridMap[targetSlotId];
+
+            if (sourceSlot) {
+              // 棋盤內部格子互相對調或移動
+              if (existingUnitIdInTarget) {
+                this.playerGridMap[sourceSlot] = existingUnitIdInTarget;
+              } else {
+                delete this.playerGridMap[sourceSlot];
+              }
+              this.playerGridMap[targetSlotId] = this.draggedPlayerUnitId;
+            } else {
+              // 從左側備選名單拖入
+              for (const [k, v] of Object.entries(this.playerGridMap)) {
+                if (v === this.draggedPlayerUnitId) delete this.playerGridMap[k];
+              }
+              this.playerGridMap[targetSlotId] = this.draggedPlayerUnitId;
+            }
+
+            this.draggedPlayerUnitId = null;
+            this.dragSourceSlot = null;
+            this.render();
+          }
+        };
+
+        if (p) {
+          const id = `arena_${p.id}`;
+          let baseCon = 0, baseSpr = 0;
+          if (p.customBaseAttributes) {
+            let hCon = p.customBaseAttributes.con;
+            let hSpr = p.customBaseAttributes.spr;
+            const origLvl = p.heroOriginalLevel || 1;
+            if (p.level > origLvl) {
+              const deltaGrowth = this.getJobNaturalGrowth(p.jobName, 1 + (p.level - origLvl));
+              hCon += deltaGrowth.con;
+              hSpr += deltaGrowth.spr;
+            } else if (p.level < origLvl) {
+              const deltaLoss = this.getJobNaturalGrowth(p.jobName, 1 + (origLvl - p.level));
+              hCon = Math.max(1, hCon - deltaLoss.con);
+              hSpr = Math.max(1, hSpr - deltaLoss.spr);
+            }
+            baseCon = hCon;
+            baseSpr = hSpr;
+          } else {
+            const baseAttr = this.getJobBaseAttributes(p.jobName, p.quality);
+            const growth = this.getJobNaturalGrowth(p.jobName, p.level);
+            baseCon = baseAttr.con + growth.con;
+            baseSpr = baseAttr.spr + growth.spr;
+          }
+          const totalCon = baseCon + p.allocatedStats.con;
+          const maxHp = totalCon * 10 + p.armorTier * 30 + (p.accessoryType === 'RING_HP' ? 60 : 0);
+          const totalSpr = baseSpr + p.allocatedStats.spr;
+          const maxMp = totalSpr * 5 + (p.accessoryType === 'RING_MP' ? 30 : 0);
+          const avatar = p.avatarIcon || this.getJobEmoji(p.jobName);
+          this.arenaHpMp[p.id] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: p.name, avatar };
+
+          const card = document.createElement('div');
+          card.className = 'cs-arena-card player-side';
+          card.id = id;
+          card.draggable = true;
+          card.style.width = '100%';
+          card.style.height = '100%';
+          card.style.cursor = 'grab';
+
+          card.ondragstart = (e) => {
+            this.draggedPlayerUnitId = p.id;
+            this.dragSourceSlot = slotId;
+            if (e.dataTransfer) {
+              e.dataTransfer.effectAllowed = 'move';
+              e.dataTransfer.setData('text/plain', p.id);
+            }
+          };
+
+          // ❌ 移出陣位按鈕
+          const removeBtn = document.createElement('div');
+          removeBtn.className = 'cs-slot-remove-btn';
+          removeBtn.innerHTML = '×';
+          removeBtn.title = '移出陣位';
+          removeBtn.onclick = (e) => {
+            e.stopPropagation();
+            delete this.playerGridMap[slotId];
+            this.render();
+          };
+
+          card.innerHTML = `
+            <div class="cs-arena-name-row">
+              <span class="cs-arena-name-text" style="color: var(--cs-gold-light);" title="${p.name}">${p.name}</span>
+              <span style="font-size: 0.6rem; color: #a1a1aa; font-family: monospace;" id="hp_txt_${p.id}">${maxHp}</span>
+            </div>
+            <div class="cs-arena-avatar-box">
+              ${renderUniversalIcon(avatar, 38)}
+            </div>
+            <div class="cs-bars" style="width: 100%;">
+              <div class="cs-bar-wrap" style="height: 4px;"><div class="cs-hp-fill" id="hp_${p.id}" style="width: 100%;"></div></div>
+              <div class="cs-bar-wrap" style="height: 3px;"><div class="cs-mp-fill" id="mp_${p.id}" style="width: 100%;"></div></div>
+            </div>
+          `;
+          card.appendChild(removeBtn);
+          slot.appendChild(card);
+        }
+
+        playerGridContainer.appendChild(slot);
+      }
+    }
 
     this.renderArenaWave(1);
     byId('cs-arena-round').textContent = 'Wave 1';
+    this.updateFormationBadge();
   }
 
   private renderArenaWave(waveNum: number): void {
-    const rightContainer = byId('cs-arena-right');
-    if (!rightContainer) return;
-    rightContainer.innerHTML = '';
+    const enemyGridContainer = byId('cs-enemy-3x3-grid');
+    if (!enemyGridContainer) return;
+    enemyGridContainer.innerHTML = '';
 
     const activeWave = this.enemyWaves[waveNum - 1] || this.enemyWaves[0] || [];
-    activeWave.forEach((e, idx) => {
-      const eid = `enemy_${waveNum}_${idx}`;
-      const baseMonster = this.monstersDb.find(m => m.id === e.monsterId) || this.monstersDb[0] || (monstersJson[0] as any);
-      const appliedRace = e.isUndead ? MonsterRace.UNDEAD : (baseMonster.race || MonsterRace.MONSTER);
-      const inst = this.monsterSystem.createMonsterInstance(baseMonster, appliedRace, e.element, e.difficulty);
-      const maxHp = inst.hp;
-      const maxMp = 50;
-      const avatar = e.avatarIcon || this.getMonsterAvatar(e.monsterId, e.name);
-      this.arenaHpMp[eid] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: e.name, avatar };
 
-      const card = document.createElement('div');
-      card.className = 'cs-arena-card enemy-side';
-      card.id = `arena_${eid}`;
-      card.innerHTML = `
-        <div style="flex: 1; min-width: 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-            <span style="font-size: 0.66rem; color: #a1a1aa; font-family: monospace;" id="hp_txt_${eid}">${maxHp}/${maxHp}</span>
-            <span style="font-size: 0.76rem; font-weight: bold; color: #fca5a5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; text-align: right;">${e.name}</span>
-          </div>
-          <div class="cs-bars">
-            <div class="cs-bar-wrap"><div class="cs-hp-fill" id="hp_${eid}" style="width: 100%;"></div></div>
-            <div class="cs-bar-wrap"><div class="cs-mp-fill" id="mp_${eid}" style="width: 100%;"></div></div>
-          </div>
-        </div>
-        <div style="margin-left: 6px; display: flex; align-items: center;">${renderUniversalIcon(avatar, 26)}</div>
-      `;
-      rightContainer.appendChild(card);
+    // 建立怪物九宮格位置映射
+    const monsterGridMap: Record<string, { e: EnemyUnitConfig; idx: number }> = {};
+    const unplacedEnemies: { e: EnemyUnitConfig; idx: number }[] = [];
+
+    activeWave.forEach((e, idx) => {
+      if (e.gridR !== undefined && e.gridC !== undefined) {
+        monsterGridMap[`${e.gridR}_${e.gridC}`] = { e, idx };
+      } else {
+        unplacedEnemies.push({ e, idx });
+      }
     });
+
+    // 自動安排未具備九宮格座標的怪物 (前排 ➔ 中排 ➔ 後排)
+    unplacedEnemies.forEach(item => {
+      let placed = false;
+      for (const r of [0, 1, 2]) {
+        for (const c of [1, 0, 2]) {
+          const key = `${r}_${c}`;
+          if (!monsterGridMap[key]) {
+            monsterGridMap[key] = item;
+            placed = true;
+            break;
+          }
+        }
+        if (placed) break;
+      }
+    });
+
+    // 敵方 3x3 棋盤：視圖由左至右分別為 前排(vc=0, r=0) ➔ 中排(vc=1, r=1) ➔ 後排(vc=2, r=2)
+    for (let vr = 0; vr < 3; vr++) {
+      for (let vc = 0; vc < 3; vc++) {
+        const r = vc;
+        const c = vr;
+        const slotId = `${r}_${c}`;
+        const mItem = monsterGridMap[slotId];
+
+        const slot = document.createElement('div');
+        slot.className = 'cs-grid-slot';
+        slot.dataset.slotId = slotId;
+
+        const rowName = r === 0 ? '前排' : r === 1 ? '中排' : '後排';
+        const colName = c === 0 ? '上' : c === 1 ? '中' : '下';
+        const slotLabel = document.createElement('span');
+        slotLabel.className = 'cs-grid-slot-label';
+        slotLabel.textContent = `${rowName}${colName}`;
+        slot.appendChild(slotLabel);
+
+        if (mItem) {
+          const { e, idx } = mItem;
+          const eid = `enemy_${waveNum}_${idx}`;
+          const baseMonster = this.monstersDb.find(m => m.id === e.monsterId) || this.monstersDb[0] || (monstersJson[0] as any);
+          const appliedRace = e.isUndead ? MonsterRace.UNDEAD : (baseMonster.race || MonsterRace.MONSTER);
+          const inst = this.monsterSystem.createMonsterInstance(baseMonster, appliedRace, e.element, e.difficulty);
+          const maxHp = inst.hp;
+          const maxMp = 50;
+          const avatar = e.avatarIcon || this.getMonsterAvatar(e.monsterId, e.name);
+          this.arenaHpMp[eid] = { hp: maxHp, maxHp, mp: maxMp, maxMp, name: e.name, avatar };
+
+          const card = document.createElement('div');
+          card.className = 'cs-arena-card enemy-side';
+          card.id = `arena_${eid}`;
+          card.style.width = '100%';
+          card.style.height = '100%';
+
+          card.innerHTML = `
+            <div class="cs-arena-name-row">
+              <span class="cs-arena-name-text" style="color: #fca5a5;" title="${e.name}">${e.name}</span>
+              <span style="font-size: 0.6rem; color: #a1a1aa; font-family: monospace;" id="hp_txt_${eid}">${maxHp}</span>
+            </div>
+            <div class="cs-arena-avatar-box">
+              ${renderUniversalIcon(avatar, 38)}
+            </div>
+            <div class="cs-bars" style="width: 100%;">
+              <div class="cs-bar-wrap" style="height: 4px;"><div class="cs-hp-fill" id="hp_${eid}" style="width: 100%;"></div></div>
+              <div class="cs-bar-wrap" style="height: 3px;"><div class="cs-mp-fill" id="mp_${eid}" style="width: 100%;"></div></div>
+            </div>
+          `;
+          slot.appendChild(card);
+        }
+
+        enemyGridContainer.appendChild(slot);
+      }
+    }
   }
 
   // ── 戰鬥模擬核心 ──
   private runSingleBattle(): void {
     this.stopPlayback();
+    this.ensurePlayerGridMap();
     const adventurers = this.buildAdventurers();
     const monsterWaves = this.buildMonstersForWaves();
 
     GameState.adventurers = adventurers;
     const attackerIds = adventurers.map(a => a.id);
+
+    // 轉換 playerGridMap 為實際 adv.id 映射
+    const simGridMap: Record<string, string> = {};
+    for (const [slot, uId] of Object.entries(this.playerGridMap)) {
+      const matchAdv = adventurers.find(a => a.id.endsWith(`_${uId}`) || a.id === uId);
+      if (matchAdv) simGridMap[slot] = matchAdv.id;
+    }
 
     const report = CombatSystem.simulateCombat(
       attackerIds,
@@ -3761,8 +4286,8 @@ class CombatStudioController {
       monsterWaves.length,
       undefined,
       monsterWaves[0],
-      undefined,
-      undefined,
+      this.selectedFormationId,
+      simGridMap,
       undefined,
       monsterWaves
     );
@@ -3891,6 +4416,12 @@ class CombatStudioController {
     GameState.adventurers = adventurers;
     const attackerIds = adventurers.map(a => a.id);
 
+    const simGridMap: Record<string, string> = {};
+    for (const [slot, uId] of Object.entries(this.playerGridMap)) {
+      const matchAdv = adventurers.find(a => a.id.endsWith(`_${uId}`) || a.id === uId);
+      if (matchAdv) simGridMap[slot] = matchAdv.id;
+    }
+
     let wins = 0;
     let totalRounds = 0;
     let totalDmgDone = 0;
@@ -3917,8 +4448,8 @@ class CombatStudioController {
         monsterWaves.length,
         undefined,
         monsterWaves[0],
-        undefined,
-        undefined,
+        this.selectedFormationId,
+        simGridMap,
         undefined,
         clone(monsterWaves)
       );
@@ -4436,6 +4967,39 @@ class CombatStudioController {
         garrisonWaves
       };
 
+      // ✅ 轉換成 SubjugationTemplate 格式，合併進 strongholdsDb 並持久化
+      const subTemplate: SubjugationTemplate = {
+        id,
+        name,
+        description: `【自訂據點】${name}`,
+        terrain: terrain as SubjugationTemplate['terrain'],
+        difficulty: diff,
+        factionId: faction || undefined,
+        worldGenMode: 'PERMANENT_VISIBLE',
+        waves: garrisonWaves.map((wave, wIdx) => ({
+          name: wIdx === garrisonWaves.length - 1 ? '守將波次' : `第 ${wIdx + 1} 波`,
+          monsters: wave.map((u, mIdx) => ({
+            monsterId: u.monsterId,
+            powerTier: u.difficulty,
+            formationRow: u.formationRow,
+            gridR: u.formationRow === FormationRow.FRONT ? 0 : u.formationRow === FormationRow.BACK ? 2 : 1,
+            gridC: mIdx % 3,
+            slotId: `${u.formationRow === FormationRow.FRONT ? 0 : u.formationRow === FormationRow.BACK ? 2 : 1}_${mIdx % 3}`,
+            affix: (u as EnemyUnitConfig & { affix?: string }).affix
+          } as SubjugationWaveMonster))
+        }))
+      };
+
+      // 若 id 已存在則更新，否則新增
+      const existIdx = this.strongholdsDb.findIndex(s => s.id === id);
+      if (existIdx >= 0) {
+        this.strongholdsDb[existIdx] = subTemplate;
+      } else {
+        this.strongholdsDb.push(subTemplate);
+      }
+      this.normalizeStrongholdWaves(subTemplate);
+      this.saveStrongholdsToStorage();
+
       const sel = byId<HTMLSelectElement>('cs-stronghold-select');
       const opt = document.createElement('option');
       opt.value = id;
@@ -4446,7 +5010,7 @@ class CombatStudioController {
       this.enemyWaves = clone(garrisonWaves);
       this.currentWaveIdx = 0;
       byId('modal-stronghold-designer').style.display = 'none';
-      alert(`已成功設計自訂據點【${name}】！已加入據點情境並配置 2 波守軍。`);
+      alert(`已成功設計自訂據點【${name}】！\n✅ 已同步寫入據點資料庫（LocalStorage）\n💾 請點「寫入專案硬碟」以永久存入 subjugation_nodes.json`);
       this.render();
     };
 
@@ -4632,7 +5196,12 @@ class CombatStudioController {
         const field = target.dataset.field;
         const val = (target as HTMLInputElement).value;
         if (field === 'name') this.playerTeam[idx].name = val;
-        if (field === 'level') this.playerTeam[idx].level = Math.max(1, Math.min(10, Number(val)));
+        if (field === 'level') {
+          const newLvl = Math.max(1, Math.min(10, Number(val)));
+          this.playerTeam[idx].level = newLvl;
+          this.playerTeam[idx].isAdvanced = newLvl >= 10;
+          this.render();
+        }
       }
     });
 
@@ -4751,7 +5320,7 @@ class CombatStudioController {
         const delta = Number(deltaStr);
         const p = this.playerTeam[pIdx];
         if (p) {
-          const maxPoints = (p.level - 1) * 5;
+          const maxPoints = (p.level - 1) * 2;
           const currentTotal = Object.values(p.allocatedStats).reduce((a, b) => a + b, 0);
           const currentVal = (p.allocatedStats as any)[statKey] || 0;
           if (delta > 0 && currentTotal < maxPoints) {
@@ -4767,7 +5336,7 @@ class CombatStudioController {
         const pIdx = Number(target.dataset.autoAlloc);
         const p = this.playerTeam[pIdx];
         if (p) {
-          const totalPoints = (p.level - 1) * 5;
+          const totalPoints = (p.level - 1) * 2;
           p.allocatedStats = { str: 0, agi: 0, con: 0, int: 0, spr: 0, luk: 0 };
           if (p.jobName.includes('法師') || p.jobName.includes('魔導') || p.jobName.includes('死靈')) {
             p.allocatedStats.int = Math.floor(totalPoints * 0.7);

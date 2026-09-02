@@ -789,11 +789,11 @@ export class CombatSystem {
       }
 
       for (const actor of allParticipants) {
-        if (actor.currentHp <= 0) continue;
+        if (actor.currentHp <= 0 || (actor as any).isDead) continue;
 
         CombatSystem.processStatusEffects(actor, events, actor.isPlayer ? playerTeam : enemyTeam);
         processDeaths();
-        if (actor.currentHp <= 0) continue;
+        if (actor.currentHp <= 0 || (actor as any).isDead) continue;
 
         // 減少冷卻時間
         if (actor.cooldowns) {
@@ -802,8 +802,8 @@ export class CombatSystem {
           }
         }
 
-        // Per-turn HP and MP regeneration (削弱為 CON/SPR * 0.2，並標記為 isQuietRegen 避開對話框洗版)
-        if (actor.attributes) {
+        // Per-turn HP and MP regeneration (僅存活單位可回血回魔)
+        if (actor.currentHp > 0 && actor.attributes) {
           const hpRegen = Math.max(1, Math.floor((actor.attributes.con || 0) * 0.2));
           const mpRegen = Math.max(1, Math.floor((actor.attributes.spr || 0) * 0.2));
           
@@ -846,7 +846,7 @@ export class CombatSystem {
         const enemies = actor.isPlayer ? enemyTeam.filter(e => e.currentHp > 0) : playerTeam.filter(p => p.currentHp > 0);
         if (enemies.length === 0) break;
 
-        const allies = actor.isPlayer ? playerTeam : enemyTeam;
+        const allies = (actor.isPlayer ? playerTeam : enemyTeam).filter(a => a.currentHp > 0);
 
         // 觸發回合開始與 HP 門檻鉤子 (Phase 2)
         events.push(...SkillEffectEngine.triggerHooks('ON_TURN_START', actor, [actor], enemies, allies));

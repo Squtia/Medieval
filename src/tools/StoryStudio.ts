@@ -449,6 +449,7 @@ async function bootstrap(): Promise<void> {
   preview.mount();
 
   bindMainEvents();
+  switchTab('node-editor');
 
   // 訂閱狀態刷新 UI 元件
   const fullRefresh = () => {

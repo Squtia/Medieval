@@ -8,7 +8,8 @@ export enum TargetType {
   COLUMN = 'COLUMN',
   SELF = 'SELF',
   ALLY_LOWEST_HP = 'ALLY_LOWEST_HP',
-  ALL_ALLIES = 'ALL_ALLIES'
+  ALL_ALLIES = 'ALL_ALLIES',
+  ALLY_DEAD = 'ALLY_DEAD'
 }
 
 export type SkillCategory = 'HERO_BASE' | 'HERO_ADVANCED' | 'MONSTER' | 'EQUIPMENT';
@@ -69,7 +70,7 @@ export interface SkillCondition {
 
 export type SkillEffectType =
   | 'DAMAGE_PHYSICAL' | 'DAMAGE_MAGICAL' | 'DAMAGE_MIXED' | 'DAMAGE_TRUE'
-  | 'HEAL' | 'LIFESTEAL' | 'MULTI_HIT'
+  | 'HEAL' | 'RESURRECT' | 'LIFESTEAL' | 'MULTI_HIT'
   | 'APPLY_STATUS' | 'SET_MARK' | 'DETONATE_MARKS'
   | 'APPLY_BARRIER' | 'CHAIN_DAMAGE' | 'EXECUTE'
   | 'DISPEL' | 'STEAL_BUFF' | 'DELAYED_BOMB' | 'MP_DRAIN'
