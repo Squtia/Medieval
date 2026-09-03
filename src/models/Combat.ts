@@ -106,13 +106,25 @@ export enum CombatEventType {
   ARCHER_REAR_CASUALTY = 'ARCHER_REAR_CASUALTY'    // 弓兵後排陣地戰損
 }
 
+export type CombatImpactKind =
+  | 'DAMAGE'
+  | 'HEAL'
+  | 'SHIELD_DAMAGE'
+  | 'STATUS_APPLY'
+  | 'MISS';
+
 export interface CombatEvent {
   type: CombatEventType;
+  actionId?: string;       // 關聯同一次動作（普攻或技能）的唯一 ID
+  impactIndex?: number;    // 在該 actionId 下的命中順序 (0, 1, 2...)
+  impactCount?: number;    // 該 actionId 總計包含的打擊段數
+  impactKind?: CombatImpactKind; // 打擊種類
   actorId?: string;
   actorName?: string;
   targetId?: string;
   targetName?: string;
   damage?: number;
+  healAmount?: number;
   targetHp?: number;
   targetMaxHp?: number;
   targetMp?: number;

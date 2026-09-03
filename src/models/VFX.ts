@@ -67,6 +67,9 @@ export interface VFXPreset {
   glowRadius?: number;          // 光暈面片半徑 (px，預設 80，範圍 10~220)
   glowOpacity?: number;         // 光暈透明度 (預設 0.85，範圍 0.0~1.0)
   coreBrightness?: number;      // 核心亮度白熾度 (預設 1.0，範圍 0.2~2.0)
+  flameTurbulence?: number;     // 體積黑體火焰頂點熱浪震顫強度 (0~20)
+  flameTurbulenceSpeed?: number;// 體積黑體火焰震顫頻率 (0.5~5.0)
+  coreMeshShape?: 'SPHERE' | 'DIAMOND' | 'ARROW' | 'STAR' | 'RING'; // 核心幾何彈頭形態
 
   // 🚀 彈幕發射與節奏曲線參數
   salvoCount?: number;          // 連射彈數 (1~12)
@@ -92,10 +95,21 @@ export interface VFXPreset {
   // 🌋 次生晶刺 / 地刺幾何形態
   spikeShape?: 'CONE_SPIKE' | 'CRYSTAL_PRISM' | 'JAGGED_ROCK' | 'PILLAR_COLUMN';
   spikeWidth?: number;          // 地刺粗細半徑 (px，預設 7px，範圍 2px~35px)
+  spikeAngle?: number;          // 地刺方位旋轉角度 (0° ~ 360°)
+  spikeRadius?: number;         // 地刺生長分佈範圍 (px，預設 80px，範圍 20px~280px)
+  spikeStagger?: number;        // 破土連鎖時差 (ms，預設 25ms，範圍 0ms~80ms)
+  spikeAlignToImpact?: boolean; // 地刺是否自動順應衝擊向量
 
   shieldShape?: 'HEX' | 'CROSS_SHIELD' | 'RUNE_RING';
   waveCount?: number;
   textureSprite?: 'GLOW' | 'STAR' | 'RUNE' | 'FIRE';
+
+  // 💥 受擊衝擊波與光圈形態 (Impact Wave)
+  waveRadius?: number;          // 衝擊光圈擴散最大半徑 (px，預設 65，範圍 20~180)
+  waveThickness?: number;       // 衝擊光圈線條粗細 (px，預設 4，範圍 1~25)
+  waveColor?: string;           // 衝擊光圈顏色 (hex，留空則跟隨 colorCore)
+  waveBlur?: number;            // 邊緣柔化/羽化程度 (0.0~1.0，0=硬邊，1=柔焦氣浪)
+  wavePlane?: 'CAMERA' | 'GROUND'; // 擴散平面 (CAMERA=面朝鏡頭，GROUND=水平地面)
   
   // 戰鬥打擊感與節奏斷點參數
   impact: VFXImpactConfig;
@@ -116,5 +130,19 @@ export interface VFXLayer {
   delay?: number;              // 延遲播放 (秒)
   scale?: number;
   duration?: number;
-  generatesHit?: boolean;      // 是否產生真實戰鬥 HIT 判定 (受擊閃光、抖動與分段跳字)
+  generatesHit?: boolean;      // 舊版相容：是否產生真實戰鬥 HIT 判定
+  emitsImpactCue?: boolean;    // 是否產生演出命中 cue (受擊閃光、抖動與跳字)
 }
+
+export interface VFXImpactCue {
+  cueId: string;
+  time: number;                // 命中發生時間 (秒)
+  layerId?: string;
+  weight?: number;             // 權重 (供 SPLIT_SINGLE_IMPACT 拆分跳字)
+  isPrimary?: boolean;         // 是否為主命中點 (PRIMARY_ONLY 模式於此 cue 跳出完整傷害)
+}
+
+export type ImpactPresentationMode =
+  | 'EXACT_IMPACTS'            // 真多段傷害：一筆 impact 對一個 cue
+  | 'SPLIT_SINGLE_IMPACT'      // 單次傷害、多段演出：依權重拆分跳字
+  | 'PRIMARY_ONLY';            // 僅在 Primary Cue (最後一段) 顯示完整傷害，其餘為純視覺打擊感

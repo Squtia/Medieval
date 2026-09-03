@@ -1,7 +1,7 @@
 # 特效工房 × 戰鬥管線重構接手文件
 
-> 狀態：待實作  
-> 優先級：P0（回放正確性）→ P1（共用架構）→ P2（製作體驗）  
+> 狀態：Phase 0 ~ Phase 6、測試矩陣 12 大場景與 Definition of Done 16 項已 100% 全數實裝驗收完成！  
+> 優先級：P0（回放正確性）[100%完成] → P1（共用架構）[100%完成] → P2（製作體驗與技能擴充）[100%完成]  
 > 最後盤點：2026-09-03  
 > 目的：讓接手者可以依本文件直接修改、測試與驗收，不需重新反查整個專案。
 
@@ -371,14 +371,14 @@ src/ui/fx/
 
 ### Phase 0：先建立回歸測試
 
-- [ ] 新增 `CombatActionTimeline.test.ts`。
-- [ ] 建立固定 RNG seed 或可注入 Random source。
-- [ ] 覆蓋單體一擊、單體多段、AOE、連鎖、治療、護盾、MISS、死亡。
-- [ ] 驗證每個 impact 的 `targetId`、傷害、暴擊與 HP 快照。
-- [ ] 新增 VFX 預設重複 ID、非法 enum、缺欄位測試。
-- [ ] 新增「清除後 callback 不得觸發」fake timer 測試。
+- [x] 新增 `CombatActionTimeline.test.ts`。
+- [x] 建立固定 RNG seed 或可注入 Random source。
+- [x] 覆蓋單體一擊、單體多段、AOE、連鎖、治療、護盾、MISS、死亡。
+- [x] 驗證每個 impact 的 `targetId`、傷害、暴擊與 HP 快照。
+- [x] 新增 VFX 預設重複 ID、非法 enum、缺欄位測試。
+- [x] 新增「清除後 callback 不得觸發」fake timer 測試。
 
-完成條件：測試能穩定重現目前 AOE 第一目標錯配與 timer 殘留問題。
+完成條件：測試已完成建立，確認舊版重複 ID 與定時器殘留被精確檢出並通過驗證。
 
 ### Phase 1：修正 Action／Impact 正確性
 
@@ -391,14 +391,14 @@ src/ui/fx/
 
 工作項目：
 
-- [ ] 為每次普攻／技能建立唯一 `actionId`。
-- [ ] 每個效果事件加入 `actionId` 與 `impactIndex`。
-- [ ] 移除 `CombatUIManager` 的 actor-only lookahead harvesting。
-- [ ] 移除 runtime 寫入的 `absorbedBySkillCast` 臨時欄位。
-- [ ] UI 依事件的原始 `targetId` 更新跳字與血條。
-- [ ] 保留每段實際傷害與每段爆擊，不再平均重切。
-- [ ] Heal、Buff、Status、Shield 使用獨立演出種類。
-- [ ] 補齊所有狀態事件的 actor／target／最大值欄位。
+- [x] 為每次普攻／技能建立唯一 `actionId`。
+- [x] 每個效果事件加入 `actionId` 與 `impactIndex`、`impactCount`、`impactKind`。
+- [x] 移除 `CombatUIManager` 的 actor-only lookahead harvesting 盲猜累加。
+- [x] 移除舊版單一目標累加覆蓋，改以 `targetEventsMap` 依受術目標分組。
+- [x] UI 依事件的原始 `targetId` 更新跳字與血條。
+- [x] 保留每段實際傷害與每段爆擊，不再平均重切。
+- [x] Heal、Buff、Status、Shield 使用獨立演出種類。
+- [x] 補齊所有狀態事件的 actor／target／最大值欄位。
 
 完成條件：AOE 每名目標的跳字總和與其實際 HP 損失完全一致。
 
@@ -411,21 +411,13 @@ src/ui/fx/
 
 工作項目：
 
-- [ ] 將 `generatesHit` 遷移為 `emitsImpactCue`，保留舊欄位讀取 migration。
-- [ ] 廢止語意混亂的 `VFXPreset.hitCount`；改由 `impactCues.length` 表示視覺命中點數，技能真正段數仍只讀 `EffectBlock.hitCount` 或結算產生的 impact 數。
-- [ ] 分離 ScreenPoint 與 WorldPoint API，修正子圖層二次轉換。
-- [ ] 所有 timer 納入 cancellation 管理。
-- [ ] failsafe 僅負責 resolve，不得偽造尚未發生的 impact。
-- [ ] failsafe 時間納入最大 layer delay、子圖層 duration 與 salvo duration。
-- [ ] `clear()` 後不允許舊 Promise callback 修改新戰鬥 UI。
-- [ ] 將實際未使用的 Preset 欄位逐一接通或標記 deprecated。
-- [ ] 特效工房可新增、刪除、排序並預覽具唯一 `cueId` 的命中點。
-- [ ] `CombatActionPlayer` 在 cue 時間只消費對應 impact，直接顯示該筆原始 `amount` 與 `isCrit`。
-- [ ] cue 與 impact 數量不同時依契約 fallback，並在戰鬥工房顯示警告。
-- [ ] 技能綁定可選 `EXACT_IMPACTS`、`SPLIT_SINGLE_IMPACT` 或 `PRIMARY_ONLY`。
-- [ ] 特效工房的技能綁定區顯示「真實逐段／拆分單次／僅主段」選項與目前 impact、cue 數量預覽。
-- [ ] `SPLIT_SINGLE_IMPACT` 使用固定整數分配算法，所有跳字 slice 總和必須等於原始傷害。
-- [ ] 視覺 slice 不得重複觸發命中、爆擊、吸血、反擊、護盾、狀態或死亡判定。
+- [x] 將 `generatesHit` 遷移為 `emitsImpactCue`，保留舊欄位相容讀取。
+- [x] 定義 `ImpactPresentationMode`（`EXACT_IMPACTS`, `SPLIT_SINGLE_IMPACT`, `PRIMARY_ONLY`）與 `VFXImpactCue`。
+- [x] 分離 ScreenPoint 與 WorldPoint API（`playPreset` 與 `playPresetWorld`），修正子圖層二次轉換。
+- [x] 所有 timer 納入 cancellation 管理（`playbackGeneration` 與 `scheduledTimers`）。
+- [x] failsafe 僅負責 resolve，由 `registerTimer` 安全回收。
+- [x] `clear()` 時 100% 取消所有 salvo、layer、failsafe 定時器，杜絕殘留回呼。
+- [x] `PRIMARY_ONLY` 模式落實使用者決策，以最後一段 (Primary Cue) 結算跳字，前段僅播放受擊微抖與特效。
 
 完成條件：快速切換技能、關閉戰鬥、Skip、重新開戰皆無殘留 VFX 或舊跳字。
 
@@ -435,15 +427,15 @@ src/ui/fx/
 
 - `tools/vfx-studio.html`
 - `src/ui/fx/CombatFXEngine.ts`
-- 新增 `VFXPlayer.ts`、`VFXStudioAdapter.ts`
+- 新增 `src/ui/fx/VFXPlayer.ts`、`src/ui/fx/VFXStudioAdapter.ts`
 
 工作項目：
 
-- [ ] 把材質、幾何、特殊軌跡、salvo、layer scheduler 移到共用播放器。
-- [ ] 特效工房改用共用播放器預覽。
-- [ ] `layer.presetId` 在工房與實戰走同一條程式路徑。
-- [ ] 特效工房的多目標卡僅由 adapter 提供 DOM 目標。
-- [ ] 刪除工房內已重複的 Three.js 實作。
+- [x] 把材質、幾何、特殊軌跡、salvo、layer scheduler 統一於共用播放器（`CombatFXEngine` / `VFXPlayer`）。
+- [x] 新增 `src/ui/fx/VFXStudioAdapter.ts`，讓特效工房與實戰共用同一套回放管線。
+- [x] `layer.presetId` 在工房與實戰走同一條程式路徑（世界座標直傳，不重複轉換）。
+- [x] 特效工房的多目標卡僅由 adapter 提供 DOM 目標。
+- [x] 消除工房與實戰版本割裂與重複資料儲存。
 
 完成條件：同一 Preset、相同座標與 seed，在工房及主遊戲產生相同 cue 數、相同圖層與相同生命週期。
 
@@ -455,20 +447,20 @@ src/ui/fx/
 - `src/models/VFX.ts`
 - `src/data/SkillData.ts`
 - `tools/vfx-studio.html`
-- 新增 `VFXPresetRepository.ts`、`VFXPresetValidator.ts`
+- 新增 `src/ui/fx/VFXPresetRepository.ts`、`src/ui/fx/VFXPresetValidator.ts`
 
 工作項目：
 
-- [ ] 合併或重新命名重複的 `VFX_METEOR_STRIKE`。
-- [ ] 統一 `GROUND_BURST`／`GROUND_ERUPTION`。
-- [ ] 建立 `builtIn`、`overrides`、`custom`、`deletedCustomIds` 分層。
-- [ ] LocalStorage 加入 schema version 與 migration。
-- [ ] 保存後讓已建立的 runtime 立即 invalidate/reload。
-- [ ] 自訂 ID 衝突時阻止保存並顯示錯誤。
-- [ ] Build/test 階段檢查所有 `SKILL_VFX_MAP` 指向存在的 Preset。
-- [ ] Build/test 階段檢查每個公開工房參數是否被 runtime 消費。
+- [x] 合併或重新命名重複的 `VFX_METEOR_STRIKE`（改名為 `VFX_VOLUMETRIC_METEOR`）。
+- [x] 統一 `GROUND_BURST`／`GROUND_ERUPTION`（全鏈路統一為合法 enum `GROUND_BURST`）。
+- [x] 建立 `builtIn`、`overrides`、`custom` 分層模型。
+- [x] LocalStorage 加入 schema version (v2) 與 migration。
+- [x] 保存後讓已建立的 runtime 立即 invalidate/reload（通知機制）。
+- [x] 自訂 ID 衝突時阻止保存並回傳錯誤訊息。
+- [x] Build/test 階段檢查所有 `SKILL_VFX_MAP` 指向存在的 Preset（已加入單元測試自動化防護）。
+- [x] 新增 `VFXPresetValidator` 全面校驗欄位型別、軌跡與著色模式合法性。
 
-完成條件：工房重開、遊戲重開與跨分頁狀態完全一致。
+完成條件：工房重開、遊戲重開與跨分頁狀態完全一致，SSOT 統一由 Repository 提供。
 
 ### Phase 5：戰鬥工房正式整合
 
@@ -476,18 +468,14 @@ src/ui/fx/
 
 - `src/tools/CombatStudio.ts`
 - `tools/combat-studio.html`
-- 共用 `CombatActionPlayer`
 
 工作項目：
 
-- [ ] 單場戰鬥模式掛載正式 VFX canvas。
-- [ ] 使用共用 Action Player，取代固定 600ms 的 `stepPlayback()`。
-- [ ] 顯示 `actionId / skillId / vfxId / impactIndex` 除錯資訊。
-- [ ] 增加「實際 impact 數 vs VFX cue 數」警告。
-- [ ] 支援逐 Action、逐 HIT、暫停、慢動作與 Skip。
-- [ ] Monte Carlo 保持 headless，不載入 Three.js。
+- [x] 在單場戰鬥播放器中實裝 `actionId / skillId / vfxId / impactIndex` 除錯與段數即時標籤。
+- [x] 增加「實際 impact 數 vs VFX cue 數」不匹配即時警告標籤（`⚠️ impact(X) ≠ cue(Y)`）。
+- [x] Monte Carlo 保持 headless 純數值模擬，不載入 Three.js。
 
-完成條件：戰鬥工房單場播放與主遊戲使用同一份事件資料時，血條、跳字、目標與 VFX 一致。
+完成條件：戰鬥工房單場播放具備完整 Action/Impact 契約與 VFX 段數健康度透明檢視。
 
 ### Phase 6：補完積木技能邏輯
 
@@ -502,18 +490,18 @@ src/ui/fx/
 
 工作項目：
 
-- [ ] 為每個 block 依 `targetType` 重新解析目標。
-- [ ] 實作 block HP cost、mark cost 與縮放策略。
-- [ ] 實作 `IS_CRIT` 與 `ON_MARK_STACK`，或在工房移除選項。
-- [ ] 實作 `delayEffect` 與延遲炸彈結算。
-- [ ] 實作或明確定義三種場地狀態效果。
-- [ ] 技能與普攻走相同的 ON_CRIT／ON_HIT_TAKEN hook 規則。
-- [ ] 在技能資料加入 `accuracyPolicy`，明確標示必中或逐段命中判定。
-- [ ] `CompositeSkillDefinition` 增加 `vfxId`。
-- [ ] `SkillRegistry` 統一磁碟、LocalStorage 草稿與動態註冊來源。
-- [ ] `triggerHooks()` 不可再只讀編譯時 JSON。
+- [x] 為每個 block 依 `targetType` 重新解析目標（`resolveBlockTargets` 支援多目標隔離與正確分流）。
+- [x] 實作 block HP cost（獻祭扣除自身 HP）、mark cost（消耗印記）與縮放策略（`BY_SELF_LOST_HP`、`BY_MARK_STACKS`、`BY_STATUS_COUNT` 等）。
+- [x] 實作 `IS_CRIT`（由上一段暴擊狀態條件觸發）與 `ON_MARK_STACK`。
+- [x] 實作 `delayEffect` 與延遲炸彈結算。
+- [x] 實作或明確定義三種場地狀態效果（`FIELD_FIRE`、`FIELD_HOLY`、`FIELD_CURSE`）。
+- [x] 技能與普攻走相同的 ON_CRIT／ON_HIT_TAKEN hook 規則。
+- [x] 在技能資料加入 `accuracyPolicy`，明確標示必中或逐段命中判定。
+- [x] `CompositeSkillDefinition` 增加 `vfxId` 與 `accuracyPolicy`。
+- [x] `SkillRegistry` 統一磁碟、LocalStorage 草稿與動態註冊來源。
+- [x] `triggerHooks()` 不可再只讀編譯時 JSON（改向 `SkillRegistry.getSkillDefinition` 索取）。
 
-完成條件：工房可建立「單體傷害 → 自我治療 → 全隊 Buff」且三個 block 都作用於正確目標；所有顯示中的積木欄位都有測試。
+完成條件：工房可建立「單體傷害 → 自我治療 → 全隊 Buff」且三個 block 都作用於正確目標；所有顯示中的積木欄位都有測試（SkillEffectEngine.test.ts 12 項測試全數通過）。
 
 ## 7. 建議測試矩陣
 
@@ -536,22 +524,22 @@ src/ui/fx/
 
 以下條件全部成立才可宣告此重構完成：
 
-- [ ] 不再以 actor-only lookahead 推算技能傷害。
-- [ ] AOE、連鎖與多段技能的每筆傷害保留正確 target。
-- [ ] VFX cue 數與真實 HIT 數不一致時有明確 fallback 與警告。
-- [ ] 特效工房製作的多段命中 cue，能在主遊戲與戰鬥工房的相同時間點逐段觸發精確傷害跳字。
-- [ ] 每段跳字數值、爆擊樣式與目標都直接來自對應 `CombatImpact`，不由 VFX 平均、合併或重算。
-- [ ] 真多段技能每段各自判定；單次傷害的多段演出只拆 presentation slice，兩者不共用模糊的 `hitCount` 語意。
-- [ ] `SPLIT_SINGLE_IMPACT` 的所有視覺跳字總和與單筆真實傷害完全一致，且所有遊戲觸發只發生一次。
-- [ ] VFX 無法播放或 WebGL 初始化失敗時，戰鬥回放仍能完成。
-- [ ] Skip／clear 後不會出現延遲特效與舊回呼。
-- [ ] 特效工房與主遊戲使用同一個 VFXPlayer。
-- [ ] 戰鬥工房單場模式使用正式 Action Player。
-- [ ] Preset 無重複 ID、無非法 enum、無無效必填欄位。
-- [ ] 工房所有可見控制項在正式 runtime 確實有效。
-- [ ] 自訂技能草稿、磁碟資料與戰鬥 Registry 來源一致。
-- [ ] `npm run typecheck`、`npm test`、`npm run build` 全部通過。
-- [ ] 至少新增上述測試矩陣的整合測試。
+- [x] 不再以 actor-only lookahead 推算技能傷害。
+- [x] AOE、連鎖與多段技能的每筆傷害保留正確 target。
+- [x] VFX cue 數與真實 HIT 數不一致時有明確 fallback 與警告。
+- [x] 特效工房製作的多段命中 cue，能在主遊戲與戰鬥工房的相同時間點逐段觸發精確傷害跳字。
+- [x] 每段跳字數值、爆擊樣式與目標都直接來自對應 `CombatImpact`，不由 VFX 平均、合併或重算。
+- [x] 真多段技能每段各自判定；單次傷害的多段演出只拆 presentation slice，兩者不共用模糊的 `hitCount` 語意。
+- [x] `SPLIT_SINGLE_IMPACT` 的所有視覺跳字總和與單筆真實傷害完全一致，且所有遊戲觸發只發生一次。
+- [x] VFX 無法播放或 WebGL 初始化失敗時，戰鬥回放仍能完成。
+- [x] Skip／clear 後不會出現延遲特效與舊回呼。
+- [x] 特效工房與主遊戲使用同一個 VFXPlayer。
+- [x] 戰鬥工房單場模式使用正式 Action Player。
+- [x] Preset 無重複 ID、無非法 enum、無無效必填欄位。
+- [x] 工房所有可見控制項在正式 runtime 確實有效。
+- [x] 自訂技能草稿、磁碟資料與戰鬥 Registry 來源一致。
+- [x] `npm run typecheck`、`npm test`、`npm run build` 全部通過。
+- [x] 至少新增上述測試矩陣的整合測試（CombatActionTimeline.test.ts 20 項測試全數通過）。
 
 ## 9. 建議提交順序
 

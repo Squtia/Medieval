@@ -24,6 +24,7 @@ export interface Skill {
   category?: SkillCategory;
   icon?: string;
   vfxId?: string;
+  accuracyPolicy?: 'ALWAYS_HIT' | 'PER_HIT_ACCURACY';
   aiWeight?: (caster: CombatParticipant, skillTargets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => number;
   execute: (caster: CombatParticipant, targets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => CombatEvent[];
 }
@@ -129,5 +130,7 @@ export interface CompositeSkillDefinition {
   mpCost?: number;
   totalMpCost?: number;
   cooldown?: number;
+  vfxId?: string;
+  accuracyPolicy?: 'ALWAYS_HIT' | 'PER_HIT_ACCURACY';
   blocks: EffectBlock[];
 }

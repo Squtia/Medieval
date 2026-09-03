@@ -4,6 +4,7 @@ import { DamageType } from '../../models/types';
 import { getPatk, getMatk, calculateSkillDamage } from '../../utils/CombatMath';
 import { Random } from '../../core/Random';
 import customSkillData from '../../data/CustomSkillData.json';
+import { SkillRegistry } from './SkillRegistry';
 
 /**
  * 積木技能解譯 & 執行引擎 (Composite Skill Effect Engine)
@@ -23,16 +24,114 @@ export class SkillEffectEngine {
       cooldown: def.cooldown,
       category: def.category,
       icon: def.icon,
+      vfxId: def.vfxId,
+      accuracyPolicy: def.accuracyPolicy,
       aiWeight: (_caster, targets) => cost * targets.length,
       execute: (caster, targets, allEnemies, allAllies) => {
         const events: CombatEvent[] = [];
+        const safeEnemies = allEnemies ?? [];
+        const safeAllies = allAllies ?? [caster];
+        let lastActionWasCrit = false;
+
         for (const block of def.blocks) {
           if (block.trigger !== 'ACTIVE') continue;
-          events.push(...SkillEffectEngine.executeBlock(block, caster, targets, allEnemies ?? [], allAllies ?? []));
+
+          // 🎯 核心重構：為每個 block 依各自 targetType 重新解析目標
+          const blockTargets = SkillEffectEngine.resolveBlockTargets(
+            block.targetType,
+            caster,
+            targets,
+            safeEnemies,
+            safeAllies
+          );
+
+          if (blockTargets.length === 0) continue;
+
+          const blockEvents = SkillEffectEngine.executeBlock(
+            block,
+            caster,
+            blockTargets,
+            safeEnemies,
+            safeAllies,
+            0,
+            lastActionWasCrit
+          );
+
+          if (blockEvents.some(e => e.type === CombatEventType.CRIT)) {
+            lastActionWasCrit = true;
+          }
+
+          events.push(...blockEvents);
         }
         return events;
       }
     };
+  }
+
+  /**
+   * 將目標型別重新解析為實際受術者陣列
+   */
+  public static resolveBlockTargets(
+    targetType: TargetType,
+    caster: CombatParticipant,
+    defaultTargets: CombatParticipant[],
+    allEnemies: CombatParticipant[],
+    allAllies: CombatParticipant[]
+  ): CombatParticipant[] {
+    const livingEnemies = allEnemies.filter(e => e.currentHp > 0);
+    const enemies = livingEnemies.length > 0 ? livingEnemies : (allEnemies.length > 0 ? allEnemies : defaultTargets);
+    const livingAllies = allAllies.filter(a => a.currentHp > 0);
+    const allies = livingAllies.length > 0 ? livingAllies : (allAllies.length > 0 ? allAllies : [caster]);
+
+    switch (targetType) {
+      case TargetType.SELF:
+        return [caster];
+
+      case TargetType.ALL_ALLIES:
+        return allies;
+
+      case TargetType.ALLY_LOWEST_HP: {
+        if (allies.length === 0) return [caster];
+        let lowest = allies[0];
+        let minRatio = lowest.currentHp / lowest.maxHp;
+        for (let i = 1; i < allies.length; i++) {
+          const ratio = allies[i].currentHp / allies[i].maxHp;
+          if (ratio < minRatio) {
+            minRatio = ratio;
+            lowest = allies[i];
+          }
+        }
+        return [lowest];
+      }
+
+      case TargetType.ALLY_DEAD:
+        return allAllies.filter(a => a.currentHp <= 0);
+
+      case TargetType.ALL_ENEMIES:
+        return enemies;
+
+      case TargetType.FRONT_ENEMIES: {
+        const front = enemies.filter(e => e.row === 'FRONT');
+        return front.length > 0 ? front : enemies;
+      }
+
+      case TargetType.BACK_ENEMY: {
+        const back = enemies.filter(e => e.row === 'BACK');
+        return back.length > 0 ? [back[0]] : [enemies[0]];
+      }
+
+      case TargetType.COLUMN: {
+        if (defaultTargets.length > 0) return defaultTargets;
+        return enemies.slice(0, 2);
+      }
+
+      case TargetType.SINGLE_ENEMY:
+      default: {
+        const validDefault = defaultTargets.filter(t => enemies.some(e => e.id === t.id));
+        if (validDefault.length > 0) return validDefault;
+        return enemies.length > 0 ? [enemies[0]] : [];
+      }
+    }
   }
 
   /** 積木遞迴最大深度（防止 onTrue/onFalse 巢狀過深造成 Stack Overflow） */
@@ -45,7 +144,8 @@ export class SkillEffectEngine {
     targets: CombatParticipant[],
     allEnemies: CombatParticipant[],
     allAllies: CombatParticipant[],
-    _depth: number = 0
+    _depth: number = 0,
+    lastActionWasCrit: boolean = false
   ): CombatEvent[] {
     // 🛡️ 遞迴深度防護：超過上限直接返回空事件，防止惡意或意外的無限巢狀積木
     if (_depth > SkillEffectEngine.MAX_BLOCK_DEPTH) {
@@ -54,12 +154,12 @@ export class SkillEffectEngine {
     }
 
     if (block.condition && block.condition.type !== 'NONE') {
-      const met = SkillEffectEngine.checkCondition(block.condition, caster, targets, allAllies);
+      const met = SkillEffectEngine.checkCondition(block.condition, caster, targets, allAllies, lastActionWasCrit);
       if (!met) {
-        return (block.onFalse ?? []).flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies, _depth + 1));
+        return (block.onFalse ?? []).flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies, _depth + 1, lastActionWasCrit));
       }
       if (block.onTrue) {
-        return block.onTrue.flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies, _depth + 1));
+        return block.onTrue.flatMap(b => SkillEffectEngine.executeBlock(b, caster, targets, allEnemies, allAllies, _depth + 1, lastActionWasCrit));
       }
     }
     return SkillEffectEngine.applyEffect(block, caster, targets, allEnemies, allAllies);
@@ -70,11 +170,13 @@ export class SkillEffectEngine {
     cond: SkillCondition,
     caster: CombatParticipant,
     targets: CombatParticipant[],
-    allies: CombatParticipant[]
+    allies: CombatParticipant[],
+    lastActionWasCrit: boolean = false
   ): boolean {
     const t = targets[0];
     switch (cond.type) {
       case 'NONE': return true;
+      case 'IS_CRIT': return lastActionWasCrit;
       case 'TARGET_HP_GTE': return !!t && (t.currentHp / t.maxHp) >= (cond.value ?? 0.7);
       case 'TARGET_HP_LT':  return !!t && (t.currentHp / t.maxHp) < (cond.value ?? 0.3);
       case 'SELF_HP_LT':    return (caster.currentHp / caster.maxHp) < (cond.value ?? 0.3);
@@ -94,7 +196,62 @@ export class SkillEffectEngine {
     _allAllies: CombatParticipant[]
   ): CombatEvent[] {
     const events: CombatEvent[] = [];
-    const mult = block.multiplier ?? 1.0;
+
+    // 1. 代價結算 (Cost Evaluation)
+    if (block.cost) {
+      if (block.cost.hpPercent && block.cost.hpPercent > 0) {
+        const hpLost = Math.floor(caster.maxHp * (block.cost.hpPercent / 100));
+        caster.currentHp = Math.max(1, caster.currentHp - hpLost);
+        events.push({
+          type: CombatEventType.HIT,
+          actorId: caster.id,
+          actorName: caster.name,
+          targetId: caster.id,
+          targetName: caster.name,
+          damage: hpLost,
+          targetHp: caster.currentHp,
+          targetMaxHp: caster.maxHp,
+          text: `${caster.name} 獻祭了自身 ${hpLost} 點生命值 (${block.cost.hpPercent}%)！`
+        });
+      }
+      if (block.cost.consumeMarks) {
+        targets.forEach(t => {
+          t.statusEffects = t.statusEffects.filter(s => s.type !== StatusEffectType.MARK);
+        });
+      }
+    }
+
+    // 2. 縮放策略倍率 (Scaling Multiplier)
+    let scaleMult = 1.0;
+    if (block.scaleType) {
+      switch (block.scaleType) {
+        case 'BY_MARK_STACKS': {
+          const markCount = targets[0]?.statusEffects.filter(s => s.type === StatusEffectType.MARK).length ?? 0;
+          scaleMult += markCount * 0.35; // 每層標記 +35%
+          break;
+        }
+        case 'BY_SELF_LOST_HP': {
+          const lostHpRatio = (caster.maxHp - caster.currentHp) / caster.maxHp;
+          scaleMult += Math.floor(lostHpRatio * 10) * 0.15; // 每損失 10% HP +15%
+          break;
+        }
+        case 'BY_STATUS_COUNT': {
+          const statusCount = targets[0]?.statusEffects.length ?? 0;
+          scaleMult += statusCount * 0.20; // 每個狀態效果 +20%
+          break;
+        }
+        case 'BY_ALLY_COUNT': {
+          scaleMult += _allAllies.filter(a => a.currentHp > 0).length * 0.10;
+          break;
+        }
+        case 'BY_KILL_COUNT':
+        case 'FIXED':
+        default:
+          break;
+      }
+    }
+
+    const mult = (block.multiplier ?? 1.0) * scaleMult;
 
     switch (block.effectType) {
       case 'DAMAGE_PHYSICAL':
@@ -576,14 +733,22 @@ export class SkillEffectEngine {
     const events: CombatEvent[] = [];
     if (!actor.skills) return events;
 
-    const customList = customSkillData as unknown as CompositeSkillDefinition[];
     for (const skillId of actor.skills) {
-      const def = customList.find(d => d.id === skillId);
+      // 🎯 核心重構：透過 SkillRegistry 取得定義，支援 LocalStorage 草稿、動態自訂與磁碟 JSON
+      const def = SkillRegistry.getSkillDefinition(skillId);
       if (!def) continue;
 
       for (const block of def.blocks) {
         if (block.trigger === trigger) {
-          events.push(...SkillEffectEngine.executeBlock(block, actor, targets, allEnemies, allAllies));
+          const blockTargets = SkillEffectEngine.resolveBlockTargets(
+            block.targetType,
+            actor,
+            targets,
+            allEnemies ?? [],
+            allAllies ?? [actor]
+          );
+          if (blockTargets.length === 0) continue;
+          events.push(...SkillEffectEngine.executeBlock(block, actor, blockTargets, allEnemies ?? [], allAllies ?? [actor]));
         }
       }
     }

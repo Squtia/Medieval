@@ -343,7 +343,7 @@
     "multiHitImpact": true
   },
   {
-    "id": "VFX_METEOR_STRIKE",
+    "id": "VFX_VOLUMETRIC_METEOR",
     "name": "毀滅隕石 (Volumetric Meteor)",
     "category": "ELEMENTAL",
     "description": "天降巨型黑體輻射隕石轟碎大地，烈焰碎屑四散與全場劇震。",

@@ -1,14 +1,66 @@
-import { Skill, SkillCategory } from '../../models/Skill';
+import { Skill, SkillCategory, CompositeSkillDefinition } from '../../models/Skill';
 import { SKILLS } from '../../data/SkillData';
 import { SkillEffectEngine } from './SkillEffectEngine';
 import customSkillData from '../../data/CustomSkillData.json';
 
 /**
  * 技能單一真相中樞註冊中心 (SkillRegistry)
- * 統一管理全專案傭兵技能、怪物技能與裝備特技
+ * 統一管理全專案傭兵技能、怪物技能與裝備特技，支援磁碟 JSON、LocalStorage 草稿與動態註冊
  */
 export class SkillRegistry {
   private static customSkills: Map<string, Skill> = new Map();
+  private static customDefinitions: Map<string, CompositeSkillDefinition> = new Map();
+  private static draftsLoaded: boolean = false;
+
+  /**
+   * 自 LocalStorage 載入工房草稿技能 (若處於瀏覽器環境)
+   */
+  public static loadDraftsFromStorage(): void {
+    if (this.draftsLoaded) return;
+    this.draftsLoaded = true;
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const raw = window.localStorage.getItem('MEDIEVAL_CUSTOM_SKILLS');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            parsed.forEach((def: CompositeSkillDefinition) => {
+              if (def && def.id) {
+                this.registerCompositeSkill(def);
+              }
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[SkillRegistry] 載入 LocalStorage 技能草稿失敗:', e);
+    }
+  }
+
+  /**
+   * 註冊積木複合技能定義 (同時編譯為可執行 Skill 物件)
+   */
+  public static registerCompositeSkill(def: CompositeSkillDefinition): Skill {
+    this.customDefinitions.set(def.id, def);
+    const compiled = SkillEffectEngine.compile(def);
+    if (!compiled.category) {
+      compiled.category = def.category || this.resolveCategory(compiled);
+    }
+    this.customSkills.set(def.id, compiled);
+    return compiled;
+  }
+
+  /**
+   * 取得積木技能定義 (供 triggerHooks 與工坊讀取)
+   */
+  public static getSkillDefinition(id: string): CompositeSkillDefinition | undefined {
+    this.loadDraftsFromStorage();
+    if (this.customDefinitions.has(id)) {
+      return this.customDefinitions.get(id);
+    }
+    const fromJson = (customSkillData as unknown as CompositeSkillDefinition[]).find(d => d.id === id);
+    return fromJson;
+  }
 
   /**
    * 推導技能的分類
@@ -40,9 +92,10 @@ export class SkillRegistry {
   }
 
   /**
-   * 取得指定 ID 技能 (優先查找動態註冊，再查找 CustomSkillData，最後回退靜態資料庫)
+   * 取得指定 ID 技能 (優先查找動態註冊，再查找 LocalStorage 草稿，再查找 CustomSkillData，最後回退靜態資料庫)
    */
   public static getSkill(id: string): Skill | undefined {
+    this.loadDraftsFromStorage();
     let skill: Skill | undefined = undefined;
     if (this.customSkills.has(id)) {
       skill = this.customSkills.get(id);
@@ -64,6 +117,7 @@ export class SkillRegistry {
    * 是否存在該技能
    */
   public static hasSkill(id: string): boolean {
+    this.loadDraftsFromStorage();
     return this.customSkills.has(id) || (customSkillData as any[]).some(d => d.id === id) || !!SKILLS[id];
   }
 

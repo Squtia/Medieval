@@ -509,6 +509,44 @@
         </div>
         <div id="bind-status-msg" style="font-size: 0.72rem; color: #4ade80; margin-top: 4px; display: none; font-weight: bold;"></div>
       </div>
+
+      <!-- ⚔️ 普攻自訂特效連結中樞 (Basic Attack VFX Linker) -->
+      <div style="margin-top: 10px; padding: 8px; background: rgba(30, 41, 59, 0.7); border: 1px solid #0284c7; border-radius: 6px;">
+        <label style="font-size: 0.76rem; color: #38bdf8; font-weight: bold; display: flex; align-items: center; justify-content: space-between;">
+          <span>⚔️ 普攻自訂特效連結</span>
+          <span style="font-size: 0.68rem; color: #94a3b8; font-weight: normal;">(武器/職業自由創作)</span>
+        </label>
+        <select id="basic-attack-target-select" class="param-select" style="margin-top: 5px; border-color: #0284c7; color: #e2e8f0; font-size: 0.8rem;">
+          <optgroup label="── 🗡️ 武器類型 ──">
+            <option value="GREATSWORD">⚔️ 巨劍 (GREATSWORD / 戰士)</option>
+            <option value="BOW">🏹 戰弓 (BOW / 弓箭手)</option>
+            <option value="STAFF">🔮 法杖 (STAFF / 法師)</option>
+            <option value="DAGGERS">🗡️ 雙匕首 (DAGGERS / 盜賊)</option>
+            <option value="SWORD_AND_SHIELD">🛡️ 劍盾 (SWORD_AND_SHIELD / 騎士)</option>
+            <option value="HOLY_BOOK">📖 聖典 (HOLY_BOOK / 祈禱者)</option>
+            <option value="DUAL_SWORDS">⚔️ 雙劍 (DUAL_SWORDS / 魔劍士)</option>
+            <option value="SCYTHE">🪓 戰鐮 (SCYTHE / 死靈法師)</option>
+            <option value="MAGIC_BOW">✨ 魔法弓 (MAGIC_BOW / 精靈使)</option>
+            <option value="RUNE_SHIELD">🔮 符文盾 (RUNE_SHIELD / 符文騎士)</option>
+            <option value="MAGIC_RING">💍 魔法戒指 (MAGIC_RING / 詭術師)</option>
+            <option value="HAMMER">🔨 戰鎚 (HAMMER / 異端拷問官)</option>
+          </optgroup>
+          <optgroup label="── 🛡️ 基礎攻擊型態 ──">
+            <option value="MELEE">⚔️ 通用近戰普攻 (MELEE)</option>
+            <option value="RANGED">🏹 通用遠程普攻 (RANGED)</option>
+            <option value="MAGIC">🔮 通用魔法普攻 (MAGIC)</option>
+          </optgroup>
+        </select>
+        <div style="display: flex; gap: 6px; margin-top: 6px;">
+          <button id="btn-bind-basic-attack" style="flex: 2; background: #0284c7; color: #fff; border: 1px solid #38bdf8; border-radius: 4px; padding: 4px 6px; font-size: 0.74rem; font-weight: bold; cursor: pointer;">
+            🔗 綁定當前特效為普攻
+          </button>
+          <button id="btn-reset-basic-attack" style="flex: 1; background: #334155; color: #cbd5e1; border: 1px solid #475569; border-radius: 4px; padding: 4px 4px; font-size: 0.72rem; cursor: pointer;">
+            🔄 還原預設
+          </button>
+        </div>
+        <div id="basic-attack-status-msg" style="font-size: 0.7rem; color: #38bdf8; margin-top: 4px; display: none; font-weight: bold;"></div>
+      </div>
     </div>
 
     <!-- 左卡片 1: ⚔️ 斬擊軌跡走向與角度自由控制器 -->
@@ -812,8 +850,8 @@
     </div>
   </div>
 
-  <!-- 🎛️ 右側 Inspector 面板 -->
-  <div id="inspector-right">
+  <!-- 🎛️ 右側 Inspector 面板 (緊湊防遮擋容器) -->
+  <div id="inspector-right" class="inspector-panel" style="padding-bottom: 140px;">
     <!-- 右卡片 1: 🌐 基礎彈道與時空節奏 -->
     <div class="inspector-card">
       <div class="inspector-card-title">🌐 基礎彈道與時空節奏 (Base Space-Time)</div>
@@ -824,8 +862,8 @@
           </div>
           <select id="param-trajectory" class="param-select">
             <option value="HORIZONTAL">🏹 水平破空直線 (Horizontal)</option>
-            <option value="PARABOLA_ARC">🌈 拋物弧線下墜 (Parabola Arc)</option>
-            <option value="ARC_MULTI">🪃 漫天弧線連環 (Multi Arc)</option>
+            <option value="PARABOLA_ARC">🌈 拋物弧線下墜 (Parabola Arc / 箭雨吊射)</option>
+            <option value="ARC_MULTI">🪃 漫天弧線連環 (Multi Arc / 奧術飛彈)</option>
             <option value="COLUMN_PIERCE">⚡ 直線貫穿光柱 (Column Pierce)</option>
             <option value="VERTICAL_DROP">☀️ 雲端垂直墜擊 (Vertical Drop)</option>
             <option value="DIAGONAL_DROP">☄️ 傾斜天頂隕落 (Diagonal Drop)</option>
@@ -861,32 +899,47 @@
               <span id="val-scale" class="param-value">1.0x</span>
             </div>
             <div class="param-control">
-              <input type="range" id="param-scale" class="param-slider" min="0.5" max="3.0" step="0.1" value="1.0">
+              <input type="range" id="param-scale" class="param-slider" min="0.3" max="3.0" step="0.1" value="1.0">
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 右卡片 2: 🎨 色彩與光學著色 (精準泛光與亮度) -->
+    <!-- 右卡片 2: 🎨 色彩與光學著色 (精準泛光與幾何形態) -->
     <div class="inspector-card">
       <div class="inspector-card-title">🎨 色彩與光學著色 (Colors & Glow)</div>
       <div class="inspector-card-body">
-        <div class="param-row">
-          <div class="param-label-row">
-            <span class="param-label">著色器演算法 (Shader Core)</span>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">著色器 (Shader)</span>
+            </div>
+            <select id="param-shader-mode" class="param-select">
+              <option value="SLASH_BLADE">⚔️ 刀刃刃芒與殘影</option>
+              <option value="FRESNEL_ICE">❄️ 菲涅爾冰晶折射</option>
+              <option value="VOLUMETRIC_FIRE">🔥 體積黑體動態火焰</option>
+              <option value="DIELECTRIC_LIGHTNING">⚡ 介質擊穿電弧</option>
+              <option value="ENERGY_BEAM">💫 雙頻高能雷射光柱</option>
+              <option value="HOLY_LIGHT">☀️ 天罰神聖純白光柱</option>
+              <option value="DARK_VOID">🌑 暗影虛空侵蝕</option>
+              <option value="EARTH_SHATTER">🔨 碎石崩裂重擊</option>
+            </select>
           </div>
-          <select id="param-shader-mode" class="param-select">
-            <option value="SLASH_BLADE">⚔️ 刀刃刃芒與殘影 (Slash Blade)</option>
-            <option value="FRESNEL_ICE">❄️ 菲涅爾冰晶折射 (Fresnel Ice)</option>
-            <option value="VOLUMETRIC_FIRE">🔥 體積黑體動態火焰 (Volumetric Fire)</option>
-            <option value="DIELECTRIC_LIGHTNING">⚡ 介質擊穿電弧 (Lightning Arc)</option>
-            <option value="ENERGY_BEAM">💫 雙頻高能雷射光柱 (Nova Beam)</option>
-            <option value="HOLY_LIGHT">☀️ 天罰神聖純白光柱 (Holy Light)</option>
-            <option value="DARK_VOID">🌑 暗影虛空侵蝕 (Dark Void)</option>
-            <option value="EARTH_SHATTER">🔨 碎石崩裂重擊 (Earth Shatter)</option>
-          </select>
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">幾何形態 (Mesh Shape)</span>
+            </div>
+            <select id="param-core-mesh-shape" class="param-select">
+              <option value="SPHERE">🔮 能量球體 (Sphere)</option>
+              <option value="DIAMOND">🔷 雙錐菱晶 (Diamond)</option>
+              <option value="ARROW">🏹 破空錐箭 (Arrow)</option>
+              <option value="STAR">✨ 多面星芒 (Star)</option>
+              <option value="RING">🪓 旋轉光刃 (Ring)</option>
+            </select>
+          </div>
         </div>
+
         <div class="param-row-2col">
           <div class="param-col">
             <div class="param-color-row">
@@ -901,6 +954,7 @@
             </div>
           </div>
         </div>
+
         <div class="param-row-2col">
           <div class="param-col">
             <div class="param-label-row">
@@ -921,6 +975,7 @@
             </div>
           </div>
         </div>
+
         <div class="param-row-2col">
           <div class="param-col">
             <div class="param-label-row">
@@ -938,6 +993,27 @@
             </div>
             <div class="param-control">
               <input type="range" id="param-fresnel" class="param-slider" min="0.5" max="4.0" step="0.1" value="1.8">
+            </div>
+          </div>
+        </div>
+
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">火焰熱浪震顫</span>
+              <span id="val-flame-turbulence" class="param-value">5.0px</span>
+            </div>
+            <div class="param-control">
+              <input type="range" id="param-flame-turbulence" class="param-slider" min="0" max="18" step="0.5" value="5.0">
+            </div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">震顫頻率速度</span>
+              <span id="val-flame-speed" class="param-value">2.0x</span>
+            </div>
+            <div class="param-control">
+              <input type="range" id="param-flame-speed" class="param-slider" min="0.5" max="5.0" step="0.2" value="2.0">
             </div>
           </div>
         </div>
@@ -969,16 +1045,27 @@
           </div>
         </div>
 
-        <div class="param-row">
-          <div class="param-label-row">
-            <span class="param-label">地刺幾何形態 (Spike Shape)</span>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">地刺幾何形態 (Spike Shape)</span>
+            </div>
+            <select id="param-spike-shape" class="param-select">
+              <option value="CONE_SPIKE">❄️ 尖銳冰晶尖刺 (Cone Spike)</option>
+              <option value="CRYSTAL_PRISM">💎 六角稜柱水晶 (Crystal Prism)</option>
+              <option value="JAGGED_ROCK">🪨 粗糙地裂尖岩 (Jagged Rock)</option>
+              <option value="PILLAR_COLUMN">🏛️ 破土圓柱地樁 (Pillar Column)</option>
+            </select>
           </div>
-          <select id="param-spike-shape" class="param-select">
-            <option value="CONE_SPIKE">❄️ 尖銳冰晶尖刺 (Cone Spike)</option>
-            <option value="CRYSTAL_PRISM">💎 六角稜柱水晶 (Crystal Prism)</option>
-            <option value="JAGGED_ROCK">🪨 粗糙地裂尖岩 (Jagged Rock)</option>
-            <option value="PILLAR_COLUMN">🏛️ 破土圓柱地樁 (Pillar Column)</option>
-          </select>
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">地刺方位旋轉</span>
+              <span id="val-spike-angle" class="param-value">0° (環形)</span>
+            </div>
+            <div class="param-control">
+              <input type="range" id="param-spike-angle" class="param-slider" min="0" max="360" step="15" value="0">
+            </div>
+          </div>
         </div>
 
         <div class="param-row-2col">
@@ -1022,13 +1109,34 @@
             </div>
           </div>
         </div>
+
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">地刺分佈範圍</span>
+              <span id="val-spike-radius" class="param-value">80px</span>
+            </div>
+            <div class="param-control">
+              <input type="range" id="param-spike-radius" class="param-slider" min="20" max="280" step="10" value="80">
+            </div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">破土連鎖時差</span>
+              <span id="val-spike-stagger" class="param-value">25ms</span>
+            </div>
+            <div class="param-control">
+              <input type="range" id="param-spike-stagger" class="param-slider" min="0" max="80" step="5" value="25">
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 右卡片 4: 🥊 戰鬥打擊感與節奏斷點 (全雙欄緊湊排列，永不被截斷) -->
+    <!-- 右卡片 4: 🥊 戰鬥打擊感與受擊衝擊波 (全雙欄緊湊排列，永不被截斷) -->
     <div class="inspector-card" style="border-color: #ef4444;">
       <div class="inspector-card-title" style="color: #f87171; background: #2a1215;">
-        <span>🥊 戰鬥打擊感與節奏斷點 (Impact & Rhythm)</span>
+        <span>🥊 戰鬥打擊感與受擊衝擊波 (Impact & Wave)</span>
       </div>
       <div class="inspector-card-body">
         <div class="param-row-2col">
@@ -1090,7 +1198,52 @@
             </div>
           </div>
         </div>
-      </div>
+
+        <!-- 💥 受擊擴散光圈 (Impact Ring) 全可調設定 -->
+        <div style="margin-top: 6px; padding: 6px 8px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px;">
+          <div style="font-size: 0.74rem; color: #fca5a5; font-weight: bold; margin-bottom: 4px;">💥 受擊擴散光圈 (Impact Wave)</div>
+          <div class="param-row-2col">
+            <div class="param-col">
+              <div class="param-label-row">
+                <span class="param-label">光圈半徑</span>
+                <span id="val-wave-radius" class="param-value">65px</span>
+              </div>
+              <div class="param-control">
+                <input type="range" id="param-wave-radius" class="param-slider" min="20" max="180" step="5" value="65">
+              </div>
+            </div>
+            <div class="param-col">
+              <div class="param-label-row">
+                <span class="param-label">光圈線寬</span>
+                <span id="val-wave-thickness" class="param-value">4px</span>
+              </div>
+              <div class="param-control">
+                <input type="range" id="param-wave-thickness" class="param-slider" min="1" max="25" step="1" value="4">
+              </div>
+            </div>
+          </div>
+
+          <div class="param-row-2col" style="margin-top: 4px;">
+            <div class="param-col">
+              <div class="param-label-row">
+                <span class="param-label">邊緣羽化柔焦 (Blur)</span>
+                <span id="val-wave-blur" class="param-value">30%</span>
+              </div>
+              <div class="param-control">
+                <input type="range" id="param-wave-blur" class="param-slider" min="0" max="100" step="5" value="30">
+              </div>
+            </div>
+            <div class="param-col">
+              <div class="param-label-row">
+                <span class="param-label">擴散平面</span>
+              </div>
+              <select id="param-wave-plane" class="param-select" style="padding: 2px 4px; font-size: 0.72rem;">
+                <option value="CAMERA">🎯 面向鏡頭</option>
+                <option value="GROUND">🌍 水平地面</option>
+              </select>
+            </div>
+          </div>
+        </div>
     </div>
 
     <!-- 底部操作按鈕：全功能緊湊浮動 -->
@@ -1106,13 +1259,24 @@
     import * as THREE from 'three';
     import defaultPresets from '../src/data/vfx_presets.json';
     import { SKILL_VFX_MAP, SKILLS } from '../src/data/SkillData';
+    import { VFXStudioAdapter, VFXPresetRepository } from '../src/ui/fx/VFXPlayer';
 
-    // ── 1. 初始化 Three.js 透明特效畫布 ──
+    // ── 1. 初始化 Three.js 透明特效畫布與共用播放適配器 ──
     const container = document.getElementById('viewport');
     const canvas = document.getElementById('three-canvas');
     const casterCardDOM = document.getElementById('ref-caster');
     let width = container.clientWidth;
     let height = container.clientHeight;
+
+    // 🎬 實裝共用播放適配器 (VFXStudioAdapter)
+    const studioAdapter = new VFXStudioAdapter({
+      viewportContainer: container,
+      casterElement: casterCardDOM,
+      targetElements: Array.from(document.querySelectorAll('#target-stage-wrapper .target, #ref-target')),
+      onImpact: (impact, hitIdx, totalHits, targetEl) => {
+        triggerTargetHit({ isFinal: hitIdx >= totalHits - 1, salvoIndex: hitIdx });
+      }
+    });
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 5000);
@@ -1134,6 +1298,7 @@
       camera.far = 5000;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
+      studioAdapter.resize();
     });
 
     // ── 2. 當前完整可控參數物件 (VFX Config State) ──
@@ -1143,22 +1308,14 @@
     let loopTimer = null;
     let isHitStopping = false;
 
+    // 🗃️ 接入 VFXPresetRepository (SSOT)
+    const vfxRepo = VFXPresetRepository.getInstance();
     const presetMap = new Map();
-    defaultPresets.forEach(p => presetMap.set(p.id, p));
-
-    const savedCustom = localStorage.getItem('MEDIEVAL_CUSTOM_VFX_PRESETS');
-    if (savedCustom) {
-      try {
-        const parsed = JSON.parse(savedCustom);
-        if (Array.isArray(parsed)) {
-          parsed.forEach(p => {
-            if (!presetMap.has(p.id)) presetMap.set(p.id, p);
-          });
-        }
-      } catch (e) {
-        console.warn('[VFX Studio] 載入本地快照失敗：', e);
-      }
-    }
+    vfxRepo.getAllPresets().forEach(p => presetMap.set(p.id, p));
+    vfxRepo.addChangeListener(() => {
+      presetMap.clear();
+      vfxRepo.getAllPresets().forEach(p => presetMap.set(p.id, p));
+    });
 
     const config = {
       id: 'VFX_HEAVY_STRIKE',
@@ -1206,9 +1363,21 @@
       arcHeight: 0,
       multiHitImpact: true,
 
-      shieldShape: 'HEX',
-      waveCount: 3,
-      textureSprite: 'GLOW',
+      // 🌋 地刺方向、範圍與時差
+      spikeAngle: 0,           // 地刺方位旋轉角度 (0~360)
+      spikeRadius: 80,         // 地刺生長分佈範圍 (px)
+      spikeStagger: 25,        // 破土連鎖時差 (ms)
+
+      // 🔥 火焰震顫與幾何彈頭形態
+      flameTurbulence: 5.0,    // 體積黑體熱浪震顫強度 (0~18px)
+      flameTurbulenceSpeed: 2.0,// 震顫頻率速度 (0.5~5.0x)
+      coreMeshShape: 'SPHERE', // 幾何彈頭形態 (SPHERE, DIAMOND, ARROW, STAR, RING)
+
+      // 💥 受擊擴散光圈 (Impact Wave)
+      waveRadius: 65,          // 衝擊光圈最大半徑 (px)
+      waveThickness: 4,        // 衝擊光圈線寬 (px)
+      waveBlur: 0.3,           // 邊緣羽化柔焦程度 (0.0~1.0)
+      wavePlane: 'CAMERA',     // 擴散平面 (CAMERA, GROUND)
 
       impact: {
         hitStopTime: 55,
@@ -1237,7 +1406,38 @@
     // 填充 🎯 專案技能驗收窗選單（精準關聯中文名稱與程式代碼 ID）
     const showcaseSelect = document.getElementById('skill-showcase-select');
     if (showcaseSelect) {
-      showcaseSelect.innerHTML = '<option value="">-- 🎯 點擊驗收專案各技能打擊感 --</option>';
+      showcaseSelect.innerHTML = '<option value="">-- 🎯 點擊驗收專案技能/普攻打擊感 --</option>';
+
+      // ⚔️ 注入各職業/武器普攻選項
+      const basicGroup = document.createElement('optgroup');
+      basicGroup.label = '── ⚔️ 各職業/武器普通攻擊 ──';
+      const basicAttackList = [
+        { name: '【普攻】戰士 (巨劍)', weapon: 'GREATSWORD', defaultVfx: 'VFX_HEAVY_STRIKE' },
+        { name: '【普攻】弓箭手 (戰弓)', weapon: 'BOW', defaultVfx: 'VFX_ARROW_SHOT' },
+        { name: '【普攻】法師 (法杖)', weapon: 'STAFF', defaultVfx: 'VFX_FIREBALL' },
+        { name: '【普攻】盜賊 (雙匕首)', weapon: 'DAGGERS', defaultVfx: 'VFX_QUICK_SLASH' },
+        { name: '【普攻】騎士 (劍盾)', weapon: 'SWORD_AND_SHIELD', defaultVfx: 'VFX_HEAVY_STRIKE' },
+        { name: '【普攻】祈禱者 (聖典)', weapon: 'HOLY_BOOK', defaultVfx: 'VFX_HOLY_SMITE' },
+        { name: '【普攻】死靈法師 (戰鐮)', weapon: 'SCYTHE', defaultVfx: 'VFX_DARK_ERUPTION' }
+      ];
+      let currentBasicBindings = {};
+      try {
+        currentBasicBindings = JSON.parse(localStorage.getItem('MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS') || '{}');
+      } catch (e) {}
+
+      basicAttackList.forEach(item => {
+        const boundVfx = currentBasicBindings[item.weapon] || item.defaultVfx;
+        const opt = document.createElement('option');
+        opt.value = item.name;
+        opt.dataset.skillId = `BASIC_${item.weapon}`;
+        opt.dataset.vfxId = boundVfx;
+        opt.textContent = `⚔️ ${item.name} (${boundVfx})`;
+        basicGroup.appendChild(opt);
+      });
+      showcaseSelect.appendChild(basicGroup);
+
+      const skillGroup = document.createElement('optgroup');
+      skillGroup.label = '── 🎯 主動技能與軍令 ──';
       const seenSkills = new Set();
 
       // 優先從 SKILLS 系統字典載入完整技能資訊
@@ -1251,7 +1451,7 @@
             opt.dataset.skillId = id;
             opt.dataset.vfxId = vfxId;
             opt.textContent = `🎯 ${s.name} [${id}] (${vfxId})`;
-            showcaseSelect.appendChild(opt);
+            skillGroup.appendChild(opt);
           }
         });
       }
@@ -1264,9 +1464,10 @@
           opt.value = k;
           opt.dataset.vfxId = vfxId;
           opt.textContent = `🎯 ${k} (${vfxId})`;
-          showcaseSelect.appendChild(opt);
+          skillGroup.appendChild(opt);
         }
       });
+      showcaseSelect.appendChild(skillGroup);
     }
 
     // ── 3. 綁定 UI 事件 ──
@@ -1441,6 +1642,33 @@
     });
     bindParam('param-spike-width', 'val-spike-width', 'spikeWidth', 'px', true);
     bindParam('param-spike-height', 'val-spike-height', 'spikeHeight', 'px', true);
+
+    // 🔥 火焰熱浪震顫與幾何彈頭形態
+    bindParam('param-flame-turbulence', 'val-flame-turbulence', 'flameTurbulence', 'px', true);
+    bindParam('param-flame-speed', 'val-flame-speed', 'flameTurbulenceSpeed', 'x', true);
+    document.getElementById('param-core-mesh-shape')?.addEventListener('change', (e) => {
+      config.coreMeshShape = e.target.value;
+      playCurrentEffect();
+    });
+
+    // 🌋 地刺方位角、分佈範圍與連鎖時差
+    bindParam('param-spike-angle', 'val-spike-angle', 'spikeAngle', '°', true);
+    bindParam('param-spike-radius', 'val-spike-radius', 'spikeRadius', 'px', true);
+    bindParam('param-spike-stagger', 'val-spike-stagger', 'spikeStagger', 'ms', true);
+
+    // 💥 衝擊光圈全面可調 (包含邊緣羽化 Blur)
+    bindParam('param-wave-radius', 'val-wave-radius', 'waveRadius', 'px', true);
+    bindParam('param-wave-thickness', 'val-wave-thickness', 'waveThickness', 'px', true);
+    document.getElementById('param-wave-blur')?.addEventListener('input', (e) => {
+      config.waveBlur = parseFloat(e.target.value) / 100;
+      const lbl = document.getElementById('val-wave-blur');
+      if (lbl) lbl.textContent = e.target.value + '%';
+      playCurrentEffect();
+    });
+    document.getElementById('param-wave-plane')?.addEventListener('change', (e) => {
+      config.wavePlane = e.target.value;
+      playCurrentEffect();
+    });
 
     // 🔮 複合多圖層積木排程器 UI 管理
     function renderLayersUI() {
@@ -1649,7 +1877,27 @@
       setVal('param-shake-intensity', config.impact.shakeIntensity); setText('val-shake-intensity', config.impact.shakeIntensity + 'px');
       setVal('param-shake-dur', config.impact.shakeDuration); setText('val-shake-dur', config.impact.shakeDuration + 's');
       setVal('param-knockback', config.impact.knockbackDistance); setText('val-knockback', config.impact.knockbackDistance + 'px');
-      setVal('param-flash-color', config.impact.hitFlashColor || '#ffffff');
+      config.flameTurbulence = p.flameTurbulence !== undefined ? p.flameTurbulence : 5.0;
+      config.flameTurbulenceSpeed = p.flameTurbulenceSpeed !== undefined ? p.flameTurbulenceSpeed : 2.0;
+      config.coreMeshShape = p.coreMeshShape || 'SPHERE';
+      config.spikeAngle = p.spikeAngle || 0;
+      config.spikeRadius = p.spikeRadius !== undefined ? p.spikeRadius : 80;
+      config.spikeStagger = p.spikeStagger !== undefined ? p.spikeStagger : 25;
+      config.waveRadius = p.waveRadius !== undefined ? p.waveRadius : 65;
+      config.waveThickness = p.waveThickness !== undefined ? p.waveThickness : 4;
+      config.waveBlur = p.waveBlur !== undefined ? p.waveBlur : 0.3;
+      config.wavePlane = p.wavePlane || 'CAMERA';
+
+      setVal('param-flame-turbulence', config.flameTurbulence); setText('val-flame-turbulence', config.flameTurbulence + 'px');
+      setVal('param-flame-speed', config.flameTurbulenceSpeed); setText('val-flame-speed', config.flameTurbulenceSpeed + 'x');
+      setVal('param-core-mesh-shape', config.coreMeshShape);
+      setVal('param-spike-angle', config.spikeAngle); setText('val-spike-angle', config.spikeAngle + '°');
+      setVal('param-spike-radius', config.spikeRadius); setText('val-spike-radius', config.spikeRadius + 'px');
+      setVal('param-spike-stagger', config.spikeStagger); setText('val-spike-stagger', config.spikeStagger + 'ms');
+      setVal('param-wave-radius', config.waveRadius); setText('val-wave-radius', config.waveRadius + 'px');
+      setVal('param-wave-thickness', config.waveThickness); setText('val-wave-thickness', config.waveThickness + 'px');
+      setVal('param-wave-blur', Math.round(config.waveBlur * 100)); setText('val-wave-blur', Math.round(config.waveBlur * 100) + '%');
+      setVal('param-wave-plane', config.wavePlane);
 
       renderLayersUI();
 
@@ -1795,16 +2043,20 @@
     }
 
     // 🔥 體積黑體輻射動態火焰著色器 (Simplex Noise + Blackbody Spectrum)
-    function createVolumetricFlameMaterial(colorCoreHex, colorRimHex, coreBrightness = 1.0) {
+    function createVolumetricFlameMaterial(colorCoreHex, colorRimHex, coreBrightness = 1.0, turbulence = 5.0, speed = 2.0) {
       return new THREE.ShaderMaterial({
         uniforms: {
           uTime: { value: 0 },
           uColorCore: { value: new THREE.Color(colorCoreHex) },
           uColorRim: { value: new THREE.Color(colorRimHex) },
-          uCoreBrightness: { value: coreBrightness }
+          uCoreBrightness: { value: coreBrightness },
+          uTurbulence: { value: turbulence },
+          uTurbulenceSpeed: { value: speed }
         },
         vertexShader: `
           uniform float uTime;
+          uniform float uTurbulence;
+          uniform float uTurbulenceSpeed;
           varying vec3 vNormal;
           varying vec3 vViewPosition;
           varying float vNoise;
@@ -1858,9 +2110,9 @@
             vNormal = normalize(normalMatrix * normal);
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
             vViewPosition = -mvPosition.xyz;
-            float noise = snoise(position * 0.15 + vec3(0.0, -uTime * 4.2, uTime * 2.1));
+            float noise = snoise(position * 0.15 + vec3(0.0, -uTime * (uTurbulenceSpeed * 2.1), uTime * uTurbulenceSpeed));
             vNoise = noise;
-            vec3 displaced = position + normal * (noise * 5.0);
+            vec3 displaced = position + normal * (noise * uTurbulence);
             gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
           }
         `,
@@ -2120,7 +2372,9 @@
       }
       if (config.trajectory === 'GROUND_ERUPTION') {
         triggerTargetHit({ isFinal: true });
-        spawnImpactBurst(endPt);
+        const sAngle = config.spikeAngle !== undefined ? config.spikeAngle : 90;
+        spawnStudioSpikes(endPt, config.spikes || 10, config.spikeHeight || 55, config.colorRim, config.spikeShape, config.spikeWidth || 10, sAngle);
+        spawnImpactBurst(endPt, true);
         return;
       }
 
@@ -2143,6 +2397,14 @@
             subEnd.y += Math.sin(spreadRad) * 120;
           }
 
+          // 🎯 受擊散佈半徑 (salvoSpreadRadius) 精準生效
+          if (config.salvoSpreadRadius && salvoCount > 1) {
+            const scatterAngle = (Math.PI * 2 * idx) / salvoCount + (Math.random() - 0.5) * 0.4;
+            const scatterDist = (Math.random() * 0.6 + 0.4) * config.salvoSpreadRadius;
+            subEnd.x += Math.cos(scatterAngle) * scatterDist;
+            subEnd.y += Math.sin(scatterAngle) * scatterDist;
+          }
+
           if (config.shaderMode === 'SLASH_BLADE' || config.trajectory === 'MELEE_SWEEP') {
             playSlashEffect(subStart, subEnd, isLast, idx);
           } else if (config.shaderMode === 'DIELECTRIC_LIGHTNING') {
@@ -2161,52 +2423,96 @@
         }, delayMs * 1000);
       });
 
-      // 🔮 複合多圖層組合延遲觸發 (Composite Layers Scheduler)
+      // 🔮 複合多圖層組合延遲觸發 (Composite Layers Scheduler - 獨立屬性渲染與二次打擊)
       if (config.layers && config.layers.length > 0) {
         config.layers.forEach((layer) => {
-          const delay = (layer.delay || 0.12) * 1000;
+          const delay = (layer.delay || 0.15) * 1000;
           setTimeout(() => {
-            const layerEnd = endPt.clone();
-            const layerColor = layer.colorCore || '#ff7700';
-            if (layer.shaderMode === 'VOLUMETRIC_FIRE') {
-              spawnImpactBurst(layerEnd, false, layerColor);
-            } else if (layer.shaderMode === 'FRESNEL_ICE') {
-              spawnStudioSpikes(layerEnd, 8, 40, layerColor);
-            } else if (layer.shaderMode === 'DIELECTRIC_LIGHTNING') {
-              playLightningEffect(startPt, layerEnd, false, 0);
-            } else if (layer.shaderMode === 'HOLY_LIGHT') {
-              playHolyLightEffect(startPt, layerEnd, false, 0);
-            } else {
-              spawnImpactBurst(layerEnd, false, layerColor);
-            }
+            playCompositeLayerEffect(layer, startPt, endPt);
           }, delay);
         });
       }
     }
 
+    // 🎯 複合圖層專屬獨立播放調度器 (完整繼承子預設顏色、尺寸與 Shader，並觸發二次打擊反饋)
+    function playCompositeLayerEffect(layer, startPt, endPt) {
+      const layerEnd = endPt.clone();
+      let subPreset = layer.presetId ? presetMap.get(layer.presetId) : null;
+      if (!subPreset) {
+        subPreset = {
+          id: 'CUSTOM_LAYER',
+          name: '自訂圖層',
+          trajectory: layer.trajectory || 'VERTICAL_DROP',
+          shaderMode: layer.shaderMode || 'HOLY_LIGHT',
+          colorCore: layer.colorCore || '#fbbf24',
+          colorRim: layer.colorRim || '#f59e0b',
+          scale: layer.scale || 1.1,
+          duration: layer.duration || 0.35,
+          bloomStr: 1.8,
+          burstCount: 30,
+          trailSize: 8,
+          impact: config.impact
+        };
+      }
+
+      // 🥊 二次打擊反饋：若勾選「產生戰鬥 HIT」，觸發目標受擊抖動與跳字！
+      if (layer.generatesHit) {
+        triggerTargetHit({ isFinal: true });
+      }
+
+      const traj = subPreset.trajectory;
+      const mode = subPreset.shaderMode;
+
+      if (traj === 'VERTICAL_DROP' || mode === 'HOLY_LIGHT') {
+        const skyStart = new THREE.Vector3(layerEnd.x, layerEnd.y + 360, 0);
+        playHolyLightEffect(skyStart, layerEnd, false, 0, subPreset);
+      } else if (traj === 'MELEE_SWEEP' || mode === 'SLASH_BLADE') {
+        playSlashEffect(startPt, layerEnd, false, 0, subPreset);
+      } else if (mode === 'DIELECTRIC_LIGHTNING') {
+        playLightningEffect(startPt, layerEnd, false, 0, subPreset);
+      } else if (mode === 'FRESNEL_ICE') {
+        playIceLanceEffect(startPt, layerEnd, false, 0, subPreset);
+      } else if (mode === 'VOLUMETRIC_FIRE' || mode === 'DARK_VOID') {
+        playFireMeteorEffect(startPt, layerEnd, false, 0, subPreset);
+      } else if (traj === 'GROUND_BURST' || traj === 'GROUND_ERUPTION' || (subPreset.spikes && subPreset.spikes > 0)) {
+        spawnStudioSpikes(layerEnd, subPreset.spikes || 8, subPreset.spikeHeight || 45, subPreset.colorRim, subPreset.spikeShape, subPreset.spikeWidth || 7, subPreset.spikeAngle || 90, subPreset);
+        spawnImpactBurst(layerEnd, true, subPreset.colorRim, subPreset);
+      } else if (traj === 'SHIELD_BARRIER') {
+        playHolyShieldEffect(layerEnd, subPreset);
+      } else {
+        playGenericMeshEffect(startPt, layerEnd, false, 0, subPreset);
+      }
+    }
+
     // ⚔️ 次世代真實破空動態刀刃揮砍 (Dynamic Crescent Ribbon)
-    function playSlashEffect(startPos, endPos, isFinal = true, salvoIndex = 0) {
+    function playSlashEffect(startPos, endPos, isFinal = true, salvoIndex = 0, pCfg = config) {
       const group = new THREE.Group();
       group.position.copy(endPos);
       scene.add(group);
 
-      const curId = config.id || config.preset || '';
-      const isWhirlwind = curId.includes('WHIRLWIND') || config.slashShape === 'WHIRLWIND';
-      const isCross = config.slashShape === 'CROSS' || curId.includes('PHANTOM');
+      const curId = pCfg.id || pCfg.preset || '';
+      const isWhirlwind = curId.includes('WHIRLWIND') || pCfg.slashShape === 'WHIRLWIND';
+      const isCross = pCfg.slashShape === 'CROSS' || curId.includes('PHANTOM');
 
       // 🎛️ 支援自訂粗細與半徑（預設細銳刀芒 10px，徹底告別肥肉塊）
-      const bladeRadius = (config.slashRadius || (isWhirlwind ? 85 : 65)) * config.scale;
-      const bladeWidth = (config.slashBladeWidth || (isWhirlwind ? 18 : 10)) * config.scale;
-      const maxArcSpan = (isWhirlwind ? 360 : (config.slashArcSpan || 135)) * (Math.PI / 180);
-      const startAngle = (config.slashAngle !== undefined ? config.slashAngle : -45) * (Math.PI / 180);
-      const dirSign = config.slashReverse ? -1 : 1;
+      const bladeRadius = (pCfg.slashRadius || (isWhirlwind ? 85 : 65)) * (pCfg.scale || 1.0);
+      const bladeWidth = (pCfg.slashBladeWidth || (isWhirlwind ? 18 : 10)) * (pCfg.scale || 1.0);
+      const maxArcSpan = (isWhirlwind ? 360 : (pCfg.slashArcSpan || 135)) * (Math.PI / 180);
+
+      // 🌪️ 連斬角度擾動 (slashAngleJitter) 與交錯反手 (slashAlternating)
+      const jitterDeg = (pCfg.slashAngleJitter || 0) * (Math.random() * 2 - 1);
+      const isAlt = pCfg.slashAlternating && (salvoIndex % 2 === 1);
+      let baseAngle = (pCfg.slashAngle !== undefined ? pCfg.slashAngle : -45) + jitterDeg;
+      if (isAlt) baseAngle = 180 - baseAngle;
+      const startAngle = baseAngle * (Math.PI / 180);
+      const dirSign = (pCfg.slashReverse !== isAlt) ? -1 : 1;
       const centerAngle = startAngle + dirSign * (maxArcSpan * 0.5);
 
       // 🎨 專屬劍氣漸層著色器：外緣白熾刀刃，內弧透明漸散
       const slashShaderMat = new THREE.ShaderMaterial({
         uniforms: {
-          colorCore: { value: new THREE.Color(config.colorCore) },
-          colorRim: { value: new THREE.Color(config.colorRim) },
+          colorCore: { value: new THREE.Color(pCfg.colorCore) },
+          colorRim: { value: new THREE.Color(pCfg.colorRim) },
           uOpacity: { value: 1.0 }
         },
         vertexShader: `
@@ -2241,7 +2547,7 @@
 
       let elapsed = 0;
       let hitTriggered = false;
-      const duration = Math.max(0.18, config.duration || 0.26);
+      const duration = Math.max(0.18, pCfg.duration || 0.26);
 
       activeEffects.push({
         update: (delta) => {
@@ -2454,82 +2760,160 @@
       });
     }
 
-    // ❄️ 命中點次生破裂晶刺 (Secondary Spikes Burst - 支援多幾何形態)
-    function spawnStudioSpikes(pos, count, height, colorHex, shape = 'CONE_SPIKE', width = 7) {
+    // ❄️ 命中點次生破裂晶刺 (Secondary Spikes Burst - 支援腳底貼地、大範圍地表展開與🎲亂數洗牌連鎖破土)
+    function spawnStudioSpikes(pos, count, height, colorHex, shape = 'CONE_SPIKE', width = 7, spikeAngle = 0, pCfg = config) {
       const group = new THREE.Group();
-      group.position.copy(pos);
+      // 🎯 腳底貼地原點校正：若角度向上沖天 (45°~135°) 或為地裂破土，原點自動下沉至怪物腳底地面 (pos.y - 65)！
+      const isUpward = (spikeAngle >= 45 && spikeAngle <= 135) || pCfg.trajectory === 'GROUND_ERUPTION' || pCfg.trajectory === 'GROUND_BURST';
+      const basePos = pos.clone();
+      if (isUpward) {
+        basePos.y -= 65;
+      }
+      group.position.copy(basePos);
       scene.add(group);
 
-      const spikeMeshes = [];
+      const spikeItems = [];
       const w = Math.max(3, width);
       const h = Math.max(15, height);
+      const spreadRadius = pCfg.spikeRadius !== undefined ? pCfg.spikeRadius : 80;
+      const staggerMs = pCfg.spikeStagger !== undefined ? pCfg.spikeStagger : 25;
+      const staggerSec = staggerMs / 1000;
 
       let spikeGeo;
       if (shape === 'CRYSTAL_PRISM') {
-        spikeGeo = new THREE.CylinderGeometry(w * 0.4, w, h, 6);
-        spikeGeo.rotateX(Math.PI / 2);
+        spikeGeo = new THREE.CylinderGeometry(w * 0.35, w, h, 6);
       } else if (shape === 'JAGGED_ROCK') {
         spikeGeo = new THREE.ConeGeometry(w * 1.3, h, 4);
-        spikeGeo.rotateX(Math.PI / 2);
       } else if (shape === 'PILLAR_COLUMN') {
         spikeGeo = new THREE.CylinderGeometry(w, w, h, 12);
-        spikeGeo.rotateX(Math.PI / 2);
       } else {
         spikeGeo = new THREE.ConeGeometry(w, h, 8);
-        spikeGeo.rotateX(Math.PI / 2);
       }
+      // 🎯 重建幾何錨點：將底座設為原點 (0, 0, 0)，尖端沿 +Y 軸延伸至 (0, h, 0)
+      spikeGeo.translate(0, h / 2, 0);
 
-      const spikeMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(colorHex || config.colorRim),
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending
-      });
+      const isDirectional = spikeAngle > 0;
+      const baseRad = (spikeAngle * Math.PI) / 180;
+
+      // 🎲 亂數洗牌先後破土順序（告別死板流水線順序，呈現真實崩裂爆發感）
+      const orderIndices = Array.from({ length: count }, (_, idx) => idx);
+      for (let i = orderIndices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = orderIndices[i];
+        orderIndices[i] = orderIndices[j];
+        orderIndices[j] = temp;
+      }
 
       for (let i = 0; i < count; i++) {
-        const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+        let angle;
+        let posX = 0;
+        let posY = 0;
+        const posZ = (Math.random() - 0.5) * 16; // 地表微深度錯落
+
+        if (isUpward) {
+          // 🌊 向上沖天/地表破土模式：沿著地表水平線大範圍橫向排開！
+          const t = count > 1 ? (i / (count - 1) - 0.5) : 0;
+          posX = t * spreadRadius * 1.8;
+          posY = (Math.random() - 0.5) * 6; // 地表輕微高低起伏
+          const tilt = t * 0.45; // 兩側向外微微八字形張開
+          angle = baseRad + tilt;
+        } else if (isDirectional) {
+          // 扇形朝指定角度突刺
+          const span = 0.65;
+          angle = baseRad + (count > 1 ? (i / (count - 1) - 0.5) * span : 0);
+          const dist = (spreadRadius * 0.35) * (0.6 + (i / Math.max(1, count)) * 0.5);
+          posX = Math.cos(angle) * dist;
+          posY = Math.sin(angle) * dist;
+        } else {
+          // 360 度環形大範圍向外放射
+          angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.25;
+          const dist = (spreadRadius * 0.45) * (0.7 + Math.random() * 0.6);
+          posX = Math.cos(angle) * dist;
+          posY = Math.sin(angle) * dist;
+        }
+
+        const spikeMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(colorHex || pCfg.colorRim),
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending
+        });
+
         const mesh = new THREE.Mesh(spikeGeo, spikeMat);
-        mesh.position.set(Math.cos(angle) * (w + 6), Math.sin(angle) * (w + 6), 0);
+        mesh.position.set(posX, posY, posZ);
         mesh.rotation.z = angle - Math.PI / 2;
-        mesh.scale.set(0.05, 0.05, 0.05);
+        mesh.scale.set(0.001, 0.001, 0.001);
         group.add(mesh);
-        spikeMeshes.push(mesh);
+
+        // ⏱️ 🎲 亂數階梯時差 + 自然高度隨機微擾
+        const delay = orderIndices[i] * staggerSec;
+        const heightVar = 0.82 + Math.random() * 0.36; // 82% ~ 118% 錯落高度
+        spikeItems.push({ mesh, mat: spikeMat, delay, heightVar });
       }
 
-      let life = 0.45;
+      let elapsed = 0;
+      const spikeDuration = 0.38;
+      const totalDuration = (count * staggerSec) + spikeDuration + 0.1;
+
       activeEffects.push({
         update: (delta) => {
-          life -= delta;
-          const prog = 1 - Math.max(0, life / 0.45);
-          const sc = prog < 0.25 ? prog / 0.25 : 1 - (prog - 0.25) / 0.75;
-          spikeMeshes.forEach(m => m.scale.set(sc, sc, sc));
-          spikeMat.opacity = Math.max(0, life / 0.45);
-          return life <= 0;
+          elapsed += delta;
+          let allDone = true;
+
+          spikeItems.forEach(item => {
+            if (elapsed < item.delay) {
+              item.mesh.scale.set(0.001, 0.001, 0.001);
+              item.mat.opacity = 0;
+              allDone = false;
+              return;
+            }
+
+            const age = elapsed - item.delay;
+            if (age < spikeDuration) {
+              allDone = false;
+              const prog = age / spikeDuration;
+              // 快速破土拔地而起 (前 22%)，隨後漸隱消散
+              const sc = prog < 0.22 ? (prog / 0.22) : 1 - (prog - 0.22) / 0.78 * 0.35;
+              item.mesh.scale.set(sc, sc * item.heightVar, sc);
+              item.mat.opacity = Math.max(0, 1 - (prog - 0.25) / 0.75);
+            } else {
+              item.mesh.scale.set(0.001, 0.001, 0.001);
+              item.mat.opacity = 0;
+            }
+          });
+
+          return elapsed >= totalDuration || allDone;
         },
         dispose: () => {
           scene.remove(group);
           spikeGeo.dispose();
-          spikeMat.dispose();
+          spikeItems.forEach(item => item.mat.dispose());
         }
       });
     }
 
     // ❄️ 菲涅爾動態冰晶突刺 (Fresnel Ice Lance)
-    function playIceLanceEffect(startPos, endPos, isFinal = true, salvoIndex = 0) {
+    function playIceLanceEffect(startPos, endPos, isFinal = true, salvoIndex = 0, pCfg = config) {
       const group = new THREE.Group();
       group.position.copy(startPos);
       group.lookAt(endPos);
       scene.add(group);
 
-      const sc = config.scale || 1.0;
+      const sc = pCfg.scale || 1.0;
       const coneGeo = new THREE.ConeGeometry(9 * sc, 55 * sc, 8);
       coneGeo.rotateX(Math.PI / 2);
-      const mat = createFresnelMaterial(config.colorCore, config.colorRim, config.fresnel || 2.0);
+      const mat = createFresnelMaterial(pCfg.colorCore, pCfg.colorRim, pCfg.fresnel || 2.0);
       const coreMesh = new THREE.Mesh(coneGeo, mat);
       group.add(coreMesh);
 
+      // 💡 冰箭光學泛光 (Glow Sprite 連動半徑與透明度)
+      const glowR = (pCfg.glowRadius !== undefined ? pCfg.glowRadius : 75) * sc;
+      const glowOp = pCfg.glowOpacity !== undefined ? pCfg.glowOpacity : 0.85;
+      const glow = createGlowSprite(pCfg.colorRim, glowR, glowOp);
+      group.add(glow);
+
       // 動態拖尾粒子系統
-      const trailCount = Math.min(50, Math.max(10, config.trailCount || 30));
+      const trailCount = Math.min(50, Math.max(10, pCfg.trailCount || 30));
       const trailGeo = new THREE.BufferGeometry();
       const trailPos = new Float32Array(trailCount * 3);
       for (let i = 0; i < trailCount; i++) {
@@ -2539,8 +2923,8 @@
       }
       trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
       const trailMat = new THREE.PointsMaterial({
-        color: new THREE.Color(config.colorRim),
-        size: (config.trailSize || 8) * sc,
+        color: new THREE.Color(pCfg.colorRim),
+        size: (pCfg.trailSize || 8) * sc,
         transparent: true,
         opacity: 0.85,
         blending: THREE.AdditiveBlending
@@ -2550,7 +2934,7 @@
       let trailIdx = 0;
 
       let elapsed = 0;
-      const dur = Math.max(0.18, config.duration || 0.35);
+      const dur = Math.max(0.18, pCfg.duration || 0.35);
 
       activeEffects.push({
         update: (delta) => {
@@ -2559,8 +2943,8 @@
           const curPos = new THREE.Vector3().lerpVectors(startPos, endPos, prog);
           group.position.copy(curPos);
 
-          if (config.spin > 0) {
-            coreMesh.rotateZ(delta * config.spin);
+          if ((pCfg.spin || 0) > 0) {
+            coreMesh.rotateZ(delta * pCfg.spin);
           }
 
           const posAttr = trailGeo.getAttribute('position');
@@ -2578,7 +2962,7 @@
 
           if (prog >= 1) {
             triggerTargetHit({ isFinal, salvoIndex });
-            spawnImpactBurst(endPos, isFinal);
+            spawnImpactBurst(endPos, isFinal, pCfg.colorRim, pCfg);
             return true;
           }
           return false;
@@ -2594,29 +2978,49 @@
       });
     }
 
-    function playFireMeteorEffect(startPos, endPos, isFinal = true, salvoIndex = 0) {
+    function playFireMeteorEffect(startPos, endPos, isFinal = true, salvoIndex = 0, pCfg = config) {
       const group = new THREE.Group();
       group.position.copy(startPos);
       scene.add(group);
 
-      const sc = config.scale || 1.0;
+      const sc = pCfg.scale || 1.0;
       let coreMesh;
       let flameMat = null;
 
-      if (config.shaderMode === 'VOLUMETRIC_FIRE' || config.shaderMode === 'DARK_VOID') {
-        const sphereGeo = new THREE.SphereGeometry(16 * sc, 32, 32);
-        flameMat = createVolumetricFlameMaterial(config.colorCore, config.colorRim, config.coreBrightness || 1.0);
-        const sphere = new THREE.Mesh(sphereGeo, flameMat);
-        const glow = createGlowSprite(config.colorRim, (config.glowRadius || 75) * sc, config.glowOpacity !== undefined ? config.glowOpacity : 0.85);
+      // 🔷 支援彈頭幾何形態自訂 (Sphere, Diamond, Arrow, Star, Ring)
+      const shape = pCfg.coreMeshShape || 'SPHERE';
+      let geo;
+      if (shape === 'DIAMOND') {
+        geo = new THREE.OctahedronGeometry(17 * sc, 0);
+      } else if (shape === 'ARROW') {
+        geo = new THREE.ConeGeometry(9 * sc, 38 * sc, 8);
+        geo.rotateX(Math.PI / 2);
+      } else if (shape === 'STAR') {
+        geo = new THREE.IcosahedronGeometry(16 * sc, 0);
+      } else if (shape === 'RING') {
+        geo = new THREE.TorusGeometry(14 * sc, 3.5 * sc, 8, 24);
+      } else {
+        geo = new THREE.SphereGeometry(16 * sc, 32, 32);
+      }
+
+      if (pCfg.shaderMode === 'VOLUMETRIC_FIRE' || pCfg.shaderMode === 'DARK_VOID') {
+        flameMat = createVolumetricFlameMaterial(
+          pCfg.colorCore,
+          pCfg.colorRim,
+          pCfg.coreBrightness || 1.0,
+          pCfg.flameTurbulence !== undefined ? pCfg.flameTurbulence : 5.0,
+          pCfg.flameTurbulenceSpeed !== undefined ? pCfg.flameTurbulenceSpeed : 2.0
+        );
+        const sphere = new THREE.Mesh(geo, flameMat);
+        const glow = createGlowSprite(pCfg.colorRim, (pCfg.glowRadius || 75) * sc, pCfg.glowOpacity !== undefined ? pCfg.glowOpacity : 0.85);
         const sub = new THREE.Group();
         sub.add(sphere);
         sub.add(glow);
         coreMesh = sub;
       } else {
-        const coreGeo = new THREE.SphereGeometry(18 * sc, 16, 16);
-        const coreMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(config.colorCore) });
-        const sphere = new THREE.Mesh(coreGeo, coreMat);
-        const glow = createGlowSprite(config.colorRim, (config.glowRadius || 75) * sc, config.glowOpacity !== undefined ? config.glowOpacity : 0.85);
+        const coreMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(pCfg.colorCore) });
+        const sphere = new THREE.Mesh(geo, coreMat);
+        const glow = createGlowSprite(pCfg.colorRim, (pCfg.glowRadius || 75) * sc, pCfg.glowOpacity !== undefined ? pCfg.glowOpacity : 0.85);
         const sub = new THREE.Group();
         sub.add(sphere);
         sub.add(glow);
@@ -2625,7 +3029,7 @@
       group.add(coreMesh);
 
       // 🚀 動態拖尾粒子系統 (Dynamic Trail Emitter)
-      const trailCount = Math.min(60, Math.max(10, config.trailCount || 35));
+      const trailCount = Math.min(60, Math.max(10, pCfg.trailCount || 35));
       const trailGeo = new THREE.BufferGeometry();
       const trailPos = new Float32Array(trailCount * 3);
       for (let i = 0; i < trailCount; i++) {
@@ -2635,8 +3039,8 @@
       }
       trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos, 3));
       const trailMat = new THREE.PointsMaterial({
-        color: new THREE.Color(config.colorRim),
-        size: (config.trailSize || 10) * sc,
+        color: new THREE.Color(pCfg.colorRim),
+        size: (pCfg.trailSize || 10) * sc,
         transparent: true,
         opacity: 0.85,
         blending: THREE.AdditiveBlending
@@ -2646,7 +3050,7 @@
       let trailIdx = 0;
 
       let elapsed = 0;
-      const dur = Math.max(0.18, config.duration || 0.35);
+      const dur = Math.max(0.18, pCfg.duration || 0.35);
 
       activeEffects.push({
         update: (delta) => {
@@ -2654,18 +3058,28 @@
           const prog = Math.min(elapsed / dur, 1);
           group.position.lerpVectors(startPos, endPos, prog);
 
-          if (config.arcHeight > 0) {
-            group.position.y += Math.sin(prog * Math.PI) * config.arcHeight;
+          // 🌈 拋物弧線下墜 (PARABOLA_ARC) vs 🪃 漫天弧線連環 (ARC_MULTI)
+          if (pCfg.trajectory === 'PARABOLA_ARC') {
+            const arcH = pCfg.arcHeight || 140;
+            group.position.y += Math.sin(prog * Math.PI) * arcH;
+          } else if (pCfg.trajectory === 'ARC_MULTI') {
+            const sign = (salvoIndex % 2 === 0 ? 1 : -1) * (1 + Math.floor(salvoIndex / 2) * 0.4);
+            const sideDist = Math.sin(prog * Math.PI) * (120 + (pCfg.arcHeight || 60));
+            group.position.y += Math.sin(prog * Math.PI) * (pCfg.arcHeight || 80) * 0.7;
+            group.position.x += sideDist * sign * 0.5;
+            group.position.z += sideDist * sign * 0.8;
+          } else if ((pCfg.arcHeight || 0) > 0) {
+            group.position.y += Math.sin(prog * Math.PI) * pCfg.arcHeight;
           }
 
-          // 🔥 動態火焰噪點顫動
+          // 🔥 動態火焰噪點熱浪顫動
           if (flameMat && flameMat.uniforms && flameMat.uniforms.uTime) {
             flameMat.uniforms.uTime.value += delta;
           }
 
           // 🌀 自轉角速度動態更新 (Spin Emitter)
-          if (config.spin > 0) {
-            group.rotation.z += delta * config.spin;
+          if ((pCfg.spin || 0) > 0) {
+            group.rotation.z += delta * pCfg.spin;
           }
 
           // 拋灑拖尾粒子
@@ -2692,6 +3106,8 @@
         dispose: () => {
           scene.remove(group);
           scene.remove(trailPoints);
+          geo.dispose();
+          if (flameMat) flameMat.dispose();
           if (coreMesh) {
             coreMesh.traverse(c => {
               if (c.geometry) c.geometry.dispose();
@@ -2704,14 +3120,14 @@
       });
     }
 
-    function playBeamEffect(startPos, endPos, isFinal = true, salvoIndex = 0) {
+    function playBeamEffect(startPos, endPos, isFinal = true, salvoIndex = 0, pCfg = config) {
       const dist = startPos.distanceTo(endPos);
-      const geo = new THREE.CylinderGeometry(8 * config.scale, 8 * config.scale, dist, 12);
+      const geo = new THREE.CylinderGeometry(8 * (pCfg.scale || 1.0), 8 * (pCfg.scale || 1.0), dist, 12);
       geo.rotateZ(Math.PI / 2);
       geo.translate(dist / 2, 0, 0);
 
       const mat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(config.colorCore),
+        color: new THREE.Color(pCfg.colorCore),
         transparent: true,
         blending: THREE.AdditiveBlending
       });
@@ -2721,7 +3137,7 @@
       scene.add(mesh);
 
       triggerTargetHit({ isFinal, salvoIndex });
-      spawnImpactBurst(endPos, isFinal);
+      spawnImpactBurst(endPos, isFinal, pCfg.colorRim, pCfg);
 
       let life = 0.22;
       activeEffects.push({
@@ -2738,47 +3154,80 @@
       });
     }
 
-    function playHolyLightEffect(startPos, endPos, isFinal = true, salvoIndex = 0) {
+    function playHolyLightEffect(startPos, endPos, isFinal = true, salvoIndex = 0, pCfg = config) {
       const topPos = new THREE.Vector3(endPos.x, endPos.y + 400, 0);
-      playBeamEffect(topPos, endPos, isFinal, salvoIndex);
+      playBeamEffect(topPos, endPos, isFinal, salvoIndex, pCfg);
     }
 
-    function playDarkVoidEffect(startPos, endPos, isFinal = true, salvoIndex = 0) {
-      playFireMeteorEffect(startPos, endPos, isFinal, salvoIndex);
+    function playDarkVoidEffect(startPos, endPos, isFinal = true, salvoIndex = 0, pCfg = config) {
+      playFireMeteorEffect(startPos, endPos, isFinal, salvoIndex, pCfg);
     }
 
-    function playGenericMeshEffect(startPos, endPos, isFinal = true, salvoIndex = 0) {
-      if (config.shaderMode === 'FRESNEL_ICE') {
-        playIceLanceEffect(startPos, endPos, isFinal, salvoIndex);
+    function playGenericMeshEffect(startPos, endPos, isFinal = true, salvoIndex = 0, pCfg = config) {
+      if (pCfg.shaderMode === 'FRESNEL_ICE') {
+        playIceLanceEffect(startPos, endPos, isFinal, salvoIndex, pCfg);
       } else {
-        playFireMeteorEffect(startPos, endPos, isFinal, salvoIndex);
+        playFireMeteorEffect(startPos, endPos, isFinal, salvoIndex, pCfg);
       }
     }
 
-    function spawnImpactBurst(pos, isFinal = true, overrideColor = null) {
+    function spawnImpactBurst(pos, isFinal = true, overrideColor = null, pCfg = config) {
       const group = new THREE.Group();
       group.position.copy(pos);
       scene.add(group);
 
-      const burstColor = overrideColor || config.colorRim;
+      const burstColor = overrideColor || pCfg.colorRim;
 
-      // ❄️ 若 config.spikes > 0，動態破裂次生尖錐晶體！
-      if (isFinal && config.spikes && config.spikes > 0) {
-        spawnStudioSpikes(pos, config.spikes, config.spikeHeight || 45, burstColor, config.spikeShape, config.spikeWidth || 7);
+      // ❄️ 若 pCfg.spikes > 0，動態破裂次生尖錐晶體 (支援 spikeAngle 方位角)！
+      if (isFinal && pCfg.spikes && pCfg.spikes > 0) {
+        spawnStudioSpikes(pos, pCfg.spikes, pCfg.spikeHeight || 45, burstColor, pCfg.spikeShape, pCfg.spikeWidth || 7, pCfg.spikeAngle || 0, pCfg);
       }
 
-      const ringGeo = new THREE.RingGeometry(10, 24, 32);
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(burstColor),
+      // 💥 受擊擴散光圈：支援半徑、線寬、顏色、平面、以及邊緣 BLUR / 羽化！
+      const waveColor = pCfg.waveColor || burstColor;
+      const waveRad = Math.max(15, (pCfg.waveRadius || 65) * (pCfg.scale || 1.0));
+      const waveThick = Math.max(1, pCfg.waveThickness || 4);
+      const blurVal = pCfg.waveBlur !== undefined ? pCfg.waveBlur : 0.3;
+
+      const ringGeo = new THREE.RingGeometry(Math.max(1, waveRad - waveThick), waveRad, 48);
+      const ringMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: new THREE.Color(waveColor) },
+          uOpacity: { value: 0.95 },
+          uBlur: { value: blurVal }
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 uColor;
+          uniform float uOpacity;
+          uniform float uBlur;
+          varying vec2 vUv;
+          void main() {
+            float distFromCenter = abs(vUv.y - 0.5) * 2.0;
+            float blurFactor = clamp(uBlur, 0.05, 1.0);
+            float alpha = 1.0 - smoothstep(1.0 - blurFactor, 1.0, distFromCenter);
+            gl_FragColor = vec4(uColor, alpha * uOpacity);
+          }
+        `,
         transparent: true,
-        opacity: 0.95,
         side: THREE.DoubleSide,
         blending: THREE.AdditiveBlending
       });
       const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      const isGround = pCfg.wavePlane === 'GROUND';
+      if (isGround) {
+        ringMesh.position.y = -65; // 🎯 下沉貼合受擊角色腳底地面
+        ringMesh.rotation.x = (68 * Math.PI) / 180; // 🎯 2.5D 透視俯角，避免 90 度完全側對鏡頭變 0 像素細線
+      }
       group.add(ringMesh);
 
-      const burstCount = isFinal ? (config.burstCount || 30) : 14;
+      const burstCount = isFinal ? (pCfg.burstCount || 30) : 14;
       const geo = new THREE.BufferGeometry();
       const posArray = new Float32Array(burstCount * 3);
       const vels = [];
@@ -2794,7 +3243,7 @@
       geo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
       const mat = new THREE.PointsMaterial({
         color: new THREE.Color(burstColor),
-        size: (config.trailSize || 8) * (isFinal ? 1.0 : 0.7),
+        size: (pCfg.trailSize || 8) * (isFinal ? 1.0 : 0.7),
         transparent: true,
         blending: THREE.AdditiveBlending
       });
@@ -2806,8 +3255,10 @@
         update: (delta) => {
           life -= delta;
           const prog = 1 - Math.max(0, life / (isFinal ? 0.6 : 0.35));
-          ringMesh.scale.set(1 + prog * 3.5 * config.scale, 1 + prog * 3.5 * config.scale, 1);
-          ringMat.opacity = (1 - prog) * 0.9;
+          ringMesh.scale.set(1 + prog * 3.5 * (pCfg.scale || 1.0), 1 + prog * 3.5 * (pCfg.scale || 1.0), 1);
+          if (ringMat.uniforms && ringMat.uniforms.uOpacity) {
+            ringMat.uniforms.uOpacity.value = (1 - prog) * 0.95;
+          }
 
           const attr = geo.getAttribute('position');
           for (let i = 0; i < burstCount; i++) {
@@ -2957,9 +3408,11 @@
         description: '由 VFX Studio 調校導出之自訂打擊感特效',
         ...config
       };
-      presetMap.set(currentObj.id, currentObj);
-      const allPresets = Array.from(presetMap.values());
-      localStorage.setItem('MEDIEVAL_CUSTOM_VFX_PRESETS', JSON.stringify(allPresets));
+      const res = vfxRepo.saveCustomPreset(currentObj);
+      if (!res.success) {
+        alert('⚠️ 保存失敗：' + res.error);
+        return;
+      }
       const btn = document.getElementById('btn-save-project');
       btn.textContent = '✅ 已保存！';
       setTimeout(() => { btn.textContent = '📥 保存為預設/同步'; }, 2000);
@@ -2993,6 +3446,50 @@
       }
     });
 
+    // ⚔️ 普攻特效自由綁定中樞 (Basic Attack VFX Linker)
+    document.getElementById('btn-bind-basic-attack')?.addEventListener('click', () => {
+      const targetSelect = document.getElementById('basic-attack-target-select');
+      const targetKey = targetSelect?.value;
+      if (!targetKey) return;
+      const targetVfxId = config.id || config.preset;
+
+      let bindings = {};
+      try {
+        bindings = JSON.parse(localStorage.getItem('MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS') || '{}');
+      } catch (e) {}
+
+      bindings[targetKey] = targetVfxId;
+      localStorage.setItem('MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS', JSON.stringify(bindings));
+
+      const statusMsg = document.getElementById('basic-attack-status-msg');
+      if (statusMsg) {
+        statusMsg.style.display = 'block';
+        statusMsg.textContent = `✅ 已將【${targetKey}】普攻綁定為【${targetVfxId}】！戰鬥即時生效！`;
+        setTimeout(() => { statusMsg.style.display = 'none'; }, 4000);
+      }
+    });
+
+    document.getElementById('btn-reset-basic-attack')?.addEventListener('click', () => {
+      const targetSelect = document.getElementById('basic-attack-target-select');
+      const targetKey = targetSelect?.value;
+      if (!targetKey) return;
+
+      let bindings = {};
+      try {
+        bindings = JSON.parse(localStorage.getItem('MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS') || '{}');
+      } catch (e) {}
+
+      delete bindings[targetKey];
+      localStorage.setItem('MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS', JSON.stringify(bindings));
+
+      const statusMsg = document.getElementById('basic-attack-status-msg');
+      if (statusMsg) {
+        statusMsg.style.display = 'block';
+        statusMsg.textContent = `🔄 已將【${targetKey}】還原為官方預設普攻！`;
+        setTimeout(() => { statusMsg.style.display = 'none'; }, 3000);
+      }
+    });
+
     // 💾 導出完整專案庫 (Export full presets JSON array)
     document.getElementById('btn-export-all')?.addEventListener('click', () => {
       const all = Array.from(presetMap.values());
@@ -3007,7 +3504,7 @@
     // 🔄 還原官方出廠預設 (Reset to factory defaults)
     document.getElementById('btn-reset-defaults')?.addEventListener('click', () => {
       if (!confirm('確定要清除本機 LocalStorage 快取並還原為官方出廠特效庫嗎？此操作將重置自訂特效與自訂技能綁定！')) return;
-      localStorage.removeItem('MEDIEVAL_CUSTOM_VFX_PRESETS');
+      vfxRepo.resetToFactoryDefaults();
       localStorage.removeItem('MEDIEVAL_SKILL_VFX_BINDINGS');
       alert('已成功清除本地快取！頁面即將重新整理載入官方 SSOT 設定...');
       window.location.reload();

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { VFXPreset, VFXImpactConfig } from '../../models/VFX';
 import defaultVFXPresets from '../../data/vfx_presets.json';
+import { VFXPresetRepository } from './VFXPresetRepository';
 
 export interface ScreenPoint {
   x: number;
@@ -24,6 +25,8 @@ export class CombatFXEngine {
   private activeEffects: ActiveEffect[] = [];
   private isRunning = false;
   private lastTime = 0;
+  private playbackGeneration = 0;
+  private scheduledTimers = new Set<ReturnType<typeof setTimeout>>();
 
   private constructor() {
     this.scene = new THREE.Scene();
@@ -31,14 +34,22 @@ export class CombatFXEngine {
     this.camera.position.z = 500;
     this.camera.far = 5000;
 
-    // 🌟 100% 完美透明 WebGL 渲染器，配合 Additive Blending 呈現極致發光
-    this.renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: 'high-performance'
-    });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setClearColor(0x000000, 0); // 確保透明度為 0
+    // 🌟 100% 完美透明 WebGL 渲染器，配合 Additive Blending 呈現極致發光 (Node 環境防呆)
+    if (typeof document !== 'undefined') {
+      this.renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance'
+      });
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      this.renderer.setClearColor(0x000000, 0); // 確保透明度為 0
+    } else {
+      this.renderer = {
+        domElement: { style: {} } as any,
+        setSize: () => {},
+        render: () => {}
+      } as any;
+    }
   }
 
   public static getInstance(): CombatFXEngine {
@@ -46,6 +57,18 @@ export class CombatFXEngine {
       this.instance = new CombatFXEngine();
     }
     return this.instance;
+  }
+
+  public registerTimer(fn: () => void, delayMs: number): ReturnType<typeof setTimeout> {
+    const gen = this.playbackGeneration;
+    const timer = setTimeout(() => {
+      this.scheduledTimers.delete(timer);
+      if (this.playbackGeneration === gen && this.isRunning) {
+        fn();
+      }
+    }, delayMs);
+    this.scheduledTimers.add(timer);
+    return timer;
   }
 
   public mount(container: HTMLElement): void {
@@ -93,9 +116,13 @@ export class CombatFXEngine {
   }
 
   /**
-   * 🧹 清空當前畫布上所有特效物件與動畫循環（用於跳過或中途關閉）
+   * 🧹 清空當前畫布上所有特效物件、定時器與動畫循環（用於跳過或中途關閉）
    */
   public clear(): void {
+    this.playbackGeneration++;
+    this.scheduledTimers.forEach(t => clearTimeout(t));
+    this.scheduledTimers.clear();
+
     for (let i = this.activeEffects.length - 1; i >= 0; i--) {
       try {
         this.activeEffects[i].dispose();
@@ -694,27 +721,13 @@ export class CombatFXEngine {
   // ─────────────────────────────────────────────────────────────
   // 🌟 VFX 預設庫與打擊感統一驅動中樞 (Preset-Driven Impact Pipeline)
   // ─────────────────────────────────────────────────────────────
-  private presetMap: Map<string, VFXPreset> | null = null;
-
   public getPreset(id: string): VFXPreset | undefined {
-    if (!this.presetMap) {
-      this.presetMap = new Map<string, VFXPreset>();
-      (defaultVFXPresets as unknown as VFXPreset[]).forEach(p => this.presetMap!.set(p.id, p));
-      try {
-        if (typeof localStorage !== 'undefined') {
-          const custom = localStorage.getItem('MEDIEVAL_CUSTOM_VFX_PRESETS');
-          if (custom) {
-            const arr = JSON.parse(custom);
-            if (Array.isArray(arr)) arr.forEach((p: VFXPreset) => this.presetMap!.set(p.id, p));
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-    return this.presetMap.get(id);
+    return VFXPresetRepository.getInstance().getPreset(id);
   }
 
+  /**
+   * 🥊 依照特效預設庫 ID 播放特效，並支援多段命中 onImpact 節奏斷點！
+   */
   /**
    * 🥊 依照特效預設庫 ID 播放特效，並支援多段命中 onImpact 節奏斷點！
    */
@@ -725,10 +738,41 @@ export class CombatFXEngine {
     isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void),
     onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void
   ): Promise<void> {
+    const startPos = this.screenToWorld(from);
+    let endPos = this.screenToWorld(to);
+    const preset = this.getPreset(vfxId) || this.getPreset('VFX_DEFAULT_SLASH') || (defaultVFXPresets[0] as unknown as VFXPreset);
+    return this.playPresetWorld(preset, startPos, endPos, isPlayerOrOnImpact, onImpactCallback);
+  }
+
+  /**
+   * 🎨 直接以記憶體中的 VFXPreset 配置播放特效（專供特效工房即時預覽與動態參數調試）
+   */
+  public playPresetConfig(
+    preset: VFXPreset,
+    from: ScreenPoint,
+    to: ScreenPoint,
+    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void),
+    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void
+  ): Promise<void> {
+    const startPos = this.screenToWorld(from);
+    const endPos = this.screenToWorld(to);
+    return this.playPresetWorld(preset, startPos, endPos, isPlayerOrOnImpact, onImpactCallback);
+  }
+
+  /**
+   * 🌍 核心世界座標播放管線（避免子圖層重複 screenToWorld 轉換）
+   */
+  public playPresetWorld(
+    preset: VFXPreset,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void),
+    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void
+  ): Promise<void> {
     const isPlayer = typeof isPlayerOrOnImpact === 'boolean' ? isPlayerOrOnImpact : true;
     const onImpact = typeof isPlayerOrOnImpact === 'function' ? isPlayerOrOnImpact : onImpactCallback;
+
     return new Promise((resolve) => {
-      const preset = this.getPreset(vfxId) || this.getPreset('VFX_DEFAULT_SLASH') || (defaultVFXPresets[0] as unknown as VFXPreset);
       const impactConfig = preset.impact;
       const totalHits = Math.max(1, preset.hitCount || preset.salvoCount || 1);
       const firedHits = new Set<number>();
@@ -749,38 +793,39 @@ export class CombatFXEngine {
           for (let k = 0; k < totalHits; k++) {
             fireImpact(k);
           }
-          clearTimeout(failsafeTimer);
+          if (failsafeTimer) clearTimeout(failsafeTimer);
           resolve();
         }
       };
 
-      const failsafeTimer = setTimeout(() => {
+      const failsafeTimer = this.registerTimer(() => {
         safeResolve();
       }, (preset.duration + 0.5) * 1000);
 
-      const startPos = this.screenToWorld(from);
-      let endPos = this.screenToWorld(to);
-
+      let actualEndPos = endPos.clone();
       if (preset.trajectory === 'COLUMN_PIERCE' && impactConfig.penetrationDistance > 0) {
-        const dir = new THREE.Vector3().subVectors(endPos, startPos).normalize();
-        endPos = endPos.clone().addScaledVector(dir, impactConfig.penetrationDistance);
+        const dir = new THREE.Vector3().subVectors(actualEndPos, startPos).normalize();
+        actualEndPos = actualEndPos.addScaledVector(dir, impactConfig.penetrationDistance);
       }
 
       // 🔮 複合多圖層特效排程 (Composite VFX Preset Sequencer)
       if (preset.layers && preset.layers.length > 0) {
         preset.layers.forEach((layer) => {
           const delayMs = (layer.delay || 0.1) * 1000;
-          setTimeout(() => {
+          this.registerTimer(() => {
             if (this.isRunning) {
               if (layer.presetId) {
-                // 🧩 積木式引用庫中任一現有 Preset，並支援獨立 HIT 判定！
-                this.playPreset(
-                  layer.presetId,
-                  startPos,
-                  endPos,
-                  isPlayer,
-                  layer.generatesHit ? (imp, hIdx, tHits) => onImpact?.(imp, hIdx, tHits) : undefined
-                );
+                const subPreset = this.getPreset(layer.presetId);
+                if (subPreset) {
+                  // 🧩 積木式引用庫中任一現有 Preset，直傳已轉換之世界座標！
+                  this.playPresetWorld(
+                    subPreset,
+                    startPos,
+                    actualEndPos,
+                    isPlayer,
+                    (layer.emitsImpactCue || layer.generatesHit) ? (imp, hIdx, tHits) => onImpact?.(imp, hIdx, tHits) : undefined
+                  );
+                }
                 return;
               }
 
@@ -795,15 +840,15 @@ export class CombatFXEngine {
                 layers: undefined
               };
               if (layer.trajectory === 'MELEE_SWEEP' || layer.shaderMode === 'SLASH_BLADE') {
-                this.playArcSlash(endPos, layerPreset, () => {}, () => {});
+                this.playArcSlash(actualEndPos, layerPreset, () => {}, () => {});
               } else if (layer.trajectory === 'VERTICAL_DROP') {
-                this.playHolyPillar(endPos, layerPreset, () => {}, () => {});
+                this.playHolyPillar(actualEndPos, layerPreset, () => {}, () => {});
               } else if (layer.shaderMode === 'DIELECTRIC_LIGHTNING') {
-                this.playDynamicLightning(startPos, endPos, layerPreset, () => {}, () => {});
+                this.playDynamicLightning(startPos, actualEndPos, layerPreset, () => {}, () => {});
               } else if (layer.shaderMode === 'ENERGY_BEAM' || layer.trajectory === 'COLUMN_PIERCE') {
-                this.playDynamicBeam(startPos, endPos, layerPreset, () => {}, () => {});
+                this.playDynamicBeam(startPos, actualEndPos, layerPreset, () => {}, () => {});
               } else {
-                this.playDynamicProjectile(startPos, endPos, layerPreset, () => {}, () => {});
+                this.playDynamicProjectile(startPos, actualEndPos, layerPreset, () => {}, () => {});
               }
             }
           }, delayMs);
@@ -826,11 +871,11 @@ export class CombatFXEngine {
             timeOffset = pairIdx * (salvoDur * 0.6) + inPair * 0.06;
           }
 
-          const hitTimer = setTimeout(() => {
+          this.registerTimer(() => {
             if (this.isRunning) {
               fireImpact(i);
               // 每次連擊在受擊點爆散微型火花
-              this.playSlashSparks(endPos, preset.colorCore, 6);
+              this.playSlashSparks(actualEndPos, preset.colorCore, 6);
             }
           }, (timeOffset + Math.min(preset.duration * 0.4, 0.2)) * 1000);
         }
@@ -840,24 +885,24 @@ export class CombatFXEngine {
       const mainOnHit = () => fireImpact(0);
 
       if (preset.trajectory === 'SHOUT_WAVE' || preset.id === 'VFX_TAUNT_SHOUT') {
-        this.playTauntShout(startPos, endPos, preset, mainOnHit, safeResolve);
+        this.playTauntShout(startPos, actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.trajectory === 'SHIELD_BARRIER' || preset.id === 'VFX_HOLY_SHIELD') {
-        this.playHolyShield(endPos, preset, mainOnHit, safeResolve);
+        this.playHolyShield(actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.trajectory === 'PARABOLA_ARC' || preset.id === 'VFX_ARROW_VOLLEY' || preset.id === 'VFX_WATCHTOWER_VOLLEY') {
-        this.playArrowVolley(startPos, endPos, preset, mainOnHit, safeResolve);
+        this.playArrowVolley(startPos, actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.trajectory === 'MELEE_SWEEP' || preset.shaderMode === 'SLASH_BLADE') {
-        this.playArcSlash(endPos, preset, mainOnHit, safeResolve);
+        this.playArcSlash(actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.trajectory === 'BODY_AURA' || preset.id === 'VFX_SHIELD_WALL') {
-        this.playAuraRing(endPos, preset, mainOnHit, safeResolve);
+        this.playAuraRing(actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.trajectory === 'VERTICAL_DROP' && preset.shaderMode === 'HOLY_LIGHT') {
-        this.playHolyPillar(endPos, preset, mainOnHit, safeResolve);
+        this.playHolyPillar(actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.shaderMode === 'DIELECTRIC_LIGHTNING') {
-        this.playDynamicLightning(startPos, endPos, preset, mainOnHit, safeResolve);
+        this.playDynamicLightning(startPos, actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.shaderMode === 'ENERGY_BEAM' || preset.trajectory === 'COLUMN_PIERCE') {
-        this.playDynamicBeam(startPos, endPos, preset, mainOnHit, safeResolve);
+        this.playDynamicBeam(startPos, actualEndPos, preset, mainOnHit, safeResolve);
       } else {
         // 🌟 通用動態投射物管線（完整支援火球、冰矛、暗影、箭矢，100% 讀取 Preset 參數）
-        this.playDynamicProjectile(startPos, endPos, preset, mainOnHit, safeResolve);
+        this.playDynamicProjectile(startPos, actualEndPos, preset, mainOnHit, safeResolve);
       }
     });
   }
@@ -1509,16 +1554,20 @@ export class CombatFXEngine {
   /**
    * 🔥 體積黑體輻射火焰動態著色器 (Vertex Noise Displacement + Blackbody Spectrum)
    */
-  private createVolumetricFlameMaterial(colorCoreHex: string, colorRimHex: string, coreBrightness = 1.0): THREE.ShaderMaterial {
+  private createVolumetricFlameMaterial(colorCoreHex: string, colorRimHex: string, coreBrightness = 1.0, turbulence = 5.0, speed = 2.0): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       uniforms: {
         uTime: { value: 0 },
         uColorCore: { value: new THREE.Color(colorCoreHex) },
         uColorRim: { value: new THREE.Color(colorRimHex) },
-        uCoreBrightness: { value: coreBrightness }
+        uCoreBrightness: { value: coreBrightness },
+        uTurbulence: { value: turbulence },
+        uTurbulenceSpeed: { value: speed }
       },
       vertexShader: `
         uniform float uTime;
+        uniform float uTurbulence;
+        uniform float uTurbulenceSpeed;
         varying vec3 vNormal;
         varying vec3 vViewPosition;
         varying float vNoise;
@@ -1572,9 +1621,9 @@ export class CombatFXEngine {
           vNormal = normalize(normalMatrix * normal);
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           vViewPosition = -mvPosition.xyz;
-          float noise = snoise(position * 0.15 + vec3(0.0, -uTime * 4.2, uTime * 2.1));
+          float noise = snoise(position * 0.15 + vec3(0.0, -uTime * (uTurbulenceSpeed * 2.1), uTime * uTurbulenceSpeed));
           vNoise = noise;
-          vec3 displaced = position + normal * (noise * 4.8);
+          vec3 displaced = position + normal * (noise * uTurbulence);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
         }
       `,
@@ -1642,60 +1691,128 @@ export class CombatFXEngine {
    */
   private spawnSecondarySpikes(pos: THREE.Vector3, count: number, height: number, colorRimHex: string, preset?: VFXPreset): void {
     const group = new THREE.Group();
-    group.position.copy(pos);
+    // 🎯 腳底貼地原點校考：若角度向上沖天 (45°~135°) 或為地表破土，原點自動下沉至目標腳底地面 (pos.y - 65)！
+    const isUpward = (preset?.spikeAngle !== undefined && preset.spikeAngle >= 45 && preset.spikeAngle <= 135) || (preset?.trajectory === 'GROUND_BURST');
+    const basePos = pos.clone();
+    if (isUpward) {
+      basePos.y -= 65;
+    }
+    group.position.copy(basePos);
     this.scene.add(group);
 
-    const spikeMeshes: THREE.Mesh[] = [];
+    const spikeItems: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; delay: number; heightVar?: number }[] = [];
     const width = Math.max(3, (preset?.spikeWidth || 7) * (preset?.scale || 1.0));
     const finalHeight = Math.max(20, height);
     const shape = preset?.spikeShape || 'CONE_SPIKE';
+    const spreadRadius = preset?.spikeRadius !== undefined ? preset.spikeRadius : 80;
+    const staggerMs = preset?.spikeStagger !== undefined ? preset.spikeStagger : 25;
+    const staggerSec = staggerMs / 1000;
 
     let spikeGeo: THREE.BufferGeometry;
     if (shape === 'CRYSTAL_PRISM') {
-      spikeGeo = new THREE.CylinderGeometry(width * 0.4, width, finalHeight, 6);
-      spikeGeo.rotateX(Math.PI / 2);
+      spikeGeo = new THREE.CylinderGeometry(width * 0.35, width, finalHeight, 6);
     } else if (shape === 'JAGGED_ROCK') {
       spikeGeo = new THREE.ConeGeometry(width * 1.3, finalHeight, 4);
-      spikeGeo.rotateX(Math.PI / 2);
     } else if (shape === 'PILLAR_COLUMN') {
       spikeGeo = new THREE.CylinderGeometry(width, width, finalHeight, 12);
-      spikeGeo.rotateX(Math.PI / 2);
     } else {
       spikeGeo = new THREE.ConeGeometry(width, finalHeight, 8);
-      spikeGeo.rotateX(Math.PI / 2);
     }
+    // 🎯 錨點設於底座，尖端沿 +Y 延伸至 (0, finalHeight, 0)
+    spikeGeo.translate(0, finalHeight / 2, 0);
 
-    const spikeMat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(colorRimHex),
-      transparent: true,
-      opacity: 0.95,
-      blending: THREE.AdditiveBlending
-    });
+    const isDirectional = (preset?.spikeAngle !== undefined && preset.spikeAngle > 0);
+    const baseRad = isDirectional ? ((preset!.spikeAngle! * Math.PI) / 180) : 0;
+
+    // 🎲 亂數洗牌先後破土順序（告別死板流水線順序，呈現真實崩裂爆發感）
+    const orderIndices = Array.from({ length: count }, (_, idx) => idx);
+    for (let i = orderIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = orderIndices[i];
+      orderIndices[i] = orderIndices[j];
+      orderIndices[j] = temp;
+    }
 
     for (let i = 0; i < count; i++) {
-      const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+      let angle: number;
+      let posX = 0;
+      let posY = 0;
+      const posZ = (Math.random() - 0.5) * 16;
+
+      if (isUpward) {
+        // 🌊 向上沖天/地表破土模式：沿著地表水平線大範圍橫向排開！
+        const t = count > 1 ? (i / (count - 1) - 0.5) : 0;
+        posX = t * spreadRadius * 1.8;
+        posY = (Math.random() - 0.5) * 6;
+        const tilt = t * 0.45;
+        angle = (preset?.spikeAngle !== undefined ? ((preset.spikeAngle * Math.PI) / 180) : Math.PI / 2) + tilt;
+      } else if (isDirectional) {
+        const span = 0.65;
+        angle = baseRad + (count > 1 ? (i / (count - 1) - 0.5) * span : 0);
+        const dist = (spreadRadius * 0.35) * (0.6 + (i / Math.max(1, count)) * 0.5);
+        posX = Math.cos(angle) * dist;
+        posY = Math.sin(angle) * dist;
+      } else {
+        angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.25;
+        const dist = (spreadRadius * 0.45) * (0.7 + Math.random() * 0.6);
+        posX = Math.cos(angle) * dist;
+        posY = Math.sin(angle) * dist;
+      }
+
+      const spikeMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(colorRimHex),
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending
+      });
+
       const mesh = new THREE.Mesh(spikeGeo, spikeMat);
-      mesh.position.set(Math.cos(angle) * (width + 5), Math.sin(angle) * (width + 5), 0);
+      mesh.position.set(posX, posY, posZ);
       mesh.rotation.z = angle - Math.PI / 2;
-      mesh.scale.set(0.05, 0.05, 0.05);
+      mesh.scale.set(0.001, 0.001, 0.001);
       group.add(mesh);
-      spikeMeshes.push(mesh);
+
+      const delay = orderIndices[i] * staggerSec;
+      const heightVar = 0.82 + Math.random() * 0.36;
+      spikeItems.push({ mesh, mat: spikeMat, delay, heightVar });
     }
 
-    let life = 0.45;
+    let elapsed = 0;
+    const spikeDuration = 0.38;
+    const totalDuration = (count * staggerSec) + spikeDuration + 0.1;
+
     this.activeEffects.push({
       update: (delta) => {
-        life -= delta;
-        const progress = 1 - Math.max(0, life / 0.45);
-        const sc = progress < 0.25 ? progress / 0.25 : 1 - (progress - 0.25) / 0.75;
-        spikeMeshes.forEach(m => m.scale.set(sc, sc, sc));
-        spikeMat.opacity = Math.max(0, life / 0.45);
-        return life <= 0;
+        elapsed += delta;
+        let allDone = true;
+
+        spikeItems.forEach(item => {
+          if (elapsed < item.delay) {
+            item.mesh.scale.set(0.001, 0.001, 0.001);
+            item.mat.opacity = 0;
+            allDone = false;
+            return;
+          }
+
+          const age = elapsed - item.delay;
+          if (age < spikeDuration) {
+            allDone = false;
+            const prog = age / spikeDuration;
+            const sc = prog < 0.22 ? (prog / 0.22) : 1 - (prog - 0.22) / 0.78 * 0.35;
+            item.mesh.scale.set(sc, sc * (item as any).heightVar, sc);
+            item.mat.opacity = Math.max(0, 1 - (prog - 0.25) / 0.75);
+          } else {
+            item.mesh.scale.set(0.001, 0.001, 0.001);
+            item.mat.opacity = 0;
+          }
+        });
+
+        return elapsed >= totalDuration || allDone;
       },
       dispose: () => {
         this.scene.remove(group);
         spikeGeo.dispose();
-        spikeMat.dispose();
+        spikeItems.forEach(item => item.mat.dispose());
       }
     });
   }
@@ -1717,6 +1834,10 @@ export class CombatFXEngine {
       blending: THREE.AdditiveBlending
     });
     const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    if (preset.wavePlane === 'GROUND') {
+      ringMesh.position.y = -65;
+      ringMesh.rotation.x = (68 * Math.PI) / 180;
+    }
     group.add(ringMesh);
 
     const burstCount = Math.max(12, preset.burstCount || 40);
@@ -1813,7 +1934,9 @@ export class CombatFXEngine {
       flameMat = this.createVolumetricFlameMaterial(
         preset.colorCore,
         preset.colorRim,
-        preset.coreBrightness || 1.0
+        preset.coreBrightness || 1.0,
+        preset.flameTurbulence !== undefined ? preset.flameTurbulence : 5.0,
+        preset.flameTurbulenceSpeed !== undefined ? preset.flameTurbulenceSpeed : 2.0
       );
       const sphere = new THREE.Mesh(sphereGeo, flameMat);
       const glow = this.createGlowSprite(
@@ -2041,4 +2164,7 @@ export class CombatFXEngine {
     });
   }
 }
+
+export { CombatFXEngine as VFXPlayer };
+
 

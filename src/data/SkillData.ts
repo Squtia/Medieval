@@ -193,6 +193,53 @@ export function getSkillVfxId(skillIdOrName?: string, fallbackAttackType?: strin
   return 'VFX_DEFAULT_SLASH';
 }
 
+/**
+ * ⚔️ 普攻專屬特效解析器（支援 LocalStorage 自訂創作綁定、武器類型、基礎職業與攻擊類型層疊解析）
+ */
+export function getBasicAttackVfxId(actor?: {
+  baseClass?: string;
+  weaponType?: string;
+  attackType?: string;
+  isMagicalAttacker?: boolean;
+}): string {
+  if (!actor) return 'VFX_DEFAULT_SLASH';
+
+  // 1. 優先讀取 LocalStorage 使用者自訂普攻綁定 (MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS)
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS');
+      if (raw) {
+        const bindings: Record<string, string> = JSON.parse(raw);
+        if (bindings) {
+          // (a) 精確匹配武器類型 (例如: GREATSWORD, BOW, STAFF, DAGGERS, SWORD_AND_SHIELD, HOLY_BOOK)
+          if (actor.weaponType && bindings[actor.weaponType]) {
+            return bindings[actor.weaponType];
+          }
+          // (b) 次級匹配基礎職業 (例如: Warrior, Mage, Archer, Knight, Thief, Cleric)
+          if (actor.baseClass && bindings[actor.baseClass]) {
+            return bindings[actor.baseClass];
+          }
+          // (c) 攻擊型態匹配 (例如: MELEE, RANGED, MAGIC)
+          if (actor.attackType && bindings[actor.attackType]) {
+            return bindings[actor.attackType];
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // 2. 預設普攻攻擊型態 Fallback
+  const effectiveAttackType = actor.attackType || (
+    actor.isMagicalAttacker || actor.weaponType === 'STAFF' || actor.weaponType === 'HOLY_BOOK'
+      ? 'MAGIC'
+      : (actor.weaponType === 'BOW' || actor.weaponType === 'MAGIC_BOW' ? 'RANGED' : 'MELEE')
+  );
+
+  return getSkillVfxId(undefined, effectiveAttackType);
+}
+
 export const SKILLS: Record<string, Skill> = {
   // --- 戰士系基礎技能 ---
   'FIGHTER_HEAVY_STRIKE': {

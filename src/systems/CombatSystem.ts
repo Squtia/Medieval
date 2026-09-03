@@ -4,7 +4,7 @@ import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEf
 import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType, ElementType } from '../models/types';
 import { Random } from '../core/Random';
 import { TargetType } from '../models/Skill';
-import { SKILLS, getSkillVfxId } from '../data/SkillData';
+import { SKILLS, getSkillVfxId, getBasicAttackVfxId } from '../data/SkillData';
 import { SkillRegistry } from './combat/SkillRegistry';
 import { GambitEvaluator } from './combat/GambitEvaluator';
 import { calculateSkillDamage, getEvade } from '../utils/CombatMath';
@@ -965,8 +965,10 @@ export class CombatSystem {
           }
           
           const actorMaxMp = actor.attributes?.spr ? actor.attributes.spr * 5 : 100;
+          const skillActionId = `act_skill_${actor.id}_${turn}_${Date.now()}_${Math.floor(Random.next() * 1000)}`;
           events.push({
             type: CombatEventType.SKILL_CAST,
+            actionId: skillActionId,
             actorId: actor.id, actorName: actor.name,
             targetId: actor.id,            // 保留為施術者自身，用於 MP 條更新
             skillTargetId: skillTargets[0]?.id, // 特效飛行目標：技能第一個受術目標
@@ -1014,6 +1016,8 @@ export class CombatSystem {
 
                   finalSkillEvents.push({
                     type: target.shieldCurrentHp === 0 ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
+                    actionId: skillActionId,
+                    impactKind: 'SHIELD_DAMAGE',
                     actorId: actor.id,
                     actorName: actor.name,
                     targetId: target.id,
@@ -1028,7 +1032,30 @@ export class CombatSystem {
             if (!se.skillId) se.skillId = selectedSkill.id;
             if (!se.skillName) se.skillName = selectedSkill.name;
             if (!se.vfxId) se.vfxId = selectedSkill.vfxId || getSkillVfxId(selectedSkill.id);
+            se.actionId = skillActionId;
             finalSkillEvents.push(se);
+          });
+
+          // 排序並標記 impactIndex 與 impactCount
+          let impactIdxCounter = 0;
+          const totalImpactCount = finalSkillEvents.filter(e => 
+            e.type === CombatEventType.HIT || e.type === CombatEventType.CRIT || e.type === CombatEventType.HEAL || e.type === CombatEventType.SHIELD_DAMAGE
+          ).length;
+
+          finalSkillEvents.forEach(e => {
+            if (e.type === CombatEventType.HIT || e.type === CombatEventType.CRIT) {
+              e.impactIndex = impactIdxCounter++;
+              e.impactCount = totalImpactCount;
+              e.impactKind = 'DAMAGE';
+            } else if (e.type === CombatEventType.HEAL) {
+              e.impactIndex = impactIdxCounter++;
+              e.impactCount = totalImpactCount;
+              e.impactKind = 'HEAL';
+            } else if (e.type === CombatEventType.SHIELD_DAMAGE) {
+              e.impactIndex = impactIdxCounter++;
+              e.impactCount = totalImpactCount;
+              e.impactKind = 'SHIELD_DAMAGE';
+            }
           });
 
           events.push(...finalSkillEvents);
@@ -1122,6 +1149,8 @@ export class CombatSystem {
           hpDamage = Math.floor(hpDamage * 0.75);
         }
 
+        const attackActionId = `act_atk_${actor.id}_${turn}_${Date.now()}`;
+
         if (target.shieldCurrentHp && target.shieldCurrentHp > 0) {
           sDamage = Math.min(target.shieldCurrentHp, hpDamage);
           target.shieldCurrentHp -= sDamage;
@@ -1129,6 +1158,10 @@ export class CombatSystem {
           
           events.push({
             type: target.shieldCurrentHp === 0 ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
+            actionId: attackActionId,
+            impactIndex: 0,
+            impactCount: 1,
+            impactKind: 'SHIELD_DAMAGE',
             actorId: actor.id, actorName: actor.name,
             targetId: target.id, targetName: target.name,
             shieldDamage: sDamage,
@@ -1141,11 +1174,14 @@ export class CombatSystem {
           hpDamage = PassiveManager.onAllyTakingDamage(target, hpDamage, playerTeam, events);
 
           target.currentHp -= hpDamage;
-          const normalAttackType = actor.attackType || (actor.isMagicalAttacker ? 'MAGIC' : (actor.weaponType === 'BOW' || actor.weaponType === 'MAGIC_BOW' ? 'RANGED' : 'MELEE'));
-          const normalVfxId = getSkillVfxId(undefined, normalAttackType);
+          const normalVfxId = getBasicAttackVfxId(actor);
 
           events.push({
             type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+            actionId: attackActionId,
+            impactIndex: 0,
+            impactCount: 1,
+            impactKind: 'DAMAGE',
             actorId: actor.id, actorName: actor.name,
             targetId: target.id, targetName: target.name,
             damage: hpDamage,

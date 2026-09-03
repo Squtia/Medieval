@@ -1,3 +1,58 @@
+- **[Feature/CombatVFX/BasicAttackLinkerAndStudioDefectFixes] 普攻自訂特效接口全面開放與特效工坊 10 大體驗缺陷修復（2026-09-03）**：
+  - **模組架構**：
+    - `src/data/SkillData.ts`：實裝 `getBasicAttackVfxId(actor)`，支援武器類型（`weaponType`）➔ 基礎職業（`baseClass`）➔ 攻擊型態（`attackType`）➔ 預設三態 fallback 之 LocalStorage（`MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS`）優先比對機制。
+    - `src/systems/CombatSystem.ts`：普通攻擊判定處接入 `getBasicAttackVfxId(actor)`。
+    - `src/models/VFX.ts`：`VFXPreset` 介面擴充 `flameTurbulence`, `flameTurbulenceSpeed`, `coreMeshShape`, `spikeAngle`, `waveRadius`, `waveThickness`, `waveColor`, `waveBlur`, `wavePlane` 欄位。
+    - `tools/vfx-studio.html`：
+      - 左側面板：新增「⚔️ 普攻自訂特效連結」管理面板，支援一鍵將當前特效綁定至各武器類型（巨劍、戰弓、法杖、雙匕首、劍盾、聖典等）或還原；技能驗收下拉選單最上方注入各職業普攻項目。
+      - 右側面板：`#inspector-right` 補上 `.inspector-panel` 與 `padding-bottom: 140px`，徹底終結最下方卡片被底部工具列遮擋的問題。
+      - 著色器與動畫：實裝體積黑體動態火焰熱浪震顫（`uTurbulence` / `uTurbulenceSpeed`）、冰箭泛光半徑與透明度連動、受擊散佈半徑 (`salvoSpreadRadius`) 隨機偏移、連斬隨機角度擾動 (`slashAngleJitter`) 與交錯反手、**複合多圖層積木 (Layers) 獨立子預設渲染（支援子預設專屬 Color/Scale/Shader 解耦全域 config）與二次戰鬥 HIT 打擊反饋（獨立受擊抖動與暴擊跳字）**、地刺角度自訂 (`spikeAngle`) 並消除 `rotateX` 錯位確保尖端精準朝向設定方位角、**地刺腳底貼地定位校正（`pos.y - 65` 解決臉上生刺）、生長分佈範圍 (`spikeRadius`，20px~280px) 與 🎲 Fisher-Yates 亂數洗牌破土時差（`spikeStagger`，告別死板流水線順序，隨機錯峰狂暴破土，高度起伏 82%~118%）**、漫天弧線 (`ARC_MULTI`) 強化側向外散包抄曲率、核心彈頭幾何形態（Sphere, Diamond, Arrow, Star, Ring）、以及受擊擴散光圈專屬邊緣羽化 (`waveBlur`) 柔焦著色器與 2.5D 水平地面透視俯角（68°）及受擊腳底貼地定位。
+    - `src/ui/fx/CombatFXEngine.ts`：同步更新火焰著色器支援熱浪震顫參數，同步校正地刺錨點、腳底貼地、範圍分佈、🎲 亂數洗牌時差與地面光圈 2.5D 俯視角。
+  - **進度**：全數通過 37 個測試檔案 197 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+
+- **[Feature/CombatSkill/CompositeSkillEngineOverhaul] 積木技能核心邏輯補完 (Phase 6) 與多目標獨立分流 (2026-09-03)**：
+  - **模組架構**：
+    - `src/systems/combat/SkillEffectEngine.ts`：實裝 `resolveBlockTargets` 依目標型別精準分流，支援單技能多 block 各自鎖定不同陣營與目標；實裝 HP Cost、Mark Cost、ScaleType 縮放、`IS_CRIT` 條件追擊與延遲炸彈。
+    - `src/systems/combat/SkillRegistry.ts`：統一管理編譯時 JSON、LocalStorage 草稿與動態註冊，`triggerHooks` 全面接入 Registry。
+    - `src/models/Skill.ts`：`CompositeSkillDefinition` 與 `Skill` 擴充 `vfxId` 與 `accuracyPolicy`。
+    - `src/systems/combat/SkillEffectEngine.test.ts`：新增 5 大驗收測試（「單體傷害 → 自我治療 → 全隊 Buff」三 block 複合驗證），全套擴充至 12 項測試。
+  - **進度**：全數通過 37 個測試檔案 197 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+
+- **[Test/CombatVFX/FullTestMatrixAndDefinitionOfDoneCompleted] 戰鬥時間軸與視覺回放 12 種經典測試矩陣全數落地、Definition of Done 全面達成（2026-09-03）**：
+  - **模組架構**：
+    - `src/systems/combat/CombatActionTimeline.test.ts`：實裝覆蓋接手文件第 7 節之 12 種戰鬥與視覺回放情境（單體一擊、單體三連擊、PRIMARY_ONLY/SPLIT_SINGLE_IMPACT 單次傷害多段演出、3 人 AOE、3 人 × 2 HIT、連鎖雷擊、吸血、護盾攔截、治療/Buff、MISS、Skip/關閉零殘留、複合圖層），全套擴充至 20 項測試。
+    - `src/models/Combat.ts`：`CombatEvent` 擴充 `healAmount` 具名型別，確保各類戰鬥事件強型別契約。
+    - `docs/VFX_COMBAT_PIPELINE_HANDOVER.md`：16 項完成定義條件全部達成並通過查核標記。
+  - **進度**：全數通過 37 個測試檔案 192 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+
+- **[Feature/CombatVFX/UnifiedVFXPlayerAndStudioAdapter] 特效共用播放器 (VFXPlayer)、工房沙盒適配器 (VFXStudioAdapter) 與渲染中樞統一 (Phase 3)（2026-09-03）**：
+  - **模組架構**：
+    - `src/ui/fx/VFXPlayer.ts`：專案統一回放出口，重新導出 `CombatFXEngine` / `VFXPlayer`、`VFXStudioAdapter`、`VFXPresetRepository`、`VFXPresetValidator`。
+    - `src/ui/fx/VFXStudioAdapter.ts`：提供 Viewport 與 DOM 元素之精確螢幕中心座標計算、單目標與多目標（AOE）並發回放、受擊抖動動畫（`shake-hit`）觸發與衝擊回呼轉發。
+    - `src/ui/fx/CombatFXEngine.ts`：新增 `playPresetConfig` 支援以記憶體動態 Preset 物件播放特效。
+    - `tools/vfx-studio.html`：接入 `VFXStudioAdapter` 與 `VFXPresetRepository`，實現工房與實戰共用同一套 Three.js 渲染與圖層排程。
+  - **進度**：全數通過 37 個測試檔案 180 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+
+- **[Feature/CombatVFX/PresetRepositoryAndCombatStudioAudit] 特效預設分層倉庫 (VFXPresetRepository)、強健資料驗證 (VFXPresetValidator) 與戰鬥工坊 Action/Impact 稽核整合（2026-09-03）**：
+  - **模組架構**：
+    - `src/ui/fx/VFXPresetRepository.ts`：三層資料模型（`builtIn`, `overrides`, `custom`），Schema v2 遷移，支援出廠還原與監聽廣播。
+    - `src/ui/fx/VFXPresetValidator.ts`：強健 Preset 資料結構驗證器，以及 `SKILL_VFX_MAP` 全技能特效無孤兒引用稽核。
+    - `src/ui/fx/CombatFXEngine.ts`：接入 `VFXPresetRepository` 達成全域資料 SSOT。
+    - `src/tools/CombatStudio.ts`：在單場戰鬥播放器日誌實裝 Action/Impact 與 VFX Cue 即時分析，段數不一致警告標籤（`⚠️ impact(X) ≠ cue(Y)`）。
+    - `src/systems/combat/CombatActionTimeline.test.ts`：新增 2 項新測試（Repository CRUD 與 SKILL_VFX_MAP 完整性檢驗），全套測試擴增至 8 項。
+  - **進度**：全數通過 37 個測試檔案 180 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+
+- **[Refactor/CombatVFX/PipelineOverhaulAndAoeTargetDecouple] 特效工房 × 戰鬥管線重大重構：Action/Impact 契約實裝、AOE 多目標跳字血條獨立化、定時器取消機制與二次座標轉換修復（2026-09-03）**：
+  - **模組架構**：
+    - `src/models/Combat.ts`：導出 `CombatImpactKind`，於 `CombatEvent` 擴充 `actionId`、`impactIndex`、`impactCount` 與 `impactKind` 契約欄位。
+    - `src/systems/CombatSystem.ts`：為普通攻擊與技能執行注入一致的 `actionId`，關聯同一次行動內所有 HIT、CRIT、HEAL 與 SHIELD_DAMAGE 事件，並標註精準打擊順序。
+    - `src/ui/CombatUIManager.ts`：徹底消除 Lookahead 傷害累加錯誤；引入 `targetEventsMap` 實現 AOE 多目標獨立受擊抖動、專屬傷害跳字與血條更新；實裝 `PRIMARY_ONLY`（最後一段作為 Primary Cue 結算）與真多段 `EXACT_IMPACTS` 逐段打擊。
+    - `src/ui/fx/CombatFXEngine.ts`：實裝 `playbackGeneration` 與 `scheduledTimers`，`clear()` 時徹底取消所有延遲定時器；分離 `playPreset` 與 `playPresetWorld`，解決複合圖層二次世界座標轉換；提供無 DOM 環境相容防呆。
+    - `src/models/VFX.ts`：擴充 `emitsImpactCue`、`VFXImpactCue` 與 `ImpactPresentationMode` 定義。
+    - `src/data/vfx_presets.json`：修復重複宣告之 `VFX_METEOR_STRIKE`，將黑體隕石重命名為 `VFX_VOLUMETRIC_METEOR`，Preset ID 100% 唯一。
+    - `src/systems/combat/CombatActionTimeline.test.ts`：新增 6 項回歸測試，覆蓋契約、Preset 資料完整性、定時器取消、AOE 隔離與演出模式。
+  - **進度**：全數通過 37 個測試檔案 178 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+
 - **[Fix/CombatVFX/StudioUISquishAndOverlapFix] 特效工房控制項重疊壓字與卡片高度遭 Flex 壓縮截斷根因修復（2026-09-03）**：
   - **模組架構**：
     - `tools/vfx-studio.html`：修復 `.sidebar-left` 內部 `.inspector-card` 預設 `flex-shrink: 1` 導致在高度有限時被強行壓縮、卡片下半部選項被 `overflow: hidden` 切斷的致命問題。為 `.inspector-card` 加上 `flex-shrink: 0;` 與 `overflow: visible;`。優化 `.param-slider` 上下 margin（`6px 0`）與 `.inspector-card-body` gap（`11px`），杜絕滑桿圓點與下行文字重疊；`.param-row-2col` 頂部對齊避免非對稱拉扯；右側 Inspector 面板 `padding-bottom` 擴展至 `100px` 徹底杜絕底部按鈕遮擋。

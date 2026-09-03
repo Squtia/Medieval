@@ -689,22 +689,32 @@ export class CombatUIManager {
         }, 280);
       }
 
-      // 🔄 若為技能施放事件：往後預先提取歸屬於本次施法的傷害數據（避免後續重複撞擊）
-      let harvestedDamage = (event.damage || 0);
-      let finalTargetHp = event.targetHp;
-      let finalTargetMaxHp = event.targetMaxHp;
-      let isCrit = event.type === CombatEventType.CRIT;
+      // 🔄 若為技能施放事件：往後提取歸屬於本次施法的傷害數據（依目標各自獨立管理）
+      const targetEventsMap = new Map<string, CombatEvent[]>();
 
       if (event.type === CombatEventType.SKILL_CAST) {
         for (let k = this.eventIndex + 1; k < this.currentEventQueue.length; k++) {
           const followEv = this.currentEventQueue[k];
-          if ((followEv.type === CombatEventType.HIT || followEv.type === CombatEventType.CRIT) && followEv.actorId === event.actorId) {
+          const matchAction = event.actionId ? followEv.actionId === event.actionId : (followEv.actorId === event.actorId);
+          if (matchAction && (
+            followEv.type === CombatEventType.HIT ||
+            followEv.type === CombatEventType.CRIT ||
+            followEv.type === CombatEventType.HEAL ||
+            followEv.type === CombatEventType.SHIELD_DAMAGE ||
+            followEv.type === CombatEventType.SHIELD_BREAK
+          )) {
             (followEv as any).absorbedBySkillCast = true;
-            harvestedDamage += (followEv.damage || 0);
-            if (followEv.targetHp !== undefined) finalTargetHp = followEv.targetHp;
-            if (followEv.targetMaxHp !== undefined) finalTargetMaxHp = followEv.targetMaxHp;
-            if (followEv.type === CombatEventType.CRIT) isCrit = true;
-          } else if (followEv.type === CombatEventType.SKILL_CAST || followEv.type === CombatEventType.DEATH || followEv.type === CombatEventType.TURN_START) {
+            const tId = followEv.targetId || fxTargetId || '';
+            if (tId) {
+              if (!targetEventsMap.has(tId)) targetEventsMap.set(tId, []);
+              targetEventsMap.get(tId)!.push(followEv);
+            }
+          } else if (
+            followEv.type === CombatEventType.SKILL_CAST ||
+            followEv.type === CombatEventType.DEATH ||
+            followEv.type === CombatEventType.TURN_START ||
+            (event.actionId && followEv.actionId && followEv.actionId !== event.actionId)
+          ) {
             break;
           }
         }
@@ -756,10 +766,19 @@ export class CombatUIManager {
 
         // 🥊 執行 3D 特效飛行，並在特效命中的每個 HIT 斷點觸發多段打擊感與分段跳字！
         await CombatFXEngine.getInstance().playPreset(vfxId, fromPt, toPt, (impact: VFXImpactConfig, hitIdx: number, totalHits: number) => {
-          if (targetEl) {
-            const isTargetEnemy = targetEl.classList.contains('enemy-side');
+          const isLastHit = (hitIdx >= totalHits - 1);
+
+          // 🛡️ 針對所有受影響目標（包含 AOE 多人），各自觸發受擊感與各自專屬跳字
+          const affectedTargets = targetEventsMap.size > 0 
+            ? Array.from(targetEventsMap.keys())
+            : (fxTargetId ? [fxTargetId] : []);
+
+          affectedTargets.forEach((tId) => {
+            const currentTargetEl = document.getElementById(`combat-p-${tId}`) || (tId === fxTargetId ? targetEl : null);
+            if (!currentTargetEl) return;
+
+            const isTargetEnemy = currentTargetEl.classList.contains('enemy-side');
             const knockDir = isTargetEnemy ? 1 : -1;
-            const isLastHit = (hitIdx >= totalHits - 1);
 
             // 前段輕微顫動，尾段重擊破甲
             const knockDist = isLastHit ? ((impact.knockbackDistance || 0) * knockDir) : 0;
@@ -768,59 +787,75 @@ export class CombatUIManager {
             const shakeDur = isLastHit ? (impact.shakeDuration || 0.28) : 0.16;
             const punchScale = isLastHit ? (impact.targetPunchScale || 0.88) : 0.95;
 
-            targetEl.style.setProperty('--punch-scale', punchScale.toString());
-            targetEl.style.setProperty('--shake-x', `${shakeX}px`);
-            targetEl.style.setProperty('--shake-y', `${shakeY}px`);
-            targetEl.style.setProperty('--shake-dur', `${shakeDur}s`);
-            targetEl.style.setProperty('--flash-color', impact.hitFlashColor || '#ffffff');
-            targetEl.style.setProperty('--knockback-x', `${knockDist}px`);
+            currentTargetEl.style.setProperty('--punch-scale', punchScale.toString());
+            currentTargetEl.style.setProperty('--shake-x', `${shakeX}px`);
+            currentTargetEl.style.setProperty('--shake-y', `${shakeY}px`);
+            currentTargetEl.style.setProperty('--shake-dur', `${shakeDur}s`);
+            currentTargetEl.style.setProperty('--flash-color', impact.hitFlashColor || '#ffffff');
+            currentTargetEl.style.setProperty('--knockback-x', `${knockDist}px`);
 
-            targetEl.classList.remove('target-hit');
-            void targetEl.offsetWidth;
-            targetEl.classList.add('target-hit');
+            currentTargetEl.classList.remove('target-hit');
+            void currentTargetEl.offsetWidth;
+            currentTargetEl.classList.add('target-hit');
 
             setTimeout(() => {
-              targetEl.classList.remove('target-hit');
+              currentTargetEl.classList.remove('target-hit');
             }, shakeDur * 1000);
 
-            // 🎯 特效出現多少次 HIT 就跳多少次數字傷害 (技能設定的傷害 / 特效 HIT 次數)
-            if (harvestedDamage > 0) {
-              const baseDmg = Math.floor(harvestedDamage / totalHits);
-              const thisHitDmg = isLastHit ? (harvestedDamage - baseDmg * (totalHits - 1)) : baseDmg;
-
-              if (thisHitDmg > 0) {
+            // 🎯 跳字邏輯（真多段 EXACT_IMPACTS 逐段跳；單次 PRIMARY_ONLY 於最後一段跳）
+            const tEvents = targetEventsMap.get(tId) || [];
+            if (tEvents.length > 1) {
+              // 真多段：依 hitIdx 取對應 impact
+              if (hitIdx < tEvents.length) {
+                const curEv = tEvents[hitIdx];
+                if (curEv.damage && curEv.damage > 0) {
+                  const isCritHit = curEv.type === CombatEventType.CRIT;
+                  const dmgEl = document.createElement('div');
+                  dmgEl.className = `floating-dmg ${isCritHit ? 'crit' : ''}`;
+                  dmgEl.textContent = `${isCritHit ? '💥 ' : ''}-${curEv.damage}`;
+                  currentTargetEl.appendChild(dmgEl);
+                  setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 800);
+                }
+              }
+            } else if (tEvents.length === 1) {
+              // 單次傷害：依使用者指示（PRIMARY_ONLY：最後一段跳出完整傷害）
+              const singleEv = tEvents[0];
+              if (isLastHit && singleEv.damage && singleEv.damage > 0) {
+                const isCritHit = singleEv.type === CombatEventType.CRIT;
                 const dmgEl = document.createElement('div');
-                dmgEl.className = `floating-dmg ${(isCrit && isLastHit) ? 'crit' : ''}`;
-                dmgEl.textContent = `${(isCrit && isLastHit) ? '💥 ' : ''}-${thisHitDmg}`;
-                targetEl.appendChild(dmgEl);
+                dmgEl.className = `floating-dmg ${isCritHit ? 'crit' : ''}`;
+                dmgEl.textContent = `${isCritHit ? '💥 ' : ''}-${singleEv.damage}`;
+                currentTargetEl.appendChild(dmgEl);
+                setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 800);
+              }
+            } else if (event.damage && event.damage > 0) {
+              // 非技能預先吸收的一般直接打擊 (如普攻或單一事件)
+              if (isLastHit) {
+                const dmgEl = document.createElement('div');
+                dmgEl.className = `floating-dmg ${event.type === CombatEventType.CRIT ? 'crit' : ''}`;
+                dmgEl.textContent = `${event.type === CombatEventType.CRIT ? '💥 ' : ''}-${event.damage}`;
+                currentTargetEl.appendChild(dmgEl);
                 setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 800);
               }
             }
+          });
 
-            // 最後一段命中時，結算血條扣減與終結全螢幕震動！
-            if (isLastHit) {
-              if (finalTargetHp !== undefined && fxTargetId && finalTargetMaxHp !== undefined) {
-                this.hpMap[fxTargetId] = finalTargetHp;
-                const fillEl = document.getElementById(`hp-fill-${fxTargetId}`);
-                if (fillEl) {
-                  const pct = Math.max(0, (finalTargetHp / finalTargetMaxHp) * 100);
-                  fillEl.style.width = `${pct}%`;
-                  if (pct < 30) fillEl.classList.add('low');
-                  else fillEl.classList.remove('low');
+          // 最後一段命中時，所有受術目標各自結算血條扣減！
+          if (isLastHit) {
+            if (targetEventsMap.size > 0) {
+              targetEventsMap.forEach((tEvents, tId) => {
+                const lastEv = [...tEvents].reverse().find(e => e.targetHp !== undefined);
+                if (lastEv && lastEv.targetHp !== undefined && lastEv.targetMaxHp !== undefined) {
+                  CombatUIManager.updateTargetHpUi(tId, lastEv.targetHp, lastEv.targetMaxHp);
                 }
-                const txtEl = document.getElementById(`hp-txt-${fxTargetId}`);
-                if (txtEl) {
-                  txtEl.textContent = `${Math.max(0, finalTargetHp)}/${finalTargetMaxHp}`;
-                }
-                if (finalTargetHp <= 0) {
-                  targetEl.classList.add('is-dead');
-                }
-              }
+              });
+            } else if (event.targetHp !== undefined && fxTargetId && event.targetMaxHp !== undefined) {
+              CombatUIManager.updateTargetHpUi(fxTargetId, event.targetHp, event.targetMaxHp);
+            }
 
-              if (impact.screenShake && this.modal) {
-                this.modal.classList.add('shake');
-                setTimeout(() => this.modal.classList.remove('shake'), 350);
-              }
+            if (impact.screenShake && this.modal) {
+              this.modal.classList.add('shake');
+              setTimeout(() => this.modal.classList.remove('shake'), 350);
             }
           }
         });
@@ -836,6 +871,25 @@ export class CombatUIManager {
     this.applyDamageAndFloatingNumbers(event);
     const nonHitDelay = this.currentSpeed <= 250 ? 80 : (this.currentSpeed <= 550 ? 180 : 300);
     await new Promise(r => setTimeout(r, nonHitDelay));
+  }
+
+  public static updateTargetHpUi(targetId: string, currentHp: number, maxHp: number): void {
+    this.hpMap[targetId] = currentHp;
+    const fillEl = document.getElementById(`hp-fill-${targetId}`);
+    if (fillEl) {
+      const pct = Math.max(0, (currentHp / maxHp) * 100);
+      fillEl.style.width = `${pct}%`;
+      if (pct < 30) fillEl.classList.add('low');
+      else fillEl.classList.remove('low');
+    }
+    const txtEl = document.getElementById(`hp-txt-${targetId}`);
+    if (txtEl) {
+      txtEl.textContent = `${Math.max(0, currentHp)}/${maxHp}`;
+    }
+    if (currentHp <= 0) {
+      const targetEl = document.getElementById(`combat-p-${targetId}`);
+      if (targetEl) targetEl.classList.add('is-dead');
+    }
   }
 
   private static renderEvent(event: CombatEvent, instant = false) {

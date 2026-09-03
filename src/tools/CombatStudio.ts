@@ -20,6 +20,7 @@ import equipmentWeaponsJson from '../data/equipment_weapons.json';
 import equipmentArmorsJson from '../data/equipment_armors.json';
 import equipmentAccessoriesJson from '../data/equipment_accessories.json';
 import customSkillsJson from '../data/CustomSkillData.json';
+import { VFXPresetRepository } from '../ui/fx/VFXPresetRepository';
 import '../styles/combat-studio.css';
 
 // 工具函式
@@ -4333,7 +4334,31 @@ class CombatStudioController {
     if (ev.type === CombatEventType.HEAL) row.classList.add('heal');
     if (ev.type === CombatEventType.STATUS_APPLY) row.classList.add('status');
 
-    row.textContent = ev.text;
+    // 🔍 Phase 5: Action/Impact 與 VFX Cue 稽核資訊
+    let debugTag = '';
+    if (ev.actionId) {
+      const segInfo = ev.impactIndex !== undefined && ev.impactCount !== undefined
+        ? `Seg ${ev.impactIndex + 1}/${ev.impactCount}`
+        : '';
+      const vfxInfo = ev.vfxId ? `VFX: ${ev.vfxId}` : '';
+      let warningTag = '';
+      if (ev.vfxId && ev.impactCount !== undefined) {
+        const repo = VFXPresetRepository.getInstance();
+        const p = repo.getPreset(ev.vfxId);
+        const cuesCount = p ? (p.hitCount || p.salvoCount || 1) : 1;
+        if (ev.impactCount !== cuesCount) {
+          warningTag = `<span class="cs-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.65rem;" title="戰鬥數值段數與視覺段數不一致">⚠️ impact(${ev.impactCount}) ≠ cue(${cuesCount})</span>`;
+        }
+      }
+      debugTag = `<div class="cs-log-debug-meta" style="font-size: 0.65rem; color: #64748b; font-family: monospace; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+        <span>🆔 ${ev.actionId}</span>
+        ${segInfo ? `<span>| 🥊 ${segInfo}</span>` : ''}
+        ${vfxInfo ? `<span>| ✨ ${vfxInfo}</span>` : ''}
+        ${warningTag}
+      </div>`;
+    }
+
+    row.innerHTML = `<div>${ev.text}</div>${debugTag}`;
     logBox.appendChild(row);
     logBox.scrollTop = logBox.scrollHeight;
 
