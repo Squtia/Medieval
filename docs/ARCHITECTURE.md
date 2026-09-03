@@ -17,6 +17,7 @@
 │   ├── MONSTERS_AND_ELEMENTS.md # [核心手冊] 64+隻魔物母庫、種族前綴、元素相剋與動態副將接替規範
 │   ├── MATERIALS_AND_ITEMS.md   # [核心手冊] 全道具、特產、鍛造素材與五大元素附魔石手冊
 │   ├── SKILL_WORKSHOP_SPEC.md   # [核心手冊] 全自訂積木技能工坊規範與效果編譯器設計
+│   ├── VFX_COMBAT_PIPELINE_HANDOVER.md # [P0 接手計畫] 特效工房、戰鬥 HIT、共用播放器與技能管線重構
 │   ├── FUTURE_DESIGN.md     # [核心藍圖] 未來系統擴充規範與程式碼引用總覽
 │   ├── game_system_guide.md # [玩法手冊] 全系統玩法指南與工坊架構概覽
 │   ├── STORY_STUDIO_GUIDE.md# 故事條件、英雄連動、討伐據點與測試操作指南

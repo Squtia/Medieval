@@ -1165,6 +1165,20 @@ h1, h2, h3 { font-family: 'Cinzel', serif; }
 .hit-flash { animation: hitFlash 0.3s ease-out; }
 .skill-cast-glow { animation: skillCastGlow 0.45s ease-out; }
 
+/* 🥊 專業戰鬥打擊感：定格擠壓、受擊抖動、受擊閃光與擊退復位 */
+.target-hit {
+  animation: animHit var(--shake-dur, 0.3s) cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform, filter;
+}
+@keyframes animHit {
+  0% { transform: scale(1) translateX(0); filter: drop-shadow(0 0 15px var(--flash-color, #ffffff)) brightness(2.2); }
+  20% { transform: scale(var(--punch-scale, 0.88)) translate(calc(var(--knockback-x, 0px) - var(--shake-x, 12px)), var(--shake-y, 4px)); filter: drop-shadow(0 0 25px var(--flash-color, #ffffff)) brightness(2.8); }
+  40% { transform: scale(var(--punch-scale, 0.88)) translate(calc(var(--knockback-x, 0px) + var(--shake-x, 12px)), calc(0px - var(--shake-y, 4px))); }
+  60% { transform: scale(1.02) translate(calc(var(--knockback-x, 0px) * 0.5 - 0.5 * var(--shake-x, 12px)), 2px); }
+  80% { transform: scale(0.99) translate(calc(var(--knockback-x, 0px) * 0.2 + 0.3 * var(--shake-x, 12px)), 0); }
+  100% { transform: scale(1) translate(0, 0); filter: none; }
+}
+
 /* 陣亡狀態 */
 .combat-participant.is-dead {
   filter: grayscale(100%) opacity(0.35);

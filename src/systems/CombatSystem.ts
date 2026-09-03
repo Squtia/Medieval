@@ -4,7 +4,7 @@ import { CombatReport, CombatEvent, CombatEventType, CombatParticipant, StatusEf
 import { FormationRow, TerrainType, EquipmentSlot, getOfficeConfig, DamageType, ElementType } from '../models/types';
 import { Random } from '../core/Random';
 import { TargetType } from '../models/Skill';
-import { SKILLS } from '../data/SkillData';
+import { SKILLS, getSkillVfxId } from '../data/SkillData';
 import { SkillRegistry } from './combat/SkillRegistry';
 import { GambitEvaluator } from './combat/GambitEvaluator';
 import { calculateSkillDamage, getEvade } from '../utils/CombatMath';
@@ -968,7 +968,11 @@ export class CombatSystem {
           events.push({
             type: CombatEventType.SKILL_CAST,
             actorId: actor.id, actorName: actor.name,
-            targetId: actor.id,
+            targetId: actor.id,            // 保留為施術者自身，用於 MP 條更新
+            skillTargetId: skillTargets[0]?.id, // 特效飛行目標：技能第一個受術目標
+            skillId: selectedSkill.id,
+            skillName: selectedSkill.name,
+            vfxId: selectedSkill.vfxId || getSkillVfxId(selectedSkill.id),
             targetMp: actor.currentMp || 0,
             targetMaxMp: actor.maxMp || 100,
             text: `${actor.name} 消耗了 ${selectedSkill.mpCost} MP 施放【${selectedSkill.name}】！`
@@ -1021,6 +1025,9 @@ export class CombatSystem {
                 }
               }
             }
+            if (!se.skillId) se.skillId = selectedSkill.id;
+            if (!se.skillName) se.skillName = selectedSkill.name;
+            if (!se.vfxId) se.vfxId = selectedSkill.vfxId || getSkillVfxId(selectedSkill.id);
             finalSkillEvents.push(se);
           });
 
@@ -1134,6 +1141,9 @@ export class CombatSystem {
           hpDamage = PassiveManager.onAllyTakingDamage(target, hpDamage, playerTeam, events);
 
           target.currentHp -= hpDamage;
+          const normalAttackType = actor.attackType || (actor.isMagicalAttacker ? 'MAGIC' : (actor.weaponType === 'BOW' || actor.weaponType === 'MAGIC_BOW' ? 'RANGED' : 'MELEE'));
+          const normalVfxId = getSkillVfxId(undefined, normalAttackType);
+
           events.push({
             type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
             actorId: actor.id, actorName: actor.name,
@@ -1141,6 +1151,7 @@ export class CombatSystem {
             damage: hpDamage,
             targetHp: target.currentHp,
             targetMaxHp: target.maxHp,
+            vfxId: normalVfxId,
             text: `${actor.name} 攻擊了 ${target.name}，${isCrit ? '致命一擊！' : ''}對本體造成 ${hpDamage} 點傷害。`
           });
           

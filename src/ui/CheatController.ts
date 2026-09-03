@@ -171,6 +171,18 @@ export function initCheatController(): void {
         window.open('./tools/skill-workshop.html', '_blank');
         ToastManager.show(`⚡ 已在新分頁開啟「全自訂積木技能工坊 (Skill Workshop)」！`);
     }},
+    'vfx': { name: '開啟專業 3D 技能特效工坊', noPrompt: true, setter: () => {
+        window.open('./tools/vfx-studio.html', '_blank');
+        ToastManager.show(`✨ 已在新分頁開啟「專業 3D 技能特效工坊 (VFX Studio)」！`);
+    }},
+    'fx': { name: '開啟專業 3D 技能特效工坊', noPrompt: true, setter: () => {
+        window.open('./tools/vfx-studio.html', '_blank');
+        ToastManager.show(`✨ 已在新分頁開啟「專業 3D 技能特效工坊 (VFX Studio)」！`);
+    }},
+    'vfxstudio': { name: '開啟專業 3D 技能特效工坊', noPrompt: true, setter: () => {
+        window.open('./tools/vfx-studio.html', '_blank');
+        ToastManager.show(`✨ 已在新分頁開啟「專業 3D 技能特效工坊 (VFX Studio)」！`);
+    }},
     'addur': { name: '召喚唯一 UR【赤焰戰神】', noPrompt: true, setter: () => {
         const hero = createUniqueAdventurer('reyn');
         if (hero) {
@@ -240,6 +252,14 @@ export function initCheatController(): void {
 
   (window as any).openEquipmentStudio = () => {
     window.open('./tools/equipment-studio.html', '_blank');
+  };
+
+  (window as any).openVfxStudio = () => {
+    window.open('./tools/vfx-studio.html', '_blank');
+  };
+
+  (window as any).cheatVfx = () => {
+    window.open('./tools/vfx-studio.html', '_blank');
   };
 
   document.addEventListener('keydown', (e: KeyboardEvent) => {

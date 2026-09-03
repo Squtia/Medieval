@@ -1,3 +1,77 @@
+- **[Fix/CombatVFX/StudioUISquishAndOverlapFix] 特效工房控制項重疊壓字與卡片高度遭 Flex 壓縮截斷根因修復（2026-09-03）**：
+  - **模組架構**：
+    - `tools/vfx-studio.html`：修復 `.sidebar-left` 內部 `.inspector-card` 預設 `flex-shrink: 1` 導致在高度有限時被強行壓縮、卡片下半部選項被 `overflow: hidden` 切斷的致命問題。為 `.inspector-card` 加上 `flex-shrink: 0;` 與 `overflow: visible;`。優化 `.param-slider` 上下 margin（`6px 0`）與 `.inspector-card-body` gap（`11px`），杜絕滑桿圓點與下行文字重疊；`.param-row-2col` 頂部對齊避免非對稱拉扯；右側 Inspector 面板 `padding-bottom` 擴展至 `100px` 徹底杜絕底部按鈕遮擋。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+
+- **[P0/CombatVFX/HandoverPlan] 特效工房 × 戰鬥 HIT 管線接手重構計畫（2026-09-03）**：
+  - 已完成現況稽核，確認目前真正戰鬥傷害由 `CombatSystem`／`SkillEffectEngine` 預先結算，VFX `onImpact` 僅負責回放節奏；`generatesHit` 並非真正的遊戲 HIT。
+  - 已確認 P0 風險包含：AOE／多目標傷害被 `CombatUIManager` lookahead 合併到第一目標、技能 HIT 數與 VFX salvo 數雙重真相、複合圖層重複 impact、世界座標二次轉換，以及 `clear()` 未取消延遲排程。
+  - 核心驗收需求：特效工房可編排多段命中 cue；實戰回放在每個 cue 的精確時間，依 `cueId` 顯示對應 `CombatImpact` 的原始傷害、爆擊與目標，不得平均分傷或合併目標。
+  - 多段語意拆分：魔劍士等真正多段技能使用 `EXACT_IMPACTS`，每段各自結算；一般 1XX% 單次傷害若需多段視覺，使用 `SPLIT_SINGLE_IMPACT`，只拆跳字與演出，不重複觸發戰鬥判定。
+  - 完整接手順序、目標事件契約、分階段修改清單、測試矩陣與完成定義請以 [`VFX_COMBAT_PIPELINE_HANDOVER.md`](./VFX_COMBAT_PIPELINE_HANDOVER.md) 為準。
+
+- **[Feature/CombatVFX/StudioDeepOverhaul7CoreIssuesResolved] 特效工房與戰鬥管線 7 大核心痛點徹底修復與深度重構（2026-09-03）**：
+  - **模組架構**：
+    - `src/models/VFX.ts`：擴充 `glowRadius`, `glowOpacity`, `coreBrightness`, `salvoSpreadRadius`, `slashAngleJitter`, `slashAlternating`, `spikeShape`, `spikeWidth`，以及 `VFXLayer` 之 `presetId`, `generatesHit` 欄位。
+    - `src/ui/fx/CombatFXEngine.ts`：實裝 `createVolumetricFlameMaterial`（GLSL Simplex Noise 頂點法線抖動 + 黑體輻射光譜）、`createGlowSprite` 支援動態透明度與自訂半徑、`spawnSecondarySpikes` 支援四種幾何形態與粗細高度、`playPreset` 支援 `layer.presetId` 積木排程與 `salvoSpreadRadius` 受擊散佈；函式簽名升級為靈活參數多載，相容 4 參數與 5 參數呼叫。
+    - `tools/vfx-studio.html`：修復 `spawnImpactBurst` 粒子座標系 BUG（改為 `group.add(pts)`，100% 精準在目標胸膛炸開）；徹底拔除 `canvas.style.filter` 造成的過曝白死問題；實裝複合多圖層積木排程器（UI 動態增刪 Layer，下拉引用 Preset，設定延遲與戰鬥 HIT 跳字判定）；左翼卡片新增連斬角度擾動、左右交錯反手、受擊散佈半徑；右翼卡片新增泛光半徑、光暈透明度、核心白熾度與地刺形態選單、地刺粗細高度。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+- **[Feature/CombatVFX/StudioPipelineFullOverhaulAndMultiTargetSandbox] 特效工房全管線深度重構、技能雙向綁定打通、通用動態渲染器實裝、幽靈控制項落實與 AOE 多目標驗收模式（2026-09-03）**：
+  - **模組架構**：
+    - `src/data/SkillData.ts` & `tools/vfx-studio.html`：徹底修復技能綁定中英文 ID 不匹配導致遊戲戰鬥無法讀取自訂特效的斷鏈問題。實裝雙向容錯反查機制，工房綁定時同步寫入技能中文名稱與程式代碼 ID。
+    - `src/ui/fx/CombatFXEngine.ts`：全面參數化升級。告別舊有硬編碼常數攔截，實裝 `playDynamicProjectile`、`playDynamicLightning`、`playDynamicBeam`、`spawnSecondarySpikes` 與 `spawnDynamicImpactBurst`；100% 動態接收 Preset 顏色、尺寸、時長、拖尾微粒、自轉角速度與次生冰刺破片。
+    - `tools/vfx-studio.html`：全面落實幽靈控制項真實功能（動態飛行拖尾發射器、次生冰刺 spikes 破裂生成器、Mesh spin 自轉、菲涅爾 Shader 材質應用）；實裝多圖層 (Composite Layers) 沙盒延遲排程播放；新增頂部目標受擊模式切換（單體、前排3人、全體6人、要塞城門），支援多目標卡片同時震動與跳字；新增 SSOT 專案庫導出與還原出廠預設按鈕。
+    - `src/data/vfx_presets.json`：啟用 `VFX_ICE_LANCE` 之 8 根次生冰刺出廠設定，與文字描述完全對齊。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+- **[Feature/CombatVFX/RazorEdgeGradientAndThicknessControl] 斬擊特效質感重塑（漸層氣浪+剃刀鋒刃+胸膛貫穿校準）與刀芒粗細半徑控制項實裝（2026-09-03）**：
+  - **模組架構**：
+    - `src/ui/fx/CombatFXEngine.ts` & `tools/vfx-studio.html`：徹底告別截圖中的死白肥厚塊（棉花糖），全面實裝剃刀鋒刃（Razor Edge，1~2px 超亮白刃）與氣浪漸層（Air Wave Gradient，頂點 Alpha 由外側 1.0 向內側自然消散至 0.0）專屬著色器 `slashShaderMat`；實裝揮砍中心貫穿偏移校準 `centerAngle`，使劍氣中段**精準切穿受擊目標胸膛正中心**（杜絕原本偏在卡片右外側空揮問題）。
+    - `src/models/VFX.ts` & `tools/vfx-studio.html`：擴充 `slashBladeWidth`（刀芒粗細，預設 10px，支援 2px~50px 滑動）與 `slashRadius`（劍氣半徑，預設 65px，支援 30px~130px 滑動），面板提供即時雙滑桿與數值回填。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+- **[Feature/CombatVFX/StudioHitPipelineAndSharpSlashOverhaul] 特效工房主導戰鬥HIT判定管線、全功能升級與次世代動態月牙劍氣實裝（2026-09-03）**：
+  - **模組架構**：
+    - `src/ui/CombatUIManager.ts`：`SKILL_CAST` 觸發單次突進撞擊並預先提取後續傷害（Lookahead Damage Harvesting），由特效的 `onImpact` 回調依 HIT 次數多段震動與分段跳字，後續傷害事件標記 `absorbedBySkillCast`，徹底杜絕卡片二度撞擊與動作脫節。
+    - `src/ui/fx/CombatFXEngine.ts` & `tools/vfx-studio.html`：徹底摒棄舊香蕉旋轉幾何，實裝次世代動態破空劍氣生長算法 `buildDynamicSlashGeo`（頭尾非線性延展、白熱刃尖與順向甩出收尖消散）與命中十字星芒爆散 `playSlashSparks`。
+    - `tools/vfx-studio.html`：實裝「➕ 新增特效」、「📋 複製現有」、「🗑️ 刪除自訂」管理列；實裝「🔗 一鍵綁定至技能」功能，即時寫入 LocalStorage。
+    - `src/data/SkillData.ts`：`getSkillVfxId()` 優先讀取自訂技能綁定表，工房調參即時在遊戲戰鬥中生效。
+    - `src/models/VFX.ts`：新增 `VFXLayer` 介面，支援多圖層複合特效設定。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤、Vite 生產建構 0 錯誤。
+- **[Fix/CombatVFX/CanvasResizeOnModalShow] 特效 canvas 尺寸重算時序修復（2026-09-03）**：
+  - **根本問題**：`CombatFXEngine.mount()` 在 `init()` 時呼叫，modal 為 `display:none`，`clientWidth=0`，Three.js renderer 卡在 `800×500` fallback。modal 顯示後 canvas CSS 被拉伸但 renderer 未同步，特效座標嚴重偏移到畫面外（實際上特效確實在播放，只是看不到）。
+  - **解決方案**：`showCombat()` 和 `startInteractiveCombat()` 將 `CombatFXEngine.resize()` 與 `playTurnQueue()` 放入同一個 `requestAnimationFrame`，確保播放在正確尺寸下開始。
+  - **涉及檔案**：`src/ui/CombatUIManager.ts`
+  - **進度**：TypeScript 0 錯誤，已驗證。
+- **[Fix/CombatVFX/SkillCastFXTarget] 技能特效飛行方向修復（2026-09-03）**：
+  - **根本問題**：`CombatSystem.ts` 中 `SKILL_CAST` 事件的 `targetId` 指向施術者自身，造成特效飛行距離為零（from === to），且未攜帶 `vfxId` 導致一律使用 `VFX_DEFAULT_SLASH`。
+  - **解決方案**：新增 `CombatEvent.skillTargetId` 欄位，`SKILL_CAST` 攜帶技能第一個受術目標 ID 與正確 `vfxId`；`CombatUIManager.renderEventAsync` 優先以 `skillTargetId` 作為特效飛行終點，技能衍生 `HIT`/`CRIT` 事件略過 3D FX 但保留 CSS 打擊震動。
+  - **涉及檔案**：`src/models/Combat.ts`, `src/systems/CombatSystem.ts`, `src/ui/CombatUIManager.ts`
+  - **進度**：TypeScript 型別嚴格檢查 0 錯誤，Vite 生產打包 0 錯誤，已 build 驗證通過。
+- **[Feature/CombatVFX/CompactInspectorAndFreeSlashDynamics] 特效工房右側緊湊型防遮擋重構與自由角度斬擊軌跡引擎（2026-09-03）**：
+  - **模組架構**：
+    - `tools/vfx-studio.html`：徹底消除右側 Inspector 面板底部 Sticky 按鈕遮擋，底部內邊距預留 `75px`；全面實裝雙欄緊湊排列，垂直高度精簡 40%，所有數值一目了然；左側新增「⚔️ 斬擊走向與角度控制」卡片，支援順勢斜劈、反手挑斬、腰際橫斬、垂直力劈與自訂角度，並可自由拖動起手角 (-180°~180°)、揮斬跨度 (30°~240°)、長寬比 (0.4x~2.0x) 與出刀反向開關。
+    - `src/models/VFX.ts`：擴充 `slashTrajectory`, `slashAngle`, `slashArcSpan`, `slashAspect`, `slashReverse` 型別定義。
+    - `src/ui/fx/CombatFXEngine.ts`：`playArcSlash` 完整支援角度、跨度與長寬比動力學渲染。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤。
+- **[Feature/CombatVFX/ThreeColumnStudioAndSalvoRhythm] 三欄式專業特效工房、彈幕發射節奏曲線與多段打擊管線實裝（2026-09-03）**：
+  - **模組架構**：
+    - `tools/vfx-studio.html`：重構為左翼（發射端與外觀形態）、中翼（寬闊 3D 舞台與卡牌）、右翼（材質光學與受擊反饋）之三欄式工作台；實裝 `salvoCount`（1~12 發）、`salvoDuration`（0.1~2.0s）、`salvoRhythmCurve`（等距/加速/衰減/雙發點射/隨機散佈）、`salvoSpreadAngle`（0°~45°）、`arcHeight`（0~300px）與多段打擊命中回饋（前段輕微顫 + 終結重震）。
+    - `src/models/VFX.ts` & `src/data/vfx_presets.json`：擴充彈幕與節奏型態定義，並為箭雨、齊射、幻影劍舞、飛彈預設多發連射參數。
+    - `src/ui/fx/CombatFXEngine.ts`：實裝 Promise 超時安全閥（Failsafe Timeout），確保任何異常或最小化情境皆 100% 釋放戰鬥回放鎖。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤。
+- **[Feature/CombatVFX/ImpactRhythmPipelineAndStudioShowcase] 全技能特效打擊感節奏斷點管線、深化特效工房素材庫與技能驗收窗（2026-09-03）**：
+  - **模組架構**：
+    - `src/models/VFX.ts` & `src/data/vfx_presets.json`：建立包含 29 款預設的 SSOT 特效與打擊感資料庫，涵蓋騎兵衝鋒、步兵盾牆、弓兵齊射、投石機巨石、衝車破門、箭塔齊射、天降流星、神聖庇護金盾、嘲諷戰吼音波與符文壁壘等；全面清空非冰川/非大地技能之 `spikes`，杜絕任何無差別地刺。
+    - `tools/vfx-studio.html`：徹底重構斬擊為流線型月牙刀芒（兩端收尖、中段寬厚），支援 45° 斜劈、十字交錯與雙刃旋風；實裝金色六角神聖護盾、戰吼多重同心音波震盪；新增「卡片 3.5: 專屬幾何形態與模型紋理」供微調斬擊形態、防護壁壘、音波圈數與貼圖材質；相機遠平面擴大至 `5000`，解決舊快照覆蓋問題與 fallback 智慧回退。
+    - `src/ui/fx/CombatFXEngine.ts`：同步實裝月牙刀芒生成演算法 `createCrescentBladeGeo`、金色六角神聖護盾（`playHolyShield`）、戰吼威懾音波（`playTauntShout`），相機遠平面擴大至 `5000`。
+    - `src/ui/CombatUIManager.ts`：全面重構事件播放管線，由純計時器升級為非同步打擊感節奏斷點驅動，傷害跳字與血條扣減延遲至 `onImpact` 命中瞬間精確觸發；實裝非親征戰報 `finishPlayback` 結算分流防呆與雙向受擊 `--knockback-x` 位移；攻城事件自動將打擊目標鎖定至城門 HUD，演繹巨石與衝車砲擊。
+    - `src/systems/CombatSystem.ts`：技能事件保證回填 `skillId`, `skillName`, `vfxId`，普攻事件依職業攻擊型態智慧分配飛箭/魔法/劈砍彈道。
+    - `src/data/SkillData.ts`：全專案技能與軍令 100% 綁定對應 VFX Preset (`SKILL_VFX_MAP`)，且 `getSkillVfxId` 支援關鍵字與元素智慧匹配。
+    - `style.css`：實裝 `.target-hit` 與 `@keyframes animHit` 物理級受擊打擊感樣式。
+    - `tools/combat-studio.html`：新增直達特效工房與技能驗收窗的捷徑按鈕。
+    - `src/ui/CheatController.ts`：實裝鍵盤盲打 `vfx` / `fx` / `vfxstudio` 以及 `window.openVfxStudio()` / `window.cheatVfx()` 全域作弊後門指令。
+    - `vite.config.ts`：移除 watch ignored 中的 `**/src/data/*.json`，確保資料庫更新即時熱載入。
+  - **進度**：全數通過 36 個測試檔案 172 項單元測試、TypeScript 型別嚴格檢查 0 錯誤。
+
 - **[Feature/VFXStudio/ThreeJSShaderAndTransparentOverlay] 專業遊戲 3D 特效工坊（VFX Studio）與透明 WebGL 頂層覆蓋架構（2026-09-02）**：
   - **模組架構**：
     - `tools/vfx-studio.html`：獨立視覺特效調參沙盒，具備 Inspector 面板、多維空間軌跡（水平、斜向天降 45°、垂直天降、地表破土、拋物線）、高階 GLSL 著色器（菲涅爾冰晶、3D Simplex Noise 黑體輻射火焰、介質擊穿電弧、雙頻高能雷射）、Unity 式次生冰刺爆發與火星飛散、Glow Sprite 光暈面片、即時重播 (Live Scrubbing) 與 JSON 導出。

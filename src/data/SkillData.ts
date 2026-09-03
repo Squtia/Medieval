@@ -5,11 +5,200 @@ import { TargetType, Skill, SkillDisplayInfo, PassiveDisplayInfo } from '../mode
 import { getElementalMultiplier, getPatk, getMatk, calculateSkillDamage } from '../utils/CombatMath';
 import { SkillRegistry } from '../systems/combat/SkillRegistry';
 
+// ── 🥊 全技能與特效工房預設庫綁定對照表 (SSOT Mapping) ──
+export const SKILL_VFX_MAP: Record<string, string> = {
+  // 戰士
+  'FIGHTER_HEAVY_STRIKE': 'VFX_HEAVY_STRIKE',
+  '奮力一擊': 'VFX_HEAVY_STRIKE',
+  'FIGHTER_ARMOR_BREAK': 'VFX_HEAVY_STRIKE',
+  '破甲碎擊': 'VFX_HEAVY_STRIKE',
+  'GREATSWORD_WHIRLWIND': 'VFX_WHIRLWIND',
+  '大劍旋風斬': 'VFX_WHIRLWIND',
+  'MAGIC_SWORDSMAN_PHANTOM': 'VFX_PHANTOM_SLASH',
+  '幻影劍舞': 'VFX_PHANTOM_SLASH',
+
+  // 騎士
+  'KNIGHT_SHIELD_BASH': 'VFX_SHIELD_BASH',
+  '盾擊': 'VFX_SHIELD_BASH',
+  'KNIGHT_TAUNT': 'VFX_TAUNT_SHOUT',
+  '嘲諷': 'VFX_TAUNT_SHOUT',
+  '掩護': 'VFX_TAUNT_SHOUT',
+  'KNIGHT_PALADIN_AEGIS': 'VFX_HOLY_SHIELD',
+  '聖盾庇護': 'VFX_HOLY_SHIELD',
+  '神聖庇護': 'VFX_HOLY_SHIELD',
+  'KNIGHT_RUNE_REFLECTION': 'VFX_RUNE_BARRIER',
+  '符文反制': 'VFX_RUNE_BARRIER',
+  '符文反傷': 'VFX_RUNE_BARRIER',
+
+  // 弓手
+  'ARCHER_PIERCING_SHOT': 'VFX_PIERCE_ARROW',
+  '穿刺射擊': 'VFX_PIERCE_ARROW',
+  'ARCHER_AIMED_SHOT': 'VFX_SNIPER_SHOT',
+  '精準狙擊': 'VFX_SNIPER_SHOT',
+  'SNIPER_FATAL_SNIPE': 'VFX_SNIPER_SHOT',
+  '致命一擊': 'VFX_SNIPER_SHOT',
+  'SPIRIT_ARCHER_SPIRIT_CHAIN': 'VFX_SPIRIT_DANCE',
+  '精靈箭雨': 'VFX_SPIRIT_DANCE',
+
+  // 盜賊
+  'THIEF_SURPRISE_ATTACK': 'VFX_SHADOW_ASSASSIN',
+  '突襲': 'VFX_SHADOW_ASSASSIN',
+  'THIEF_POISON_BLADE': 'VFX_POISON_BLADE',
+  '毒刃': 'VFX_POISON_BLADE',
+  'ASSASSIN_SHADOW_ASSASSINATION': 'VFX_SHADOW_ASSASSIN',
+  '暗影暗殺': 'VFX_SHADOW_ASSASSIN',
+  'TRICKSTER_TRICK_MAGIC': 'VFX_ARCANE_MISSILES',
+  '詭術幻象': 'VFX_ARCANE_MISSILES',
+
+  // 法師
+  'MAGE_ARCANE_MISSILES': 'VFX_ARCANE_MISSILES',
+  '秘法飛彈': 'VFX_ARCANE_MISSILES',
+  'MAGE_FIRE_BOLT': 'VFX_FIREBALL',
+  '火球術': 'VFX_FIREBALL',
+  'MAGE_ICE_SPIKE': 'VFX_ICE_LANCE',
+  '冰刺術': 'VFX_ICE_LANCE',
+  'MAGE_LIGHTNING_BOLT': 'VFX_LIGHTNING_BOLT',
+  '狂雷術': 'VFX_LIGHTNING_BOLT',
+  'MAGE_HOLY_SMITE': 'VFX_HOLY_LIGHT',
+  '聖擊術': 'VFX_HOLY_LIGHT',
+  'MAGE_DARK_ORB': 'VFX_SCYTHE_REAP',
+  '暗靈球': 'VFX_SCYTHE_REAP',
+  'MAGE_STATIC_FIELD': 'VFX_LIGHTNING_BOLT',
+  '靜電場': 'VFX_LIGHTNING_BOLT',
+  'STAFF_METEOR': 'VFX_METEOR_STRIKE',
+  '天降流星': 'VFX_METEOR_STRIKE',
+  'SCYTHE_SOUL_REAP': 'VFX_SCYTHE_REAP',
+  '靈魂收割': 'VFX_SCYTHE_REAP',
+  'STAFF_FIREBALL': 'VFX_FIREBALL',
+  '爆裂火球': 'VFX_FIREBALL',
+  'STAFF_LIGHTNING': 'VFX_LIGHTNING_BOLT',
+  '九天狂雷': 'VFX_LIGHTNING_BOLT',
+  'STAFF_FROST_ARROW': 'VFX_ICE_LANCE',
+  '極冰霜箭': 'VFX_ICE_LANCE',
+  'STAFF_LIVING_COMBUSTION': 'VFX_FIREBALL',
+  '活體燃燒': 'VFX_FIREBALL',
+  'STAFF_THUNDER_MARK': 'VFX_LIGHTNING_BOLT',
+  '雷霆烙印': 'VFX_LIGHTNING_BOLT',
+  'STAFF_FROST_FREEZE': 'VFX_ICE_LANCE',
+  '霜寒凍結': 'VFX_ICE_LANCE',
+
+  // 牧師
+  'PRAYER_HEAL': 'VFX_HOLY_LIGHT',
+  '初級治癒': 'VFX_HOLY_LIGHT',
+  'PRAYER_HOLY_LIGHT': 'VFX_HOLY_LIGHT',
+  '神聖之光': 'VFX_HOLY_LIGHT',
+  'PRAYER_ARCHBISHOP_MASS_HEAL': 'VFX_HOLY_RAIN',
+  '大主教群體祈禱': 'VFX_HOLY_RAIN',
+  'PRAYER_INQUISITOR_JUDGMENT': 'VFX_HOLY_LIGHT',
+  '異端審判': 'VFX_HOLY_LIGHT',
+
+  // 怪物技能
+  'CATACLYSM_FLAME': 'VFX_METEOR_STRIKE',
+  '滅世黑炎': 'VFX_METEOR_STRIKE',
+  'DRAGON_ROAR': 'VFX_DRAGON_ROAR',
+  '巨龍咆哮': 'VFX_DRAGON_ROAR',
+  'SKILL_TOXIC_SPRAY': 'VFX_POISON_BLADE',
+  '劇毒噴吐': 'VFX_POISON_BLADE',
+  'SKILL_SAVAGE_REND': 'VFX_HEAVY_STRIKE',
+  '野蠻撕裂': 'VFX_HEAVY_STRIKE',
+  'SKILL_CRUSHING_SLAM': 'VFX_HEAVY_STRIKE',
+  '巨力重砸': 'VFX_HEAVY_STRIKE',
+  'SKILL_BLOOD_DRAIN': 'VFX_SCYTHE_REAP',
+  '吸血獠牙': 'VFX_SCYTHE_REAP',
+  'SKILL_TERROR_SCREECH': 'VFX_DRAGON_ROAR',
+  '恐懼尖嘯': 'VFX_DRAGON_ROAR',
+  'SKILL_SHADOW_ASSAULT': 'VFX_SHADOW_ASSASSIN',
+  '暗影突襲': 'VFX_SHADOW_ASSASSIN',
+  'SKILL_FLAME_BURST': 'VFX_FIREBALL',
+  '火焰爆燃': 'VFX_FIREBALL',
+  'SKILL_FROST_BREATH': 'VFX_ICE_LANCE',
+  '冰霜吐息': 'VFX_ICE_LANCE',
+  'SKILL_IRON_DEFENSE': 'VFX_SHIELD_BASH',
+  '鋼鐵防壁': 'VFX_SHIELD_BASH',
+  'SKILL_FRENZY_ROAR': 'VFX_DRAGON_ROAR',
+  '狂亂怒吼': 'VFX_DRAGON_ROAR',
+
+  // 領主戰役軍令與攻城器械
+  'CAVALRY_CHARGE': 'VFX_CAVALRY_CHARGE',
+  'CAVALRY_BREACH_CHARGE': 'VFX_CAVALRY_CHARGE',
+  '騎兵破陣衝鋒': 'VFX_CAVALRY_CHARGE',
+  '破城毀滅突入': 'VFX_CAVALRY_CHARGE',
+  'SHIELD_WALL': 'VFX_SHIELD_WALL',
+  '步兵盾牆': 'VFX_SHIELD_WALL',
+  'VOLLEY_FIRE': 'VFX_ARROW_VOLLEY',
+  '弓兵齊射': 'VFX_ARROW_VOLLEY',
+  'TREBUCHET_ATTACK': 'VFX_TREBUCHET_BOULDER',
+  '重型投石機': 'VFX_TREBUCHET_BOULDER',
+  'BATTERING_RAM_ATTACK': 'VFX_BATTERING_RAM',
+  '撞木衝車': 'VFX_BATTERING_RAM',
+  'WATCHTOWER_ATTACK': 'VFX_WATCHTOWER_VOLLEY',
+  '哨所箭塔': 'VFX_WATCHTOWER_VOLLEY',
+  'SIEGE_GATE_DAMAGE': 'VFX_BATTERING_RAM',
+  'SIEGE_GATE_BREAK': 'VFX_BATTERING_RAM'
+};
+
+export function getSkillVfxId(skillIdOrName?: string, fallbackAttackType?: string): string {
+  // 🔗 優先讀取特效工房使用者自訂技能綁定 (LocalStorage: MEDIEVAL_SKILL_VFX_BINDINGS)
+  if (skillIdOrName && typeof localStorage !== 'undefined') {
+    try {
+      const bindings = localStorage.getItem('MEDIEVAL_SKILL_VFX_BINDINGS');
+      if (bindings) {
+        const map = JSON.parse(bindings);
+        if (map) {
+          // 1. 直接匹配
+          if (map[skillIdOrName]) return map[skillIdOrName];
+          // 2. 若傳入的是 ID，尋找對應的技能中文名稱查表
+          const skillObj = (SKILLS as Record<string, any>)[skillIdOrName];
+          if (skillObj?.name && map[skillObj.name]) return map[skillObj.name];
+          // 3. 若傳入的是中文名稱，反查技能 ID 查表
+          for (const [id, s] of Object.entries(SKILLS as Record<string, any>)) {
+            if (s.name === skillIdOrName && map[id]) return map[id];
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (skillIdOrName && SKILL_VFX_MAP[skillIdOrName]) return SKILL_VFX_MAP[skillIdOrName];
+  // 嘗試反查 SKILL_VFX_MAP
+  const skillObj = skillIdOrName ? (SKILLS as Record<string, any>)[skillIdOrName] : null;
+  if (skillObj?.name && SKILL_VFX_MAP[skillObj.name]) return SKILL_VFX_MAP[skillObj.name];
+
+  // 智慧關鍵字與元素匹配（讓技能工坊自創技能積木自動獲得對應特效與打擊感）
+  if (skillIdOrName) {
+    const lower = skillIdOrName.toLowerCase();
+    if (lower.includes('cavalry') || lower.includes('騎兵') || lower.includes('衝鋒')) return 'VFX_CAVALRY_CHARGE';
+    if (lower.includes('trebuchet') || lower.includes('投石機') || lower.includes('巨石')) return 'VFX_TREBUCHET_BOULDER';
+    if (lower.includes('ram') || lower.includes('衝車') || lower.includes('撞木')) return 'VFX_BATTERING_RAM';
+    if (lower.includes('volley') || lower.includes('齊射') || lower.includes('箭雨')) return 'VFX_ARROW_VOLLEY';
+    if (lower.includes('watchtower') || lower.includes('箭塔')) return 'VFX_WATCHTOWER_VOLLEY';
+    if (lower.includes('taunt') || lower.includes('shout') || lower.includes('嘲諷') || lower.includes('怒吼') || lower.includes('掩護')) return 'VFX_TAUNT_SHOUT';
+    if (lower.includes('aegis') || lower.includes('庇護') || lower.includes('聖盾')) return 'VFX_HOLY_SHIELD';
+    if (lower.includes('shield') || lower.includes('guard') || lower.includes('盾') || lower.includes('壁')) return 'VFX_SHIELD_WALL';
+    if (lower.includes('fire') || lower.includes('flame') || lower.includes('火') || lower.includes('炎')) return 'VFX_FIREBALL';
+    if (lower.includes('ice') || lower.includes('frost') || lower.includes('冰') || lower.includes('霜')) return 'VFX_ICE_LANCE';
+    if (lower.includes('thunder') || lower.includes('lightning') || lower.includes('雷') || lower.includes('電')) return 'VFX_LIGHTNING_BOLT';
+    if (lower.includes('meteor') || lower.includes('comet') || lower.includes('流星') || lower.includes('隕石')) return 'VFX_METEOR_STRIKE';
+    if (lower.includes('heal') || lower.includes('holy') || lower.includes('聖') || lower.includes('光') || lower.includes('治癒')) return 'VFX_HOLY_LIGHT';
+    if (lower.includes('arrow') || lower.includes('shoot') || lower.includes('snipe') || lower.includes('箭') || lower.includes('射')) return 'VFX_PIERCE_ARROW';
+    if (lower.includes('shadow') || lower.includes('poison') || lower.includes('dark') || lower.includes('暗') || lower.includes('毒')) return 'VFX_POISON_BLADE';
+    if (lower.includes('spin') || lower.includes('whirl') || lower.includes('旋風') || lower.includes('斬')) return 'VFX_WHIRLWIND';
+  }
+
+  // 普攻 fallback：根據普攻攻擊型態決定彈道
+  if (fallbackAttackType === 'RANGED') return 'VFX_PIERCE_ARROW';
+  if (fallbackAttackType === 'MAGIC') return 'VFX_ARCANE_MISSILES';
+  return 'VFX_DEFAULT_SLASH';
+}
+
 export const SKILLS: Record<string, Skill> = {
   // --- 戰士系基礎技能 ---
   'FIGHTER_HEAVY_STRIKE': {
     id: 'FIGHTER_HEAVY_STRIKE',
     name: '奮力一擊',
+    vfxId: 'VFX_HEAVY_STRIKE',
     mpCost: 5,
     targetType: TargetType.SINGLE_ENEMY,
     description: '消耗 5 MP。造成 130% 物理傷害。',

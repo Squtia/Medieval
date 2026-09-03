@@ -120,7 +120,10 @@ export interface CombatEvent {
   shieldDamage?: number;
   shieldRemaining?: number;
   statusType?: StatusEffectType;
+  skillId?: string;  // 施放的技能 ID
+  vfxId?: string;    // 對應的特效工房預設 ID
   skillName?: string; // 施放的技能名稱
+  skillTargetId?: string; // SKILL_CAST 專用：技能受術目標 ID（用於特效飛行方向；targetId 在 SKILL_CAST 保留為施術者以更新 MP 條）
   text: string;
   turn?: number; // 標示所屬回合數
   wave?: number; // 標示屬於哪一波

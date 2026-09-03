@@ -23,6 +23,7 @@ export interface Skill {
   cooldown?: number;
   category?: SkillCategory;
   icon?: string;
+  vfxId?: string;
   aiWeight?: (caster: CombatParticipant, skillTargets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => number;
   execute: (caster: CombatParticipant, targets: CombatParticipant[], allEnemies?: CombatParticipant[], allAllies?: CombatParticipant[]) => CombatEvent[];
 }

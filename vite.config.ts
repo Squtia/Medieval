@@ -774,7 +774,6 @@ export default defineConfig({
   server: {
     watch: {
       ignored: [
-        '**/src/data/*.json',
         '**/src/data/**/*_backups/**'
       ]
     }
@@ -782,4 +781,3 @@ export default defineConfig({
   // 將 base 設定為您的 GitHub Repository 名稱，這樣打包後的檔案路徑才會正確
   base: '/Medieval/'
 });
- 
