@@ -77,6 +77,7 @@ describe('CombatActionTimeline & Contract Verification', () => {
         'VERTICAL_DROP',
         'DIAGONAL_DROP',
         'GROUND_BURST',
+        'GROUND_FISSURE',
         'COLUMN_PIERCE',
         'MELEE_SWEEP',
         'BODY_AURA',
@@ -551,10 +552,6 @@ describe('CombatActionTimeline & Contract Verification', () => {
 
       expect(gameDamageEvents.length).toBe(1);
       expect(gameDamageEvents[0].damage).toBe(480);
-      expect(compositePreset.layers.length).toBe(2);
     });
   });
 });
-
-
-

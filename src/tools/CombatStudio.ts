@@ -21,6 +21,7 @@ import equipmentArmorsJson from '../data/equipment_armors.json';
 import equipmentAccessoriesJson from '../data/equipment_accessories.json';
 import customSkillsJson from '../data/CustomSkillData.json';
 import { VFXPresetRepository } from '../ui/fx/VFXPresetRepository';
+import { CombatStudioStageAdapter } from '../ui/fx/adapters/CombatStudioStageAdapter';
 import '../styles/combat-studio.css';
 
 // 工具函式
@@ -4016,6 +4017,12 @@ class CombatStudioController {
     this.arenaHpMp = {};
     this.ensurePlayerGridMap();
 
+    const arenaEl = document.querySelector('.cs-arena') as HTMLElement;
+    if (arenaEl) {
+      CombatStudioStageAdapter.getInstance().mount(arenaEl);
+      CombatStudioStageAdapter.getInstance().clear();
+    }
+
     const activeFormation = FormationDB.getFormation(this.selectedFormationId);
     const isFormationActive = FormationDB.isFormationActive(this.playerGridMap, this.selectedFormationId);
 
@@ -4321,11 +4328,13 @@ class CombatStudioController {
     this.applyEventToUi(ev);
     this.currentEventIndex++;
 
-    const delay = Math.max(100, 600 / this.playSpeed);
+    const isVfxOn = CombatStudioStageAdapter.getInstance().isVfxEnabled();
+    const baseDelay = isVfxOn ? 650 : 450;
+    const delay = Math.max(100, baseDelay / this.playSpeed);
     this.playTimer = setTimeout(() => this.stepPlayback(), delay);
   }
 
-  private applyEventToUi(ev: CombatEvent): void {
+  private applyEventToUi(ev: CombatEvent, options?: { skipVfx?: boolean }): void {
     const logBox = byId('cs-combat-log');
     const row = document.createElement('div');
     row.className = 'cs-log-entry';
@@ -4375,6 +4384,33 @@ class CombatStudioController {
       byId('cs-arena-round').textContent = `R${roundMatch[1]}`;
     }
 
+    // 🎬 觸發 3D 視覺演出與打擊感反饋，並在命中時序同步更新血條
+    let barsUpdated = false;
+    const doUpdateBars = () => {
+      if (barsUpdated) return;
+      barsUpdated = true;
+      this.updateBarsFromEvent(ev);
+    };
+
+    if (ev.actorId || ev.targetId) {
+      CombatStudioStageAdapter.getInstance().playEventAction(ev, {
+        skipVfx: options?.skipVfx,
+        onImpact: () => {
+          doUpdateBars();
+        }
+      }).catch((err) => {
+        console.warn('[CombatStudio] playEventAction exception caught, proceeding with bar update:', err);
+        doUpdateBars();
+      });
+
+      // 防呆：若特效因故未在 1.5 秒內觸發 impact，強制更新血條
+      setTimeout(() => doUpdateBars(), 1500);
+    } else {
+      doUpdateBars();
+    }
+  }
+
+  private updateBarsFromEvent(ev: CombatEvent): void {
     // 更新目標血條 (HP)
     if (ev.targetId && ev.targetHp !== undefined && ev.targetMaxHp) {
       const cleanId = ev.targetId.replace(/^adv_\d+_/, '');
@@ -4388,11 +4424,6 @@ class CombatStudioController {
         
         const card = hpBar.closest('.cs-arena-card') as HTMLElement;
         if (card) {
-          if (ev.damage && ev.damage > 0) {
-            card.classList.remove('cs-hit-shake');
-            void card.offsetWidth;
-            card.classList.add('cs-hit-shake');
-          }
           if (curHp <= 0) {
             card.classList.add('dead');
           }
@@ -4430,6 +4461,7 @@ class CombatStudioController {
   private stopPlayback(): void {
     this.isPlaying = false;
     if (this.playTimer) clearTimeout(this.playTimer);
+    CombatStudioStageAdapter.getInstance().clear();
     byId('btn-play-pause').textContent = '▶ 繼續';
   }
 
@@ -4877,12 +4909,24 @@ class CombatStudioController {
       else if (this.playSpeed === 2) this.playSpeed = 5;
       else this.playSpeed = 1;
       byId('btn-speed-toggle').textContent = `⏩ 速度: ${this.playSpeed}x`;
+      CombatStudioStageAdapter.getInstance().setSpeed(this.playSpeed);
     };
+
+    const btnVfxToggle = byId('btn-vfx-toggle');
+    if (btnVfxToggle) {
+      btnVfxToggle.onclick = () => {
+        const adapter = CombatStudioStageAdapter.getInstance();
+        const next = !adapter.isVfxEnabled();
+        adapter.setVfxEnabled(next);
+        btnVfxToggle.textContent = next ? '🎬 特效: 開' : '🎬 特效: 關';
+      };
+    }
 
     byId('btn-skip-all').onclick = () => {
       if (!this.currentReport) return;
+      CombatStudioStageAdapter.getInstance().clear();
       while (this.currentEventIndex < this.currentReport.events.length) {
-        this.applyEventToUi(this.currentReport.events[this.currentEventIndex]);
+        this.applyEventToUi(this.currentReport.events[this.currentEventIndex], { skipVfx: true });
         this.currentEventIndex++;
       }
       this.finishPlayback();

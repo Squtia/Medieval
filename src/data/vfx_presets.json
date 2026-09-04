@@ -35,7 +35,33 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [
+      {
+        "id": "LAYER_GROUND_TREMOR",
+        "name": "落地崩裂震波",
+        "trajectory": "GROUND_BURST",
+        "shaderMode": "EARTH_SHATTER",
+        "colorCore": "#f59e0b",
+        "colorRim": "#78350f",
+        "delay": 0.16,
+        "scale": 1.15,
+        "duration": 0.25,
+        "generatesHit": false,
+        "emitsImpactCue": true
+      }
+    ],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "CLEAVE_HEAVY_HIT",
+        "time": 0.22,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_WHIRLWIND",
@@ -73,7 +99,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_WHIRLWIND_IMPACT",
+        "time": 0.32,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_PHANTOM_SLASH",
@@ -112,7 +150,45 @@
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
     "multiHitImpact": true,
-    "slashShape": "CROSS"
+    "slashShape": "CROSS",
+    "spikeMaterialMode": "PHONG",
+    "layers": [
+      {
+        "id": "LAYER_CROSS_SLASH",
+        "name": "殘影十字反挑",
+        "trajectory": "MELEE_SWEEP",
+        "shaderMode": "SLASH_BLADE",
+        "colorCore": "#ffffff",
+        "colorRim": "#a855f7",
+        "delay": 0.12,
+        "scale": 0.95,
+        "duration": 0.26,
+        "generatesHit": false,
+        "emitsImpactCue": true
+      }
+    ],
+    "hitCount": 3,
+    "impactCues": [
+      {
+        "cueId": "PHANTOM_SLASH_1",
+        "time": 0.1,
+        "weight": 0.3,
+        "isPrimary": false
+      },
+      {
+        "cueId": "PHANTOM_SLASH_2",
+        "time": 0.22,
+        "weight": 0.3,
+        "isPrimary": false
+      },
+      {
+        "cueId": "PHANTOM_SLASH_3",
+        "time": 0.34,
+        "weight": 0.4,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_SHIELD_BASH",
@@ -150,7 +226,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_SHIELD_BASH_IMPACT",
+        "time": 0.27,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_PIERCE_ARROW",
@@ -188,7 +276,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_PIERCE_ARROW_IMPACT",
+        "time": 0.24,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_SNIPER_SHOT",
@@ -226,7 +326,25 @@
     "salvoRhythmCurve": "BURST_PAIRS",
     "salvoSpreadAngle": 4,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 2,
+    "impactCues": [
+      {
+        "cueId": "VFX_SNIPER_SHOT_HIT_1",
+        "time": 0.08,
+        "weight": 0.5,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_SNIPER_SHOT_HIT_2",
+        "time": 0.22,
+        "weight": 0.5,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_SPIRIT_DANCE",
@@ -264,7 +382,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_SPIRIT_DANCE_IMPACT",
+        "time": 0.21,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_SHADOW_ASSASSIN",
@@ -302,7 +432,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_SHADOW_ASSASSIN_IMPACT",
+        "time": 0.22,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_POISON_BLADE",
@@ -340,7 +482,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_POISON_BLADE_IMPACT",
+        "time": 0.26,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_VOLUMETRIC_METEOR",
@@ -378,7 +532,33 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [
+      {
+        "id": "LAYER_METEOR_SHOCKWAVE",
+        "name": "隕石天傾衝擊坑",
+        "trajectory": "GROUND_BURST",
+        "shaderMode": "EARTH_SHATTER",
+        "colorCore": "#f97316",
+        "colorRim": "#451a03",
+        "delay": 0.36,
+        "scale": 1.6,
+        "duration": 0.38,
+        "generatesHit": false,
+        "emitsImpactCue": true
+      }
+    ],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "METEOR_CRASH_APEX",
+        "time": 0.4,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_ARCANE_MISSILES",
@@ -416,7 +596,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_ARCANE_MISSILES_IMPACT",
+        "time": 0.27,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_FIREBALL",
@@ -454,7 +646,33 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [
+      {
+        "id": "LAYER_EXPLOSION_BLAST",
+        "name": "爆炎擴散氣浪",
+        "trajectory": "GROUND_BURST",
+        "shaderMode": "VOLUMETRIC_FIRE",
+        "colorCore": "#ffffff",
+        "colorRim": "#dc2626",
+        "delay": 0.26,
+        "scale": 1.35,
+        "duration": 0.32,
+        "generatesHit": false,
+        "emitsImpactCue": true
+      }
+    ],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "FIREBALL_CORE_BURST",
+        "time": 0.28,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_METEOR_STRIKE",
@@ -492,7 +710,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_METEOR_STRIKE_IMPACT",
+        "time": 0.38,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_ICE_LANCE",
@@ -530,7 +760,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_ICE_LANCE_IMPACT",
+        "time": 0.27,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_LIGHTNING_BOLT",
@@ -568,7 +810,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_LIGHTNING_BOLT_IMPACT",
+        "time": 0.19,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_HOLY_LIGHT",
@@ -606,7 +860,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_HOLY_LIGHT_IMPACT",
+        "time": 0.31,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_HOLY_RAIN",
@@ -644,7 +910,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_HOLY_RAIN_IMPACT",
+        "time": 0.38,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_SCYTHE_REAP",
@@ -682,7 +960,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_SCYTHE_REAP_IMPACT",
+        "time": 0.3,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_DRAGON_ROAR",
@@ -720,7 +1010,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_DRAGON_ROAR_IMPACT",
+        "time": 0.34,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_DEFAULT_SLASH",
@@ -758,7 +1060,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_DEFAULT_SLASH_IMPACT",
+        "time": 0.19,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_CAVALRY_CHARGE",
@@ -796,7 +1110,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_CAVALRY_CHARGE_IMPACT",
+        "time": 0.32,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_SHIELD_WALL",
@@ -834,7 +1160,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_SHIELD_WALL_IMPACT",
+        "time": 0.38,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_ARROW_VOLLEY",
@@ -872,7 +1210,49 @@
     "salvoRhythmCurve": "BURST_PAIRS",
     "salvoSpreadAngle": 18,
     "arcHeight": 70,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 6,
+    "impactCues": [
+      {
+        "cueId": "VFX_ARROW_VOLLEY_HIT_1",
+        "time": 0.08,
+        "weight": 0.17,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_ARROW_VOLLEY_HIT_2",
+        "time": 0.18,
+        "weight": 0.17,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_ARROW_VOLLEY_HIT_3",
+        "time": 0.28,
+        "weight": 0.17,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_ARROW_VOLLEY_HIT_4",
+        "time": 0.38,
+        "weight": 0.17,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_ARROW_VOLLEY_HIT_5",
+        "time": 0.42,
+        "weight": 0.17,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_ARROW_VOLLEY_HIT_6",
+        "time": 0.42,
+        "weight": 0.17,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_TREBUCHET_BOULDER",
@@ -910,7 +1290,33 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [
+      {
+        "id": "LAYER_BOULDER_CRACK",
+        "name": "巨石碎裂震波",
+        "trajectory": "GROUND_BURST",
+        "shaderMode": "EARTH_SHATTER",
+        "colorCore": "#f97316",
+        "colorRim": "#78350f",
+        "delay": 0.44,
+        "scale": 1.45,
+        "duration": 0.35,
+        "generatesHit": false,
+        "emitsImpactCue": true
+      }
+    ],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "BOULDER_IMPACT",
+        "time": 0.46,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_BATTERING_RAM",
@@ -948,7 +1354,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_BATTERING_RAM_IMPACT",
+        "time": 0.31,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_WATCHTOWER_VOLLEY",
@@ -986,7 +1404,37 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 14,
     "arcHeight": 45,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 4,
+    "impactCues": [
+      {
+        "cueId": "VFX_WATCHTOWER_VOLLEY_HIT_1",
+        "time": 0.08,
+        "weight": 0.25,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_WATCHTOWER_VOLLEY_HIT_2",
+        "time": 0.2,
+        "weight": 0.25,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_WATCHTOWER_VOLLEY_HIT_3",
+        "time": 0.32,
+        "weight": 0.25,
+        "isPrimary": false
+      },
+      {
+        "cueId": "VFX_WATCHTOWER_VOLLEY_HIT_4",
+        "time": 0.32,
+        "weight": 0.25,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_TAUNT_SHOUT",
@@ -1024,7 +1472,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_TAUNT_SHOUT_IMPACT",
+        "time": 0.3,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_HOLY_SHIELD",
@@ -1062,7 +1522,19 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_HOLY_SHIELD_IMPACT",
+        "time": 0.41,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   },
   {
     "id": "VFX_RUNE_BARRIER",
@@ -1100,6 +1572,97 @@
     "salvoRhythmCurve": "LINEAR",
     "salvoSpreadAngle": 0,
     "arcHeight": 0,
-    "multiHitImpact": true
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "impactCues": [
+      {
+        "cueId": "VFX_RUNE_BARRIER_IMPACT",
+        "time": 0.36,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
+  },
+  {
+    "id": "VFX_EARTH_SPIKE",
+    "name": "地裂衝擊浪湧 (Earth Fissure Surge)",
+    "category": "ELEMENTAL",
+    "description": "施術者引導大地之力，自腳下向目標依序破土推進實體尖岩稜角波浪，尖峰伴生連環烈火。",
+    "trajectory": "GROUND_FISSURE",
+    "shaderMode": "EARTH_SHATTER",
+    "colorCore": "#ff7700",
+    "colorRim": "#78350f",
+    "duration": 0.48,
+    "scale": 1.4,
+    "spin": 0,
+    "fresnel": 1.5,
+    "trailCount": 40,
+    "trailSize": 12,
+    "spikes": 8,
+    "spikeHeight": 65,
+    "spikeWidth": 12,
+    "spikeShape": "JAGGED_ROCK",
+    "spikeMaterialMode": "PHONG",
+    "spikeEruptFire": true,
+    "burstCount": 70,
+    "bloomStr": 1.8,
+    "bloomRad": 0.5,
+    "bloomThresh": 0.1,
+    "salvoCount": 1,
+    "salvoDuration": 0.45,
+    "salvoRhythmCurve": "LINEAR",
+    "salvoSpreadAngle": 0,
+    "arcHeight": 0,
+    "multiHitImpact": true,
+    "impact": {
+      "hitStopTime": 65,
+      "targetPunchScale": 0.84,
+      "shakeIntensity": 18,
+      "shakeDuration": 0.35,
+      "penetrationDistance": 0,
+      "knockbackDistance": 25,
+      "hitFlashColor": "#f97316",
+      "screenShake": true
+    },
+    "layers": [
+      {
+        "id": "LAYER_FISSURE_FIRE",
+        "name": "地火連爆噴流",
+        "trajectory": "GROUND_FISSURE",
+        "shaderMode": "VOLUMETRIC_FIRE",
+        "colorCore": "#ffcc00",
+        "colorRim": "#ea580c",
+        "delay": 0.06,
+        "scale": 1.2,
+        "duration": 0.42,
+        "generatesHit": false,
+        "emitsImpactCue": true
+      }
+    ],
+    "hitCount": 3,
+    "impactCues": [
+      {
+        "cueId": "FISSURE_SURGE_1",
+        "time": 0.14,
+        "weight": 0.25,
+        "isPrimary": false
+      },
+      {
+        "cueId": "FISSURE_SURGE_2",
+        "time": 0.28,
+        "weight": 0.25,
+        "isPrimary": false
+      },
+      {
+        "cueId": "FISSURE_IMPACT_CRUSH",
+        "time": 0.44,
+        "weight": 0.5,
+        "isPrimary": true
+      }
+    ],
+    "impactPresentationMode": "EXACT_IMPACTS"
   }
 ]

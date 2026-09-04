@@ -3,6 +3,7 @@ export type VFXTrajectory =
   | 'VERTICAL_DROP'    // 垂直天降（雷殛、神聖光柱）
   | 'DIAGONAL_DROP'    // 斜向天傾（天降隕石、天火）
   | 'GROUND_BURST'     // 地面破土噴發（地刺、裂地震波）
+  | 'GROUND_FISSURE'   // 施術者向目標推進的大地衝擊裂地波（浪湧地刺/地火連爆）
   | 'COLUMN_PIERCE'    // 直線排式穿刺（貫穿射擊）
   | 'MELEE_SWEEP'      // 近戰弧光揮擊（單體斬擊、旋風斬、死神鐮刀）
   | 'BODY_AURA'        // 自身/全隊光環升騰（治療、戰吼、神聖庇護）
@@ -99,6 +100,8 @@ export interface VFXPreset {
   spikeRadius?: number;         // 地刺生長分佈範圍 (px，預設 80px，範圍 20px~280px)
   spikeStagger?: number;        // 破土連鎖時差 (ms，預設 25ms，範圍 0ms~80ms)
   spikeAlignToImpact?: boolean; // 地刺是否自動順應衝擊向量
+  spikeMaterialMode?: 'PHONG' | 'BASIC'; // 尖岩材質模式：PHONG 實體明暗漫反射(預設) / BASIC 發光晶芒
+  spikeEruptFire?: boolean;     // 破土尖峰時伴生體積熱浪噴火
 
   shieldShape?: 'HEX' | 'CROSS_SHIELD' | 'RUNE_RING';
   waveCount?: number;
@@ -117,6 +120,8 @@ export interface VFXPreset {
   // 🔮 複合多圖層特效支援 (Composite VFX Layers)
   layers?: VFXLayer[];
   hitCount?: number;            // 戰鬥 HIT 判定段數（未填則預設使用 salvoCount 或 1）
+  impactCues?: VFXImpactCue[];  // 具名時間軸 Impact Cue
+  impactPresentationMode?: ImpactPresentationMode; // 傷害數值呈現模式
 }
 
 export interface VFXLayer {
@@ -146,3 +151,132 @@ export type ImpactPresentationMode =
   | 'EXACT_IMPACTS'            // 真多段傷害：一筆 impact 對一個 cue
   | 'SPLIT_SINGLE_IMPACT'      // 單次傷害、多段演出：依權重拆分跳字
   | 'PRIMARY_ONLY';            // 僅在 Primary Cue (最後一段) 顯示完整傷害，其餘為純視覺打擊感
+
+export type VFXTrackType =
+  | 'MESH' | 'PARTICLE' | 'TRAIL' | 'DECAL'
+  | 'LIGHT' | 'IMPACT' | 'SCREEN_FX' | 'AUDIO' | 'CUE';
+
+export interface VFXQualityProfile {
+  maxParticles: number;
+  maxDrawCalls: number;
+  maxConcurrentObjects: number;
+  allowScreenShake: boolean;
+  allowBloom: boolean;
+}
+
+export interface VFXClip {
+  id: string;
+  startTime: number;
+  duration: number;
+  layer?: any;
+  curves?: Record<string, any>;
+}
+
+export interface VFXTrack {
+  id: string;
+  name: string;
+  type: VFXTrackType;
+  enabled: boolean;
+  locked?: boolean;
+  clips: VFXClip[];
+}
+
+export interface VFXSequence {
+  schemaVersion: number;
+  id: string;
+  name: string;
+  category: 'PHYSICAL' | 'ELEMENTAL' | 'HOLY_DARK' | 'SPECIAL';
+  description: string;
+  duration: number;
+  randomSeed?: number;
+  tags?: string[];
+  tracks: VFXTrack[];
+  impactCues: VFXImpactCue[];
+  quality?: VFXQualityProfile;
+  metadata?: Record<string, any>;
+}
+
+export interface SkillVfxBinding {
+  skillId: string;
+  vfxId: string;
+  impactPresentationMode: ImpactPresentationMode;
+  cueMap?: Record<string, string>;
+}
+
+/**
+ * 🔄 純函式將舊版 VFXPreset 遷移為規範 VFXSequence 結構
+ */
+export function migrateLegacyPreset(preset: VFXPreset): VFXSequence {
+  const dur = preset.duration || 0.35;
+  const tracks: VFXTrack[] = [
+    {
+      id: 'trk_main',
+      name: '主特效軌 (Main Track)',
+      type: 'MESH',
+      enabled: true,
+      clips: [{
+        id: `clip_main_${preset.id}`,
+        startTime: 0,
+        duration: dur,
+        layer: {
+          trajectory: preset.trajectory,
+          shaderMode: preset.shaderMode,
+          colorCore: preset.colorCore,
+          colorRim: preset.colorRim,
+          scale: preset.scale
+        }
+      }]
+    }
+  ];
+
+  if (preset.layers && preset.layers.length > 0) {
+    tracks.push({
+      id: 'trk_layers',
+      name: '次生圖層軌 (Layers Track)',
+      type: 'PARTICLE',
+      enabled: true,
+      clips: preset.layers.map((l, i) => ({
+        id: `clip_layer_${i}`,
+        startTime: l.delay || 0,
+        duration: l.duration || 0.2,
+        layer: l
+      }))
+    });
+  }
+
+  if (preset.impact) {
+    tracks.push({
+      id: 'trk_impact',
+      name: '打擊反饋軌 (Impact Track)',
+      type: 'IMPACT',
+      enabled: true,
+      clips: [{
+        id: `clip_impact_${preset.id}`,
+        startTime: preset.impactCues?.[0]?.time || (dur * 0.7),
+        duration: preset.impact.shakeDuration || 0.28,
+        layer: preset.impact
+      }]
+    });
+  }
+
+  return {
+    schemaVersion: 1,
+    id: preset.id,
+    name: preset.name || preset.id,
+    category: preset.category || 'SPECIAL',
+    description: preset.description || '',
+    duration: dur,
+    tracks,
+    impactCues: preset.impactCues || [
+      { cueId: 'CUE_1', time: Number((dur * 0.7).toFixed(2)), weight: 1.0, isPrimary: true }
+    ],
+    quality: {
+      maxParticles: preset.burstCount || 60,
+      maxDrawCalls: 12,
+      maxConcurrentObjects: 30,
+      allowScreenShake: !!preset.impact?.screenShake,
+      allowBloom: (preset.bloomStr || 0) > 0
+    }
+  };
+}
+

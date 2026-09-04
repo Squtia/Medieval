@@ -6,3 +6,7 @@ export { CombatFXEngine as VFXPlayer, CombatFXEngine, type ScreenPoint } from '.
 export { VFXStudioAdapter, type VFXStudioAdapterOptions } from './VFXStudioAdapter';
 export { VFXPresetRepository, VFX_STORAGE_KEY, CURRENT_SCHEMA_VERSION } from './VFXPresetRepository';
 export { VFXPresetValidator, type ValidationResult } from './VFXPresetValidator';
+export { CombatStudioStageAdapter } from './adapters/CombatStudioStageAdapter';
+export { PlaybackClock, type ScheduledTask, type TickListener } from './PlaybackClock';
+export { CombatActionPlayer, mapImpactsToCues, type CombatAction, type CombatImpactPresentation } from './CombatActionPlayer';
+

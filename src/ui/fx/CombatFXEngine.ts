@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { VFXPreset, VFXImpactConfig } from '../../models/VFX';
+import { VFXPreset, VFXImpactConfig, VFXImpactCue } from '../../models/VFX';
 import defaultVFXPresets from '../../data/vfx_presets.json';
 import { VFXPresetRepository } from './VFXPresetRepository';
+import { PlaybackClock } from './PlaybackClock';
 
 export interface ScreenPoint {
   x: number;
@@ -25,8 +26,10 @@ export class CombatFXEngine {
   private activeEffects: ActiveEffect[] = [];
   private isRunning = false;
   private lastTime = 0;
+  private playbackSpeed = 1.0;
   private playbackGeneration = 0;
   private scheduledTimers = new Set<ReturnType<typeof setTimeout>>();
+  private playbackClock: PlaybackClock = new PlaybackClock();
 
   private constructor() {
     this.scene = new THREE.Scene();
@@ -34,15 +37,23 @@ export class CombatFXEngine {
     this.camera.position.z = 500;
     this.camera.far = 5000;
 
-    // 🌟 100% 完美透明 WebGL 渲染器，配合 Additive Blending 呈現極致發光 (Node 環境防呆)
-    if (typeof document !== 'undefined') {
-      this.renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: true,
-        powerPreference: 'high-performance'
-      });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      this.renderer.setClearColor(0x000000, 0); // 確保透明度為 0
+    // 🌟 100% 完美透明 WebGL 渲染器，配合 Additive Blending 呈現極致發光 (Node 與無 WebGL 環境防呆)
+    if (typeof document !== 'undefined' && typeof document.createElementNS === 'function' && typeof HTMLCanvasElement !== 'undefined') {
+      try {
+        this.renderer = new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true,
+          powerPreference: 'high-performance'
+        });
+        this.renderer.setPixelRatio(Math.min((typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1, 2));
+        this.renderer.setClearColor(0x000000, 0); // 確保透明度為 0
+      } catch (err) {
+        this.renderer = {
+          domElement: { style: {} } as any,
+          setSize: () => {},
+          render: () => {}
+        } as any;
+      }
     } else {
       this.renderer = {
         domElement: { style: {} } as any,
@@ -88,7 +99,9 @@ export class CombatFXEngine {
     container.appendChild(canvas);
     this.resize(); // 初始 resize（container 可能不可見，使用 fallback 尺寸）
 
-    window.addEventListener('resize', () => this.resize());
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => this.resize());
+    }
     this.startLoop();
   }
 
@@ -122,6 +135,7 @@ export class CombatFXEngine {
     this.playbackGeneration++;
     this.scheduledTimers.forEach(t => clearTimeout(t));
     this.scheduledTimers.clear();
+    this.playbackClock.clear();
 
     for (let i = this.activeEffects.length - 1; i >= 0; i--) {
       try {
@@ -138,6 +152,48 @@ export class CombatFXEngine {
     this.renderer.render(this.scene, this.camera);
   }
 
+  public setPlaybackSpeed(speed: number): void {
+    this.playbackSpeed = Math.max(0.05, Math.min(speed, 5.0));
+    this.playbackClock.setSpeed(this.playbackSpeed);
+  }
+
+  public getPlaybackSpeed(): number {
+    return this.playbackSpeed;
+  }
+
+  public getPlaybackClock(): PlaybackClock {
+    return this.playbackClock;
+  }
+
+  public pause(): void {
+    this.playbackClock.pause();
+  }
+
+  public resume(): void {
+    this.playbackClock.resume();
+  }
+
+  public isPaused(): boolean {
+    return this.playbackClock.isPaused();
+  }
+
+  public seek(targetTimeSeconds: number, triggerSkippedCues: boolean = false): void {
+    this.playbackClock.seek(targetTimeSeconds, triggerSkippedCues);
+  }
+
+  /**
+   * ⏱️ 在邏輯演出時鐘中排程延遲任務（受 speed 縮放且受 pause 阻斷）
+   */
+  public scheduleLogical(delaySeconds: number, callback: () => void): number {
+    const triggerTime = this.playbackClock.getCurrentTime() + Math.max(0, delaySeconds);
+    const gen = this.playbackGeneration;
+    return this.playbackClock.schedule(triggerTime, () => {
+      if (this.playbackGeneration === gen && this.isRunning) {
+        callback();
+      }
+    });
+  }
+
   private startLoop(): void {
     if (this.isRunning) return;
     this.isRunning = true;
@@ -147,22 +203,29 @@ export class CombatFXEngine {
       if (!this.isRunning) return;
       requestAnimationFrame(animate);
 
-      const delta = Math.min((time - this.lastTime) / 1000, 0.1);
+      const rawDelta = Math.min((time - this.lastTime) / 1000, 0.1);
       this.lastTime = time;
 
-      for (let i = this.activeEffects.length - 1; i >= 0; i--) {
-        const effect = this.activeEffects[i];
-        const isDone = effect.update(delta);
-        if (isDone) {
-          effect.dispose();
-          this.activeEffects.splice(i, 1);
+      // 由單一邏輯時鐘統一推進，若暫停則 delta 為 0
+      const delta = this.playbackClock.advance(rawDelta);
+
+      if (delta > 0) {
+        for (let i = this.activeEffects.length - 1; i >= 0; i--) {
+          const effect = this.activeEffects[i];
+          const isDone = effect.update(delta);
+          if (isDone) {
+            effect.dispose();
+            this.activeEffects.splice(i, 1);
+          }
         }
       }
 
       this.renderer.render(this.scene, this.camera);
     };
 
-    requestAnimationFrame(animate);
+    if (typeof requestAnimationFrame !== 'undefined') {
+      requestAnimationFrame(animate);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -751,8 +814,8 @@ export class CombatFXEngine {
     preset: VFXPreset,
     from: ScreenPoint,
     to: ScreenPoint,
-    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void),
-    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void
+    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void),
+    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void
   ): Promise<void> {
     const startPos = this.screenToWorld(from);
     const endPos = this.screenToWorld(to);
@@ -766,41 +829,55 @@ export class CombatFXEngine {
     preset: VFXPreset,
     startPos: THREE.Vector3,
     endPos: THREE.Vector3,
-    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void),
-    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void
+    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void),
+    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void
   ): Promise<void> {
     const isPlayer = typeof isPlayerOrOnImpact === 'boolean' ? isPlayerOrOnImpact : true;
     const onImpact = typeof isPlayerOrOnImpact === 'function' ? isPlayerOrOnImpact : onImpactCallback;
 
     return new Promise((resolve) => {
       const impactConfig = preset.impact;
-      const totalHits = Math.max(1, preset.hitCount || preset.salvoCount || 1);
+      const hasCues = Array.isArray(preset.impactCues) && preset.impactCues.length > 0;
+      const totalHits = hasCues ? preset.impactCues!.length : Math.max(1, preset.hitCount || preset.salvoCount || 1);
       const firedHits = new Set<number>();
       let resolved = false;
 
-      const fireImpact = (hitIdx: number = 0) => {
+      const fireImpact = (hitIdx: number = 0, cue?: VFXImpactCue) => {
         if (!firedHits.has(hitIdx)) {
           firedHits.add(hitIdx);
           if (onImpact) {
-            onImpact(impactConfig, hitIdx, totalHits);
+            onImpact(impactConfig, hitIdx, totalHits, cue);
           }
         }
       };
+
+      const curGen = this.playbackGeneration;
+      this.playbackClock.setDuration(preset.duration);
+      this.playbackClock.setSpeed(this.playbackSpeed);
 
       const safeResolve = () => {
         if (!resolved) {
           resolved = true;
-          for (let k = 0; k < totalHits; k++) {
-            fireImpact(k);
-          }
           if (failsafeTimer) clearTimeout(failsafeTimer);
+          if (hasCues) {
+            preset.impactCues!.forEach((cue, k) => fireImpact(k, cue));
+          } else {
+            for (let k = 0; k < totalHits; k++) {
+              fireImpact(k);
+            }
+          }
           resolve();
         }
       };
 
-      const failsafeTimer = this.registerTimer(() => {
-        safeResolve();
-      }, (preset.duration + 0.5) * 1000);
+      // Failsafe: 物理牆時鐘防護，確保遇極端異常時流程不永久掛起
+      const failsafeWallMs = Math.max(1200, ((preset.duration + 0.8) / this.playbackSpeed) * 1000);
+      const failsafeTimer = setTimeout(() => {
+        if (this.playbackGeneration === curGen && !resolved) {
+          safeResolve();
+        }
+      }, failsafeWallMs);
+      this.scheduledTimers.add(failsafeTimer);
 
       let actualEndPos = endPos.clone();
       if (preset.trajectory === 'COLUMN_PIERCE' && impactConfig.penetrationDistance > 0) {
@@ -811,9 +888,9 @@ export class CombatFXEngine {
       // 🔮 複合多圖層特效排程 (Composite VFX Preset Sequencer)
       if (preset.layers && preset.layers.length > 0) {
         preset.layers.forEach((layer) => {
-          const delayMs = (layer.delay || 0.1) * 1000;
-          this.registerTimer(() => {
-            if (this.isRunning) {
+          const delaySec = Math.max(0, layer.delay || 0.1);
+          this.playbackClock.schedule(delaySec, () => {
+            if (this.isRunning && this.playbackGeneration === curGen) {
               if (layer.presetId) {
                 const subPreset = this.getPreset(layer.presetId);
                 if (subPreset) {
@@ -839,7 +916,9 @@ export class CombatFXEngine {
                 duration: layer.duration || preset.duration,
                 layers: undefined
               };
-              if (layer.trajectory === 'MELEE_SWEEP' || layer.shaderMode === 'SLASH_BLADE') {
+              if (layer.trajectory === 'GROUND_FISSURE') {
+                this.playGroundFissure(startPos, actualEndPos, layerPreset, () => {}, () => {});
+              } else if (layer.trajectory === 'MELEE_SWEEP' || layer.shaderMode === 'SLASH_BLADE') {
                 this.playArcSlash(actualEndPos, layerPreset, () => {}, () => {});
               } else if (layer.trajectory === 'VERTICAL_DROP') {
                 this.playHolyPillar(actualEndPos, layerPreset, () => {}, () => {});
@@ -851,12 +930,22 @@ export class CombatFXEngine {
                 this.playDynamicProjectile(startPos, actualEndPos, layerPreset, () => {}, () => {});
               }
             }
-          }, delayMs);
+          });
         });
       }
 
-      // 🚀 多段連擊排程發射 (Salvo & Multi-Hit Scheduler)
-      if (totalHits > 1) {
+      // 🎯 具名 Impact Cue 時間軸排程器 (優先級高於傳統連擊曲線)
+      if (hasCues) {
+        preset.impactCues!.forEach((cue, cueIdx) => {
+          this.playbackClock.schedule(Math.max(0, cue.time), () => {
+            if (this.isRunning && this.playbackGeneration === curGen) {
+              fireImpact(cueIdx, cue);
+              this.playSlashSparks(actualEndPos, preset.colorCore, 8);
+            }
+          });
+        });
+      } else if (totalHits > 1) {
+        // 🚀 多段連擊排程發射 (Salvo & Multi-Hit Scheduler)
         const salvoDur = preset.salvoDuration || Math.min(preset.duration * 0.85, 0.45);
         for (let i = 0; i < totalHits; i++) {
           const ratio = totalHits > 1 ? i / (totalHits - 1) : 0;
@@ -871,20 +960,23 @@ export class CombatFXEngine {
             timeOffset = pairIdx * (salvoDur * 0.6) + inPair * 0.06;
           }
 
-          this.registerTimer(() => {
-            if (this.isRunning) {
+          const triggerTimeSec = timeOffset + Math.min(preset.duration * 0.4, 0.2);
+          this.playbackClock.schedule(triggerTimeSec, () => {
+            if (this.isRunning && this.playbackGeneration === curGen) {
               fireImpact(i);
               // 每次連擊在受擊點爆散微型火花
               this.playSlashSparks(actualEndPos, preset.colorCore, 6);
             }
-          }, (timeOffset + Math.min(preset.duration * 0.4, 0.2)) * 1000);
+          });
         }
       }
 
       // 根據軌跡與 Shader 模式分流至全動態渲染管線
       const mainOnHit = () => fireImpact(0);
 
-      if (preset.trajectory === 'SHOUT_WAVE' || preset.id === 'VFX_TAUNT_SHOUT') {
+      if (preset.trajectory === 'GROUND_FISSURE') {
+        this.playGroundFissure(startPos, actualEndPos, preset, mainOnHit, safeResolve);
+      } else if (preset.trajectory === 'SHOUT_WAVE' || preset.id === 'VFX_TAUNT_SHOUT') {
         this.playTauntShout(startPos, actualEndPos, preset, mainOnHit, safeResolve);
       } else if (preset.trajectory === 'SHIELD_BARRIER' || preset.id === 'VFX_HOLY_SHIELD') {
         this.playHolyShield(actualEndPos, preset, mainOnHit, safeResolve);
@@ -991,9 +1083,11 @@ export class CombatFXEngine {
     const indices: number[] = [];
 
     const angleDiff = headAngle - tailAngle;
-    if (Math.abs(angleDiff) < 0.001) {
-      geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0], 3));
-      geo.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0], 2));
+    if (Math.abs(angleDiff) < 0.001 || !Number.isFinite(angleDiff) || !Number.isFinite(radius) || !Number.isFinite(centerAngle)) {
+      geo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0, 0, 0, 0], 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 2));
+      geo.setIndex([0, 1, 2]);
+      geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 0);
       return geo;
     }
 
@@ -1058,8 +1152,8 @@ export class CombatFXEngine {
     const isCross = preset.slashShape === 'CROSS';
 
     // 🎛️ 支援自訂粗細與半徑（預設細銳刀芒 10px，徹底告別 40px 肥塊）
-    const bladeRadius = (preset.slashRadius || (isWhirlwind ? 85 : 65)) * preset.scale;
-    const bladeWidth = (preset.slashBladeWidth || (isWhirlwind ? 18 : 10)) * preset.scale;
+    const bladeRadius = (preset.slashRadius || (isWhirlwind ? 85 : 65)) * (preset.scale || 1.0);
+    const bladeWidth = (preset.slashBladeWidth || (isWhirlwind ? 18 : 10)) * (preset.scale || 1.0);
     const maxArcSpan = (isWhirlwind ? 360 : (preset.slashArcSpan || 135)) * (Math.PI / 180);
     const startAngle = (preset.slashAngle !== undefined ? preset.slashAngle : -45) * (Math.PI / 180);
     const dirSign = preset.slashReverse ? -1 : 1;
@@ -1113,16 +1207,16 @@ export class CombatFXEngine {
     this.activeEffects.push({
       update: (delta) => {
         elapsed += delta;
-        const prog = Math.min(elapsed / duration, 1);
+        const prog = Math.max(0, Math.min(elapsed / duration, 1));
 
         let headT: number;
         let tailT: number;
         if (prog < 0.45) {
-          const pHead = prog / 0.45;
+          const pHead = Math.max(0, Math.min(prog / 0.45, 1));
           headT = Math.pow(pHead, 0.7);
           tailT = Math.pow(pHead, 2.4) * 0.2;
         } else {
-          const pTail = (prog - 0.45) / 0.55;
+          const pTail = Math.max(0, Math.min((prog - 0.45) / 0.55, 1));
           headT = 1.0;
           tailT = 0.2 + Math.pow(pTail, 1.4) * 0.8;
         }
@@ -1692,7 +1786,7 @@ export class CombatFXEngine {
   private spawnSecondarySpikes(pos: THREE.Vector3, count: number, height: number, colorRimHex: string, preset?: VFXPreset): void {
     const group = new THREE.Group();
     // 🎯 腳底貼地原點校考：若角度向上沖天 (45°~135°) 或為地表破土，原點自動下沉至目標腳底地面 (pos.y - 65)！
-    const isUpward = (preset?.spikeAngle !== undefined && preset.spikeAngle >= 45 && preset.spikeAngle <= 135) || (preset?.trajectory === 'GROUND_BURST');
+    const isUpward = (preset?.spikeAngle !== undefined && preset.spikeAngle >= 45 && preset.spikeAngle <= 135) || (preset?.trajectory === 'GROUND_BURST') || (preset?.trajectory === 'GROUND_FISSURE');
     const basePos = pos.clone();
     if (isUpward) {
       basePos.y -= 65;
@@ -1700,7 +1794,16 @@ export class CombatFXEngine {
     group.position.copy(basePos);
     this.scene.add(group);
 
-    const spikeItems: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; delay: number; heightVar?: number }[] = [];
+    const isPhong = preset?.spikeMaterialMode !== 'BASIC';
+    if (isPhong) {
+      const ambient = new THREE.AmbientLight(0x94a3b8, 0.9);
+      const dir = new THREE.DirectionalLight(0xfff1e6, 1.5);
+      dir.position.set(50, 150, 100);
+      group.add(ambient);
+      group.add(dir);
+    }
+
+    const spikeItems: { mesh: THREE.Mesh; mat: THREE.Material; delay: number; heightVar?: number; fireMesh?: THREE.Mesh }[] = [];
     const width = Math.max(3, (preset?.spikeWidth || 7) * (preset?.scale || 1.0));
     const finalHeight = Math.max(20, height);
     const shape = preset?.spikeShape || 'CONE_SPIKE';
@@ -1712,7 +1815,7 @@ export class CombatFXEngine {
     if (shape === 'CRYSTAL_PRISM') {
       spikeGeo = new THREE.CylinderGeometry(width * 0.35, width, finalHeight, 6);
     } else if (shape === 'JAGGED_ROCK') {
-      spikeGeo = new THREE.ConeGeometry(width * 1.3, finalHeight, 4);
+      spikeGeo = new THREE.ConeGeometry(width * 1.35, finalHeight, 5);
     } else if (shape === 'PILLAR_COLUMN') {
       spikeGeo = new THREE.CylinderGeometry(width, width, finalHeight, 12);
     } else {
@@ -1732,6 +1835,8 @@ export class CombatFXEngine {
       orderIndices[i] = orderIndices[j];
       orderIndices[j] = temp;
     }
+
+    const eruptFire = preset?.spikeEruptFire || preset?.shaderMode === 'VOLUMETRIC_FIRE';
 
     for (let i = 0; i < count; i++) {
       let angle: number;
@@ -1759,12 +1864,22 @@ export class CombatFXEngine {
         posY = Math.sin(angle) * dist;
       }
 
-      const spikeMat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(colorRimHex),
-        transparent: true,
-        opacity: 0,
-        blending: THREE.AdditiveBlending
-      });
+      const spikeMat = isPhong
+        ? new THREE.MeshPhongMaterial({
+            color: new THREE.Color(colorRimHex),
+            specular: new THREE.Color(0xffffff),
+            shininess: 24,
+            flatShading: true,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false
+          })
+        : new THREE.MeshBasicMaterial({
+            color: new THREE.Color(colorRimHex),
+            transparent: true,
+            opacity: 0,
+            blending: THREE.AdditiveBlending
+          });
 
       const mesh = new THREE.Mesh(spikeGeo, spikeMat);
       mesh.position.set(posX, posY, posZ);
@@ -1772,9 +1887,27 @@ export class CombatFXEngine {
       mesh.scale.set(0.001, 0.001, 0.001);
       group.add(mesh);
 
+      // 伴生地火噴發
+      let fireMesh: THREE.Mesh | undefined;
+      if (eruptFire) {
+        const fGeo = new THREE.ConeGeometry(width * 1.1, finalHeight * 1.25, 6);
+        fGeo.translate(0, finalHeight * 0.62, 0);
+        const fMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(preset?.colorCore || '#ff6600'),
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending
+        });
+        fireMesh = new THREE.Mesh(fGeo, fMat);
+        fireMesh.position.set(posX, posY, posZ + 2);
+        fireMesh.rotation.z = angle - Math.PI / 2;
+        fireMesh.scale.set(0.001, 0.001, 0.001);
+        group.add(fireMesh);
+      }
+
       const delay = orderIndices[i] * staggerSec;
       const heightVar = 0.82 + Math.random() * 0.36;
-      spikeItems.push({ mesh, mat: spikeMat, delay, heightVar });
+      spikeItems.push({ mesh, mat: spikeMat, delay, heightVar, fireMesh });
     }
 
     let elapsed = 0;
@@ -1790,6 +1923,10 @@ export class CombatFXEngine {
           if (elapsed < item.delay) {
             item.mesh.scale.set(0.001, 0.001, 0.001);
             item.mat.opacity = 0;
+            if (item.fireMesh) {
+              item.fireMesh.scale.set(0.001, 0.001, 0.001);
+              (item.fireMesh.material as THREE.Material).opacity = 0;
+            }
             allDone = false;
             return;
           }
@@ -1801,9 +1938,18 @@ export class CombatFXEngine {
             const sc = prog < 0.22 ? (prog / 0.22) : 1 - (prog - 0.22) / 0.78 * 0.35;
             item.mesh.scale.set(sc, sc * (item as any).heightVar, sc);
             item.mat.opacity = Math.max(0, 1 - (prog - 0.25) / 0.75);
+
+            if (item.fireMesh) {
+              item.fireMesh.scale.set(sc * 1.2, sc * (item as any).heightVar * 1.3, sc * 1.2);
+              (item.fireMesh.material as THREE.Material).opacity = Math.max(0, 1 - (prog - 0.2) / 0.8);
+            }
           } else {
             item.mesh.scale.set(0.001, 0.001, 0.001);
             item.mat.opacity = 0;
+            if (item.fireMesh) {
+              item.fireMesh.scale.set(0.001, 0.001, 0.001);
+              (item.fireMesh.material as THREE.Material).opacity = 0;
+            }
           }
         });
 
@@ -1812,7 +1958,201 @@ export class CombatFXEngine {
       dispose: () => {
         this.scene.remove(group);
         spikeGeo.dispose();
-        spikeItems.forEach(item => item.mat.dispose());
+        spikeItems.forEach(item => {
+          item.mat.dispose();
+          if (item.fireMesh) {
+            item.fireMesh.geometry.dispose();
+            (item.fireMesh.material as THREE.Material).dispose();
+          }
+        });
+      }
+    });
+  }
+
+  /**
+   * 🌋 大地衝擊裂地波管線 (Ground Fissure Wave Pipeline)
+   * 解決痛點：施術者延伸至目標的地裂浪湧推進、實體尖岩與伴生地火連爆
+   */
+  private playGroundFissure(
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    preset: VFXPreset,
+    onHit: () => void,
+    onComplete: () => void
+  ): void {
+    const group = new THREE.Group();
+    this.scene.add(group);
+
+    // 1. 局部 FX 光源：為實體尖岩提供立體漫反射與高光
+    const isPhong = preset.spikeMaterialMode !== 'BASIC';
+    if (isPhong) {
+      const ambientLight = new THREE.AmbientLight(0x8899aa, 0.95);
+      const dirLight = new THREE.DirectionalLight(0xffeedd, 1.5);
+      dirLight.position.set(60, 140, 100);
+      group.add(ambientLight);
+      group.add(dirLight);
+    }
+
+    const groundYOffset = -60; // 貼合卡牌腳底地面
+    const groundStart = new THREE.Vector3(startPos.x, startPos.y + groundYOffset, 0);
+    const groundEnd = new THREE.Vector3(endPos.x, endPos.y + groundYOffset, 0);
+
+    const totalDist = groundStart.distanceTo(groundEnd);
+    const stepDist = 48;
+    const nodeCount = Math.max(4, Math.min(12, Math.floor(totalDist / stepDist)));
+    const totalDuration = Math.max(0.28, preset.duration || 0.42);
+    const nodeInterval = (totalDuration * 0.72) / Math.max(1, nodeCount - 1);
+
+    const nodes: {
+      pos: THREE.Vector3;
+      delay: number;
+      isFinal: boolean;
+      scaleFactor: number;
+    }[] = [];
+
+    for (let i = 0; i < nodeCount; i++) {
+      const ratio = nodeCount > 1 ? i / (nodeCount - 1) : 1;
+      const pos = new THREE.Vector3().lerpVectors(groundStart, groundEnd, ratio);
+      if (i > 0 && i < nodeCount - 1) {
+        pos.y += (Math.random() - 0.5) * 12;
+      }
+      const delay = i * nodeInterval;
+      const isFinal = (i === nodeCount - 1);
+      const scaleFactor = 0.65 + ratio * 0.75;
+      nodes.push({ pos, delay, isFinal, scaleFactor });
+    }
+
+    const spikeWidth = Math.max(4, (preset.spikeWidth || 10) * (preset.scale || 1.0));
+    const baseHeight = Math.max(30, (preset.spikeHeight || 55) * (preset.scale || 1.0));
+
+    let activeNodeIndex = 0;
+    let elapsed = 0;
+    let hitTriggered = false;
+
+    this.activeEffects.push({
+      update: (delta) => {
+        elapsed += delta;
+
+        while (activeNodeIndex < nodes.length && elapsed >= nodes[activeNodeIndex].delay) {
+          const node = nodes[activeNodeIndex];
+          activeNodeIndex++;
+
+          const nodeGroup = new THREE.Group();
+          nodeGroup.position.copy(node.pos);
+          group.add(nodeGroup);
+
+          const curHeight = baseHeight * node.scaleFactor;
+          const curWidth = spikeWidth * node.scaleFactor;
+
+          // 2. 實體尖岩 Mesh（5面不對稱破岩幾何）
+          const rockGeo = new THREE.ConeGeometry(curWidth, curHeight, 5);
+          rockGeo.translate(0, curHeight / 2, 0);
+
+          const rockMat = isPhong
+            ? new THREE.MeshPhongMaterial({
+                color: new THREE.Color(preset.colorRim || '#94a3b8'),
+                specular: new THREE.Color(0xffffff),
+                shininess: 24,
+                flatShading: true,
+                transparent: true,
+                opacity: 1
+              })
+            : new THREE.MeshBasicMaterial({
+                color: new THREE.Color(preset.colorRim || '#94a3b8'),
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending
+              });
+
+          const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+          rockMesh.scale.set(0.1, 0.01, 0.1);
+          rockMesh.rotation.z = (Math.random() - 0.5) * 0.35;
+          nodeGroup.add(rockMesh);
+
+          // 3. 地表黑焦裂痕
+          const crackGeo = new THREE.CircleGeometry(curWidth * 1.5, 8);
+          crackGeo.rotateX(-Math.PI / 2.5);
+          const crackMat = new THREE.MeshBasicMaterial({
+            color: new THREE.Color('#1e1b18'),
+            transparent: true,
+            opacity: 0.8
+          });
+          const crackMesh = new THREE.Mesh(crackGeo, crackMat);
+          crackMesh.position.y = -2;
+          nodeGroup.add(crackMesh);
+
+          // 4. 伴生地火噴發
+          const eruptFire = preset.spikeEruptFire || preset.shaderMode === 'VOLUMETRIC_FIRE' || preset.category === 'ELEMENTAL';
+          let fireMesh: THREE.Mesh | null = null;
+          if (eruptFire) {
+            const fireGeo = new THREE.ConeGeometry(curWidth * 0.95, curHeight * 1.35, 6);
+            fireGeo.translate(0, curHeight * 0.65, 0);
+            const fireMat = new THREE.MeshBasicMaterial({
+              color: new THREE.Color(preset.colorCore || '#ff7700'),
+              transparent: true,
+              opacity: 0.95,
+              blending: THREE.AdditiveBlending
+            });
+            fireMesh = new THREE.Mesh(fireGeo, fireMat);
+            fireMesh.scale.set(0.01, 0.01, 0.01);
+            nodeGroup.add(fireMesh);
+          }
+
+          let nodeAge = 0;
+          const nodeDur = 0.38;
+          this.activeEffects.push({
+            update: (d) => {
+              nodeAge += d;
+              const p = Math.min(1, nodeAge / nodeDur);
+              if (p < 0.25) {
+                const sp = p / 0.25;
+                rockMesh.scale.set(1, sp, 1);
+                if (fireMesh) fireMesh.scale.set(1.2 * sp, 1.4 * sp, 1.2 * sp);
+              } else {
+                const fade = Math.max(0, 1 - (p - 0.4) / 0.6);
+                rockMat.opacity = fade;
+                if (fireMesh) {
+                  fireMesh.scale.set(1.2, 1.4 * fade, 1.2);
+                  (fireMesh.material as THREE.MeshBasicMaterial).opacity = fade;
+                }
+              }
+              return p >= 1;
+            },
+            dispose: () => {
+              nodeGroup.remove(rockMesh);
+              nodeGroup.remove(crackMesh);
+              if (fireMesh) nodeGroup.remove(fireMesh);
+              group.remove(nodeGroup);
+              rockGeo.dispose();
+              rockMat.dispose();
+              crackGeo.dispose();
+              crackMat.dispose();
+              if (fireMesh) {
+                fireMesh.geometry.dispose();
+                (fireMesh.material as THREE.Material).dispose();
+              }
+            }
+          });
+
+          // 如果是最後一個目標節點，觸發受擊回饋與次生尖刺爆發
+          if (node.isFinal && !hitTriggered) {
+            hitTriggered = true;
+            onHit();
+            this.spawnDynamicImpactBurst(endPos, preset);
+            if (preset.spikes && preset.spikes > 0) {
+              this.spawnSecondarySpikes(endPos, preset.spikes, preset.spikeHeight || 55, preset.colorRim, preset);
+            }
+          }
+        }
+
+        if (elapsed >= totalDuration + 0.38) {
+          onComplete();
+          return true;
+        }
+        return false;
+      },
+      dispose: () => {
+        this.scene.remove(group);
       }
     });
   }

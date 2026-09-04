@@ -409,6 +409,8 @@ body {
 
 /* 戰鬥對抗擂台 (Arena - 雙向 3x3 棋盤) */
 .cs-arena {
+  position: relative;
+  overflow: hidden;
   padding: 10px 14px;
   display: grid;
   grid-template-columns: 1fr 50px 1fr;
@@ -1010,4 +1012,50 @@ body {
 .cs-tag-race-undead { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.3); }
 .cs-tag-race-human { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.3); }
 .cs-tag-race-dragon { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.3); }
+
+/* 🥊 戰鬥打擊感：定格擠壓、受擊抖動、受擊閃光與擊退復位 */
+.target-hit {
+  animation: animHit var(--shake-dur, 0.28s) cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform, filter;
+}
+
+@keyframes animHit {
+  0% { transform: scale(1) translateX(0); filter: drop-shadow(0 0 15px var(--flash-color, #ffffff)) brightness(2.2); }
+  20% { transform: scale(var(--punch-scale, 0.88)) translate(calc(var(--knockback-x, 0px) - var(--shake-x, 12px)), var(--shake-y, 4px)); filter: drop-shadow(0 0 25px var(--flash-color, #ffffff)) brightness(2.8); }
+  40% { transform: scale(var(--punch-scale, 0.88)) translate(calc(var(--knockback-x, 0px) + var(--shake-x, 12px)), calc(0px - var(--shake-y, 4px))); }
+  60% { transform: scale(1.02) translate(calc(var(--knockback-x, 0px) * 0.5 - 0.5 * var(--shake-x, 12px)), 2px); }
+  80% { transform: scale(0.99) translate(calc(var(--knockback-x, 0px) * 0.2 + 0.3 * var(--shake-x, 12px)), 0); }
+  100% { transform: scale(1) translate(0, 0); filter: none; }
+}
+
+/* 突進打擊動畫 */
+@keyframes attackBumpPlayer { 0% { transform: translateX(0); } 50% { transform: translateX(18px) scale(1.05); } 100% { transform: translateX(0); } }
+@keyframes attackBumpEnemy { 0% { transform: translateX(0); } 50% { transform: translateX(-18px) scale(1.05); } 100% { transform: translateX(0); } }
+.attack-bump-player { animation: attackBumpPlayer 0.2s ease-out; }
+.attack-bump-enemy { animation: attackBumpEnemy 0.2s ease-out; }
+
+/* 漂浮跳字動畫 */
+.floating-dmg {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: #ef4444;
+  text-shadow: 0 2px 4px rgba(0,0,0,1);
+  animation: floatUp 0.8s forwards;
+  pointer-events: none;
+  z-index: 100;
+  white-space: nowrap;
+}
+.floating-dmg.crit {
+  color: #f59e0b;
+  font-size: 1.15rem;
+  text-shadow: 0 0 8px rgba(245, 158, 11, 0.6), 0 2px 4px rgba(0,0,0,1);
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -32px) scale(1.15); }
+}
 

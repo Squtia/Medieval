@@ -294,6 +294,246 @@ function developmentStudioPlugin(): Plugin {
         }
 
         // ==========================================
+        // 特效工坊 SSOT 資料庫 (VFX Presets SSOT API)
+        // ==========================================
+        const vfxFile = path.resolve(__dirname, 'src/data/vfx_presets.json');
+        const vfxSnapshotsDir = path.resolve(__dirname, 'src/data/snapshots');
+
+        // 🛡️ 伺服器端最終防線驗證器 (Server-side SSOT Validation Guard)
+        const validateVfxPresetsServer = (presetsList: any[]): { isValid: boolean; errors: string[] } => {
+          const validationErrors: string[] = [];
+          if (!Array.isArray(presetsList) || presetsList.length === 0) {
+            return { isValid: false, errors: ['Presets must be a non-empty array'] };
+          }
+          const seenIds = new Set<string>();
+          const validTrajectories = new Set([
+            'HORIZONTAL', 'VERTICAL_DROP', 'DIAGONAL_DROP', 'GROUND_BURST', 'GROUND_FISSURE',
+            'COLUMN_PIERCE', 'MELEE_SWEEP', 'BODY_AURA', 'ARC_MULTI', 'PARABOLA_ARC', 'SHIELD_BARRIER', 'SHOUT_WAVE'
+          ]);
+          const validShaderModes = new Set([
+            'FRESNEL_ICE', 'VOLUMETRIC_FIRE', 'DIELECTRIC_LIGHTNING', 'ENERGY_BEAM',
+            'HOLY_LIGHT', 'DARK_VOID', 'SLASH_BLADE', 'EARTH_SHATTER'
+          ]);
+
+          presetsList.forEach((p, idx) => {
+            if (!p || typeof p !== 'object') {
+              validationErrors.push(`Preset at index ${idx} is not an object`);
+              return;
+            }
+            if (!p.id || typeof p.id !== 'string') {
+              validationErrors.push(`Preset at index ${idx} missing valid "id"`);
+            } else {
+              if (seenIds.has(p.id)) {
+                validationErrors.push(`Duplicate preset ID "${p.id}"`);
+              }
+              seenIds.add(p.id);
+            }
+            if (!p.name || typeof p.name !== 'string') {
+              validationErrors.push(`Preset [${p.id || idx}]: missing valid "name"`);
+            }
+            if (!validTrajectories.has(p.trajectory)) {
+              validationErrors.push(`Preset [${p.id || idx}]: invalid trajectory "${p.trajectory}"`);
+            }
+            if (!validShaderModes.has(p.shaderMode)) {
+              validationErrors.push(`Preset [${p.id || idx}]: invalid shaderMode "${p.shaderMode}"`);
+            }
+            if (typeof p.duration !== 'number' || !Number.isFinite(p.duration) || p.duration <= 0) {
+              validationErrors.push(`Preset [${p.id || idx}]: "duration" must be a positive finite number`);
+            }
+            if (typeof p.scale !== 'number' || !Number.isFinite(p.scale) || p.scale <= 0) {
+              validationErrors.push(`Preset [${p.id || idx}]: "scale" must be a positive finite number`);
+            }
+
+            if (p.impactCues !== undefined) {
+              if (!Array.isArray(p.impactCues)) {
+                validationErrors.push(`Preset [${p.id || idx}]: "impactCues" must be an array`);
+              } else {
+                const cueIdSet = new Set<string>();
+                p.impactCues.forEach((cue: any, cIdx: number) => {
+                  if (!cue || typeof cue !== 'object') {
+                    validationErrors.push(`Preset [${p.id || idx}]: cue at index ${cIdx} is invalid`);
+                    return;
+                  }
+                  if (!cue.cueId || typeof cue.cueId !== 'string') {
+                    validationErrors.push(`Preset [${p.id || idx}]: cue at index ${cIdx} missing "cueId"`);
+                  } else {
+                    if (cueIdSet.has(cue.cueId)) {
+                      validationErrors.push(`Preset [${p.id || idx}]: Duplicate cueId "${cue.cueId}"`);
+                    }
+                    cueIdSet.add(cue.cueId);
+                  }
+                  if (typeof cue.time !== 'number' || !Number.isFinite(cue.time)) {
+                    validationErrors.push(`Preset [${p.id || idx}]: cue [${cue.cueId || cIdx}] time must be a finite number`);
+                  } else if (cue.time < 0 || (typeof p.duration === 'number' && cue.time > p.duration + 0.001)) {
+                    validationErrors.push(`Preset [${p.id || idx}]: cue [${cue.cueId}] time (${cue.time}s) out of bounds [0, ${p.duration}]`);
+                  }
+                });
+              }
+            }
+          });
+
+          return { isValid: validationErrors.length === 0, errors: validationErrors };
+        };
+
+        // 🚀 1. 發布至專案 SSOT (嚴格校驗防線 + 原子寫入 + 時間戳快照)
+        if (url === '/__vfx_api/save_ssot' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              const presets = Array.isArray(payload) ? payload : payload.presets;
+              
+              // 🌟 伺服器端最終防線驗證 (規範 9.2)
+              const checkResult = validateVfxPresetsServer(presets);
+              if (!checkResult.isValid) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                return res.end(JSON.stringify({
+                  success: false,
+                  error: 'Server-side validation failed',
+                  details: checkResult.errors
+                }));
+              }
+
+              if (!fs.existsSync(vfxSnapshotsDir)) {
+                fs.mkdirSync(vfxSnapshotsDir, { recursive: true });
+              }
+
+              // 1. 自動產生備份快照
+              const now = new Date();
+              const stamp = createSnapshotStamp(now);
+              const snapshotFilename = `vfx_snapshot_${stamp}.json`;
+              const currentContent = fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]';
+              atomicWriteFileSync(path.resolve(vfxSnapshotsDir, snapshotFilename), currentContent);
+
+              // 2. 原子性寫入 SSOT 主檔案
+              atomicWriteFileSync(vfxFile, JSON.stringify(presets, null, 2));
+
+              // 3. 限制保留最近 20 份快照
+              const allSnapshots = fs.readdirSync(vfxSnapshotsDir).filter((f: string) => f.startsWith('vfx_snapshot_')).sort().reverse();
+              if (allSnapshots.length > 20) {
+                allSnapshots.slice(20).forEach((oldFile: string) => {
+                  try { fs.unlinkSync(path.resolve(vfxSnapshotsDir, oldFile)); } catch (e) {}
+                });
+              }
+
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({
+                success: true,
+                message: '已成功通過伺服器驗證並發布至專案 SSOT (src/data/vfx_presets.json)！',
+                snapshot: snapshotFilename,
+                count: presets.length
+              }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if (url === '/__vfx_api/snapshot' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              if (!fs.existsSync(vfxSnapshotsDir)) {
+                fs.mkdirSync(vfxSnapshotsDir, { recursive: true });
+              }
+              const now = new Date();
+              const stamp = createSnapshotStamp(now);
+              const snapshotFilename = `vfx_snapshot_${stamp}.json`;
+              const currentContent = fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]';
+              atomicWriteFileSync(path.resolve(vfxSnapshotsDir, snapshotFilename), currentContent);
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: true, snapshot: snapshotFilename }));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        if ((url === '/__vfx_api/list_snapshots' || url === '/api/list-vfx-backups') && req.method === 'GET') {
+          if (!fs.existsSync(vfxSnapshotsDir)) {
+            res.setHeader('Content-Type', 'application/json');
+            return res.end(JSON.stringify({ snapshots: [], backups: [] }));
+          }
+          const files = fs.readdirSync(vfxSnapshotsDir).filter((f: string) => f.startsWith('vfx_snapshot_')).sort().reverse();
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(JSON.stringify({ snapshots: files, backups: files }));
+        }
+
+        if (url === '/api/get-vfx-presets' && req.method === 'GET') {
+          res.setHeader('Content-Type', 'application/json');
+          return res.end(fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]');
+        }
+
+        // 🔄 2. 快照復原端點 (路徑防逃逸 + 快照內容驗證 + 還原前快照保護)
+        if ((url === '/api/restore-vfx-backup' || url === '/__vfx_api/restore_snapshot') && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const { filename } = JSON.parse(body);
+              if (typeof filename !== 'string' || path.basename(filename) !== filename || !filename.startsWith('vfx_snapshot_')) {
+                throw new Error('快照檔名不合法或包含非法路徑字符');
+              }
+              const targetPath = path.resolve(vfxSnapshotsDir, filename);
+              // 路徑逃逸防護
+              if (!targetPath.startsWith(vfxSnapshotsDir)) {
+                throw new Error('非法路徑逃逸');
+              }
+              if (!fs.existsSync(targetPath)) {
+                res.statusCode = 404;
+                return res.end(JSON.stringify({ success: false, error: '找不到該快照' }));
+              }
+              const content = fs.readFileSync(targetPath, 'utf-8');
+              const parsed = JSON.parse(content);
+
+              // 驗證快照內容合法性
+              const checkResult = validateVfxPresetsServer(parsed);
+              if (!checkResult.isValid) {
+                res.statusCode = 400;
+                res.setHeader('Content-Type', 'application/json');
+                return res.end(JSON.stringify({
+                  success: false,
+                  error: '該快照內容未通過資料合法性驗證，拒絕還原',
+                  details: checkResult.errors
+                }));
+              }
+
+              // 🌟 覆蓋前自動建立一份前置防護快照 (Prevent Disaster)
+              const now = new Date();
+              const stamp = createSnapshotStamp(now);
+              const preRestoreFilename = `vfx_snapshot_pre_restore_${stamp}.json`;
+              const currentContent = fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]';
+              atomicWriteFileSync(path.resolve(vfxSnapshotsDir, preRestoreFilename), currentContent);
+
+              // 原子性寫入還原檔案
+              atomicWriteFileSync(vfxFile, content);
+
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({
+                success: true,
+                message: `已成功還原至快照 ${filename}，並建立前置備份 ${preRestoreFilename}`,
+                snapshot: filename,
+                count: parsed.length
+              }));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ success: false, error: err.message }));
+            }
+          });
+          return;
+        }
+
+        // ==========================================
         // 技能工坊自訂技能資料庫 (Custom Skill Definitions API)
         // ==========================================
         const skillFile = path.resolve(__dirname, 'src/data/CustomSkillData.json');

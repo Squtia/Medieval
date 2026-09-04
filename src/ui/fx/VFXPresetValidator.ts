@@ -5,6 +5,7 @@ export const VALID_TRAJECTORIES: ReadonlySet<string> = new Set<VFXTrajectory>([
   'VERTICAL_DROP',
   'DIAGONAL_DROP',
   'GROUND_BURST',
+  'GROUND_FISSURE',
   'COLUMN_PIERCE',
   'MELEE_SWEEP',
   'BODY_AURA',
@@ -53,14 +54,42 @@ export class VFXPresetValidator {
     if (!VALID_SHADER_MODES.has(preset.shaderMode)) {
       errors.push(`Preset [${preset.id}]: Invalid shaderMode "${preset.shaderMode}"`);
     }
-    if (typeof preset.duration !== 'number' || preset.duration <= 0) {
-      errors.push(`Preset [${preset.id}]: "duration" must be a positive number`);
+    if (typeof preset.duration !== 'number' || !Number.isFinite(preset.duration) || preset.duration <= 0) {
+      errors.push(`Preset [${preset.id}]: "duration" must be a positive finite number`);
     }
-    if (typeof preset.scale !== 'number' || preset.scale <= 0) {
-      errors.push(`Preset [${preset.id}]: "scale" must be a positive number`);
+    if (typeof preset.scale !== 'number' || !Number.isFinite(preset.scale) || preset.scale <= 0) {
+      errors.push(`Preset [${preset.id}]: "scale" must be a positive finite number`);
     }
     if (!preset.impact || typeof preset.impact !== 'object') {
       errors.push(`Preset [${preset.id}]: Missing "impact" configuration`);
+    }
+
+    // 🎯 檢驗 impactCues 結構、ID 唯一性與時間範圍 (規範 9.2)
+    if (preset.impactCues !== undefined) {
+      if (!Array.isArray(preset.impactCues)) {
+        errors.push(`Preset [${preset.id}]: "impactCues" must be an array`);
+      } else {
+        const cueIdSet = new Set<string>();
+        preset.impactCues.forEach((cue: any, cIdx: number) => {
+          if (!cue || typeof cue !== 'object') {
+            errors.push(`Preset [${preset.id}]: impactCue at index ${cIdx} is invalid`);
+            return;
+          }
+          if (!cue.cueId || typeof cue.cueId !== 'string') {
+            errors.push(`Preset [${preset.id}]: impactCue at index ${cIdx} missing "cueId"`);
+          } else {
+            if (cueIdSet.has(cue.cueId)) {
+              errors.push(`Preset [${preset.id}]: Duplicate cueId "${cue.cueId}"`);
+            }
+            cueIdSet.add(cue.cueId);
+          }
+          if (typeof cue.time !== 'number' || !Number.isFinite(cue.time)) {
+            errors.push(`Preset [${preset.id}]: Cue [${cue.cueId || cIdx}] "time" must be a finite number`);
+          } else if (cue.time < 0 || (typeof preset.duration === 'number' && cue.time > preset.duration + 0.001)) {
+            errors.push(`Preset [${preset.id}]: Cue [${cue.cueId}] time (${cue.time}s) exceeds preset duration (${preset.duration}s) or is negative`);
+          }
+        });
+      }
     }
 
     return {
