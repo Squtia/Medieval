@@ -4,138 +4,12 @@ import { Random } from '../core/Random';
 import { TargetType, Skill, SkillDisplayInfo, PassiveDisplayInfo } from '../models/Skill';
 import { getElementalMultiplier, getPatk, getMatk, calculateSkillDamage } from '../utils/CombatMath';
 import { SkillRegistry } from '../systems/combat/SkillRegistry';
+import { SkillVfxBindingRegistry } from '../systems/combat/SkillVfxBindingRegistry';
+import { BasicAttackVfxRepository } from '../systems/combat/BasicAttackVfxRepository';
 
-// ── 🥊 全技能與特效工房預設庫綁定對照表 (SSOT Mapping) ──
-export const SKILL_VFX_MAP: Record<string, string> = {
-  // 戰士
-  'FIGHTER_HEAVY_STRIKE': 'VFX_HEAVY_STRIKE',
-  '奮力一擊': 'VFX_HEAVY_STRIKE',
-  'FIGHTER_ARMOR_BREAK': 'VFX_HEAVY_STRIKE',
-  '破甲碎擊': 'VFX_HEAVY_STRIKE',
-  'GREATSWORD_WHIRLWIND': 'VFX_WHIRLWIND',
-  '大劍旋風斬': 'VFX_WHIRLWIND',
-  'MAGIC_SWORDSMAN_PHANTOM': 'VFX_PHANTOM_SLASH',
-  '幻影劍舞': 'VFX_PHANTOM_SLASH',
+// ── 🥊 全技能與特效工房預設庫綁定對照表 (SSOT Mapping，由 SkillVfxBindingRegistry 獨立資料庫解耦提供) ──
+export const SKILL_VFX_MAP: Record<string, string> = SkillVfxBindingRegistry.getInstance().toMap();
 
-  // 騎士
-  'KNIGHT_SHIELD_BASH': 'VFX_SHIELD_BASH',
-  '盾擊': 'VFX_SHIELD_BASH',
-  'KNIGHT_TAUNT': 'VFX_TAUNT_SHOUT',
-  '嘲諷': 'VFX_TAUNT_SHOUT',
-  '掩護': 'VFX_TAUNT_SHOUT',
-  'KNIGHT_PALADIN_AEGIS': 'VFX_HOLY_SHIELD',
-  '聖盾庇護': 'VFX_HOLY_SHIELD',
-  '神聖庇護': 'VFX_HOLY_SHIELD',
-  'KNIGHT_RUNE_REFLECTION': 'VFX_RUNE_BARRIER',
-  '符文反制': 'VFX_RUNE_BARRIER',
-  '符文反傷': 'VFX_RUNE_BARRIER',
-
-  // 弓手
-  'ARCHER_PIERCING_SHOT': 'VFX_PIERCE_ARROW',
-  '穿刺射擊': 'VFX_PIERCE_ARROW',
-  'ARCHER_AIMED_SHOT': 'VFX_SNIPER_SHOT',
-  '精準狙擊': 'VFX_SNIPER_SHOT',
-  'SNIPER_FATAL_SNIPE': 'VFX_SNIPER_SHOT',
-  '致命一擊': 'VFX_SNIPER_SHOT',
-  'SPIRIT_ARCHER_SPIRIT_CHAIN': 'VFX_SPIRIT_DANCE',
-  '精靈箭雨': 'VFX_SPIRIT_DANCE',
-
-  // 盜賊
-  'THIEF_SURPRISE_ATTACK': 'VFX_SHADOW_ASSASSIN',
-  '突襲': 'VFX_SHADOW_ASSASSIN',
-  'THIEF_POISON_BLADE': 'VFX_POISON_BLADE',
-  '毒刃': 'VFX_POISON_BLADE',
-  'ASSASSIN_SHADOW_ASSASSINATION': 'VFX_SHADOW_ASSASSIN',
-  '暗影暗殺': 'VFX_SHADOW_ASSASSIN',
-  'TRICKSTER_TRICK_MAGIC': 'VFX_ARCANE_MISSILES',
-  '詭術幻象': 'VFX_ARCANE_MISSILES',
-
-  // 法師
-  'MAGE_ARCANE_MISSILES': 'VFX_ARCANE_MISSILES',
-  '秘法飛彈': 'VFX_ARCANE_MISSILES',
-  'MAGE_FIRE_BOLT': 'VFX_FIREBALL',
-  '火球術': 'VFX_FIREBALL',
-  'MAGE_ICE_SPIKE': 'VFX_ICE_LANCE',
-  '冰刺術': 'VFX_ICE_LANCE',
-  'MAGE_LIGHTNING_BOLT': 'VFX_LIGHTNING_BOLT',
-  '狂雷術': 'VFX_LIGHTNING_BOLT',
-  'MAGE_HOLY_SMITE': 'VFX_HOLY_LIGHT',
-  '聖擊術': 'VFX_HOLY_LIGHT',
-  'MAGE_DARK_ORB': 'VFX_SCYTHE_REAP',
-  '暗靈球': 'VFX_SCYTHE_REAP',
-  'MAGE_STATIC_FIELD': 'VFX_LIGHTNING_BOLT',
-  '靜電場': 'VFX_LIGHTNING_BOLT',
-  'STAFF_METEOR': 'VFX_METEOR_STRIKE',
-  '天降流星': 'VFX_METEOR_STRIKE',
-  'SCYTHE_SOUL_REAP': 'VFX_SCYTHE_REAP',
-  '靈魂收割': 'VFX_SCYTHE_REAP',
-  'STAFF_FIREBALL': 'VFX_FIREBALL',
-  '爆裂火球': 'VFX_FIREBALL',
-  'STAFF_LIGHTNING': 'VFX_LIGHTNING_BOLT',
-  '九天狂雷': 'VFX_LIGHTNING_BOLT',
-  'STAFF_FROST_ARROW': 'VFX_ICE_LANCE',
-  '極冰霜箭': 'VFX_ICE_LANCE',
-  'STAFF_LIVING_COMBUSTION': 'VFX_FIREBALL',
-  '活體燃燒': 'VFX_FIREBALL',
-  'STAFF_THUNDER_MARK': 'VFX_LIGHTNING_BOLT',
-  '雷霆烙印': 'VFX_LIGHTNING_BOLT',
-  'STAFF_FROST_FREEZE': 'VFX_ICE_LANCE',
-  '霜寒凍結': 'VFX_ICE_LANCE',
-
-  // 牧師
-  'PRAYER_HEAL': 'VFX_HOLY_LIGHT',
-  '初級治癒': 'VFX_HOLY_LIGHT',
-  'PRAYER_HOLY_LIGHT': 'VFX_HOLY_LIGHT',
-  '神聖之光': 'VFX_HOLY_LIGHT',
-  'PRAYER_ARCHBISHOP_MASS_HEAL': 'VFX_HOLY_RAIN',
-  '大主教群體祈禱': 'VFX_HOLY_RAIN',
-  'PRAYER_INQUISITOR_JUDGMENT': 'VFX_HOLY_LIGHT',
-  '異端審判': 'VFX_HOLY_LIGHT',
-
-  // 怪物技能
-  'CATACLYSM_FLAME': 'VFX_METEOR_STRIKE',
-  '滅世黑炎': 'VFX_METEOR_STRIKE',
-  'DRAGON_ROAR': 'VFX_DRAGON_ROAR',
-  '巨龍咆哮': 'VFX_DRAGON_ROAR',
-  'SKILL_TOXIC_SPRAY': 'VFX_POISON_BLADE',
-  '劇毒噴吐': 'VFX_POISON_BLADE',
-  'SKILL_SAVAGE_REND': 'VFX_HEAVY_STRIKE',
-  '野蠻撕裂': 'VFX_HEAVY_STRIKE',
-  'SKILL_CRUSHING_SLAM': 'VFX_HEAVY_STRIKE',
-  '巨力重砸': 'VFX_HEAVY_STRIKE',
-  'SKILL_BLOOD_DRAIN': 'VFX_SCYTHE_REAP',
-  '吸血獠牙': 'VFX_SCYTHE_REAP',
-  'SKILL_TERROR_SCREECH': 'VFX_DRAGON_ROAR',
-  '恐懼尖嘯': 'VFX_DRAGON_ROAR',
-  'SKILL_SHADOW_ASSAULT': 'VFX_SHADOW_ASSASSIN',
-  '暗影突襲': 'VFX_SHADOW_ASSASSIN',
-  'SKILL_FLAME_BURST': 'VFX_FIREBALL',
-  '火焰爆燃': 'VFX_FIREBALL',
-  'SKILL_FROST_BREATH': 'VFX_ICE_LANCE',
-  '冰霜吐息': 'VFX_ICE_LANCE',
-  'SKILL_IRON_DEFENSE': 'VFX_SHIELD_BASH',
-  '鋼鐵防壁': 'VFX_SHIELD_BASH',
-  'SKILL_FRENZY_ROAR': 'VFX_DRAGON_ROAR',
-  '狂亂怒吼': 'VFX_DRAGON_ROAR',
-
-  // 領主戰役軍令與攻城器械
-  'CAVALRY_CHARGE': 'VFX_CAVALRY_CHARGE',
-  'CAVALRY_BREACH_CHARGE': 'VFX_CAVALRY_CHARGE',
-  '騎兵破陣衝鋒': 'VFX_CAVALRY_CHARGE',
-  '破城毀滅突入': 'VFX_CAVALRY_CHARGE',
-  'SHIELD_WALL': 'VFX_SHIELD_WALL',
-  '步兵盾牆': 'VFX_SHIELD_WALL',
-  'VOLLEY_FIRE': 'VFX_ARROW_VOLLEY',
-  '弓兵齊射': 'VFX_ARROW_VOLLEY',
-  'TREBUCHET_ATTACK': 'VFX_TREBUCHET_BOULDER',
-  '重型投石機': 'VFX_TREBUCHET_BOULDER',
-  'BATTERING_RAM_ATTACK': 'VFX_BATTERING_RAM',
-  '撞木衝車': 'VFX_BATTERING_RAM',
-  'WATCHTOWER_ATTACK': 'VFX_WATCHTOWER_VOLLEY',
-  '哨所箭塔': 'VFX_WATCHTOWER_VOLLEY',
-  'SIEGE_GATE_DAMAGE': 'VFX_BATTERING_RAM',
-  'SIEGE_GATE_BREAK': 'VFX_BATTERING_RAM'
-};
 
 export function getSkillVfxId(skillIdOrName?: string, fallbackAttackType?: string): string {
   // 🔗 優先讀取特效工房使用者自訂技能綁定 (LocalStorage: MEDIEVAL_SKILL_VFX_BINDINGS)
@@ -204,30 +78,10 @@ export function getBasicAttackVfxId(actor?: {
 }): string {
   if (!actor) return 'VFX_DEFAULT_SLASH';
 
-  // 1. 優先讀取 LocalStorage 使用者自訂普攻綁定 (MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS)
-  if (typeof localStorage !== 'undefined') {
-    try {
-      const raw = localStorage.getItem('MEDIEVAL_BASIC_ATTACK_VFX_BINDINGS');
-      if (raw) {
-        const bindings: Record<string, string> = JSON.parse(raw);
-        if (bindings) {
-          // (a) 精確匹配武器類型 (例如: GREATSWORD, BOW, STAFF, DAGGERS, SWORD_AND_SHIELD, HOLY_BOOK)
-          if (actor.weaponType && bindings[actor.weaponType]) {
-            return bindings[actor.weaponType];
-          }
-          // (b) 次級匹配基礎職業 (例如: Warrior, Mage, Archer, Knight, Thief, Cleric)
-          if (actor.baseClass && bindings[actor.baseClass]) {
-            return bindings[actor.baseClass];
-          }
-          // (c) 攻擊型態匹配 (例如: MELEE, RANGED, MAGIC)
-          if (actor.attackType && bindings[actor.attackType]) {
-            return bindings[actor.attackType];
-          }
-        }
-      }
-    } catch (e) {
-      // ignore
-    }
+  // 1. 優先透過 BasicAttackVfxRepository 查詢自訂普攻特效綁定
+  const customVfx = BasicAttackVfxRepository.getInstance().resolveVfxId(actor);
+  if (customVfx) {
+    return customVfx;
   }
 
   // 2. 預設普攻攻擊型態 Fallback

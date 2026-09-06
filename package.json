@@ -15,6 +15,9 @@
     "test:smoke": "node scripts/smoke-test.mjs",
     "generate-mask": "node scripts/generate-map-mask.mjs",
     "check:bundle": "node scripts/check-bundle.mjs",
+    "test:vfx:layout": "node scripts/verify-vfx-studio-layout.mjs",
+    "test:vfx:soak": "node scripts/soak-test-vfx.mjs",
+    "test:vfx": "npm run test:vfx:layout && npm run test:vfx:soak",
     "check": "npm run typecheck && npm run test && npm run build && npm run test:smoke && npm run check:bundle"
   },
   "devDependencies": {

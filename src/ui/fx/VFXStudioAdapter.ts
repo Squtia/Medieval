@@ -104,7 +104,7 @@ export class VFXStudioAdapter {
 
       const floatEl = document.createElement('div');
       floatEl.className = 'vfx-floating-dmg light-dmg';
-      floatEl.textContent = '-' + Math.floor(Math.random() * 80 + 120);
+      floatEl.textContent = '-' + Math.floor(this.fxEngine.getRandom() * 80 + 120);
       targetEl.appendChild(floatEl);
       this.registerTimer(() => { if (floatEl.parentNode) floatEl.remove(); }, 500);
       return;
@@ -128,7 +128,7 @@ export class VFXStudioAdapter {
 
     // 4. 暴擊判定與傷害跳字（若為 SPLIT_SINGLE_IMPACT 則乘上 cue.weight）
     const isCrit = (impact.shakeIntensity || 12) >= 15 || impact.screenShake;
-    let baseDmg = Math.floor(Math.random() * 400 + (isCrit ? 850 : 420));
+    let baseDmg = Math.floor(this.fxEngine.getRandom() * 400 + (isCrit ? 850 : 420));
     if (presentationMode === 'SPLIT_SINGLE_IMPACT' && cue?.weight !== undefined) {
       baseDmg = Math.max(1, Math.round(baseDmg * cue.weight));
     }

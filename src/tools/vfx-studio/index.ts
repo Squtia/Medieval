@@ -1,12 +1,15 @@
 import { VFXStudioController } from './VFXStudioController';
+import { VFXStudioStore } from './VFXStudioStore';
 
 /**
  * 🎬 VFX Studio 工房入口中樞
  */
+(window as any).__VFX_STORE__ = VFXStudioStore.getInstance();
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new VFXStudioController();
+    (window as any).__vfxStudioController = new VFXStudioController();
   });
 } else {
-  new VFXStudioController();
+  (window as any).__vfxStudioController = new VFXStudioController();
 }

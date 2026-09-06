@@ -35,6 +35,9 @@ export class VFXStudioStore {
     impact: false
   };
 
+  // 🛡️ 草稿無損暫存棧 (Draft Stash Stack) - 支援編輯素材時自動暫存當前複合技能
+  private stashStack: { preset: VFXPreset; name: string }[] = [];
+
   private listeners = new Set<StoreChangeListener>();
   private isSnapshotPaused: boolean = false;
 
@@ -175,11 +178,120 @@ export class VFXStudioStore {
     return this.targetMode;
   }
 
+  private soloTracks: Set<string> = new Set<string>();
+  private lockedTracks: Set<string> = new Set<string>();
+
   public setTrackMute(track: keyof TrackMuteStates, mute: boolean): void {
     this.trackMuteStates[track] = mute;
   }
 
   public getTrackMuteStates(): TrackMuteStates {
     return { ...this.trackMuteStates };
+  }
+
+  public toggleTrackSolo(trackId: string): boolean {
+    if (this.soloTracks.has(trackId)) {
+      this.soloTracks.delete(trackId);
+    } else {
+      this.soloTracks.add(trackId);
+    }
+    this.notify();
+    return this.soloTracks.has(trackId);
+  }
+
+  public setTrackSolo(track: keyof TrackMuteStates): void {
+    if (this.soloTracks.has(track)) {
+      this.soloTracks.delete(track);
+    } else {
+      this.soloTracks.clear();
+      this.soloTracks.add(track);
+    }
+    this.notify();
+  }
+
+  public getSoloTrack(): (keyof TrackMuteStates) | null {
+    if (this.soloTracks.has('main')) return 'main';
+    if (this.soloTracks.has('impact')) return 'impact';
+    return null;
+  }
+
+  public isTrackSoloed(trackId: string): boolean {
+    return this.soloTracks.has(trackId);
+  }
+
+  public hasAnySolo(): boolean {
+    return this.soloTracks.size > 0;
+  }
+
+  public toggleTrackLock(trackId: string): boolean {
+    if (this.lockedTracks.has(trackId)) {
+      this.lockedTracks.delete(trackId);
+    } else {
+      this.lockedTracks.add(trackId);
+    }
+    this.notify();
+    return this.lockedTracks.has(trackId);
+  }
+
+  public isTrackLocked(trackId: string): boolean {
+    return this.lockedTracks.has(trackId);
+  }
+
+  /**
+   * 判定主軌在當前 Solo/Mute 條件下是否應渲染
+   */
+  public isMainTrackActive(): boolean {
+    if (this.trackMuteStates.main) return false;
+    if (this.soloTracks.size > 0) {
+      return this.soloTracks.has('main');
+    }
+    return true;
+  }
+
+  /**
+   * 判定指定次生圖層在當前 Solo/Mute 條件下是否應渲染
+   */
+  public isLayerTrackActive(layerIdx: number, layerEnabled: boolean = true): boolean {
+    if (!layerEnabled || this.trackMuteStates.layers) return false;
+    const layerTrackId = `layer_${layerIdx}`;
+    if (this.soloTracks.size > 0) {
+      return this.soloTracks.has(layerTrackId);
+    }
+    return true;
+  }
+
+  /**
+   * 🛡️ 暫存當前草稿 (Auto Stash Draft)
+   * 當創作者跳轉去編輯某素材時調用，保存當前未發布的所有圖層排程、CUE 點與時長
+   */
+  public stashCurrentDraft(displayName?: string): void {
+    const name = displayName || this.currentPreset.name || this.currentPreset.id;
+    this.stashStack.push({
+      preset: JSON.parse(JSON.stringify(this.currentPreset)),
+      name
+    });
+  }
+
+  /**
+   * 🔙 恢復並彈出最上層暫存草稿
+   */
+  public popStashedDraft(): VFXPreset | null {
+    if (this.stashStack.length === 0) return null;
+    const entry = this.stashStack.pop()!;
+    this.setPreset(entry.preset, true);
+    return entry.preset;
+  }
+
+  public getHasStash(): boolean {
+    return this.stashStack.length > 0;
+  }
+
+  public getStashedDraftInfo(): { name: string; count: number } | null {
+    if (this.stashStack.length === 0) return null;
+    const top = this.stashStack[this.stashStack.length - 1];
+    return {
+      name: top.name,
+      count: this.stashStack.length
+    };
   }
 }

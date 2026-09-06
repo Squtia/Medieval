@@ -196,6 +196,19 @@ export class VFXPresetRepository {
     this.rebuildResolvedMap();
   }
 
+  /**
+   * 🔄 重新載入預設（例如從伺服器還原 SSOT 快照後）
+   */
+  public reloadPresets(newPresets?: VFXPreset[]): void {
+    if (newPresets && Array.isArray(newPresets)) {
+      this.builtInMap.clear();
+      newPresets.forEach(p => this.builtInMap.set(p.id, { ...p }));
+    } else {
+      this.loadBuiltIn();
+    }
+    this.rebuildResolvedMap();
+  }
+
   public addChangeListener(listener: () => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

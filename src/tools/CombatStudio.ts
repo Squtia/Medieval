@@ -22,6 +22,7 @@ import equipmentAccessoriesJson from '../data/equipment_accessories.json';
 import customSkillsJson from '../data/CustomSkillData.json';
 import { VFXPresetRepository } from '../ui/fx/VFXPresetRepository';
 import { CombatStudioStageAdapter } from '../ui/fx/adapters/CombatStudioStageAdapter';
+import { CombatAction, CombatImpactPresentation, CombatActionPlayer } from '../ui/fx/CombatActionPlayer';
 import '../styles/combat-studio.css';
 
 // 工具函式
@@ -4324,18 +4325,79 @@ class CombatStudioController {
       return;
     }
 
-    const ev = this.currentReport.events[this.currentEventIndex];
-    this.applyEventToUi(ev);
+    const currentEv = this.currentReport.events[this.currentEventIndex];
+
+    // 🎬 檢查是否為 CombatAction 行動組（包含 actionId）
+    if (currentEv.actionId) {
+      const actionId = currentEv.actionId;
+      const actionEvents: CombatEvent[] = [];
+      let nextIdx = this.currentEventIndex;
+      while (
+        nextIdx < this.currentReport.events.length &&
+        this.currentReport.events[nextIdx].actionId === actionId
+      ) {
+        actionEvents.push(this.currentReport.events[nextIdx]);
+        nextIdx++;
+      }
+      this.currentEventIndex = nextIdx;
+
+      // 1. 將該 Action 內所有事件文字輸出至日誌
+      actionEvents.forEach(ev => this.appendLogEntry(ev));
+
+      // 2. 構建 CombatAction
+      const vfxId = actionEvents.find(e => e.vfxId)?.vfxId;
+      const skillId = actionEvents.find(e => e.skillId)?.skillId;
+      const action: CombatAction = {
+        actionId,
+        actorId: currentEv.actorId || '',
+        skillId,
+        vfxId,
+        events: actionEvents
+      };
+
+      const isVfxOn = CombatStudioStageAdapter.getInstance().isVfxEnabled();
+      CombatStudioStageAdapter.getInstance().playCombatAction(action, {
+        skipVfx: !isVfxOn,
+        onImpact: (item) => {
+          // 當每個 Cue 觸發時，精確更新該目標卡牌的血條
+          this.updateBarsFromPresentation(item);
+        },
+        onComplete: () => {
+          if (this.isPlaying) {
+            const delay = Math.max(60, 150 / this.playSpeed);
+            this.playTimer = setTimeout(() => this.stepPlayback(), delay);
+          }
+        }
+      }).catch(err => {
+        console.warn('[CombatStudio] CombatAction playback exception:', err);
+        // 防呆：發生錯誤時立即更新這組事件的最終血條並推進
+        actionEvents.forEach(e => this.updateBarsFromEvent(e));
+        if (this.isPlaying) {
+          const delay = Math.max(60, 150 / this.playSpeed);
+          this.playTimer = setTimeout(() => this.stepPlayback(), delay);
+        }
+      });
+      return;
+    }
+
+    // 非 actionId 事件（例如：回合提示、波次開始、無 actionId 之狀態事件）
+    this.appendLogEntry(currentEv);
     this.currentEventIndex++;
 
-    const isVfxOn = CombatStudioStageAdapter.getInstance().isVfxEnabled();
-    const baseDelay = isVfxOn ? 650 : 450;
-    const delay = Math.max(100, baseDelay / this.playSpeed);
+    if (currentEv.type === CombatEventType.WAVE_START && currentEv.wave) {
+      this.renderArenaWave(currentEv.wave);
+      byId('cs-arena-round').textContent = `Wave ${currentEv.wave}`;
+    }
+
+    this.updateBarsFromEvent(currentEv);
+
+    const delay = Math.max(80, 250 / this.playSpeed);
     this.playTimer = setTimeout(() => this.stepPlayback(), delay);
   }
 
-  private applyEventToUi(ev: CombatEvent, options?: { skipVfx?: boolean }): void {
+  private appendLogEntry(ev: CombatEvent): void {
     const logBox = byId('cs-combat-log');
+    if (!logBox) return;
     const row = document.createElement('div');
     row.className = 'cs-log-entry';
 
@@ -4343,7 +4405,7 @@ class CombatStudioController {
     if (ev.type === CombatEventType.HEAL) row.classList.add('heal');
     if (ev.type === CombatEventType.STATUS_APPLY) row.classList.add('status');
 
-    // 🔍 Phase 5: Action/Impact 與 VFX Cue 稽核資訊
+    // 🔍 Action/Impact 與 VFX Cue 稽核資訊
     let debugTag = '';
     if (ev.actionId) {
       const segInfo = ev.impactIndex !== undefined && ev.impactCount !== undefined
@@ -4371,42 +4433,49 @@ class CombatStudioController {
     logBox.appendChild(row);
     logBox.scrollTop = logBox.scrollHeight;
 
-    // 波次切換
-    if (ev.type === CombatEventType.WAVE_START && ev.wave) {
-      this.renderArenaWave(ev.wave);
-      byId('cs-arena-round').textContent = `Wave ${ev.wave}`;
-      return;
-    }
-
     // 回合數顯示 (解析日誌中的回合資訊)
     const roundMatch = ev.text.match(/── 第 (\d+) 回合 ──/);
     if (roundMatch) {
-      byId('cs-arena-round').textContent = `R${roundMatch[1]}`;
+      const roundEl = byId('cs-arena-round');
+      if (roundEl) roundEl.textContent = `R${roundMatch[1]}`;
+    }
+  }
+
+  private updateBarsFromPresentation(item: CombatImpactPresentation): void {
+    if (!item.targetId || item.targetHp === undefined || !item.targetMaxHp) return;
+    const cleanId = item.targetId.replace(/^adv_\d+_/, '');
+    const hpBar = document.getElementById(`hp_${item.targetId}`) || document.getElementById(`hp_${cleanId}`);
+    const hpTxt = document.getElementById(`hp_txt_${item.targetId}`) || document.getElementById(`hp_txt_${cleanId}`);
+    if (hpBar) {
+      const curHp = Math.max(0, item.targetHp);
+      const pct = Math.max(0, Math.min(100, (curHp / item.targetMaxHp) * 100));
+      hpBar.style.width = `${pct}%`;
+      if (hpTxt) hpTxt.textContent = `${curHp}/${item.targetMaxHp}`;
+
+      const card = hpBar.closest('.cs-arena-card') as HTMLElement;
+      if (card && curHp <= 0) {
+        card.classList.add('dead');
+      }
+    }
+  }
+
+  private applyEventToUi(ev: CombatEvent, options?: { skipVfx?: boolean }): void {
+    this.appendLogEntry(ev);
+
+    if (ev.type === CombatEventType.WAVE_START && ev.wave) {
+      this.renderArenaWave(ev.wave);
+      const roundEl = byId('cs-arena-round');
+      if (roundEl) roundEl.textContent = `Wave ${ev.wave}`;
+      return;
     }
 
-    // 🎬 觸發 3D 視覺演出與打擊感反饋，並在命中時序同步更新血條
-    let barsUpdated = false;
-    const doUpdateBars = () => {
-      if (barsUpdated) return;
-      barsUpdated = true;
-      this.updateBarsFromEvent(ev);
-    };
-
+    this.updateBarsFromEvent(ev);
     if (ev.actorId || ev.targetId) {
       CombatStudioStageAdapter.getInstance().playEventAction(ev, {
-        skipVfx: options?.skipVfx,
-        onImpact: () => {
-          doUpdateBars();
-        }
+        skipVfx: options?.skipVfx
       }).catch((err) => {
-        console.warn('[CombatStudio] playEventAction exception caught, proceeding with bar update:', err);
-        doUpdateBars();
+        console.warn('[CombatStudio] playEventAction exception caught:', err);
       });
-
-      // 防呆：若特效因故未在 1.5 秒內觸發 impact，強制更新血條
-      setTimeout(() => doUpdateBars(), 1500);
-    } else {
-      doUpdateBars();
     }
   }
 
@@ -4912,13 +4981,22 @@ class CombatStudioController {
       CombatStudioStageAdapter.getInstance().setSpeed(this.playSpeed);
     };
 
-    const btnVfxToggle = byId('btn-vfx-toggle');
+        const btnVfxToggle = byId('btn-vfx-toggle');
     if (btnVfxToggle) {
       btnVfxToggle.onclick = () => {
         const adapter = CombatStudioStageAdapter.getInstance();
         const next = !adapter.isVfxEnabled();
         adapter.setVfxEnabled(next);
         btnVfxToggle.textContent = next ? '🎬 特效: 開' : '🎬 特效: 關';
+      };
+    }
+
+    const btnVfxDebugToggle = byId('btn-vfx-debug-toggle');
+    if (btnVfxDebugToggle) {
+      btnVfxDebugToggle.onclick = () => {
+        const isEnabled = CombatActionPlayer.isDebugOverlayEnabled();
+        CombatActionPlayer.setDebugOverlayEnabled(!isEnabled);
+        btnVfxDebugToggle.textContent = !isEnabled ? '🔍 覆蓋層: 開' : '🔍 覆蓋層: 關';
       };
     }
 

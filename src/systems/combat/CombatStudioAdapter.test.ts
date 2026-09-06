@@ -277,4 +277,65 @@ describe('⚔️ CombatStudioStageAdapter (Phase 6 戰鬥演播室同源適配�
     const targetEl = adapter.findCardElement('enemy_1_0')!;
     expect(targetEl.querySelector('.floating-dmg')).not.toBeNull();
   });
+
+  it('8. playCombatAction 應正確以 CombatAction 為單位播放，多段打擊依 Cue 觸發呈現', async () => {
+    const adapter = CombatStudioStageAdapter.getInstance();
+    adapter.mount(container as any);
+
+    const action = {
+      actionId: 'act_test_combo',
+      actorId: 'p1',
+      skillId: 'whirlwind',
+      vfxId: 'VFX_DEFAULT_SLASH',
+      events: [
+        {
+          type: CombatEventType.SKILL_CAST,
+          actionId: 'act_test_combo',
+          actorId: 'p1',
+          targetId: 'enemy_1_0',
+          impactIndex: 0,
+          impactCount: 2,
+          text: '施放旋風斬'
+        },
+        {
+          type: CombatEventType.HIT,
+          actionId: 'act_test_combo',
+          actorId: 'p1',
+          targetId: 'enemy_1_0',
+          damage: 60,
+          impactIndex: 0,
+          impactCount: 2,
+          text: '第一段 60'
+        },
+        {
+          type: CombatEventType.HIT,
+          actionId: 'act_test_combo',
+          actorId: 'p1',
+          targetId: 'enemy_1_0',
+          damage: 80,
+          impactIndex: 1,
+          impactCount: 2,
+          text: '第二段 80'
+        }
+      ]
+    };
+
+    const impactAmounts: number[] = [];
+    let completed = false;
+
+    await adapter.playCombatAction(action, {
+      skipVfx: true,
+      onImpact: (item) => {
+        impactAmounts.push(item.amount);
+      },
+      onComplete: () => {
+        completed = true;
+      }
+    });
+
+    expect(completed).toBe(true);
+    // 驗證已成功呈現打擊
+    expect(impactAmounts.length).toBeGreaterThan(0);
+    expect(impactAmounts.reduce((a, b) => a + b, 0)).toBe(140);
+  });
 });

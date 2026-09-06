@@ -19,9 +19,7 @@
       </div>
       <div class="inspector-card-body">
         <div class="param-row">
-          <div class="param-label-row">
-            <span class="param-label">斬擊軌跡走向 (Slash Motion)</span>
-          </div>
+          <div class="param-label-row"><span class="param-label">斬擊軌跡走向 (Slash Motion)</span></div>
           <select id="param-slash-traj" class="param-select">
             <option value="CLEAVE_DOWN">🗡️ 45° 順勢斜劈 (Downward Cleave)</option>
             <option value="UPPER_CUT">🗡️ 反手挑斬 / 升龍 (Upward Uppercut)</option>
@@ -30,95 +28,48 @@
             <option value="CUSTOM">🎯 自由自訂角度 (Custom Free Angle)</option>
           </select>
         </div>
-
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">起手起始角</span>
-              <span id="val-slash-angle" class="param-value">-45°</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-slash-angle" class="param-slider" min="-180" max="180" step="5" value="-45">
-            </div>
+            <div class="param-label-row"><span class="param-label">起手起始角</span><span id="val-slash-angle" class="param-value">-45°</span></div>
+            <div class="param-control"><input type="range" id="param-slash-angle" class="param-slider" min="-180" max="180" step="5" value="-45"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">揮斬跨度</span>
-              <span id="val-slash-arc-span" class="param-value">120°</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-slash-arc-span" class="param-slider" min="30" max="240" step="5" value="120">
-            </div>
+            <div class="param-label-row"><span class="param-label">揮斬跨度</span><span id="val-slash-arc-span" class="param-value">120°</span></div>
+            <div class="param-control"><input type="range" id="param-slash-arc-span" class="param-slider" min="30" max="240" step="5" value="120"></div>
           </div>
         </div>
-
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">刀芒扁平率</span>
-              <span id="val-slash-aspect" class="param-value">1.0x</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-slash-aspect" class="param-slider" min="0.4" max="2.0" step="0.05" value="1.0">
-            </div>
+            <div class="param-label-row"><span class="param-label">刀芒扁平率</span><span id="val-slash-aspect" class="param-value">1.0x</span></div>
+            <div class="param-control"><input type="range" id="param-slash-aspect" class="param-slider" min="0.4" max="2.0" step="0.05" value="1.0"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">出刀方向</span>
-            </div>
-            <select id="param-slash-reverse" class="param-select">
-              <option value="false">順勢劈出</option>
-              <option value="true">逆向反劈</option>
-            </select>
+            <div class="param-label-row"><span class="param-label">出刀方向</span></div>
+            <select id="param-slash-reverse" class="param-select"><option value="false">順勢劈出</option><option value="true">逆向反劈</option></select>
           </div>
         </div>
-
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">刀芒粗細 (Thickness)</span>
-              <span id="val-slash-width" class="param-value">10px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-slash-width" class="param-slider" min="2" max="50" step="1" value="10">
-            </div>
+            <div class="param-label-row"><span class="param-label">刀芒粗細</span><span id="val-slash-width" class="param-value">10px</span></div>
+            <div class="param-control"><input type="range" id="param-slash-width" class="param-slider" min="2" max="50" step="1" value="10"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">劍氣半徑 (Radius)</span>
-              <span id="val-slash-radius" class="param-value">65px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-slash-radius" class="param-slider" min="30" max="130" step="5" value="65">
-            </div>
+            <div class="param-label-row"><span class="param-label">劍氣半徑</span><span id="val-slash-radius" class="param-value">65px</span></div>
+            <div class="param-control"><input type="range" id="param-slash-radius" class="param-slider" min="30" max="130" step="5" value="65"></div>
           </div>
         </div>
-
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">連斬角度擾動</span>
-              <span id="val-slash-jitter" class="param-value">±0°</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-slash-jitter" class="param-slider" min="0" max="60" step="5" value="0">
-            </div>
+            <div class="param-label-row"><span class="param-label">連斬角度擾動</span><span id="val-slash-jitter" class="param-value">±0°</span></div>
+            <div class="param-control"><input type="range" id="param-slash-jitter" class="param-slider" min="0" max="60" step="5" value="0"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">左右交錯出刀</span>
-            </div>
-            <select id="param-slash-alternating" class="param-select">
-              <option value="false">同向出刀</option>
-              <option value="true">左右交錯反挑</option>
-            </select>
+            <div class="param-label-row"><span class="param-label">左右交錯出刀</span></div>
+            <select id="param-slash-alternating" class="param-select"><option value="false">同向出刀</option><option value="true">左右交錯反挑</option></select>
           </div>
         </div>
-
         <div class="param-row">
-          <div class="param-label-row">
-            <span class="param-label">斬擊幾何形態 (Shape)</span>
-          </div>
+          <div class="param-label-row"><span class="param-label">斬擊幾何形態 (Shape)</span></div>
           <select id="param-slash-shape" class="param-select">
             <option value="CRESCENT">🌙 凌厲流線月牙 (Crescent Blade)</option>
             <option value="CROSS">⚔️ 十字交錯撕裂 (Cross Rend)</option>
@@ -136,29 +87,16 @@
       <div class="inspector-card-body">
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">發射彈數</span>
-              <span id="val-salvo-count" class="param-value">1 發</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-salvo-count" class="param-slider" min="1" max="12" step="1" value="1">
-            </div>
+            <div class="param-label-row"><span class="param-label">發射彈數</span><span id="val-salvo-count" class="param-value">1 發</span></div>
+            <div class="param-control"><input type="range" id="param-salvo-count" class="param-slider" min="1" max="12" step="1" value="1"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">連射總時長</span>
-              <span id="val-salvo-dur" class="param-value">0.35s</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-salvo-dur" class="param-slider" min="0.1" max="2.0" step="0.05" value="0.35">
-            </div>
+            <div class="param-label-row"><span class="param-label">連射總時長</span><span id="val-salvo-dur" class="param-value">0.35s</span></div>
+            <div class="param-control"><input type="range" id="param-salvo-dur" class="param-slider" min="0.1" max="2.0" step="0.05" value="0.35"></div>
           </div>
         </div>
-
         <div class="param-row">
-          <div class="param-label-row">
-            <span class="param-label">發射節奏曲線 (Rhythm Easing)</span>
-          </div>
+          <div class="param-label-row"><span class="param-label">發射節奏曲線 (Rhythm Easing)</span></div>
           <select id="param-salvo-curve" class="param-select">
             <option value="LINEAR">🟢 等距均勻 (Steady Linear)</option>
             <option value="ACCELERATE">🚀 先慢後快急速 (Accelerate Exponential)</option>
@@ -167,46 +105,24 @@
             <option value="STAGGERED">🎲 隨機錯落散佈 (Staggered Scatter)</option>
           </select>
         </div>
-
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">散射偏角</span>
-              <span id="val-salvo-spread" class="param-value">0°</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-salvo-spread" class="param-slider" min="0" max="45" step="1" value="0">
-            </div>
+            <div class="param-label-row"><span class="param-label">散射偏角</span><span id="val-salvo-spread" class="param-value">0°</span></div>
+            <div class="param-control"><input type="range" id="param-salvo-spread" class="param-slider" min="0" max="45" step="1" value="0"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">受擊散佈半徑</span>
-              <span id="val-salvo-scatter" class="param-value">0px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-salvo-scatter" class="param-slider" min="0" max="140" step="5" value="0">
-            </div>
+            <div class="param-label-row"><span class="param-label">受擊散佈半徑</span><span id="val-salvo-scatter" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-salvo-scatter" class="param-slider" min="0" max="140" step="5" value="0"></div>
           </div>
         </div>
-
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">拋物弧高</span>
-              <span id="val-arc-height" class="param-value">0px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-arc-height" class="param-slider" min="0" max="280" step="10" value="0">
-            </div>
+            <div class="param-label-row"><span class="param-label">拋物弧高</span><span id="val-arc-height" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-arc-height" class="param-slider" min="0" max="280" step="10" value="0"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">多段打擊反饋</span>
-            </div>
-            <select id="param-multihit-impact" class="param-select">
-              <option value="true">🥊 輕顫+重震</option>
-              <option value="false">💥 僅終結重震</option>
-            </select>
+            <div class="param-label-row"><span class="param-label">多段打擊反饋</span></div>
+            <select id="param-multihit-impact" class="param-select"><option value="true">🥊 輕顫+重震</option><option value="false">💥 僅終結重震</option></select>
           </div>
         </div>
       </div>
@@ -284,12 +200,21 @@
           <option value="SINGLE">🎯 單體受擊 (Single)</option>
           <option value="FRONT_ROW">👥 前排橫掃 (3人 Front Row)</option>
           <option value="ALL_AOE">🌪️ 全體轟炸 (6人 All AOE)</option>
+          <option value="ALLY_HEAL">💚 友軍治療 (Ally Heal)</option>
+          <option value="SELF_BUFF">🛡️ 自身蓄能/護盾 (Self Buff)</option>
           <option value="SIEGE_GATE">🏰 要塞城門 (Siege Gate)</option>
         </select>
         <button id="btn-play" class="btn-tool primary">▶ 播放 (Space)</button>
         <button id="btn-loop" class="btn-tool" style="border-color: #38bdf8; color: #38bdf8;">🔄 自動循環: 開</button>
-        <button id="btn-slow" class="btn-tool">🐢 慢動作 (0.3x)</button>
-        <button id="btn-bg-toggle" class="btn-tool">🎨 背景: 純黑</button>
+        <select id="select-play-speed" class="param-select" style="width: auto; padding: 3px 6px; font-size: 0.76rem; background: #161b22; color: #cbd5e1;" title="播放速度縮放 (Playback Speed)">
+          <option value="0.25">🐢 0.25x</option>
+          <option value="0.5">⏱️ 0.5x</option>
+          <option value="1.0" selected>⚡ 1.0x</option>
+          <option value="2.0">⏩ 2.0x</option>
+        </select>
+        <button id="btn-bg-toggle" class="btn-tool" title="切換背景模式 (純黑 / 棋盤格 / 實戰背景)">🎨 背景: 純黑</button>
+        <button id="btn-toggle-guides" class="btn-tool" style="border-color: #a855f7; color: #c084fc;" title="切換中心十字、彈道軌跡與安全區輔助線">📐 輔助線: 關</button>
+        <button id="btn-return-stash" class="btn-tool" style="display: none; background: linear-gradient(135deg, #be185d, #e11d48); color: #fff; border: 1px solid #fda4af; font-weight: bold; font-size: 0.74rem;" title="返回先前暫存的複合技能草稿">🔙 返回技能草稿</button>
       </div>
     </div>
 
@@ -303,10 +228,17 @@
       </div>
 
       <div id="quality-budget-hud" style="position: absolute; top: 12px; right: 12px; background: rgba(15, 23, 42, 0.85); border: 1px solid #334155; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; color: #94a3b8; z-index: 50; display: flex; gap: 10px; backdrop-filter: blur(4px);"></div>
+      <!-- 📐 輔助線覆蓋層 (中心十字、安全區、彈道預測線) -->
+      <svg id="vfx-guides-overlay" style="display: none; position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 40;"></svg>
       <div class="scene-overlay" id="scene-overlay">
         <div class="ref-card caster" id="ref-caster">
           <div class="ref-card-icon">🧙</div>
           <div class="ref-card-label">施術者 (Start)</div>
+        </div>
+        <!-- 🎯 影格驗收基準測試標記 (Frame Benchmark Marker) - 預設隱藏避免遮擋真實 3D 特效 -->
+        <div id="benchmark-marker" class="benchmark-marker" style="display: none !important; position: absolute; width: 36px; height: 36px; border-radius: 50%; background: radial-gradient(circle, #38bdf8 0%, #0284c7 60%, rgba(2, 132, 199, 0.2) 100%); border: 2px solid #ffffff; box-shadow: 0 0 16px rgba(56, 189, 248, 0.9), 0 0 30px rgba(56, 189, 248, 0.5); z-index: 60; pointer-events: none; transform: translate(-50%, -50%);">
+          <div style="width: 8px; height: 8px; background: #ffffff; border-radius: 50%;"></div>
+          <span id="benchmark-marker-label" style="position: absolute; top: 40px; font-size: 0.7rem; font-family: monospace; font-weight: bold; color: #38bdf8; background: rgba(15, 23, 42, 0.85); padding: 1px 6px; border-radius: 4px; border: 1px solid #0284c7; white-space: nowrap;">F: 00</span>
         </div>
         <div id="target-stage-wrapper">
           <div class="ref-card target" id="ref-target">
@@ -328,22 +260,57 @@
       <div class="inspector-card-body">
         <div class="param-row">
           <div class="param-label-row">
-            <span class="param-label">空間軌跡路徑 (Trajectory)</span>
+            <span class="param-label">時空發生模式 (Spatial Mode)</span>
           </div>
-          <select id="param-trajectory" class="param-select">
-            <option value="HORIZONTAL">🏹 水平破空直線 (Horizontal)</option>
-            <option value="GROUND_FISSURE">🌊 施術延伸地裂浪湧 (Ground Fissure Wave)</option>
-            <option value="GROUND_BURST">🌋 目標地面破土 (Ground Burst)</option>
-            <option value="PARABOLA_ARC">🌈 拋物弧線下墜 (Parabola Arc / 箭雨吊射)</option>
-            <option value="ARC_MULTI">🪃 漫天弧線連環 (Multi Arc / 奧術飛彈)</option>
-            <option value="COLUMN_PIERCE">⚡ 直線貫穿光柱 (Column Pierce)</option>
-            <option value="VERTICAL_DROP">☀️ 雲端垂直墜擊 (Vertical Drop)</option>
-            <option value="DIAGONAL_DROP">☄️ 傾斜天頂隕落 (Diagonal Drop)</option>
-            <option value="MELEE_SWEEP">⚔️ 近戰弧光橫掃 (Melee Sweep)</option>
-            <option value="BODY_AURA">🛡️ 護體光環蓄能 (Body Aura)</option>
-            <option value="SHOUT_WAVE">📢 戰吼擴散震波 (Shout Wave)</option>
-            <option value="SHIELD_BARRIER">🛡️ 神聖護盾壁壘 (Shield Barrier)</option>
+          <select id="param-spatial-mode" class="param-select">
+            <option value="TRAJECTORY">🚀 位移彈道 (5 大幾何路徑)</option>
+            <option value="AT_CASTER">🏠 施術者自身 (A點原地)</option>
+            <option value="AT_TARGET">💥 受擊目標 (B點原地)</option>
           </select>
+        </div>
+
+        <div class="param-row" id="row-trajectory-path">
+          <div class="param-label-row">
+            <span class="param-label">位移彈道路徑 (Trajectory Path)</span>
+          </div>
+          <select id="param-trajectory-path" class="param-select">
+            <option value="A_TO_B">➡️ A ➔ B (施術者至目標)</option>
+            <option value="VERTICAL_SKY_TO_B">⚡ 垂直天空 ➔ B (天降雷殛直劈)</option>
+            <option value="DIAGONAL_SKY_TO_B">☄️ 斜向天空 ➔ B (斜降流星天火)</option>
+            <option value="A_TO_VERTICAL_SKY">🏹 A ➔ 垂直天空 (朝天射箭/信號彈)</option>
+            <option value="A_TO_DIAGONAL_SKY">🚀 A ➔ 斜向天空 (斜天際拋射)</option>
+          </select>
+        </div>
+
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">🔄 運動方向 (Reverse)</span>
+            </div>
+            <select id="param-reverse" class="param-select">
+              <option value="false">正向運動 (Forward)</option>
+              <option value="true">🔄 反向倒流 (Reverse)</option>
+            </select>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">傳統彈道 (Legacy)</span>
+            </div>
+            <select id="param-trajectory" class="param-select">
+              <option value="HORIZONTAL">🏹 水平破空 (A➔B)</option>
+              <option value="VERTICAL_DROP">☀️ 雲端垂直墜擊</option>
+              <option value="DIAGONAL_DROP">☄️ 傾斜天頂隕落</option>
+              <option value="PARABOLA_ARC">🌈 拋物弧線下墜</option>
+              <option value="ARC_MULTI">🪃 漫天弧線連環</option>
+              <option value="COLUMN_PIERCE">⚡ 直線貫穿光柱</option>
+              <option value="GROUND_FISSURE">🌊 延伸地裂浪湧</option>
+              <option value="GROUND_BURST">🌋 目標地面破土</option>
+              <option value="MELEE_SWEEP">⚔️ 近戰弧光橫掃</option>
+              <option value="BODY_AURA">🛡️ 護體光環蓄能</option>
+              <option value="SHOUT_WAVE">📢 戰吼擴散震波</option>
+              <option value="SHIELD_BARRIER">🛡️ 神聖護盾壁壘</option>
+            </select>
+          </div>
         </div>
         <div class="param-row">
           <div class="param-label-row">
@@ -626,7 +593,7 @@
     </div>
 
     <!-- 右卡片 4: 🥊 戰鬥打擊感與受擊衝擊波 (全雙欄緊湊排列，永不被截斷) -->
-    <div class="inspector-card" style="border-color: #ef4444;">
+    <div class="inspector-card card-impact-section" style="border-color: #ef4444;">
       <div class="inspector-card-title" style="color: #f87171; background: #2a1215;">
         <span>🥊 戰鬥打擊感與受擊衝擊波 (Impact & Wave)</span>
       </div>
@@ -736,15 +703,84 @@
             </div>
           </div>
         </div>
+      </div>
     </div>
 
-    <!-- 底部操作按鈕：全功能緊湊浮動 -->
-    <div class="inspector-footer" style="width: 380px;">
-      <button id="btn-save-project" class="btn-save-json" style="background: #0284c7;" title="保存至本地預設庫">📥 保存/同步</button>
-      <button id="btn-publish-ssot" class="btn-save-json" style="background: linear-gradient(135deg, #7c3aed, #9333ea);" title="發布至專案 SSOT (src/data/vfx_presets.json) 並自動建立快照">🚀 發布至專案</button>
-      <button id="btn-save" class="btn-save-json" style="background: #238636;" title="複製當前單項特效 JSON">📋 複製單項</button>
-      <button id="btn-export-all" class="btn-save-json" style="background: #475569;" title="複製完整庫 JSON 作為備用">💾 複製庫</button>
-      <button id="btn-reset-defaults" class="btn-save-json" style="background: #dc2626;" title="清除自訂快取還原官方出廠預設">🔄 還原</button>
+    <!-- 右卡片 5: 🏃 施術者發力動作 (Caster Motion) -->
+    <div class="inspector-card card-caster-motion" style="border-color: #3b82f6;">
+      <div class="inspector-card-title" style="color: #60a5fa; background: #0f1f38;">
+        <span>🏃 施術者發力動作 (Caster Motion)</span>
+      </div>
+      <div class="inspector-card-body">
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">踏步突進 (Step)</span><span id="val-caster-step" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-caster-step" class="param-slider" min="0" max="50" step="2" value="0"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">射擊後坐力 (Recoil)</span><span id="val-caster-recoil" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-caster-recoil" class="param-slider" min="0" max="40" step="2" value="0"></div>
+          </div>
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">出刀傾角 (Tilt)</span><span id="val-caster-tilt" class="param-value">0°</span></div>
+            <div class="param-control"><input type="range" id="param-caster-tilt" class="param-slider" min="-30" max="30" step="2" value="0"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">動作時長 (Duration)</span><span id="val-caster-motion-dur" class="param-value">0.3s</span></div>
+            <div class="param-control"><input type="range" id="param-caster-motion-dur" class="param-slider" min="0.1" max="0.8" step="0.05" value="0.3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右卡片 6: 🎯 具名 Impact Cue 編輯器 (選取時情境式顯示) -->
+    <div class="inspector-card card-cue-section" id="card-cue-inspector" style="border-color: #f59e0b; display: none;">
+      <div class="inspector-card-title" style="color: #fbbf24; background: #2a1f0a; justify-content: space-between; display: flex; align-items: center;">
+        <span>🎯 具名 Impact Cue 屬性</span>
+        <button id="btn-delete-cue" style="background: #ef4444; color: #fff; border: none; border-radius: 3px; font-size: 0.7rem; padding: 2px 6px; cursor: pointer;">🗑️ 刪除</button>
+      </div>
+      <div class="inspector-card-body">
+        <div class="param-row">
+          <div class="param-label-row"><span class="param-label">Cue 具名標識 (ID)</span></div>
+          <input type="text" id="param-cue-id" class="param-input" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: #f8fafc; font-size: 0.8rem; padding: 4px; border-radius: 4px;" placeholder="例如: hit_1, slash_finisher">
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">觸發時間 (Time)</span><span id="val-cue-time" class="param-value">0.15s</span></div>
+            <div class="param-control"><input type="range" id="param-cue-time" class="param-slider" min="0.0" max="2.0" step="0.01" value="0.15"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">演出類型 (Kind)</span></div>
+            <select id="param-cue-kind" class="param-select">
+              <option value="IMPACT">💥 傷害打擊 (IMPACT)</option>
+              <option value="HEAL">💚 治療恢復 (HEAL)</option>
+              <option value="SHIELD">🛡️ 護盾生成 (SHIELD)</option>
+              <option value="STATUS">✨ 增減益 (STATUS)</option>
+              <option value="VISUAL_ONLY">🎆 純視覺火花 (VISUAL_ONLY)</option>
+            </select>
+          </div>
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">拆分權重 (Weight)</span><span id="val-cue-weight" class="param-value">1.0</span></div>
+            <div class="param-control"><input type="range" id="param-cue-weight" class="param-slider" min="0.1" max="5.0" step="0.1" value="1.0"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">目標策略 (Policy)</span></div>
+            <select id="param-cue-target-policy" class="param-select">
+              <option value="PRIMARY_TARGET">🎯 主目標 (Primary Target)</option>
+              <option value="EACH_TARGET">👥 全體各目標 (Each Target)</option>
+              <option value="CASTER">🏠 施法者自身 (Caster)</option>
+            </select>
+          </div>
+        </div>
+        <div class="param-row" style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="param-cue-is-primary" style="cursor: pointer;">
+          <label for="param-cue-is-primary" style="font-size: 0.78rem; color: #f59e0b; cursor: pointer; font-weight: bold;">⭐ 設為主要終結打擊點 (Primary Impact)</label>
+        </div>
+      </div>
     </div>
   </div>
 

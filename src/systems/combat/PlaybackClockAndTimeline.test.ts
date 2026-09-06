@@ -50,6 +50,34 @@ class MockDOMNode {
       child.parentNode = this;
       this.children.push(child);
     }
+    // 抓取 layer clip
+    const clipMatches = html.matchAll(/class="[^"]*tl-layer-clip[^"]*"[^>]*data-layer-idx="(\d+)"/g);
+    for (const match of clipMatches) {
+      const clip = new MockDOMNode('div');
+      clip.classList.add('tl-layer-clip');
+      clip.dataset['layerIdx'] = match[1];
+      clip.parentNode = this;
+
+      const handle = new MockDOMNode('div');
+      handle.classList.add('tl-clip-resize-handle');
+      handle.dataset['layerIdx'] = match[1];
+      handle.parentNode = clip;
+      clip.children.push(handle);
+
+      this.children.push(clip);
+    }
+  }
+
+  public closest(sel: string): MockDOMNode | null {
+    if (sel.startsWith('.')) {
+      const cls = sel.slice(1);
+      let curr: MockDOMNode | null = this;
+      while (curr) {
+        if (curr.classList.contains(cls)) return curr;
+        curr = curr.parentNode;
+      }
+    }
+    return null;
   }
 
   public addEventListener(event: string, fn: Function): void {
@@ -352,6 +380,120 @@ describe('Fix 2: PlaybackClock \u0026 VFXTimeline Verification (Batches E \u0026
       const undonePreset = store.getPreset();
       const restoredCue = undonePreset.impactCues?.find(c => c.cueId === 'CUE_1');
       expect(restoredCue?.time).toBe(0.1);
+    });
+
+    // ─────────────────────────────────────────────────────────────
+    // 🔮 批次 G 測試：次生圖層 (Layer Clip) 複合編排、拖曳與拉伸
+    // ─────────────────────────────────────────────────────────────
+    it('應支援點擊 #tl-btn-add-layer 新增次生圖層 Clip', () => {
+      const store = VFXStudioStore.getInstance();
+      const initialPreset = store.getPreset();
+      store.setPreset({ ...initialPreset, duration: 1.0, layers: [] }, false);
+
+      new VFXTimeline(mockContainer as HTMLElement);
+      const btnAddLayer = mockContainer.querySelector('#tl-btn-add-layer') as any;
+      expect(btnAddLayer).not.toBeNull();
+
+      btnAddLayer.dispatchEvent({ type: 'click', stopPropagation: () => {} });
+
+      const updatedPreset = store.getPreset();
+      expect(updatedPreset.layers?.length).toBe(1);
+      expect(updatedPreset.layers?.[0].shaderMode).toBe('ENERGY_BEAM');
+      expect(updatedPreset.layers?.[0].duration).toBe(0.4);
+    });
+
+    it('應驗證次生圖層 Clip 拖曳移動會更新 layer.delay 並支援 Undo Transaction', () => {
+      const store = VFXStudioStore.getInstance();
+      const initialPreset = store.getPreset();
+      const layers = [
+        { id: 'l1', shaderMode: 'VOLUMETRIC_FIRE' as const, delay: 0.1, duration: 0.3 }
+      ];
+      store.setPreset({ ...initialPreset, duration: 1.0, layers }, false);
+
+      new VFXTimeline(mockContainer as HTMLElement);
+      const clipEl = mockContainer.querySelector('.tl-layer-clip') as any;
+      expect(clipEl).not.toBeNull();
+
+      // 1. Pointer Down
+      clipEl.dispatchEvent({
+        type: 'pointerdown',
+        clientX: 50,
+        pointerId: 2,
+        stopPropagation: () => {},
+        target: clipEl
+      });
+
+      // 2. 模擬連續拖曳
+      for (let i = 1; i <= 3; i++) {
+        clipEl.dispatchEvent({ type: 'pointermove', clientX: 50 + i * 50, pointerId: 2 });
+      }
+
+      // 3. Pointer Up (50 + 150 = 200px => newDelay: 200/500 * 1.0 = 0.40s)
+      clipEl.dispatchEvent({ type: 'pointerup', clientX: 200, pointerId: 2 });
+
+      const updatedPreset = store.getPreset();
+      expect(updatedPreset.layers?.[0].delay).toBe(0.30);
+
+      // Undo 驗證
+      expect(store.canUndo()).toBe(true);
+      store.undo();
+      expect(store.getPreset().layers?.[0].delay).toBe(0.1);
+    });
+
+    it('應驗證次生圖層 Clip 右緣 Handle 拖曳拉伸會更新 layer.duration', () => {
+      const store = VFXStudioStore.getInstance();
+      const initialPreset = store.getPreset();
+      const layers = [
+        { id: 'l1', shaderMode: 'VOLUMETRIC_FIRE' as const, delay: 0.1, duration: 0.2 }
+      ];
+      store.setPreset({ ...initialPreset, duration: 1.0, layers }, false);
+
+      new VFXTimeline(mockContainer as HTMLElement);
+      const handleEl = mockContainer.querySelector('.tl-clip-resize-handle') as any;
+      expect(handleEl).not.toBeNull();
+
+      // 1. Pointer Down
+      handleEl.dispatchEvent({
+        type: 'pointerdown',
+        clientX: 150,
+        pointerId: 3,
+        stopPropagation: () => {}
+      });
+
+      // 2. 拖曳拉伸向右 (150 -> 250px => pointerTime = 250/500 * 1.0 = 0.50s => newDur = 0.50 - 0.10 = 0.40s)
+      handleEl.dispatchEvent({ type: 'pointermove', clientX: 250, pointerId: 3 });
+
+      // 3. Pointer Up
+      handleEl.dispatchEvent({ type: 'pointerup', clientX: 250, pointerId: 3 });
+
+      const updatedPreset = store.getPreset();
+      expect(updatedPreset.layers?.[0].duration).toBe(0.40);
+    });
+
+    it('應支援 Shift+點擊次生圖層 Clip 刪除該圖層', () => {
+      const store = VFXStudioStore.getInstance();
+      const initialPreset = store.getPreset();
+      const layers = [
+        { id: 'l1', delay: 0.1, duration: 0.2 },
+        { id: 'l2', delay: 0.3, duration: 0.3 }
+      ];
+      store.setPreset({ ...initialPreset, duration: 1.0, layers }, false);
+
+      new VFXTimeline(mockContainer as HTMLElement);
+      const clips = mockContainer.querySelectorAll('.tl-layer-clip') as any[];
+      expect(clips.length).toBe(2);
+
+      // Shift+點擊第一個 clip
+      clips[0].dispatchEvent({
+        type: 'pointerdown',
+        shiftKey: true,
+        stopPropagation: () => {},
+        target: clips[0]
+      });
+
+      const updatedPreset = store.getPreset();
+      expect(updatedPreset.layers?.length).toBe(1);
+      expect(updatedPreset.layers?.[0].id).toBe('l2');
     });
   });
 });

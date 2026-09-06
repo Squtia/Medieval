@@ -48,10 +48,15 @@ export interface VFXPreset {
   
   // 視覺渲染參數
   trajectory: VFXTrajectory;
+  spatialMode?: VFXSpatialMode; // 規範新版：時空發生模式 (AT_CASTER | AT_TARGET | 5大彈道路徑)
+  trajectoryPath?: VFXTrajectoryPath; // 5 大幾何彈道路徑
+  reverse?: boolean;            // 🔄 反向開關 (例如 B➔A 吸血、垂直沖天、斜向擊飛)
   shaderMode: VFXShaderMode;
   colorCore: string;
   colorRim: string;
   duration: number;             // 飛行/動畫總時間 (s)
+  mainDelay?: number;           // 主軌前搖延遲 (s，預設 0.0s)
+  mainDuration?: number;        // 主軌有效播放時長 (s，預設等於或小於 duration)
   scale: number;                // 尺寸比例
   spin: number;                 // 自轉速度
   fresnel: number;              // 邊緣高光權重
@@ -117,6 +122,9 @@ export interface VFXPreset {
   // 戰鬥打擊感與節奏斷點參數
   impact: VFXImpactConfig;
 
+  // 🏃 施術者發力動作與反饋 (Caster Action Motion)
+  casterMotion?: VFXCasterMotionConfig;
+
   // 🔮 複合多圖層特效支援 (Composite VFX Layers)
   layers?: VFXLayer[];
   hitCount?: number;            // 戰鬥 HIT 判定段數（未填則預設使用 salvoCount 或 1）
@@ -124,27 +132,46 @@ export interface VFXPreset {
   impactPresentationMode?: ImpactPresentationMode; // 傷害數值呈現模式
 }
 
+export interface VFXCasterMotionConfig {
+  stepForward?: number;         // 踏步突進距離 (px，例如揮砍向前踏 25px)
+  recoil?: number;              // 射擊後坐力位移 (px，例如向後彈 12px)
+  tiltAngle?: number;           // 發力瞬間傾斜角度 (度，例如 -6°)
+  motionDuration?: number;      // 動作持續時間 (秒，預設 0.25s)
+}
+
 export interface VFXLayer {
   id?: string;
   name?: string;
   presetId?: string;           // 引用現有特效庫之 Preset ID 單元 (積木組合)
   trajectory?: VFXTrajectory;
+  spatialMode?: VFXSpatialMode; // 原地類 或 5種彈道路徑之一
+  trajectoryPath?: VFXTrajectoryPath;
+  reverse?: boolean;           // 🔄 是否反向運動
+  enabled?: boolean;           // 是否啟用 (false 即 Mute 靜音)
   shaderMode?: VFXShaderMode;
   colorCore?: string;
   colorRim?: string;
   delay?: number;              // 延遲播放 (秒)
   scale?: number;
   duration?: number;
+  fadeIn?: number;             // 影格基礎淡入時長 (秒，預設 0.05s)
+  fadeOut?: number;            // 影格基礎淡出時長 (秒，預設 0.08s)
+  fadeMode?: 'OPACITY' | 'SCALE' | 'BOTH'; // 邊緣衰減模式 (透明度 / 尺寸 / 兩者兼具)
   generatesHit?: boolean;      // 舊版相容：是否產生真實戰鬥 HIT 判定
   emitsImpactCue?: boolean;    // 是否產生演出命中 cue (受擊閃光、抖動與跳字)
 }
 
+export type VFXCueKind = 'IMPACT' | 'HEAL' | 'SHIELD' | 'STATUS' | 'VISUAL_ONLY';
+export type VFXCueTargetPolicy = 'PRIMARY_TARGET' | 'EACH_TARGET' | 'CASTER';
+
 export interface VFXImpactCue {
   cueId: string;
   time: number;                // 命中發生時間 (秒)
-  layerId?: string;
+  kind?: VFXCueKind;           // 演出類型 (預設 IMPACT)
   weight?: number;             // 權重 (供 SPLIT_SINGLE_IMPACT 拆分跳字)
   isPrimary?: boolean;         // 是否為主命中點 (PRIMARY_ONLY 模式於此 cue 跳出完整傷害)
+  targetPolicy?: VFXCueTargetPolicy; // 目標受擊派發策略 (預設 PRIMARY_TARGET)
+  layerId?: string;
 }
 
 export type ImpactPresentationMode =
@@ -277,6 +304,245 @@ export function migrateLegacyPreset(preset: VFXPreset): VFXSequence {
       allowScreenShake: !!preset.impact?.screenShake,
       allowBloom: (preset.bloomStr || 0) > 0
     }
+  };
+}
+
+/**
+ * 🌐 三大時空錨點分類
+ * - AT_CASTER: 固定於施術者 (A 點)
+ * - TRAJECTORY: 位移飛行彈道 (A ➔ B 等 5 大幾何路徑)
+ * - AT_TARGET: 固定於受擊目標 (B 點)
+ */
+export type VFXSpatialAnchor = 'AT_CASTER' | 'TRAJECTORY' | 'AT_TARGET';
+
+/**
+ * 🚀 5 大位移彈道路徑 (支援 reverse 反向)
+ * - A_TO_B: 施術者 ➔ 目標 (正向直射/拋物線，反向為 B ➔ A 汲取/吸血)
+ * - A_TO_VERTICAL_SKY: 施術者 ➔ 垂直天空 (朝天射箭/信號彈，反向為天光垂直灌頂 A 自身)
+ * - VERTICAL_SKY_TO_B: 垂直天空 ➔ 目標 (天降雷殛直劈，反向為目標垂直擊飛沖天)
+ * - A_TO_DIAGONAL_SKY: 施術者 ➔ 斜向天空 (斜天際迫擊發射，反向為斜方星光匯聚 A 點)
+ * - DIAGONAL_SKY_TO_B: 斜向天空 ➔ 目標 (斜降隕石天火，反向為目標被斜向擊飛出鏡頭)
+ */
+export type VFXTrajectoryPath =
+  | 'A_TO_B'
+  | 'A_TO_VERTICAL_SKY'
+  | 'VERTICAL_SKY_TO_B'
+  | 'A_TO_DIAGONAL_SKY'
+  | 'DIAGONAL_SKY_TO_B';
+
+/**
+ * 🌐 完整的時空發生模式 (包含 2 種原地類 + 5 種位移彈道類)
+ */
+export type VFXSpatialMode =
+  | 'AT_CASTER'
+  | 'AT_TARGET'
+  | 'A_TO_B'
+  | 'A_TO_VERTICAL_SKY'
+  | 'VERTICAL_SKY_TO_B'
+  | 'A_TO_DIAGONAL_SKY'
+  | 'DIAGONAL_SKY_TO_B';
+
+export function getTrajectorySpatialAnchor(trajectory?: VFXTrajectory | string): VFXSpatialAnchor {
+  if (!trajectory) return 'AT_TARGET';
+  switch (trajectory) {
+    case 'BODY_AURA':
+    case 'SHIELD_BARRIER':
+    case 'SHOUT_WAVE':
+    case 'AT_CASTER':
+      return 'AT_CASTER';
+    case 'HORIZONTAL':
+    case 'PARABOLA_ARC':
+    case 'COLUMN_PIERCE':
+    case 'GROUND_FISSURE':
+    case 'ARC_MULTI':
+    case 'A_TO_B':
+    case 'A_TO_VERTICAL_SKY':
+    case 'VERTICAL_SKY_TO_B':
+    case 'A_TO_DIAGONAL_SKY':
+    case 'DIAGONAL_SKY_TO_B':
+      return 'TRAJECTORY';
+    case 'MELEE_SWEEP':
+    case 'VERTICAL_DROP':
+    case 'DIAGONAL_DROP':
+    case 'GROUND_BURST':
+    case 'AT_TARGET':
+    default:
+      return 'AT_TARGET';
+  }
+}
+
+export interface Spatial2DPoint {
+  x: number;
+  y: number;
+}
+
+/**
+ * 📐 計算時空點位在任意時間進度 (0~1) 下的即時 2D 空間座標
+ * 支援 5 大位移彈道路徑與 reverse 反向開關
+ */
+export function calculateSpatialPoint(
+  spatialMode: VFXSpatialMode | VFXTrajectory | string,
+  reverse: boolean,
+  progress: number,
+  casterPoint: Spatial2DPoint,
+  targetPoint: Spatial2DPoint
+): Spatial2DPoint {
+  const p = Math.max(0, Math.min(1, progress));
+
+  // 1. 原地類
+  if (spatialMode === 'AT_CASTER' || spatialMode === 'BODY_AURA' || spatialMode === 'SHIELD_BARRIER' || spatialMode === 'SHOUT_WAVE') {
+    return { x: casterPoint.x, y: casterPoint.y };
+  }
+  if (spatialMode === 'AT_TARGET' || spatialMode === 'MELEE_SWEEP' || spatialMode === 'GROUND_BURST') {
+    return { x: targetPoint.x, y: targetPoint.y };
+  }
+
+  // 2. 位移彈道類：計算端點 (StartPoint & EndPoint)
+  let startX = casterPoint.x;
+  let startY = casterPoint.y;
+  let endX = targetPoint.x;
+  let endY = targetPoint.y;
+
+  // 定義天頂座標（正上方或斜上方）
+  const verticalSkyX = targetPoint.x;
+  const verticalSkyY = Math.min(0, targetPoint.y - 300); // 螢幕上方外緣
+
+  const casterVerticalSkyX = casterPoint.x;
+  const casterVerticalSkyY = Math.min(0, casterPoint.y - 300);
+
+  const diagonalSkyX = targetPoint.x - 180;
+  const diagonalSkyY = Math.min(0, targetPoint.y - 320);
+
+  const casterDiagonalSkyX = casterPoint.x + 180;
+  const casterDiagonalSkyY = Math.min(0, casterPoint.y - 320);
+
+  switch (spatialMode) {
+    case 'A_TO_VERTICAL_SKY':
+      startX = casterPoint.x;
+      startY = casterPoint.y;
+      endX = casterVerticalSkyX;
+      endY = casterVerticalSkyY;
+      break;
+
+    case 'VERTICAL_SKY_TO_B':
+    case 'VERTICAL_DROP':
+      startX = verticalSkyX;
+      startY = verticalSkyY;
+      endX = targetPoint.x;
+      endY = targetPoint.y;
+      break;
+
+    case 'A_TO_DIAGONAL_SKY':
+      startX = casterPoint.x;
+      startY = casterPoint.y;
+      endX = casterDiagonalSkyX;
+      endY = casterDiagonalSkyY;
+      break;
+
+    case 'DIAGONAL_SKY_TO_B':
+    case 'DIAGONAL_DROP':
+      startX = diagonalSkyX;
+      startY = diagonalSkyY;
+      endX = targetPoint.x;
+      endY = targetPoint.y;
+      break;
+
+    case 'A_TO_B':
+    case 'HORIZONTAL':
+    case 'PARABOLA_ARC':
+    case 'COLUMN_PIERCE':
+    case 'GROUND_FISSURE':
+    case 'ARC_MULTI':
+    default:
+      startX = casterPoint.x;
+      startY = casterPoint.y;
+      endX = targetPoint.x;
+      endY = targetPoint.y;
+      break;
+  }
+
+  // 若開起 reverse 反向，則起點與終點對調
+  if (reverse) {
+    const tempX = startX;
+    const tempY = startY;
+    startX = endX;
+    startY = endY;
+    endX = tempX;
+    endY = tempY;
+  }
+
+  return {
+    x: startX + (endX - startX) * p,
+    y: startY + (endY - startY) * p
+  };
+}
+
+/**
+ * 🎞️ 計算 Clip 影格基礎邊緣淡入淡出倍率 (0.0 ~ 1.0)
+ * @param elapsedSeconds 當前圖層內部已播放秒數 (currentTime - delay)
+ * @param duration 圖層總時長
+ * @param fadeIn 淡入時間 (秒，預設 0.05s)
+ * @param fadeOut 淡出時間 (秒，預設 0.08s)
+ */
+export function calculateEdgeFadeMultiplier(
+  elapsedSeconds: number,
+  duration: number,
+  fadeIn: number = 0.05,
+  fadeOut: number = 0.08
+): { opacityMultiplier: number; scaleMultiplier: number } {
+  if (elapsedSeconds < 0 || elapsedSeconds > duration) {
+    return { opacityMultiplier: 0, scaleMultiplier: 0 };
+  }
+
+  let opacity = 1.0;
+  let scale = 1.0;
+
+  // 1. 前端淡入
+  if (fadeIn > 0 && elapsedSeconds < fadeIn) {
+    const inProgress = Math.max(0, Math.min(1, elapsedSeconds / fadeIn));
+    opacity = inProgress;
+    scale = 0.4 + inProgress * 0.6; // 0.4x 微微膨脹至 1.0x
+  }
+
+  // 2. 尾端淡出
+  const remaining = duration - elapsedSeconds;
+  if (fadeOut > 0 && remaining < fadeOut) {
+    const outProgress = Math.max(0, Math.min(1, remaining / fadeOut));
+    opacity = Math.min(opacity, outProgress);
+    scale = Math.min(scale, 0.4 + outProgress * 0.6);
+  }
+
+  return {
+    opacityMultiplier: Math.max(0, Math.min(1, opacity)),
+    scaleMultiplier: Math.max(0.1, Math.min(1, scale))
+  };
+}
+
+/**
+ * 🏃 計算施術者發力動作在當前時間 t 的位移與傾角
+ */
+export function calculateCasterMotionOffset(
+  currentTime: number,
+  motion?: VFXCasterMotionConfig
+): { offsetX: number; tiltDeg: number } {
+  if (!motion) return { offsetX: 0, tiltDeg: 0 };
+  const dur = motion.motionDuration || 0.25;
+  if (currentTime < 0 || currentTime > dur) return { offsetX: 0, tiltDeg: 0 };
+
+  const p = currentTime / dur;
+  // 經典先突進後彈回鐘型曲線: sin(p * PI)
+  const curve = Math.sin(p * Math.PI);
+
+  const stepForward = motion.stepForward || 0;
+  const recoil = motion.recoil || 0;
+  const tiltAngle = motion.tiltAngle || 0;
+
+  const netX = (stepForward - recoil) * curve;
+  const netTilt = tiltAngle * curve;
+
+  return {
+    offsetX: netX,
+    tiltDeg: netTilt
   };
 }
 

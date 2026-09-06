@@ -250,7 +250,11 @@ describe('特效工房重構與 SSOT 完整性驗收 (VFX Studio Rebuild Verific
         const normalized = normalizeVfxPreset(p);
 
         for (const ctrl of INSPECTOR_CONTROL_MAP) {
-          const val = ctrl.isImpact ? normalized.impact?.[ctrl.key as keyof typeof normalized.impact] : (normalized as any)[ctrl.key];
+          const val = ctrl.isImpact
+            ? normalized.impact?.[ctrl.key as keyof typeof normalized.impact]
+            : (ctrl.isCasterMotion
+              ? (normalized.casterMotion as any)?.[ctrl.key]
+              : (normalized as any)[ctrl.key]);
           expect(val, `Preset [${p.id}] 之欄位 [${ctrl.key}] 不得為 undefined`).toBeDefined();
           expect(val, `Preset [${p.id}] 之欄位 [${ctrl.key}] 不得為 null`).not.toBeNull();
           if (typeof val === 'number') {

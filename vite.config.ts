@@ -375,8 +375,28 @@ function developmentStudioPlugin(): Plugin {
           return { isValid: validationErrors.length === 0, errors: validationErrors };
         };
 
+        // 🚀 0. 獨立驗證端點 (Phase 2 標準 API: /api/validate-vfx-presets)
+        if (url === '/api/validate-vfx-presets' && req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const payload = JSON.parse(body);
+              const presets = Array.isArray(payload) ? payload : (payload.presets || [payload]);
+              const checkResult = validateVfxPresetsServer(presets);
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify(checkResult));
+            } catch (err: any) {
+              res.statusCode = 400;
+              res.setHeader('Content-Type', 'application/json');
+              return res.end(JSON.stringify({ isValid: false, errors: [err.message] }));
+            }
+          });
+          return;
+        }
+
         // 🚀 1. 發布至專案 SSOT (嚴格校驗防線 + 原子寫入 + 時間戳快照)
-        if (url === '/__vfx_api/save_ssot' && req.method === 'POST') {
+        if ((url === '/__vfx_api/save_ssot' || url === '/api/save-vfx-presets') && req.method === 'POST') {
           let body = '';
           req.on('data', (chunk: any) => { body += chunk; });
           req.on('end', () => {
@@ -461,11 +481,11 @@ function developmentStudioPlugin(): Plugin {
         if ((url === '/__vfx_api/list_snapshots' || url === '/api/list-vfx-backups') && req.method === 'GET') {
           if (!fs.existsSync(vfxSnapshotsDir)) {
             res.setHeader('Content-Type', 'application/json');
-            return res.end(JSON.stringify({ snapshots: [], backups: [] }));
+            return res.end(JSON.stringify({ success: true, snapshots: [], backups: [] }));
           }
           const files = fs.readdirSync(vfxSnapshotsDir).filter((f: string) => f.startsWith('vfx_snapshot_')).sort().reverse();
           res.setHeader('Content-Type', 'application/json');
-          return res.end(JSON.stringify({ snapshots: files, backups: files }));
+          return res.end(JSON.stringify({ success: true, snapshots: files, backups: files }));
         }
 
         if (url === '/api/get-vfx-presets' && req.method === 'GET') {
@@ -522,7 +542,8 @@ function developmentStudioPlugin(): Plugin {
                 success: true,
                 message: `已成功還原至快照 ${filename}，並建立前置備份 ${preRestoreFilename}`,
                 snapshot: filename,
-                count: parsed.length
+                count: parsed.length,
+                presets: parsed
               }));
             } catch (err: any) {
               res.statusCode = 400;

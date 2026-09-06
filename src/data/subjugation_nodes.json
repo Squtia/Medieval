@@ -280,7 +280,7 @@
     "worldGenMode": "STORY_ONLY",
     "isWorldSecret": false,
     "allowTroops": false,
-    "nodeLevel": 2,
+    "nodeLevel": 1,
     "requiresScouting": false,
     "removeOnVictory": false,
     "waves": [
@@ -361,7 +361,7 @@
     "terrain": "RUINS",
     "icon": "heroes_male:heroes_male_13?flip",
     "difficulty": 1,
-    "worldGenMode": "PERMANENT_VISIBLE",
+    "worldGenMode": "STORY_ONLY",
     "isWorldSecret": false,
     "allowTroops": true,
     "nodeLevel": 1,
@@ -899,14 +899,14 @@
     "name": "霜風王陵與冰龍巢",
     "description": "屹立於極寒雪山頂峰的古老龍族巢穴，常年被暴風雪籠罩，封印著強大的冰霜巨龍。",
     "terrain": "SNOW_MOUNTAIN",
-    "icon": "stronghold_iso_spritesheet_5x5:stronghold_iso_spritesheet_5x5_15",
+    "icon": "cave_node_01:cave_node_01_8",
     "difficulty": 10,
     "worldGenMode": "WORLD_SECRET",
     "isWorldSecret": true,
     "allowTroops": true,
     "nodeLevel": 0,
     "requiresScouting": true,
-    "removeOnVictory": true,
+    "removeOnVictory": false,
     "waves": [
       {
         "name": "第 1 波：雪山霜狼群",
@@ -1017,12 +1017,12 @@
       }
     ],
     "rewards": {
-      "gold": 20000,
+      "gold": 800,
       "exp": 1000,
-      "prestige": 250
+      "prestige": 100
     },
     "enemyLegion": {
-      "enabled": false,
+      "enabled": true,
       "infantry": 100,
       "archer": 100,
       "cavalry": 50

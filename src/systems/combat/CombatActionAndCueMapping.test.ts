@@ -49,8 +49,27 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
       expect(primarySum).toBe(rawDamage);
     });
 
-    it('不變量 2: SPLIT_SINGLE_IMPACT 所有顯示片段整數加總 100% 精確等於來源 amount，餘數進終擊', () => {
-      // 測試不能整除的數值 (例如 500 / 3 = 166.666...)
+    it('不變量 2: SPLIT_SINGLE_IMPACT 所有顯示片段整數加總 100% 精確等於來源 amount，餘數進終擊 (依文件第 11 節驗收標準: 503 依 20/20/60 切割後總和仍為 503)', () => {
+      // 🌟 嚴格遵守文件 Phase 5 驗收指標：503 依 20/20/60 切割後總和仍為 503
+      const specDamage = 503;
+      const specEvents: CombatEvent[] = [
+        { type: CombatEventType.HIT, actionId: 'act_spec', actorId: 'p', targetId: 'm', damage: specDamage, text: '命中' }
+      ];
+      const specCues: VFXImpactCue[] = [
+        { cueId: 'CUE_1', time: 0.1, weight: 20, isPrimary: false },
+        { cueId: 'CUE_2', time: 0.2, weight: 20, isPrimary: false },
+        { cueId: 'CUE_3', time: 0.35, weight: 60, isPrimary: true }
+      ];
+
+      const specItems = mapImpactsToCues(specEvents, specCues, 'SPLIT_SINGLE_IMPACT');
+      expect(specItems.length).toBe(3);
+      // 503 * 20/100 = 100.6 -> floor 100
+      // 503 * 20/100 = 100.6 -> floor 100
+      // 餘數 503 - 200 = 303 進終擊
+      expect(specItems.map(i => i.amount)).toEqual([100, 100, 303]);
+      expect(specItems.reduce((sum, i) => sum + i.amount, 0)).toBe(503);
+
+      // 測試不能整除的數值 (例如 500 依權重 0.33, 0.33, 0.34 切割)
       const rawDamage = 500;
       const events: CombatEvent[] = [
         { type: CombatEventType.HIT, actionId: 'act_1', actorId: 'p', targetId: 'm', damage: rawDamage, text: '命中' }
@@ -63,7 +82,7 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
 
       const items = mapImpactsToCues(events, cues, 'SPLIT_SINGLE_IMPACT');
       expect(items.length).toBe(3);
-      expect(items.map(i => i.amount)).toEqual([166, 166, 168]);
+      expect(items.map(i => i.amount)).toEqual([165, 165, 170]);
       expect(items.reduce((sum, i) => sum + i.amount, 0)).toBe(500);
 
       // 測試小數額分配 (例如 2 點傷害拆 3 段)
@@ -73,6 +92,17 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
       const tinyItems = mapImpactsToCues(tinyEvents, cues, 'SPLIT_SINGLE_IMPACT');
       expect(tinyItems.map(i => i.amount)).toEqual([0, 0, 2]);
       expect(tinyItems.reduce((sum, i) => sum + i.amount, 0)).toBe(2);
+
+      // 測試 VISUAL_ONLY 純視覺 Cue 不參與傷害分配
+      const mixedCues: VFXImpactCue[] = [
+        { cueId: 'SPARK_PREP', time: 0.05, kind: 'VISUAL_ONLY' },
+        { cueId: 'HIT_MAIN', time: 0.2, weight: 1.0, isPrimary: true }
+      ];
+      const mixedItems = mapImpactsToCues(events, mixedCues, 'SPLIT_SINGLE_IMPACT');
+      expect(mixedItems.length).toBe(2);
+      expect(mixedItems[0].amount).toBe(0);
+      expect(mixedItems[0].kind).toBe('VISUAL_ONLY');
+      expect(mixedItems[1].amount).toBe(500);
     });
 
     it('不變量 3: EXACT_IMPACTS 每個顯示值逐一等於來源 impact.amount，順序與 cueId 正確', () => {
@@ -247,6 +277,54 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
       expect(presented.length).toBe(1);
       expect(presented[0].amount).toBe(300);
       expect(completeCalled).toBe(true);
+    });
+
+    it('規範第 11 節驗收標準: WebGL 或 3D 渲染拋出異常時，戰鬥依然完成且不遺失結算項目', async () => {
+      const actionPlayer = new CombatActionPlayer();
+      const fxEngine = CombatFXEngine.getInstance();
+
+      // 模擬 WebGL Context Lost 或 Shader 拋出重大異常
+      vi.spyOn(fxEngine, 'playPresetConfig').mockRejectedValue(new Error('WebGL context lost simulation'));
+
+      const action: CombatAction = {
+        actionId: 'act_webgl_fail',
+        actorId: 'hero',
+        vfxId: 'VFX_HEAVY_STRIKE',
+        events: [
+          { type: CombatEventType.CRIT, actionId: 'act_webgl_fail', targetId: 'boss', damage: 999, text: '致勝一擊' }
+        ]
+      };
+
+      const presented: any[] = [];
+      let completeCalled = false;
+
+      // 執行 playAction，絕不可 throw / reject 導致戰鬥中斷！
+      await expect(actionPlayer.playAction(action, {
+        fromPoint: { x: 0, y: 0 },
+        toPoint: { x: 100, y: 100 },
+        onPresentImpact: (item) => presented.push(item),
+        onActionComplete: () => { completeCalled = true; }
+      })).resolves.not.toThrow();
+
+      // 驗收標準：戰鬥完成回調 100% 觸發，且數值安全派發
+      expect(completeCalled).toBe(true);
+      expect(presented.length).toBe(1);
+      expect(presented[0].amount).toBe(999);
+      expect(presented[0].isCrit).toBe(true);
+    });
+
+    it('規範第 8 節: STATUS_APPLY 事件映射為 STATUS 且不虛構傷害', () => {
+      const statusEvents: CombatEvent[] = [
+        { type: CombatEventType.STATUS_APPLY, actionId: 'act_buff', targetId: 'ally_1', text: '附加聖佑' }
+      ];
+      const cues: VFXImpactCue[] = [
+        { cueId: 'CUE_BLESS', time: 0.2, kind: 'STATUS' }
+      ];
+
+      const items = mapImpactsToCues(statusEvents, cues, 'EXACT_IMPACTS');
+      expect(items.length).toBe(1);
+      expect(items[0].kind).toBe('STATUS');
+      expect(items[0].amount).toBe(0);
     });
   });
 });

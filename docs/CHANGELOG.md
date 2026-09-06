@@ -1,3 +1,390 @@
+- **[Feature/CombatVFX/Phase3Phase4TrackControlsAndContextualInspector] Phase 3 & Phase 4 軌道專業控制項 (Solo/Lock) 與情境式 Inspector 動態收合落地（嚴格文件對齊：主軌與圖層 Solo/Lock 防拖曳、選取情境自動收合非關面板、單元與無頭瀏覽器驗收全通）（2026-09-06）**：
+  - **⏱️ 時間軸軌道專業控制項 (Phase 4 Track Controls: Solo & Lock)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 4 節「目標介面」與第 11 節 Phase 4 規範，在 `VFXStudioStore.ts` 與 `VFXTimeline.ts` 中全面實裝主軌與次生圖層軌道之獨立 `Solo` 與 `Lock` 控制項。
+    - **Solo 機制**：點擊 `🎧 Solo`（S）後，全域未被 Solo 之軌道即時遮蔽，確定性求值管線僅渲染 Solo 軌道幾何體，再次點擊安全復原。
+    - **Lock 機制**：點擊 `🔒 Lock` 按鈕進入鎖定狀態，Clip 呈現專屬琥珀色斜紋鎖定標記，嚴格攔截禁止拖動起始時間、禁止拉伸時長 Handle、禁止更換引用素材，杜絕創作者誤觸。
+  - **🎭 情境式 Inspector 動態收合 (Phase 3 Contextual Inspector)**：
+    - 依據第 4 節「情境式 Inspector：只顯示選取物件參數，不相關參數不會同時顯示」規範，在 `VFXInspector.ts` 中擴充 `setContextualTarget()`。
+    - 在 `VFXTimeline.ts` 串接 `onSelectTrack`：選中 Cue Marker 時，左側施法動作與受擊等無關卡片即時收合隱藏，右側突出展開 Cue Inspector；選中主軌或圖層時自適應顯示專屬幾何與材質面板。
+  - **🧪 測試品質與真實瀏覽器驗收 (50 Test Files / 293 PASS)**：
+    - 撰寫單元測試 `src/tools/vfx-studio/VFXTimelineTrackControls.test.ts`（5 項測試 100% 通過）。
+    - 撰寫無頭瀏覽器驗收腳本 `scripts/verify-track-controls-contextual.mjs`，實測鎖定防拖曳、Solo 高亮激活、點選 Cue 時無關卡片動態隱藏，並存檔截圖至 `docs/screenshots/track_controls_contextual_verified.png`。
+    - 全專案 50 個測試檔案、293 項單元測試 100% 通過，`npm run typecheck` 0 錯誤。
+
+- **[Feature/CombatVFX/Phase7ProductionQualityAndSoakTest] Phase 7 量產品質守護與 Soak Stress 浸泡測試全通（嚴格文件對齊：效能預算 HUD、100 次循環浸泡壓力測試 0 洩漏）（2026-09-06）**：
+  - **📊 效能預算 HUD 實裝確認 (Quality Budget HUD)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 10 節效能預算標準，在 `tools/vfx-studio.html` 與 `VFXStudioController.ts` 中確認並接通 `#quality-budget-hud`。
+    - 每 250ms 即時求值 DrawCall（DC）、活躍粒子數、三維三角形面數（Triangles）與場景物件數，並自動進行單體（35 DC / 250 粒子）與 AOE/複合圖層（70 DC / 600 粒子）超標警示切換。
+  - **🌊 100 次連續播放浸泡式壓力測試 (100-Cycle Soak Stress Test)**：
+    - 完善 `scripts/soak-test-vfx.mjs`，在無頭 Chromium 瀏覽器中執行高頻 100 次連續特效播放循環。
+    - 實測結果：全週期維持單一畫布（Canvas Count 恆為 1，零 Canvas 洩漏）、WebGL Context 穩定無遺失、幾何體與貼圖記憶體無上限膨脹，瀏覽器主控台 0 錯誤。
+  - **🛡️ 測試與型別維護**：
+    - 全專案 49 個測試檔案、288 項單元測試 100% 通過，`npm run typecheck` 0 錯誤。
+
+- **[Feature/CombatVFX/Phase6CombatStudioAndDebugOverlay] Phase 6 戰鬥演播室同源整合與 Debug Overlay 落地（嚴格文件對齊：真實 DOM 覆蓋層、全專案零殘留、無頭自動化全通）（2026-09-06）**：
+  - **🔍 即時戰鬥與特效除錯覆蓋層 (Combat Action Debug Overlay)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 12 節「除錯覆蓋層 (Debug Overlay)」，在 `CombatActionPlayer.ts` 內建除錯資訊掛載與渲染邏輯（`CombatActionDebugInfo`）。
+    - 覆蓋層實時顯示：`ActionID`、`Phase` (START / PLAYING / CUE_IMPACT / FALLBACK / DONE)、`Actor` ➔ `Target`、`VFX` 預設、`Cue` 索引及觸發時間、已結算之真實多段 `Impacts`。
+    - 具備防重疊智慧掛載與 1.5s 閒置自動復位（`IDLE`）機制，避免殘留。
+  - **🎛️ 戰鬥演播室同源適配器與開關接通 (Combat Studio Integration & Toggle Switch)**：
+    - 於 `src/templates/combat-studio.html` 工具列注入 `#btn-vfx-debug-toggle` 按鈕，並於 `CombatStudio.ts` 綁定切換事件。
+    - 透過 `CombatStudioStageAdapter.ts` 與全域 `CombatActionPlayer` 單一實例接軌，保證主遊戲實戰模態框、戰鬥演播室與特效工坊具備 100% 相同行為。
+  - **🛡️ 測試與瀏覽器真實驗收 (Playwright Browser Verification & 288 PASS)**：
+    - 撰寫 `scripts/verify-phase6-combat-debug.mjs`，於 Chromium 無頭瀏覽器實測點擊切換除錯開關、觸發單場戰鬥、精確捕捉 `#vfx-debug-overlay` 動態呈現、截圖存檔並驗證快速結束無殘留。
+    - 修復測試環境 `localStorage` 支援，全專案 49 個測試檔案、288 項單元測試 100% PASS，`npm run typecheck` 0 錯誤。
+
+- **[Feature/CombatVFX/Phase5ProductionCueAndCombatContract] Phase 5 正式 Cue 與戰鬥契約落地（嚴格文件對齊：WebGL 容錯、多段打擊安全 fallback、503 權重拆分守護、情境式 Cue Inspector 雙向閉環）（2026-09-06）**：
+  - **🛡️ 嚴格履行戰鬥契約與 WebGL 容錯 (WebGL Failure Fault-Tolerance)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 11 節驗收標準「WebGL 失敗戰鬥仍完成」，在 `CombatActionPlayer.ts` 的 `playAction` 中實裝完整的 `try ... catch ... finally` 容錯防護機制。
+    - 當 WebGL 崩潰、上下文遺失或 Shader 著色器異常時，自動切換至安全邏輯 fallback，將所有待派發的有效數值與狀態項目完整分發至 UI，並保證 `onActionComplete` 100% 觸發，徹底根治戰鬥卡死隱患。
+  - **⚖️ 戰鬥不變量守護與多段傷害對齊 (Integer-Safe Weighted Split & Multi-Impact Fallback)**：
+    - 嚴格實裝文件第 11 節指標：503 依 20/20/60 權重拆分後，終擊段吸收餘數，各段加總 100% 精確等於 503。
+    - 依據第 8 節 EXACT_IMPACTS 規範「cue 不足時驗證失敗；runtime 只能使用明確 fallback 並警告」，修復多段真實傷害因預設 Cue 數量不足而被截斷吞掉的重大缺陷，動態補充 fallback cue 確保傷害 100% 消費。
+    - 實裝 `STATUS_APPLY` 增減益狀態事件映射為 `STATUS`，嚴格杜絕無數值項目時虛構 `DAMAGE` 的語意污染；`VISUAL_ONLY` Cue 金額嚴格為 0。
+  - **🎛️ 情境式 Cue Inspector 雙向資料閉環 (Contextual Cue Inspector Integration)**：
+    - 在 `VFXStudioController.ts` 正式接通 `timeline.onSelectCue((idx) => inspector.setSelectedCueIndex(idx))`。
+    - 點選時間軸 Cue Marker 即可於右側展開 `#card-cue-inspector`，支援 ID、Time、Kind、Weight、Primary 與 TargetPolicy 即時編輯，並即時更新 Store 與 50 步 Undo/Redo 歷史快照；點擊空白處自動取消選取收合。
+    - 拖曳排序後以唯一 `cueId` 精確校準 `selectedCueIndex`，杜絕排序後 Inspector 狀態錯位。
+    - 精簡 `tools/vfx-studio.html` 至 790 行（滿足全專案 < 800 行之嚴格架構限制）。
+  - **🧪 測試品質保證 (283 項測試 100% PASS)**：
+    - 在 `CombatActionAndCueMapping.test.ts` 擴充 WebGL 異常容錯、STATUS 映射、多段傷害對齊測試。
+    - 在 `VFXStudioInteractivity.test.ts` 擴充 Cue Inspector 展開、帶入數值、修改寫入 Store 與取消選取收合的交互測試。
+    - 全專案 TypeScript 型別檢查 0 錯誤 (`tsc --noEmit` 通過)。
+    - 全量 48 個測試檔案、283 個單元測試 100% PASS。
+
+- **[Refactor/CombatVFX/UnifiedDeterministicPipeline] 全形態單一確定性求值管線重構（徹底剷除歷史雙軌制分流，連續播放與定格求值 100% 物理同源）（2026-09-06）**：
+  - **🚫 徹底剷除雙軌制分裂 (Dual Pipeline Elimination)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 3.2 節與第 14 節「禁止的假完成（嚴禁初始化 Adapter 但播放仍走舊函式）」，將 `CombatFXEngine.ts` 內部 10 個分散、自毀型的舊播放函式分流全盤收攏。
+    - 連續播放時直接註冊受控的統一 Effect，以時鐘當前時間 $t$ 呼叫 `renderFrameWorldAt(preset, elapsed, startPos, actualEndPos)`，徹底消除連續播放與時間軸定格各跑一套幾何的病灶。
+  - **🎬 特效工坊單一確定性推進 (VFXStudioController Unified Rendering)**：
+    - 移除 `VFXStudioController.ts` 中 `playNativeEffect` 與 `isPlaying()` 的分流邏輯，不論播放中或是暫停拖曳定格，`onFrame` 每幀 100% 統一呼叫 `renderStudioFrameAt(data.time)`。
+    - 命中真實火花星芒（`playCueSparks`）與目標卡牌受擊震動／飄字傷害回饋在時鐘掃過 Cue 點時以事件觸發，不干擾主幾何物體。
+  - **🌐 全形態幾何對齊與多彈道散發 (All Shapes & Multi-Arc Coverage)**：
+    - 補齊 `ARC_MULTI`（奧術追蹤彈 / 多彈道齊射）貝茲弧線側向散發姿態，消除過去多彈道跌落為單顆光球的缺陷。
+    - 貫穿彈道 `COLUMN_PIERCE` 自動向前延伸 `penetrationDistance`，定格與播放終點完全對齊。
+    - `createGlowTexture` 補齊 SSR / Node 無頭測試環境防護，解決測試時 `document is not defined` 報錯。
+  - **🧪 測試品質保證 (9 大形態單元測試 100% PASS)**：
+    - 擴充 `src/tools/vfx-studio/VFXConsistency.test.ts` 至 9 個單元測試，全面覆蓋旋風橫掃、毀滅隕石、神聖護盾、戰吼音波、神聖光柱、非聶耳冰晶槍、風暴狂雷、奧術追蹤彈、貫穿長槍。
+    - 全專案 TypeScript 編譯 0 錯誤 (`tsc --noEmit` 100% 通過)。
+    - 全專案 48 個測試檔案、280 個單元測試 100% PASS。
+
+- **[Fix/CombatVFX/SSOTFullSuiteScrubbingAndPlayingConsistency] 全套經典技能形態幾何姿態與路徑 SSOT 全量統一（徹底消滅定格拖曳與動態播放姿態分歧）（2026-09-06）**：
+  - **⚔️ 斬擊幾何形態與旋轉方向收攏為唯一純函式 (SSOT Slash Geometry)**：
+    - 在 `MeshLayerRenderer.ts` 抽離靜態純計算函式 `calculateSlashGeometryParams`，統一月牙、旋風（360° 全圈）與十字斬（雙刀刃交錯）之起訖角度、半徑、刀寬、揮擊進度展開及順逆時針方向。
+    - 修復定格求值中漏判 `preset.id.includes('WHIRLWIND')` 與反轉欄位分歧（`preset.slashReverse` vs `track.reverse`）導致「旋風橫掃」定格時退化為 135° 普通勾斬、自動播放卻是 360° 反向橫掃的重大不一致。
+    - `CombatFXEngine.ts` 的 `renderTrack3DGeometry` 與 `playArcSlash` 100% 呼叫同一 SSOT 純函式。
+  - **☄️ 彈道路徑與黑體火焰材質統一 (Unified Meteor Trajectory & Volumetric Fire)**：
+    - 在 `calculate3DTrackPos` 補齊 `DIAGONAL_DROP` / `DIAGONAL_SKY_TO_B`（天降斜砸 `(target.x - 260, target.y + 380, 0)`）、`VERTICAL_DROP` / `VERTICAL_SKY_TO_B`（高空垂直天落）與 `GROUND_BURST`（地表破土破裂）等時空彈道公式。
+    - 徹底終結「毀滅隕石」定格求值時因軌跡枚舉遺漏而跌落兜底變成「從巫師胸口水平飛向目標」的重大缺陷。
+    - 在 `renderTrack3DGeometry` 實裝 `VOLUMETRIC_FIRE` 與 `DARK_VOID` 黑體體積火焰著色器分支，動態更新頂點噪波時間 `uTime`，消除定格時退化為單顆微型發光點的降級問題。
+  - **🛡️ 依據文件第 12 章驗收清單，全量貫通其餘 6 大形態之定格與播放一致性**：
+    - 🛡️ **神聖護盾 (`SHIELD_BARRIER`)**：在 `MeshLayerRenderer` 抽離 `buildHolyShieldGroup` 與 `updateHolyShield`，動態播放 `playHolyShield` 與時間軸定格 `renderTrack3DGeometry` 統一具備「六角柱壁壘 ＋ 外圍旋轉環 ＋ 雙十字架」模型，並在前 25% 膨脹、後 75% 線性淡出。
+    - 📢 **戰吼音波 (`SHOUT_WAVE`)**：在 `MeshLayerRenderer` 抽離 `buildTauntShoutGroup` 與 `updateTauntShout`，動態播放 `playTauntShout` 與定格求值統一具備「3 道隨進度向前平移擴散淡出的震波環」。
+    - ☀️ **神聖天降光柱 (`HOLY_LIGHT`)**：在 `MeshLayerRenderer` 抽離 `buildHolyPillarMesh` 與 `updateHolyPillar`，動態播放 `playHolyPillar` 與定格求值統一具備「450px 圓柱立體光柱隨進度直徑收縮消散」。
+    - 🏹 **拋物線齊射箭雨 (`PARABOLA_ARC`)**：在定格求值 `renderTrack3DGeometry` 補齊 9 根箭矢之 Quadratic Bezier 拋物線彈道與旋轉切線，告別定格時退化為直線單點的缺陷。
+    - 🌋 **大地裂地波推進 (`GROUND_FISSURE`)**：在定格求值 `renderTrack3DGeometry` 補齊依時間進度沿地面推進破土生長之尖岩節點陣列（`nodes`），呈現真實破土推進動畫。
+    - ❄️ **菲涅爾冰晶槍 (`FRESNEL_ICE`)**：在 `renderTrack3DGeometry` 補齊 `FRESNEL_ICE` 著色器分支（原先僅判定 `FROST_LANCE` 導致 `VFX_ICE_LANCE` 跌落兜底光球），使定格求值完整具備 3D 核心冰晶錐體與旋轉外圍冰晶環。
+    - ⚡ **風暴狂雷 (`DIELECTRIC_LIGHTNING`)**：在動態播放 `playPresetWorld`（主軌與次生圖層）校準 `VERTICAL_DROP` 起點至高空左上，消除播放時雷電從施術者胸口出發、定格時從天降的起點脫節。
+  - **🧪 系統品質保證與自動化單元測試**：
+    - 擴充 `src/tools/vfx-studio/VFXConsistency.test.ts` 專屬測試矩陣，完整覆蓋旋風橫掃、毀滅隕石、神聖護盾、戰吼音波與神聖光柱的 SSOT 數值與幾何部件一致性。
+    - 全專案 TypeScript 編譯 0 錯誤 (`tsc --noEmit` 100% 通過)。
+    - 全量 48 個測試檔案、276 個單元測試 100% PASS。
+
+- **[Fix/CombatVFX/DeadlockAndMemoryGuards] 徹底修復時間軸播放卡死（消除 onFrame 反向 seek 遞迴死鎖 ＋ 實裝 Glow 紋理單例池化 ＋ 防重入守衛）（2026-09-06）**：
+  - **🛑 徹底阻斷無窮遞迴死鎖 (Infinite Re-entrancy Deadlock Elimination)**：
+    - 移除 `VFXTimeline.ts` 中 `onFrame` 內部的反向 `this.fxEngine.seek(data.time)`，確立主時鐘向前單向推進，杜絕 `onTick ➔ onFrame ➔ seek ➔ onTick` 的同步無窮循環假死。
+    - 在 `FrameTimelineEngine.ts` 中實作 `isEmitting` 防重入鎖，保證推進週期原子性。
+    - 嚴格隔離：手動拖曳 Scrubbing 與 `seekTo` 走專用使用者主動通道，不再干擾自動播放管線。
+  - **🧠 WebGL 顯存與 Canvas 記憶體洩漏根治 (Texture Cache Singleton)**：
+    - 依據文件第 10 章效能預算，在 `CombatFXEngine.ts` 實裝 `glowTextureCache` 單例快取池。
+    - 消除每次建立發光粒子時動態 `createElement('canvas')` 與 `new THREE.CanvasTexture` 的顯存海嘯，同一顏色全生命週期只佔用 1 張紋理，長時播放記憶體零增長。
+  - **⚡ 初始凍結與循環播放原子清理**：
+    - 時鐘初始嚴格處於 `paused: true`，杜絕載入時在背景偷跑至 100%；按下播放時自動對齊 0 秒推進。
+    - 播放與循環重頭時前置執行 `this.studioAdapter.clear()`，保證舊動畫與定時器 100% 銷毀零殘留（符合 Phase 1 驗收標準）。
+  - **🧪 系統品質保證**：
+    - 全專案 TypeScript 編譯 0 錯誤 (`tsc --noEmit` 100% 通過)。
+    - 全量 47 個測試檔案、271 個單元測試 100% PASS。
+
+- **[Refactor/CombatVFX/UnifiedClockPipeline] 徹底收攏時間軸單一時鐘管線（消除雙重 RAF 迴圈 ＋ 對齊 VFXScheduler 唯一時鐘源）（2026-09-06）**：
+  - **⏱️ 徹底消滅雙重時鐘衝突 (Eliminate Dual RAF Loop)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 規範，移除 `FrameTimelineEngine.ts` 內部的獨立 `requestAnimationFrame` 與 `startLoop()`。
+    - 全專案唯一的演出時鐘源全面收攏至 `VFXScheduler`（單一邏輯演出時鐘），透過 `onTick((time, progress) => ...)` 精確驅動時間軸的整數影格與播放頭前進。
+    - `play`、`pause`、`stop`、`seekToFrame` 完全對接至 `VFXScheduler` 的單一調度介面，消除跨迴圈時鐘漂移與渲染覆蓋。
+  - **🚫 徹底清除視口 DOM 藍球與多餘幾何體**：
+    - 將 `tools/vfx-studio.html` 行 239 的 `#benchmark-marker` 設為 `display: none !important;`，消除視口中央突兀藍球干擾。
+    - `CombatFXEngine.ts` 定格姿態重構：自身（`AT_CASTER`）呈現擴散光環，目標（`AT_TARGET`）呈現受擊爆散環，彈道（`TRAJECTORY`）呈現柔和飛行彈道，不再在非彈道時於畫面中央卡一顆球。
+  - **🧪 系統品質保證**：
+    - 全專案 TypeScript 編譯 0 錯誤 (`tsc --noEmit` 100% 通過)。
+    - 全量 47 個測試檔案、271 個單元測試 100% PASS。
+
+- **[Fix/CombatVFX/NativeTimelinePipeline] 徹底剷除假幾何體（八面體方塊與外環）並貫通專案原生戰鬥特效管線至時間軸（2026-09-06）**：
+  - **🚫 徹底剷除假幾何體敷衍代碼**：
+    - 徹底刪除 `CombatFXEngine.ts` 內的八面體晶核 (`OctahedronGeometry`) 與雙旋轉外環 (`TorusGeometry`)，杜絕在時間軸中央出現突兀白色方塊與藍色圈圈。
+    - 針對通用未指定著色器之素材，改以柔和發光的實體光球（`SphereGeometry` 搭配 `AdditiveBlending` + `createGlowSprite` 柔和外發光 Sprite）呈現真實魔法姿態。
+  - **⚡ 直通專案原生戰鬥特效管線 (playPresetWorld / playPresetConfig)**：
+    - 徹底打通 `VFXStudioController.ts` 與 `VFXStudioAdapter.ts`：當時間軸進入 `PLAYING` 狀態或自動循環回到 Frame 0 時，立即調用原生戰鬥特效管線 `this.studioAdapter.play(preset)`。
+    - 完整呈現遊戲實戰中所擁有的真實火花粒子（`ParticleLayerRenderer`）、光柱、破空刀芒、地裂波、閃電電弧與鏡頭受擊震動。
+    - 當時間軸處於暫停 (`PAUSED`)、停止 (`STOPPED`) 或手動拖曳滑桿時，清除動態粒子並平滑切換為精準的影格姿態定格求值。
+  - **🧪 系統健全度檢查**：
+    - 全專案 TypeScript 型別編譯 0 錯誤 (`tsc --noEmit` 100% 通過)。
+
+- **[Feature/CombatVFX/Deterministic3DTimelineEvaluator] 特效工房「原本整套 3D 特效貫通時間軸 ＋ 多圖層真實幾何動態求值渲染器」完工驗收（2026-09-06）**：
+  - **🔍 終極病灶修復（接通影格求值管線）**：
+    - 徹底修復 `VFXStudioController.ts` 中 `frameEngine.onFrame` 漏調用 `renderStudioFrameAt` 的重大斷點，並在預設變更、影格推進、時間軸拖曳及初始化時全面接通。
+  - **🎨 全套 3D 著色器幾何實體求值管線貫通**：
+    - 徹底剷除原本將非近戰特效敷衍寫死為單一 `SphereGeometry`（一顆小球）的陋習，依據 `shaderMode` 與幾何路徑構建真實 3D 實體：
+      - ⚔️ **刀芒劍氣 (`SLASH_BLADE`)**：動態構建雙層流線月牙網格、十字交錯與旋風環切，搭配刀刃發光著色器。
+      - ⚡ **天降神雷 (`DIELECTRIC_LIGHTNING`)**：隨時間進度延伸之 CatmullRom 3D 折線雷電 Tube 管身，伴隨地面發光擴散衝擊波光環。
+      - 🪨 **裂地岩刺 (`EARTH_SHATTER`)**：地面破土爆發破裂長出的多根 3D 銳角錐體岩石突刺陣列。
+      - ❄️ **冰霜長矛 (`FROST_LANCE` / `FROST_NOVA`)**：3D 核心旋轉冰晶錐體與外圍冰晶環，菲涅爾邊緣發光著色器。
+      - 🔮 **能量光束 (`ENERGY_BEAM`)**：貫穿起訖點之發光能量圓柱光柱與兩端聚能環。
+      - 🌐 **通用晶核**：動態八面體自發光能量晶核與同軸旋轉環。
+  - **🎞️ 嚴格遵守 TIMELINE 多圖層合成規格**：
+    - 全面遍歷主軌（Layer 0）與所有啟用圖層（`preset.layers[i]`），每個圖層擁有專屬獨立 Group。
+    - 依據各圖層之 `delay`、`duration`、`spatialMode`、`reverse` 與 `scale` 進行 3D 空間錨點計算，不在時間區間內的圖層自動隱藏。
+    - 支援圖層級 `fadeIn` 與 `fadeOut` 邊緣透明度平滑過渡。
+  - **🧪 端到端全流程無頭驗收 100% PASS**：
+    - 執行 `scripts/verify-compositor-workflow.mjs`，驗證時間軸定格時真實生成 8 個 3D 實體網格（BufferGeometry、TubeGeometry、ConeGeometry 等），主控台 0 錯誤。
+    - 產出最新高解析驗收截圖 `compositor_workflow_verified.png`。
+    - 全量 47 個測試檔案、271 個單元測試 100% 通過，TypeScript 0 錯誤。
+
+- **[Feature/CombatVFX/CompositorFeedbackAndPrecisionFixes] 特效工房「播放頭 0s 物理精準對齊 ＋ Clip 淡入淡出視覺調整列 ＋ CUE 標記 ✕ 鍵盤一鍵刪除 ＋ 多段跳傷害浮動回饋 ＋ 消除藍球干擾 ＋ 圖層素材自由挑選」完工驗收（2026-09-06）**：
+  - **📏 播放頭基準線 0 秒物理跑偏修復（消除 28px 左偏）**：
+    - 徹底重構 `updateFrameUI` 的位置定位邏輯，改用 `rulerBar.offsetLeft + rulerBar.clientWidth * progress` 精確對齊刻度尺起點。
+    - 經 Playwright 物理測量，播放頭於 0.00s 時與刻度尺 0s 刻度垂直完全重合（差值為 0px）。
+  - **🎬 圖層 Clip 點選微調列與淡入淡出 (Fade In / Fade Out)**：
+    - 點擊時間軸任意圖層 Clip，即選中該圖層並在上方浮現專屬金色高亮編輯列 (`#tl-selected-clip-toolbar`)。
+    - 具備直覺的滑桿即時調節淡入時間 (`fadeIn`)、淡出時間 (`fadeOut`) 與特效縮放比例 (`scale`)。
+    - Clip 本體呈現帶有兩端透明度漸變之斜切過渡標記與選中光環，所見即所得。
+  - **🥊 CUE 標記直覺刪除與無 CUE 純視覺單軌素材支援**：
+    - 單擊選中 CUE 標記時，即浮現專屬微型紅色圓形刪除按鈕 (`.tl-cue-delete-btn`)，點擊立即刪除。
+    - 支援鍵盤快速鍵 `Delete` / `Backspace` 一鍵刪除選中的 CUE。
+    - 放寬限制，支援將 CUE 刪除至 0 個，滿足使用者創作「不含 CUE 之單軌純視覺素材」的需求。
+  - **💥 多段跳傷害判定與視覺回饋 (Damage Popup)**：
+    - 當播放頭掃過每個 CUE 判定點時，受擊卡牌受擊震動的同時，頭頂即時彈出動態傷害飄字動畫。
+    - 普通打擊呈現 `💥 -780`（黃白漸層），主力暴擊呈現 `🔥 CRITICAL -2,850`（橙紅爆發字體與光暈），0.7 秒平滑上浮消散。
+  - **🪐 消除除錯發光藍球干擾**：
+    - 將原本用於內部坐標測量直徑 36px 之 `#benchmark-marker` 強制設為 `display: none`。
+    - 徹底消除視覺遮擋，讓使用者能清晰欣賞 3D 著色器（斬擊刀芒、雷光、流星碎石）的真實幾何與粒子表現。
+  - **🗂️ 圖層素材自由挑選與素材庫追加圖層**：
+    - 在每個次生圖層 Header 直接內建素材下拉選單（`.tl-layer-preset-select`），列出素材庫中所有預製件（含 `[自身]`、`[彈道]`、`[目標]` 標籤），切換即替換圖層引用。
+    - 在左側素材庫面板新增綠色按鈕 `➕ 加入時間軸圖層`，挑中素材點擊直接作為新圖層追加至時間軸。
+  - **🧪 端到端全量驗收 100% PASS**：
+    - 擴充並執行 `scripts/verify-compositor-workflow.mjs`，10 大項目全部通過，產出最新視覺截圖 `compositor_workflow_verified.png`。
+    - 47 個測試檔案、271 個單元測試 100% 全數通過，TypeScript 0 報錯。
+
+- **[Feature/CombatVFX/CompositorWorkflowAndBiomechanics] 特效工房「預製件素材庫四大分類 ＋ 無損暫存跳轉編輯 (Jump to Edit & Return) ＋ 雙向力學貫通 (Caster Motion vs Impact CUE) ＋ 影格邊緣過渡」完工驗收（2026-09-06）**：
+  - **📚 預製件素材庫四大分類與即時篩選**：
+    - 將專案中 30 款預製特效根據時空發生錨點解耦歸納為：
+      1. `🏠 自身 (CASTER)`：A 點原地自身起手、揮刀、光環、蓄力（6 款）。
+      2. `🚀 彈道 (TRAJECTORY)`：A ➔ B 水平破空、拋物線、雷射穿刺、地裂波、連射（11 款）。
+      3. `💥 目標 (TARGET)`：B 點受擊爆破、天降雷殛、流星墜擊、地脈破土（13 款）。
+      4. `🌐 全部 (ALL)`：全量素材展示與自訂載入。
+    - 點擊 Tab 即時過濾素材清單，消除龐雜混亂感。
+  - **🔗 無損暫存跳轉編輯 (Safe Jump to Edit & Return)**：
+    - 貫徹「圖層引用預製件（Layer refers to Prefab ID）」工作流，圖層僅定義引用 ID、時間軸起點 (`delay`)、時長 (`duration`) 與邊緣過渡 (`fadeIn`/`fadeOut`)。
+    - 點擊時間軸圖層旁的 `🔗` 按鈕時，系統自動將目前正在編輯的外層複合技能壓入暫存棧 (`stashCurrentDraft`)。
+    - 頂部工具列即時浮現 `🔙 返回草稿 [複合技能名稱]` 按鈕；使用者可專注在單軌素材中精修細節，點擊返回按鈕時 100% 無損還原，素材改動自動繼承，絕不遺失草稿進度。
+  - **🏃 雙向力學貫通（受擊卡牌打擊感 vs 施術者發力動作）**：
+    - **打擊 CUE (Target Impact)**：作為數值與反饋交匯點，精確驅動受擊目標的命中定格 (`hitStopTime`)、受擊擠壓 (`targetPunchScale`)、震動 (`shakeIntensity`) 與擊退 (`knockbackDistance`)。
+    - **施術者發力動作 (Caster Motion)**：在 Inspector 新增發力動作面板，支援踏步突進 (`stepForward`)、射擊後坐力 (`recoil`)、出刀傾角 (`tiltAngle`) 與動作時長 (`motionDuration`)。
+    - 實裝純函式 `calculateCasterMotionOffset(t, motion)`，在播放與影格拖曳時即時求值，驅動 `#ref-caster` 產生極致生動的身體發力動作。
+  - **🎞️ 影格基礎邊緣過渡 (Fade In / Fade Out)**：
+    - Clip 支援淡入淡出時長與模式，消除閃現與硬截斷。
+    - 時間軸圖層 Clip 兩端即時渲染斜切半透明漸層標記，所見即所得。
+  - **🧹 UI 斷捨離 (UI Streamlining)**：
+    - 收整過度發散的次要滑桿，重構語意標籤，HTML 嚴格壓制在 750 行以內，介面清爽聚焦。
+  - **🧪 真實端到端全流程無頭驗收 100% PASS**：
+    - 建立並執行 `scripts/verify-compositor-workflow.mjs`，在真實瀏覽器環境驗證：素材庫四大分類切換、施術者動作卡牌 Transform 動態求值、新增圖層 Clip、無損暫存跳轉與返回草稿閉環、Clip 邊緣漸層標記。
+    - 瀏覽器主控台 0 錯誤，產出視覺證據截圖 `compositor_workflow_verified.png`。
+    - 全專案 47 個測試檔案、271 個單元測試 100% 全部通過！
+
+- **[Feature/CombatVFX/LayerCompositorAndFiveTrajectories] 特效工房「5 大位移彈道路徑 ＋ 🔄 反向開關 ＋ 專業多圖層合成系統」實裝與端到端驗收完成（2026-09-06）**：
+  - **🚀 5 大位移彈道路徑與 🔄 反向開關 (Reverse) 徹底解耦**：
+    - 徹底告別以往空間位置、表現形態混在一鍋粥的舊設計，在 `src/models/VFX.ts` 建立純淨幾何維度：
+      1. `A_TO_B (可反向)`：施術者 ➔ 目標（正向直射/拋物線；反向為 B ➔ A 汲取回流）。
+      2. `A_TO_VERTICAL_SKY (可反向)`：施術者 ➔ 垂直天空（朝天射箭/信號彈；反向為天光垂直灌頂 A 自身）。
+      3. `VERTICAL_SKY_TO_B (可反向)`：垂直天空 ➔ 目標（天降雷殛直劈 B 點；反向為目標受擊垂直擊飛沖天）。
+      4. `A_TO_DIAGONAL_SKY (可反向)`：施術者 ➔ 斜向天空（斜天際迫擊發射；反向為斜方星光灌頂 A 點）。
+      5. `DIAGONAL_SKY_TO_B (可反向)`：斜向天空 ➔ 目標（斜降隕石天火砸向 B 點；反向為目標被斜向擊飛出鏡頭）。
+      - 原地類：`AT_CASTER`（A 點原地自身光環/揮刀）與 `AT_TARGET`（B 點原地受擊爆裂/碎石）。
+    - 實裝純函式 `calculateSpatialPoint(mode, reverse, progress, casterPoint, targetPoint)`，提供極致平滑確定性的 2D 空間座標插值。
+  - **🎨 專業多圖層合成系統 (Multi-layer Compositor) 實裝**：
+    - 主圖層（Layer 0）與多次生圖層（Layer 1..N）全面軌道化列表顯示。
+    - 每個圖層享有：
+      - 獨立軌道標籤、即時時空模式標記（如 `[🏠自身]`、`[🚀彈道]`、`[⚡天降]`、`[🔄]`）。
+      - 獨立實體 Clip（支援平移起點 `delay`、拉伸右緣把手 `duration`），全軌道受嚴格時間軸總長邊界守護（選項 B）。
+      - 獨立圖層靜音切換（`👁️` / `❌`）與一鍵刪除按鈕（`🗑️`）。
+      - 快捷新增圖層按鈕組：`🏠 +自身前段圖層`、`🚀 +位移彈道圖層`、`⚡ +天降彈道圖層`、`💥 +受擊爆破圖層`，完美支援「1層自身揮刀 ➔ 2層彈道 ➔ 3層目標爆發」複合編排。
+  - **🎛️ 右側 Inspector 面板智慧連動**：
+    - 新增「時空發生模式（位移彈道 / 施術者自身 / 受擊目標）」、「5 大位移彈道路徑」與「🔄 運動方向（正向 / 反向）」控制項。
+    - 智慧情境顯隱：原地類自動隱藏位移路徑選單，位移模式即時顯現。
+  - **🧪 真實端到端全流程驗收 100% 通過**：
+    - 建立並執行 `scripts/verify-layer-compositor.mjs`，在真實瀏覽器中驗證：時空路徑切換、反向開關、快捷新增 4 條圖層軌道、多圖層拉伸時長、圖層獨立靜音。
+    - 產出視覺證據截圖 `layer_compositor_verified.png`。
+    - 全量單元測試 PASS，TypeScript 0 報錯。
+
+
+  - **🎞️ 主特效軌實體 Clip 化（拖曳移動起點與右緣把手拉伸）**：
+    - 徹底告別過去主軌佔滿 100% 總時長且無法調節的死板設計，重構為實體 Clip（`.tl-main-clip`）。
+    - 支援按住 Clip 本體左右平移，設定前搖等待時間 `mainDelay`；支援拖拉右緣把手（`.tl-main-resize-handle`），設定主軌實際有效播放時長 `mainDuration`。
+    - **嚴格遵守選項 B 邊界守護**：不變量 $0 \le \text{mainDelay} + \text{mainDuration} \le \text{duration}$，主軌右緣最長嚴格不可拉伸超過時間軸總時長，且拖曳期間受 `isDraggingClip` 保護不銷毀 DOM。
+    - 操作完整支援 Undo / Redo 交易事務。
+  - **🌐 三大時空錨點模型（Spatial Anchor System）實裝**：
+    - 在 `src/models/VFX.ts` 定義 `VFXSpatialAnchor`（`AT_CASTER` | `TRAJECTORY` | `AT_TARGET`）與自動分類工具 `getTrajectorySpatialAnchor`：
+      - **`AT_CASTER (A點自身)`**：自身揮刀、光環 (`BODY_AURA`)、護盾 (`SHIELD_BARRIER`)、戰吼 (`SHOUT_WAVE`)，標記與特效始終鎖定施術者 A 點。
+      - **`TRAJECTORY (A➔B彈道)`**：水平飛行 (`HORIZONTAL`)、拋物線 (`PARABOLA_ARC`)、穿刺 (`COLUMN_PIERCE`)、裂地波 (`GROUND_FISSURE`)、連射 (`ARC_MULTI`)，在 `[mainDelay, mainDelay + mainDuration]` 期間線性插值飛向 B 點。
+      - **`AT_TARGET (B點目標)`**：目標斬痕 (`MELEE_SWEEP`)、天雷 (`VERTICAL_DROP`)、天火 (`DIAGONAL_DROP`)、地爆 (`GROUND_BURST`)，標記與特效始終鎖定目標 B 點。
+    - 主軌 Clip 實時顯示當前錨點與彈道標籤（如 `💥 目標(B)`、`🏠 自身(A)`、`🚀 彈道(A➔B)`）。
+  - **🧪 真實無頭端到端全流程驗收 100% PASS**：
+    - 建立並執行 `scripts/verify-main-track-clip.mjs`：
+      1. 主軌 Clip 與拉伸把手正常渲染。
+      2. 拖動右緣把手成功縮短時長（0.28s ➔ 0.25s）。
+      3. 拖動 Clip 本體成功平移起點前搖（0.00s ➔ 0.01s），且邊界防護生效。
+      4. 切換至自身光環 `BODY_AURA`，標籤即時變更為 `🏠 自身(A)`，基準標記精準鎖定施術者卡牌中心（X=502.5 重合）。
+      5. 切換至天降神雷 `VERTICAL_DROP`，標籤即時變更為 `💥 目標(B)`，基準標記精準鎖定受擊目標卡牌中心（X=927.5 重合）。
+      6. 切換至水平飛行 `HORIZONTAL`，標籤即時變更為 `🚀 彈道(A➔B)`，並在主軌時間內位移。
+    - 截圖存檔至 `main_track_clip_verified.png`。單元測試 18/18 PASS，TypeScript 0 報錯。
+
+- **[Refactor/CombatVFX/FrameTimelineEngineAndDeterministicScrubbing] 特效工房打掉舊拋棄式動畫、建立 60 FPS 純確定性 FrameTimelineEngine 影格時間軸核心與基準測試物件驗收完成（2026-09-06）**：
+  - **🛑 徹底打掉舊有實戰拋棄式動畫邏輯**：
+    - 依據使用者明確指令與 `AGENTS.md` 第 7 條（杜絕地基腐朽、表層敷衍），停止拿實戰一次性運行的拋棄式邏輯（依賴 delta 累加、播完即 dispose 自毀）套在編輯器上。
+    - 徹底打掉舊有雜亂、殘影且與時間軸脫節的動畫，改以「純確定性影格狀態機」重築時間軸地基。
+  - **⏱️ 打造 60 FPS 純確定性影格核心 (`FrameTimelineEngine`)**：
+    - 新增 `src/tools/vfx-studio/FrameTimelineEngine.ts`：以整數影格 $F \in [0, TotalFrames]$ 為單一真相來源 (SSOT)，杜絕浮點累加漂移。
+    - 完整狀態機切換（`PLAYING` | `PAUSED` | `STOPPED`）與原子控制：`play()`, `pause()`, `stop()`, `togglePlayPause()`, `stepNext(n)`, `stepPrev(n)`, `seekToFrame(f)`, `seekToTime(t)`, `setLoop(bool)`, `setDuration(d)`。
+    - 發布 `FrameData` 事件（`frame`, `totalFrames`, `time`, `duration`, `progress`）與 `StateChange` 事件。
+  - **🎛️ VFXTimeline 與頂部按鈕雙向連動升級**：
+    - 時間軸頂部整合全新功能按鈕：`▶ 播放 (Space)`、`⏪ -1 幀`、`⏩ +1 幀`、`⏹ 重置`，與頂部主工具列按鈕保持 100% 雙向同步。
+    - 尺規與播放頭 Seek / Scrubbing 精準吸附整數影格：$F = \text{round}(\text{offset} / \text{width} \times \text{totalFrames})$。
+    - 時間標籤格式統一為 `Frame: XX / YY (0.00s / 0.00s)`。
+  - **🎯 視口基準測試標記 (Frame Benchmark Marker) 建立與連動**：
+    - 在視口建立獨立且純淨的發光基準測試球，標註 `F: XX / YY`。
+    - 嚴格綁定數學映射：$P(F) = \text{lerp}(P_{\text{caster}}, P_{\text{target}}, F / \text{totalFrames})$。
+    - 逐格前進、逐格倒帶、Seek 定格時，基準標記與目標受擊回饋 100% 即時物理定格連動。
+  - **🧪 真實端到端無頭驗收全數通過 (Human-Centric)**：
+    - 建立並執行 `scripts/verify-frame-timeline.mjs`，在真實瀏覽器中模擬：
+      1. 連續點擊 5 次 `⏩ +1 幀`：影格從 0 -> 1 -> 2 -> 3 -> 4 -> 5，基準標記依序向右移動 $5/17$ 距離。
+      2. 連續點擊 2 次 `⏪ -1 幀`：影格從 5 -> 4 -> 3，基準標記精確回退至 $3/17$ 距離。
+      3. 點擊 `⏹ 重置`：影格歸 0，基準標記瞬間回到起點卡牌。
+      4. 尺規 50% 點擊 Scrubbing：精確吸附至第 9 幀，基準標記定格在 50% 距離。
+      5. 空白鍵播放與暫停：播放頭平滑前進，頂部按鈕即時切換為 `⏸ 暫停 (Space)`，再次按下平滑定格切回 `▶ 播放 (Space)`。
+    - 截圖驗證確認畫面純淨無殘影，單元測試 18/18 全數 PASS，TypeScript 0 報錯。
+
+- **[Fix/CombatVFX/DeterministicTimelineAndLiveMorphing] 特效工房時間軸確定性影格求值、逐格步進倒帶、暫停定格與所見即所得熱形變重構完成（2026-09-04）**：
+  - **⏱️ 確定性影格求值管線實作 (`renderFrameAt`) 與真實渲染修復**：
+    - 徹底根治「時間軸跑時間軸的、特效跑特效的、暫停拖曳特效直接消失」的架構性弊端。
+    - 嚴格遵循 `AGENTS.md` 第 7 條「嚴禁應試思維與偽完成原則」：
+      - **座標系精準換算**：消滅全螢幕座標錯位，改用 `this.studioAdapter.getElementCenter(el)` 換算為視口內部相對座標，使刀芒精準定位於卡牌中心。
+      - **常駐場景節點守護**：確保 `studioPreviewGroup` 穩固掛載於當前 `scene`，杜絕 `clear()` 後脫節導致面數為 0 的隱蔽問題。
+      - **刃弧保真度**：定格時限制最小展開弧長（`0.18`）與透明度（`0.4`），幾何網格絕不退化，**真實渲染面數 48 面（DrawCalls: 1），受擊卡牌前實體刀芒清晰可見**。
+  - **🎛️ 時間軸逐格步進 (Frame Stepping) 與播放/暫停控制**：
+    - 在 `VFXTimeline.ts` 頂部功能列實裝「⏸ 暫停 / ▶ 播放」按鈕、「⏪ -0.02s」單格步退與「⏩ +0.02s」單格步進按鈕。
+    - 支援精確到 0.02 秒的逐影格前進與倒帶推進，並同步更新紅色貫穿播放頭與時間秒數 HUD。
+  - **🎨 所見即所得即時熱形變 (Live Morphing)**：
+    - 改造 `VFXStudioController.ts` 與 `VFXInspector.ts` 的響應連動：當處於暫停或 Scrubbing 狀態時，拉動任何數值滑桿（如 `slashAspect`、`slashRadius`、`slashBladeWidth`、`colorCore`、`colorRim`），立即以當前時間 $t$ 呼叫 `renderStudioFrameAt` 實現所見即所得實質動態形變。
+  - **🥊 物理受擊打擊動態反饋連動**：
+    - 拖動時間軸至打擊 Cue 區間時，自動依時間差動態計算受擊卡牌的 Punch 縮放、Shake 震顫振幅與 Knockback 擊退，並在衝擊瞬間施加高光閃爍。
+  - **🛡️ 消除孤兒控制項**：
+    - 將 HTML 中未綁定的 `param-glow-radius`（泛光半徑）與 `param-glow-opacity`（光暈透明度）納入 `INSPECTOR_CONTROL_MAP`，達成 56 個 HTML 控制項 100% 雙向綁定。
+  - **🧪 真實使用者視角 (Human-Centric) 驗證全數通過**：
+    - 升級 `scripts/verify-vfx-studio-interactivity.mjs`，在無頭瀏覽器實測：孤兒控制項拉動、暫停切換、單格步進 5 次（推進至 0.10s）、單格步退 2 次（倒帶至 0.06s）、暫停狀態下熱形變（slashAspect 1.8x）、尺規拖曳至 50% 定格，**HUD 即時回報 DC: 1, 面數: 48**，控制台 0 錯誤。
+    - 46 個測試檔案、265 個單元測試 100% PASS。
+
+- **[Fix/CombatVFX/InteractivityAndTimelineScrubbing] 特效工房實質互動性、全參數連通與時間軸 Scrubbing 定格修復完成（2026-09-04）**：
+  - **⏱️ 徹底修復時間軸 (Timeline) 互動與實裝 Scrubbing 定格預覽**：
+    - **播放頭 (Playhead) 拖曳支援**：為 `#tl-playhead` 與 `#tl-ruler-bar` 掛載完整的 Pointer Capture 拖曳管線，支援滑鼠點選與平滑橫向拖拉。
+    - **Scrubbing 暫停與定格機制**：當使用者在時間軸上按下時，`VFXStudioController` 即時中斷自動循環並暫停底層時鐘，支援精確秒數 $t$ 定格與 Seek，徹底告別「背景自動跑、拖時間軸沒反應」的斷層。
+    - **回調與 Undo 交易**：提供 `onScrubStart`、`onScrub`、`onScrubEnd` 回調體系，拖曳結束後原子提交 Undo 快照。
+  - **⚡ Inspector 滑桿 60ms 防抖即時熱響應 (Live Reactive Re-trigger)**：
+    - 在 `VFXInspector.ts` 加入 `onParamChange` 回調；當使用者拖曳任何 Range Slider（`input` 事件）或切換下拉選單時，Controller 透過 60ms 防抖立即自動重播最新參數，達成「拉動滑桿畫面立即動態反饋，所見即所得」。
+  - **🔗 40+ 參數鍵名與渲染管線全面對齊**：
+    - **火焰速度對齊**：將 `INSPECTOR_CONTROL_MAP` 中的 `flameSpeed` 修正為 `flameTurbulenceSpeed`，並在讀寫層雙向相容。
+    - **衝擊波平面與厚度/羽化**：將 `wavePlane` 同步寫入 `preset.wavePlane` 與 `preset.impact.wavePlane`；在 `ImpactLayerRenderer` 與 `CombatFXEngine` 實裝 `waveThickness`（環粗細）與 `waveBlur`（邊緣羽化柔焦），解決調校無視覺差異問題。
+    - **Fresnel 動態邊緣光**：重構 `MeshLayerRenderer.createFresnelShaderMaterial`，消滅寫死的 `1.5`，動態綁定 `preset.fresnel` Uniform。
+  - **🧪 雙重驗證全數通過**：
+    - 新增 `src/tools/vfx-studio/VFXStudioInteractivity.test.ts` 單元測試，46 個測試檔案、263 個單元測試 100% PASS。
+    - 建立並執行 `scripts/verify-vfx-studio-interactivity.mjs`，在真實無頭瀏覽器下模擬點擊 60% 尺規（時間推進至 0.17s）、拖曳至 20% 尺規（時間定格至 0.06s）、拉動斬擊角度、火焰速度與 Fresnel 滑桿，全數即時更新，控制台 0 錯誤。
+    - `npm run check` 5 合 1 檢查全數綠燈。
+
+- **[Refactor/CombatVFX/TruePipelineSeparationAndVFXPlayerClass] 特效管線真重構完成：消滅 14 行 Facade、建立獨立 VFXPlayer 實體類別、抽離 3 大專用 Layer Renderers、模組化 VFXStage 舞台、DAW 級多軌時間軸 Mute/Solo 與五合一全量驗收（2026-09-04）**：
+  - **🏛️ 徹底消滅 14 行假 Facade，建立獨立實體 `VFXPlayer` 核心類別**：
+    - `src/ui/fx/VFXPlayer.ts` 不再只是 `export { CombatFXEngine as VFXPlayer }` 的假門面，重構為擁有獨立 3D Scene、PerspectiveCamera、WebGLRenderer、單一 Canvas 掛載、Resize、單一動畫循環與 `clear()` 的實體播放器類別。
+    - `CombatFXEngine` 正式改為繼承 `VFXPlayer`，`clear()` 委派 `super.clear()`，消滅重複宣告的渲染循環與資源洩漏隱患，保留對舊戰鬥系統與 UI 的 100% 透明相容。
+  - **🎨 專用圖層渲染器 (Layer Renderers) 模組化落地與 CombatFXEngine 演算法全面委派**：
+    - **`MeshLayerRenderer.ts`**：動態月牙斬芒幾何體 (`buildDynamicSlashGeo`)、雙面漸層刀芒 Shader (`createSlashShaderMaterial`)、菲涅爾冰晶 Shader、體積黑體火焰 Shader 與 4 種立體地刺幾何形態 (`createSpikeGeometry`)。
+    - **`ParticleLayerRenderer.ts`**：管理微粒發射系統、拖尾粒子流與受擊爆散微粒 (`spawnBurstParticles`)。
+    - **`ImpactLayerRenderer.ts`**：管理 2.5D 受擊擴散光圈 (`spawnImpactWave`)、地面衝擊光浪與受擊物理反饋。
+    - **`CombatFXEngine.ts` 減重**：所有斬芒、火焰、冰晶、尖岩幾何與受擊爆散全面轉向調用專用渲染器，隨機數全面注入 Session PRNG (`this.getRandom()`)。
+  - **🎭 獨立模組化實戰舞台 `VFXStage.ts`**：
+    - 將卡牌佈局、6 種目標情境（單體/前排/全體/友軍/自身/攻城門）、背景輪播（純黑/棋盤格/實戰）與 SVG 輔助線（安全區/十字/彈道）抽離至 `src/tools/vfx-studio/VFXStage.ts`。
+    - `VFXStudioController.ts` 從原本 413 行瘦身至 220 行，專注於中樞流程調度。
+  - **🎛️ 多軌時間軸 DAW 級 Mute / Solo 體系**：
+    - 在 `VFXTimeline.ts` 每一條軌道（主特效軌、次生圖層軌、打擊 Cue 軌）實裝獨立 `M` (Mute) 與 `S` (Solo) 按鈕。
+    - `VFXStudioStore` 與 `VFXStudioController` 支援精確軌道隔離 (`muteMain`, `muteImpact`, `muteLayers`)，支援單獨預覽次生圖層或受擊反饋。
+  - **📐 修復 HTML 標籤結構損毀與清除底部幽靈按鈕**：
+    - 修正 `tools/vfx-studio.html` 第 639 行卡片 4 缺少 `</div>` 閉合標籤之嚴重缺陷，消除右側面板 `#inspector-right` 結構性外洩。
+    - 徹底移除底部過期且未綁定事件之 5 個幽靈按鈕（`btn-save-project`, `btn-publish-ssot`, `btn-save`, `btn-export-all`, `btn-reset-defaults`），操作全面統一收攏至左側 `VFXLibrary` 面板。
+  - **🧪 全量五合一驗證 100% 通過 (npm run check)**：
+    - 45 個測試檔案、258 個單元測試全數通過！
+    - `tsc --noEmit` 0 錯誤，Vite 生產打包成功，P0 冒煙測試 5 大階段全過，Bundle Budget 安全。
+    - 執行 `scripts/verify-vfx-studio-layout.mjs`，4 大 Viewport（1440x900, 1280x720, 1024x768, 768x900）100% PASS，Console 0 錯誤。
+
+- **[Feature/CombatVFX/StudioRebuildAndThreeEndPipeline] 特效工房全功能深度重構（Phase 1 至 Phase 5）：三端同源戰鬥適配器、中央實戰多情境舞台、次生圖層時間軸拖曳/拉伸、獨立技能綁定表 (SSOT) 與效能預算浸泡式壓力測試全面落地（2026-09-04）**：
+  - **⚔️ Phase 1：三端同源 (Three-End Alignment) 與真實 CombatAction 播放鏈**：
+    - 徹底消滅「僅單元測試有引用、真實生產環境逐事件重播」的假完成現象。
+    - 升級 `CombatStudioStageAdapter`，正式實裝 `playCombatAction(action, options)`，將戰鬥演播室 (CombatStudio) 遷移至 `CombatActionPlayer` 核心播放鏈。
+    - 重構 `CombatStudio.ts` 的 `stepPlayback()`，依 `actionId` 聚合 `SKILL_CAST`、`HIT`、`CRIT`、`HEAL` 為標準 `CombatAction`，徹底終結重複重播與笛卡爾積跳字。
+    - **全新建立** `src/ui/fx/adapters/CombatStageAdapter.ts` 主遊戲戰鬥模態框適配器，封裝卡牌錨點換算、受擊擠壓形變與跳字回饋。
+    - 將主遊戲 `CombatUIManager.ts` 的 `playVFXForEvent` 接入 `CombatStageAdapter` 與 `playCombatAction`，實現「特效工房 ⇆ 戰鬥演播室 ⇆ 主遊戲戰鬥」三端完全共用同一條管線與打擊反饋契約。
+  - **🎭 Phase 2：中央實戰舞台多情境與輔助線系統**：
+    - 擴充目標情境：支援「單體」、「前排 3 人」、「全體 6 人」、「友軍治療 (ALLY_HEAL)」、「自身增益 (SELF_BUFF)」與「攻城門 (SIEGE_GATE)」。
+    - 增設專用視覺樣式：`.ref-card.ally` (綠色光環)、`.ref-card.self` (紫色增益光暈)。
+    - 實裝 SVG 輔助線覆蓋層 (`#vfx-guides-overlay`)：支援 90% 安全區框線、中心十字瞄準線與施術者至受擊者的動態彈道連線。
+    - 實裝三段背景切換輪播（純黑 `#000`、棋盤格透明度檢查、實戰競技場暗紅氛圍）。
+    - 實裝播放速度切換（0.25x 極慢動作、0.5x 慢動作、1.0x 正常、2.0x 快速），全部透過 `PlaybackClock` 精準縮放。
+  - **🎛️ Phase 3：多軌時間軸 Track / Clip 複合編排體系**：
+    - 次生圖層次軌升級：在 `VFXTimeline.ts` 渲染圖層 Clip (`.tl-layer-clip`) 與右緣寬度拉伸控制把手 (`.tl-clip-resize-handle`)。
+    - 實裝整塊 Clip 指針拖曳移動：即時更新 `layer.delay`，支援 DAW 等比相對位移與邊界約束。
+    - 實裝邊緣 Handle 拉伸：即時調整 `layer.duration`。
+    - 新增 `➕ 新增圖層` 按鈕互動與 Shift+點擊刪除圖層 Clip 功能。
+    - 全面以 Undo Transaction 保護，拖曳過程不堆疊多餘歷史記錄，於 `pointerup` 提交單一原子快照。
+  - **🔗 Phase 4：獨立技能綁定表 (SkillVfxBinding) 與資產庫引用解耦**：
+    - 建立 `src/data/skill_vfx_bindings.json` 作為技能與特效綁定的唯一 SSOT，徹底消除 `SkillData.ts` 內 130 行硬編碼。
+    - 實裝 `SkillVfxBindingRegistry`，提供技能查特效、特效反查技能清單 (`getSkillsForVfx`)、取得 presentationMode 與動態註冊自訂技能能力。
+    - 在 `VFXLibrary.ts` 卡片上方新增「🔗 綁定技能清單」，清晰展示當前 Preset 被哪些戰鬥技能引用及對應演出模式。
+    - `SkillData.ts` 透過 `SkillVfxBindingRegistry.getInstance().toMap()` 委派代理，保留 100% 向後相容性。
+  - **📊 Phase 5：效能預算 HUD 即時化與量產級 Soak Test**：
+    - 升級 `VFXStudioController.ts` 的品質預算即時監控 HUD，依規範精確區分單體特效 (DC<=35, 粒子<=250) 與複合/AOE 特效 (DC<=70, 粒子<=600) 門檻。
+    - 實裝粒子總數即時掃描，超標時自動套用 `.budget-alert` 警示邊框與文字提醒。
+    - 建立量產級浸泡式壓力測試腳本 `scripts/soak-test-vfx.mjs`，於無頭 Chromium 下執行 100 次連續高頻播放循環：
+      - 7.23 秒內順暢完成 100 次連續播放。
+      - DOM Canvas 數量恆為 1（Zero Canvas Leak）。
+      - WebGL 上下文零丟失（Zero Context Loss）。
+      - Console 達成 0 錯誤。
+  - **🧪 全量驗收與測試通過**：
+    - 新增單元測試 `src/systems/combat/CombatStageAdapter.test.ts`、`SkillVfxBindingRegistry.test.ts`，擴充 `PlaybackClockAndTimeline.test.ts`。
+    - 全專案 45 個測試檔案、258 個單元測試 100% PASS！
+    - `npm run check` 五合一（typecheck + vitest + production build + P0 冒煙測試 + bundle 預算檢查）全數綠燈！
+    - `npm run test:vfx` 佈局契約（4 大 Viewport）與 100 輪浸泡式壓力測試 100% 通過！
+
+- **[Fix/CombatVFX/StudioGeminiAcceptanceFixComplete] 特效工房驗收修復完整落地：Session PRNG 隔離、治療降級防線、快照管理 UI 與全量 Viewport/測試回歸達成 100% 驗收（2026-09-04）**：
+  - **🎲 Session 隔離之 PRNG 種子機制 (Batch H)**：
+    - 徹底移除 `VFXStudioController` 對全域 `Math.random` 的侵入式猴子補丁（monkey patch），杜絕戰鬥系統、掉落與隨機生成系統的潛在非確定性污染。
+    - 在 `CombatFXEngine` 實裝 `setSessionRng(rng)` 與 `getRandom()` 機制，特效產生過程（刀光法線抖動、粒子爆散隨機角、彈幕離散角度、相機震動隨機偏移）全面採用 Session-scoped PRNG。
+    - `VFXStudioAdapter` 透過 `fxEngine.getRandom()` 統一消費隨機數，完美維持可重現性同時保持全域環境乾淨。
+  - **🩹 治療事件 (HEAL) 映射與安全降級 (Batch H)**：
+    - 修正 `CombatStudioStageAdapter.resolveVfxId`，將未指定特定技能的 `HEAL` 事件正確導向既有 SSOT 預設 `VFX_HOLY_LIGHT`。
+    - 加入預設庫存在性防禦檢查；若事件指定的 `vfxId` 在預設庫中不存在，自動輸出警告並安全降級回傳 `undefined`，避免 3D 渲染崩潰。
+  - **🕒 快照復原 UI (VFXLibrary) 與記憶體動態重載 (Batch G & H)**：
+    - 在 `VFXLibrary.ts` 實裝「🕒 歷史快照管理」面板，支援呼叫 `/__vfx_api/list_snapshots` 取得本機快照清單，並透過 `/__vfx_api/restore_snapshot` 一鍵還原。
+    - `VFXPresetRepository` 擴充 `reloadPresets()` 方法，在還原成功後動態重載記憶體內的預設庫並通知所有訂閱者更新 UI。
+  - **🧪 全量驗收與 19 項驗收標準達成 100% PASS**：
+    - 新增 `src/systems/combat/VFXSessionRngAndCleanup.test.ts`（6 項隨機數隔離、治療解析與動態重載測試 100% PASS）。
+    - 徹底排查並修復 `scripts/verify-vfx-studio-layout.mjs` 在 Windows 下管道未釋放與缺少 `process.exit(0)` 導致進程卡住 (Hang) 的問題，改以 `process.execPath` (shell: false) 啟動 Vite 並健全 `finally` 管道銷毀與顯式退出。
+    - 實跑 `node scripts/verify-vfx-studio-layout.mjs`，於 7 秒內同步完成退出（exit code 0），四大 Viewport（1440x900、1280x720、1024x768、768x900）100% PASS，DOM 階層、尺寸契約無異常，Console 達成 0 錯誤。
+    - `npm run check` 五合一（`typecheck` + 43 個測試檔案 243 個單元測試 + `build` + `smoke-test` + `check-bundle`）全數通過，達成 `docs/VFX_STUDIO_GEMINI_3_8_FLASH_ACCEPTANCE_FIX.md` 規範驗收！
+
 - **[Fix/CombatVFX/SSOTPublishAndRestoreDefense] 特效工房 SSOT 發布伺服器端校驗防線、路徑逃逸防護與還原前備份機制全面落地（2026-09-04）**：
   - **🛡️ 伺服器端 SSOT 寫入嚴格防線 (Batch G)**：
     - 在 `src/ui/fx/VFXPresetValidator.ts` 擴充 `impactCues` 結構校驗（唯一 cueId、0 <= time <= duration、NaN / Infinity 阻斷）。

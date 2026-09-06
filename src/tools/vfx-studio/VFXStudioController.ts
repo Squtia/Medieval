@@ -2,26 +2,25 @@ import { VFXStudioStore } from './VFXStudioStore';
 import { VFXTimeline } from './VFXTimeline';
 import { VFXInspector } from './VFXInspector';
 import { VFXLibrary } from './VFXLibrary';
+import { VFXStage } from './VFXStage';
+import { CombatFXEngine, ScreenPoint } from '../../ui/fx/CombatFXEngine';
 import { VFXStudioAdapter } from '../../ui/fx/VFXPlayer';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
-import { VFXPreset } from '../../models/VFX';
+import { VFXPreset, VFXImpactCue, getTrajectorySpatialAnchor, calculateSpatialPoint, calculateCasterMotionOffset } from '../../models/VFX';
 
 /**
  * 🎮 VFXStudioController
  * 特效工房主控制器 (Main Controller)
- * 協同 Store、Timeline、Inspector、Library 與 StudioAdapter，並整合效能預算監控 HUD
+ * 協同 Store、Timeline、Inspector、Library、Stage 與 StudioAdapter，並整合效能預算監控 HUD
  */
 export class VFXStudioController {
   private store: VFXStudioStore;
   private timeline: VFXTimeline;
   private inspector: VFXInspector;
   private library: VFXLibrary;
+  private stage: VFXStage;
   private studioAdapter: VFXStudioAdapter;
 
-  private loopTimer: any = null;
-  private casterTimer: any = null;
   private hudBudgetTimer: any = null;
-  private targetMode: 'SINGLE' | 'AOE' = 'SINGLE';
 
   constructor() {
     this.store = VFXStudioStore.getInstance();
@@ -36,13 +35,62 @@ export class VFXStudioController {
       targetElements: targetEls
     });
 
+    this.stage = new VFXStage(this.studioAdapter);
+
     const timelineContainer = document.getElementById('timeline-mount-point')!;
     this.timeline = new VFXTimeline(timelineContainer);
+    const frameEngine = this.timeline.getFrameEngine();
+
+    // 建立視口基準測試標記 (Frame Benchmark Marker)
+    this.initBenchmarkMarker();
+
+    // 🌟 核心：監聽 FrameTimelineEngine 的每一影格，100% 統一走同一套確定性影格求值管線
+    // 遵循 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md 第 3.2 節與第 14 節規範：
+    // 連續播放與時間軸定格在物理層面 100% 共享相同的 renderStudioFrameAt 求值核心，徹底消除雙軌分裂
+    frameEngine.onFrame((data) => {
+      this.renderStudioFrameAt(data.time);
+
+      const casterEl = document.getElementById('ref-caster');
+      const targetEl = document.querySelector('#target-stage-wrapper .target, #ref-target') as HTMLElement | null;
+      this.updateTargetImpactFeedbackAt(this.store.getPreset(), data.time, targetEl);
+      this.updateCasterMotionAt(this.store.getPreset(), data.time, casterEl);
+      this.updateBenchmarkMarkerAt(data.time, data.frame, data.totalFrames);
+    });
+
+    // 🌟 核心：雙向同步頂部與底部播放/暫停狀態
+    frameEngine.onStateChange((state) => {
+      const isPlaying = state === 'PLAYING';
+      this.syncPlayPauseUI(isPlaying);
+      if (!isPlaying) {
+        this.renderStudioFrameAt(frameEngine.getCurrentTime());
+      }
+    });
 
     const leftSidebar = document.querySelector('.sidebar-left') as HTMLElement;
     const rightSidebar = document.querySelector('.sidebar-right') as HTMLElement;
     this.inspector = new VFXInspector(leftSidebar, rightSidebar);
     this.inspector.bindAll();
+
+    // 🌟 串接時間軸 Cue 選取與情境式 Inspector 編輯卡片 (#card-cue-inspector)
+    // 遵循 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md 第 4 節與第 11 節規範
+    this.timeline.onSelectCue((cueIndex) => {
+      this.inspector.setSelectedCueIndex(cueIndex);
+    });
+
+    // 🌟 串接時間軸軌道選取與情境式 Inspector 動態收合（Phase 3 規範）
+    this.timeline.onSelectTrack((trackInfo) => {
+      this.inspector.setContextualTarget(trackInfo);
+    });
+
+    // ⚡ 當 Preset 參數變更時，若時長有改則同步更新 FrameTimelineEngine，並檢查草稿暫存狀態
+    this.store.subscribe((preset) => {
+      if (preset.duration && preset.duration !== frameEngine.getDuration()) {
+        frameEngine.setDuration(preset.duration);
+      }
+      this.renderStudioFrameAt(frameEngine.getCurrentTime());
+      this.updateBenchmarkMarkerAt(frameEngine.getCurrentTime(), frameEngine.getCurrentFrame(), frameEngine.getTotalFrames());
+      this.syncStashButtonUI();
+    });
 
     const libraryMount = document.getElementById('library-mount-point')!;
     this.library = new VFXLibrary(libraryMount);
@@ -51,47 +99,178 @@ export class VFXStudioController {
     this.bindKeyboard();
     this.startQualityBudgetMonitor();
 
-    // 初始觸發播放
-    this.playCurrent();
+    // 初始狀態同步
+    this.syncStashButtonUI();
+    this.renderStudioFrameAt(0);
+    this.updateBenchmarkMarkerAt(0, 0, frameEngine.getTotalFrames());
+
+    if (typeof window !== 'undefined') {
+      (window as any).__FX_ENGINE__ = CombatFXEngine.getInstance();
+      (window as any).CombatFXEngine = CombatFXEngine;
+    }
+  }
+
+  private benchmarkMarker: HTMLElement | null = null;
+  private lastTriggeredCueId: string | null = null;
+  private lastPlayedLoopFrame: number = -1;
+
+  /**
+   * 🌟 播放專案原生真實實戰特效管線 (包含真實粒子噴發、光柱、刀芒、地裂與衝擊波)
+   */
+  private playNativeEffect(): void {
+    const preset = this.store.getPreset();
+    // 🌟 嚴格遵照文件 Phase 1：播放新特效前徹底清除舊粒子、回調與幾何體，保證零殘留
+    this.studioAdapter.clear();
+    CombatFXEngine.getInstance().clearStudioPreview();
+
+    if (this.stage.isAOE()) {
+      this.studioAdapter.playMultiTarget(preset);
+    } else {
+      this.studioAdapter.play(preset);
+    }
+  }
+
+  private initBenchmarkMarker(): void {
+    const overlay = document.getElementById('scene-overlay') || document.getElementById('viewport');
+    if (!overlay) return;
+    let marker = document.getElementById('benchmark-marker');
+    if (!marker) {
+      marker = document.createElement('div');
+      marker.id = 'benchmark-marker';
+      marker.style.position = 'absolute';
+      marker.style.width = '36px';
+      marker.style.height = '36px';
+      marker.style.borderRadius = '50%';
+      marker.style.background = 'radial-gradient(circle, #38bdf8 0%, #0284c7 60%, rgba(2, 132, 199, 0.2) 100%)';
+      marker.style.border = '2px solid #ffffff';
+      marker.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.9), 0 0 30px rgba(56, 189, 248, 0.5)';
+      marker.style.display = 'none'; // 隱藏搶眼藍球，避免遮擋真實 3D 特效
+      marker.style.flexDirection = 'column';
+      marker.style.alignItems = 'center';
+      marker.style.justifyContent = 'center';
+      marker.style.zIndex = '60';
+      marker.style.pointerEvents = 'none';
+      marker.style.transform = 'translate(-50%, -50%)';
+      marker.innerHTML = `
+        <div style="width: 8px; height: 8px; background: #ffffff; border-radius: 50%;"></div>
+        <span id="benchmark-marker-label" style="position: absolute; top: 40px; font-size: 0.7rem; font-family: monospace; font-weight: bold; color: #38bdf8; background: rgba(15, 23, 42, 0.85); padding: 1px 6px; border-radius: 4px; border: 1px solid #0284c7; white-space: nowrap;">F: 00</span>
+      `;
+      overlay.appendChild(marker);
+    }
+    marker.style.display = 'none'; // 強制隱藏搶眼藍球，避免遮擋真實 3D 特效
+    this.benchmarkMarker = marker;
+  }
+
+  private updateBenchmarkMarkerAt(currentTime: number, frame: number, totalFrames: number): void {
+    if (!this.benchmarkMarker) return;
+    const casterEl = document.getElementById('ref-caster');
+    const targetEl = document.getElementById('ref-target') || document.querySelector('#target-stage-wrapper .target');
+    const viewport = document.getElementById('viewport');
+    if (!casterEl || !targetEl || !viewport) return;
+
+    const preset = this.store.getPreset();
+    const mode = preset.spatialMode || preset.trajectoryPath || preset.trajectory || 'A_TO_B';
+    const isReverse = !!preset.reverse;
+    const anchor = getTrajectorySpatialAnchor(mode);
+    const mainDelay = Math.max(0, preset.mainDelay || 0);
+    const totalDuration = this.timeline.getFrameEngine().getDuration();
+    const mainDuration = Math.max(0.05, preset.mainDuration !== undefined ? preset.mainDuration : (totalDuration - mainDelay));
+    const mainEnd = mainDelay + mainDuration;
+
+    // 計算主軌有效播放進度 (0 ~ 1)
+    let mainProgress = 0;
+    if (currentTime >= mainEnd) {
+      mainProgress = 1;
+    } else if (currentTime > mainDelay) {
+      mainProgress = (currentTime - mainDelay) / mainDuration;
+    }
+
+    const vpRect = viewport.getBoundingClientRect();
+    const cRect = casterEl.getBoundingClientRect();
+    const tRect = targetEl.getBoundingClientRect();
+
+    const startX = (cRect.left + cRect.width / 2) - vpRect.left;
+    const startY = (cRect.top + cRect.height / 2) - vpRect.top;
+    const endX = (tRect.left + tRect.width / 2) - vpRect.left;
+    const endY = (tRect.top + tRect.height / 2) - vpRect.top;
+
+    const pt = calculateSpatialPoint(
+      mode,
+      isReverse,
+      mainProgress,
+      { x: startX, y: startY },
+      { x: endX, y: endY }
+    );
+
+    this.benchmarkMarker.style.left = `${pt.x}px`;
+    this.benchmarkMarker.style.top = `${pt.y}px`;
+
+    const label = this.benchmarkMarker.querySelector('#benchmark-marker-label') as HTMLElement;
+    if (label) {
+      const fStr = frame.toString().padStart(2, '0');
+      let tag = ' [A➔B]';
+      if (mode === 'AT_CASTER') tag = ' [A自身]';
+      else if (mode === 'AT_TARGET') tag = ' [B目標]';
+      else if (mode === 'VERTICAL_SKY_TO_B') tag = isReverse ? ' [B➔天頂]' : ' [天降➔B]';
+      else if (mode === 'DIAGONAL_SKY_TO_B') tag = isReverse ? ' [B➔斜天]' : ' [斜降➔B]';
+      else if (mode === 'A_TO_VERTICAL_SKY') tag = isReverse ? ' [天頂➔A]' : ' [A➔天頂]';
+      else if (mode === 'A_TO_DIAGONAL_SKY') tag = isReverse ? ' [斜天➔A]' : ' [A➔斜天]';
+      else if (isReverse) tag = ' [B➔A]';
+
+      label.textContent = `F: ${fStr} / ${totalFrames}${tag}`;
+    }
+  }
+
+  public isPlaying(): boolean {
+    return this.timeline.getFrameEngine().isPlaying();
+  }
+
+  public togglePlayPause(): void {
+    this.timeline.getFrameEngine().togglePlayPause();
+  }
+
+  public pausePlayback(): void {
+    this.timeline.getFrameEngine().pause();
+  }
+
+  public startPlayback(): void {
+    this.timeline.getFrameEngine().play();
+  }
+
+  private syncPlayPauseUI(isPlaying: boolean): void {
+    const btnPlayTop = document.getElementById('btn-play');
+    if (btnPlayTop) {
+      btnPlayTop.innerHTML = isPlaying ? '⏸ 暫停 (Space)' : '▶ 播放 (Space)';
+      btnPlayTop.style.borderColor = isPlaying ? '#eab308' : '#30363d';
+      btnPlayTop.style.color = isPlaying ? '#eab308' : '#c9d1d9';
+    }
   }
 
   private bindTopControls(): void {
-    // 播放
-    document.getElementById('btn-play')?.addEventListener('click', () => this.playCurrent());
+    // 頂部播放/暫停按鈕
+    document.getElementById('btn-play')?.addEventListener('click', () => this.togglePlayPause());
 
-    // 循環
+    // 循環開關
     const btnLoop = document.getElementById('btn-loop');
     if (btnLoop) {
+      const initialLoop = this.store.getIsLooping();
+      this.timeline.getFrameEngine().setLoop(initialLoop);
       btnLoop.addEventListener('click', () => {
-        const next = !this.store.getIsLooping();
+        const next = !this.timeline.getFrameEngine().getLoop();
+        this.timeline.getFrameEngine().setLoop(next);
         this.store.setLooping(next);
         btnLoop.textContent = next ? '🔄 自動循環: 開' : '🔄 自動循環: 關';
         btnLoop.style.borderColor = next ? '#38bdf8' : '#30363d';
         btnLoop.style.color = next ? '#38bdf8' : '#c9d1d9';
-        if (next) this.playCurrent();
       });
     }
 
-    // 慢動作
-    const btnSlow = document.getElementById('btn-slow');
-    if (btnSlow) {
-      btnSlow.addEventListener('click', () => {
-        const next = !this.store.getIsSlowMo();
-        this.store.setSlowMo(next);
-        btnSlow.textContent = next ? '⚡ 正常速度 (1.0x)' : '🐢 慢動作 (0.3x)';
-        CombatFXEngine.getInstance().setPlaybackSpeed(next ? 0.3 : 1.0);
-      });
-    }
-
-    // 背景切換
-    const btnBg = document.getElementById('btn-bg-toggle');
-    if (btnBg) {
-      btnBg.addEventListener('click', () => {
-        const next = !this.store.getIsDarkBg();
-        this.store.setDarkBg(next);
-        const vp = document.getElementById('viewport');
-        if (vp) vp.style.background = next ? '#090d16' : '#1e293b';
-        btnBg.textContent = next ? '🎨 背景: 純黑' : '🎨 背景: 舞台';
+    // 播放速度縮放 (0.25x, 0.5x, 1.0x, 2.0x)
+    const speedSel = document.getElementById('select-play-speed') as HTMLSelectElement | null;
+    if (speedSel) {
+      speedSel.addEventListener('change', () => {
+        const speed = parseFloat(speedSel.value) || 1.0;
+        CombatFXEngine.getInstance().setPlaybackSpeed(speed);
       });
     }
 
@@ -107,13 +286,15 @@ export class VFXStudioController {
       this.store.setFixedSeed((e.target as HTMLInputElement).checked);
     });
 
-    // 受擊目標模式
-    const targetModeSel = document.getElementById('stage-target-mode') as HTMLSelectElement;
-    targetModeSel?.addEventListener('change', (e) => {
-      const mode = (e.target as HTMLSelectElement).value as any;
-      this.store.setTargetMode(mode);
-      this.updateTargetLayout(mode);
-      this.playCurrent();
+    // 🔙 返回暫存草稿按鈕
+    const btnReturnStash = document.getElementById('btn-return-stash');
+    btnReturnStash?.addEventListener('click', () => {
+      const popped = this.store.popStashedDraft();
+      if (popped) {
+        this.timeline.getFrameEngine().setDuration(popped.duration || 0.4);
+        this.timeline.getFrameEngine().seekToTime(0);
+        this.syncStashButtonUI();
+      }
     });
 
     window.addEventListener('resize', () => {
@@ -128,141 +309,24 @@ export class VFXStudioController {
     });
   }
 
-  private bindFooterControls(): void {
-    const repo = (this.library as any).repo || VFXStudioStore.getInstance();
-
-    // 1. 📥 保存/同步
-    const btnSaveProject = document.getElementById('btn-save-project');
-    btnSaveProject?.addEventListener('click', () => {
-      const p = this.store.getPreset();
-      const res = (this.library as any).repo?.saveCustomPreset(p);
-      if (res && res.success) {
-        this.store.setDirty(false);
-        const origText = btnSaveProject.textContent;
-        btnSaveProject.textContent = '✅ 已保存/同步！';
-        setTimeout(() => { btnSaveProject.textContent = origText; }, 1800);
-      }
-    });
-
-    // 2. 🚀 發布至專案 SSOT
-    const btnPublish = document.getElementById('btn-publish-ssot');
-    btnPublish?.addEventListener('click', async () => {
-      const libBtn = document.getElementById('lib-btn-publish');
-      if (libBtn) {
-        libBtn.click();
-      } else {
-        const all = (this.library as any).repo?.getAllPresets?.() || [this.store.getPreset()];
-        try {
-          const resp = await fetch('/__vfx_api/save_ssot', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ presets: all })
-          });
-          const data = await resp.json();
-          if (data.success) {
-            alert(`✅ 已成功發布 ${data.count} 款特效至專案 SSOT！`);
-            this.store.setDirty(false);
-          }
-        } catch (e: any) {
-          navigator.clipboard.writeText(JSON.stringify(all, null, 2));
-          alert(`⚠️ 發布失敗，已複製 JSON 至剪貼簿。`);
-        }
-      }
-    });
-
-    // 3. 📋 複製單項 JSON
-    const btnSave = document.getElementById('btn-save');
-    btnSave?.addEventListener('click', () => {
-      const p = this.store.getPreset();
-      navigator.clipboard.writeText(JSON.stringify(p, null, 2));
-      const origText = btnSave.textContent;
-      btnSave.textContent = '📋 已複製單項！';
-      setTimeout(() => { btnSave.textContent = origText; }, 1800);
-    });
-
-    // 4. 💾 複製完整庫 JSON
-    const btnExportAll = document.getElementById('btn-export-all');
-    btnExportAll?.addEventListener('click', () => {
-      const libBtn = document.getElementById('lib-btn-export');
-      if (libBtn) {
-        libBtn.click();
-      } else {
-        const all = (this.library as any).repo?.getAllPresets?.() || [this.store.getPreset()];
-        navigator.clipboard.writeText(JSON.stringify(all, null, 2));
-        const origText = btnExportAll.textContent;
-        btnExportAll.textContent = '💾 已複製庫！';
-        setTimeout(() => { btnExportAll.textContent = origText; }, 1800);
-      }
-    });
-
-    // 5. 🔄 還原出廠預設
-    const btnResetDefaults = document.getElementById('btn-reset-defaults');
-    btnResetDefaults?.addEventListener('click', () => {
-      if (confirm('確定要還原官方出廠預設嗎？這將清除所有自訂與覆寫設定。')) {
-        const r = (this.library as any).repo;
-        if (r && typeof r.resetToFactoryDefaults === 'function') {
-          r.resetToFactoryDefaults();
-          const first = r.getAllPresets()[0];
-          if (first) {
-            this.store.setPreset(first, false);
-            this.store.setDirty(false);
-          }
-          this.playCurrent();
-        }
-      }
-    });
-  }
-
-  private updateTargetLayout(mode: 'SINGLE' | 'FRONT_ROW' | 'ALL_AOE' | 'SIEGE_GATE'): void {
-    const wrapper = document.getElementById('target-stage-wrapper');
-    if (!wrapper) return;
-
-    this.targetMode = (mode === 'FRONT_ROW' || mode === 'ALL_AOE') ? 'AOE' : 'SINGLE';
-
-    if (mode === 'SINGLE') {
-      wrapper.innerHTML = `
-        <div class="ref-card target" id="ref-target">
-          <div class="ref-card-icon">👺</div>
-          <div class="ref-card-label">受擊目標 (End)</div>
-        </div>
-      `;
-    } else if (mode === 'FRONT_ROW') {
-      wrapper.innerHTML = `
-        <div style="display: flex; flex-direction: column; gap: 8px;">
-          <div class="ref-card target"><div class="ref-card-icon">👺</div><div class="ref-card-label">前排1</div></div>
-          <div class="ref-card target" id="ref-target"><div class="ref-card-icon">👺</div><div class="ref-card-label">前排2 (中)</div></div>
-          <div class="ref-card target"><div class="ref-card-icon">👺</div><div class="ref-card-label">前排3</div></div>
-        </div>
-      `;
-    } else if (mode === 'ALL_AOE') {
-      wrapper.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-          <div class="ref-card target"><div class="ref-card-icon">👺</div><div class="ref-card-label">前上</div></div>
-          <div class="ref-card target"><div class="ref-card-icon">👺</div><div class="ref-card-label">後上</div></div>
-          <div class="ref-card target" id="ref-target"><div class="ref-card-icon">👺</div><div class="ref-card-label">前中</div></div>
-          <div class="ref-card target"><div class="ref-card-icon">👺</div><div class="ref-card-label">後中</div></div>
-          <div class="ref-card target"><div class="ref-card-icon">👺</div><div class="ref-card-label">前下</div></div>
-          <div class="ref-card target"><div class="ref-card-icon">👺</div><div class="ref-card-label">後下</div></div>
-        </div>
-      `;
-    } else if (mode === 'SIEGE_GATE') {
-      wrapper.innerHTML = `
-        <div class="ref-card target" id="ref-target" style="width: 140px; height: 160px; border-color: #f59e0b; background: rgba(180, 83, 9, 0.2);">
-          <div class="ref-card-icon" style="font-size: 2.2rem;">🏰</div>
-          <div class="ref-card-label" style="font-weight: bold; color: #fbbf24;">要塞鋼鐵城門</div>
-        </div>
-      `;
+  private syncStashButtonUI(): void {
+    const btn = document.getElementById('btn-return-stash');
+    if (!btn) return;
+    const hasStash = this.store.getHasStash();
+    if (hasStash) {
+      const info = this.store.getStashedDraftInfo();
+      btn.style.display = 'inline-flex';
+      btn.textContent = `🔙 返回草稿 [${info?.name || '先前技能'}]`;
+    } else {
+      btn.style.display = 'none';
     }
-
-    const newTargets = Array.from(document.querySelectorAll('#target-stage-wrapper .target, #ref-target')) as HTMLElement[];
-    this.studioAdapter.setTargets(newTargets);
   }
 
   private bindKeyboard(): void {
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Space' && e.target && (e.target as HTMLElement).tagName !== 'INPUT' && (e.target as HTMLElement).tagName !== 'SELECT') {
         e.preventDefault();
-        this.playCurrent();
+        this.togglePlayPause();
       } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
         e.preventDefault();
         this.store.undo();
@@ -273,71 +337,11 @@ export class VFXStudioController {
     });
   }
 
-  public async playCurrent(): Promise<void> {
-    if (this.loopTimer) {
-      clearTimeout(this.loopTimer);
-      this.loopTimer = null;
-    }
-    if (this.casterTimer) {
-      clearTimeout(this.casterTimer);
-      this.casterTimer = null;
-    }
-    this.studioAdapter.clear();
-
-    const preset = this.store.getPreset();
-    const mutes = this.store.getTrackMuteStates();
-
-    // 若主軌道靜音，過濾主效果
-    const activeConfig: VFXPreset = JSON.parse(JSON.stringify(preset));
-    if (mutes.layers) activeConfig.layers = [];
-    if (mutes.impact) activeConfig.impact = {} as any;
-
-    // 🎲 固定 Seed 邏輯
-    let restoreMathRandom: (() => void) | null = null;
-    if (this.store.getIsFixedSeed()) {
-      let s = 123456789;
-      const origRandom = Math.random;
-      Math.random = () => {
-        s = (s * 9301 + 49297) % 233280;
-        return s / 233280;
-      };
-      restoreMathRandom = () => { Math.random = origRandom; };
-    }
-
-    // 施術者突進
-    const casterEl = document.getElementById('ref-caster');
-    if (casterEl) {
-      casterEl.style.transform = 'scale(1.04) translateX(18px)';
-      this.casterTimer = setTimeout(() => {
-        casterEl.style.transform = 'none';
-        this.casterTimer = null;
-      }, 220);
-    }
-
-    try {
-      if (!mutes.main) {
-        if (this.targetMode === 'AOE') {
-          await this.studioAdapter.playMultiTarget(activeConfig);
-        } else {
-          await this.studioAdapter.play(activeConfig);
-        }
-      }
-    } catch (err) {
-      console.warn('Playback error:', err);
-    } finally {
-      if (restoreMathRandom) restoreMathRandom();
-    }
-
-    if (this.store.getIsLooping()) {
-      this.loopTimer = setTimeout(() => {
-        this.loopTimer = null;
-        if (this.store.getIsLooping()) this.playCurrent();
-      }, 400);
-    }
-  }
-
   /**
    * 📊 實裝效能預算即時監控 HUD (Quality Budgets)
+   * 規範標準：
+   * - 單體特效預算：Draw Calls <= 35, 粒子數 <= 250
+   * - 複合/大招預算：Draw Calls <= 70, 粒子數 <= 600
    */
   private startQualityBudgetMonitor(): void {
     const hud = document.getElementById('quality-budget-hud');
@@ -347,6 +351,11 @@ export class VFXStudioController {
       const fxEngine = CombatFXEngine.getInstance();
       const scene = (fxEngine as any).scene;
       const renderer = (fxEngine as any).renderer;
+      const currentPreset = this.store.getPreset();
+
+      const isCompositeOrAOE = (currentPreset.layers && currentPreset.layers.length > 0) || this.stage.isAOE();
+      const budgetMaxCalls = isCompositeOrAOE ? 70 : 35;
+      const budgetMaxParticles = isCompositeOrAOE ? 600 : 250;
 
       let drawCalls = 0;
       let triangles = 0;
@@ -355,23 +364,190 @@ export class VFXStudioController {
         triangles = renderer.info.render.triangles || 0;
       }
 
-      const activeChildCount = scene ? scene.children.length : 0;
-      const isOverBudget = drawCalls > 12 || activeChildCount > 30;
+      let activeParticles = 0;
+      let activeChildCount = 0;
 
+      if (scene && scene.children) {
+        activeChildCount = scene.children.length;
+        for (const child of scene.children) {
+          if (child.isPoints && child.geometry?.attributes?.position) {
+            activeParticles += child.geometry.attributes.position.count || 0;
+          }
+        }
+      }
+
+      const isOverBudget = drawCalls > budgetMaxCalls || activeParticles > budgetMaxParticles;
+
+      hud.className = isOverBudget ? 'budget-alert' : '';
       hud.innerHTML = `
-        <span style="color: ${isOverBudget ? '#ef4444' : '#38bdf8'}; font-weight: bold;">
-          ${isOverBudget ? '⚠️ 效能警告' : '🟢 效能健康'}
+        <span style="color: ${isOverBudget ? '#ef4444' : '#10b981'}; font-weight: bold;">
+          ${isOverBudget ? '⚠️ 預算超標' : '🟢 預算健康'}
         </span>
-        <span>DrawCalls: <b style="color: ${drawCalls > 10 ? '#ef4444' : '#fbbf24'};">${drawCalls}</b></span>
-        <span>Triangles: <b style="color: #cbd5e1;">${triangles}</b></span>
-        <span>Active Objects: <b style="color: #cbd5e1;">${activeChildCount}</b></span>
+        <span>DC: <b style="color: ${drawCalls > budgetMaxCalls ? '#ef4444' : '#fbbf24'};">${drawCalls}</b>/${budgetMaxCalls}</span>
+        <span>粒子: <b style="color: ${activeParticles > budgetMaxParticles ? '#ef4444' : '#38bdf8'};">${activeParticles}</b>/${budgetMaxParticles}</span>
+        <span>面數: <b style="color: #cbd5e1;">${triangles}</b></span>
+        <span>物件: <b style="color: #cbd5e1;">${activeChildCount}</b></span>
       `;
-    }, 500);
+    }, 250);
+  }
+
+  /**
+   * 🎬 即時以時間 t 求值並渲染定格影格（所見即所得 Live Morphing & Scrubbing）
+   */
+  private renderStudioFrameAt(targetTime: number): void {
+    const preset = this.store.getPreset();
+    const fxEngine = CombatFXEngine.getInstance();
+    const casterEl = document.getElementById('ref-caster');
+    const targetEl = document.querySelector('#target-stage-wrapper .target, #ref-target') as HTMLElement | null;
+
+    let from: ScreenPoint | undefined;
+    let to: ScreenPoint | undefined;
+
+    if (casterEl) {
+      from = this.studioAdapter.getElementCenter(casterEl);
+    }
+    if (targetEl) {
+      to = this.studioAdapter.getElementCenter(targetEl);
+    }
+
+    // 🌟 嚴格套用 Solo 與 Mute 狀態，直接作用於底層 3D 渲染與幾何繪製
+    const isMainActive = this.store.isMainTrackActive();
+    const isImpactActive = !this.store.getTrackMuteStates().impact;
+    const filteredPreset: VFXPreset = {
+      ...preset,
+      layers: (preset.layers || []).map((l, idx) => ({
+        ...l,
+        enabled: this.store.isLayerTrackActive(idx, l.enabled !== false)
+      }))
+    };
+    if (!isMainActive) {
+      (filteredPreset as any)._mainTrackMuted = true;
+    }
+
+    fxEngine.renderFrameAt(filteredPreset, targetTime, from, to);
+    if (isImpactActive) {
+      this.updateTargetImpactFeedbackAt(preset, targetTime, targetEl);
+    } else if (targetEl) {
+      targetEl.style.transform = '';
+      targetEl.style.filter = '';
+    }
+    this.updateCasterMotionAt(preset, targetTime, casterEl);
+  }
+
+  /**
+   * 🏃 依時間 t 動態計算施術者發力動作 (Step / Recoil / Tilt)
+   */
+  private updateCasterMotionAt(preset: VFXPreset, currentTime: number, casterEl: HTMLElement | null): void {
+    if (!casterEl) return;
+    const motion = preset.casterMotion;
+    if (!motion || (!motion.stepForward && !motion.recoil && !motion.tiltAngle)) {
+      casterEl.style.transform = '';
+      return;
+    }
+
+    const offset = calculateCasterMotionOffset(currentTime, motion);
+    if (offset.offsetX !== 0 || offset.tiltDeg !== 0) {
+      casterEl.style.transform = `translateX(${offset.offsetX.toFixed(2)}px) rotate(${offset.tiltDeg.toFixed(2)}deg)`;
+    } else {
+      casterEl.style.transform = '';
+    }
+  }
+
+  /**
+   * 🥊 依時間 t 動態計算受擊卡牌的打擊回饋 (Punch / Shake / Knockback)
+   */
+  private updateTargetImpactFeedbackAt(preset: VFXPreset, currentTime: number, targetEl: HTMLElement | null): void {
+    if (!targetEl) return;
+    const impact = preset.impact;
+    if (!impact) {
+      targetEl.style.transform = '';
+      targetEl.style.filter = '';
+      return;
+    }
+
+    const cues = preset.impactCues || [{ cueId: 'default', time: (preset.duration || 0.4) * 0.6, weight: 1.0 }];
+    const shakeDur = impact.shakeDuration || 0.25;
+    let activeCue: VFXImpactCue | null = null;
+    let cueElapsed = 0;
+
+    for (const cue of cues) {
+      const dt = currentTime - cue.time;
+      if (dt >= 0 && dt <= shakeDur) {
+        activeCue = cue;
+        cueElapsed = dt;
+        break;
+      }
+    }
+
+    if (activeCue) {
+      // 🌟 當播放頭精確掃過 Cue 點起點時，觸發一次跳動傷害飄字反饋與真實破空星芒
+      if (this.lastTriggeredCueId !== activeCue.cueId && cueElapsed < 0.1) {
+        this.lastTriggeredCueId = activeCue.cueId;
+        this.showDamagePopup(targetEl, !!activeCue.isPrimary);
+        const targetPt = this.studioAdapter.getElementCenter(targetEl);
+        const worldPos = CombatFXEngine.getInstance().screenToWorld(targetPt);
+        CombatFXEngine.getInstance().playCueSparks(worldPos, preset.colorCore || '#f59e0b', 14);
+      }
+
+      const progress = cueElapsed / shakeDur;
+      const decay = 1.0 - progress;
+      const punchScale = 1.0 - (1.0 - (impact.targetPunchScale || 0.88)) * decay;
+      const shakeX = Math.sin(cueElapsed * 60) * (impact.shakeIntensity || 10) * decay;
+      const knockback = (impact.knockbackDistance || 15) * Math.sin(progress * Math.PI);
+
+      targetEl.style.transform = `translateX(${shakeX + knockback}px) scale(${punchScale})`;
+      if (cueElapsed < 0.08 && impact.hitFlashColor) {
+        targetEl.style.filter = `brightness(1.8) drop-shadow(0 0 12px ${impact.hitFlashColor})`;
+      } else {
+        targetEl.style.filter = '';
+      }
+    } else {
+      targetEl.style.transform = '';
+      targetEl.style.filter = '';
+      // 當離開任何 cue 的震動範圍，重置記錄以便下一次循環再次觸發
+      if (currentTime < 0.05) {
+        this.lastTriggeredCueId = null;
+      }
+    }
+  }
+
+  /**
+   * 💥 在目標卡牌頭頂彈出打擊傷害數字反饋 (一般/暴擊)
+   */
+  private showDamagePopup(targetEl: HTMLElement, isCritical: boolean): void {
+    const popup = document.createElement('div');
+    popup.className = 'cue-damage-popup';
+    popup.style.position = 'absolute';
+    popup.style.left = '50%';
+    popup.style.top = '-20px';
+    popup.style.transform = 'translate(-50%, 0)';
+    popup.style.fontFamily = 'monospace, sans-serif';
+    popup.style.fontWeight = '900';
+    popup.style.fontSize = isCritical ? '1.35rem' : '1.05rem';
+    popup.style.color = isCritical ? '#ffedd5' : '#fef08a';
+    popup.style.textShadow = isCritical
+      ? '0 0 10px #ef4444, 0 0 20px #f97316, 2px 2px 0 #000'
+      : '0 0 8px #f59e0b, 1px 1px 0 #000';
+    popup.style.pointerEvents = 'none';
+    popup.style.zIndex = '100';
+    popup.style.transition = 'transform 0.65s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.65s ease-out';
+    popup.style.whiteSpace = 'nowrap';
+    popup.innerHTML = isCritical ? '🔥 CRITICAL -2,850' : '💥 -780';
+
+    targetEl.appendChild(popup);
+
+    requestAnimationFrame(() => {
+      popup.style.transform = 'translate(-50%, -48px) scale(1.18)';
+      popup.style.opacity = '0';
+    });
+
+    setTimeout(() => {
+      if (popup.parentElement) popup.parentElement.removeChild(popup);
+    }, 700);
   }
 
   public destroy(): void {
-    if (this.loopTimer) clearTimeout(this.loopTimer);
-    if (this.casterTimer) clearTimeout(this.casterTimer);
+    this.timeline.getFrameEngine().stop();
     if (this.hudBudgetTimer) clearInterval(this.hudBudgetTimer);
     this.studioAdapter.clear();
   }

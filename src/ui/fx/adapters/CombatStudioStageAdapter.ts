@@ -2,7 +2,7 @@ import { CombatEvent, CombatEventType } from '../../../models/Combat';
 import { CombatFXEngine, ScreenPoint } from '../CombatFXEngine';
 import { VFXImpactConfig, VFXImpactCue } from '../../../models/VFX';
 import { VFXPresetRepository } from '../VFXPresetRepository';
-import { mapImpactsToCues, CombatImpactPresentation } from '../CombatActionPlayer';
+import { mapImpactsToCues, CombatImpactPresentation, CombatAction, CombatActionPlayer } from '../CombatActionPlayer';
 
 
 /**
@@ -17,6 +17,8 @@ export class CombatStudioStageAdapter {
   private vfxEnabled: boolean = true;
   private resizeObserver: ResizeObserver | null = null;
   private activeTimers = new Set<ReturnType<typeof setTimeout>>();
+  private playSpeed: number = 1.0;
+  private actionPlayer: CombatActionPlayer = new CombatActionPlayer();
 
   private constructor() {}
 
@@ -130,21 +132,31 @@ export class CombatStudioStageAdapter {
   }
 
   /**
-   * 🎬 播放戰鬥事件特效演出
+   * 🎬 播放完整的 CombatAction (Single Action SSOT Pipeline)
+   * 保證一個 Action 僅調用一次 3D VFX，多段打擊依 Cue 精確呈現
    */
-  public async playEventAction(
-    ev: CombatEvent,
+  public async playCombatAction(
+    action: CombatAction,
     options?: {
       skipVfx?: boolean;
-      onImpact?: (impact: VFXImpactConfig, hitIdx: number, totalHits: number, cue?: VFXImpactCue) => void;
+      onImpact?: (item: CombatImpactPresentation, cue?: VFXImpactCue) => void;
+      onComplete?: () => void;
     }
   ): Promise<void> {
     const skip = !this.vfxEnabled || options?.skipVfx;
 
-    const targetEl = this.findCardElement(ev.targetId);
-    const attackerEl = this.findCardElement(ev.actorId);
+    const attackerEl = this.findCardElement(action.actorId);
+    const isAttackerPlayer = attackerEl ? attackerEl.classList.contains('player-side') : true;
 
-    // 攻擊者微幅突進動畫 (僅在非 skip 模式)
+    // 優先尋找主目標 ID
+    const firstTargetEv = action.events.find(e => e.targetId);
+    const mainTargetId = firstTargetEv?.targetId || action.actorId;
+    const defaultTargetEl = this.findCardElement(mainTargetId);
+
+    const fromPt = this.getUnitPoint(action.actorId, isAttackerPlayer ? 'player' : 'enemy');
+    const toPt = this.getUnitPoint(mainTargetId, isAttackerPlayer ? 'enemy' : 'player');
+
+    // 攻擊者微幅突進動畫 (非略過模式)
     if (!skip && attackerEl) {
       const isAttackerEnemy = attackerEl.classList.contains('enemy-side');
       const bumpClass = isAttackerEnemy ? 'attack-bump-enemy' : 'attack-bump-player';
@@ -158,47 +170,75 @@ export class CombatStudioStageAdapter {
       this.activeTimers.add(timer);
     }
 
-    // 取得或推導特效 ID
-    const vfxId = this.resolveVfxId(ev);
-
-    // 若為略過模式或無特效，直接觸發受擊表現並返回
-    if (skip || !vfxId) {
-      this.triggerHitFeedback(targetEl, ev, null, 0, 1);
-      if (options?.onImpact) {
-        options.onImpact({} as any, 0, 1);
+    // 決定 action 的 vfxId
+    let vfxId = action.vfxId;
+    if (!vfxId) {
+      for (const ev of action.events) {
+        vfxId = this.resolveVfxId(ev);
+        if (vfxId) break;
       }
-      return;
     }
+    const finalAction: CombatAction = {
+      ...action,
+      vfxId: vfxId || 'VFX_DEFAULT_SLASH'
+    };
 
-    const isAttackerPlayer = attackerEl ? attackerEl.classList.contains('player-side') : true;
-    const fromPt = this.getUnitPoint(ev.actorId, isAttackerPlayer ? 'player' : 'enemy');
-    const toPt = this.getUnitPoint(ev.targetId, isAttackerPlayer ? 'enemy' : 'player');
+    await this.actionPlayer.playAction(finalAction, {
+      fromPoint: fromPt,
+      toPoint: toPt,
+      skipVfx: skip,
+      onPresentImpact: (item: CombatImpactPresentation, cue?: VFXImpactCue) => {
+        const targetEl = this.findCardElement(item.targetId) || defaultTargetEl;
+        const dummyEv: CombatEvent = {
+          type: item.kind === 'HEAL' ? CombatEventType.HEAL : (item.isCrit ? CombatEventType.CRIT : CombatEventType.HIT),
+          actorId: action.actorId,
+          targetId: item.targetId || mainTargetId,
+          damage: item.amount,
+          healAmount: item.kind === 'HEAL' ? item.amount : undefined,
+          targetHp: item.targetHp,
+          targetMaxHp: item.targetMaxHp,
+          text: ''
+        };
 
-    const fxEngine = CombatFXEngine.getInstance();
-    const preset = VFXPresetRepository.getInstance().getPreset(vfxId);
+        const preset = VFXPresetRepository.getInstance().getPreset(finalAction.vfxId || '');
+        const impactCfg = preset?.impact || null;
 
-    if (!preset) {
-      this.triggerHitFeedback(targetEl, ev, null, 0, 1);
-      if (options?.onImpact) {
-        options.onImpact({} as any, 0, 1);
+        this.triggerHitFeedback(targetEl, dummyEv, impactCfg, item.cueIndex, 1, cue, item);
+        options?.onImpact?.(item, cue);
+      },
+      onActionComplete: () => {
+        options?.onComplete?.();
       }
-      return;
+    });
+  }
+
+  /**
+   * 🎬 播放戰鬥事件特效演出
+   */
+  public async playEventAction(
+    ev: CombatEvent,
+    options?: {
+      skipVfx?: boolean;
+      onImpact?: (impact: VFXImpactConfig, hitIdx: number, totalHits: number, cue?: VFXImpactCue) => void;
     }
+  ): Promise<void> {
+    const action: CombatAction = {
+      actionId: ev.actionId || `ev_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      actorId: ev.actorId || '',
+      skillId: ev.skillId,
+      vfxId: this.resolveVfxId(ev),
+      events: [ev]
+    };
 
-    const presentations = mapImpactsToCues([ev], preset.impactCues || [], preset.impactPresentationMode || 'EXACT_IMPACTS');
-
-    await fxEngine.playPresetConfig(
-      preset,
-      fromPt,
-      toPt,
-      (impact: VFXImpactConfig, hitIdx: number, totalHits: number, cue?: VFXImpactCue) => {
-        const item = presentations[hitIdx] || presentations[0];
-        this.triggerHitFeedback(targetEl, ev, impact, hitIdx, totalHits, cue, item);
-        if (options?.onImpact) {
-          options.onImpact(impact, hitIdx, totalHits, cue);
-        }
+    let hitCount = 0;
+    await this.playCombatAction(action, {
+      skipVfx: options?.skipVfx,
+      onImpact: (_item, cue) => {
+        const preset = VFXPresetRepository.getInstance().getPreset(action.vfxId || '');
+        const impactCfg = preset?.impact || ({} as VFXImpactConfig);
+        options?.onImpact?.(impactCfg, hitCount++, 1, cue);
       }
-    );
+    });
   }
 
   /**
@@ -317,17 +357,26 @@ export class CombatStudioStageAdapter {
   /**
    * 🔍 解析事件所應套用之 VFX Preset ID
    */
-  private resolveVfxId(ev: CombatEvent): string | undefined {
-    if (ev.vfxId) return ev.vfxId;
+  public resolveVfxId(ev: CombatEvent): string | undefined {
+    let candidateId = ev.vfxId;
 
-    if (ev.type === CombatEventType.HIT || ev.type === CombatEventType.CRIT) {
-      return 'VFX_DEFAULT_SLASH';
+    if (!candidateId) {
+      if (ev.type === CombatEventType.HIT || ev.type === CombatEventType.CRIT) {
+        candidateId = 'VFX_DEFAULT_SLASH';
+      } else if (ev.type === CombatEventType.HEAL) {
+        candidateId = 'VFX_HOLY_LIGHT';
+      }
     }
 
-    if (ev.type === CombatEventType.HEAL) {
-      return 'VFX_HEALING_LIGHT';
+    if (!candidateId) return undefined;
+
+    // 🛡️ 健全防禦校驗：確認 Preset 存在於 Repository 中，避免靜默報錯
+    const preset = VFXPresetRepository.getInstance().getPreset(candidateId);
+    if (!preset) {
+      console.warn(`[CombatStudioStageAdapter] 特效預設不存在: "${candidateId}"，已降級為無 3D VFX 演出`);
+      return undefined;
     }
 
-    return undefined;
+    return candidateId;
   }
 }

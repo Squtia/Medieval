@@ -30,7 +30,8 @@
 │   ├── combat-studio.html   # 獨立戰鬥沙盒、怪物資料庫與英雄名冊工坊入口
 │   ├── equipment-studio.html# 獨立裝備、素材與配方工坊 (Equipment Studio) 入口
 │   ├── skill-workshop.html  # 獨立全自訂積木技能工坊 (Skill Workshop) 入口
-│   └── icon-studio.html     # 獨立全圖集圖標工坊 (Icon Studio) 入口
+│   ├── icon-studio.html     # 獨立全圖集圖標工坊 (Icon Studio) 入口
+│   └── vfx-studio.html      # 獨立 3D 特效與 Shader 工坊 (VFX Studio) 入口
 ├── src/
 │   ├── core/                # 核心驅動引擎
 │   │   ├── EventBus.ts      # [核心] 全局事件總線
@@ -171,6 +172,15 @@
 │   │   │   ├── AdventureLogModalController.ts # 冒險歷程日誌面板
 │   │   │   ├── DailySummaryModal.ts        # 每日結算收支摘要彈窗
 │   │   │   └── GameOverModalController.ts  # 遊戲結束面板
+│   │   ├── fx/                  # 3D 視覺特效、專用圖層渲染器與時鐘播放系統
+│   │   │   ├── VFXPlayer.ts     # [核心實體] 獨立 3D 特效播放器 (Scene, Camera, Renderer)
+│   │   │   ├── CombatFXEngine.ts# 戰鬥特效引擎 (繼承 VFXPlayer，負責各類彈道/斬擊渲染)
+│   │   │   ├── VFXScheduler.ts  # 邏輯演出時鐘與非同步任務排程核心
+│   │   │   ├── CombatActionPlayer.ts # 戰鬥 Action 播放器與 Impact Cue 配對中樞
+│   │   │   ├── VFXPresetRepository.ts # 特效預設 SSOT 庫與快照管理
+│   │   │   ├── VFXStudioAdapter.ts # 特效工房視口與實戰反饋適配器
+│   │   │   ├── adapters/        # 戰鬥舞台適配器 (CombatStageAdapter, CombatStudioStageAdapter)
+│   │   │   └── renderers/       # 專用圖層渲染器 (MeshLayerRenderer, ParticleLayerRenderer, ImpactLayerRenderer)
 │   │   └── components/      # 共用 UI 元件控制器
 │   │       ├── AdventurerCard.ts           # 傭兵滿版卡牌渲染邏輯
 │   │       ├── ForgeUIController.ts        # 鐵匠鋪 (強化/鍛造/重鑄/附魔) 控制器
@@ -190,7 +200,14 @@
 │   │   │   └── StoryStudioPreview.ts       # 故事預覽引擎
 │   │   ├── CombatStudio.ts  # 戰鬥模擬沙盒、討伐據點工坊、怪物/英雄資料庫 (支援雙實體綁定)
 │   │   ├── EquipmentStudio.ts # 裝備/素材/道具/配方工坊控制器
-│   │   └── SkillWorkshop.ts # 全自訂積木技能工坊控制器 (支援狀態挑選器與磁碟重載)
+│   │   ├── SkillWorkshop.ts # 全自訂積木技能工坊控制器 (支援狀態挑選器與磁碟重載)
+│   │   └── vfx-studio/      # 特效工房子模組
+│   │       ├── VFXStudioController.ts # 特效工房總協調中樞
+│   │       ├── VFXStage.ts      # 中央實戰舞台、目標陣型與 SVG 輔助線模組
+│   │       ├── VFXTimeline.ts   # DAW 級多軌時間軸 (Playhead, Seek, Mute/Solo, Clip)
+│   │       ├── VFXInspector.ts  # 情境式屬性編輯面板
+│   │       ├── VFXLibrary.ts    # 預設清單、伺服器端驗證與快照面板
+│   │       └── VFXStudioStore.ts# 工房集中狀態容器 (Undo/Redo, Dirty, Mute/Solo)
 │   └── main.ts              # 組合根：系統初始化、事件轉接與 Controller 初始化
 ├── index.html               # 遊戲本體輕量網頁骨架 (~38 行，禁止整塊覆蓋)
 └── package.json             # 專案依賴與 Vite 建置配置檔
