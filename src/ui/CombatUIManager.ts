@@ -94,6 +94,7 @@ export class CombatUIManager {
       document.getElementById('btn-commander-auto')?.addEventListener('click', () => this.toggleAutoMode());
 
       if (this.modal) {
+        CombatStageAdapter.getInstance().mount(this.modal);
         CombatFXEngine.getInstance().mount(this.modal);
       }
 
@@ -781,6 +782,9 @@ export class CombatUIManager {
         };
 
         await CombatStageAdapter.getInstance().playCombatAction(action, {
+          fromPoint: fromPt,
+          toPoint: toPt,
+          targetId: fxTargetId,
           onImpact: (item) => {
             if (item.targetHp !== undefined && item.targetId && item.targetMaxHp) {
               this.applyDamageAndFloatingNumbers({
@@ -1071,6 +1075,7 @@ export class CombatUIManager {
       clearTimeout(this.finishTimeout);
       this.finishTimeout = null;
     }
+    CombatStageAdapter.getInstance().clear();
     CombatFXEngine.getInstance().clear();
 
     if (this.modal) this.modal.classList.remove('active');

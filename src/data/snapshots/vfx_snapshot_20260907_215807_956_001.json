@@ -634,7 +634,21 @@
     "arcHeight": 0,
     "multiHitImpact": true,
     "spikeMaterialMode": "PHONG",
-    "layers": [],
+    "layers": [
+      {
+        "id": "LAYER_EXPLOSION_BLAST",
+        "name": "爆炎擴散氣浪",
+        "trajectory": "GROUND_BURST",
+        "shaderMode": "VOLUMETRIC_FIRE",
+        "colorCore": "#ffffff",
+        "colorRim": "#dc2626",
+        "delay": 0.26,
+        "scale": 1.35,
+        "duration": 0.32,
+        "generatesHit": false,
+        "emitsImpactCue": true
+      }
+    ],
     "hitCount": 1,
     "impactCues": [
       {

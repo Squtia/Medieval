@@ -2,7 +2,7 @@ import { CombatEvent, CombatEventType } from '../../../models/Combat';
 import { CombatFXEngine, ScreenPoint } from '../CombatFXEngine';
 import { VFXImpactConfig, VFXImpactCue } from '../../../models/VFX';
 import { VFXPresetRepository } from '../VFXPresetRepository';
-import { mapImpactsToCues, CombatImpactPresentation, CombatAction, CombatActionPlayer } from '../CombatActionPlayer';
+import { mapImpactsToCues, CombatImpactPresentation, CombatAction, CombatActionPlayer, resolveActionMainTargetId } from '../CombatActionPlayer';
 import { ScreenFxRenderer } from '../renderers/ScreenFxRenderer';
 
 
@@ -151,6 +151,9 @@ export class CombatStudioStageAdapter {
   public async playCombatAction(
     action: CombatAction,
     options?: {
+      fromPoint?: ScreenPoint;
+      toPoint?: ScreenPoint;
+      targetId?: string;
       skipVfx?: boolean;
       onImpact?: (item: CombatImpactPresentation, cue?: VFXImpactCue) => void;
       onComplete?: () => void;
@@ -161,13 +164,12 @@ export class CombatStudioStageAdapter {
     const attackerEl = this.findCardElement(action.actorId);
     const isAttackerPlayer = attackerEl ? attackerEl.classList.contains('player-side') : true;
 
-    // 優先尋找主目標 ID
-    const firstTargetEv = action.events.find(e => e.targetId);
-    const mainTargetId = firstTargetEv?.targetId || action.actorId;
+    // 優先尋找主目標 ID（嚴格排除 SKILL_CAST 自身扣 MP targetId）
+    const mainTargetId = options?.targetId || resolveActionMainTargetId(action) || action.actorId;
     const defaultTargetEl = this.findCardElement(mainTargetId);
 
-    const fromPt = this.getUnitPoint(action.actorId, isAttackerPlayer ? 'player' : 'enemy');
-    const toPt = this.getUnitPoint(mainTargetId, isAttackerPlayer ? 'enemy' : 'player');
+    const fromPt = options?.fromPoint || this.getUnitPoint(action.actorId, isAttackerPlayer ? 'player' : 'enemy');
+    const toPt = options?.toPoint || this.getUnitPoint(mainTargetId, isAttackerPlayer ? 'enemy' : 'player');
 
     // 攻擊者微幅突進動畫 (非略過模式)
     if (!skip && attackerEl) {

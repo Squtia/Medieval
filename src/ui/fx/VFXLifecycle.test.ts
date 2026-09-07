@@ -132,4 +132,79 @@ describe('VFXLifecycle - Phase 0 失敗案例驗證 (計時器洩漏與 RAF 控�
       fxEngine.destroy();
     }).not.toThrow();
   });
+
+  it('✅ 驗證 Phase 8 情境 10: 循環執行 100 次 mount -> destroy，Canvas 與監聽器計數嚴格不增長 (零資源洩漏)', () => {
+    const fxEngine = CombatFXEngine.getInstance();
+
+    const mockCanvas: any = {
+      tagName: 'CANVAS',
+      style: {},
+      parentNode: null,
+      remove: vi.fn(function (this: any) {
+        if (this.parentNode && this.parentNode.children) {
+          const idx = this.parentNode.children.indexOf(this);
+          if (idx !== -1) this.parentNode.children.splice(idx, 1);
+        }
+        this.parentNode = null;
+      })
+    };
+
+    (fxEngine as any).renderer = {
+      domElement: mockCanvas,
+      setSize: vi.fn(),
+      render: vi.fn(),
+      dispose: vi.fn()
+    };
+
+    // 模擬容器
+    const container: any = {
+      children: [] as any[],
+      appendChild: vi.fn((child: any) => {
+        child.parentNode = container;
+        container.children.push(child);
+      }),
+      removeChild: vi.fn((child: any) => {
+        const idx = container.children.indexOf(child);
+        if (idx !== -1) container.children.splice(idx, 1);
+        child.parentNode = null;
+      }),
+      querySelectorAll: vi.fn((selector: string) => {
+        if (selector === 'canvas') {
+          return container.children.filter((c: any) => c.tagName === 'CANVAS');
+        }
+        return [];
+      })
+    };
+
+    let addListenerCount = 0;
+    let removeListenerCount = 0;
+
+    const origAdd = globalThis.addEventListener;
+    const origRemove = globalThis.removeEventListener;
+
+    (globalThis as any).addEventListener = vi.fn(() => { addListenerCount++; });
+    (globalThis as any).removeEventListener = vi.fn(() => { removeListenerCount++; });
+
+    try {
+      // 進行 100 次循環 mount -> destroy
+      for (let i = 0; i < 100; i++) {
+        fxEngine.mount(container);
+        expect(container.querySelectorAll('canvas')).toHaveLength(1);
+        fxEngine.destroy();
+        expect(container.querySelectorAll('canvas')).toHaveLength(0);
+      }
+
+      // 斷言：100 次銷毀後，DOM 中殘留 Canvas 恆為 0
+      expect(container.querySelectorAll('canvas')).toHaveLength(0);
+
+      // 斷言：每次 mount 新增的 window resize 監聽器都必須在 destroy / unmount 時精準移除 (解除數 === 新增數)
+      expect(removeListenerCount).toBe(addListenerCount);
+
+      // 斷言：active effects 恆為 0
+      expect(fxEngine.getInstanceRegistry().getActiveCount()).toBe(0);
+    } finally {
+      (globalThis as any).addEventListener = origAdd;
+      (globalThis as any).removeEventListener = origRemove;
+    }
+  });
 });

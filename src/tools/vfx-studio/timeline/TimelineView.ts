@@ -70,6 +70,11 @@ export class TimelineView {
             <span id="tl-time-display" style="color: #fbbf24; font-family: monospace; font-weight: bold; background: #1e293b; padding: 2px 8px; border-radius: 4px; border: 1px solid #334155;">
               Frame: 00 / ${totalFrames} (0.00s / ${duration.toFixed(2)}s)
             </span>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: #94a3b8;" title="直接設定當前預設總演示時長 (0.1s ~ 5.0s)">
+              時長:
+              <input id="tl-input-duration" type="number" step="0.05" min="0.1" max="5.0" value="${duration.toFixed(2)}" style="width: 54px; background: #0f172a; border: 1px solid #475569; color: #fbbf24; border-radius: 4px; padding: 1px 4px; font-family: monospace; font-weight: bold; font-size: 0.72rem; text-align: center;">
+              s
+            </label>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <button id="tl-btn-play-pause" style="background: #1e293b; border: 1px solid #475569; color: ${isPaused ? '#38bdf8' : '#fbbf24'}; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.72rem; font-weight: bold;" title="切換播放/暫停 (Space)">${isPaused ? '▶ 播放' : '⏸ 暫停'}</button>
@@ -87,14 +92,14 @@ export class TimelineView {
 
         <!-- ⏱️ 多軌與時間尺規工作區 (含動態貫穿播放頭) -->
         <div id="tl-workspace" style="position: relative; display: flex; flex-direction: column; gap: 4px;">
-          <!-- 播放頭 (Playhead) 貫穿整個工作區：初始對齊 0s 刻度 (148px) -->
-          <div id="tl-playhead" class="tl-playhead" style="position: absolute; left: 148px; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 50; pointer-events: auto; cursor: ew-resize; box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);">
+          <!-- 播放頭 (Playhead) 貫穿整個工作區：初始對齊 0s 刻度 (188px) -->
+          <div id="tl-playhead" class="tl-playhead" style="position: absolute; left: 188px; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 50; pointer-events: auto; cursor: ew-resize; box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);">
             <div style="position: absolute; top: -2px; left: -5px; width: 12px; height: 10px; background: #ef4444; clip-path: polygon(0 0, 100% 0, 50% 100%);"></div>
           </div>
 
           <!-- 軌道 0: 時間刻度尺 (Ruler Track) -->
           <div class="tl-track-row" style="display: flex; align-items: center; gap: 8px;">
-            <div class="tl-track-header" style="width: 140px; display: flex; align-items: center; justify-content: space-between;">
+            <div class="tl-track-header" style="width: 180px; display: flex; align-items: center; justify-content: space-between;">
               <span style="color: #64748b; font-size: 0.7rem; font-weight: 600;">刻度尺 (Ruler)</span>
             </div>
             <div id="tl-ruler-bar" class="tl-track-bar tl-ruler-bar" style="flex: 1; height: 18px; background: #0f172a; border: 1px solid #334155; border-radius: 3px; position: relative; cursor: pointer;">
@@ -109,9 +114,9 @@ export class TimelineView {
 
           <!-- 軌道 1: 主特效圖層 (Layer 0 - 基礎主軌) -->
           <div class="tl-track-row" style="display: flex; align-items: center; gap: 8px;">
-            <div class="tl-track-header" style="width: 140px; display: flex; align-items: center; justify-content: space-between;">
-              <span style="color: #38bdf8; font-weight: bold; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">👑 主圖層 (L0)</span>
-              <div style="display: flex; gap: 2px;">
+            <div class="tl-track-header" style="width: 180px; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+              <span style="color: #38bdf8; font-weight: bold; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">👑 主圖層 (L0)</span>
+              <div style="display: flex; gap: 2px; flex-shrink: 0;">
                 <button class="tl-solo-btn ${isTrackSoloed('main') ? 'active' : ''}" data-track="main" style="background: ${isTrackSoloed('main') ? '#eab308' : '#334155'}; color: ${isTrackSoloed('main') ? '#000' : '#fff'}; font-weight: bold; border: none; padding: 1px 4px; border-radius: 3px; font-size: 0.62rem; cursor: pointer;" title="獨奏主圖層 (Solo)">S</button>
                 <button class="tl-mute-btn ${trackMuteStates.main ? 'active' : ''}" data-track="main" style="background: ${trackMuteStates.main ? '#ef4444' : '#334155'}; color: #fff; border: none; padding: 1px 4px; border-radius: 3px; font-size: 0.62rem; cursor: pointer;" title="靜音主圖層 (Mute)">M</button>
                 <button class="tl-lock-btn ${isTrackLocked('main') ? 'active' : ''}" data-track="main" style="background: ${isTrackLocked('main') ? '#d97706' : '#1e293b'}; color: ${isTrackLocked('main') ? '#fff' : '#94a3b8'}; border: 1px solid ${isTrackLocked('main') ? '#f59e0b' : '#475569'}; padding: 1px 3px; border-radius: 3px; font-size: 0.62rem; cursor: pointer;" title="${isTrackLocked('main') ? '已鎖定 (Lock)' : '未鎖定'}">${isTrackLocked('main') ? '🔒' : '🔓'}</button>
@@ -122,7 +127,7 @@ export class TimelineView {
                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; font-size: 0.64rem;">
                   <b style="color: #fef08a;">${anchorLabel}</b> ${preset.trajectoryPath || preset.trajectory || 'DIRECT'}${preset.reverse ? ' 🔄' : ''} (${mainDuration.toFixed(2)}s)
                 </span>
-                <div class="tl-main-resize-handle" style="width: 6px; height: 100%; background: #bae6fd; opacity: 0.9; cursor: ${isTrackLocked('main') ? 'not-allowed' : 'ew-resize'}; border-radius: 1px; margin-right: -3px;" title="${isTrackLocked('main') ? '🔒 已鎖定禁止拉伸' : '拖動調整主圖層時長'}"></div>
+                <div class="tl-main-resize-handle" style="width: 10px; height: 100%; background: #bae6fd; opacity: 0.9; cursor: ${isTrackLocked('main') ? 'not-allowed' : 'ew-resize'}; border-radius: 2px; margin-right: -4px; z-index: 5;" title="${isTrackLocked('main') ? '🔒 已鎖定禁止拉伸' : '拖動調整主圖層時長'}"></div>
               </div>
             </div>
           </div>
@@ -148,9 +153,9 @@ export class TimelineView {
 
             return `
               <div class="tl-track-row tl-layer-track-row" data-layer-idx="${idx}" style="display: flex; align-items: center; gap: 8px;">
-                <div class="tl-track-header" style="width: 140px; display: flex; align-items: center; justify-content: space-between;">
-                  <div style="display: flex; align-items: center; gap: 3px; max-width: 90px;">
-                    <select class="tl-layer-preset-select" data-layer-idx="${idx}" ${isLocked ? 'disabled' : ''} style="width: 72px; background: #0f172a; border: 1px solid ${isLocked ? '#475569' : '#3b82f6'}; color: #93c5fd; font-size: 0.61rem; padding: 1px; border-radius: 3px; text-overflow: ellipsis;" title="${isLocked ? '🔒 軌道已鎖定無法更換' : '切換此圖層引用的特效素材'}">
+                <div class="tl-track-header" style="width: 180px; display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                  <div style="display: flex; align-items: center; gap: 3px; flex: 1; min-width: 0;">
+                    <select class="tl-layer-preset-select" data-layer-idx="${idx}" ${isLocked ? 'disabled' : ''} style="flex: 1; min-width: 48px; max-width: 88px; background: #0f172a; border: 1px solid ${isLocked ? '#475569' : '#3b82f6'}; color: #93c5fd; font-size: 0.61rem; padding: 1px; border-radius: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${isLocked ? '🔒 軌道已鎖定無法更換' : '切換此圖層引用的特效素材'}">
                       <option value="" disabled ${!layer.presetId ? 'selected' : ''}>-- 選擇素材 --</option>
                       ${allPresets.map(p => {
                         const anchor = getTrajectorySpatialAnchor(p.spatialMode || p.trajectoryPath || p.trajectory);
@@ -159,14 +164,14 @@ export class TimelineView {
                       }).join('')}
                     </select>
                     ${layer.presetId ? `
-                      <button class="tl-btn-jump-preset" data-preset-id="${layer.presetId}" style="background: transparent; border: none; color: #38bdf8; font-size: 0.6rem; cursor: pointer; padding: 0;" title="🔗 暫存當前技能並跳轉編輯原素材 [${refDisplayName}]">🔗</button>
+                      <button class="tl-btn-jump-preset" data-preset-id="${layer.presetId}" style="background: transparent; border: none; color: #38bdf8; font-size: 0.6rem; cursor: pointer; padding: 0 2px; flex-shrink: 0;" title="🔗 暫存當前技能並跳轉編輯原素材 [${refDisplayName}]">🔗</button>
                     ` : ''}
                   </div>
-                  <div style="display: flex; gap: 2px;">
+                  <div style="display: flex; gap: 2px; flex-shrink: 0;">
                     <button class="tl-layer-solo-btn ${isSoloed ? 'active' : ''}" data-layer-idx="${idx}" style="background: ${isSoloed ? '#eab308' : '#334155'}; color: ${isSoloed ? '#000' : '#fff'}; font-weight: bold; border: none; padding: 1px 4px; border-radius: 3px; font-size: 0.62rem; cursor: pointer;" title="獨奏此圖層 (Solo)">S</button>
                     <button class="tl-layer-toggle-btn" data-layer-idx="${idx}" style="background: ${isMuted ? '#ef4444' : '#334155'}; color: #fff; border: none; padding: 1px 4px; border-radius: 3px; font-size: 0.62rem; cursor: pointer;" title="${isMuted ? '啟用圖層' : '靜音圖層'}">${isMuted ? '❌' : '👁️'}</button>
                     <button class="tl-layer-lock-btn ${isLocked ? 'active' : ''}" data-layer-idx="${idx}" style="background: ${isLocked ? '#d97706' : '#1e293b'}; color: ${isLocked ? '#fff' : '#94a3b8'}; border: 1px solid ${isLocked ? '#f59e0b' : '#475569'}; padding: 1px 3px; border-radius: 3px; font-size: 0.62rem; cursor: pointer;" title="${isLocked ? '已鎖定 (Lock)' : '未鎖定'}">${isLocked ? '🔒' : '🔓'}</button>
-                    <button class="tl-layer-delete-btn" data-layer-idx="${idx}" ${isLocked ? 'disabled' : ''} style="background: #1e293b; color: ${isLocked ? '#64748b' : '#f87171'}; border: 1px solid #475569; padding: 1px 3px; border-radius: 3px; font-size: 0.62rem; cursor: ${isLocked ? 'not-allowed' : 'pointer'};" title="刪除此圖層">🗑️</button>
+                    <button class="tl-layer-delete-btn" data-layer-idx="${idx}" ${isLocked ? 'disabled' : ''} style="background: rgba(239, 68, 68, 0.25); color: ${isLocked ? '#64748b' : '#fca5a5'}; border: 1px solid rgba(239, 68, 68, 0.5); padding: 1px 4px; border-radius: 3px; font-size: 0.62rem; cursor: ${isLocked ? 'not-allowed' : 'pointer'}; flex-shrink: 0;" title="刪除此圖層">🗑️</button>
                   </div>
                 </div>
                 <div class="tl-track-bar tl-single-layer-bar" data-layer-idx="${idx}" style="flex: 1; height: 20px; background: #1e293b; border-radius: 3px; position: relative; border: 1px solid #334155;">
@@ -176,7 +181,7 @@ export class TimelineView {
                       <b style="color: #fef08a;">${lAnchorLabel}</b> ${refDisplayName}${layer.reverse ? ' 🔄' : ''} (${lDur.toFixed(2)}s)
                     </span>
                     <div style="position: absolute; right: 6px; top: 0; bottom: 0; width: ${outWidthPct}%; background: linear-gradient(-90deg, rgba(255,255,255,0.45), transparent); pointer-events: none;"></div>
-                    <div class="tl-clip-resize-handle" data-layer-idx="${idx}" style="width: 6px; height: 100%; background: #f3e8ff; opacity: 0.9; cursor: ${isLocked ? 'not-allowed' : 'ew-resize'}; border-radius: 1px; margin-right: -2px; z-index: 2;" title="${isLocked ? '🔒 已鎖定禁止拉伸' : '拖動調整圖層時長'}"></div>
+                    <div class="tl-clip-resize-handle" data-layer-idx="${idx}" style="width: 10px; height: 100%; background: #f3e8ff; opacity: 0.9; cursor: ${isLocked ? 'not-allowed' : 'ew-resize'}; border-radius: 2px; margin-right: -3px; z-index: 5;" title="${isLocked ? '🔒 已鎖定禁止拉伸' : '拖動調整圖層時長'}"></div>
                   </div>
                 </div>
               </div>
@@ -193,7 +198,7 @@ export class TimelineView {
                   <span style="font-weight: bold;">🎬 編輯圖層 (L${sIdx + 1}):</span>
                   <span style="color: #cbd5e1;">${sLayer.name || `圖層 ${sIdx + 1}`}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
                   <label style="display: flex; align-items: center; gap: 4px;">
                     <span>淡入 (Fade In):</span>
                     <input type="range" class="tl-clip-fade-input" data-param="fadeIn" min="0" max="0.5" step="0.01" value="${sLayer.fadeIn ?? 0.05}" style="width: 65px; accent-color: #fbbf24;">
@@ -209,6 +214,9 @@ export class TimelineView {
                     <input type="range" class="tl-clip-fade-input" data-param="scale" min="0.3" max="2.5" step="0.1" value="${sLayer.scale ?? 1.0}" style="width: 55px; accent-color: #38bdf8;">
                     <span class="tl-clip-fade-val" data-param="scale" style="font-family: monospace; color: #fff; width: 28px;">${(sLayer.scale ?? 1.0).toFixed(1)}x</span>
                   </label>
+                  <button class="tl-toolbar-delete-layer-btn" data-layer-idx="${sIdx}" style="background: rgba(239, 68, 68, 0.25); border: 1px solid #ef4444; color: #fca5a5; padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 0.68rem; font-weight: bold; display: flex; align-items: center; gap: 3px;" title="刪除此選中圖層">
+                    🗑️ 刪除圖層
+                  </button>
                   <button id="tl-btn-close-clip-bar" style="background: #334155; border: none; color: #fff; padding: 1px 6px; border-radius: 3px; cursor: pointer; font-size: 0.65rem;">✕ 關閉</button>
                 </div>
               </div>

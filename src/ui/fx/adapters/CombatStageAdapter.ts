@@ -2,7 +2,7 @@ import { CombatEvent, CombatEventType } from '../../../models/Combat';
 import { CombatFXEngine, ScreenPoint } from '../CombatFXEngine';
 import { VFXImpactConfig, VFXImpactCue } from '../../../models/VFX';
 import { VFXPresetRepository } from '../VFXPresetRepository';
-import { CombatAction, CombatActionPlayer, CombatImpactPresentation } from '../CombatActionPlayer';
+import { CombatAction, CombatActionPlayer, CombatImpactPresentation, resolveActionMainTargetId } from '../CombatActionPlayer';
 import { ScreenFxRenderer } from '../renderers/ScreenFxRenderer';
 
 /**
@@ -123,12 +123,18 @@ export class CombatStageAdapter {
     };
   }
 
+  // 供外部調用或單元測試引用
+  public static resolveMainTargetId = resolveActionMainTargetId;
+
   /**
    * 🎬 播放完整的 CombatAction (Single Action SSOT Pipeline)
    */
   public async playCombatAction(
     action: CombatAction,
     options?: {
+      fromPoint?: ScreenPoint;
+      toPoint?: ScreenPoint;
+      targetId?: string;
       skipVfx?: boolean;
       onImpact?: (item: CombatImpactPresentation, cue?: VFXImpactCue) => void;
       onComplete?: () => void;
@@ -139,13 +145,12 @@ export class CombatStageAdapter {
     const attackerEl = this.findCardElement(action.actorId);
     const isAttackerPlayer = attackerEl ? attackerEl.classList.contains('player-side') : true;
 
-    // 尋找目標
-    const firstTargetEv = action.events.find(e => e.targetId);
-    const mainTargetId = firstTargetEv?.targetId || action.actorId;
+    // 尋找主目標（優先使用 options 傳入之 targetId，或呼叫嚴格目標解析器排除 SKILL_CAST 自身扣 MP）
+    const mainTargetId = options?.targetId || resolveActionMainTargetId(action);
     const defaultTargetEl = this.findCardElement(mainTargetId);
 
-    const fromPt = this.getUnitPoint(action.actorId, isAttackerPlayer ? 'player' : 'enemy');
-    const toPt = this.getUnitPoint(mainTargetId, isAttackerPlayer ? 'enemy' : 'player');
+    const fromPt = options?.fromPoint || this.getUnitPoint(action.actorId, isAttackerPlayer ? 'player' : 'enemy');
+    const toPt = options?.toPoint || this.getUnitPoint(mainTargetId, isAttackerPlayer ? 'enemy' : 'player');
 
     // 施術者卡片微幅突進動畫 (僅在非 skip 模式)
     if (!skip && attackerEl) {
@@ -283,6 +288,7 @@ export class CombatStageAdapter {
 
     const finalDamage = presentationItem ? presentationItem.amount : ev.damage;
     if (finalDamage !== undefined && finalDamage > 0) {
+      if (typeof document === 'undefined') return;
       const isCrit = presentationItem ? presentationItem.isCrit : (ev.type === CombatEventType.CRIT);
 
       const dmgEl = document.createElement('div');

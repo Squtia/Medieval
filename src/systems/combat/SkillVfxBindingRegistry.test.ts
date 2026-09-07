@@ -63,4 +63,62 @@ describe('Phase 4: SkillVfxBindingRegistry 解耦與雙向查詢測試', () => {
     expect(map['MAGE_FIRE_BOLT']).toBe('VFX_FIREBALL');
     expect(map['PRAYER_HEAL']).toBe('VFX_HOLY_LIGHT');
   });
+
+  it('✅ 驗證 Phase 8 情境 12: 所有技能與 6 大武器普攻綁定之 VFX ID 皆 100% 指向已存在之合法預設', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { BasicAttackVfxRepository } = await import('./BasicAttackVfxRepository');
+    const { SKILLS } = await import('../../data/SkillData');
+
+    // 1. 讀取專案核心 SSOT vfx_presets.json
+    const vfxPresetsPath = path.resolve(__dirname, '../../data/vfx_presets.json');
+    const rawData = fs.readFileSync(vfxPresetsPath, 'utf-8');
+    const presets = JSON.parse(rawData);
+    const availableVfxIds = new Set<string>(presets.map((p: any) => p.id));
+
+    expect(availableVfxIds.size).toBeGreaterThanOrEqual(30);
+
+    // 2. 遍歷 SkillVfxBindingRegistry 中的所有綁定
+    const allBindings = registry.getAllBindings();
+    const missingInRegistry: string[] = [];
+    allBindings.forEach(b => {
+      if (!availableVfxIds.has(b.vfxId)) {
+        missingInRegistry.push(`Skill [${b.skillId}] maps to missing VFX ID: "${b.vfxId}"`);
+      }
+    });
+    expect(missingInRegistry, `發現無效的技能特效引用：\n${missingInRegistry.join('\n')}`).toHaveLength(0);
+
+    // 3. 遍歷 SKILLS 中的所有技能 (SKILLS 為 Record<string, any> 字典)
+    const missingInSkills: string[] = [];
+    Object.entries(SKILLS).forEach(([skillId, skill]: [string, any]) => {
+      const vfxId = registry.getVfxForSkill(skillId) || registry.getVfxForSkill(skill.name);
+      if (!availableVfxIds.has(vfxId)) {
+        missingInSkills.push(`SKILLS [${skillId} (${skill.name})] maps to missing VFX ID: "${vfxId}"`);
+      }
+    });
+    expect(missingInSkills, `發現 SKILLS 中的無效特效引用：\n${missingInSkills.join('\n')}`).toHaveLength(0);
+
+    // 4. 遍歷 6 大武器普攻之 getBasicAttackVfxId 與 BasicAttackVfxRepository
+    const { getBasicAttackVfxId } = await import('../../data/SkillData');
+    const basicAttackRepo = BasicAttackVfxRepository.getInstance();
+    const weaponTypes = ['GREATSWORD', 'BOW', 'STAFF', 'DAGGERS', 'SWORD_AND_SHIELD', 'HOLY_BOOK'];
+    const missingInWeapons: string[] = [];
+
+    // 檢驗 6 大武器預設普攻
+    weaponTypes.forEach(w => {
+      const vfxId = getBasicAttackVfxId({ weaponType: w });
+      if (!availableVfxIds.has(vfxId)) {
+        missingInWeapons.push(`Default weapon [${w}] attack maps to missing VFX ID: "${vfxId}"`);
+      }
+    });
+
+    // 檢驗自訂普攻綁定字典 (Record<string, string>)
+    const weaponBindings = basicAttackRepo.getAllBindings();
+    Object.entries(weaponBindings).forEach(([key, vfxId]) => {
+      if (!availableVfxIds.has(vfxId)) {
+        missingInWeapons.push(`Custom binding [${key}] maps to missing VFX ID: "${vfxId}"`);
+      }
+    });
+    expect(missingInWeapons, `發現武器普攻中的無效特效引用：\n${missingInWeapons.join('\n')}`).toHaveLength(0);
+  });
 });

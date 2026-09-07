@@ -1,3 +1,129 @@
+- **[Fix/VFXStudio/CardSpriteIconsAndTimelineDeleteBtn] 技能卡片 Sprite 圖標引擎接入、標題文字防溢出、時間軸圖層標頭加寬與雙重刪除按鈕實裝（2026-09-07）**：
+  - **🖼️ 技能卡片 Sprite 圖標解析與防溢出保護 (Sprite Icon Resolution & Overflow Guard)**：
+    - 解決自訂技能（如 `rayn_SKILL_CUSTOM_0001`）使用圖集 Sprite 代碼 `2_icons_materials:2_icons_materials_1` 時，因未接入渲染引擎而被當成純文字直接輸出，導致長字串溢出嚴重覆蓋右側技能標題之問題。
+    - 在 `SkillVfxPickerModal.ts` 接入 `renderUniversalIcon(skill.icon, 36)`，自動將圖集代碼解析為精美 2D 精靈圖（Sprite 圖片）；在 `vfx-studio.css` 為 `.svp-skill-icon` 注入 `overflow: hidden; max-width: 44px;` 徹底杜絕任何文字外溢。
+  - **🗑️ 時間軸圖層標頭寬度擴充與雙重刪除入口 (Track Header Expansion & Dual Delete Access)**：
+    - 徹底根除時間軸標頭過去僅 140px，因空間不足導致下拉選單被長特效名稱撐大後，將右側 `[🗑️]` 刪除按鈕擠壓出可視範圍、造成創作者無法刪除圖層之工程缺陷。
+    - 在 `TimelineView.ts` 將圖層標頭寬度擴展至 180px，播放頭起點與刻度尺同步對齊；下拉選單設定 `flex: 1; max-width: 88px; overflow: hidden; text-overflow: ellipsis;`，功能按鈕群設置 `flex-shrink: 0;`，保證刪除按鈕永遠 100% 完整清晰可見。
+    - 在點擊圖層 Clip 時浮現的「🎬 編輯圖層」微調工具列最右側，新增雙重保障的【🗑️ 刪除圖層】按鈕，並在 `TimelineInteraction.ts` 綁定立即刪除。
+  - **🧪 真實瀏覽器無頭腳本驗收 100% PASS**：
+    - 執行 `scripts/verify-fixes-icons-and-delete.mjs`，實機確認自訂技能圖標已成功以 Sprite 解析且無任何字串溢出；多圖層特效 `VFX_EARTH_SPIKE` 標頭刪除按鈕 100% 可見且無外溢，微調列雙重刪除按鈕運作正常。
+
+- **[Feature/VFXStudio/SkillVfxCardPickerModal] 全領域技能特效卡片選取綁定中心、安全覆蓋與一鍵還原機制實裝（2026-09-07）**：
+  - **🎴 全可視化技能卡片綁定中心 (Skill VFX Card Picker Modal)**：
+    - 徹底根除過去特效工坊創作者製作/修改新特效後，找不到地方綁定至特定技能的嚴重斷點；摒棄傳統不易閱讀的下拉選單，實裝現代精緻的深色卡片選取彈窗 `src/tools/vfx-studio/SkillVfxPickerModal.ts`。
+    - **全領域四大分類全涵蓋**：聚合 48+ 款技能，包含「👑 英雄職業技能」（戰士、法師、弓手、騎士、盜賊、祈禱者）、「👾 魔物怪物技能」（巨龍咆哮、末日焰炎、劇毒噴吐、吸血獠牙等）、「🏰 攻城戰役部隊技能」（騎兵破陣衝鋒、步兵盾牆、投石機等）與「🔮 技能工坊自訂技能」（動態載入創作者原創積木技能）。
+    - **豐富卡片資訊與搜尋**：每張卡片皆展示專屬識別圖標（ICON）、技能名稱與 ID、所屬分類徽章、目前綁定之特效標籤、以及即時搜尋過濾框。
+  - **🔗 指向覆蓋與安全無損機制 (Safe 1-to-1 Pointer Override & Restore Baseline)**：
+    - 在 `src/systems/combat/SkillVfxBindingRegistry.ts` 建立官方預設基準快照 `defaultBindingsMap`。
+    - 點擊卡片【🔗 覆蓋綁定為此特效】時，執行 1 對 1 指向覆蓋，原特效 Preset 本身絕對無損保留；同時支援雙向中英文 ID 映射與 `LocalStorage` 持久化儲存。
+    - 卡片實裝【↩️ 還原官方預設】按鈕（僅被修改過的技能才會顯示），隨時可一鍵無痛復原官方原始特效。
+    - 當前工坊選取的特效會自動在卡片上亮綠色高亮標記「✨ 本特效 / ✓ 已綁定本特效」，避免重複綁定。
+  - **🎨 特效工坊雙向連動與極致深色毛玻璃美學**：
+    - 在 `src/tools/vfx-studio/VFXLibrary.ts` 的「⚔️ 技能與普攻綁定管理」抽屜與綁定徽章區加入顯眼的【🎴 開啟技能卡片綁定中心】快捷入口；彈窗關閉後左側徽章即時自動重繪。
+    - 在 `src/styles/vfx-studio.css` 注入專屬深色主題樣式、毛玻璃背景遮罩、精美卡片懸浮動效與分類徽章。
+  - **🧪 單元測試與真實無頭瀏覽器端到端驗收 100% PASS**：
+    - 新增 `src/systems/combat/SkillVfxCardPicker.test.ts`（3 項測試 100% 通過）：驗證四大分類資料聚合、自訂覆蓋持久化、以及還原官方預設。
+    - 執行端到端實機腳本 `scripts/verify-skill-vfx-picker.mjs`：自動打開工坊 ➔ 點擊開啟 Modal ➔ 搜尋「流星」過濾 ➔ 覆蓋綁定【奮力一擊】至火球術 ➔ 驗證高亮與還原按鈕 ➔ 截圖存檔 ➔ 點擊還原恢復預設 ➔ 關閉 Modal，全流程 100% 通過。
+    - 全專案 58 個測試套件、339 項單元測試 100% 通過，`npm run typecheck` 0 錯誤。
+
+- **[Fix/CombatVFX/SelfTargetingCombatActionResolution] 實戰技能施放「特效自己打自己」目標解析病灶修復、受術目標隔離與卡牌座標直傳（2026-09-07）**：
+  - **🚫 根除實戰技能施放「特效自己打自己」重大缺陷 (Self-Targeting Resolution Fix)**：
+    - 解決實戰中技能施放時，`CombatSystem.ts` 產生之第 1 個事件 `SKILL_CAST` 為了扣除自身 MP 將 `targetId` 設為 `actor.id`（施法者自身），而 `CombatStageAdapter.ts`（及 `CombatStudioStageAdapter.ts`、`CombatActionPlayer.ts`）以 `events.find(e => e.targetId)` 盲目抓取，直接命中施法者自己，導致 3D 特效飛行終點 `toPoint` 鎖定在施法者卡牌上、形成「火球/斬擊打在施法者身上炸開，隨後敵人卻扣血」之荒謬工程缺陷。
+    - 在 `src/ui/fx/CombatActionPlayer.ts` 實裝純函式 `resolveActionMainTargetId(action)`：優先從實質傷害/治療事件（`HIT`, `CRIT`, `HEAL`, `SHIELD_DAMAGE`）中抓取目標；次選從 `SKILL_CAST` 的 `skillTargetId` 抓取目標；僅在技能為純自身增益（`SELF_BUFF`）時才退回自身，徹底解耦 MP 扣除自身與受術目標。
+  - **📍 打通 CombatUIManager 真實卡牌座標直傳管線 (Real Measured Anchor Direct Pass)**：
+    - `src/ui/CombatUIManager.ts` 在調用 `CombatStageAdapter.getInstance().playCombatAction` 時，直接注入已測量好的卡牌座標 `fromPoint: fromPt`、`toPoint: toPt` 與 `targetId: fxTargetId`，杜絕二次猜測失真。
+    - `CombatStageAdapter.ts` 與 `CombatStudioStageAdapter.ts` 全面升級支援 `options.fromPoint`、`options.toPoint` 與 `options.targetId`。
+  - **🧪 嚴格單元測試與真實無頭瀏覽器戰鬥方向驗收**：
+    - 新增 `src/systems/combat/CombatTargetResolution.test.ts`（5 項測試 100% 通過）：單體攻擊、AOE 群攻、友軍治療與自身增益 4 大技能型態 100% 精準對齊，起終點座標絕對不同。
+    - 執行 `scripts/verify-combat-vfx-direction.mjs`，在真實瀏覽器戰鬥環境中驗收：
+      - 玩家施放重劈：起點玩家側 `x=88` ➔ 終點敵方側 `x=692`，$\Delta X = +604$（向右側敵方飛行，`isSelfHit = false`）。
+      - 敵方施放斬擊：起點敵方側 `x=692` ➔ 終點玩家側 `x=88`，$\Delta X = -604$（向左側玩家飛行，`isSelfHit = false`）。
+    - 全專案 58 個測試套件、336 項單元測試 100% PASS，`typecheck` 0 錯誤。
+
+- **[Fix/CombatVFX/StageDynamicResizeAndViewportAlignment] 特效工坊多圖層展開舞台自適應、ResizeObserver 即時座標同步與時間軸高度保護（2026-09-07）**：
+  - **📐 根除多圖層展開 3D 特效向下脫節病灶 (Dynamic Viewport ResizeObserver)**：
+    - 解決當時間軸新增多圖層或展開次級抽屜時，底層時間軸向上膨脹擠壓上方 3D 舞台 `#viewport`，而 Three.js 過去僅監聽 `window.resize`，導致 Canvas 解析度與相機投影視距死鎖在初始 705px 巨大高度，造成 `screenToWorld` 世界座標原點與變扁後的 2D 卡牌中心脫節 120px~150px 之重大缺陷。
+    - 在 `src/ui/fx/VFXPlayer.ts` 引入 `ResizeObserver` 專門監聽 `this.container`（`#viewport`）。一旦舞台尺寸變更，立即自動調用 `this.resize()` 同步更新 `renderer.setSize`、`camera.aspect`、`camera.position.z` 與投影矩陣，並在 `unmount` 時安全釋放 observer，防止記憶體洩漏。
+    - 在 `VFXPlayer.ts` 提供 `onResize(cb)` 廣播事件機制，供外部適配層訂閱。
+  - **🎬 影格與 SVG 彈道輔助線即時重繪 (Real-time Frame & Guides Re-render)**：
+    - 在 `src/tools/vfx-studio/VFXStudioController.ts` 訂閱 `fxEngine.onResize`，在舞台尺寸變更瞬間即刻重新求值渲染當前影格 `renderStudioFrameAt`、基準測試標記與 SVG 彈道預測輔助線，保證靜態定格與連續播放皆零延遲 1:1 貼齊卡牌。
+    - 在 `src/tools/vfx-studio/VFXStage.ts` 引入 `ResizeObserver` 動態監聽 `#viewport`，輔助線起迄圈圈與虛線彈道永遠 100% 鎖死在卡牌中心。
+  - **🛡️ 時間軸軌道區高度保護 (Timeline Max-Height & Scrollbar)**：
+    - 在 `src/styles/vfx-studio.css` 為 `#timeline-mount-point` 設置 `max-height: 330px; overflow-y: auto;` 與專屬深色滾動條，確保無論開多少圖層，時間軸內部平滑滾動，3D 舞台永遠享有寬敞的預覽視野。
+  - **🧪 真實瀏覽器與極限條件自動化驗證**：
+    - 執行 `scripts/verify-vfx-alignment.mjs`（1280x780 視窗、8 圖層展開＋抽屜）：Canvas 尺寸 536px 與舞台 100% 吻合，相機視距差 0.000，卡牌世界座標 Y=0 完全零誤差。
+    - 執行 `scripts/verify-vfx-extreme-resize.mjs`（1024x600 極限矮視窗、9 圖層展開）：舞台壓縮至 303px，相機視距精確縮減至 365.75，卡牌世界座標 Y=0 零誤差。
+    - 全專案 57 個測試套件、331 項單元測試 100% PASS，`typecheck` 0 錯誤。
+
+- **[Fix/CombatVFX/TimelineInteractionAndHumanValidation] 時間軸拖曳自毀修復、主圖層鎖頭按鈕 Selector 校正、單發連射時長解耦與真實人類操作驗證（2026-09-07）**：
+  - **🚫 根除拖曳自毀機制 (Anti-Self-Destruction Drag Guard)**：
+    - 解決 Cue Marker 與 Clip 拖曳時，每次指針移動同步觸發 `Store.notify()` ➔ `VFXTimeline.render()` ➔ `container.innerHTML = html` 導致正被抓取的 DOM 節點當場銷毀、指針捕獲中斷之重大工程缺陷。
+    - 在 `TimelineInteraction.ts` 提供 `isDragging()` 狀態，在 `VFXTimeline.ts` subscribe 加上拖曳守衛，拖曳期間嚴禁銷毀 DOM，放開滑鼠（`pointerup`）後方安全結算渲染。
+  - **🔒 修正主圖層鎖頭按鈕 Selector (Track Lock Selector Fix)**：
+    - 解決 `TimelineInteraction.ts` 誤以不存在之 `#tl-main-lock-btn` 綁定，導致主圖層 🔒 永遠無法解鎖、連帶使 Clip 縮放與移動全部被拒絕之重大斷點。
+    - 統一以 `.tl-lock-btn` 與 `dataset.track` 進行綁定，點擊時 100% 響應解鎖。
+  - **📏 時間軸頂部直覺總時長輸入與標籤校正 (Direct Duration Input)**：
+    - 在時間軸頂部控制列實裝直接輸入框 `#tl-input-duration`，允許創作者一眼查看並自由調整總演繹時長。
+    - 在 `tools/vfx-studio.html` 將誤導性的「單發飛行/動畫時長」正名為「特效總時長 (duration)」。
+  - **⚡ 單發連射時長解耦 (Salvo Duration Decoupling)**：
+    - 在 `VFXTimelineEvaluator.getEffectivePresentationDuration` 中，僅在 `(salvoCount > 1 || trajectory === 'ARC_MULTI')` 且 `salvoDuration > 0` 時才納入總時長計算，徹底排除近戰單發揮砍受連射參數污染。
+  - **🧪 真實人類視角全流程自動驗收 (Human-Centric E2E Audit)**：
+    - 執行 `scripts/verify-human-interactions.mjs`，在真實無頭 Chromium 瀏覽器中驗收：
+      1. 主圖層鎖頭按鈕 🔓 ↔ 🔒 雙向切換成功。
+      2. 頂部總時長輸入 `0.65s` 即時擴展時間軸刻度尺成功。
+      3. Cue Marker 滑鼠連續拖動 60px 零中斷、時間標籤從 0.22s 成功更新至 0.15s。
+      4. 主圖層 Handle 拖拉拉伸縮小時長（100% ➔ 63%）成功。
+      5. 主圖層 Clip 本體平移前搖（left: 0% ➔ 15%）成功。
+    - 全專案 57 個測試套件、331 項單元測試 100% PASS，`typecheck` 0 錯誤。
+
+- **[Fix/CombatVFX/SSOTDurationAndStageAdapterMount] SSOT 歷史資料演示時間校準、工坊時間軸有效時長包絡線演算法與實戰卡牌真實座標掛載（2026-09-07）**：
+  - **📐 SSOT 歷史資料演示時間對齊 (VFX_PHANTOM_SLASH Duration Alignment)**：
+    - 解決大改架構前歷史預設 `duration: 0.2s` 與大改後引入之連擊（`salvoDuration: 0.42s`）、次生圖層（`delay: 0.12s + duration: 0.26s = 0.38s`）及多段 Cue 點（`0.1s, 0.22s, 0.34s`）的資料衝突。
+    - 在 `src/data/vfx_presets.json` 將 `VFX_PHANTOM_SLASH` 頂層時長校準為 `0.45s`，徹底根除伺服器端 HTTP 400 驗證退件（`Cue time exceeds preset duration`），`scripts/test-validate-ssot.mjs` 達到 100% 合法全綠。
+  - **⏱️ 特效真實總演示時長包絡線演算法 (Effective Presentation Duration Envelope)**：
+    - 在 `src/ui/fx/VFXTimelineEvaluator.ts` 實裝 `getEffectivePresentationDuration` 純演算法，全面綜合主軌有效時長、連射持續時間、所有次生圖層（`delay + duration`）與打擊 Cue 點位的最大時間包絡線。
+    - 在 `src/tools/vfx-studio/VFXTimeline.ts` 與 `src/tools/vfx-studio/VFXStudioController.ts` 全面採用此方法初始化與更新時間軸時鐘，徹底解決工坊時間軸讀取舊預設時提前掐斷連擊與打擊點被擠壓在 100% 右緣的歷史缺陷。
+    - 在 `src/tools/vfx-studio/VFXLibrary.ts` 格式化伺服器驗證回傳之 `details` 具體錯誤清單，不再吞沒錯誤訊息。
+  - **⚔️ 主遊戲實戰 CombatStageAdapter 舞台掛載與生命週期接通 (Combat Stage Real Anchor Mount)**：
+    - 解決戰鬥中特效對不上施術者與目標卡牌、卡牌受擊動畫與跳字反饋癱瘓的重大工程缺陷。
+    - 在 `src/ui/CombatUIManager.ts` 初始化時正式調用 `CombatStageAdapter.getInstance().mount(this.modal)`，使 `findCardElement` 與卡牌 `getBoundingClientRect()` 真實錨點生效；在關閉戰鬥 `closeCombat` 時正確調用 `CombatStageAdapter.getInstance().clear()`。
+  - **🧪 驗證與回歸測試**：
+    - 全專案 57 個測試檔案、331 項單元測試 100% PASS。
+    - `npm run typecheck` 0 錯誤、`npm run build` 成功。
+    - `npm run test:smoke` 與 `npm run test:vfx`（4 大視窗布局 + 100 次循環浸泡壓力測試）100% 通過。
+
+- **[Test/CombatVFX/Phase8ProductionValidationFullSuite] Phase 8 量產品質與 5 大關鍵驗收情境全數補齊（嚴格文件對齊：快照還原閉環、三目標 AOE 實例隔離、全技能與武器普攻 VFX 存在性、100 次循環 mount/destroy 零洩漏、固定 Seed 頂點數值確定性，全專案 57 測試檔案 331 PASS 全綠）（2026-09-07）**：
+  - **📸 快照還原端到端閉環測試 (Phase 8 情境 3: SSOT Snapshot Restore E2E)**：
+    - 在 `src/systems/combat/VFXSSOTPublishAndRestore.test.ts` 實裝完整端到端測試：模擬選擇合法快照 ➔ 呼叫 `POST /__vfx_api/restore_snapshot` ➔ `repo.reloadPresets(presets)` ➔ 觸發 `addChangeListener` ➔ 驗證記憶體字典完全替換為快照內容並連動外部監聽器。
+  - **⚡ 三目標 AOE 實例與座標隔離測試 (Phase 8 情境 5: 3-Target AOE Isolation)**：
+    - 在 `src/ui/fx/VFXConcurrentPlayback.test.ts` 實裝三目標 AOE 施法測試：三目標各自擁有獨立的 `THREE.Group` 根節點與空間座標；當單一目標 Effect 提早 unregister/dispose 時，其餘 2 個目標的實例依然活躍完好，杜絕 AOE 互相覆蓋。
+  - **⚔️ 全技能與 6 大武器普攻綁定 VFX ID 100% 存在性校驗 (Phase 8 情境 12: VFX ID SSOT Resolution)**：
+    - 在 `src/systems/combat/SkillVfxBindingRegistry.test.ts` 實裝自動遍歷校驗：
+      - 遍歷 `SkillVfxBindingRegistry` 所有綁定。
+      - 遍歷 `SKILLS` 字典內所有定義之技能。
+      - 遍歷 `BasicAttackVfxRepository` 巨劍、戰弓、法杖、雙匕首、劍盾、聖典 6 大武器普攻解析器。
+      - 斷言所有引用的 VFX ID 皆 100% 存在於 `src/data/vfx_presets.json`（現有 30 款預設庫），違規遺漏數精確為 0。
+  - **🔄 100 次循環 mount ➔ destroy 資源零洩漏測試 (Phase 8 情境 10: 100-Cycle Mount/Destroy)**：
+    - 在 `src/ui/fx/VFXLifecycle.test.ts` 實裝高頻壓力測試：連續循環執行 100 次 `mount(container)` ➔ 播放 ➔ `destroy()`，斷言容器內 Canvas 殘留數恆為 0，`window` 監聽器新增與解除數嚴格相等，活躍實例數歸零。
+  - **🎲 固定 Seed 同時間點頂點 Float 數值確定性測試 (Phase 8 情境 4: Deterministic Vertex Snapshot)**：
+    - 在 `src/ui/fx/VFXDeterministicPlayback.test.ts` 實裝純數值快照比對：相同 Seed 下在固定進度求值頂點座標快照 A 與快照 B，Float32 頂點陣列 100% 數值精確相等（Diff = 0）；不同 Seed 產生明確頂點抖動差異。
+  - **🧪 全自動化測試與驗證全綠 (57 Test Files / 331 PASS)**：
+    - 全專案 57 個測試檔案、331 項單元測試 100% 全部通過。
+    - `npm run typecheck` 0 錯誤。
+    - `npm run build`、`npm run test:vfx`（4 大視窗零溢出 + 100 循環連續浸泡測試）、`npm run test:smoke` 與 `npm run check:bundle` 100% 通過。
+
+- **[Fix/CombatVFX/Phase1DeepEqualityAndStrictReadback] 特效工房發布閉環深層比對與嚴格回讀斷言加固（嚴格文件對齊：消除 catch 逃生放行、落實 isPresetDeepEqual 遞迴深層校驗、單元測試 57 檔案 326 PASS 全綠）（2026-09-07）**：
+  - **🛡️ 消除偽比對與落實 Deep Equality Check (Strict Data Closed-Loop)**：
+    - 依據 `docs/VFX_ARCHITECTURE_EXECUTION_PLAN.md` 之 Phase 1 交易流程第 8 步與不可破壞條件，在 `src/tools/vfx-studio/VFXLibrary.ts` 實裝遞迴深層比較演算法 `isPresetDeepEqual`。
+    - 結合 `VFXPresetRepository.sanitizePresetContent`，在發布回讀時先自動剝離 UI 暫態 Session 屬性，精確遞迴校驗主軌屬性、圖層（`layers` 各項延遲、時長、縮放）與打擊點（`impactCues` 各項時間、權重與 ID），杜絕原先僅比對 `colorCore` 與 `duration` 之淺層比對漏洞。
+  - **🚫 徹底根除異常放行與偽綠燈通道 (Exception Hardening)**：
+    - 徹底移除 `catch { readBackOk = true; }` 逃生放行代碼。
+    - 嚴格校驗回讀 HTTP 狀態、資料陣列格式、目標 ID 存在性與深層一致性；伺服器未同步、回讀報錯或網路中斷時直接中斷拋錯，保證 `store.isDirty` 恆定保持為 `true`，畫面草稿 100% 完整保留，杜絕發布失敗卻解除 Dirty 之重大工程違規。
+  - **🧪 測試品質與失敗案例防護 (57 Test Files / 326 PASS)**：
+    - 在 `src/tools/vfx-studio/VFXStudioPublishFlow.test.ts` 新增驗證 5（回讀 Cue/Layer 資料不一致時拒絕解除 Dirty）與驗證 6（回讀網路 HTTP 500 時拒絕解除 Dirty）。
+    - 全專案 57 個測試檔案、326 項單元測試 100% 通過，TypeScript 編譯 0 錯誤。
+
 - **[Refactor/CombatVFX/Phase7TimelineDecouplingAndFacade] 特效架構與時間軸重構（嚴格文件對齊：拆分巨型時間軸檔案為 View/Interaction/Commands/Selection 四大單一職責模組、VFXTimeline 收斂為 Facade、消除引擎私有欄位存取、速度管線同調、全專案 57 測試檔案 324 PASS 全綠）（2026-09-07）**：
   - **⏱️ 時間軸巨型檔案拆分與高內聚 Facade (VFXTimeline Modularization)**：
     - 依據 `docs/VFX_ARCHITECTURE_EXECUTION_PLAN.md` 之 Phase 7 與準則第 7 條，將原本長達 1190 行的巨型單體檔案 `src/tools/vfx-studio/VFXTimeline.ts` 徹底解耦拆分為四大專職模組（位於 `src/tools/vfx-studio/timeline/`）：

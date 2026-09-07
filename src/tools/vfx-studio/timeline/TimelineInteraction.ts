@@ -33,6 +33,10 @@ export class TimelineInteraction {
   private activeDragCueIndex = -1;
   private isDraggingClip = false;
 
+  public isDragging(): boolean {
+    return this.isScrubbingPlayhead || this.isDraggingCue || this.isDraggingClip;
+  }
+
   constructor(
     container: HTMLElement,
     store: VFXStudioStore,
@@ -56,6 +60,7 @@ export class TimelineInteraction {
 
     this.bindTrackControls();
     this.bindPlaybackControls();
+    this.bindDurationInput();
     this.bindPresentationMode();
     this.bindRulerAndPlayheadScrubbing(duration);
     this.bindCueTrackAndMarkers(duration);
@@ -65,45 +70,40 @@ export class TimelineInteraction {
   }
 
   /**
-   * 1. 軌道 Solo / Mute / Lock 狀態控制
+   * 1. 軌道 Solo / Mute / Lock 狀態控制 (支援通用 class 與 data-track)
    */
   private bindTrackControls(): void {
-    // 主軌道 controls
-    this.container.querySelector('#tl-main-solo-btn')?.addEventListener('click', () => {
-      this.commands.toggleTrackSolo('main');
-      this.callbacks.requestRender();
+    // 軌道 Solo 按鈕組 (.tl-solo-btn)
+    this.container.querySelectorAll('.tl-solo-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const track = (e.currentTarget as HTMLElement).dataset.track;
+        if (track) {
+          this.commands.toggleTrackSolo(track);
+          this.callbacks.requestRender();
+        }
+      });
     });
-    // 軌道 Mute 按鈕組 (支援通用 .tl-mute-btn 與 ID 選取器)
+
+    // 軌道 Mute 按鈕組 (.tl-mute-btn)
     this.container.querySelectorAll('.tl-mute-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const track = (e.currentTarget as HTMLElement).dataset.track as 'main' | 'layers' | 'impact';
-        if (track && (track === 'main' || track === 'layers' || track === 'impact')) {
+        if (track) {
           this.commands.toggleTrackMute(track);
           this.callbacks.requestRender();
         }
       });
     });
 
-    this.container.querySelector('#tl-main-mute-btn')?.addEventListener('click', () => {
-      this.commands.toggleTrackMute('main');
-      this.callbacks.requestRender();
-    });
-    this.container.querySelector('#tl-main-lock-btn')?.addEventListener('click', () => {
-      this.commands.toggleTrackLock('main');
-      this.callbacks.requestRender();
-    });
-
-    this.container.querySelector('#tl-impact-solo-btn')?.addEventListener('click', () => {
-      this.commands.toggleTrackSolo('impact');
-      this.callbacks.requestRender();
-    });
-    this.container.querySelector('#tl-impact-mute-btn')?.addEventListener('click', () => {
-      this.commands.toggleTrackMute('impact');
-      this.callbacks.requestRender();
-    });
-    this.container.querySelector('#tl-impact-lock-btn')?.addEventListener('click', () => {
-      this.commands.toggleTrackLock('impact');
-      this.callbacks.requestRender();
+    // 軌道 Lock 按鈕組 (.tl-lock-btn)
+    this.container.querySelectorAll('.tl-lock-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const track = (e.currentTarget as HTMLElement).dataset.track;
+        if (track) {
+          this.commands.toggleTrackLock(track);
+          this.callbacks.requestRender();
+        }
+      });
     });
 
     // 次生圖層 Solo / Lock 按鈕組
@@ -126,6 +126,22 @@ export class TimelineInteraction {
         }
       });
     });
+  }
+
+  /**
+   * 1.5 時間軸頂部總時長編輯輸入框
+   */
+  private bindDurationInput(): void {
+    const durInput = this.container.querySelector('#tl-input-duration') as HTMLInputElement | null;
+    if (durInput) {
+      durInput.addEventListener('change', (e) => {
+        const val = parseFloat((e.target as HTMLInputElement).value);
+        if (!Number.isNaN(val) && val >= 0.1 && val <= 5.0) {
+          this.store.recordSnapshot();
+          this.store.updateConfig({ duration: Number(val.toFixed(2)) }, true);
+        }
+      });
+    }
   }
 
   /**
@@ -347,6 +363,7 @@ export class TimelineInteraction {
               }
               this.store.updateConfig({ impactCues: finalCues }, false);
             }
+            this.callbacks.requestRender();
           }
         };
 
@@ -648,6 +665,20 @@ export class TimelineInteraction {
           if (this.selection.getSelectedClipIndex() === layerIdx) {
             this.selection.selectClip(null);
           }
+          this.store.updateConfig({ layers }, true);
+          this.callbacks.requestRender();
+        }
+      });
+    });
+
+    this.container.querySelectorAll('.tl-toolbar-delete-layer-btn').forEach(btnEl => {
+      btnEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const layerIdx = Number((btnEl as HTMLElement).dataset.layerIdx);
+        const layers = [...(this.store.getPreset().layers || [])];
+        if (layers[layerIdx]) {
+          layers.splice(layerIdx, 1);
+          this.selection.selectClip(null);
           this.store.updateConfig({ layers }, true);
           this.callbacks.requestRender();
         }

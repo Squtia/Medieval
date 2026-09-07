@@ -214,4 +214,86 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
     expect(store.getIsDirty()).toBe(false);
     expect(repo.getPreset(store.getPreset().id)?.duration).toBe(testDuration);
   });
+
+  it('🔴 驗證 5：回讀資料與草稿深層比對不一致時 (例如 Layer 或 Cue 未同步)，必須中斷且 Dirty 保持 true', async () => {
+    const { container, elements } = setupMockDom();
+    const lib = new VFXLibrary(container as any);
+
+    // 修改 Cue 與 Layer
+    const current = store.getPreset();
+    store.updateConfig({
+      impactCues: [
+        ...(current.impactCues || []),
+        { cueId: 'cue_test_deep_eq', time: 0.22, kind: 'IMPACT', weight: 50 }
+      ]
+    }, true);
+    expect(store.getIsDirty()).toBe(true);
+
+    (globalThis as any).fetch = vi.fn(async (url: string) => {
+      if (url === '/__vfx_api/save_ssot') {
+        return {
+          ok: true,
+          json: async () => ({ success: true, count: 30, snapshot: 'snap_123.json' })
+        };
+      }
+      if (url === '/api/get-vfx-presets') {
+        // 模擬伺服器返回的資料中，該 Cue 遺漏（例如寫入失敗或資料未同步）
+        const stalePresets = repo.getAllPresets().map(p => {
+          if (p.id === current.id) {
+            return { ...p, impactCues: [] }; // 故意回傳空 cues
+          }
+          return p;
+        });
+        return {
+          ok: true,
+          json: async () => stalePresets
+        };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+    (globalThis as any).alert = vi.fn();
+
+    const publishBtn = elements.get('lib-btn-publish');
+    publishBtn.dispatchEvent({ type: 'click' });
+    await new Promise(r => setTimeout(r, 60));
+
+    // 驗證：因深層比對失敗，Dirty 嚴格不可被清除，畫面草稿完整保留
+    expect(store.getIsDirty()).toBe(true);
+    expect(store.getPreset().impactCues?.some(c => c.cueId === 'cue_test_deep_eq')).toBe(true);
+  });
+
+  it('🔴 驗證 6：回讀端點網路異常 (HTTP 500 / 連線失敗) 時，必須判定發布未完成且 Dirty 保持 true', async () => {
+    const { container, elements } = setupMockDom();
+    const lib = new VFXLibrary(container as any);
+
+    store.updateConfig({ colorCore: '#123456' }, true);
+    expect(store.getIsDirty()).toBe(true);
+
+    (globalThis as any).fetch = vi.fn(async (url: string) => {
+      if (url === '/__vfx_api/save_ssot') {
+        return {
+          ok: true,
+          json: async () => ({ success: true, count: 30, snapshot: 'snap_123.json' })
+        };
+      }
+      if (url === '/api/get-vfx-presets') {
+        // 模擬回讀端點崩潰或中斷
+        return {
+          ok: false,
+          status: 500,
+          json: async () => ({ error: 'Database read error' })
+        };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+    (globalThis as any).alert = vi.fn();
+
+    const publishBtn = elements.get('lib-btn-publish');
+    publishBtn.dispatchEvent({ type: 'click' });
+    await new Promise(r => setTimeout(r, 60));
+
+    // 驗證：因回讀異常，絕不可視為成功，Dirty 依然為 true
+    expect(store.getIsDirty()).toBe(true);
+    expect(store.getPreset().colorCore).toBe('#123456');
+  });
 });

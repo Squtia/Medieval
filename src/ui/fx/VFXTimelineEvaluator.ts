@@ -23,6 +23,48 @@ export interface HitFeedbackParams {
  */
 export class VFXTimelineEvaluator {
   /**
+   * ⏱️ 計算特效預設之真實總演示時長 (Effective Presentation Duration Envelope)
+   * 綜合計算主軌有效時長、連射持續時間、所有次生圖層 (delay + duration) 以及所有 Impact Cue 點位的最大包絡線
+   * 遵循 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md §5 與選項 B 邊界守護規範
+   */
+  public static getEffectivePresentationDuration(preset: VFXPreset): number {
+    let maxDur = Math.max(0.05, preset.duration || 0.35);
+
+    // 1. 主軌延遲與時長
+    const mainDelay = Math.max(0, preset.mainDelay || 0);
+    const mainDur = preset.mainDuration !== undefined ? preset.mainDuration : (preset.duration || 0.35);
+    maxDur = Math.max(maxDur, mainDelay + mainDur);
+
+    // 2. 連擊時長（僅在真正具備多發連射時生效）
+    const isActualSalvo = (preset.salvoCount !== undefined && preset.salvoCount > 1) || preset.trajectory === 'ARC_MULTI';
+    if (isActualSalvo && preset.salvoDuration !== undefined && preset.salvoDuration > 0) {
+      maxDur = Math.max(maxDur, preset.salvoDuration);
+    }
+
+    // 3. 次生圖層時間包絡線
+    if (Array.isArray(preset.layers)) {
+      for (const layer of preset.layers) {
+        if (layer.enabled !== false) {
+          const lDelay = Math.max(0, layer.delay || 0);
+          const lDur = Math.max(0.05, layer.duration || 0.2);
+          maxDur = Math.max(maxDur, lDelay + lDur);
+        }
+      }
+    }
+
+    // 4. 打擊點 Cue 點位時間包絡線
+    if (Array.isArray(preset.impactCues)) {
+      for (const cue of preset.impactCues) {
+        if (typeof cue.time === 'number' && !Number.isNaN(cue.time)) {
+          maxDur = Math.max(maxDur, cue.time);
+        }
+      }
+    }
+
+    return Number(maxDur.toFixed(3));
+  }
+
+  /**
    * 🚀 計算多段連擊發射時間點序列 (Salvo & Multi-Hit Scheduler)
    * @param preset 特效預設配置
    * @param totalHits 總打擊段數

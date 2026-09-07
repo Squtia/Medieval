@@ -106,4 +106,45 @@ describe('VFXConcurrentPlayback - Phase 0 失敗案例驗證 (並行播放與多
     registry.clearAll();
     expect(registry.getActiveCount()).toBe(0);
   });
+
+  it('✅ 驗證 Phase 8 情境 5: 三目標 AOE 同時播放時各自持有獨立 Effect Instance 與空間座標，單獨結束不誤傷', async () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    const registry = fxEngine.getInstanceRegistry();
+    registry.clearAll();
+
+    const aoePreset = createTestPreset('VFX_AOE_FIREBLAST', 1.0);
+    const caster = new THREE.Vector3(0, 0, 0);
+    const target1 = new THREE.Vector3(120, 0, 0);
+    const target2 = new THREE.Vector3(240, 50, 0);
+    const target3 = new THREE.Vector3(-100, -80, 0);
+
+    // 三目標 AOE 同時觸發播放 (例如戰鬥中大招打擊 3 個敵方單位)
+    const p1 = fxEngine.playPresetWorld(aoePreset, caster, target1);
+    const p2 = fxEngine.playPresetWorld(aoePreset, caster, target2);
+    const p3 = fxEngine.playPresetWorld(aoePreset, caster, target3);
+
+    // 1. 斷言：registry 必須同時記錄 3 個獨立的活躍實例
+    expect(registry.getActiveCount()).toBe(3);
+    const instances = registry.getAll();
+    expect(instances).toHaveLength(3);
+
+    // 2. 斷言：3 個實例各自持有不同的 root THREE.Group 物件
+    const roots = instances.map(inst => inst.root);
+    const uniqueRoots = new Set(roots);
+    expect(uniqueRoots.size).toBe(3);
+
+    // 3. 模擬其中一個目標的 Effect 提前被取消或完成 (unregister)
+    const firstInstanceId = instances[0].id;
+    registry.unregister(firstInstanceId);
+
+    // 4. 斷言：被註銷的實例已移除，但其餘兩個目標的實例依然活躍完好！
+    expect(registry.has(firstInstanceId)).toBe(false);
+    expect(registry.getActiveCount()).toBe(2);
+    expect(registry.has(instances[1].id)).toBe(true);
+    expect(registry.has(instances[2].id)).toBe(true);
+
+    // 等待所有異步結束
+    await Promise.all([p1, p2, p3]);
+    registry.clearAll();
+  });
 });

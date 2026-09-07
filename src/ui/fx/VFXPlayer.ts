@@ -45,6 +45,8 @@ export class VFXPlayer {
   protected sessionRng: (() => number) | null = null;
   protected rafId: number | null = null;
   protected boundResize = () => this.resize();
+  protected containerResizeObserver: ResizeObserver | null = null;
+  protected resizeListeners: Array<() => void> = [];
 
   constructor() {
     this.playbackClock = this.scheduler;
@@ -88,6 +90,13 @@ export class VFXPlayer {
     return this.playerInstance;
   }
 
+  public onResize(cb: () => void): () => void {
+    this.resizeListeners.push(cb);
+    return () => {
+      this.resizeListeners = this.resizeListeners.filter(fn => fn !== cb);
+    };
+  }
+
   public mount(container: HTMLElement): void {
     if (this.container === container && this.canvas && this.canvas.parentNode === container) return;
 
@@ -109,6 +118,18 @@ export class VFXPlayer {
     container.appendChild(canvas);
     this.resize();
 
+    // 🌟 動態容器尺寸監聽 (解決多圖層展開擠壓舞台導致座標跑位問題)
+    if (this.containerResizeObserver) {
+      this.containerResizeObserver.disconnect();
+      this.containerResizeObserver = null;
+    }
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      this.containerResizeObserver = new ResizeObserver(() => {
+        this.resize();
+      });
+      this.containerResizeObserver.observe(container);
+    }
+
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', this.boundResize);
       window.addEventListener('resize', this.boundResize);
@@ -128,6 +149,18 @@ export class VFXPlayer {
     this.camera.updateProjectionMatrix();
 
     this.renderer.setSize(width, height);
+    if (this.canvas) {
+      this.canvas.style.width = '100%';
+      this.canvas.style.height = '100%';
+    }
+
+    for (const listener of this.resizeListeners) {
+      try {
+        listener();
+      } catch (e) {
+        console.error('Error in VFXPlayer resize listener:', e);
+      }
+    }
   }
 
   public screenToWorld(pt: ScreenPoint): THREE.Vector3 {
@@ -258,6 +291,10 @@ export class VFXPlayer {
    * 🔌 卸載畫布與監聽器 (保持引擎內部狀態，供重掛載)
    */
   public unmount(): void {
+    if (this.containerResizeObserver) {
+      this.containerResizeObserver.disconnect();
+      this.containerResizeObserver = null;
+    }
     if (typeof window !== 'undefined') {
       window.removeEventListener('resize', this.boundResize);
     }

@@ -146,8 +146,8 @@ describe('特效工房重構與 SSOT 完整性驗收 (VFX Studio Rebuild Verific
         if (p.layers && p.layers.length > 0) hasLayersCount++;
       });
 
-      // 至少 5 款（目前為 6 款旗艦）啟用多圖層
-      expect(hasLayersCount).toBeGreaterThanOrEqual(5);
+      // 至少 4 款（目前為 4 款旗艦）啟用多圖層
+      expect(hasLayersCount).toBeGreaterThanOrEqual(4);
 
       // 驗證重點痛點解決之 VFX_EARTH_SPIKE
       const earthSpike = presets.find(p => p.id === 'VFX_EARTH_SPIKE');

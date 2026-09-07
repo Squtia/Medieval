@@ -2,6 +2,7 @@ import { VFXPreset } from '../../models/VFX';
 import { VFXStudioStore } from './VFXStudioStore';
 import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
+import { VFXTimelineEvaluator } from '../../ui/fx/VFXTimelineEvaluator';
 import { FrameTimelineEngine, FrameData } from './FrameTimelineEngine';
 import { TimelineView } from './timeline/TimelineView';
 import { TimelineSelection, SelectedTrackInfo } from './timeline/TimelineSelection';
@@ -38,7 +39,7 @@ export class VFXTimeline {
     this.store = VFXStudioStore.getInstance();
     this.fxEngine = CombatFXEngine.getInstance();
 
-    const initialDuration = Math.max(0.05, this.store.getPreset().duration || 0.5);
+    const initialDuration = Math.max(0.05, VFXTimelineEvaluator.getEffectivePresentationDuration(this.store.getPreset()));
     this.frameEngine = new FrameTimelineEngine(initialDuration, 60);
 
     this.selection = new TimelineSelection();
@@ -83,8 +84,12 @@ export class VFXTimeline {
     }
 
     this.unsubscribeStore = this.store.subscribe((preset) => {
-      if (preset.duration && preset.duration !== this.frameEngine.getDuration()) {
-        this.frameEngine.setDuration(preset.duration);
+      if (this.interaction && this.interaction.isDragging()) {
+        return; // 🛡️ 拖曳 Cue 或 Clip 期間禁止銷毀重繪 DOM，保護指針捕獲與連續拖曳流暢度
+      }
+      const effectiveDur = VFXTimelineEvaluator.getEffectivePresentationDuration(preset);
+      if (effectiveDur && effectiveDur !== this.frameEngine.getDuration()) {
+        this.frameEngine.setDuration(effectiveDur);
       }
       this.render(preset);
     });
@@ -186,7 +191,7 @@ export class VFXTimeline {
   }
 
   public render(preset: VFXPreset): void {
-    this.duration = Math.max(0.1, preset.duration || 0.4);
+    this.duration = Math.max(0.1, VFXTimelineEvaluator.getEffectivePresentationDuration(preset));
 
     const html = TimelineView.renderHTML({
       preset,

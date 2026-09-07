@@ -34,6 +34,35 @@ export interface CombatAction {
 }
 
 /**
+ * 🎯 解析單次戰鬥行動的主要受術/受擊目標 ID
+ * 嚴格隔離 SKILL_CAST 用於扣除自身 MP 的 targetId，防止攻擊技能目標誤指施法者自身
+ */
+export function resolveActionMainTargetId(action: CombatAction): string {
+  // 1. 優先從非 SKILL_CAST 的有效受擊/受傷/治療事件中尋找目標
+  const hitEv = action.events.find(e =>
+    e.type !== CombatEventType.SKILL_CAST &&
+    e.targetId &&
+    e.targetId !== action.actorId
+  );
+  if (hitEv?.targetId) return hitEv.targetId;
+
+  // 2. 次選從 SKILL_CAST 的 skillTargetId 尋找（若攻擊或治療他人）
+  const castWithSkillTarget = action.events.find(e => e.skillTargetId && e.skillTargetId !== action.actorId);
+  if (castWithSkillTarget?.skillTargetId) return castWithSkillTarget.skillTargetId;
+
+  // 3. 次選任意非 SKILL_CAST 事件的 targetId
+  const anyNonCastEv = action.events.find(e => e.type !== CombatEventType.SKILL_CAST && e.targetId);
+  if (anyNonCastEv?.targetId) return anyNonCastEv.targetId;
+
+  // 4. 若有明確 skillTargetId（包含指定自身的增益技能）
+  const anySkillTarget = action.events.find(e => e.skillTargetId);
+  if (anySkillTarget?.skillTargetId) return anySkillTarget.skillTargetId;
+
+  // 5. 若皆無，最後才退回第一個有 targetId 的事件或 actorId
+  return action.events.find(e => e.targetId)?.targetId || action.actorId;
+}
+
+/**
  * 🔍 即時戰鬥特效偵錯資訊 (Debug Overlay Info)
  */
 export interface CombatActionDebugInfo {
@@ -375,7 +404,7 @@ export class CombatActionPlayer {
   ): Promise<void> {
     const vfxId = action.vfxId || 'VFX_DEFAULT_SLASH';
     const preset = this.presetRepo.getPreset(vfxId);
-    const mainTargetId = action.events.find(e => e.targetId)?.targetId || '';
+    const mainTargetId = resolveActionMainTargetId(action);
 
     this.updateDebugOverlay({
       actionId: action.actionId,

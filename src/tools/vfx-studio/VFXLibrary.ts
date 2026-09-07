@@ -5,6 +5,38 @@ import { VFXStudioStore } from './VFXStudioStore';
 import { SKILL_VFX_MAP, SKILLS } from '../../data/SkillData';
 import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingRegistry';
 import { BasicAttackVfxRepository } from '../../systems/combat/BasicAttackVfxRepository';
+import { SkillVfxPickerModal } from './SkillVfxPickerModal';
+
+function deepEqual(a: any, b: any): boolean {
+  if (a === b) return true;
+  if (a == null || b == null) return false;
+  if (typeof a !== 'object' || typeof b !== 'object') return false;
+
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (!deepEqual(a[i], b[i])) return false;
+    }
+    return true;
+  }
+
+  const keysA = Object.keys(a).filter(k => a[k] !== undefined);
+  const keysB = Object.keys(b).filter(k => b[k] !== undefined);
+  if (keysA.length !== keysB.length) return false;
+  for (const key of keysA) {
+    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+    if (!deepEqual(a[key], b[key])) return false;
+  }
+  return true;
+}
+
+function isPresetDeepEqual(a: VFXPreset, b: VFXPreset): boolean {
+  if (!a || !b) return false;
+  const cleanA = VFXPresetRepository.sanitizePresetContent(a);
+  const cleanB = VFXPresetRepository.sanitizePresetContent(b);
+  return deepEqual(cleanA, cleanB);
+}
 
 export type VFXLibraryTab = 'ALL' | 'CASTER' | 'TRAJECTORY' | 'TARGET' | 'COMPOSITE';
 
@@ -92,17 +124,19 @@ export class VFXLibrary {
         <div class="lib-bound-skills-card" style="background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 6px; font-size: 0.72rem;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
             <span style="color: #94a3b8; font-weight: bold;">🔗 綁定技能 (${boundSkills.length})</span>
-            <span style="color: #38bdf8; font-size: 0.65rem;">模式: ${boundSkills[0]?.impactPresentationMode || 'EXACT_IMPACTS'}</span>
+            <button id="lib-btn-open-picker-quick" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; border-radius: 3px; padding: 1px 6px; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="開啟全領域技能卡片選取中心">
+              🎴 卡片指派
+            </button>
           </div>
           ${boundSkills.length > 0 ? `
             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
               ${boundSkills.map(b => `
-                <span class="lib-skill-badge" data-skill-id="${b.skillId}" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 1px 5px; border-radius: 3px; font-size: 0.66rem; user-select: none;" title="引用特效: ${b.vfxId}">
+                <span class="lib-skill-badge" data-skill-id="${b.skillId}" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 1px 5px; border-radius: 3px; font-size: 0.66rem; cursor: pointer;" title="點擊檢視/更換技能綁定">
                   ${b.skillId}
                 </span>
               `).join('')}
             </div>
-          ` : '<span style="color: #64748b; font-size: 0.68rem;">(尚未被任何技能直接引用)</span>'}
+          ` : '<span style="color: #64748b; font-size: 0.68rem;">(尚未被任何技能直接引用，點擊上方指派)</span>'}
         </div>
 
         <!-- 🚀 發布至專案核心 SSOT -->
@@ -116,11 +150,18 @@ export class VFXLibrary {
         </div>
 
         <!-- 🔗 技能與普攻整合獨立折疊區 (解耦創作面板) -->
-        <details style="background: #111827; border: 1px solid #1f2937; border-radius: 4px; padding: 6px; margin-top: 6px;">
+        <details open style="background: #111827; border: 1px solid #1f2937; border-radius: 4px; padding: 6px; margin-top: 6px;">
           <summary style="font-size: 0.75rem; color: #fbbf24; cursor: pointer; font-weight: bold;">
             ⚔️ 技能與普攻綁定管理
           </summary>
           <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 6px; font-size: 0.72rem;">
+            <!-- 🎴 技能卡片綁定核心按鈕 -->
+            <button id="lib-btn-open-skill-picker" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #000; font-weight: 700; border: 1px solid #fbbf24; border-radius: 4px; padding: 6px 8px; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);">
+              🎴 開啟技能卡片綁定中心
+            </button>
+
+            <div style="height: 1px; background: #1f2937; margin: 2px 0;"></div>
+
             <label style="color: #9ca3af;">綁定當前特效至武器普攻：</label>
             <select id="lib-attack-target-select" style="background: #1f2937; border: 1px solid #374151; color: #e5e7eb; padding: 3px 6px; border-radius: 4px; font-size: 0.72rem;">
               <option value="GREATSWORD">⚔️ 巨劍 (GREATSWORD / 戰士)</option>
@@ -289,32 +330,33 @@ export class VFXLibrary {
         });
         const data = await resp.json();
         if (!data.success) {
-          throw new Error(data.error || '伺服器錯誤');
+          const detailStr = Array.isArray(data.details) && data.details.length > 0 ? '\n' + data.details.slice(0, 8).join('\n') : '';
+          throw new Error((data.error || '伺服器錯誤') + detailStr);
         }
 
-        // 3. 重新讀回驗證資料閉環 (Readback Verification)
-        let readBackOk = false;
-        try {
-          const getResp = await fetch('/api/get-vfx-presets');
-          if (getResp.ok) {
-            const serverPresets: VFXPreset[] = await getResp.json();
-            const matching = serverPresets.find(p => p.id === current.id);
-            if (matching && matching.colorCore === current.colorCore && matching.duration === current.duration) {
-              readBackOk = true;
-              this.repo.reloadPresets(serverPresets);
-            }
-          }
-        } catch {
-          readBackOk = true;
+        // 3. 重新讀回驗證資料閉環 (Readback Verification & Deep Equality Check)
+        const getResp = await fetch('/api/get-vfx-presets');
+        if (!getResp.ok) {
+          throw new Error(`伺服器回讀失敗 (HTTP ${getResp.status})`);
+        }
+        const serverPresets: VFXPreset[] = await getResp.json();
+        if (!Array.isArray(serverPresets)) {
+          throw new Error('伺服器回讀資料格式錯誤 (非陣列)');
+        }
+        const matching = serverPresets.find(p => p.id === current.id);
+        if (!matching) {
+          throw new Error(`伺服器回讀資料中找不到目前預設 [${current.id}]`);
         }
 
-        if (readBackOk) {
-          alert(`✅ 已成功發布 ${data.count} 款特效至專案 SSOT (src/data/vfx_presets.json)！\n歷史快照：${data.snapshot}`);
-          if (btn) btn.textContent = '✅ 已發布！';
-          this.store.setDirty(false);
-        } else {
-          throw new Error('伺服器回讀資料比對不一致');
+        const isMatch = isPresetDeepEqual(current, matching);
+        if (!isMatch) {
+          throw new Error('伺服器回讀資料與當前草稿深層比對不一致 (Layer、Cue 或屬性未同步寫入磁碟)');
         }
+
+        this.repo.reloadPresets(serverPresets);
+        alert(`✅ 已成功發布 ${data.count} 款特效至專案 SSOT (src/data/vfx_presets.json)！\n歷史快照：${data.snapshot}`);
+        if (btn) btn.textContent = '✅ 已發布！';
+        this.store.setDirty(false);
       } catch (err: any) {
         if (typeof navigator !== 'undefined' && navigator.clipboard) {
           navigator.clipboard.writeText(JSON.stringify(all, null, 2));
@@ -345,6 +387,20 @@ export class VFXLibrary {
         msg.textContent = `✅ 已將【${weapon}】普攻綁定為【${current.name || current.id}】！`;
         setTimeout(() => { msg.style.display = 'none'; }, 3000);
       }
+    });
+
+    // 6.5 開啟全領域技能卡片選取中心 Modal
+    const openSkillPickerHandler = () => {
+      const current = this.store.getPreset();
+      SkillVfxPickerModal.getInstance().open(current.id, current.name, () => {
+        this.render();
+      });
+    };
+
+    this.container.querySelector('#lib-btn-open-skill-picker')?.addEventListener('click', openSkillPickerHandler);
+    this.container.querySelector('#lib-btn-open-picker-quick')?.addEventListener('click', openSkillPickerHandler);
+    this.container.querySelectorAll('.lib-skill-badge').forEach(badge => {
+      badge.addEventListener('click', openSkillPickerHandler);
     });
 
     // 7. 還原普攻

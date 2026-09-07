@@ -57,7 +57,15 @@ export class VFXStage {
       });
     }
 
-    // 視窗大小改變時重繪輔助線
+    // 視窗或舞台容器大小改變時即時重繪輔助線 (支援多圖層時間軸展開/收合自適應)
+    if (typeof ResizeObserver !== 'undefined' && this.viewportEl) {
+      const ro = new ResizeObserver(() => {
+        if (this.guidesEnabled) {
+          this.renderGuides();
+        }
+      });
+      ro.observe(this.viewportEl);
+    }
     window.addEventListener('resize', () => {
       if (this.guidesEnabled) {
         this.renderGuides();

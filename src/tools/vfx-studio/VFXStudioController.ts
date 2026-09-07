@@ -7,6 +7,7 @@ import { CombatFXEngine, ScreenPoint } from '../../ui/fx/CombatFXEngine';
 import { VFXStudioAdapter } from '../../ui/fx/VFXPlayer';
 import { createLcgRng } from '../../ui/fx/VFXRng';
 import { VFXPreset, VFXImpactCue, getTrajectorySpatialAnchor, calculateSpatialPoint, calculateCasterMotionOffset } from '../../models/VFX';
+import { VFXTimelineEvaluator } from '../../ui/fx/VFXTimelineEvaluator';
 
 /**
  * 🎮 VFXStudioController
@@ -83,10 +84,11 @@ export class VFXStudioController {
       this.inspector.setContextualTarget(trackInfo);
     });
 
-    // ⚡ 當 Preset 參數變更時，若時長有改則同步更新 FrameTimelineEngine，並檢查草稿暫存狀態
+    // ⚡ 當 Preset 參數變更時，若有效演示時長有改則同步更新 FrameTimelineEngine，並檢查草稿暫存狀態
     this.store.subscribe((preset) => {
-      if (preset.duration && preset.duration !== frameEngine.getDuration()) {
-        frameEngine.setDuration(preset.duration);
+      const effectiveDur = VFXTimelineEvaluator.getEffectivePresentationDuration(preset);
+      if (effectiveDur && effectiveDur !== frameEngine.getDuration()) {
+        frameEngine.setDuration(effectiveDur);
       }
       this.renderStudioFrameAt(frameEngine.getCurrentTime());
       this.updateBenchmarkMarkerAt(frameEngine.getCurrentTime(), frameEngine.getCurrentFrame(), frameEngine.getTotalFrames());
@@ -104,6 +106,13 @@ export class VFXStudioController {
     this.syncStashButtonUI();
     this.renderStudioFrameAt(0);
     this.updateBenchmarkMarkerAt(0, 0, frameEngine.getTotalFrames());
+
+    // 🌟 核心：監聽舞台容器尺寸動態變更（多圖層展開/收合），即時重新求值渲染，徹底消除跑位
+    this.studioAdapter.getFxEngine().onResize(() => {
+      this.renderStudioFrameAt(frameEngine.getCurrentTime());
+      this.updateBenchmarkMarkerAt(frameEngine.getCurrentTime(), frameEngine.getCurrentFrame(), frameEngine.getTotalFrames());
+      this.stage.renderGuides();
+    });
 
     if (typeof window !== 'undefined') {
       (window as any).__FX_ENGINE__ = CombatFXEngine.getInstance();
