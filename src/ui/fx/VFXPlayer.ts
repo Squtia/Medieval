@@ -5,6 +5,7 @@ import { MeshLayerRenderer } from './renderers/MeshLayerRenderer';
 import { ParticleLayerRenderer } from './renderers/ParticleLayerRenderer';
 import { ImpactLayerRenderer } from './renderers/ImpactLayerRenderer';
 import { PlaybackClock } from './PlaybackClock';
+import { defaultVfxRng } from './VFXRng';
 
 export interface ScreenPoint {
   x: number;
@@ -42,6 +43,8 @@ export class VFXPlayer {
   protected scheduler: VFXScheduler = new VFXScheduler();
   protected playbackClock: VFXScheduler;
   protected sessionRng: (() => number) | null = null;
+  protected rafId: number | null = null;
+  protected boundResize = () => this.resize();
 
   constructor() {
     this.playbackClock = this.scheduler;
@@ -86,7 +89,11 @@ export class VFXPlayer {
   }
 
   public mount(container: HTMLElement): void {
-    if (this.container === container) return;
+    if (this.container === container && this.canvas && this.canvas.parentNode === container) return;
+
+    // 🛡️ Phase 5：若 Canvas 仍殘留在舊容器中，先安全自 DOM 移除
+    this.safeRemoveCanvas();
+
     this.container = container;
     const canvas = this.renderer.domElement;
     this.canvas = canvas;
@@ -103,7 +110,8 @@ export class VFXPlayer {
     this.resize();
 
     if (typeof window !== 'undefined') {
-      window.addEventListener('resize', () => this.resize());
+      window.removeEventListener('resize', this.boundResize);
+      window.addEventListener('resize', this.boundResize);
     }
     this.startLoop();
   }
@@ -136,7 +144,7 @@ export class VFXPlayer {
   }
 
   public getRandom(): number {
-    return this.sessionRng ? this.sessionRng() : Math.random();
+    return this.sessionRng ? this.sessionRng() : defaultVfxRng();
   }
 
   public getScheduler(): VFXScheduler {
@@ -199,7 +207,7 @@ export class VFXPlayer {
 
     const animate = (time: number) => {
       if (!this.isRunning) return;
-      requestAnimationFrame(animate);
+      this.rafId = requestAnimationFrame(animate);
 
       const rawDelta = Math.min((time - this.lastTime) / 1000, 0.1);
       this.lastTime = time;
@@ -221,7 +229,55 @@ export class VFXPlayer {
     };
 
     if (typeof requestAnimationFrame !== 'undefined') {
-      requestAnimationFrame(animate);
+      this.rafId = requestAnimationFrame(animate);
+    }
+  }
+
+  /**
+   * 🛑 終止主動畫循環 (Cancel RAF)
+   */
+  public stopLoop(): void {
+    this.isRunning = false;
+    if (this.rafId !== null && typeof cancelAnimationFrame !== 'undefined') {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+  }
+
+  protected safeRemoveCanvas(): void {
+    if (this.canvas && this.canvas.parentNode) {
+      if (typeof (this.canvas as any).remove === 'function') {
+        (this.canvas as any).remove();
+      } else if (this.canvas.parentNode && typeof (this.canvas.parentNode as any).removeChild === 'function') {
+        (this.canvas.parentNode as any).removeChild(this.canvas);
+      }
+    }
+  }
+
+  /**
+   * 🔌 卸載畫布與監聽器 (保持引擎內部狀態，供重掛載)
+   */
+  public unmount(): void {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', this.boundResize);
+    }
+    this.safeRemoveCanvas();
+    this.container = null;
+  }
+
+  /**
+   * 🧹 冪等銷毀整個播放器 (釋放 WebGL 與全域事件)
+   */
+  public destroy(): void {
+    this.stopLoop();
+    this.clear();
+    this.unmount();
+    if (this.renderer) {
+      try {
+        this.renderer.dispose();
+      } catch (e) {
+        // ignore
+      }
     }
   }
 
@@ -231,6 +287,43 @@ export class VFXPlayer {
 
   public getScene(): THREE.Scene {
     return this.scene;
+  }
+
+  /**
+   * 📊 取得效能與品質預算監控指標 (Quality Budget Metrics)
+   * 公開安全的 Draw Calls、Triangles、場景粒子與子物件計數，杜絕外部私有存取破壞封裝
+   */
+  public getPerformanceMetrics(): {
+    drawCalls: number;
+    triangles: number;
+    activeParticles: number;
+    activeChildCount: number;
+  } {
+    let drawCalls = 0;
+    let triangles = 0;
+    if (this.renderer && this.renderer.info && this.renderer.info.render) {
+      drawCalls = this.renderer.info.render.calls || 0;
+      triangles = this.renderer.info.render.triangles || 0;
+    }
+
+    let activeParticles = 0;
+    let activeChildCount = 0;
+
+    if (this.scene && this.scene.children) {
+      activeChildCount = this.scene.children.length;
+      for (const child of this.scene.children) {
+        if ((child as any).isPoints && (child as any).geometry?.attributes?.position) {
+          activeParticles += (child as any).geometry.attributes.position.count || 0;
+        }
+      }
+    }
+
+    return {
+      drawCalls,
+      triangles,
+      activeParticles,
+      activeChildCount
+    };
   }
 }
 
@@ -246,4 +339,7 @@ export { CombatActionPlayer, mapImpactsToCues, type CombatAction, type CombatImp
 export { MeshLayerRenderer } from './renderers/MeshLayerRenderer';
 export { ParticleLayerRenderer } from './renderers/ParticleLayerRenderer';
 export { ImpactLayerRenderer } from './renderers/ImpactLayerRenderer';
+export { TrailLayerRenderer, type TrailInstance } from './renderers/TrailLayerRenderer';
+export { ScreenFxRenderer, type ScreenShakeOptions } from './renderers/ScreenFxRenderer';
+export { AudioLayerRenderer, type AudioPlayOptions, type AudioPlayHandler } from './renderers/AudioLayerRenderer';
 export { VFXScheduler } from './VFXScheduler';

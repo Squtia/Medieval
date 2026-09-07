@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "composite": true,
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -10,5 +9,5 @@
     "lib": ["ESNext"],
     "types": ["node"]
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "src/ui/fx/VFXPresetValidator.ts", "src/models/VFX.ts"]
 }

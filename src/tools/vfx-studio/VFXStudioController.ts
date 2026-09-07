@@ -5,6 +5,7 @@ import { VFXLibrary } from './VFXLibrary';
 import { VFXStage } from './VFXStage';
 import { CombatFXEngine, ScreenPoint } from '../../ui/fx/CombatFXEngine';
 import { VFXStudioAdapter } from '../../ui/fx/VFXPlayer';
+import { createLcgRng } from '../../ui/fx/VFXRng';
 import { VFXPreset, VFXImpactCue, getTrajectorySpatialAnchor, calculateSpatialPoint, calculateCasterMotionOffset } from '../../models/VFX';
 
 /**
@@ -121,7 +122,15 @@ export class VFXStudioController {
     const preset = this.store.getPreset();
     // 🌟 嚴格遵照文件 Phase 1：播放新特效前徹底清除舊粒子、回調與幾何體，保證零殘留
     this.studioAdapter.clear();
-    CombatFXEngine.getInstance().clearStudioPreview();
+    const engine = CombatFXEngine.getInstance();
+    engine.clearStudioPreview();
+
+    // 🎲 Phase 3：固定 Seed 控制確定性渲染
+    if (this.store.getIsFixedSeed()) {
+      engine.setSessionRng(createLcgRng(this.store.getFixedSeedValue()));
+    } else {
+      engine.setSessionRng(null);
+    }
 
     if (this.stage.isAOE()) {
       this.studioAdapter.playMultiTarget(preset);
@@ -281,10 +290,31 @@ export class VFXStudioController {
     btnRedo?.addEventListener('click', () => this.store.redo());
 
     // 固定 Seed
-    const chkSeed = document.getElementById('chk-fixed-seed') as HTMLInputElement;
+    const chkSeed = document.getElementById('chk-fixed-seed') as HTMLInputElement | null;
+    const seedGroup = document.getElementById('seed-control-group');
+    const seedDisplay = document.getElementById('seed-display');
+    const btnRerollSeed = document.getElementById('btn-reroll-seed');
+
+    const updateSeedUI = () => {
+      const isFixed = this.store.getIsFixedSeed();
+      if (chkSeed) chkSeed.checked = isFixed;
+      if (seedGroup) seedGroup.style.display = isFixed ? 'inline-flex' : 'none';
+      if (seedDisplay) seedDisplay.textContent = `#${this.store.getFixedSeedValue()}`;
+    };
+
     chkSeed?.addEventListener('change', (e) => {
       this.store.setFixedSeed((e.target as HTMLInputElement).checked);
+      updateSeedUI();
+      this.playNativeEffect();
     });
+
+    btnRerollSeed?.addEventListener('click', () => {
+      this.store.rerollFixedSeed();
+      updateSeedUI();
+      this.playNativeEffect();
+    });
+
+    updateSeedUI();
 
     // 🔙 返回暫存草稿按鈕
     const btnReturnStash = document.getElementById('btn-return-stash');
@@ -349,32 +379,13 @@ export class VFXStudioController {
 
     this.hudBudgetTimer = setInterval(() => {
       const fxEngine = CombatFXEngine.getInstance();
-      const scene = (fxEngine as any).scene;
-      const renderer = (fxEngine as any).renderer;
       const currentPreset = this.store.getPreset();
 
       const isCompositeOrAOE = (currentPreset.layers && currentPreset.layers.length > 0) || this.stage.isAOE();
       const budgetMaxCalls = isCompositeOrAOE ? 70 : 35;
       const budgetMaxParticles = isCompositeOrAOE ? 600 : 250;
 
-      let drawCalls = 0;
-      let triangles = 0;
-      if (renderer && renderer.info && renderer.info.render) {
-        drawCalls = renderer.info.render.calls || 0;
-        triangles = renderer.info.render.triangles || 0;
-      }
-
-      let activeParticles = 0;
-      let activeChildCount = 0;
-
-      if (scene && scene.children) {
-        activeChildCount = scene.children.length;
-        for (const child of scene.children) {
-          if (child.isPoints && child.geometry?.attributes?.position) {
-            activeParticles += child.geometry.attributes.position.count || 0;
-          }
-        }
-      }
+      const { drawCalls, triangles, activeParticles, activeChildCount } = fxEngine.getPerformanceMetrics();
 
       const isOverBudget = drawCalls > budgetMaxCalls || activeParticles > budgetMaxParticles;
 

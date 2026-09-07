@@ -1,3 +1,88 @@
+- **[Refactor/CombatVFX/Phase7TimelineDecouplingAndFacade] 特效工房「Phase 7 時間軸巨型檔案拆分與高內聚 Facade 重構」完工交接（2026-09-07）**：
+  - **核心交接重點**：
+    1. **時間軸巨型檔案徹底解耦 (VFXTimeline Modularization)**：
+       - 將原本 1190 行的 `src/tools/vfx-studio/VFXTimeline.ts` 拆分為四大單一職責模組（位於 `src/tools/vfx-studio/timeline/`）：
+         - `TimelineView.ts`：尺規刻度、主軌、次生圖層、打擊判定軌、Cue 菱形 Marker 與播放頭 HTML 渲染。
+         - `TimelineInteraction.ts`：播放頭 Scrubbing、Cue 拖曳/刪除/新增交易、Clip 拖曳移動（`delay`）與右緣 Handle 拉伸（`duration`）。
+         - `TimelineCommands.ts`：Cue 與圖層增刪更新、軌道 Solo / Mute / Lock 與打擊展示模式業務指令。
+         - `TimelineSelection.ts`：選取狀態管理，連動外部 Inspector 檢查器。
+       - `VFXTimeline.ts` 收斂為 180 行高內聚 Facade，全面保留外部調度與測試合約（`onSelectCue`, `onSelectTrack`, `getFrameEngine`, `onScrubStart`, `onScrub`, `onScrubEnd`, `onPlayPauseToggle`, `seekTo`, `updateFrameUI`, `updatePlayhead`, `render`, `destroy`）。
+    2. **消除私有欄位反射存取與公開品質指標 (Quality Budget Metrics API)**：
+       - 在 `src/ui/fx/VFXPlayer.ts` 實裝公開方法 `getPerformanceMetrics()`，返回安全的 `drawCalls`, `triangles`, `activeParticles`, `activeChildCount`。
+       - 消除 `VFXStudioController.ts` 中的 `(fxEngine as any).scene` 與 `(fxEngine as any).renderer` 私有欄位強制存取。
+    3. **播放速度管線一致性 (Playback Speed Pipeline Coherence)**：
+       - `FrameTimelineEngine.ts` 之 `setSpeed(speed)` 同步串接至 `this.scheduler.setSpeed(this.speed)`，使排程器與時間軸影格步進完全同調。
+       - `VFXStudioStore.ts` 增設 `toggleTrackMute`，保持軌道 Mute 與 Solo / Lock 同步受通知機制保護。
+    4. **驗收狀態**：
+       - 單元測試：全專案 57 個測試檔案、324 項單元測試 100% 全部通過。
+       - 視窗布局與壓力測試：`npm run test:vfx`（4 大解析度零溢出 + 100 次連續循環浸泡測試零洩漏）100% 全部通過。
+       - TypeScript 編譯：`npm run typecheck` 0 錯誤。
+
+- **[Fix/CombatVFX/Phase0To6CanonicalSchemaAndClosedLoop] 特效工房「Phase 0~6 SSOT 發布閉環、DAG 圖層防護、確定性隨機、獨立實例隔離、完整生命週期與 Canonical VFXSequence 雙向轉譯」完工交接（2026-09-07）**：
+  - **核心交接重點**：
+    1. **Canonical VFXSequence 規範收斂與雙向轉譯 (Phase 6)**：
+       - 嚴格落地方案 1：將 `VFXSequence` (Schema v2) 作為正式標準模型，徹底消除 `VFXClip.layer?: any` 與 `curves?: any`，以型別安全的 Discriminated Union `VFXClipPayload` 涵蓋 MESH, PARTICLE, IMPACT, SCREEN_FX, AUDIO, COMPOSITE_LAYER。
+       - 實裝雙向無損轉譯器：`migrateLegacyPreset` (升級為 Sequence) 與 `sequenceToLegacyPreset` (還原為 Runtime Preset)，經 30 款正式 Preset 雙向 Roundtrip 嚴密測試，數值與演出合約 100% 保持一致，零失真。
+       - `VFXPresetRepository.sanitizePresetContent`：實現內容數據與 Editor Session State (Solo, Mute, Selection, Lock) 嚴格解耦，持久化庫絕不殘留 UI 暫態。
+    2. **發布交易閉環 (Publish & Readback Transaction)**：
+       - `VFXPresetRepository.ts` 提供 `upsertDraft(preset)`，保證點擊發布時將畫面草稿寫入快取。
+       - `VFXLibrary.ts` 完整串通：草稿取用 ➔ 前端驗證 ➔ 寫回 Repo ➔ POST 發布 ➔ GET 回讀比對 ➔ 比對一致解除 Dirty。切換預設下拉選單支援 confirm 攔截，未保存草稿不再被靜默覆寫。
+    3. **共用驗證器與圖層 DAG 環路防線 (Unified Validator & DAG Defense)**：
+       - `VFXPresetValidator.ts` 擴充圖層延遲、時長、存在性、自我引用與循環引用（Cycle Detection，限制深度 <= 8）。
+       - `vite.config.ts` 開發伺服器全面委派至 `VFXPresetValidator.validatePresetList`，達成前後端 100% 驗證規格合一。
+       - `CombatFXEngine.playPresetWorld` 增設遞迴防線（`visitedPresetIds`，深度上限 8），徹底免疫運行時堆疊溢位崩潰。
+    4. **確定性隨機與種子 UI 貫通 (Deterministic PRNG & Controlled Seed UI)**：
+       - 建立 `src/ui/fx/VFXRng.ts`，徹底掃除核心渲染路徑散落之原生 `Math.random()`（粒子爆散、拖尾抖動、次生晶刺、地裂高度偏移）。
+       - 工房頂部工具列提供確定性 Seed 數字顯示、自訂與「🎲 換種子 (Reroll)」功能，與 `CombatFXEngine.setSessionRng` 實質連動。
+    5. **獨立 Effect Instance 與多目標 AOE 隔離 (VFXEffectInstance & AOE Isolation)**：
+       - 建立 `VFXEffectInstance.ts` 與 `VFXInstanceRegistry`，每次播放建立獨立 root group 與 track groups，並限定最多 32 個活躍實例超額自動降級。
+       - 單一特效完成時透過 `disposeTrackGroup` 僅釋放自身 Geometry/Material/Texture 與快取，`clearStudioPreview()` 僅清除工坊預覽群組，徹底解耦戰鬥實例。
+       - `CombatStageAdapter.ts` 實裝多目標 AOE 空間打擊分離，確保每位受擊目標各自具備獨立 3D 爆散火花與受擊反饋。
+    6. **完整生命週期與資源管理 (Complete Lifecycle & Zero Leak)**：
+       - `VFXPlayer` 實裝 RAF ID 保存與 `stopLoop()`，避免不可控動畫幀殘留。
+       - 具名 `boundResize` 監聽器解除、`safeRemoveCanvas()` 容器遷移安全防護、各主模組具備冪等 `destroy()` 方法。
+       - 定時器完成即時自 `scheduledTimers` 移除，徹底根治 ID 句柄殘留洩漏。
+    7. **驗收狀態**：
+       - 單元測試：全專案 57 個測試檔案、324 項單元測試 100% 全部通過。
+       - 視窗布局與壓力測試：`npm run test:vfx`（4 大解析度零溢出 + 100 次連續循環浸泡測試零洩漏）100% 全部通過。
+       - TypeScript 編譯：`npm run typecheck` 0 錯誤。
+
+- **[Refactor/CombatVFX/Phase2TimelineEvaluatorDecoupling] 特效工房「Phase 2 特效業務邏輯與節奏排程解耦」完工交接（2026-09-07）**：
+  - **核心交接重點**：
+    1. **純邏輯時間軸求值器 (VFXTimelineEvaluator)**：
+       - `VFXTimelineEvaluator.ts` 封裝純函數時間序列演算法，杜絕任何 DOM 與 WebGL 渲染耦合：
+         - `evaluateSalvoTimings`：精準求值 4 種節奏曲線（`LINEAR`、`ACCELERATE`、`DECELERATE`、`BURST_PAIRS`），嚴格輸出單調遞增時間序列。
+         - `resolveImpactCues`：具名 Impact Cue 提取；無 Cue 時依連擊段數展開標準化 Fallback Cues 並標註 `isPrimary`，徹底消除雙軌制分支。
+         - `resolveCompositeLayers`：安全解析複合圖層延遲、軌跡覆蓋與著色器繼承，過濾靜音圖層並防止遞迴。
+         - `calculateHitFeedback`：計算前段輕顫與終擊重震之受擊回饋參數。
+    2. **主引擎調度管線全面瘦身 (CombatFXEngine Integration)**：
+       - `CombatFXEngine.ts` 中的 `playPresetWorld` 全面委派至 `VFXTimelineEvaluator`，消除了原本散落重複的連擊迴圈與圖層解析代碼，核心排程邏輯簡明清晰。
+    3. **驗收狀態**：
+       - 單元測試：`src/ui/fx/VFXTimelineEvaluator.test.ts`（12 項單元測試 100% 通過）。
+       - 全專案單元測試：51 個測試檔案、305 項測試 100% 全部 PASS。
+       - 視窗布局與壓力測試：`npm run test:vfx`（4 大解析度零溢出 + 100 次連續循環浸泡測試零洩漏）100% PASS。
+       - TypeScript 編譯：`npm run typecheck` 0 錯誤。
+
+- **[Refactor/CombatVFX/Phase1DecoupleGeometryAndLayoutFix] 特效工房「Phase 1 特效渲染器解耦與工坊多視窗布局修復」完工交接（2026-09-07）**：
+  - **核心交接重點**：
+    1. **幾何與特效渲染器解耦 (Layer Renderers Decoupling)**：
+       - 專職渲染層全面成型：
+         - `MeshLayerRenderer`：幾何體生成（刀光網格、次生冰刺/尖岩、聖盾、戰吼音波、光柱）。
+         - `ParticleLayerRenderer`：粒子爆散（受擊星芒爆散、放射性粒子）。
+         - `TrailLayerRenderer`：點雲拖尾、雷擊電弧、能量光束、弓兵拋物齊射。
+         - `ImpactLayerRenderer`：2.5D 受擊光環擴散衝擊波。
+         - `ScreenFxRenderer`：受擊畫面閃光、螢幕震動與目標卡牌震顫全部統一委派，消除直接以 inline style 侵入 DOM 的歷史舊代碼。
+       - `CombatFXEngine.ts` 從 2700+ 行大幅精簡至 1686 行，消除了 1000+ 行重複幾何建構與冗餘材質邏輯。
+    2. **工坊 768px 工具列響應式布局溢出修復 (Responsive Layout Overflow Fix)**：
+       - 修復 `tools/vfx-studio.html` 在 768x900 視窗下頂部工具列超寬 2px（770px vs 768px）問題。
+       - 在 `src/styles/vfx-studio.css` 之 `@media (max-width: 768px)` 中調校 gap/padding 並設定 `overflow-x: hidden`。
+       - `scripts/verify-vfx-studio-layout.mjs` 自動化驗證 4 個常見 Viewport（1440x900, 1280x720, 1024x768, 768x900）100% PASS，零水平溢出、零 DOM 洩漏。
+    3. **驗收狀態**：
+       - 壓力測試：`npm run test:vfx:soak` 100 循環連續播放浸泡測試 100% PASS（Canvas 恆為 1、WebGL Context 穩定、零錯誤）。
+       - 布局驗證：`npm run test:vfx:layout` 4 大視窗 100% PASS。
+       - 戰鬥與特效單元測試：19 個測試檔案、147 項單元測試 100% PASS。
+       - TypeScript 編譯：`npm run typecheck` 0 錯誤。
+
 - **[Feature/CombatVFX/Phase3Phase4TrackControlsAndContextualInspector] 特效工房「Phase 3 & Phase 4 軌道專業控制項 (Solo/Lock) 與情境式 Inspector 動態收合」完工交接（2026-09-06）**：
   - **核心交接重點**：
     1. **時間軸軌道控制項 (Track Controls: Solo & Lock)**：

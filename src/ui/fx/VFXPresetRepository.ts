@@ -147,6 +147,48 @@ export class VFXPresetRepository {
   }
 
   /**
+   * 🧹 剔除 Editor Session 暫態 (如 Solo, Mute, Selection, Lock)，確保持久化資料純淨
+   */
+  public static sanitizePresetContent(preset: VFXPreset): VFXPreset {
+    const sanitized: any = { ...preset };
+    delete sanitized._mainTrackMuted;
+    delete sanitized._trackMuteStates;
+    delete sanitized._selected;
+    delete sanitized.solo;
+    delete sanitized.locked;
+
+    if (Array.isArray(sanitized.layers)) {
+      sanitized.layers = sanitized.layers.map((l: any) => {
+        const cleanL = { ...l };
+        delete cleanL._selected;
+        delete cleanL.solo;
+        delete cleanL.locked;
+        return cleanL;
+      });
+    }
+
+    return sanitized as VFXPreset;
+  }
+
+  /**
+   * 📝 將編輯器最新草稿寫回 Repository，使其在組裝發布清單時生效
+   */
+  public upsertDraft(preset: VFXPreset): { success: boolean; error?: string } {
+    if (!preset || !preset.id) {
+      return { success: false, error: '草稿無效或缺少 ID' };
+    }
+    const cleanPreset = VFXPresetRepository.sanitizePresetContent(preset);
+    if (this.builtInMap.has(cleanPreset.id)) {
+      this.overrideMap.set(cleanPreset.id, cleanPreset);
+    } else {
+      this.customMap.set(cleanPreset.id, cleanPreset);
+    }
+    this.saveToStorage();
+    this.rebuildResolvedMap();
+    return { success: true };
+  }
+
+  /**
    * 儲存或更新自訂 Preset
    */
   public saveCustomPreset(preset: VFXPreset): { success: boolean; error?: string } {

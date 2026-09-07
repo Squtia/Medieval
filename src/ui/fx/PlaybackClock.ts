@@ -37,6 +37,22 @@ export class PlaybackClock {
     this.duration = Math.max(0.01, duration);
   }
 
+  /**
+   * 🛡️ 並行時鐘安全擴充：若當前時鐘有未完成任務或正在推進中，維持最大時長避免短特效截斷長特效
+   */
+  public extendDuration(duration: number): void {
+    const validDur = Math.max(0.01, duration);
+    if (this.hasActiveTasks() || (this.currentTime > 0 && this.currentTime < this.duration)) {
+      this.duration = Math.max(this.duration, validDur);
+    } else {
+      this.duration = validDur;
+    }
+  }
+
+  public hasActiveTasks(): boolean {
+    return this.tasks.some(t => !t.fired && !t.cancelled);
+  }
+
   public getDuration(): number {
     return this.duration;
   }

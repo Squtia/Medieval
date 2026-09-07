@@ -1,0 +1,109 @@
+import { describe, it, expect, vi } from 'vitest';
+import { CombatFXEngine } from './CombatFXEngine';
+import { VFXPreset } from '../../models/VFX';
+import * as THREE from 'three';
+
+describe('VFXConcurrentPlayback - Phase 0 失敗案例驗證 (並行播放與多目標 AOE 隔離)', () => {
+  const createTestPreset = (id: string, duration: number): VFXPreset => ({
+    id,
+    name: `測試預設 ${id}`,
+    category: 'PHYSICAL',
+    description: '測試並行時鐘與隔離',
+    trajectory: 'MELEE_SWEEP',
+    shaderMode: 'SLASH_BLADE',
+    colorCore: '#ffffff',
+    colorRim: '#f59e0b',
+    duration,
+    scale: 1,
+    spin: 0,
+    fresnel: 1,
+    trailCount: 10,
+    trailSize: 5,
+    spikes: 0,
+    spikeHeight: 0,
+    burstCount: 10,
+    bloomStr: 1,
+    bloomRad: 0.5,
+    bloomThresh: 0.2,
+    impact: {
+      hitStopTime: 30,
+      targetPunchScale: 0.9,
+      shakeIntensity: 5,
+      shakeDuration: 0.2,
+      penetrationDistance: 0,
+      knockbackDistance: 0,
+      hitFlashColor: '#ffffff',
+      screenShake: false
+    },
+    layers: []
+  });
+
+  it('🔴 缺陷 1：兩個不同 Duration 的 Effect 同時播放時，第二個 Effect 不得篡改第一個 Effect 的時鐘長度', async () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    const clock = fxEngine.getPlaybackClock();
+
+    const longPreset = createTestPreset('VFX_LONG', 2.0);
+    const shortPreset = createTestPreset('VFX_SHORT', 0.4);
+
+    const caster = new THREE.Vector3(0, 0, 0);
+    const target1 = new THREE.Vector3(100, 0, 0);
+    const target2 = new THREE.Vector3(200, 0, 0);
+
+    // 1. 同時啟動長特效與短特效 (例如隊友與敵人同時施法，或連擊並行)
+    const p1 = fxEngine.playPresetWorld(longPreset, caster, target1);
+    const p2 = fxEngine.playPresetWorld(shortPreset, caster, target2);
+
+    // ⚠️ 預期在此紅燈：目前 CombatFXEngine 內部共用單一 this.playbackClock，
+    // 第二個 shortPreset 的 playPresetWorld 直接呼叫了 this.playbackClock.setDuration(0.4)，
+    // 導致全局時鐘的 duration 被縮減為 0.4s，原本 2.0s 的長特效被強制截斷！
+    expect(clock.getDuration()).toBe(2.0);
+
+    await Promise.all([p1, p2]);
+  });
+
+  it('🛡️ 獨立 Effect Instance 與隔離保護：clearStudioPreview 不得清除戰鬥 instance', async () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    const registry = fxEngine.getInstanceRegistry();
+
+    const longPreset = createTestPreset('VFX_ISOLATED_LONG', 1.5);
+    const caster = new THREE.Vector3(0, 0, 0);
+    const target = new THREE.Vector3(100, 0, 0);
+
+    const playPromise = fxEngine.playPresetWorld(longPreset, caster, target);
+    expect(registry.getActiveCount()).toBeGreaterThan(0);
+
+    // 工房或外部呼叫 clearStudioPreview()
+    fxEngine.clearStudioPreview();
+
+    // 驗證戰鬥中的 Effect Instance 依然存活，未被誤傷！
+    expect(registry.getActiveCount()).toBeGreaterThan(0);
+
+    await playPromise;
+  });
+
+  it('🛡️ 超額降級保護：超出 MAX_ACTIVE_INSTANCES (32) 時，自動淘汰最舊實例，杜絕顯存洩漏', () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    const registry = fxEngine.getInstanceRegistry();
+    registry.clearAll();
+
+    for (let i = 0; i < 40; i++) {
+      const root = new THREE.Group();
+      registry.register({
+        id: `mock_inst_${i}`,
+        root,
+        startTime: Date.now(),
+        duration: 1.0,
+        dispose: () => {}
+      });
+    }
+
+    // 驗證活躍數量受控於 32 上限
+    expect(registry.getActiveCount()).toBe(32);
+    // 驗證最早註冊的 mock_inst_0 已被自動淘汰降級
+    expect(registry.has('mock_inst_0')).toBe(false);
+    expect(registry.has('mock_inst_39')).toBe(true);
+
+    registry.clearAll();
+    expect(registry.getActiveCount()).toBe(0);
+  });
+});

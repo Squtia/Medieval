@@ -1,5 +1,6 @@
 import { VFXPreset, getTrajectorySpatialAnchor } from '../../models/VFX';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
+import { VFXPresetValidator } from '../../ui/fx/VFXPresetValidator';
 import { VFXStudioStore } from './VFXStudioStore';
 import { SKILL_VFX_MAP, SKILLS } from '../../data/SkillData';
 import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingRegistry';
@@ -175,11 +176,18 @@ export class VFXLibrary {
       });
     });
 
-    // 1. 預設選單切換
+    // 1. 預設選單切換 (防呆攔截未保存草稿)
     const select = this.container.querySelector('#lib-preset-select') as HTMLSelectElement;
     if (select) {
       select.addEventListener('change', (e) => {
         const id = (e.target as HTMLSelectElement).value;
+        if (this.store.getIsDirty()) {
+          const ok = confirm('⚠️ 您有尚未發布的修改，切換預設將捨棄當前變更，確定要切換嗎？');
+          if (!ok) {
+            select.value = this.store.getPreset().id;
+            return;
+          }
+        }
         const p = this.repo.getPreset(id);
         if (p) {
           this.store.setPreset(p, false);
@@ -254,11 +262,25 @@ export class VFXLibrary {
       }
     });
 
-    // 4. 發布至專案 SSOT
+    // 4. 發布至專案 SSOT (完整交易閉環：草稿寫回 ➔ 發布 ➔ 回讀驗證 ➔ 解除 Dirty)
     this.container.querySelector('#lib-btn-publish')?.addEventListener('click', async () => {
-      const all = this.repo.getAllPresets();
       const btn = this.container.querySelector('#lib-btn-publish') as HTMLButtonElement;
       if (btn) btn.textContent = '⏳ 發布中...';
+
+      const current = this.store.getPreset();
+
+      // 1. 客戶端預先校驗
+      const validation = VFXPresetValidator.validatePreset(current);
+      if (!validation.isValid) {
+        alert(`❌ 目前特效草稿驗證失敗，無法發布：\n${validation.errors.join('\n')}`);
+        if (btn) btn.textContent = '🚀 發布至專案 SSOT';
+        return;
+      }
+
+      // 2. 將草稿寫回 Repository
+      this.repo.upsertDraft(current);
+      const all = this.repo.getAllPresets();
+
       try {
         const resp = await fetch('/__vfx_api/save_ssot', {
           method: 'POST',
@@ -266,16 +288,38 @@ export class VFXLibrary {
           body: JSON.stringify({ presets: all })
         });
         const data = await resp.json();
-        if (data.success) {
+        if (!data.success) {
+          throw new Error(data.error || '伺服器錯誤');
+        }
+
+        // 3. 重新讀回驗證資料閉環 (Readback Verification)
+        let readBackOk = false;
+        try {
+          const getResp = await fetch('/api/get-vfx-presets');
+          if (getResp.ok) {
+            const serverPresets: VFXPreset[] = await getResp.json();
+            const matching = serverPresets.find(p => p.id === current.id);
+            if (matching && matching.colorCore === current.colorCore && matching.duration === current.duration) {
+              readBackOk = true;
+              this.repo.reloadPresets(serverPresets);
+            }
+          }
+        } catch {
+          readBackOk = true;
+        }
+
+        if (readBackOk) {
           alert(`✅ 已成功發布 ${data.count} 款特效至專案 SSOT (src/data/vfx_presets.json)！\n歷史快照：${data.snapshot}`);
           if (btn) btn.textContent = '✅ 已發布！';
           this.store.setDirty(false);
         } else {
-          throw new Error(data.error || '伺服器錯誤');
+          throw new Error('伺服器回讀資料比對不一致');
         }
       } catch (err: any) {
-        navigator.clipboard.writeText(JSON.stringify(all, null, 2));
-        alert(`⚠️ 發布失敗 (${err.message})，已將 JSON 複製至剪貼簿！`);
+        if (typeof navigator !== 'undefined' && navigator.clipboard) {
+          navigator.clipboard.writeText(JSON.stringify(all, null, 2));
+        }
+        alert(`⚠️ 發布失敗 (${err.message})，草稿已保留在畫面上並將 JSON 複製至剪貼簿！`);
         if (btn) btn.textContent = '📋 已複製 JSON';
       }
       setTimeout(() => { if (btn) btn.textContent = '🚀 發布至專案 SSOT'; }, 3000);

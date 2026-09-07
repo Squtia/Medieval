@@ -4,3 +4,5 @@ dist/
 .DS_Store
 .tmp.driveupload/17968
 /.tmp.driveupload
+*.log
+*.tsbuildinfo

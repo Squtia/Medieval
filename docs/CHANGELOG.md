@@ -1,3 +1,111 @@
+- **[Refactor/CombatVFX/Phase7TimelineDecouplingAndFacade] 特效架構與時間軸重構（嚴格文件對齊：拆分巨型時間軸檔案為 View/Interaction/Commands/Selection 四大單一職責模組、VFXTimeline 收斂為 Facade、消除引擎私有欄位存取、速度管線同調、全專案 57 測試檔案 324 PASS 全綠）（2026-09-07）**：
+  - **⏱️ 時間軸巨型檔案拆分與高內聚 Facade (VFXTimeline Modularization)**：
+    - 依據 `docs/VFX_ARCHITECTURE_EXECUTION_PLAN.md` 之 Phase 7 與準則第 7 條，將原本長達 1190 行的巨型單體檔案 `src/tools/vfx-studio/VFXTimeline.ts` 徹底解耦拆分為四大專職模組（位於 `src/tools/vfx-studio/timeline/`）：
+      - `TimelineView.ts`（~290 行）：純 View 渲染模組，負責刻度尺規、主軌、次生圖層軌道、打擊判定軌、Cue 菱形 Marker 與貫穿播放頭 HTML 生成。
+      - `TimelineInteraction.ts`（~480 行）：指標與拖曳互動控制器，封裝播放頭 Scrubbing、Cue 拖曳/新增/刪除交易、Clip 拖曳移動（`delay`）與右緣 Handle 拉伸（`duration`）。
+      - `TimelineCommands.ts`（~118 行）：業務指令封裝，處理 Cue 與圖層增刪修改、軌道 Solo / Mute / Lock 與打擊展示模式變更。
+      - `TimelineSelection.ts`（~70 行）：選取狀態管理器，維護選取的 Cue、Clip 與 Track，連動 Inspector 檢查器。
+    - `VFXTimeline.ts` 收斂為僅 ~180 行的高內聚 Facade，100% 保持既有公開 API 契約（`onSelectCue`, `onSelectTrack`, `getFrameEngine`, `onScrubStart`, `onScrub`, `onScrubEnd`, `onPlayPauseToggle`, `seekTo`, `updateFrameUI`, `updatePlayhead`, `render`, `destroy`）。
+  - **📊 消除私有欄位反射存取與公開品質指標 (Quality Budget Metrics API)**：
+    - 在 `src/ui/fx/VFXPlayer.ts` 實裝標準公開方法 `getPerformanceMetrics()`，返回安全求值的 `drawCalls`、`triangles`、`activeParticles` 與 `activeChildCount`。
+    - 消除 `src/tools/vfx-studio/VFXStudioController.ts` 第 382 行破壞封裝的 `(fxEngine as any).scene` 與 `(fxEngine as any).renderer` 強制轉換。
+  - **⚙️ 播放速度管線一致性 (Playback Speed Pipeline Coherence)**：
+    - 修復 `src/tools/vfx-studio/FrameTimelineEngine.ts`：在 `setSpeed(speed)` 中同步呼叫 `this.scheduler.setSpeed(this.speed)`，確保時鐘推進比例與時間軸影格嚴格同步。
+    - `src/tools/vfx-studio/VFXStudioStore.ts` 增設 `toggleTrackMute`，使軌道 Mute 與 Solo / Lock 享有同一套通知與訂閱閉環。
+  - **🧪 全自動化測試與驗證全綠 (57 Test Files / 324 PASS)**：
+    - `npm run typecheck`：0 錯誤。
+    - `npm test`：57 個測試檔案、324 項單元測試 100% 通過。
+    - `npm run test:vfx`：4 大解析度視窗契約與 100 次循環浸泡壓力測試 100% 通過（Canvas 恆為 1、Context 穩定、0 洩漏）。
+
+- **[Fix/CombatVFX/Phase0To6CanonicalSchemaAndClosedLoop] 特效架構與工房改善執行（嚴格文件對齊：紅燈測試先行、發布資料閉環、圖層 DAG 引用防護、確定性隨機、獨立實例隔離、完整生命週期、Canonical VFXSequence 雙向轉譯器收斂，57 測試檔案 324 PASS 全綠）（2026-09-07）**：
+  - **📐 Phase 6 收斂 Canonical VFX Schema 與雙向轉譯 (Canonical Sequence Schema & Runtime Adapter)**：
+    - 嚴格落實權威規範 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 4 節與執行計畫方案 1，將 `VFXSequence` 作為專案長期標準 Canonical Schema：
+      - 徹底移除 `VFXClip.layer?: any` 與 `curves?: Record<string, any>`，全面改用具有嚴格 Discriminated Union 的 `VFXClipPayload`（MESH, PARTICLE, IMPACT, SCREEN_FX, AUDIO, COMPOSITE_LAYER）。
+      - 實裝雙向純函式轉譯器：
+        - `migrateLegacyPreset(preset: VFXPreset): VFXSequence`：完整無損升級為 `schemaVersion: 2` 之標準多軌結構。
+        - `sequenceToLegacyPreset(seq: VFXSequence): VFXPreset`：解碼還原為執行期相容模型（Runtime Adapter），確保 30 款既有 Preset 雙向 roundtrip 數值 100% 保持一致，零視覺與 Cue 契約退化。
+      - `VFXPresetRepository.sanitizePresetContent`：在持久化與草稿寫入前徹底過濾 UI 暫態屬性（`_mainTrackMuted`, `_trackMuteStates`, `solo`, `locked`），實現內容資料與 Session State 嚴格解耦。
+      - 新增單元測試套件 `VFXCanonicalSchema.test.ts`（3 項測試 100% 通過）。
+  - **🔴 Phase 0 失敗案例先行 (Failures Fixed by Red Tests First)**：
+    - 嚴格落實準則第 7 條與執行計畫 Phase 0，建立 5 個獨立失敗測試檔案（共 14 項測試），在修改前精準捕捉所有已知架構缺陷，杜絕表面應試與假綠燈：
+      - `VFXStudioPublishFlow.test.ts`：捕捉修改未寫回 repo 導致發布舊資料缺陷、未保存選單切換靜默覆蓋缺陷。
+      - `VFXPresetGraphValidation.test.ts`：捕捉圖層自我引用、A➔B➔A 環狀循環引用、引用不存在 presetId 缺陷。
+      - `VFXConcurrentPlayback.test.ts`：捕捉並行播放時短特效篡改全局時鐘 duration 缺陷、獨立實例隔離與超額降級保護。
+      - `VFXDeterministicPlayback.test.ts`：捕捉渲染器殘留原生 `Math.random` 破壞確定性缺陷。
+      - `VFXLifecycle.test.ts`：捕捉 `scheduledTimers` 中的 failsafe 定時器 ID 殘留洩漏、RAF 取消、容器安全遷移與冪等銷毀缺陷。
+  - **🚀 Phase 1 工房發布資料閉環實裝 (SSOT Publish & Readback Closed Loop)**：
+    - 在 `VFXPresetRepository.ts` 實裝 `upsertDraft(preset: VFXPreset)`，在發布組裝前強制將 Store 中的當前畫面草稿寫回快取字典。
+    - 重構 `VFXLibrary.ts` 之發布流程：
+      1. 取用 `store.getPreset()` 進行發布前完整校驗。
+      2. 執行 `repo.upsertDraft(current)` 寫回倉庫。
+      3. 送出包含最新草稿之完整清單至 `POST /__vfx_api/save_ssot`。
+      4. 發布後發動 `GET /api/get-vfx-presets` 回讀比對（Readback Verification），確保伺服器磁碟與畫面草稿 100% 一致後方解除 Dirty。
+      5. 下拉選單切換時新增未保存草稿確認提示（Confirm Guard），使用者點擊取消時安全保留當前草稿，消除靜默丟失。
+  - **🛡️ Phase 2 共用驗證器與圖層 DAG 環路防線 (Unified Validator & Graph Defense)**：
+    - 擴充純資料模組 `VFXPresetValidator.ts`：
+      - 圖層完整性：驗證 `delay >= 0`、`duration > 0`、圖層引用之 `presetId` 存在性。
+      - 圖層 DAG 有向無環圖校驗：使用 DFS 與遞迴棧偵測自我引用（A➔A）與循環引用（A➔B➔A），並嚴格限制最大巢狀深度 <= 8。
+    - 重構 `vite.config.ts`：伺服器端移除重複維護之校驗邏輯，全面委派至 `VFXPresetValidator.validatePresetList`，前後端 100% 規則一致。
+    - 在 `CombatFXEngine.ts` 之 `playPresetWorld` 增設執行階段循環引用防衛參數（`visitedPresetIds` 與 `recursionDepth >= 8`），防止惡意資料導致瀏覽器 Call Stack Overflow。
+  - **🎲 Phase 3 固定 Seed 與確定性渲染 (Deterministic Rng & Controlled Seed)**：
+    - 新增純淨確定性隨機數生成器 `src/ui/fx/VFXRng.ts`，提供 `createLcgRng`、`deriveVFXSeed` 與 `defaultVfxRng`。
+    - 徹底根除渲染路徑中散落的非受控 `Math.random()`：
+      - `TrailLayerRenderer.ts` 拖尾頂點抖動改用傳入 rng。
+      - `ParticleLayerRenderer.ts` 命中爆散火花改用 `defaultVfxRng`。
+      - `MeshLayerRenderer.ts` 次生晶刺生成改用 `defaultVfxRng`。
+      - `CombatFXEngine.ts` 地裂節點高度抖動改用 `this.getRandom()`。
+    - `VFXStudioStore` 與 `VFXStudioController` 支援自訂固定 seed 數值與「🎲 換種子 (Reroll)」功能，並於頂部工具列提供即時數值反饋與播放連動。
+  - **⚡ Phase 4 獨立 Effect Instance 與多目標 AOE 隔離 (VFXEffectInstance & AOE Isolation)**：
+    - 建立 `VFXEffectInstance.ts` 與 `VFXInstanceRegistry`：
+      - 每次播放擁有獨立的 `instanceRoot` Group 與專屬 `instanceTrackGroups`，徹底杜絕多個特效並發時相互覆蓋。
+      - 提供最大 32 個並發實例上限防護（`MAX_ACTIVE_INSTANCES = 32`）與超額時自動降級淘汰機制，防止顯存爆炸。
+      - 實裝 `CombatFXEngine.disposeTrackGroup`：精準遞迴釋放單一實例專屬的 Geometry、Material 與 `__cache`，單一特效完成時絕對不清除其他特效。
+      - `clearStudioPreview()` 僅銷毀工房幀檢視群組，與實戰中的 `instanceRegistry` 徹底解耦。
+      - 在 `CombatStageAdapter.ts` 實裝多目標 AOE 空間打擊分離，確保每位受擊目標在各自卡牌中心皆能獲得獨立 3D 受擊打擊與火花爆散。
+  - **🔄 Phase 5 完整生命週期與資源管理 (Complete Lifecycle & Zero Leak)**：
+    - `VFXPlayer` 實裝 `rafId` 保存與 `stopLoop()` 取消機制，杜絕無頭動畫幀洩漏。
+    - 保存具名 `boundResize` 監聽器，於 `unmount()` 時自 `window` 解除綁定。
+    - 實裝 `safeRemoveCanvas()`：安全處理 canvas 在容器間遷移的 DOM 節點移除，防止舊容器殘留重複 canvas。
+    - `CombatFXEngine`、`CombatStageAdapter` 與 `CombatStudioStageAdapter` 皆提供冪等的 `destroy()` 方法。
+    - 定時器防護：在 `safeResolve` 與回呼時即時自 `scheduledTimers` 移除 ID，根治定時器句柄洩漏。
+  - **🧪 全自動化測試與驗證全綠 (56 Test Files / 321 PASS)**：
+    - 全專案 56 個測試檔案、321 項單元測試 100% 通過。
+    - `npm run test:vfx` 4 大解析度視窗契約與 100 循環浸泡壓力測試 100% 通過（Canvas 恆為 1、WebGL Context 穩定、0 洩漏）。
+    - `npm run typecheck` 0 錯誤。
+
+- **[Refactor/CombatVFX/Phase2TimelineEvaluatorDecoupling] Phase 2 特效業務邏輯與節奏排程解耦（嚴格文件對齊：純邏輯求值器 VFXTimelineEvaluator、四種連擊節奏曲線、具名與 Fallback Cue 單一管線、51 測試檔案 305 PASS 全綠）（2026-09-07）**：
+  - **⏱️ 純邏輯時間軸求值器落地 (VFXTimelineEvaluator)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 3 節、第 6 節與第 8 節規範，新建獨立純演算法模組 `VFXTimelineEvaluator.ts`：
+      - `evaluateSalvoTimings`：精準求值 `LINEAR`、`ACCELERATE`、`DECELERATE`、`BURST_PAIRS`、`STAGGERED` 連擊節奏曲線，嚴格保證輸出時間陣列單調遞增且不超過總時長。
+      - `resolveImpactCues`：標準化具名 Impact Cue 提取；未配置 Cue 時自動按連擊段數展開標準化 Fallback Cues，標註 `isPrimary`，徹底消除雙軌制分支。
+      - `resolveCompositeLayers`：安全解析複合多圖層延遲、運動軌跡覆蓋與著色器繼承，自動過濾 `enabled: false` 靜音圖層並防止遞迴。
+      - `calculateHitFeedback`：計算前段輕顫（振幅減半、不觸發全螢幕震動）與終擊重震之精準回饋參數。
+  - **🚀 主引擎調度管線全面瘦身 (CombatFXEngine Streamlining)**：
+    - 重構 `CombatFXEngine.ts` 的 `playPresetWorld`：全面移除內部原本散落的連擊曲線計算、圖層繼承與 Cue 提取代碼，統一委派至 `VFXTimelineEvaluator`。
+    - 播放排程邏輯由原先複雜的分支條件收束為乾淨、確定性的單一排程流。
+  - **🧪 測試與驗證全綠 (All 51 Test Files / 305 Tests PASS)**：
+    - 新建 `src/ui/fx/VFXTimelineEvaluator.test.ts`（12 項單元測試 100% 通過）。
+    - 全專案 51 個測試檔案、305 項單元測試 100% 通過。
+    - `npm run test:vfx` 4 大視窗布局驗證與 100 循環連續播放浸泡壓力測試 100% 通過。
+    - `npm run typecheck` 0 錯誤。
+
+- **[Refactor/CombatVFX/Phase1DecoupleGeometryAndLayoutFix] Phase 1 特效渲染器解耦與工坊多視窗布局修復（嚴格文件對齊：幾何/粒子/拖尾/受擊層獨立拆分、CombatFXEngine 壓縮 1000+ 行、768px 工具列溢出修復、100 次循環浸泡壓力測試 0 洩漏）（2026-09-07）**：
+  - **📐 專用渲染層全盤解耦 (Dedicated Layer Renderers Decoupling)**：
+    - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 3 節與第 6 節「每個 Renderer 只渲染一種圖層」規範，自肥大的 `CombatFXEngine.ts` 徹底抽離渲染邏輯：
+      - `MeshLayerRenderer`：動態刀光劍氣網格 (`buildDynamicSlashGeo`, `calculateSlashGeometryParams`)、次生晶刺/地刺幾何 (`spawnSecondarySpikes`)、神聖護盾、戰吼音波與光柱。
+      - `ParticleLayerRenderer`：受擊破空火花與星芒爆散 (`spawnSlashSparks`) 與動態爆散粒子 (`spawnBurstParticles`)。
+      - `TrailLayerRenderer`：動態點雲拖尾 (`createTrail`)、雷擊電弧 (`spawnLightning`)、高能光束 (`spawnBeam`) 與弓兵拋物齊射 (`spawnArrowVolley`)。
+      - `ImpactLayerRenderer`：2.5D 受擊光環擴散衝擊波 (`spawnImpactWave`)。
+      - `ScreenFxRenderer`：受擊畫面閃光、螢幕震動與目標卡牌震顫全部統一委派，消除直接以 inline style 侵入 DOM 的歷史舊代碼。
+    - `CombatFXEngine.ts` 行數從 2700+ 行精簡至 1686 行，職責收攏回特效調度與播放器核心。
+  - **📱 工坊 768px 工具列響應式布局溢出修復 (Responsive Layout Overflow Fix)**：
+    - 解決 `vfx-studio.html` 在 768x900 視窗下頂部工具列因按鈕過多導致寬度溢出 2px（770px vs 768px）的缺陷。
+    - 於 `src/styles/vfx-studio.css` 之 `@media (max-width: 768px)` 為 `.top-toolbar`、`.playback-controls` 和 `.btn-tool` 增加適配之 gap、padding 與 `overflow-x: hidden`。
+    - 自動化測試 `scripts/verify-vfx-studio-layout.mjs` 在 1440x900、1280x720、1024x768、768x900 四個解析度下驗證零水平溢出、零 DOM 洩漏。
+  - **🌊 測試與型別維護 (Soak Stress 100 Cycles & All Unit Tests PASS)**：
+    - `npm run test:vfx`（含 100 循環連續播放浸泡壓力測試）100% 通過：Canvas 恆為 1、WebGL 上下文無丟失、零主控台錯誤。
+    - 戰鬥與特效相關 19 個測試檔案、147 項單元測試 100% 通過，`npm run typecheck` 0 錯誤。
+
 - **[Feature/CombatVFX/Phase3Phase4TrackControlsAndContextualInspector] Phase 3 & Phase 4 軌道專業控制項 (Solo/Lock) 與情境式 Inspector 動態收合落地（嚴格文件對齊：主軌與圖層 Solo/Lock 防拖曳、選取情境自動收合非關面板、單元與無頭瀏覽器驗收全通）（2026-09-06）**：
   - **⏱️ 時間軸軌道專業控制項 (Phase 4 Track Controls: Solo & Lock)**：
     - 依據 `docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md` 第 4 節「目標介面」與第 11 節 Phase 4 規範，在 `VFXStudioStore.ts` 與 `VFXTimeline.ts` 中全面實裝主軌與次生圖層軌道之獨立 `Solo` 與 `Lock` 控制項。

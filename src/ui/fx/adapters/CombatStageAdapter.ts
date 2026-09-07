@@ -3,6 +3,7 @@ import { CombatFXEngine, ScreenPoint } from '../CombatFXEngine';
 import { VFXImpactConfig, VFXImpactCue } from '../../../models/VFX';
 import { VFXPresetRepository } from '../VFXPresetRepository';
 import { CombatAction, CombatActionPlayer, CombatImpactPresentation } from '../CombatActionPlayer';
+import { ScreenFxRenderer } from '../renderers/ScreenFxRenderer';
 
 /**
  * ⚔️ CombatStageAdapter
@@ -64,6 +65,14 @@ export class CombatStageAdapter {
       const floatings = this.modalContainer.querySelectorAll('.floating-dmg');
       floatings.forEach(el => el.remove());
     }
+  }
+
+  /**
+   * 🧹 冪等銷毀適配器實例
+   */
+  public destroy(): void {
+    this.clear();
+    this.modalContainer = null;
   }
 
   /**
@@ -189,6 +198,15 @@ export class CombatStageAdapter {
         const impactCfg = preset?.impact || null;
 
         this.triggerHitFeedback(targetEl, dummyEv, impactCfg, item.cueIndex, 1, cue, item);
+
+        // 🌟 Phase 4：多目標 AOE 隔離反饋，為各受擊目標派發獨立 3D 受擊打擊火花
+        if (!skip && item.targetId && item.targetId !== mainTargetId) {
+          const fxEngine = CombatFXEngine.getInstance();
+          const targetPt = this.getUnitPoint(item.targetId, isAttackerPlayer ? 'enemy' : 'player');
+          const targetWorld = fxEngine.screenToWorld(targetPt);
+          fxEngine.playCueSparks(targetWorld, preset?.colorCore || '#f59e0b', 12);
+        }
+
         options?.onImpact?.(item, cue);
       },
       onActionComplete: () => {
@@ -215,30 +233,9 @@ export class CombatStageAdapter {
     const isTargetEnemy = targetEl.classList.contains('enemy-side');
     const knockDir = isTargetEnemy ? 1 : -1;
 
-    // 1. 卡牌定格擠壓與受擊抖動
+    // 1. 卡牌定格擠壓與受擊抖動 (委派 ScreenFxRenderer)
     if (impact) {
-      const knockDist = isLastHit ? ((impact.knockbackDistance || 0) * knockDir) : 0;
-      const shakeX = isLastHit ? (impact.shakeIntensity || 12) : Math.max(4, Math.round((impact.shakeIntensity || 12) * 0.45));
-      const shakeY = Math.round(shakeX * 0.35);
-      const shakeDur = isLastHit ? (impact.shakeDuration || 0.28) : 0.16;
-      const punchScale = isLastHit ? (impact.targetPunchScale || 0.88) : 0.95;
-
-      targetEl.style.setProperty('--punch-scale', punchScale.toString());
-      targetEl.style.setProperty('--shake-x', `${shakeX}px`);
-      targetEl.style.setProperty('--shake-y', `${shakeY}px`);
-      targetEl.style.setProperty('--shake-dur', `${shakeDur}s`);
-      targetEl.style.setProperty('--flash-color', impact.hitFlashColor || '#ffffff');
-      targetEl.style.setProperty('--knockback-x', `${knockDist}px`);
-
-      targetEl.classList.remove('target-hit');
-      void targetEl.offsetWidth;
-      targetEl.classList.add('target-hit');
-
-      const timer = setTimeout(() => {
-        targetEl.classList.remove('target-hit');
-        this.activeTimers.delete(timer);
-      }, shakeDur * 1000);
-      this.activeTimers.add(timer);
+      ScreenFxRenderer.applyTargetShake(targetEl, impact, isLastHit, knockDir);
     }
 
     // 2. 產生跳字

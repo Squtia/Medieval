@@ -134,6 +134,7 @@ export class FrameTimelineEngine {
 
   public setSpeed(speed: number): void {
     this.speed = Math.max(0.1, Math.min(speed, 5.0));
+    this.scheduler.setSpeed(this.speed);
   }
 
   public getSpeed(): number {

@@ -59,6 +59,8 @@ async function run() {
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
         consoleErrors.push(msg.text());
+      } else if (msg.type() === 'warn') {
+        console.log('PAGE WARN:', msg.text());
       }
     });
 
@@ -98,15 +100,22 @@ async function run() {
         const inspectorEl = document.getElementById('inspector-right');
         const inspectorRect = inspectorEl ? inspectorEl.getBoundingClientRect() : null;
 
+        const overflowing = [];
+        document.querySelectorAll('*').forEach(el => {
+          const rect = el.getBoundingClientRect();
+          if (rect.right > clientWidth + 0.5 || rect.left < -0.5 || el.scrollWidth > clientWidth) {
+            overflowing.push({ tag: el.tagName, id: el.id, cls: el.className, left: Math.round(rect.left), right: Math.round(rect.right), w: el.offsetWidth, sw: el.scrollWidth });
+          }
+        });
         const bodyText = document.body.innerText;
         const hasUndefined = bodyText.includes('undefined');
         const hasNaN = bodyText.includes('NaN');
-
         const canvasCount = document.querySelectorAll('canvas').length;
 
         return {
           clientWidth,
           scrollWidth,
+          overflowing,
           viewportRect: vpRect ? { x: Math.round(vpRect.x), y: Math.round(vpRect.y), width: Math.round(vpRect.width), height: Math.round(vpRect.height) } : null,
           timelineRect: timelineRect ? { x: Math.round(timelineRect.x), y: Math.round(timelineRect.y), width: Math.round(timelineRect.width), height: Math.round(timelineRect.height) } : null,
           hasRuler,
@@ -126,6 +135,10 @@ async function run() {
       const passVpHeight = metrics.viewportRect && metrics.viewportRect.height > 0;
       const passTimeline = metrics.timelineRect && metrics.timelineRect.height > 0 && metrics.hasRuler && metrics.hasPlayhead && metrics.cueCount > 0;
       const passNoLeak = !metrics.hasUndefined && !metrics.hasNaN;
+
+      if (!passScroll) {
+        console.warn(`[${vp.name}] Overflowing elements:`, JSON.stringify(metrics.overflowing, null, 2));
+      }
 
       results.push({
         viewport: vp.name,

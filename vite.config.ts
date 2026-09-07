@@ -1,6 +1,7 @@
 import { defineConfig, Plugin } from 'vite';
 import fs from 'fs';
 import path from 'path';
+import { VFXPresetValidator } from './src/ui/fx/VFXPresetValidator';
 
 let atomicWriteSequence = 0;
 let snapshotSequence = 0;
@@ -299,80 +300,12 @@ function developmentStudioPlugin(): Plugin {
         const vfxFile = path.resolve(__dirname, 'src/data/vfx_presets.json');
         const vfxSnapshotsDir = path.resolve(__dirname, 'src/data/snapshots');
 
-        // 🛡️ 伺服器端最終防線驗證器 (Server-side SSOT Validation Guard)
+        // 🛡️ 伺服器端最終防線驗證器 (委派共用 VFXPresetValidator，確保前後端 100% 規則對齊)
         const validateVfxPresetsServer = (presetsList: any[]): { isValid: boolean; errors: string[] } => {
-          const validationErrors: string[] = [];
           if (!Array.isArray(presetsList) || presetsList.length === 0) {
             return { isValid: false, errors: ['Presets must be a non-empty array'] };
           }
-          const seenIds = new Set<string>();
-          const validTrajectories = new Set([
-            'HORIZONTAL', 'VERTICAL_DROP', 'DIAGONAL_DROP', 'GROUND_BURST', 'GROUND_FISSURE',
-            'COLUMN_PIERCE', 'MELEE_SWEEP', 'BODY_AURA', 'ARC_MULTI', 'PARABOLA_ARC', 'SHIELD_BARRIER', 'SHOUT_WAVE'
-          ]);
-          const validShaderModes = new Set([
-            'FRESNEL_ICE', 'VOLUMETRIC_FIRE', 'DIELECTRIC_LIGHTNING', 'ENERGY_BEAM',
-            'HOLY_LIGHT', 'DARK_VOID', 'SLASH_BLADE', 'EARTH_SHATTER'
-          ]);
-
-          presetsList.forEach((p, idx) => {
-            if (!p || typeof p !== 'object') {
-              validationErrors.push(`Preset at index ${idx} is not an object`);
-              return;
-            }
-            if (!p.id || typeof p.id !== 'string') {
-              validationErrors.push(`Preset at index ${idx} missing valid "id"`);
-            } else {
-              if (seenIds.has(p.id)) {
-                validationErrors.push(`Duplicate preset ID "${p.id}"`);
-              }
-              seenIds.add(p.id);
-            }
-            if (!p.name || typeof p.name !== 'string') {
-              validationErrors.push(`Preset [${p.id || idx}]: missing valid "name"`);
-            }
-            if (!validTrajectories.has(p.trajectory)) {
-              validationErrors.push(`Preset [${p.id || idx}]: invalid trajectory "${p.trajectory}"`);
-            }
-            if (!validShaderModes.has(p.shaderMode)) {
-              validationErrors.push(`Preset [${p.id || idx}]: invalid shaderMode "${p.shaderMode}"`);
-            }
-            if (typeof p.duration !== 'number' || !Number.isFinite(p.duration) || p.duration <= 0) {
-              validationErrors.push(`Preset [${p.id || idx}]: "duration" must be a positive finite number`);
-            }
-            if (typeof p.scale !== 'number' || !Number.isFinite(p.scale) || p.scale <= 0) {
-              validationErrors.push(`Preset [${p.id || idx}]: "scale" must be a positive finite number`);
-            }
-
-            if (p.impactCues !== undefined) {
-              if (!Array.isArray(p.impactCues)) {
-                validationErrors.push(`Preset [${p.id || idx}]: "impactCues" must be an array`);
-              } else {
-                const cueIdSet = new Set<string>();
-                p.impactCues.forEach((cue: any, cIdx: number) => {
-                  if (!cue || typeof cue !== 'object') {
-                    validationErrors.push(`Preset [${p.id || idx}]: cue at index ${cIdx} is invalid`);
-                    return;
-                  }
-                  if (!cue.cueId || typeof cue.cueId !== 'string') {
-                    validationErrors.push(`Preset [${p.id || idx}]: cue at index ${cIdx} missing "cueId"`);
-                  } else {
-                    if (cueIdSet.has(cue.cueId)) {
-                      validationErrors.push(`Preset [${p.id || idx}]: Duplicate cueId "${cue.cueId}"`);
-                    }
-                    cueIdSet.add(cue.cueId);
-                  }
-                  if (typeof cue.time !== 'number' || !Number.isFinite(cue.time)) {
-                    validationErrors.push(`Preset [${p.id || idx}]: cue [${cue.cueId || cIdx}] time must be a finite number`);
-                  } else if (cue.time < 0 || (typeof p.duration === 'number' && cue.time > p.duration + 0.001)) {
-                    validationErrors.push(`Preset [${p.id || idx}]: cue [${cue.cueId}] time (${cue.time}s) out of bounds [0, ${p.duration}]`);
-                  }
-                });
-              }
-            }
-          });
-
-          return { isValid: validationErrors.length === 0, errors: validationErrors };
+          return VFXPresetValidator.validatePresetList(presetsList);
         };
 
         // 🚀 0. 獨立驗證端點 (Phase 2 標準 API: /api/validate-vfx-presets)
@@ -488,7 +421,7 @@ function developmentStudioPlugin(): Plugin {
           return res.end(JSON.stringify({ success: true, snapshots: files, backups: files }));
         }
 
-        if (url === '/api/get-vfx-presets' && req.method === 'GET') {
+        if ((url === '/api/get-vfx-presets' || url === '/__vfx_api/get_presets') && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
           return res.end(fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]');
         }

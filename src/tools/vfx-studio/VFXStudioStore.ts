@@ -24,6 +24,7 @@ export class VFXStudioStore {
   private redoStack: VFXPreset[] = [];
   private isDirty: boolean = false;
   private isFixedSeed: boolean = false;
+  private fixedSeedValue: number = 12345;
   private isSlowMo: boolean = false;
   private isDarkBg: boolean = true;
   private isLooping: boolean = true;
@@ -140,10 +141,26 @@ export class VFXStudioStore {
 
   public setFixedSeed(fixed: boolean): void {
     this.isFixedSeed = fixed;
+    this.notify();
   }
 
   public getIsFixedSeed(): boolean {
     return this.isFixedSeed;
+  }
+
+  public getFixedSeedValue(): number {
+    return this.fixedSeedValue;
+  }
+
+  public setFixedSeedValue(seed: number): void {
+    this.fixedSeedValue = Math.floor(Math.abs(seed)) || 1;
+    this.notify();
+  }
+
+  public rerollFixedSeed(): number {
+    this.fixedSeedValue = Math.floor(Math.random() * 900000) + 100000;
+    this.notify();
+    return this.fixedSeedValue;
   }
 
   public setSlowMo(slow: boolean): void {
@@ -183,6 +200,13 @@ export class VFXStudioStore {
 
   public setTrackMute(track: keyof TrackMuteStates, mute: boolean): void {
     this.trackMuteStates[track] = mute;
+    this.notify();
+  }
+
+  public toggleTrackMute(track: keyof TrackMuteStates): boolean {
+    this.trackMuteStates[track] = !this.trackMuteStates[track];
+    this.notify();
+    return this.trackMuteStates[track];
   }
 
   public getTrackMuteStates(): TrackMuteStates {

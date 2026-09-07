@@ -571,6 +571,7 @@
   body {
     flex-direction: column;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     height: auto;
     min-height: 100vh;
   }
@@ -579,14 +580,32 @@
   .inspector-panel {
     width: 100% !important;
     min-width: 100% !important;
+    border-left: none !important;
+    border-right: none !important;
     height: auto !important;
     max-height: 400px;
   }
   .viewport-container {
     width: 100% !important;
     min-width: 100% !important;
+    border-left: none !important;
+    border-right: none !important;
     height: 380px;
     flex-shrink: 0;
+  }
+  .top-toolbar {
+    padding: 0 8px;
+    gap: 6px;
+    overflow-x: hidden;
+  }
+  .playback-controls {
+    gap: 4px;
+    flex-shrink: 1;
+  }
+  .btn-tool {
+    padding: 4px 7px;
+    font-size: 0.75rem;
+    gap: 3px;
   }
   .inspector-footer {
     position: sticky;

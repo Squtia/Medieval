@@ -1,6 +1,7 @@
 import { VFXPreset, VFXImpactConfig, VFXImpactCue, ImpactPresentationMode } from '../../models/VFX';
 import { CombatFXEngine, ScreenPoint } from './CombatFXEngine';
 import { VFXPresetRepository } from './VFXPresetRepository';
+import { ScreenFxRenderer } from './renderers/ScreenFxRenderer';
 
 export interface VFXStudioAdapterOptions {
   viewportContainer: HTMLElement;
@@ -110,21 +111,9 @@ export class VFXStudioAdapter {
       return;
     }
 
-    // 3. 終結/主打擊感
-    targetEl.style.setProperty('--punch-scale', (impact.targetPunchScale || 0.88).toString());
-    targetEl.style.setProperty('--shake-x', `${impact.shakeIntensity || 12}px`);
-    targetEl.style.setProperty('--shake-y', `${Math.round((impact.shakeIntensity || 12) * 0.35)}px`);
-    targetEl.style.setProperty('--shake-dur', `${impact.shakeDuration || 0.28}s`);
-    targetEl.style.setProperty('--flash-color', impact.hitFlashColor || '#ffffff');
-    targetEl.style.setProperty('--knockback-x', `${impact.knockbackDistance || 0}px`);
-
-    targetEl.classList.remove('target-hit');
+    // 3. 終結/主打擊感 (委派 ScreenFxRenderer)
     targetEl.classList.remove('target-hit-light');
-    void targetEl.offsetWidth;
-    targetEl.classList.add('target-hit');
-    this.registerTimer(() => {
-      targetEl.classList.remove('target-hit');
-    }, (impact.shakeDuration || 0.28) * 1000);
+    ScreenFxRenderer.applyTargetShake(targetEl, impact, true, 1);
 
     // 4. 暴擊判定與傷害跳字（若為 SPLIT_SINGLE_IMPACT 則乘上 cue.weight）
     const isCrit = (impact.shakeIntensity || 12) >= 15 || impact.screenShake;

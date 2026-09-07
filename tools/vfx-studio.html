@@ -196,6 +196,10 @@
         <label style="font-size: 0.76rem; color: #94a3b8; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="固定亂數 Seed 以便精確重現破土與散佈動畫">
           <input type="checkbox" id="chk-fixed-seed" style="accent-color: #38bdf8;" /> 🎲 固定 Seed
         </label>
+        <div id="seed-control-group" style="display: none; align-items: center; gap: 4px;">
+          <span id="seed-display" style="font-family: monospace; font-size: 0.75rem; color: #38bdf8; background: #0f172a; padding: 2px 6px; border-radius: 3px; border: 1px solid #1e293b;" title="當前使用的確定性隨機種子">#12345</span>
+          <button id="btn-reroll-seed" class="btn-tool" style="padding: 2px 6px; font-size: 0.72rem; min-width: auto;" title="重新擲骰隨機種子">🎲 換種子</button>
+        </div>
         <select id="stage-target-mode" class="param-select" style="width: auto; padding: 4px 8px; font-size: 0.8rem; background: #21262d; border-color: #38bdf8; color: #38bdf8; font-weight: bold;">
           <option value="SINGLE">🎯 單體受擊 (Single)</option>
           <option value="FRONT_ROW">👥 前排橫掃 (3人 Front Row)</option>

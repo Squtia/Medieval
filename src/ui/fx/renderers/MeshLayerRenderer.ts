@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { VFXPreset } from '../../../models/VFX';
+import { defaultVfxRng } from '../VFXRng';
 
 /**
  * 🗡️ MeshLayerRenderer
@@ -441,5 +442,595 @@ export class MeshLayerRenderer {
     if (mesh.material) {
       (mesh.material as THREE.MeshBasicMaterial).opacity = sc * 0.9;
     }
+  }
+
+  /**
+   * ⚡ 建立/更新天降狂暴雷殛閃電 Tube 群組 (DIELECTRIC_LIGHTNING)
+   */
+  public static updateLightningTube(
+    trackGroup: THREE.Group,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    progress: number,
+    scale: number,
+    colorRim: string,
+    colorCore: string,
+    fadeAlpha: number,
+    cache: any
+  ): void {
+    trackGroup.position.set(0, 0, 0);
+    if (!cache.lightningGroup) {
+      cache.lightningGroup = new THREE.Group();
+      trackGroup.add(cache.lightningGroup);
+    }
+    cache.lightningGroup.visible = true;
+
+    while (cache.lightningGroup.children.length > 0) {
+      const c = cache.lightningGroup.children[0];
+      cache.lightningGroup.remove(c);
+      if ((c as any).geometry) (c as any).geometry.dispose();
+    }
+
+    const currentEnd = new THREE.Vector3().lerpVectors(startPos, endPos, Math.min(1.0, progress * 2.2));
+    const segments = 10;
+    const pts: THREE.Vector3[] = [startPos];
+    for (let s = 1; s < segments; s++) {
+      const alpha = s / segments;
+      const base = new THREE.Vector3().lerpVectors(startPos, currentEnd, alpha);
+      const jitter = (Math.sin(s * 7.5 + progress * 20) * 22) * scale;
+      pts.push(new THREE.Vector3(base.x + jitter, base.y, base.z + (Math.cos(s * 5) * 12)));
+    }
+    pts.push(currentEnd);
+
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const tubeGeo = new THREE.TubeGeometry(curve, 20, 4.5 * scale, 6, false);
+    const tubeMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(colorRim),
+      transparent: true,
+      opacity: Math.max(0.3, fadeAlpha),
+      blending: THREE.AdditiveBlending
+    });
+    cache.lightningGroup.add(new THREE.Mesh(tubeGeo, tubeMat));
+
+    if (progress > 0.3) {
+      const ringProg = (progress - 0.3) / 0.7;
+      const ringGeo = new THREE.RingGeometry((12 + ringProg * 40) * scale, (18 + ringProg * 45) * scale, 20);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(colorCore),
+        transparent: true,
+        opacity: Math.max(0.1, (1 - ringProg) * fadeAlpha),
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.position.copy(endPos);
+      cache.lightningGroup.add(ringMesh);
+    }
+  }
+
+  /**
+   * 🪨 建立/更新破土錐狀地刺尖岩陣列 (EARTH_SHATTER)
+   */
+  public static updateEarthShatter(
+    trackGroup: THREE.Group,
+    targetPos: THREE.Vector3,
+    progress: number,
+    scale: number,
+    colorRim: string,
+    fadeAlpha: number,
+    cache: any
+  ): void {
+    trackGroup.position.copy(targetPos);
+    if (!cache.spikesGroup) {
+      cache.spikesGroup = new THREE.Group();
+      const offsets = [
+        { x: 0, y: 0, scale: 1.0, rot: 0 },
+        { x: -28, y: -8, scale: 0.75, rot: 0.25 },
+        { x: 26, y: -6, scale: 0.8, rot: -0.22 },
+        { x: -14, y: 14, scale: 0.65, rot: 0.12 },
+        { x: 18, y: 16, scale: 0.7, rot: -0.15 }
+      ];
+
+      offsets.forEach(off => {
+        const coneGeo = new THREE.ConeGeometry(9 * scale * off.scale, 58 * scale * off.scale, 6);
+        coneGeo.translate(0, 29 * scale * off.scale, 0);
+        const coneMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(colorRim),
+          wireframe: false
+        });
+        const cone = new THREE.Mesh(coneGeo, coneMat);
+        cone.position.set(off.x * scale, off.y * scale, 0);
+        cone.rotation.z = off.rot;
+        cache.spikesGroup.add(cone);
+      });
+      trackGroup.add(cache.spikesGroup);
+    }
+    cache.spikesGroup.visible = true;
+
+    const hScale = progress < 0.35
+      ? Math.pow(progress / 0.35, 0.6)
+      : (progress > 0.75 ? Math.max(0.1, 1 - (progress - 0.75) / 0.25) : 1.0);
+    cache.spikesGroup.scale.set(1.0, Math.max(0.05, hScale), 1.0);
+
+    cache.spikesGroup.children.forEach((mesh: any) => {
+      if (mesh.material) {
+        mesh.material.color.set(colorRim);
+        mesh.material.opacity = fadeAlpha;
+      }
+    });
+  }
+
+  /**
+   * ❄️ 建立/更新冰晶長矛與旋轉外圍冰晶環 (FRESNEL_ICE / FROST_LANCE)
+   */
+  public static updateFresnelIce(
+    trackGroup: THREE.Group,
+    curPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    progress: number,
+    scale: number,
+    colorCore: string,
+    colorRim: string,
+    cache: any
+  ): void {
+    trackGroup.position.copy(curPos);
+    trackGroup.lookAt(endPos);
+
+    if (!cache.frostGroup) {
+      cache.frostGroup = new THREE.Group();
+      const coneGeo = new THREE.ConeGeometry(9 * scale, 60 * scale, 8);
+      coneGeo.rotateX(Math.PI / 2);
+      const coneMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
+      const cone = new THREE.Mesh(coneGeo, coneMat);
+      cache.frostGroup.add(cone);
+
+      const ringGeo = new THREE.TorusGeometry(18 * scale, 2.5 * scale, 8, 20);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(colorRim),
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      cache.frostGroup.add(ring);
+
+      trackGroup.add(cache.frostGroup);
+    }
+    cache.frostGroup.visible = true;
+    cache.frostGroup.rotation.z = progress * Math.PI * 4;
+  }
+
+  /**
+   * 🔮 建立/更新貫穿圓柱能量光束與兩端聚能環 (ENERGY_BEAM)
+   */
+  public static updateEnergyBeam(
+    trackGroup: THREE.Group,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    progress: number,
+    scale: number,
+    colorCore: string,
+    colorRim: string,
+    fadeAlpha: number,
+    cache: any
+  ): void {
+    trackGroup.position.set(0, 0, 0);
+
+    if (!cache.beamMesh) {
+      cache.beamGroup = new THREE.Group();
+      const dist = startPos.distanceTo(endPos) || 100;
+      const cylGeo = new THREE.CylinderGeometry(7 * scale, 7 * scale, dist, 12);
+      cylGeo.translate(0, dist / 2, 0);
+      cylGeo.rotateX(Math.PI / 2);
+      const cylMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(colorRim),
+        transparent: true,
+        opacity: 0.85,
+        blending: THREE.AdditiveBlending
+      });
+      const cyl = new THREE.Mesh(cylGeo, cylMat);
+      cyl.position.copy(startPos);
+      cyl.lookAt(endPos);
+      cache.beamGroup.add(cyl);
+
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(colorCore),
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+      const ring1 = new THREE.Mesh(new THREE.RingGeometry(8 * scale, 16 * scale, 16), ringMat);
+      ring1.position.copy(startPos);
+      cache.beamGroup.add(ring1);
+
+      const ring2 = new THREE.Mesh(new THREE.RingGeometry(12 * scale, 22 * scale, 16), ringMat);
+      ring2.position.copy(endPos);
+      cache.beamGroup.add(ring2);
+
+      cache.beamMesh = cyl;
+      trackGroup.add(cache.beamGroup);
+    }
+    cache.beamGroup.visible = true;
+    if (cache.beamMesh?.material) {
+      (cache.beamMesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0.2, fadeAlpha * (0.6 + Math.sin(progress * 25) * 0.4));
+    }
+  }
+
+  /**
+   * 🏹 建立/更新拋物線齊射箭雨 (PARABOLA_ARC)
+   */
+  public static updateParabolaArrows(
+    trackGroup: THREE.Group,
+    casterPos: THREE.Vector3,
+    targetPos: THREE.Vector3,
+    progress: number,
+    duration: number,
+    scale: number,
+    colorRim: string,
+    cache: any
+  ): void {
+    trackGroup.position.set(0, 0, 0);
+    if (!cache.arrowGroup) {
+      cache.arrowGroup = new THREE.Group();
+      const arrowCount = 9;
+      const arrowGeo = new THREE.ConeGeometry(2.5 * scale, 24 * scale, 5);
+      arrowGeo.rotateX(Math.PI / 2);
+      const arrowMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(colorRim || '#38bdf8'),
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending
+      });
+      const items: any[] = [];
+      for (let i = 0; i < arrowCount; i++) {
+        const mesh = new THREE.Mesh(arrowGeo, arrowMat);
+        cache.arrowGroup.add(mesh);
+        const p0 = new THREE.Vector3(casterPos.x + (Math.sin(i * 3.7) * 20), casterPos.y + (Math.cos(i * 2.1) * 15), 0);
+        const p2 = new THREE.Vector3(targetPos.x + (Math.sin(i * 5.3) * 30), targetPos.y + (Math.cos(i * 4.2) * 20), 0);
+        const midX = (p0.x + p2.x) / 2;
+        const midY = Math.max(p0.y, p2.y) + 140 + (i % 3) * 15;
+        const p1 = new THREE.Vector3(midX, midY, 0);
+        items.push({ mesh, p0, p1, p2, delay: i * 0.03 });
+      }
+      cache.arrowItems = items;
+      trackGroup.add(cache.arrowGroup);
+    }
+    cache.arrowGroup.visible = true;
+    const totalDuration = duration || 0.4;
+    cache.arrowItems.forEach((item: any) => {
+      const tLocal = (progress * totalDuration - item.delay) / (totalDuration * 0.85);
+      if (tLocal < 0 || tLocal >= 1.0) {
+        item.mesh.visible = false;
+        return;
+      }
+      item.mesh.visible = true;
+      const oneMinusT = 1.0 - tLocal;
+      const posX = oneMinusT * oneMinusT * item.p0.x + 2 * oneMinusT * tLocal * item.p1.x + tLocal * tLocal * item.p2.x;
+      const posY = oneMinusT * oneMinusT * item.p0.y + 2 * oneMinusT * tLocal * item.p1.y + tLocal * tLocal * item.p2.y;
+      item.mesh.position.set(posX, posY, 0);
+      const tanX = 2 * (1 - tLocal) * (item.p1.x - item.p0.x) + 2 * tLocal * (item.p2.x - item.p1.x);
+      const tanY = 2 * (1 - tLocal) * (item.p1.y - item.p0.y) + 2 * tLocal * (item.p2.y - item.p1.y);
+      const tangent = new THREE.Vector3(tanX, tanY, 0).normalize();
+      item.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tangent);
+    });
+  }
+
+  /**
+   * 🌋 建立/更新大地裂地波推進 (GROUND_FISSURE)
+   */
+  public static updateGroundFissure(
+    trackGroup: THREE.Group,
+    casterPos: THREE.Vector3,
+    targetPos: THREE.Vector3,
+    progress: number,
+    scale: number,
+    colorRim: string,
+    cache: any,
+    preset?: any
+  ): void {
+    trackGroup.position.set(0, 0, 0);
+    if (!cache.fissureGroup) {
+      cache.fissureGroup = new THREE.Group();
+      const groundYOffset = -60;
+      const groundStart = new THREE.Vector3(casterPos.x, casterPos.y + groundYOffset, 0);
+      const groundEnd = new THREE.Vector3(targetPos.x, targetPos.y + groundYOffset, 0);
+      const totalDist = groundStart.distanceTo(groundEnd);
+      const nodeCount = Math.max(4, Math.min(12, Math.floor(totalDist / 48)));
+      const nodes: any[] = [];
+      const spikeWidth = Math.max(4, (preset?.spikeWidth || 10) * scale);
+      const baseHeight = Math.max(30, (preset?.spikeHeight || 55) * scale);
+
+      for (let i = 0; i < nodeCount; i++) {
+        const ratio = nodeCount > 1 ? i / (nodeCount - 1) : 1;
+        const pos = new THREE.Vector3().lerpVectors(groundStart, groundEnd, ratio);
+        const nodeGroup = new THREE.Group();
+        nodeGroup.position.copy(pos);
+
+        const scaleFactor = 0.65 + ratio * 0.75;
+        const curH = baseHeight * scaleFactor;
+        const curW = spikeWidth * scaleFactor;
+        const rockGeo = MeshLayerRenderer.createSpikeGeometry('JAGGED_ROCK', curW, curH);
+        const rockMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(colorRim || '#94a3b8'),
+          transparent: true,
+          opacity: 0.9,
+          blending: THREE.AdditiveBlending
+        });
+        const rockMesh = new THREE.Mesh(rockGeo, rockMat);
+        rockMesh.scale.set(0.1, 0.01, 0.1);
+        nodeGroup.add(rockMesh);
+
+        cache.fissureGroup.add(nodeGroup);
+        nodes.push({ nodeGroup, rockMesh, rockMat, ratio, curH });
+      }
+      cache.fissureNodes = nodes;
+      trackGroup.add(cache.fissureGroup);
+    }
+    cache.fissureGroup.visible = true;
+
+    cache.fissureNodes.forEach((item: any) => {
+      const triggerP = item.ratio * 0.72;
+      if (progress < triggerP) {
+        item.nodeGroup.visible = false;
+      } else {
+        item.nodeGroup.visible = true;
+        const localP = Math.min(1.0, (progress - triggerP) / 0.28);
+        if (localP < 0.25) {
+          const sp = localP / 0.25;
+          item.rockMesh.scale.set(1, sp, 1);
+          item.rockMat.opacity = 0.9;
+        } else {
+          const fade = Math.max(0, 1.0 - (localP - 0.25) / 0.75);
+          item.rockMesh.scale.set(1, 1, 1);
+          item.rockMat.opacity = fade * 0.9;
+        }
+      }
+    });
+  }
+
+  /**
+   * 🚀 建立/更新奧術追蹤彈多弧線連射 (ARC_MULTI)
+   */
+  public static updateArcMulti(
+    trackGroup: THREE.Group,
+    casterPos: THREE.Vector3,
+    targetPos: THREE.Vector3,
+    progress: number,
+    scale: number,
+    colorRim: string,
+    cache: any,
+    salvoCount: number = 3,
+    glowSpriteFactory?: (color: string, size: number, opacity: number) => THREE.Sprite
+  ): void {
+    trackGroup.position.set(0, 0, 0);
+    if (!cache.multiArcGroup) {
+      cache.multiArcGroup = new THREE.Group();
+      const arcs: any[] = [];
+      const actualCount = Math.max(3, salvoCount);
+      for (let i = 0; i < actualCount; i++) {
+        const arcMesh = new THREE.Mesh(
+          new THREE.SphereGeometry(6 * scale, 16, 16),
+          new THREE.MeshBasicMaterial({
+            color: new THREE.Color(colorRim || '#38bdf8'),
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending
+          })
+        );
+        if (glowSpriteFactory) {
+          const glow = glowSpriteFactory(colorRim || '#38bdf8', 26 * scale, 0.8);
+          arcMesh.add(glow);
+        }
+        cache.multiArcGroup.add(arcMesh);
+        const spreadY = (i - (actualCount - 1) / 2) * 55;
+        arcs.push({ mesh: arcMesh, spreadY, delay: i * 0.06 });
+      }
+      cache.multiArcs = arcs;
+      trackGroup.add(cache.multiArcGroup);
+    }
+    cache.multiArcGroup.visible = true;
+    cache.multiArcs.forEach((item: any) => {
+      const localP = Math.min(1.0, Math.max(0, (progress - item.delay) / (1.0 - item.delay || 0.1)));
+      if (localP <= 0 || localP >= 1.0) {
+        item.mesh.visible = false;
+        return;
+      }
+      item.mesh.visible = true;
+      const midPoint = new THREE.Vector3(
+        (casterPos.x + targetPos.x) / 2,
+        (casterPos.y + targetPos.y) / 2 + item.spreadY,
+        0
+      );
+      const oneMinusT = 1.0 - localP;
+      const posX = oneMinusT * oneMinusT * casterPos.x + 2 * oneMinusT * localP * midPoint.x + localP * localP * targetPos.x;
+      const posY = oneMinusT * oneMinusT * casterPos.y + 2 * oneMinusT * localP * midPoint.y + localP * localP * targetPos.y;
+      item.mesh.position.set(posX, posY, 0);
+    });
+  }
+
+  /**
+   * ❄️ 命中點次生冰刺/晶刺破裂爆發 (Secondary Spikes Burst - 支援多幾何形態)
+   */
+  public static spawnSecondarySpikes(
+    scene: THREE.Scene,
+    pos: THREE.Vector3,
+    count: number,
+    height: number,
+    colorRimHex: string,
+    preset?: VFXPreset,
+    rng: () => number = defaultVfxRng
+  ): {
+    update: (delta: number) => boolean;
+    dispose: () => void;
+  } {
+    const group = new THREE.Group();
+    const isUpward = (preset?.spikeAngle !== undefined && preset.spikeAngle >= 45 && preset.spikeAngle <= 135) || (preset?.trajectory === 'GROUND_BURST') || (preset?.trajectory === 'GROUND_FISSURE');
+    const basePos = pos.clone();
+    if (isUpward) {
+      basePos.y -= 65;
+    }
+    group.position.copy(basePos);
+    scene.add(group);
+
+    const isPhong = preset?.spikeMaterialMode !== 'BASIC';
+    if (isPhong) {
+      const ambient = new THREE.AmbientLight(0x94a3b8, 0.9);
+      const dir = new THREE.DirectionalLight(0xfff1e6, 1.5);
+      dir.position.set(50, 150, 100);
+      group.add(ambient);
+      group.add(dir);
+    }
+
+    const spikeItems: { mesh: THREE.Mesh; mat: THREE.Material; delay: number; heightVar?: number; fireMesh?: THREE.Mesh }[] = [];
+    const width = Math.max(3, (preset?.spikeWidth || 7) * (preset?.scale || 1.0));
+    const finalHeight = Math.max(20, height);
+    const shape = preset?.spikeShape || 'CONE_SPIKE';
+    const spreadRadius = preset?.spikeRadius !== undefined ? preset.spikeRadius : 80;
+    const staggerMs = preset?.spikeStagger !== undefined ? preset.spikeStagger : 25;
+    const staggerSec = staggerMs / 1000;
+
+    const spikeGeo = MeshLayerRenderer.createSpikeGeometry(shape as any, width, finalHeight);
+
+    const isDirectional = (preset?.spikeAngle !== undefined && preset.spikeAngle > 0);
+    const baseRad = isDirectional ? ((preset!.spikeAngle! * Math.PI) / 180) : 0;
+
+    const orderIndices = Array.from({ length: count }, (_, idx) => idx);
+    for (let i = orderIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      const temp = orderIndices[i];
+      orderIndices[i] = orderIndices[j];
+      orderIndices[j] = temp;
+    }
+
+    const eruptFire = preset?.spikeEruptFire || preset?.shaderMode === 'VOLUMETRIC_FIRE';
+
+    for (let i = 0; i < count; i++) {
+      let angle: number;
+      let posX = 0;
+      let posY = 0;
+      const posZ = (rng() - 0.5) * 16;
+
+      if (isUpward) {
+        const t = count > 1 ? (i / (count - 1) - 0.5) : 0;
+        posX = t * spreadRadius * 1.8;
+        posY = (rng() - 0.5) * 6;
+        const tilt = t * 0.45;
+        angle = (preset?.spikeAngle !== undefined ? ((preset.spikeAngle * Math.PI) / 180) : Math.PI / 2) + tilt;
+      } else if (isDirectional) {
+        const span = 0.65;
+        angle = baseRad + (count > 1 ? (i / (count - 1) - 0.5) * span : 0);
+        const dist = (spreadRadius * 0.35) * (0.6 + (i / Math.max(1, count)) * 0.5);
+        posX = Math.cos(angle) * dist;
+        posY = Math.sin(angle) * dist;
+      } else {
+        angle = (i / count) * Math.PI * 2 + (rng() - 0.5) * 0.25;
+        const dist = (spreadRadius * 0.45) * (0.7 + rng() * 0.6);
+        posX = Math.cos(angle) * dist;
+        posY = Math.sin(angle) * dist;
+      }
+
+      const spikeMat = isPhong
+        ? new THREE.MeshPhongMaterial({
+            color: new THREE.Color(colorRimHex),
+            specular: new THREE.Color(0xffffff),
+            shininess: 24,
+            flatShading: true,
+            transparent: true,
+            opacity: 0,
+            depthWrite: false
+          })
+        : new THREE.MeshBasicMaterial({
+            color: new THREE.Color(colorRimHex),
+            transparent: true,
+            opacity: 0,
+            blending: THREE.AdditiveBlending
+          });
+
+      const mesh = new THREE.Mesh(spikeGeo, spikeMat);
+      mesh.position.set(posX, posY, posZ);
+      mesh.rotation.z = angle - Math.PI / 2;
+      mesh.scale.set(0.001, 0.001, 0.001);
+      group.add(mesh);
+
+      let fireMesh: THREE.Mesh | undefined;
+      if (eruptFire) {
+        const fGeo = new THREE.ConeGeometry(width * 1.1, finalHeight * 1.25, 6);
+        fGeo.translate(0, finalHeight * 0.62, 0);
+        const fMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(preset?.colorCore || '#ff6600'),
+          transparent: true,
+          opacity: 0,
+          blending: THREE.AdditiveBlending
+        });
+        fireMesh = new THREE.Mesh(fGeo, fMat);
+        fireMesh.position.set(posX, posY, posZ + 2);
+        fireMesh.rotation.z = angle - Math.PI / 2;
+        fireMesh.scale.set(0.001, 0.001, 0.001);
+        group.add(fireMesh);
+      }
+
+      const delay = orderIndices[i] * staggerSec;
+      const heightVar = 0.82 + rng() * 0.36;
+      spikeItems.push({ mesh, mat: spikeMat, delay, heightVar, fireMesh });
+    }
+
+    let elapsed = 0;
+    const spikeDuration = 0.38;
+    const totalDuration = (count * staggerSec) + spikeDuration + 0.1;
+
+    return {
+      update: (delta: number) => {
+        elapsed += delta;
+        let allDone = true;
+
+        spikeItems.forEach(item => {
+          if (elapsed < item.delay) {
+            item.mesh.scale.set(0.001, 0.001, 0.001);
+            item.mat.opacity = 0;
+            if (item.fireMesh) {
+              item.fireMesh.scale.set(0.001, 0.001, 0.001);
+              (item.fireMesh.material as THREE.Material).opacity = 0;
+            }
+            allDone = false;
+            return;
+          }
+
+          const age = elapsed - item.delay;
+          if (age < spikeDuration) {
+            allDone = false;
+            const prog = age / spikeDuration;
+            const sc = prog < 0.22 ? (prog / 0.22) : 1 - (prog - 0.22) / 0.78 * 0.35;
+            item.mesh.scale.set(sc, sc * (item as any).heightVar, sc);
+            item.mat.opacity = Math.max(0, 1 - (prog - 0.25) / 0.75);
+
+            if (item.fireMesh) {
+              item.fireMesh.scale.set(sc * 1.2, sc * (item as any).heightVar * 1.3, sc * 1.2);
+              (item.fireMesh.material as THREE.Material).opacity = Math.max(0, 1 - (prog - 0.2) / 0.8);
+            }
+          } else {
+            item.mesh.scale.set(0.001, 0.001, 0.001);
+            item.mat.opacity = 0;
+            if (item.fireMesh) {
+              item.fireMesh.scale.set(0.001, 0.001, 0.001);
+              (item.fireMesh.material as THREE.Material).opacity = 0;
+            }
+          }
+        });
+
+        return elapsed >= totalDuration || allDone;
+      },
+      dispose: () => {
+        scene.remove(group);
+        spikeGeo.dispose();
+        spikeItems.forEach(item => {
+          item.mat.dispose();
+          if (item.fireMesh) {
+            item.fireMesh.geometry.dispose();
+            (item.fireMesh.material as THREE.Material).dispose();
+          }
+        });
+      }
+    };
   }
 }

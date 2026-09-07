@@ -180,7 +180,7 @@
 │   │   │   ├── VFXPresetRepository.ts # 特效預設 SSOT 庫與快照管理
 │   │   │   ├── VFXStudioAdapter.ts # 特效工房視口與實戰反饋適配器
 │   │   │   ├── adapters/        # 戰鬥舞台適配器 (CombatStageAdapter, CombatStudioStageAdapter)
-│   │   │   └── renderers/       # 專用圖層渲染器 (MeshLayerRenderer, ParticleLayerRenderer, ImpactLayerRenderer)
+│   │   │   └── renderers/       # 專用圖層渲染器 (MeshLayerRenderer, ParticleLayerRenderer, TrailLayerRenderer, ImpactLayerRenderer, ScreenFxRenderer, AudioLayerRenderer)
 │   │   └── components/      # 共用 UI 元件控制器
 │   │       ├── AdventurerCard.ts           # 傭兵滿版卡牌渲染邏輯
 │   │       ├── ForgeUIController.ts        # 鐵匠鋪 (強化/鍛造/重鑄/附魔) 控制器
@@ -347,3 +347,28 @@
 - **單向隔離與 100% 偵查一致性**：
   - 生靈據點排除 `UNDEAD`；亡靈據點以 `UNDEAD` 主體。
   - 偵查成功後持久化儲存於 `node.scoutData.garrisonEncounter`，保證偵查與實戰敵軍 100% 精確一致。
+
+---
+
+## ✨ 3D 特效管線與視覺工坊架構 (VFX Studio & Combat Pipeline Architecture)
+
+本專案之戰鬥 3D 視覺特效系統與獨立工坊（`tools/vfx-studio.html`）採用單向依賴、分層隔離與純邏輯求值設計，杜絕表層應試與雙重時鐘：
+
+1. **標準資料層 (Canonical Schema & Runtime Adapter)**：
+   - **Canonical Schema (`VFXSequence`, Schema v2)**：具備嚴格 Discriminated Union 之 `VFXClipPayload`（MESH, PARTICLE, IMPACT, SCREEN_FX, AUDIO, COMPOSITE_LAYER），徹底淘汰任意型別與弱契約欄位。
+   - **雙向純函式轉譯器**：`migrateLegacyPreset` (升級) 與 `sequenceToLegacyPreset` (降級相容)，保證 30+ 款正式 Preset 雙向 Roundtrip 零失真。
+   - **發布與讀回資料閉環**：`VFXLibrary.ts` 經前端驗證、草稿寫回、POST 發布、GET 磁碟回讀深比對，完全一致後解除 Dirty。
+2. **純邏輯求值與排程架構 (VFXTimelineEvaluator & Single Clock)**：
+   - **`VFXTimelineEvaluator.ts`**：純函數求值器，計算 `LINEAR`、`ACCELERATE`、`DECELERATE`、`BURST_PAIRS` 等連擊時間戳、具名 Cue 提取與複合圖層排程。
+   - **`PlaybackClock.ts`**：全局單一演出邏輯時鐘，統一步進比例、暫停凍結與跳轉，絕無分散的 wall-clock `setTimeout`。
+   - **`FrameTimelineEngine.ts`**：以 60 FPS 整數影格對齊邏輯秒數，由 `scheduler` 驅動，嚴密防範時鐘空轉。
+3. **時間軸模組化解耦 (Timeline Facade Architecture)**：
+   - **`VFXTimeline.ts`** 作為 Facade，封裝調度四大專職模組：
+     - `TimelineView.ts`：尺規刻度、軌道、Clip 與 Cue 菱形 Marker 之 HTML 渲染。
+     - `TimelineInteraction.ts`：播放頭 Scrubbing、Cue 拖曳/刪除/新增 Undo 交易、Clip 移動與把手拉伸。
+     - `TimelineCommands.ts`：Cue/Layer 增刪修改與軌道 Solo/Mute/Lock 業務命令。
+     - `TimelineSelection.ts`：選取狀態管理與 Inspector 連動。
+4. **渲染與實例隔離管線 (Layer Renderers & Instance Registry)**：
+   - **專職 Layer Renderers**：`MeshLayerRenderer`（刀光網格/晶刺）、`ParticleLayerRenderer`（爆散火花）、`TrailLayerRenderer`（拖尾/電弧）、`ImpactLayerRenderer`（光環波）、`ScreenFxRenderer`（震屏閃光）。
+   - **`VFXEffectInstance.ts` & `VFXInstanceRegistry`**：每次播放具備獨立 3D Root 與 Track Groups，並設有 32 實例上限自動淘汰降級防線，實戰 AOE 多目標打擊完全隔離。
+   - **公開品質預算指標**：`VFXPlayer.getPerformanceMetrics()` 公開 Draw Calls、Triangles 與粒子數，杜絕外部私有反射存取。
