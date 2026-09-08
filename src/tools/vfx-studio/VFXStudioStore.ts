@@ -7,7 +7,15 @@ export interface TrackMuteStates {
   impact: boolean;
 }
 
+export type VFXEditorSelection =
+  | { type: 'PRESET' }
+  | { type: 'MAIN_TRACK' }
+  | { type: 'LAYER'; layerId: string }
+  | { type: 'CUE'; cueId: string }
+  | { type: 'BINDING'; skillId: string };
+
 export type StoreChangeListener = (preset: VFXPreset, isDirty: boolean) => void;
+export type SelectionChangeListener = (selection: VFXEditorSelection) => void;
 
 /**
  * 📦 VFXStudioStore
@@ -20,6 +28,7 @@ export class VFXStudioStore {
   public static readonly MAX_HISTORY = 50;
 
   private currentPreset: VFXPreset;
+  private selection: VFXEditorSelection = { type: 'PRESET' };
   private undoStack: VFXPreset[] = [];
   private redoStack: VFXPreset[] = [];
   private isDirty: boolean = false;
@@ -40,6 +49,7 @@ export class VFXStudioStore {
   private stashStack: { preset: VFXPreset; name: string }[] = [];
 
   private listeners = new Set<StoreChangeListener>();
+  private selectionListeners = new Set<SelectionChangeListener>();
   private isSnapshotPaused: boolean = false;
 
   private constructor() {
@@ -59,6 +69,25 @@ export class VFXStudioStore {
   public subscribe(listener: StoreChangeListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  public subscribeSelection(listener: SelectionChangeListener): () => void {
+    this.selectionListeners.add(listener);
+    return () => this.selectionListeners.delete(listener);
+  }
+
+  public getSelection(): VFXEditorSelection {
+    return { ...this.selection };
+  }
+
+  public setSelection(selection: VFXEditorSelection): void {
+    this.selection = { ...selection };
+    this.notifySelection();
+  }
+
+  private notifySelection(): void {
+    const sel = { ...this.selection };
+    this.selectionListeners.forEach(fn => fn(sel));
   }
 
   private notify(): void {

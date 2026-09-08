@@ -1,13 +1,72 @@
 import { chromium } from 'playwright';
+import { spawn } from 'child_process';
+import http from 'http';
+import { fileURLToPath } from 'url';
+
+const PORT = 5173;
+const HOST = '127.0.0.1';
+const TEST_URL = `http://${HOST}:${PORT}/Medieval/index.html`;
+
+async function isServerRunning() {
+  return new Promise((resolve) => {
+    const req = http.get(TEST_URL, (res) => {
+      resolve(res.statusCode === 200 || res.statusCode === 304);
+    });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
+async function waitForServer(timeoutMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await isServerRunning()) return true;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
 
 async function verifyCombatDirection() {
   console.log('🚀 Starting Combat VFX Direction Verification...');
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  page.on('console', msg => console.log('BROWSER:', msg.text()));
 
-  await page.goto('http://localhost:5174/Medieval/index.html');
-  await page.waitForTimeout(500);
+  let serverProcess = null;
+  let browser = null;
+
+  try {
+    const alreadyRunning = await isServerRunning();
+    if (!alreadyRunning) {
+      console.log('Starting vite dev server...');
+      const viteBin = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url));
+      serverProcess = spawn(process.execPath, [viteBin, '--host', HOST, '--port', PORT.toString()], {
+        stdio: 'pipe',
+        shell: false
+      });
+      const ready = await waitForServer();
+      if (!ready) {
+        console.error('Failed to start vite server');
+        if (serverProcess) serverProcess.kill();
+        process.exit(1);
+      }
+    }
+
+    browser = await chromium.launch({ headless: true });
+    const consoleErrors = [];
+    const notFoundUrls = [];
+
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    page.on('console', msg => {
+      if (msg.type() === 'error') consoleErrors.push(`[BROWSER ERROR] ${msg.text()}`);
+      else console.log('BROWSER:', msg.text());
+    });
+    page.on('pageerror', err => {
+      consoleErrors.push(`[PAGE ERROR] ${err.message}`);
+    });
+    page.on('response', res => {
+      if (res.status() === 404) notFoundUrls.push(`[404 NOT FOUND] ${res.url()}`);
+    });
+
+    await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500);
 
   // 在頁面上下文注入戰鬥行動並檢驗其目標與起終點
   const result = await page.evaluate(async () => {
@@ -144,26 +203,37 @@ async function verifyCombatDirection() {
     };
   });
 
-  console.log('📊 Combat Direction Audit Result:', JSON.stringify(result, null, 2));
-  await browser.close();
+    console.log('📊 Combat Direction Audit Result:', JSON.stringify(result, null, 2));
 
-  // 嚴格斷言
-  if (result.playerAction.isSelfHit || result.enemyAction.isSelfHit) {
-    throw new Error('❌ Self-targeting bug detected! Action hit caster instead of opponent!');
+    if (notFoundUrls.length > 0) {
+      throw new Error(`❌ 驗收失敗，載入過程出現 404 請求: ${JSON.stringify(notFoundUrls)}`);
+    }
+
+    if (consoleErrors.length > 0) {
+      throw new Error(`❌ 驗收失敗，瀏覽器出現錯誤日誌: ${JSON.stringify(consoleErrors)}`);
+    }
+
+    // 嚴格斷言
+    if (result.playerAction.isSelfHit || result.enemyAction.isSelfHit) {
+      throw new Error('❌ Self-targeting bug detected! Action hit caster instead of opponent!');
+    }
+
+    if (result.playerAction.dx <= 0) {
+      throw new Error(`❌ Player attack direction wrong! Expected dx > 0, got ${result.playerAction.dx}`);
+    }
+
+    if (result.enemyAction.dx >= 0) {
+      throw new Error(`❌ Enemy attack direction wrong! Expected dx < 0, got ${result.enemyAction.dx}`);
+    }
+
+    console.log('🎉 COMBAT DIRECTION & TARGET ISOLATION VERIFIED 100% SUCCESS!');
+  } finally {
+    if (browser) await browser.close();
+    if (serverProcess) serverProcess.kill();
   }
-
-  if (result.playerAction.dx <= 0) {
-    throw new Error(`❌ Player attack direction wrong! Expected dx > 0, got ${result.playerAction.dx}`);
-  }
-
-  if (result.enemyAction.dx >= 0) {
-    throw new Error(`❌ Enemy attack direction wrong! Expected dx < 0, got ${result.enemyAction.dx}`);
-  }
-
-  console.log('🎉 COMBAT DIRECTION & TARGET ISOLATION VERIFIED 100% SUCCESS!');
 }
 
 verifyCombatDirection().catch(err => {
-  console.error(err);
+  console.error('❌ Direction Verification Failed:', err);
   process.exit(1);
 });

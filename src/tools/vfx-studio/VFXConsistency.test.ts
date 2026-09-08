@@ -10,6 +10,7 @@ describe('VFX Scrubbing vs Playing SSOT Consistency Tests', () => {
       id: 'VFX_WHIRLWIND',
       name: '旋風橫掃 (Whirlwind)',
       trajectory: 'MELEE_SWEEP',
+      slashShape: 'WHIRLWIND',
       shaderMode: 'SLASH_BLADE',
       scale: 1.8,
       duration: 0.38,

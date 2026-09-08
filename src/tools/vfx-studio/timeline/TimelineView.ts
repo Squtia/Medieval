@@ -70,11 +70,12 @@ export class TimelineView {
             <span id="tl-time-display" style="color: #fbbf24; font-family: monospace; font-weight: bold; background: #1e293b; padding: 2px 8px; border-radius: 4px; border: 1px solid #334155;">
               Frame: 00 / ${totalFrames} (0.00s / ${duration.toFixed(2)}s)
             </span>
-            <label style="display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: #94a3b8;" title="直接設定當前預設總演示時長 (0.1s ~ 5.0s)">
-              時長:
-              <input id="tl-input-duration" type="number" step="0.05" min="0.1" max="5.0" value="${duration.toFixed(2)}" style="width: 54px; background: #0f172a; border: 1px solid #475569; color: #fbbf24; border-radius: 4px; padding: 1px 4px; font-family: monospace; font-weight: bold; font-size: 0.72rem; text-align: center;">
-              s
-            </label>
+            <div style="display: flex; align-items: center; gap: 4px; font-size: 0.72rem; color: #94a3b8;" title="直接設定當前預設總演示時長 (0.1s ~ 5.0s)">
+              <span>時長:</span>
+              <input id="tl-range-duration" type="range" step="0.05" min="0.1" max="5.0" value="${duration.toFixed(2)}" style="width: 60px; accent-color: #38bdf8; cursor: pointer;">
+              <input id="tl-input-duration" type="number" step="0.05" min="0.1" max="5.0" value="${duration.toFixed(2)}" style="width: 50px; background: #0f172a; border: 1px solid #475569; color: #fbbf24; border-radius: 4px; padding: 1px 4px; font-family: monospace; font-weight: bold; font-size: 0.72rem; text-align: center;">
+              <span>s</span>
+            </div>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <button id="tl-btn-play-pause" style="background: #1e293b; border: 1px solid #475569; color: ${isPaused ? '#38bdf8' : '#fbbf24'}; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 0.72rem; font-weight: bold;" title="切換播放/暫停 (Space)">${isPaused ? '▶ 播放' : '⏸ 暫停'}</button>
@@ -87,6 +88,19 @@ export class TimelineView {
               <option value="SPLIT_SINGLE_IMPACT" ${preset.impactPresentationMode === 'SPLIT_SINGLE_IMPACT' ? 'selected' : ''}>⚖️ 拆分 SPLIT</option>
               <option value="PRIMARY_ONLY" ${preset.impactPresentationMode === 'PRIMARY_ONLY' ? 'selected' : ''}>🏁 終擊 PRIMARY</option>
             </select>
+          </div>
+        </div>
+
+        <!-- 依文件 §5.5 縮短時長超出確認對話框 -->
+        <div id="tl-duration-overflow-dialog" style="display: none; background: rgba(30, 41, 59, 0.98); border: 1px solid #ef4444; border-radius: 6px; padding: 8px 12px; margin-bottom: 4px; box-shadow: 0 4px 16px rgba(0,0,0,0.5);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="color: #f87171; font-weight: bold; font-size: 0.75rem;">⚠️ 縮短時長確認：以下項目將超出新時長範圍</span>
+          </div>
+          <div id="tl-overflow-items-list" style="max-height: 70px; overflow-y: auto; font-size: 0.7rem; color: #fca5a5; margin-bottom: 8px; font-family: monospace;"></div>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button id="tl-btn-dur-extend" style="background: #0284c7; color: #fff; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">延長 sequence 配合項目</button>
+            <button id="tl-btn-dur-scale" style="background: #d97706; color: #fff; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">按比例縮放全部</button>
+            <button id="tl-btn-dur-cancel" style="background: #475569; color: #fff; border: none; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;">取消</button>
           </div>
         </div>
 

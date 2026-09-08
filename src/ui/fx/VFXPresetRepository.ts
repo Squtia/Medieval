@@ -1,4 +1,4 @@
-import { VFXPreset } from '../../models/VFX';
+import { VFXPreset, VFXSequence, migrateLegacyPreset, sequenceToLegacyPreset } from '../../models/VFX';
 import defaultVFXPresets from '../../data/vfx_presets.json';
 import { VFXPresetValidator } from './VFXPresetValidator';
 
@@ -144,6 +144,26 @@ export class VFXPresetRepository {
 
   public hasPreset(id: string): boolean {
     return this.resolvedMap.has(id);
+  }
+
+  /**
+   * 🌟 依據 §6.1 條款：Repository 對外提供 resolved Canonical VFXSequence
+   */
+  public getSequence(id: string): VFXSequence | undefined {
+    const preset = this.getPreset(id);
+    if (!preset) return undefined;
+    return migrateLegacyPreset(preset);
+  }
+
+  /**
+   * 🌟 依據 §6.1 條款：保存 Canonical VFXSequence 並透過 Runtime Adapter 寫入 Repository
+   */
+  public saveSequence(sequence: VFXSequence): { success: boolean; error?: string } {
+    if (!sequence || !sequence.id) {
+      return { success: false, error: 'Sequence 無效或缺少 ID' };
+    }
+    const legacyPreset = sequenceToLegacyPreset(sequence);
+    return this.saveCustomPreset(legacyPreset);
   }
 
   /**

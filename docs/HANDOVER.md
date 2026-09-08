@@ -1,3 +1,86 @@
+- **[Refactor/CombatVFX/Phase5] 戰鬥 VFX 管線重整 Phase 5 完整驗收、回歸防線修復與 DoD 全面落實完工交接（2026-09-08）**：
+  - **核心交接重點**：
+    1. **消除假陽性與無頭驗證腳本修復 (§1.10 & §11)**：
+       - `scripts/verify-combat-vfx-direction.mjs` 與 `scripts/verify-human-interactions.mjs` 補齊 Playwright `chromium` 導入與自適應 Vite Server 啟動及 finally 自動銷毀。
+       - `scripts/verify-phase6-combat-debug.mjs` 修復後端 `/api/get-icon-studio-data` 產生的 404 報錯，確保無頭腳本全流程 0 錯誤、0 警告、0 個 404，Debug Overlay 狀態精準校準至 IDLE。
+    2. **雙向無損 Roundtrip 守恆強化 (§6.2 & §6.3)**：
+       - 在 `VFXSlashClipPayload` 中補充 `shaderMode` 與 `trajectory` 可選屬性，使特殊著色器斬擊或特定碰撞在 Preset ➔ Sequence ➔ Preset 往返中 100% 保持合約無損。
+       - `src/ui/fx/VFXCanonicalSchema.test.ts` 擴充合法 clip.payload.type 白名單（納入 `SLASH` 與 `PROJECTILE`）。
+       - `src/tools/vfx-studio/VFXInspector.ts` 強化 DOM `closest` 方法防禦，相容測試環境 mock DOM。
+    3. **4 種 Viewport 實機截圖與無溢出驗證 (§8.7 & §9.5)**：
+       - 實機驗證 1440×900、1280×720、1024×768、768×900 四種視窗尺寸。
+       - 768px 版面完美收斂，Client W 與 Scroll W 皆為 768px（零水平 overflow，Zero Leak = true）。
+    4. **生產級浸泡穩定性 (Soak Stress Test 100 循環)**：
+       - 100 次連續播放循環，Canvas 保持 1，零顯存洩漏、WebGL 上下文穩定不丟失。
+    5. **生產打包與煙霧測試全數通過**：
+       - `npm run typecheck` 0 報錯。
+       - `npm test` 全套 62 個檔案、368 項測試 100% PASS。
+       - `npm run build` 成功完成，Bundle 預算 3.8MB / 4.0MB 通過。
+       - `npm run test:smoke` P0 煙霧測試（新遊戲開局、迷霧探索、道路建設、跨日推進、存檔讀檔）全數通過。
+
+- **[Refactor/CombatVFX/Phase4] 戰鬥 VFX 管線重整 Phase 4 Canonical Sequence 漸進收斂與 Typed Payload 實裝完工交接（2026-09-08）**：
+  - **核心交接重點**：
+    1. **Typed Clip Payload 規格落實 (§6.2)**：
+       - 在 `src/models/VFX.ts` 導出 `VFXSlashClipPayload` 與 `VFXProjectileClipPayload`，納入 `VFXClipPayload` 聯集型別中。
+       - `migrateLegacyPreset` 升級為標準 Schema v2 遷移：依 `rendererType`（`SLASH` / `PROJECTILE` / `MESH`）自動轉換為攜帶 `slashRadius`, `bladeWidth`, `angleJitter`, `alternating`, `salvo`, `coreBrightness`, `coreMeshShape` 等完整可調欄位的 Typed Payload。
+       - `sequenceToLegacyPreset` 實裝無損解構還原，達成 Preset ➔ Sequence ➔ Preset 往返（Roundtrip）數值零失真。
+    2. **徹底移除 Preset ID 渲染與外觀特判 (§6.3)**：
+       - `src/ui/fx/renderers/MeshLayerRenderer.ts` 移除 `preset.id.includes('WHIRLWIND')`，旋風造型嚴格由 `preset.slashShape === 'WHIRLWIND'` 驅動。
+       - `src/tools/vfx-studio/VFXInspector.ts` 移除 `VFX_HOLY_SHIELD` 與 `VFX_TAUNT_SHOUT` 特判，能力 100% 依據 `rendererType` 與 `trajectory` 解析。
+       - `src/models/VFX.ts` 遷移純函式移除 `preset.id.includes('WHIRLWIND')` 特判。
+       - `src/data/vfx_presets.json` 為 `VFX_WHIRLWIND` 補齊 `rendererType: "SLASH"` 與 `slashShape: "WHIRLWIND"`。
+    3. **Repository Canonical Sequence 接口實裝 (§6.1)**：
+       - 在 `src/ui/fx/VFXPresetRepository.ts` 實裝 `getSequence(id: string): VFXSequence | undefined` 與 `saveSequence(sequence: VFXSequence)`，達成 Repository 對外提供 resolved Sequence。
+    4. **Combat Runtime Sequence 原生支援 (§6.1)**：
+       - 在 `src/ui/fx/CombatFXEngine.ts` 實裝 `playSequence(sequence, from, to, isPlayerOrOnImpact, onImpactCallback)` 與 `renderSequenceWorldAt(sequence, timeSeconds, ...)`，支援 Canonical Sequence 的原生播放與世界座標動態渲染求值。
+    5. **測試與驗收全數 PASS**：
+       - 新增專屬驗收測試 `src/systems/combat/VFXPipelinePhase4CanonicalSequence.test.ts`（8 項測試全數通過）。
+       - 戰鬥系統全套測試（20 個檔案、158 項測試）100% PASS，`npm run typecheck` 0 報錯。
+
+- **[Refactor/CombatVFX/Phase3] 戰鬥 VFX 管線重整 Phase 3 Inspector 與欄位收斂、選取 Union 與 Runtime 幾何生效完工交接（2026-09-08）**：
+  - **核心交接重點**：
+    1. **選取狀態 Union 與穩定 ID 識別 (§5.2)**：
+       - `src/tools/vfx-studio/VFXStudioStore.ts` 導出並實作 `VFXEditorSelection` union（`PRESET | MAIN_TRACK | LAYER(layerId) | CUE(cueId) | BINDING(skillId)`）。
+       - 徹底杜絕因圖層新增/刪除/排序導致的 array index 漂移問題，Store 全局提供 `setSelection`、`getSelection`、`subscribeSelection`。
+    2. **Capability-Driven Inspector 與模式相依收斂 (§5.3 & §5.8)**：
+       - `src/tools/vfx-studio/VFXInspector.ts` 導出 `InspectorCapability`，實作純函式 `getSelectionCapabilities(preset, selection): Set<InspectorCapability>`。
+       - 排他判定近戰斬擊、遠程投射物、岩刺、護盾、戰吼與著色器能力，杜絕舊有欄位污染問題。
+       - 欄位情境化動態收斂：`cue.weight` 僅在 `SPLIT_SINGLE_IMPACT` 模式顯示；Salvo 卡片僅在連射模式顯示；Fire turbulence 僅在火焰著色器顯示；Fresnel 僅在冰晶著色器顯示；Shield shape 僅在盾牌渲染器顯示；`cue.isPrimary` 在非 `PRIMARY_ONLY` 模式下動態標記用途說明；Legacy 彈道選單（`param-trajectory`）遵循 §5.6 於 Inspector 徹底隱藏，僅保留 DOM 供載入遷移相容。
+    3. **唯一總時長契約與縮短防禦機制 (§5.5 & §5.4)**：
+       - 移除右側重複之 `param-duration` 滑桿，全局收斂由 Timeline 時間軸控制器作為總時長 SSOT，徹底消除雙重 duration 控制器造成的數值競爭與混亂。
+       - **精確複合控制**：時間軸頂部時長升級為 `range + number` 雙向連動複合輸入（`tl-range-duration` + `tl-input-duration`）。
+       - **縮短超出三選擇防禦**：依 §5.5 嚴格規定「不得默默裁切超出範圍的 clip／Cue」。若縮短時長導致主軌、副圖層或 Cue 溢出，立即顯示確認對話框列出受影響清單，並提供「延長 sequence 配合項目」、「按比例縮放全部」、「取消」三種明確處置選擇。
+    4. **無效控制項處置與 Runtime 幾何實質生效（§5.7 完成條件）**：
+       - **杜絕應試欺瞞**：嚴格落實「畫面上不存在調整後 runtime 不變的控制項」：
+         - `waveCount`：傳入 `MeshLayerRenderer.buildTauntShoutGroup(waveCount)`，支援 1～8 圈戰吼震波動態建構，由 `CombatFXEngine` 真實生效。
+         - `shieldShape`：`MeshLayerRenderer.buildHolyShieldGroup` 依 `HEX | CROSS_SHIELD | RUNE_RING` 真實建立不同網格拓撲與幾何形態。
+         - `coreMeshShape`：`playDynamicProjectile` 動態建立 `SPHERE | DIAMOND | STAR | RING | ARROW` 彈頭幾何實體。
+         - `coreBrightness`：即時傳入著色器材質乘數計算發光亮度。
+       - 依文件暫時隱藏無後端管線之 Bloom（`bloomStr`, `bloomRad`, `bloomThresh`）與 `textureSprite`。
+    5. **測試與型別驗證全數通過**：
+       - 新增專屬驗收測試 `src/systems/combat/VFXPipelinePhase3Inspector.test.ts`（擴充至 13 項測試全數通過）。
+       - 戰鬥系統全套（19 個檔案、150 項測試）100% PASS。
+       - `npm run typecheck` 0 報錯。
+
+  - **核心交接重點**：
+    1. **單一 UI 呈現責任與根除重複跳字**：
+       - 徹底清理 `CombatUIManager.renderEventAsync` 結尾對目標 `lastEv` 二度調用 `applyDamageAndFloatingNumbers` 的重複呈現病灶。
+       - 實裝純狀態校準函式 `CombatUIManager.reconcileFinalActionState(events)`：僅在 Action 播畢後安全同步 HP/MP/城門 HUD 與死亡 class，**絕對禁止建立 floating DOM 跳字**。
+       - 徹底移除在事件物件上動態注入 `absorbedBySkillCast = true` 的暫態污染；重播報告保證 100% 冪等無副作用。
+    2. **純函式 Action 聚合器 (`collectCombatActions`)**：
+       - `CombatActionPlayer.ts` 導出純函式 `collectCombatActions(events)`，預先將連續相同 `actionId` 之事件群組合成 `CombatAction`，保留原始時序。
+       - 主遊戲 `CombatUIManager` 與戰鬥工房 `CombatStudio` 全面同步改由 `collectCombatActions` 驅動，兩端播放管線 100% 同構。
+    3. **多型跳字與 Adapter 打擊次數解耦**：
+       - `CombatStageAdapter` 與 `CombatStudioStageAdapter` 不再傳死 `totalHits = 1`，改傳入 `item.presentationIndex` 與 `item.presentationCount`，實現目標專屬的受擊輕震／終擊重顫。
+       - 實裝 `SHIELD_DAMAGE`（`🛡️ -X`）、`SHIELD_BREAK`（`🛡️ 破盾！`）、`STATUS`（狀態文字）與 `VISUAL_ONLY`（絕對不跳字，杜絕 `-0`）。
+    4. **嚴格落實 §8.3 條款 9「Skip 後零殘留」與 §7「Debug Overlay 立即清理」**：
+       - `CombatUIManager.skipPlayback()` 與 `CombatStudio.btn-skip-all`：開頭調用 `CombatStageAdapter.clear()` 與 `CombatActionPlayer.clearDebugOverlay(true)`，跳過期間僅輸出日誌而不建立 floating DOM 與計時器，末尾由純狀態校正終態血量，達成 0 殘留 timer、0 殘留跳字 DOM、0 殘留 FALLBACK 診斷狀態。
+       - `SkillData.ts` 之 `getSkillVfxId` 升級相容 `SkillVfxBindingStorageV2`，並優先委派 `SkillVfxBindingRegistry` SSOT。
+    5. **測試與型別驗證全數通過**：
+       - `npm run typecheck` 0 報錯。
+       - 戰鬥模組全套 18 個測試檔案、137 項單元測試 100% PASS。
+       - `VFXPipelinePhase0Defects.test.ts` 擴充至 8 項測試全數綠燈。
+
 - **[Fix/VFXStudio/CardSpriteIconsAndTimelineDeleteBtn] 技能卡片 Sprite 圖標引擎接入與時間軸圖層雙重刪除按鈕完工交接（2026-09-07）**：
   - **核心交接重點**：
     1. **技能卡片 Sprite 圖標解析與文字溢出根除**：

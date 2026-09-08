@@ -22,7 +22,7 @@ import equipmentAccessoriesJson from '../data/equipment_accessories.json';
 import customSkillsJson from '../data/CustomSkillData.json';
 import { VFXPresetRepository } from '../ui/fx/VFXPresetRepository';
 import { CombatStudioStageAdapter } from '../ui/fx/adapters/CombatStudioStageAdapter';
-import { CombatAction, CombatImpactPresentation, CombatActionPlayer } from '../ui/fx/CombatActionPlayer';
+import { CombatAction, CombatImpactPresentation, CombatActionPlayer, collectCombatActions, isCombatAction } from '../ui/fx/CombatActionPlayer';
 import '../styles/combat-studio.css';
 
 // 工具函式
@@ -181,6 +181,7 @@ class CombatStudioController {
   // 戰鬥播放器狀態
   private currentReport: CombatReport | null = null;
   private currentEventIndex = 0;
+  private currentActionItems: Array<CombatAction | CombatEvent> = [];
   private isPlaying = false;
   private playSpeed = 1; // 1x, 2x, 5x
   private playTimer: any = null;
@@ -414,16 +415,20 @@ class CombatStudioController {
 
   private async loadIconDatasets(): Promise<void> {
     try {
-      const response = await fetch('/api/get-icon-studio-data');
-      if (response.ok) {
-        const data = await response.json();
-        if (data.customDatasets && Object.keys(data.customDatasets).length > 0) {
-          this.iconDatasets = data.customDatasets;
+      if (typeof window !== 'undefined' && (window as any).__ENABLE_BACKEND_API__) {
+        const response = await fetch('/api/get-icon-studio-data');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.customDatasets && Object.keys(data.customDatasets).length > 0) {
+            this.iconDatasets = data.customDatasets;
+            return;
+          }
         }
       }
     } catch {
-      this.iconDatasets = defaultCustomDatasets;
+      // fallback
     }
+    this.iconDatasets = defaultCustomDatasets;
   }
 
   private async loadTemplate(): Promise<void> {
@@ -4302,6 +4307,7 @@ class CombatStudioController {
     );
 
     this.currentReport = report;
+    this.currentActionItems = collectCombatActions(report.events);
     this.currentEventIndex = 0;
     this.renderArenaInitial();
 
@@ -4320,40 +4326,20 @@ class CombatStudioController {
   private stepPlayback(): void {
     if (!this.isPlaying || !this.currentReport) return;
 
-    if (this.currentEventIndex >= this.currentReport.events.length) {
+    if (this.currentEventIndex >= this.currentActionItems.length) {
       this.finishPlayback();
       return;
     }
 
-    const currentEv = this.currentReport.events[this.currentEventIndex];
+    const currentItem = this.currentActionItems[this.currentEventIndex];
+    this.currentEventIndex++;
 
-    // 🎬 檢查是否為 CombatAction 行動組（包含 actionId）
-    if (currentEv.actionId) {
-      const actionId = currentEv.actionId;
-      const actionEvents: CombatEvent[] = [];
-      let nextIdx = this.currentEventIndex;
-      while (
-        nextIdx < this.currentReport.events.length &&
-        this.currentReport.events[nextIdx].actionId === actionId
-      ) {
-        actionEvents.push(this.currentReport.events[nextIdx]);
-        nextIdx++;
-      }
-      this.currentEventIndex = nextIdx;
+    // 🎬 檢查是否為 CombatAction 行動組
+    if (isCombatAction(currentItem)) {
+      const action = currentItem;
 
       // 1. 將該 Action 內所有事件文字輸出至日誌
-      actionEvents.forEach(ev => this.appendLogEntry(ev));
-
-      // 2. 構建 CombatAction
-      const vfxId = actionEvents.find(e => e.vfxId)?.vfxId;
-      const skillId = actionEvents.find(e => e.skillId)?.skillId;
-      const action: CombatAction = {
-        actionId,
-        actorId: currentEv.actorId || '',
-        skillId,
-        vfxId,
-        events: actionEvents
-      };
+      action.events.forEach(ev => this.appendLogEntry(ev));
 
       const isVfxOn = CombatStudioStageAdapter.getInstance().isVfxEnabled();
       CombatStudioStageAdapter.getInstance().playCombatAction(action, {
@@ -4371,7 +4357,7 @@ class CombatStudioController {
       }).catch(err => {
         console.warn('[CombatStudio] CombatAction playback exception:', err);
         // 防呆：發生錯誤時立即更新這組事件的最終血條並推進
-        actionEvents.forEach(e => this.updateBarsFromEvent(e));
+        action.events.forEach(e => this.updateBarsFromEvent(e));
         if (this.isPlaying) {
           const delay = Math.max(60, 150 / this.playSpeed);
           this.playTimer = setTimeout(() => this.stepPlayback(), delay);
@@ -4380,7 +4366,8 @@ class CombatStudioController {
       return;
     }
 
-    // 非 actionId 事件（例如：回合提示、波次開始、無 actionId 之狀態事件）
+    // 非 CombatAction 之單一事件（例如：回合提示、波次開始、無 actionId 之獨立事件）
+    const currentEv = currentItem;
     this.appendLogEntry(currentEv);
     this.currentEventIndex++;
 
@@ -4531,6 +4518,7 @@ class CombatStudioController {
     this.isPlaying = false;
     if (this.playTimer) clearTimeout(this.playTimer);
     CombatStudioStageAdapter.getInstance().clear();
+    CombatActionPlayer.clearDebugOverlay(true);
     byId('btn-play-pause').textContent = '▶ 繼續';
   }
 
@@ -5002,11 +4990,26 @@ class CombatStudioController {
 
     byId('btn-skip-all').onclick = () => {
       if (!this.currentReport) return;
+      this.stopPlayback();
       CombatStudioStageAdapter.getInstance().clear();
-      while (this.currentEventIndex < this.currentReport.events.length) {
-        this.applyEventToUi(this.currentReport.events[this.currentEventIndex], { skipVfx: true });
+      CombatActionPlayer.clearDebugOverlay(true);
+
+      while (this.currentEventIndex < this.currentActionItems.length) {
+        const item = this.currentActionItems[this.currentEventIndex];
+        if (isCombatAction(item)) {
+          item.events.forEach(ev => this.appendLogEntry(ev));
+        } else {
+          this.appendLogEntry(item);
+          if (item.type === CombatEventType.WAVE_START && item.wave) {
+            this.renderArenaWave(item.wave);
+          }
+        }
         this.currentEventIndex++;
       }
+
+      // 純狀態安全校正終態血條，零殘留 floating-dmg
+      this.currentReport.events.forEach(e => this.updateBarsFromEvent(e));
+      CombatStudioStageAdapter.getInstance().clear();
       this.finishPlayback();
     };
 

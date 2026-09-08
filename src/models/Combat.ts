@@ -110,6 +110,8 @@ export type CombatImpactKind =
   | 'DAMAGE'
   | 'HEAL'
   | 'SHIELD_DAMAGE'
+  | 'SHIELD_BREAK'
+  | 'STATUS'
   | 'STATUS_APPLY'
   | 'MISS';
 

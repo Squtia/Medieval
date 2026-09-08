@@ -250,7 +250,7 @@ export class MeshLayerRenderer {
     colorCore: string;
     colorRim: string;
   } {
-    const isWhirlwind = Boolean((preset.id && preset.id.includes('WHIRLWIND')) || preset.slashShape === 'WHIRLWIND');
+    const isWhirlwind = Boolean(preset.slashShape === 'WHIRLWIND');
     const isCross = Boolean(preset.slashShape === 'CROSS');
     const sc = preset.scale || 1.0;
 
@@ -298,14 +298,28 @@ export class MeshLayerRenderer {
   }
 
   /**
-   * 🛡️ 建立神聖護盾複合幾何網格群組 (六角柱 + 外環 + 雙十字)
+   * 🛡️ 建立神聖護盾複合幾何網格群組 (支援 HEX / CROSS_SHIELD / RUNE_RING)
    */
-  public static buildHolyShieldGroup(scale: number = 1.0, colorCore: string = '#fde047', colorRim: string = '#eab308'): THREE.Group {
+  public static buildHolyShieldGroup(scale: number = 1.0, colorCore: string = '#fde047', colorRim: string = '#eab308', shape: string = 'HEX'): THREE.Group {
     const group = new THREE.Group();
     const shieldR = 70 * scale;
 
-    const hexGeo = new THREE.CylinderGeometry(shieldR, shieldR, 8, 6);
-    hexGeo.rotateX(Math.PI / 2);
+    let hexGeo: THREE.BufferGeometry;
+    let ringGeo: THREE.BufferGeometry;
+
+    if (shape === 'RUNE_RING') {
+      hexGeo = new THREE.RingGeometry(shieldR * 0.35, shieldR * 0.85, 24);
+      ringGeo = new THREE.TorusGeometry(shieldR * 1.05, 6 * scale, 12, 32);
+    } else if (shape === 'CROSS_SHIELD') {
+      hexGeo = new THREE.BoxGeometry(shieldR * 1.1, shieldR * 1.4, 6 * scale);
+      ringGeo = new THREE.TorusGeometry(shieldR * 1.1, 8 * scale, 8, 4);
+    } else {
+      // 預設 HEX
+      hexGeo = new THREE.CylinderGeometry(shieldR, shieldR, 8, 6);
+      hexGeo.rotateX(Math.PI / 2);
+      ringGeo = new THREE.TorusGeometry(shieldR * 1.05, 5, 8, 6);
+    }
+
     const hexMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(colorCore),
       transparent: true,
@@ -315,7 +329,6 @@ export class MeshLayerRenderer {
     const hexMesh = new THREE.Mesh(hexGeo, hexMat);
     group.add(hexMesh);
 
-    const ringGeo = new THREE.TorusGeometry(shieldR * 1.05, 5, 8, 6);
     const ringMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(colorRim),
       transparent: true,
@@ -330,10 +343,13 @@ export class MeshLayerRenderer {
     const crossMat = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending });
     const crossVMesh = new THREE.Mesh(crossVGeo, crossMat);
     const crossHMesh = new THREE.Mesh(crossHGeo, crossMat);
-    group.add(crossVMesh);
-    group.add(crossHMesh);
 
-    (group as any).__shieldParts = { hexMesh, ringMesh, crossVMesh, crossHMesh, hexMat, ringMat, crossMat };
+    if (shape !== 'RUNE_RING') {
+      group.add(crossVMesh);
+      group.add(crossHMesh);
+    }
+
+    (group as any).__shieldParts = { hexMesh, ringMesh, crossVMesh, crossHMesh, hexMat, ringMat, crossMat, shape };
     return group;
   }
 

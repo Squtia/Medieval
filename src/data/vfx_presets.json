@@ -55,6 +55,8 @@
     "category": "PHYSICAL",
     "description": "巨劍 360° 狂暴橫掃前排全體，帶起環狀烈風利刃。",
     "trajectory": "MELEE_SWEEP",
+    "rendererType": "SLASH",
+    "slashShape": "WHIRLWIND",
     "shaderMode": "SLASH_BLADE",
     "colorCore": "#fed7aa",
     "colorRim": "#ea580c",

@@ -79,7 +79,8 @@ describe('SkillVfxCardPicker - 全領域技能卡片選取綁定器測試', () =
     const saved = localStorage.getItem('MEDIEVAL_SKILL_VFX_BINDINGS');
     expect(saved).not.toBeNull();
     const parsed = JSON.parse(saved!);
-    expect(parsed['FIGHTER_HEAVY_STRIKE']).toBe(customVfxId);
+    const savedVfxId = parsed.version === 2 ? parsed.overrides['FIGHTER_HEAVY_STRIKE']?.vfxId : parsed['FIGHTER_HEAVY_STRIKE'];
+    expect(savedVfxId).toBe(customVfxId);
 
     // 驗證實戰調用 getSkillVfxId 也優先讀出自訂特效
     expect(getSkillVfxId('FIGHTER_HEAVY_STRIKE')).toBe(customVfxId);

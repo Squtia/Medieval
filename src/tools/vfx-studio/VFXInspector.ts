@@ -1,5 +1,21 @@
 import { VFXPreset } from '../../models/VFX';
-import { VFXStudioStore } from './VFXStudioStore';
+import { VFXStudioStore, VFXEditorSelection } from './VFXStudioStore';
+
+export type InspectorCapability =
+  | 'TRANSFORM'
+  | 'TRAJECTORY'
+  | 'SLASH_GEOMETRY'
+  | 'PROJECTILE_GEOMETRY'
+  | 'SPIKE_GEOMETRY'
+  | 'SHIELD_GEOMETRY'
+  | 'SHOUT_GEOMETRY'
+  | 'FIRE_SHADER'
+  | 'ICE_SHADER'
+  | 'PARTICLES'
+  | 'IMPACT_FEEDBACK'
+  | 'CASTER_MOTION'
+  | 'CUE'
+  | 'BINDING';
 
 export interface ControlConfig {
   id: string;
@@ -10,94 +26,191 @@ export interface ControlConfig {
   type: 'range' | 'select' | 'select-boolean' | 'checkbox' | 'color';
   unit?: string;
   defaultVal: any;
-  applicable?: 'ALL' | 'SLASH' | 'SPIKE' | 'SALVO' | 'IMPACT' | 'SPECIAL';
+  capability?: InspectorCapability;
+  isLegacy?: boolean;
+  isHidden?: boolean;
+}
+
+/**
+ * 🎯 依據當前 Preset 與選取狀態純函式求值可用的 Inspector 能力集合 (Capability Schema)
+ */
+export function getSelectionCapabilities(
+  preset: VFXPreset,
+  selection: VFXEditorSelection
+): Set<InspectorCapability> {
+  const caps = new Set<InspectorCapability>();
+
+  if (selection.type === 'BINDING') {
+    caps.add('BINDING');
+    return caps;
+  }
+
+  if (selection.type === 'CUE') {
+    caps.add('CUE');
+    return caps;
+  }
+
+  // PRESET, MAIN_TRACK, LAYER 基本能力
+  caps.add('TRANSFORM');
+  caps.add('TRAJECTORY');
+  caps.add('PARTICLES');
+
+  const layer = selection.type === 'LAYER'
+    ? preset.layers?.find(l => l.id === selection.layerId)
+    : undefined;
+
+  const shaderMode = layer?.shaderMode || preset.shaderMode || 'SLASH_BLADE';
+  const spatialMode = layer?.spatialMode || preset.spatialMode || 'TRAJECTORY';
+  const rendererType = preset.rendererType;
+
+  // Slash 幾何能力
+  if (
+    rendererType === 'SLASH' ||
+    shaderMode === 'SLASH_BLADE' ||
+    preset.trajectory === 'MELEE_SWEEP'
+  ) {
+    caps.add('SLASH_GEOMETRY');
+  }
+
+  // Projectile 幾何能力
+  const isMelee = rendererType === 'SLASH' || preset.trajectory === 'MELEE_SWEEP';
+  if (
+    !isMelee &&
+    (rendererType === 'PROJECTILE' ||
+     preset.spatialMode === 'TRAJECTORY' ||
+     preset.trajectoryPath !== undefined ||
+     (preset.salvoCount && preset.salvoCount > 1))
+  ) {
+    caps.add('PROJECTILE_GEOMETRY');
+  }
+
+  // Spike 幾何能力
+  if (
+    rendererType === 'GROUND_FISSURE' ||
+    shaderMode === 'EARTH_SHATTER' ||
+    preset.trajectory === 'GROUND_FISSURE' ||
+    preset.trajectory === 'GROUND_BURST' ||
+    (preset.spikes !== undefined && preset.spikes > 0)
+  ) {
+    caps.add('SPIKE_GEOMETRY');
+  }
+
+  // Shield 幾何能力
+  if (
+    rendererType === 'SHIELD' ||
+    (preset.trajectory as string) === 'SHIELD_BARRIER'
+  ) {
+    caps.add('SHIELD_GEOMETRY');
+  }
+
+  // Shout 幾何能力
+  if (
+    rendererType === 'SHOUT_WAVE' ||
+    (preset.trajectory as string) === 'SHOUT_WAVE'
+  ) {
+    caps.add('SHOUT_GEOMETRY');
+  }
+
+  // Fire / Ice Shader
+  if (shaderMode.includes('FLAME') || shaderMode.includes('FIRE') || shaderMode === 'VOLUMETRIC_FIRE') {
+    caps.add('FIRE_SHADER');
+  }
+  if (shaderMode.includes('ICE') || shaderMode.includes('FROST') || shaderMode === 'FRESNEL_ICE') {
+    caps.add('ICE_SHADER');
+  }
+
+  // 僅主軌或整體 Preset 顯示受擊反饋與施法動作
+  if (selection.type === 'MAIN_TRACK' || selection.type === 'PRESET') {
+    caps.add('IMPACT_FEEDBACK');
+    caps.add('CASTER_MOTION');
+  }
+
+  return caps;
 }
 
 /**
  * 🗺️ 單一真相來源之 Inspector 控制項契約表 (Inspector Control Map)
- * 嚴格對應 tools/vfx-studio.html 中的每一項 DOM 元素與 VFXPreset 屬性
  */
 export const INSPECTOR_CONTROL_MAP: ControlConfig[] = [
   // 1. 🌐 基礎彈道與時空節奏
-  { id: 'param-spatial-mode', key: 'spatialMode', type: 'select', defaultVal: 'TRAJECTORY', applicable: 'ALL' },
-  { id: 'param-trajectory-path', key: 'trajectoryPath', type: 'select', defaultVal: 'A_TO_B', applicable: 'ALL' },
-  { id: 'param-reverse', key: 'reverse', type: 'select-boolean', defaultVal: false, applicable: 'ALL' },
-  { id: 'param-trajectory', key: 'trajectory', type: 'select', defaultVal: 'HORIZONTAL', applicable: 'ALL' },
-  { id: 'param-duration', labelId: 'val-duration', key: 'duration', type: 'range', unit: 's', defaultVal: 0.35, applicable: 'ALL' },
-  { id: 'param-scale', labelId: 'val-scale', key: 'scale', type: 'range', unit: 'x', defaultVal: 1.0, applicable: 'ALL' },
-  { id: 'param-spin', labelId: 'val-spin', key: 'spin', type: 'range', unit: ' rad/s', defaultVal: 0, applicable: 'ALL' },
+  { id: 'param-spatial-mode', key: 'spatialMode', type: 'select', defaultVal: 'TRAJECTORY', capability: 'TRAJECTORY' },
+  { id: 'param-trajectory-path', key: 'trajectoryPath', type: 'select', defaultVal: 'A_TO_B', capability: 'TRAJECTORY' },
+  { id: 'param-reverse', key: 'reverse', type: 'select-boolean', defaultVal: false, capability: 'TRAJECTORY' },
+  { id: 'param-trajectory', key: 'trajectory', type: 'select', defaultVal: 'HORIZONTAL', isLegacy: true, isHidden: true },
+  { id: 'param-scale', labelId: 'val-scale', key: 'scale', type: 'range', unit: 'x', defaultVal: 1.0, capability: 'TRANSFORM' },
+  { id: 'param-spin', labelId: 'val-spin', key: 'spin', type: 'range', unit: ' rad/s', defaultVal: 0, capability: 'TRANSFORM' },
 
   // 2. 🎨 色彩與光學著色
-  { id: 'param-shader-mode', key: 'shaderMode', type: 'select', defaultVal: 'SLASH_BLADE', applicable: 'ALL' },
-  { id: 'param-core-mesh-shape', key: 'coreMeshShape', type: 'select', defaultVal: 'SPHERE', applicable: 'ALL' },
-  { id: 'param-color-core', key: 'colorCore', type: 'color', defaultVal: '#ffffff', applicable: 'ALL' },
-  { id: 'param-color-rim', key: 'colorRim', type: 'color', defaultVal: '#38bdf8', applicable: 'ALL' },
-  { id: 'param-core-brightness', labelId: 'val-core-brightness', key: 'coreBrightness', type: 'range', unit: 'x', defaultVal: 1.5, applicable: 'ALL' },
-  { id: 'param-glow-radius', labelId: 'val-glow-radius', key: 'glowRadius', type: 'range', unit: 'px', defaultVal: 75, applicable: 'ALL' },
-  { id: 'param-glow-opacity', labelId: 'val-glow-opacity', key: 'glowOpacity', type: 'range', unit: '', defaultVal: 0.85, applicable: 'ALL' },
-  { id: 'param-fresnel', labelId: 'val-fresnel', key: 'fresnel', type: 'range', unit: '', defaultVal: 1.8, applicable: 'ALL' },
-  { id: 'param-flame-turbulence', labelId: 'val-flame-turbulence', key: 'flameTurbulence', type: 'range', unit: 'px', defaultVal: 5.0, applicable: 'SPECIAL' },
-  { id: 'param-flame-speed', labelId: 'val-flame-speed', key: 'flameTurbulenceSpeed', type: 'range', unit: 'x', defaultVal: 2.0, applicable: 'SPECIAL' },
+  { id: 'param-shader-mode', key: 'shaderMode', type: 'select', defaultVal: 'SLASH_BLADE', capability: 'TRANSFORM' },
+  { id: 'param-core-mesh-shape', key: 'coreMeshShape', type: 'select', defaultVal: 'SPHERE', capability: 'PROJECTILE_GEOMETRY' },
+  { id: 'param-color-core', key: 'colorCore', type: 'color', defaultVal: '#ffffff', capability: 'TRANSFORM' },
+  { id: 'param-color-rim', key: 'colorRim', type: 'color', defaultVal: '#38bdf8', capability: 'TRANSFORM' },
+  { id: 'param-core-brightness', labelId: 'val-core-brightness', key: 'coreBrightness', type: 'range', unit: 'x', defaultVal: 1.5, capability: 'TRANSFORM' },
+  { id: 'param-glow-radius', labelId: 'val-glow-radius', key: 'glowRadius', type: 'range', unit: 'px', defaultVal: 75, capability: 'TRANSFORM' },
+  { id: 'param-glow-opacity', labelId: 'val-glow-opacity', key: 'glowOpacity', type: 'range', unit: '', defaultVal: 0.85, capability: 'TRANSFORM' },
+  { id: 'param-fresnel', labelId: 'val-fresnel', key: 'fresnel', type: 'range', unit: '', defaultVal: 1.8, capability: 'ICE_SHADER' },
+  { id: 'param-flame-turbulence', labelId: 'val-flame-turbulence', key: 'flameTurbulence', type: 'range', unit: 'px', defaultVal: 5.0, capability: 'FIRE_SHADER' },
+  { id: 'param-flame-speed', labelId: 'val-flame-speed', key: 'flameTurbulenceSpeed', type: 'range', unit: 'x', defaultVal: 2.0, capability: 'FIRE_SHADER' },
 
   // 3. ✨ 粒子流、拖尾與爆散
-  { id: 'param-trail-count', labelId: 'val-trail-count', key: 'trailCount', type: 'range', unit: '', defaultVal: 40, applicable: 'ALL' },
-  { id: 'param-trail-size', labelId: 'val-trail-size', key: 'trailSize', type: 'range', unit: 'px', defaultVal: 10, applicable: 'ALL' },
-  { id: 'param-burst-count', labelId: 'val-burst-count', key: 'burstCount', type: 'range', unit: ' 顆', defaultVal: 60, applicable: 'ALL' },
+  { id: 'param-trail-count', labelId: 'val-trail-count', key: 'trailCount', type: 'range', unit: '', defaultVal: 40, capability: 'PARTICLES' },
+  { id: 'param-trail-size', labelId: 'val-trail-size', key: 'trailSize', type: 'range', unit: 'px', defaultVal: 10, capability: 'PARTICLES' },
+  { id: 'param-burst-count', labelId: 'val-burst-count', key: 'burstCount', type: 'range', unit: ' 顆', defaultVal: 60, capability: 'PARTICLES' },
 
   // 4. ⚔️ 斬擊走向與形態 (Slash Section)
-  { id: 'param-slash-traj', key: 'slashTrajectory', type: 'select', defaultVal: 'CLEAVE_DOWN', applicable: 'SLASH' },
-  { id: 'param-slash-shape', key: 'slashShape', type: 'select', defaultVal: 'CRESCENT', applicable: 'SLASH' },
-  { id: 'param-slash-angle', labelId: 'val-slash-angle', key: 'slashAngle', type: 'range', unit: '°', defaultVal: -45, applicable: 'SLASH' },
-  { id: 'param-slash-arc-span', labelId: 'val-slash-arc-span', key: 'slashArcSpan', type: 'range', unit: '°', defaultVal: 120, applicable: 'SLASH' },
-  { id: 'param-slash-aspect', labelId: 'val-slash-aspect', key: 'slashAspect', type: 'range', unit: 'x', defaultVal: 1.0, applicable: 'SLASH' },
-  { id: 'param-slash-width', labelId: 'val-slash-width', key: 'slashBladeWidth', type: 'range', unit: 'px', defaultVal: 10, applicable: 'SLASH' },
-  { id: 'param-slash-radius', labelId: 'val-slash-radius', key: 'slashRadius', type: 'range', unit: 'px', defaultVal: 65, applicable: 'SLASH' },
-  { id: 'param-slash-jitter', labelId: 'val-slash-jitter', key: 'slashAngleJitter', type: 'range', unit: '°', defaultVal: 0, applicable: 'SLASH' },
-  { id: 'param-slash-reverse', key: 'slashReverse', type: 'select-boolean', defaultVal: false, applicable: 'SLASH' },
-  { id: 'param-slash-alternating', key: 'slashAlternating', type: 'select-boolean', defaultVal: false, applicable: 'SLASH' },
+  { id: 'param-slash-traj', key: 'slashTrajectory', type: 'select', defaultVal: 'CLEAVE_DOWN', capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-shape', key: 'slashShape', type: 'select', defaultVal: 'CRESCENT', capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-angle', labelId: 'val-slash-angle', key: 'slashAngle', type: 'range', unit: '°', defaultVal: -45, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-arc-span', labelId: 'val-slash-arc-span', key: 'slashArcSpan', type: 'range', unit: '°', defaultVal: 120, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-aspect', labelId: 'val-slash-aspect', key: 'slashAspect', type: 'range', unit: 'x', defaultVal: 1.0, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-width', labelId: 'val-slash-width', key: 'slashBladeWidth', type: 'range', unit: 'px', defaultVal: 10, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-radius', labelId: 'val-slash-radius', key: 'slashRadius', type: 'range', unit: 'px', defaultVal: 65, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-jitter', labelId: 'val-slash-jitter', key: 'slashAngleJitter', type: 'range', unit: '°', defaultVal: 0, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-reverse', key: 'slashReverse', type: 'select-boolean', defaultVal: false, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-alternating', key: 'slashAlternating', type: 'select-boolean', defaultVal: false, capability: 'SLASH_GEOMETRY' },
 
   // 5. 🚀 彈幕發射與節奏曲線 (Salvo Section)
-  { id: 'param-salvo-count', labelId: 'val-salvo-count', key: 'salvoCount', type: 'range', unit: ' 發', defaultVal: 1, applicable: 'SALVO' },
-  { id: 'param-salvo-dur', labelId: 'val-salvo-dur', key: 'salvoDuration', type: 'range', unit: 's', defaultVal: 0.35, applicable: 'SALVO' },
-  { id: 'param-salvo-curve', key: 'salvoRhythmCurve', type: 'select', defaultVal: 'LINEAR', applicable: 'SALVO' },
-  { id: 'param-salvo-spread', labelId: 'val-salvo-spread', key: 'salvoSpreadAngle', type: 'range', unit: '°', defaultVal: 0, applicable: 'SALVO' },
-  { id: 'param-salvo-scatter', labelId: 'val-salvo-scatter', key: 'salvoSpreadRadius', type: 'range', unit: 'px', defaultVal: 0, applicable: 'SALVO' },
-  { id: 'param-arc-height', labelId: 'val-arc-height', key: 'arcHeight', type: 'range', unit: 'px', defaultVal: 0, applicable: 'SALVO' },
-  { id: 'param-multihit-impact', key: 'multiHitImpact', type: 'select-boolean', defaultVal: true, applicable: 'ALL' },
+  { id: 'param-salvo-count', labelId: 'val-salvo-count', key: 'salvoCount', type: 'range', unit: ' 發', defaultVal: 1, capability: 'PROJECTILE_GEOMETRY' },
+  { id: 'param-salvo-dur', labelId: 'val-salvo-dur', key: 'salvoDuration', type: 'range', unit: 's', defaultVal: 0.35, capability: 'PROJECTILE_GEOMETRY' },
+  { id: 'param-salvo-curve', key: 'salvoRhythmCurve', type: 'select', defaultVal: 'LINEAR', capability: 'PROJECTILE_GEOMETRY' },
+  { id: 'param-salvo-spread', labelId: 'val-salvo-spread', key: 'salvoSpreadAngle', type: 'range', unit: '°', defaultVal: 0, capability: 'PROJECTILE_GEOMETRY' },
+  { id: 'param-salvo-scatter', labelId: 'val-salvo-scatter', key: 'salvoSpreadRadius', type: 'range', unit: 'px', defaultVal: 0, capability: 'PROJECTILE_GEOMETRY' },
+  { id: 'param-arc-height', labelId: 'val-arc-height', key: 'arcHeight', type: 'range', unit: 'px', defaultVal: 0, capability: 'PROJECTILE_GEOMETRY' },
+  { id: 'param-multihit-impact', key: 'multiHitImpact', type: 'select-boolean', defaultVal: true, capability: 'PROJECTILE_GEOMETRY' },
 
   // 6. 🏔️ 地刺幾何與破土連鎖 (Spike Section)
-  { id: 'param-spike-shape', key: 'spikeShape', type: 'select', defaultVal: 'CONE_SPIKE', applicable: 'SPIKE' },
-  { id: 'param-spike-angle', labelId: 'val-spike-angle', key: 'spikeAngle', type: 'range', unit: '°', defaultVal: 0, applicable: 'SPIKE' },
-  { id: 'param-spikes', labelId: 'val-spikes', key: 'spikes', type: 'range', unit: ' 根', defaultVal: 0, applicable: 'SPIKE' },
-  { id: 'param-spike-width', labelId: 'val-spike-width', key: 'spikeWidth', type: 'range', unit: 'px', defaultVal: 7, applicable: 'SPIKE' },
-  { id: 'param-spike-height', labelId: 'val-spike-height', key: 'spikeHeight', type: 'range', unit: 'px', defaultVal: 45, applicable: 'SPIKE' },
-  { id: 'param-spike-radius', labelId: 'val-spike-radius', key: 'spikeRadius', type: 'range', unit: 'px', defaultVal: 80, applicable: 'SPIKE' },
-  { id: 'param-spike-stagger', labelId: 'val-spike-stagger', key: 'spikeStagger', type: 'range', unit: 'ms', defaultVal: 25, applicable: 'SPIKE' },
-  { id: 'param-spike-material-mode', key: 'spikeMaterialMode', type: 'select', defaultVal: 'PHONG', applicable: 'SPIKE' },
-  { id: 'param-spike-erupt-fire', key: 'spikeEruptFire', type: 'select-boolean', defaultVal: false, applicable: 'SPIKE' },
+  { id: 'param-spike-shape', key: 'spikeShape', type: 'select', defaultVal: 'CONE_SPIKE', capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spike-angle', labelId: 'val-spike-angle', key: 'spikeAngle', type: 'range', unit: '°', defaultVal: 0, capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spikes', labelId: 'val-spikes', key: 'spikes', type: 'range', unit: ' 根', defaultVal: 0, capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spike-width', labelId: 'val-spike-width', key: 'spikeWidth', type: 'range', unit: 'px', defaultVal: 7, capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spike-height', labelId: 'val-spike-height', key: 'spikeHeight', type: 'range', unit: 'px', defaultVal: 45, capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spike-radius', labelId: 'val-spike-radius', key: 'spikeRadius', type: 'range', unit: 'px', defaultVal: 80, capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spike-stagger', labelId: 'val-spike-stagger', key: 'spikeStagger', type: 'range', unit: 'ms', defaultVal: 25, capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spike-material-mode', key: 'spikeMaterialMode', type: 'select', defaultVal: 'PHONG', capability: 'SPIKE_GEOMETRY' },
+  { id: 'param-spike-erupt-fire', key: 'spikeEruptFire', type: 'select-boolean', defaultVal: false, capability: 'SPIKE_GEOMETRY' },
 
-  // 7. 🛡️ 護盾與材質貼圖
-  { id: 'param-shield-shape', key: 'shieldShape', type: 'select', defaultVal: 'HEX', applicable: 'SPECIAL' },
-  { id: 'param-wave-count', labelId: 'val-wave-count', key: 'waveCount', type: 'range', unit: ' 圈', defaultVal: 3, applicable: 'SPECIAL' },
-  { id: 'param-texture-sprite', key: 'textureSprite', type: 'select', defaultVal: 'GLOW', applicable: 'SPECIAL' },
+  // 7. 🛡️ 護盾與戰吼
+  { id: 'param-shield-shape', key: 'shieldShape', type: 'select', defaultVal: 'HEX', capability: 'SHIELD_GEOMETRY' },
+  { id: 'param-wave-count', labelId: 'val-wave-count', key: 'waveCount', type: 'range', unit: ' 圈', defaultVal: 3, capability: 'SHOUT_GEOMETRY' },
+  { id: 'param-texture-sprite', key: 'textureSprite', type: 'select', defaultVal: 'GLOW', isHidden: true },
 
   // 8. 🥊 戰鬥受擊物理反饋 (Impact & Wave)
-  { id: 'param-hit-stop', labelId: 'val-hit-stop', key: 'hitStopTime', isImpact: true, type: 'range', unit: 'ms', defaultVal: 55, applicable: 'IMPACT' },
-  { id: 'param-punch-scale', labelId: 'val-punch-scale', key: 'targetPunchScale', isImpact: true, type: 'range', unit: 'x', defaultVal: 0.88, applicable: 'IMPACT' },
-  { id: 'param-shake-intensity', labelId: 'val-shake-intensity', key: 'shakeIntensity', isImpact: true, type: 'range', unit: 'px', defaultVal: 12, applicable: 'IMPACT' },
-  { id: 'param-shake-dur', labelId: 'val-shake-dur', key: 'shakeDuration', isImpact: true, type: 'range', unit: 's', defaultVal: 0.28, applicable: 'IMPACT' },
-  { id: 'param-knockback', labelId: 'val-knockback', key: 'knockbackDistance', isImpact: true, type: 'range', unit: 'px', defaultVal: 18, applicable: 'IMPACT' },
-  { id: 'param-flash-color', key: 'hitFlashColor', isImpact: true, type: 'color', defaultVal: '#ffffff', applicable: 'IMPACT' },
-  { id: 'param-wave-radius', labelId: 'val-wave-radius', key: 'waveRadius', isImpact: true, type: 'range', unit: 'px', defaultVal: 65, applicable: 'IMPACT' },
-  { id: 'param-wave-thickness', labelId: 'val-wave-thickness', key: 'waveThickness', isImpact: true, type: 'range', unit: 'px', defaultVal: 4, applicable: 'IMPACT' },
-  { id: 'param-wave-blur', labelId: 'val-wave-blur', key: 'waveBlur', isImpact: true, type: 'range', unit: '%', defaultVal: 30, applicable: 'IMPACT' },
-  { id: 'param-wave-plane', key: 'wavePlane', isImpact: true, type: 'select', defaultVal: 'CAMERA', applicable: 'IMPACT' },
+  { id: 'param-hit-stop', labelId: 'val-hit-stop', key: 'hitStopTime', isImpact: true, type: 'range', unit: 'ms', defaultVal: 55, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-punch-scale', labelId: 'val-punch-scale', key: 'targetPunchScale', isImpact: true, type: 'range', unit: 'x', defaultVal: 0.88, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-shake-intensity', labelId: 'val-shake-intensity', key: 'shakeIntensity', isImpact: true, type: 'range', unit: 'px', defaultVal: 12, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-shake-dur', labelId: 'val-shake-dur', key: 'shakeDuration', isImpact: true, type: 'range', unit: 's', defaultVal: 0.28, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-knockback', labelId: 'val-knockback', key: 'knockbackDistance', isImpact: true, type: 'range', unit: 'px', defaultVal: 18, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-flash-color', key: 'hitFlashColor', isImpact: true, type: 'color', defaultVal: '#ffffff', capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-wave-radius', labelId: 'val-wave-radius', key: 'waveRadius', isImpact: true, type: 'range', unit: 'px', defaultVal: 65, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-wave-thickness', labelId: 'val-wave-thickness', key: 'waveThickness', isImpact: true, type: 'range', unit: 'px', defaultVal: 4, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-wave-blur', labelId: 'val-wave-blur', key: 'waveBlur', isImpact: true, type: 'range', unit: '%', defaultVal: 30, capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-wave-plane', key: 'wavePlane', isImpact: true, type: 'select', defaultVal: 'CAMERA', capability: 'IMPACT_FEEDBACK' },
 
   // 9. 🏃 施術者發力動作力學反饋 (Caster Motion)
-  { id: 'param-caster-step', labelId: 'val-caster-step', key: 'stepForward', isCasterMotion: true, type: 'range', unit: 'px', defaultVal: 0, applicable: 'ALL' },
-  { id: 'param-caster-recoil', labelId: 'val-caster-recoil', key: 'recoil', isCasterMotion: true, type: 'range', unit: 'px', defaultVal: 0, applicable: 'ALL' },
-  { id: 'param-caster-tilt', labelId: 'val-caster-tilt', key: 'tiltAngle', isCasterMotion: true, type: 'range', unit: '°', defaultVal: 0, applicable: 'ALL' },
-  { id: 'param-caster-motion-dur', labelId: 'val-caster-motion-dur', key: 'motionDuration', isCasterMotion: true, type: 'range', unit: 's', defaultVal: 0.3, applicable: 'ALL' }
+  { id: 'param-caster-step', labelId: 'val-caster-step', key: 'stepForward', isCasterMotion: true, type: 'range', unit: 'px', defaultVal: 0, capability: 'CASTER_MOTION' },
+  { id: 'param-caster-recoil', labelId: 'val-caster-recoil', key: 'recoil', isCasterMotion: true, type: 'range', unit: 'px', defaultVal: 0, capability: 'CASTER_MOTION' },
+  { id: 'param-caster-tilt', labelId: 'val-caster-tilt', key: 'tiltAngle', isCasterMotion: true, type: 'range', unit: '°', defaultVal: 0, capability: 'CASTER_MOTION' },
+  { id: 'param-caster-motion-dur', labelId: 'val-caster-motion-dur', key: 'motionDuration', isCasterMotion: true, type: 'range', unit: 's', defaultVal: 0.3, capability: 'CASTER_MOTION' }
 ];
 
 /**
@@ -144,6 +257,9 @@ export class VFXInspector {
     this.store = VFXStudioStore.getInstance();
     this.store.subscribe((preset) => {
       this.syncUI(preset);
+    });
+    this.store.subscribeSelection(() => {
+      this.updateContextualVisibility(this.store.getPreset());
     });
   }
 
@@ -317,59 +433,97 @@ export class VFXInspector {
     this.contextualTarget = target;
     if (target?.type === 'CUE') {
       this.selectedCueIndex = target.index !== undefined ? target.index : null;
-    } else if (target) {
+      const cue = (this.store.getPreset().impactCues || [])[this.selectedCueIndex || 0];
+      this.store.setSelection({ type: 'CUE', cueId: cue?.cueId || 'cue_0' });
+    } else if (target?.type === 'LAYER') {
+      const layer = (this.store.getPreset().layers || [])[target.index || 0];
+      this.store.setSelection({ type: 'LAYER', layerId: layer?.id || 'layer_0' });
+      this.selectedCueIndex = null;
+    } else if (target?.type === 'MAIN') {
+      this.store.setSelection({ type: 'MAIN_TRACK' });
+      this.selectedCueIndex = null;
+    } else {
+      this.store.setSelection({ type: 'PRESET' });
       this.selectedCueIndex = null;
     }
     this.updateContextualVisibility(this.store.getPreset());
   }
 
   public updateContextualVisibility(p: VFXPreset): void {
-    const isCueSelected = this.selectedCueIndex !== null || this.contextualTarget?.type === 'CUE';
-    const isLayerSelected = this.contextualTarget?.type === 'LAYER';
-    const selectedLayer = (isLayerSelected && this.contextualTarget?.index !== undefined)
-      ? p.layers?.[this.contextualTarget.index]
-      : null;
+    const sel = this.store.getSelection();
+    const caps = getSelectionCapabilities(p, sel);
 
-    // 依選取圖層或主圖層判定生效的幾何與模式
-    const activeSpatial = selectedLayer?.spatialMode || p.spatialMode || p.trajectoryPath || p.trajectory || 'TRAJECTORY';
-    const activeShader = selectedLayer?.shaderMode || p.shaderMode || 'SLASH_BLADE';
-    const activeTrajectory = selectedLayer ? (selectedLayer.spatialMode || 'TRAJECTORY') : p.trajectory;
-
-    const isSlash = (activeTrajectory === 'MELEE_SWEEP' || activeShader === 'SLASH_BLADE' || (p.slashArcSpan !== undefined && p.slashArcSpan > 0));
-    const isSpike = ((p.spikes !== undefined && p.spikes > 0) || activeTrajectory === 'GROUND_FISSURE' || activeTrajectory === 'GROUND_BURST' || activeShader === 'EARTH_SHATTER');
-    const isSalvo = ((p.salvoCount !== undefined && p.salvoCount > 1) || p.salvoDuration !== undefined || activeTrajectory === 'ARC_MULTI');
+    const isCueSelected = sel.type === 'CUE' || this.selectedCueIndex !== null;
+    const isBindingSelected = sel.type === 'BINDING';
+    const isLayerSelected = sel.type === 'LAYER';
 
     const slashCard = document.querySelector('.card-slash-section') as HTMLElement;
     if (slashCard) {
-      slashCard.style.display = (!isCueSelected && isSlash) ? 'block' : 'none';
+      slashCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('SLASH_GEOMETRY')) ? 'block' : 'none';
     }
 
     const spikeCard = document.querySelector('.card-spike-section') as HTMLElement;
     if (spikeCard) {
-      spikeCard.style.display = (!isCueSelected && isSpike) ? 'block' : 'none';
+      spikeCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('SPIKE_GEOMETRY')) ? 'block' : 'none';
     }
 
     const salvoCard = document.querySelector('.card-salvo-section') as HTMLElement;
+    const isSalvo = (p.salvoCount !== undefined && p.salvoCount > 1);
     if (salvoCard) {
-      salvoCard.style.display = (!isCueSelected && isSalvo) ? 'block' : 'none';
+      salvoCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('PROJECTILE_GEOMETRY') && isSalvo) ? 'block' : 'none';
     }
 
     // 施法動作與受擊回饋卡片：僅在主軌選中或未特選時展示，避免圖層與 Cue 干擾
     const casterCard = document.querySelector('.card-caster-motion') as HTMLElement;
     if (casterCard) {
-      casterCard.style.display = (!isCueSelected && !isLayerSelected) ? 'block' : 'none';
+      casterCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('CASTER_MOTION')) ? 'block' : 'none';
     }
 
     const impactCard = document.querySelector('.card-impact-section') as HTMLElement;
     if (impactCard) {
-      impactCard.style.display = (!isCueSelected && !isLayerSelected) ? 'block' : 'none';
+      impactCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('IMPACT_FEEDBACK')) ? 'block' : 'none';
+    }
+
+    // 🛡️ 依 §5.8 規則：Shield shape 只有 shield renderer 顯示
+    const shieldCard = document.querySelector('.card-shield-section') as HTMLElement;
+    if (shieldCard) {
+      shieldCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('SHIELD_GEOMETRY')) ? 'block' : 'none';
+    }
+
+    // 🔥 依 §5.8 規則：Fire turbulence 只有 fire renderer 顯示
+    const rowFire = document.getElementById('row-flame-turbulence');
+    if (rowFire) {
+      rowFire.style.display = (!isCueSelected && !isBindingSelected && caps.has('FIRE_SHADER')) ? 'flex' : 'none';
+    }
+
+    // ❄️ 依 §5.8 規則：Fresnel 只有 ice/fresnel shader 顯示
+    const colFresnel = document.getElementById('col-fresnel');
+    if (colFresnel) {
+      colFresnel.style.display = (!isCueSelected && !isBindingSelected && caps.has('ICE_SHADER')) ? 'block' : 'none';
+    }
+
+    // 隱藏 Legacy trajectory 與無效欄位
+    const legacyTraj = document.getElementById('param-trajectory');
+    if (legacyTraj) {
+      const col = (typeof legacyTraj.closest === 'function')
+        ? (legacyTraj.closest('.param-col') || legacyTraj.closest('.param-row'))
+        : legacyTraj.parentElement;
+      if (col) (col as HTMLElement).style.display = 'none';
+    }
+
+    const textureSprite = document.getElementById('param-texture-sprite');
+    if (textureSprite) {
+      const col = (typeof textureSprite.closest === 'function')
+        ? (textureSprite.closest('.param-col') || textureSprite.closest('.param-row'))
+        : textureSprite.parentElement;
+      if (col) (col as HTMLElement).style.display = 'none';
     }
 
     // 🚀 當空間發生模式為原地類（AT_CASTER / AT_TARGET）時，隱藏位移路徑選單
     const rowTrajPath = document.getElementById('row-trajectory-path');
     if (rowTrajPath) {
-      const mode = activeSpatial;
-      rowTrajPath.style.display = (mode !== 'AT_CASTER' && mode !== 'AT_TARGET') ? 'block' : 'none';
+      const activeSpatial = p.spatialMode || 'TRAJECTORY';
+      rowTrajPath.style.display = (activeSpatial !== 'AT_CASTER' && activeSpatial !== 'AT_TARGET') ? 'block' : 'none';
     }
 
     // 🎯 同步選中的 Cue 資訊
@@ -384,6 +538,10 @@ export class VFXInspector {
 
   public setSelectedCueIndex(index: number | null): void {
     this.selectedCueIndex = index;
+    if (index !== null) {
+      const cue = (this.store.getPreset().impactCues || [])[index];
+      this.store.setSelection({ type: 'CUE', cueId: cue?.cueId || `cue_${index}` });
+    }
     this.syncSelectedCueUI(this.store.getPreset());
   }
 
@@ -426,6 +584,25 @@ export class VFXInspector {
     if (valWeight) valWeight.textContent = weightVal.toFixed(1);
     if (selPolicy) selPolicy.value = cue.targetPolicy || 'PRIMARY_TARGET';
     if (chkPrimary) chkPrimary.checked = !!cue.isPrimary;
+
+    // 🎯 依模式控制 cue.weight 顯隱 (僅在 SPLIT_SINGLE_IMPACT 時顯示)
+    const mode = preset.impactPresentationMode || 'EXACT_IMPACTS';
+    const rowWeight = (inputWeight && typeof inputWeight.closest === 'function') 
+      ? (inputWeight.closest('.param-row') as HTMLElement) 
+      : (inputWeight?.parentElement as HTMLElement | null);
+    if (rowWeight) {
+      rowWeight.style.display = (mode === 'SPLIT_SINGLE_IMPACT') ? 'block' : 'none';
+    }
+
+    // ⭐ 依 §5.8 規則：cue.isPrimary 在 PRIMARY_ONLY 必顯示，其他模式標示用途
+    const lblPrimary = chkPrimary ? (chkPrimary.nextElementSibling as HTMLElement) : null;
+    if (lblPrimary) {
+      if (mode === 'PRIMARY_ONLY') {
+        lblPrimary.textContent = '⭐ 主要終結打擊點 (PRIMARY_ONLY 於此點顯示完整數值)';
+      } else {
+        lblPrimary.textContent = '⭐ 標記為主要打擊點 (當前模式保留為特效音畫同步參考點)';
+      }
+    }
   }
 
   private bindCueControls(): void {

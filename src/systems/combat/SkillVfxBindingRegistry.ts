@@ -1,6 +1,30 @@
 import { SkillVfxBinding, ImpactPresentationMode } from '../../models/VFX';
 import rawBindings from '../../data/skill_vfx_bindings.json';
 
+export interface SkillVfxBindingStorageV2 {
+  version: 2;
+  overrides: Record<string, {
+    vfxId: string;
+    impactPresentationMode?: ImpactPresentationMode;
+    cueMap?: Record<string, string>;
+  }>;
+}
+
+/**
+ * 比較兩筆綁定是否完全一致 (vfxId, impactPresentationMode, cueMap)
+ */
+function areBindingsEqual(a?: SkillVfxBinding, b?: SkillVfxBinding): boolean {
+  if (!a || !b) return a === b;
+  if (a.vfxId !== b.vfxId) return false;
+  if (a.impactPresentationMode !== b.impactPresentationMode) return false;
+  const aMap = a.cueMap || {};
+  const bMap = b.cueMap || {};
+  const aKeys = Object.keys(aMap);
+  const bKeys = Object.keys(bMap);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every(k => aMap[k] === bMap[k]);
+}
+
 /**
  * 🔗 技能與特效獨立解耦綁定註冊表 (Skill-VFX Binding Registry)
  * 職責：
@@ -52,25 +76,47 @@ export class SkillVfxBindingRegistry {
   }
 
   /**
-   * 從 LocalStorage 載入使用者覆寫的自訂技能綁定
+   * 從 LocalStorage 載入使用者覆寫的自訂技能綁定 (支援 Schema V2 與 V1 相容遷移)
    */
   public loadCustomBindingsFromStorage(): void {
     if (typeof localStorage === 'undefined') return;
     try {
       const raw = localStorage.getItem('MEDIEVAL_SKILL_VFX_BINDINGS');
       if (!raw) return;
-      const customMap = JSON.parse(raw) as Record<string, string>;
-      if (!customMap || typeof customMap !== 'object') return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return;
 
-      for (const [skillId, vfxId] of Object.entries(customMap)) {
-        if (!skillId || !vfxId) continue;
-        const current = this.bindingsMap.get(skillId);
-        const mode = current?.impactPresentationMode || 'EXACT_IMPACTS';
-        this.bindingsMap.set(skillId, {
-          skillId,
-          vfxId,
-          impactPresentationMode: mode
-        });
+      if (parsed.version === 2 && parsed.overrides) {
+        // Schema V2
+        const overrides = parsed.overrides as SkillVfxBindingStorageV2['overrides'];
+        for (const [skillId, item] of Object.entries(overrides)) {
+          if (!skillId || !item || !item.vfxId) continue;
+          const defaultBinding = this.defaultBindingsMap.get(skillId);
+          this.bindingsMap.set(skillId, {
+            skillId,
+            vfxId: item.vfxId,
+            impactPresentationMode: item.impactPresentationMode || defaultBinding?.impactPresentationMode || 'EXACT_IMPACTS',
+            cueMap: item.cueMap ? { ...item.cueMap } : undefined
+          });
+        }
+      } else {
+        // Legacy Schema V1 (Record<string, string>)
+        let hasMigrated = false;
+        for (const [skillId, vfxId] of Object.entries(parsed)) {
+          if (!skillId || typeof vfxId !== 'string') continue;
+          const defaultBinding = this.defaultBindingsMap.get(skillId);
+          const mode = defaultBinding?.impactPresentationMode || 'EXACT_IMPACTS';
+          this.bindingsMap.set(skillId, {
+            skillId,
+            vfxId,
+            impactPresentationMode: mode
+          });
+          hasMigrated = true;
+        }
+        // V1 載入後自動升級存回 V2
+        if (hasMigrated) {
+          this.saveCustomBindingsToStorage();
+        }
       }
       this.rebuildVfxToSkillsIndex();
     } catch {
@@ -79,19 +125,28 @@ export class SkillVfxBindingRegistry {
   }
 
   /**
-   * 持久化自訂綁定至 LocalStorage (只儲存與官方預設相異之項)
+   * 持久化自訂綁定至 LocalStorage (Schema V2，只儲存與官方預設相異之項)
    */
   private saveCustomBindingsToStorage(): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      const customMap: Record<string, string> = {};
+      const storageData: SkillVfxBindingStorageV2 = {
+        version: 2,
+        overrides: {}
+      };
+
       for (const [skillId, binding] of this.bindingsMap.entries()) {
         const defaultBinding = this.defaultBindingsMap.get(skillId);
-        if (!defaultBinding || defaultBinding.vfxId !== binding.vfxId) {
-          customMap[skillId] = binding.vfxId;
+        if (!areBindingsEqual(defaultBinding, binding)) {
+          storageData.overrides[skillId] = {
+            vfxId: binding.vfxId,
+            impactPresentationMode: binding.impactPresentationMode,
+            cueMap: binding.cueMap ? { ...binding.cueMap } : undefined
+          };
         }
       }
-      localStorage.setItem('MEDIEVAL_SKILL_VFX_BINDINGS', JSON.stringify(customMap));
+
+      localStorage.setItem('MEDIEVAL_SKILL_VFX_BINDINGS', JSON.stringify(storageData));
     } catch {
       // 忽略儲存錯誤
     }
@@ -101,7 +156,7 @@ export class SkillVfxBindingRegistry {
    * 註冊或更新一筆技能特效綁定
    */
   public registerBinding(binding: SkillVfxBinding): void {
-    this.bindingsMap.set(binding.skillId, binding);
+    this.bindingsMap.set(binding.skillId, { ...binding });
     this.rebuildVfxToSkillsIndex();
     this.saveCustomBindingsToStorage();
   }
@@ -109,13 +164,20 @@ export class SkillVfxBindingRegistry {
   /**
    * 便捷指派技能特效（覆蓋綁定），並持久化
    */
-  public setSkillBinding(skillId: string, vfxId: string, mode?: ImpactPresentationMode): void {
+  public setSkillBinding(
+    skillId: string,
+    vfxId: string,
+    mode?: ImpactPresentationMode,
+    cueMap?: Record<string, string>
+  ): void {
     const existing = this.bindingsMap.get(skillId);
-    const impactPresentationMode = mode || existing?.impactPresentationMode || 'EXACT_IMPACTS';
+    const defaultBinding = this.defaultBindingsMap.get(skillId);
+    const impactPresentationMode = mode || existing?.impactPresentationMode || defaultBinding?.impactPresentationMode || 'EXACT_IMPACTS';
     this.registerBinding({
       skillId,
       vfxId,
-      impactPresentationMode
+      impactPresentationMode,
+      cueMap: cueMap || existing?.cueMap
     });
   }
 
@@ -135,13 +197,13 @@ export class SkillVfxBindingRegistry {
   }
 
   /**
-   * 判斷指定技能是否已被自訂修改
+   * 判斷指定技能是否已被自訂修改 (依據 vfxId, mode, cueMap)
    */
   public isBindingModified(skillId: string): boolean {
     const current = this.bindingsMap.get(skillId);
     const def = this.defaultBindingsMap.get(skillId);
     if (!def) return !!current; // 若無預設但有自訂，視為已修改
-    return current?.vfxId !== def.vfxId;
+    return !areBindingsEqual(def, current);
   }
 
   /**
@@ -155,7 +217,8 @@ export class SkillVfxBindingRegistry {
    * 依技能 ID 取得完整綁定資訊
    */
   public getBinding(skillId: string): SkillVfxBinding | undefined {
-    return this.bindingsMap.get(skillId);
+    const binding = this.bindingsMap.get(skillId);
+    return binding ? structuredClone(binding) : undefined;
   }
 
   /**

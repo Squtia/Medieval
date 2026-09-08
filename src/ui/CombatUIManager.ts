@@ -6,7 +6,7 @@ import { getAvatarSpriteStyle, renderUniversalIcon } from './IconSpriteHelper';
 import { InteractiveCombatSession, CommanderOrderType } from '../systems/combat/InteractiveCombatSession';
 import { CombatFXEngine, ScreenPoint } from './fx/CombatFXEngine';
 import { CombatStageAdapter } from './fx/adapters/CombatStageAdapter';
-import { CombatAction } from './fx/CombatActionPlayer';
+import { CombatAction, CombatActionPlayer, collectCombatActions, isCombatAction, resolveActionMainTargetId } from './fx/CombatActionPlayer';
 import { getSkillVfxId } from '../data/SkillData';
 import { VFXImpactConfig } from '../models/VFX';
 
@@ -218,17 +218,31 @@ export class CombatUIManager {
     this.isPlayingLoop = true;
     this.isSkipped = false;
 
-    while (this.isPlayingLoop && this.eventIndex < this.currentEventQueue.length) {
+    // 依據 §4.4: 使用純函式預先聚合 CombatAction，不再動態修改 event 物件
+    const actionQueue = collectCombatActions(this.currentEventQueue);
+    let queueIdx = 0;
+
+    while (this.isPlayingLoop && queueIdx < actionQueue.length) {
       if (this.isSkipped) {
-        while (this.eventIndex < this.currentEventQueue.length) {
-          this.renderEvent(this.currentEventQueue[this.eventIndex], true);
-          this.eventIndex++;
+        while (queueIdx < actionQueue.length) {
+          const item = actionQueue[queueIdx];
+          if (isCombatAction(item)) {
+            item.events.forEach(e => this.renderEvent(e, true));
+            this.reconcileFinalActionState(item.events);
+          } else {
+            this.renderEvent(item, true);
+          }
+          queueIdx++;
         }
         break;
       }
-      const event = this.currentEventQueue[this.eventIndex];
-      await this.renderEventAsync(event);
-      this.eventIndex++;
+      const item = actionQueue[queueIdx];
+      if (isCombatAction(item)) {
+        await this.renderActionAsync(item);
+      } else {
+        await this.renderEventAsync(item);
+      }
+      queueIdx++;
     }
 
     this.isPlayingLoop = false;
@@ -640,184 +654,181 @@ export class CombatUIManager {
     }
   }
 
-  private static async renderEventAsync(event: CombatEvent): Promise<void> {
-    this.renderLogAndStage(event);
+  /**
+   * 🛡️ reconcileFinalActionState
+   * Action 播放完成後之安全終態校準（純狀態校準，絕對不建立任何 floating DOM 跳字或動畫）
+   * 依據 docs/VFX_STUDIO_GEMINI_REFACTOR_IMPLEMENTATION.md §4.1 規範
+   */
+  public static reconcileFinalActionState(events: readonly CombatEvent[]): void {
+    if (typeof document === 'undefined') return;
 
-    // 🛡️ 被前置 SKILL_CAST 動畫吸收的多段傷害事件，不再做卡片撞擊與重複播放
-    if ((event as any).absorbedBySkillCast) {
-      const absorbDelay = this.currentSpeed <= 250 ? 20 : (this.currentSpeed <= 550 ? 40 : 80);
-      await new Promise(r => setTimeout(r, absorbDelay));
+    // 依目標整理最後狀態
+    const targetMap = new Map<string, CombatEvent>();
+    for (const ev of events) {
+      if (ev.targetId) {
+        targetMap.set(ev.targetId, ev);
+      }
+    }
+
+    targetMap.forEach((lastEv, targetId) => {
+      // 1. 校準 HP
+      if (lastEv.targetHp !== undefined && lastEv.targetMaxHp !== undefined) {
+        this.updateTargetHpUi(targetId, lastEv.targetHp, lastEv.targetMaxHp);
+      }
+
+      // 2. 校準 MP
+      if (lastEv.targetMp !== undefined && lastEv.targetMaxMp !== undefined) {
+        const mpFillEl = document.getElementById(`mp-fill-${targetId}`);
+        if (mpFillEl) {
+          const mpPct = Math.max(0, Math.min(100, (lastEv.targetMp / lastEv.targetMaxMp) * 100));
+          mpFillEl.style.width = `${mpPct}%`;
+        }
+        const mpTxtEl = document.getElementById(`mp-txt-${targetId}`);
+        if (mpTxtEl) {
+          mpTxtEl.textContent = `${Math.max(0, lastEv.targetMp)}/${lastEv.targetMaxMp}`;
+        }
+      }
+
+      // 3. 死亡標記校準
+      if (lastEv.targetHp !== undefined && lastEv.targetHp <= 0) {
+        const targetEl = document.getElementById(`combat-p-${targetId}`);
+        if (targetEl) targetEl.classList.add('is-dead');
+      }
+    });
+
+    // 4. 城門 HUD 校準（若有攻城事件）
+    const gateEv = [...events].reverse().find(e => e.gateRemainingHp !== undefined);
+    if (gateEv && gateEv.gateRemainingHp !== undefined) {
+      const maxHp = this.currentSession?.gateMaxHp || this.currentReport?.gateMaxHp || 5000;
+      const curHp = Math.max(0, gateEv.gateRemainingHp);
+      const barEl = document.getElementById('siege-gate-hp-bar');
+      const txtEl = document.getElementById('siege-gate-hp-display');
+      if (barEl && maxHp > 0) barEl.style.width = `${Math.max(0, Math.min(100, (curHp / maxHp) * 100))}%`;
+      if (txtEl && maxHp > 0) txtEl.textContent = `${curHp} / ${maxHp}`;
+    }
+  }
+
+  /**
+   * 🎬 播放完整的 CombatAction (Single Action SSOT Pipeline)
+   */
+  private static async renderActionAsync(action: CombatAction): Promise<void> {
+    // 1. 輸出該 Action 所有事件文字至日誌
+    action.events.forEach(ev => this.renderLogAndStage(ev));
+
+    if (!this.modal) {
+      this.reconcileFinalActionState(action.events);
       return;
     }
 
-    const isHitOrSkill = (
-      event.type === CombatEventType.HIT ||
-      event.type === CombatEventType.CRIT ||
-      event.type === CombatEventType.SKILL_CAST ||
-      event.type === CombatEventType.STATUS_DAMAGE ||
-      event.type === CombatEventType.CAVALRY_CHARGE ||
-      event.type === CombatEventType.CAVALRY_BREACH_CHARGE ||
-      event.type === CombatEventType.TREBUCHET_ATTACK ||
-      event.type === CombatEventType.BATTERING_RAM_ATTACK ||
-      event.type === CombatEventType.WATCHTOWER_ATTACK ||
-      event.type === CombatEventType.SIEGE_GATE_DAMAGE ||
-      event.type === CombatEventType.SIEGE_GATE_BREAK
-    );
+    const actorEl = action.actorId ? document.getElementById(`combat-p-${action.actorId}`) : null;
+    const mainTargetId = resolveActionMainTargetId(action);
+    let targetEl = mainTargetId ? document.getElementById(`combat-p-${mainTargetId}`) : null;
 
-    if (isHitOrSkill && this.modal) {
-      const actorEl = event.actorId ? document.getElementById(`combat-p-${event.actorId}`) : null;
-
-      // 🎯 SKILL_CAST 使用 skillTargetId 找到技能受術目標元素；其他事件使用 targetId
-      const fxTargetId = event.type === CombatEventType.SKILL_CAST
-        ? (event.skillTargetId || event.targetId)
-        : event.targetId;
-      let targetEl = fxTargetId ? document.getElementById(`combat-p-${fxTargetId}`) : null;
-
-      // 攻城戰打擊城門目標 fallback
-      if (!targetEl && (event.type === CombatEventType.SIEGE_GATE_DAMAGE || event.type === CombatEventType.SIEGE_GATE_BREAK || event.gateRemainingHp !== undefined)) {
-        targetEl = document.getElementById('combat-siege-gate-hud');
-      }
-
-      // 🎯 施術者卡片單次攻擊突進撞擊（整個技能僅撞一次）
-      if (actorEl) {
-        actorEl.classList.add('skill-cast-glow');
-        const isPlayer = actorEl.classList.contains('player-side') || !!this.currentReport?.initialStates.find(s => s.id === event.actorId)?.isPlayer;
-        const bumpClass = isPlayer ? 'attack-bump-player' : 'attack-bump-enemy';
-        actorEl.classList.remove(bumpClass);
-        void actorEl.offsetWidth;
-        actorEl.classList.add(bumpClass);
-        setTimeout(() => {
-          actorEl.classList.remove('skill-cast-glow');
-          actorEl.classList.remove(bumpClass);
-        }, 280);
-      }
-
-      // 🔄 若為技能施放事件：往後提取歸屬於本次施法的傷害數據（依目標各自獨立管理）
-      const targetEventsMap = new Map<string, CombatEvent[]>();
-
-      if (event.type === CombatEventType.SKILL_CAST) {
-        for (let k = this.eventIndex + 1; k < this.currentEventQueue.length; k++) {
-          const followEv = this.currentEventQueue[k];
-          const matchAction = event.actionId ? followEv.actionId === event.actionId : (followEv.actorId === event.actorId);
-          if (matchAction && (
-            followEv.type === CombatEventType.HIT ||
-            followEv.type === CombatEventType.CRIT ||
-            followEv.type === CombatEventType.HEAL ||
-            followEv.type === CombatEventType.SHIELD_DAMAGE ||
-            followEv.type === CombatEventType.SHIELD_BREAK
-          )) {
-            (followEv as any).absorbedBySkillCast = true;
-            const tId = followEv.targetId || fxTargetId || '';
-            if (tId) {
-              if (!targetEventsMap.has(tId)) targetEventsMap.set(tId, []);
-              targetEventsMap.get(tId)!.push(followEv);
-            }
-          } else if (
-            followEv.type === CombatEventType.SKILL_CAST ||
-            followEv.type === CombatEventType.DEATH ||
-            followEv.type === CombatEventType.TURN_START ||
-            (event.actionId && followEv.actionId && followEv.actionId !== event.actionId)
-          ) {
-            break;
-          }
-        }
-      }
-
-      if (targetEl) {
-        // === 全功能特效路徑 ===
-        const mRect = this.modal.getBoundingClientRect();
-        const tRect = targetEl.getBoundingClientRect();
-
-        let fromPt: ScreenPoint;
-        if (actorEl) {
-          const aRect = actorEl.getBoundingClientRect();
-          fromPt = {
-            x: (aRect.left + aRect.right) / 2 - mRect.left,
-            y: (aRect.top + aRect.bottom) / 2 - mRect.top
-          };
-        } else {
-          // 器械/軍令/箭塔預設發射點
-          if (event.type === CombatEventType.TREBUCHET_ATTACK) {
-            fromPt = { x: mRect.width * 0.2, y: -40 };
-          } else if (event.type === CombatEventType.WATCHTOWER_ATTACK) {
-            fromPt = { x: 30, y: 30 };
-          } else {
-            fromPt = { x: mRect.width * 0.25, y: mRect.height * 0.5 };
-          }
-        }
-
-        const toPt: ScreenPoint = {
-          x: (tRect.left + tRect.right) / 2 - mRect.left,
-          y: (tRect.top + tRect.bottom) / 2 - mRect.top
-        };
-
-        // 決定 VFX ID
-        let vfxId = event.vfxId;
-        if (!vfxId) {
-          if (event.type === CombatEventType.CAVALRY_CHARGE || event.type === CombatEventType.CAVALRY_BREACH_CHARGE) {
-            vfxId = 'VFX_CAVALRY_CHARGE';
-          } else if (event.type === CombatEventType.TREBUCHET_ATTACK) {
-            vfxId = 'VFX_TREBUCHET_BOULDER';
-          } else if (event.type === CombatEventType.BATTERING_RAM_ATTACK || event.type === CombatEventType.SIEGE_GATE_DAMAGE || event.type === CombatEventType.SIEGE_GATE_BREAK) {
-            vfxId = 'VFX_BATTERING_RAM';
-          } else if (event.type === CombatEventType.WATCHTOWER_ATTACK) {
-            vfxId = 'VFX_WATCHTOWER_VOLLEY';
-          } else {
-            vfxId = getSkillVfxId(event.skillId || event.skillName);
-          }
-        }
-
-        // 🎬 構建標準 CombatAction 並透過同源 CombatStageAdapter 進行單次播放
-        const allActionEvents: CombatEvent[] = [event];
-        if (targetEventsMap.size > 0) {
-          targetEventsMap.forEach(evList => allActionEvents.push(...evList));
-        }
-
-        const action: CombatAction = {
-          actionId: event.actionId || `act_ui_${Date.now()}`,
-          actorId: event.actorId || '',
-          skillId: event.skillId,
-          vfxId,
-          events: allActionEvents
-        };
-
-        await CombatStageAdapter.getInstance().playCombatAction(action, {
-          fromPoint: fromPt,
-          toPoint: toPt,
-          targetId: fxTargetId,
-          onImpact: (item) => {
-            if (item.targetHp !== undefined && item.targetId && item.targetMaxHp) {
-              this.applyDamageAndFloatingNumbers({
-                type: item.kind === 'HEAL' ? CombatEventType.HEAL : CombatEventType.HIT,
-                targetId: item.targetId,
-                targetHp: item.targetHp,
-                targetMaxHp: item.targetMaxHp,
-                text: ''
-              });
-            }
-          }
-        });
-
-        // 結算所有目標血條與狀態
-        if (targetEventsMap.size > 0) {
-          targetEventsMap.forEach((tEvents) => {
-            const lastEv = [...tEvents].reverse().find(e => e.targetHp !== undefined);
-            if (lastEv && lastEv.targetHp !== undefined && lastEv.targetMaxHp !== undefined) {
-              this.applyDamageAndFloatingNumbers(lastEv);
-            }
-          });
-        } else if (event.targetHp !== undefined && fxTargetId && event.targetMaxHp !== undefined) {
-          this.applyDamageAndFloatingNumbers(event);
-        }
-
-        // 收招等待時間
-        const postHitDelay = this.currentSpeed <= 250 ? 60 : (this.currentSpeed <= 550 ? 120 : 200);
-        await new Promise(r => setTimeout(r, postHitDelay));
-        return;
-      }
+    // 攻城戰打擊城門目標 fallback
+    if (!targetEl && action.events.some(e => e.type === CombatEventType.SIEGE_GATE_DAMAGE || e.type === CombatEventType.SIEGE_GATE_BREAK || e.gateRemainingHp !== undefined)) {
+      targetEl = document.getElementById('combat-siege-gate-hud');
     }
 
-    // 若非目標打擊或找不到 DOM，執行常規結算
+    // 🎯 施術者卡片單次攻擊突進撞擊（整個 Action 僅撞一次）
+    if (actorEl) {
+      actorEl.classList.add('skill-cast-glow');
+      const isPlayer = actorEl.classList.contains('player-side') || !!this.currentReport?.initialStates?.find(s => s.id === action.actorId)?.isPlayer;
+      const bumpClass = isPlayer ? 'attack-bump-player' : 'attack-bump-enemy';
+      actorEl.classList.remove(bumpClass);
+      void actorEl.offsetWidth;
+      actorEl.classList.add(bumpClass);
+      setTimeout(() => {
+        actorEl.classList.remove('skill-cast-glow');
+        actorEl.classList.remove(bumpClass);
+      }, 280);
+    }
+
+    if (targetEl) {
+      const mRect = this.modal.getBoundingClientRect();
+      const tRect = targetEl.getBoundingClientRect();
+
+      let fromPt: ScreenPoint;
+      if (actorEl) {
+        const aRect = actorEl.getBoundingClientRect();
+        fromPt = {
+          x: (aRect.left + aRect.right) / 2 - mRect.left,
+          y: (aRect.top + aRect.bottom) / 2 - mRect.top
+        };
+      } else {
+        const firstEv = action.events[0];
+        if (firstEv?.type === CombatEventType.TREBUCHET_ATTACK) {
+          fromPt = { x: mRect.width * 0.2, y: -40 };
+        } else if (firstEv?.type === CombatEventType.WATCHTOWER_ATTACK) {
+          fromPt = { x: 30, y: 30 };
+        } else {
+          fromPt = { x: mRect.width * 0.25, y: mRect.height * 0.5 };
+        }
+      }
+
+      const toPt: ScreenPoint = {
+        x: (tRect.left + tRect.right) / 2 - mRect.left,
+        y: (tRect.top + tRect.bottom) / 2 - mRect.top
+      };
+
+      // 決定 VFX ID
+      let vfxId = action.vfxId;
+      if (!vfxId) {
+        for (const ev of action.events) {
+          if (ev.vfxId) { vfxId = ev.vfxId; break; }
+        }
+      }
+      if (!vfxId) {
+        const firstEv = action.events[0];
+        if (firstEv?.type === CombatEventType.CAVALRY_CHARGE || firstEv?.type === CombatEventType.CAVALRY_BREACH_CHARGE) {
+          vfxId = 'VFX_CAVALRY_CHARGE';
+        } else if (firstEv?.type === CombatEventType.TREBUCHET_ATTACK) {
+          vfxId = 'VFX_TREBUCHET_BOULDER';
+        } else if (firstEv?.type === CombatEventType.BATTERING_RAM_ATTACK || firstEv?.type === CombatEventType.SIEGE_GATE_DAMAGE || firstEv?.type === CombatEventType.SIEGE_GATE_BREAK) {
+          vfxId = 'VFX_BATTERING_RAM';
+        } else if (firstEv?.type === CombatEventType.WATCHTOWER_ATTACK) {
+          vfxId = 'VFX_WATCHTOWER_VOLLEY';
+        } else {
+          vfxId = getSkillVfxId(action.skillId || firstEv?.skillName);
+        }
+      }
+
+      const finalAction: CombatAction = {
+        ...action,
+        vfxId: vfxId || 'VFX_DEFAULT_SLASH'
+      };
+
+      await CombatStageAdapter.getInstance().playCombatAction(finalAction, {
+        fromPoint: fromPt,
+        toPoint: toPt,
+        targetId: mainTargetId,
+        onImpact: (item) => {
+          // 🎯 依據 §4.1: Adapter 於該 Cue 時間點負責建立跳字與反饋；
+          // 此處僅同步更新 HP UI 條，絕對不再呼叫 applyDamageAndFloatingNumbers 造成重複跳字！
+          if (item.targetHp !== undefined && item.targetId && item.targetMaxHp) {
+            this.updateTargetHpUi(item.targetId, item.targetHp, item.targetMaxHp);
+          }
+        }
+      });
+
+      // 🎯 依據 §4.1: Action 播放完畢後進行最終安全校準，絕不建立任何 floating DOM！
+      this.reconcileFinalActionState(action.events);
+
+      const postHitDelay = this.currentSpeed <= 250 ? 60 : (this.currentSpeed <= 550 ? 120 : 200);
+      await new Promise(r => setTimeout(r, postHitDelay));
+      return;
+    }
+
+    // 若找不到 DOM，執行純狀態校準
+    this.reconcileFinalActionState(action.events);
+  }
+
+  /**
+   * 📢 處理非 Action 獨立事件（如 WAVE_START, TURN_START, DEATH 等）
+   */
+  private static async renderEventAsync(event: CombatEvent): Promise<void> {
+    this.renderLogAndStage(event);
+
+    // 若非目標打擊或無 actionId 之常規獨立結算事件，執行常規結算
     this.applyDamageAndFloatingNumbers(event);
     const nonHitDelay = this.currentSpeed <= 250 ? 80 : (this.currentSpeed <= 550 ? 180 : 300);
     await new Promise(r => setTimeout(r, nonHitDelay));
@@ -847,7 +858,7 @@ export class CombatUIManager {
     this.applyDamageAndFloatingNumbers(event);
   }
 
-  private static renderLogAndStage(event: CombatEvent) {
+  private static renderLogAndStage(event: CombatEvent, isSkip: boolean = false) {
     if (!event.isQuietRegen) {
       const logEl = document.createElement('div');
       logEl.className = 'combat-log-entry';
@@ -869,8 +880,10 @@ export class CombatUIManager {
         }
       } else if (event.type === CombatEventType.CRIT) {
         logEl.classList.add('log-crit');
-        this.modal.classList.add('shake');
-        setTimeout(() => this.modal.classList.remove('shake'), 350);
+        if (!isSkip) {
+          this.modal.classList.add('shake');
+          setTimeout(() => this.modal.classList.remove('shake'), 350);
+        }
       } else if (event.type === CombatEventType.MISS) {
         logEl.classList.add('log-miss');
       } else if (event.type === CombatEventType.STATUS_APPLY) {
@@ -889,7 +902,7 @@ export class CombatUIManager {
           if (txtEl) txtEl.textContent = `${curHp} / ${maxHp}`;
         }
         const gateHud = document.getElementById('combat-siege-gate-hud');
-        if (gateHud) {
+        if (gateHud && !isSkip) {
           gateHud.classList.add('hit-shake', 'hit-flash');
           setTimeout(() => gateHud.classList.remove('hit-shake', 'hit-flash'), 300);
         }
@@ -991,6 +1004,9 @@ export class CombatUIManager {
     this.isSkipped = true;
     this.isPlayingLoop = false;
     CombatFXEngine.getInstance().clear();
+    CombatStageAdapter.getInstance().clear();
+    CombatActionPlayer.clearDebugOverlay(true);
+
     if (this.playInterval) {
       clearInterval(this.playInterval);
       this.playInterval = null;
@@ -999,11 +1015,20 @@ export class CombatUIManager {
       clearTimeout(this.finishTimeout);
       this.finishTimeout = null;
     }
+
     const queue = this.currentSession ? this.currentEventQueue : (this.currentReport?.events || []);
+    // 依序輸出戰鬥文字日誌與波次變更，不觸發 floating DOM 與受擊樣式
     while (this.eventIndex < queue.length) {
-      this.renderEvent(queue[this.eventIndex], true);
+      this.renderLogAndStage(queue[this.eventIndex], true);
       this.eventIndex++;
     }
+
+    // 🎯 純狀態安全校準所有單位的最終 HP/MP/Shield 與 death 樣式，禁止產生任何 floating DOM
+    this.reconcileFinalActionState(queue);
+
+    // 再次確保清理任何殘留定時器與 DOM
+    CombatStageAdapter.getInstance().clear();
+
     if (this.currentSession) {
       this.onTurnQueueFinished();
     } else {

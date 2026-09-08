@@ -129,19 +129,147 @@ export class TimelineInteraction {
   }
 
   /**
-   * 1.5 時間軸頂部總時長編輯輸入框
+   * 1.5 時間軸頂部總時長編輯輸入框 (支援 range + number 複合控制與 §5.5 縮短超出確認)
    */
   private bindDurationInput(): void {
-    const durInput = this.container.querySelector('#tl-input-duration') as HTMLInputElement | null;
-    if (durInput) {
-      durInput.addEventListener('change', (e) => {
-        const val = parseFloat((e.target as HTMLInputElement).value);
-        if (!Number.isNaN(val) && val >= 0.1 && val <= 5.0) {
-          this.store.recordSnapshot();
-          this.store.updateConfig({ duration: Number(val.toFixed(2)) }, true);
+    const numInput = this.container.querySelector('#tl-input-duration') as HTMLInputElement | null;
+    const rangeInput = this.container.querySelector('#tl-range-duration') as HTMLInputElement | null;
+    const overflowDialog = this.container.querySelector('#tl-duration-overflow-dialog') as HTMLElement | null;
+    const overflowList = this.container.querySelector('#tl-overflow-items-list') as HTMLElement | null;
+    const btnExtend = this.container.querySelector('#tl-btn-dur-extend') as HTMLButtonElement | null;
+    const btnScale = this.container.querySelector('#tl-btn-dur-scale') as HTMLButtonElement | null;
+    const btnCancel = this.container.querySelector('#tl-btn-dur-cancel') as HTMLButtonElement | null;
+
+    let pendingTargetDuration: number | null = null;
+    let requiredMaxDuration = 0;
+
+    const checkOverflow = (targetDur: number): string[] => {
+      const preset = this.store.getPreset();
+      const overflows: string[] = [];
+      requiredMaxDuration = targetDur;
+
+      // 檢查主軌
+      const mainEnd = (preset.mainDelay || 0) + (preset.mainDuration !== undefined ? preset.mainDuration : (preset.duration - (preset.mainDelay || 0)));
+      if (mainEnd > targetDur + 0.001) {
+        overflows.push(`👑 主圖層: 結束時間 ${mainEnd.toFixed(2)}s (超出 ${(mainEnd - targetDur).toFixed(2)}s)`);
+        requiredMaxDuration = Math.max(requiredMaxDuration, mainEnd);
+      }
+
+      // 檢查副圖層
+      (preset.layers || []).forEach((l, idx) => {
+        const lEnd = (l.delay || 0) + (l.duration || 0.2);
+        if (lEnd > targetDur + 0.001) {
+          overflows.push(`🔮 圖層 #${idx + 1} (${l.presetId || l.id || '圖層'}): 結束時間 ${lEnd.toFixed(2)}s (超出 ${(lEnd - targetDur).toFixed(2)}s)`);
+          requiredMaxDuration = Math.max(requiredMaxDuration, lEnd);
         }
       });
-    }
+
+      // 檢查 Cue
+      (preset.impactCues || []).forEach((c, idx) => {
+        if (c.time > targetDur + 0.001) {
+          overflows.push(`🎯 Cue #${idx + 1} (${c.cueId}): 時間點 ${c.time.toFixed(2)}s (超出 ${(c.time - targetDur).toFixed(2)}s)`);
+          requiredMaxDuration = Math.max(requiredMaxDuration, c.time);
+        }
+      });
+
+      return overflows;
+    };
+
+    const applyDurationDirectly = (val: number) => {
+      this.store.recordSnapshot();
+      this.store.updateConfig({ duration: Number(val.toFixed(2)) }, true);
+      this.callbacks.requestRender();
+    };
+
+    const handleDurationChange = (val: number) => {
+      if (Number.isNaN(val) || val < 0.1 || val > 5.0) return;
+      const targetVal = Number(val.toFixed(2));
+
+      // 雙向同步顯示
+      if (numInput) numInput.value = targetVal.toFixed(2);
+      if (rangeInput) rangeInput.value = targetVal.toFixed(2);
+
+      const overflows = checkOverflow(targetVal);
+      if (overflows.length > 0) {
+        // 依文件 §5.5：若縮短後會超出，顯示確認區塊，列出超出的項目
+        pendingTargetDuration = targetVal;
+        if (overflowList) {
+          overflowList.innerHTML = overflows.map(item => `<div>• ${item}</div>`).join('');
+        }
+        if (overflowDialog) overflowDialog.style.display = 'block';
+      } else {
+        if (overflowDialog) overflowDialog.style.display = 'none';
+        applyDurationDirectly(targetVal);
+      }
+    };
+
+    numInput?.addEventListener('change', (e) => {
+      handleDurationChange(parseFloat((e.target as HTMLInputElement).value));
+    });
+
+    rangeInput?.addEventListener('input', (e) => {
+      const v = parseFloat((e.target as HTMLInputElement).value);
+      if (numInput) numInput.value = v.toFixed(2);
+    });
+
+    rangeInput?.addEventListener('change', (e) => {
+      handleDurationChange(parseFloat((e.target as HTMLInputElement).value));
+    });
+
+    // 選擇 1: 「延長 sequence」配合項目
+    btnExtend?.addEventListener('click', () => {
+      if (overflowDialog) overflowDialog.style.display = 'none';
+      const extendedDuration = Number(Math.min(5.0, requiredMaxDuration).toFixed(2));
+      applyDurationDirectly(extendedDuration);
+    });
+
+    // 選擇 2: 「按比例縮放全部」
+    btnScale?.addEventListener('click', () => {
+      if (overflowDialog) overflowDialog.style.display = 'none';
+      if (pendingTargetDuration === null) return;
+      const preset = this.store.getPreset();
+      const oldDur = preset.duration || 1.0;
+      const scaleRatio = pendingTargetDuration / oldDur;
+
+      this.store.recordSnapshot();
+
+      // 縮放主軌
+      const newMainDelay = Number(((preset.mainDelay || 0) * scaleRatio).toFixed(2));
+      const currentMainDur = preset.mainDuration !== undefined ? preset.mainDuration : (oldDur - (preset.mainDelay || 0));
+      const newMainDuration = Number((currentMainDur * scaleRatio).toFixed(2));
+
+      // 縮放副圖層
+      const newLayers = (preset.layers || []).map(l => ({
+        ...l,
+        delay: Number(((l.delay || 0) * scaleRatio).toFixed(2)),
+        duration: Number(((l.duration || 0.2) * scaleRatio).toFixed(2))
+      }));
+
+      // 縮放 Cue
+      const newCues = (preset.impactCues || []).map(c => ({
+        ...c,
+        time: Number((c.time * scaleRatio).toFixed(2))
+      }));
+
+      this.store.updateConfig({
+        duration: pendingTargetDuration,
+        mainDelay: newMainDelay,
+        mainDuration: newMainDuration,
+        layers: newLayers,
+        impactCues: newCues
+      }, true);
+
+      this.callbacks.requestRender();
+    });
+
+    // 選擇 3: 「取消」
+    btnCancel?.addEventListener('click', () => {
+      if (overflowDialog) overflowDialog.style.display = 'none';
+      const currentDur = this.store.getPreset().duration || 1.0;
+      if (numInput) numInput.value = currentDur.toFixed(2);
+      if (rangeInput) rangeInput.value = currentDur.toFixed(2);
+      pendingTargetDuration = null;
+    });
   }
 
   /**

@@ -12,13 +12,20 @@ export const SKILL_VFX_MAP: Record<string, string> = SkillVfxBindingRegistry.get
 
 
 export function getSkillVfxId(skillIdOrName?: string, fallbackAttackType?: string): string {
-  // 🔗 優先讀取特效工房使用者自訂技能綁定 (LocalStorage: MEDIEVAL_SKILL_VFX_BINDINGS)
+  // 🔗 優先讀取特效工房使用者自訂技能綁定 (LocalStorage: MEDIEVAL_SKILL_VFX_BINDINGS，支援 V2 與 V1)
   if (skillIdOrName && typeof localStorage !== 'undefined') {
     try {
       const bindings = localStorage.getItem('MEDIEVAL_SKILL_VFX_BINDINGS');
       if (bindings) {
-        const map = JSON.parse(bindings);
-        if (map) {
+        const parsed = JSON.parse(bindings);
+        if (parsed) {
+          const map: Record<string, string> = parsed.version === 2 && parsed.overrides
+            ? Object.fromEntries(
+                Object.entries(parsed.overrides)
+                  .filter(([_, v]: [string, any]) => v && v.vfxId)
+                  .map(([k, v]: [string, any]) => [k, v.vfxId])
+              )
+            : parsed;
           // 1. 直接匹配
           if (map[skillIdOrName]) return map[skillIdOrName];
           // 2. 若傳入的是 ID，尋找對應的技能中文名稱查表
@@ -33,6 +40,12 @@ export function getSkillVfxId(skillIdOrName?: string, fallbackAttackType?: strin
     } catch (e) {
       // ignore
     }
+  }
+
+  // 優先詢問 SkillVfxBindingRegistry SSOT
+  if (skillIdOrName) {
+    const fromRegistry = SkillVfxBindingRegistry.getInstance().getVfxForSkill(skillIdOrName, '');
+    if (fromRegistry) return fromRegistry;
   }
 
   if (skillIdOrName && SKILL_VFX_MAP[skillIdOrName]) return SKILL_VFX_MAP[skillIdOrName];

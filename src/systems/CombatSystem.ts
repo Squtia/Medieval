@@ -43,6 +43,9 @@ export class CombatSystem {
     }
   ): CombatReport {
     const events: CombatEvent[] = [];
+    let actionSequence = 0;
+    const nextActionId = (kind: string, actorId: string, turnNum: number) =>
+      `act_${kind}_${turnNum}_${actorId}_${actionSequence++}`;
     const playerTeam: CombatParticipant[] = [];
     const isFieldInterception = !!siegeOptions?.isFieldInterception;
     const isDefenseSiege = siegeOptions?.isSiege && !isFieldInterception;
@@ -965,7 +968,7 @@ export class CombatSystem {
           }
           
           const actorMaxMp = actor.attributes?.spr ? actor.attributes.spr * 5 : 100;
-          const skillActionId = `act_skill_${actor.id}_${turn}_${Date.now()}_${Math.floor(Random.next() * 1000)}`;
+          const skillActionId = nextActionId('skill', actor.id, turn);
           events.push({
             type: CombatEventType.SKILL_CAST,
             actionId: skillActionId,
@@ -1014,17 +1017,18 @@ export class CombatSystem {
                   se.shieldDamage = shieldAbsorb;
                   se.shieldRemaining = target.shieldCurrentHp;
 
+                  const isBroken = target.shieldCurrentHp === 0;
                   finalSkillEvents.push({
-                    type: target.shieldCurrentHp === 0 ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
+                    type: isBroken ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
                     actionId: skillActionId,
-                    impactKind: 'SHIELD_DAMAGE',
+                    impactKind: isBroken ? 'SHIELD_BREAK' : 'SHIELD_DAMAGE',
                     actorId: actor.id,
                     actorName: actor.name,
                     targetId: target.id,
                     targetName: target.name,
                     shieldDamage: shieldAbsorb,
                     shieldRemaining: target.shieldCurrentHp,
-                    text: `🛡️ ${target.name} 的部隊護盾吸收了 ${shieldAbsorb} 點技能傷害！${target.shieldCurrentHp === 0 ? ' (部隊護盾破碎！)' : `(剩餘護盾 ${target.shieldCurrentHp})`}`
+                    text: `🛡️ ${target.name} 的部隊護盾吸收了 ${shieldAbsorb} 點技能傷害！${isBroken ? ' (部隊護盾破碎！)' : `(剩餘護盾 ${target.shieldCurrentHp})`}`
                   });
                 }
               }
@@ -1033,13 +1037,20 @@ export class CombatSystem {
             if (!se.skillName) se.skillName = selectedSkill.name;
             if (!se.vfxId) se.vfxId = selectedSkill.vfxId || getSkillVfxId(selectedSkill.id);
             se.actionId = skillActionId;
-            finalSkillEvents.push(se);
+            // 被盾完全吸收時，不得保留會被當作 HP damage 呈現的零傷害 HIT
+            if (!se.shieldDamage || (se.damage && se.damage > 0)) {
+              finalSkillEvents.push(se);
+            }
           });
 
           // 排序並標記 impactIndex 與 impactCount
           let impactIdxCounter = 0;
           const totalImpactCount = finalSkillEvents.filter(e => 
-            e.type === CombatEventType.HIT || e.type === CombatEventType.CRIT || e.type === CombatEventType.HEAL || e.type === CombatEventType.SHIELD_DAMAGE
+            e.type === CombatEventType.HIT ||
+            e.type === CombatEventType.CRIT ||
+            e.type === CombatEventType.HEAL ||
+            e.type === CombatEventType.SHIELD_DAMAGE ||
+            e.type === CombatEventType.SHIELD_BREAK
           ).length;
 
           finalSkillEvents.forEach(e => {
@@ -1055,6 +1066,10 @@ export class CombatSystem {
               e.impactIndex = impactIdxCounter++;
               e.impactCount = totalImpactCount;
               e.impactKind = 'SHIELD_DAMAGE';
+            } else if (e.type === CombatEventType.SHIELD_BREAK) {
+              e.impactIndex = impactIdxCounter++;
+              e.impactCount = totalImpactCount;
+              e.impactKind = 'SHIELD_BREAK';
             }
           });
 
@@ -1149,24 +1164,32 @@ export class CombatSystem {
           hpDamage = Math.floor(hpDamage * 0.75);
         }
 
-        const attackActionId = `act_atk_${actor.id}_${turn}_${Date.now()}`;
+        const attackActionId = nextActionId('atk', actor.id, turn);
 
-        if (target.shieldCurrentHp && target.shieldCurrentHp > 0) {
-          sDamage = Math.min(target.shieldCurrentHp, hpDamage);
-          target.shieldCurrentHp -= sDamage;
+        const hasShield = target.shieldCurrentHp && target.shieldCurrentHp > 0;
+        let shieldImpactDone = false;
+        let isShieldBroken = false;
+
+        if (hasShield) {
+          sDamage = Math.min(target.shieldCurrentHp!, hpDamage);
+          target.shieldCurrentHp! -= sDamage;
           hpDamage = hpDamage - sDamage;
-          
+          isShieldBroken = target.shieldCurrentHp === 0;
+          shieldImpactDone = true;
+
+          const totalImpacts = hpDamage > 0 ? 2 : 1;
+
           events.push({
-            type: target.shieldCurrentHp === 0 ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
+            type: isShieldBroken ? CombatEventType.SHIELD_BREAK : CombatEventType.SHIELD_DAMAGE,
             actionId: attackActionId,
             impactIndex: 0,
-            impactCount: 1,
-            impactKind: 'SHIELD_DAMAGE',
+            impactCount: totalImpacts,
+            impactKind: isShieldBroken ? 'SHIELD_BREAK' : 'SHIELD_DAMAGE',
             actorId: actor.id, actorName: actor.name,
             targetId: target.id, targetName: target.name,
             shieldDamage: sDamage,
             shieldRemaining: target.shieldCurrentHp,
-            text: `${actor.name} 攻擊了 ${target.name} 的部隊，造成了 ${sDamage} 點護盾傷害${multiplier !== 1 ? (multiplier > 1 ? ' (兵種剋制!)' : ' (兵種劣勢)') : ''}！${target.shieldCurrentHp === 0 ? '部隊全滅！' : ''}`
+            text: `${actor.name} 攻擊了 ${target.name} 的部隊，造成了 ${sDamage} 點護盾傷害${multiplier !== 1 ? (multiplier > 1 ? ' (兵種剋制!)' : ' (兵種劣勢)') : ''}！${isShieldBroken ? '部隊全滅！' : ''}`
           });
         }
         
@@ -1175,12 +1198,14 @@ export class CombatSystem {
 
           target.currentHp -= hpDamage;
           const normalVfxId = getBasicAttackVfxId(actor);
+          const impactIdx = shieldImpactDone ? 1 : 0;
+          const totalImpacts = shieldImpactDone ? 2 : 1;
 
           events.push({
             type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
             actionId: attackActionId,
-            impactIndex: 0,
-            impactCount: 1,
+            impactIndex: impactIdx,
+            impactCount: totalImpacts,
             impactKind: 'DAMAGE',
             actorId: actor.id, actorName: actor.name,
             targetId: target.id, targetName: target.name,

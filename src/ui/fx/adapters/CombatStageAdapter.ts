@@ -202,7 +202,15 @@ export class CombatStageAdapter {
         const preset = VFXPresetRepository.getInstance().getPreset(finalAction.vfxId || '');
         const impactCfg = preset?.impact || null;
 
-        this.triggerHitFeedback(targetEl, dummyEv, impactCfg, item.cueIndex, 1, cue, item);
+        this.triggerHitFeedback(
+          targetEl,
+          dummyEv,
+          impactCfg,
+          item.presentationIndex ?? item.cueIndex,
+          item.presentationCount ?? 1,
+          cue,
+          item
+        );
 
         // 🌟 Phase 4：多目標 AOE 隔離反饋，為各受擊目標派發獨立 3D 受擊打擊火花
         if (!skip && item.targetId && item.targetId !== mainTargetId) {
@@ -240,24 +248,32 @@ export class CombatStageAdapter {
 
     // 1. 卡牌定格擠壓與受擊抖動 (委派 ScreenFxRenderer)
     if (impact) {
-      ScreenFxRenderer.applyTargetShake(targetEl, impact, isLastHit, knockDir);
+      ScreenFxRenderer.applyTargetShake(targetEl, impact, isLastHit && presentationItem?.kind !== 'VISUAL_ONLY', knockDir);
     }
 
-    // 2. 產生跳字
+    // 2. 產生跳字 (依據 impact 種類嚴格分流)
     this.spawnFloatingNumber(targetEl, ev, presentationItem);
   }
 
   /**
-   * 💬 產生漂浮傷害／治療跳字
+   * 💬 產生漂浮傷害／治療／護盾／狀態跳字
    */
   private spawnFloatingNumber(
     targetEl: HTMLElement,
     ev: CombatEvent,
     presentationItem?: CombatImpactPresentation
   ): void {
+    if (typeof document === 'undefined') return;
+
+    // 0. VISUAL_ONLY: 絕不產生數值跳字，杜絕 -0 幽靈打擊
+    if (presentationItem?.kind === 'VISUAL_ONLY') {
+      return;
+    }
+
+    // 1. MISS
     if (ev.type === CombatEventType.MISS || presentationItem?.kind === 'MISS') {
       const missEl = document.createElement('div');
-      missEl.className = 'floating-dmg';
+      missEl.className = 'floating-dmg floating-miss';
       missEl.style.color = '#94a3b8';
       missEl.textContent = 'MISS';
       targetEl.appendChild(missEl);
@@ -269,11 +285,12 @@ export class CombatStageAdapter {
       return;
     }
 
+    // 2. HEAL
     if (ev.type === CombatEventType.HEAL || presentationItem?.kind === 'HEAL') {
       const healAmt = presentationItem ? presentationItem.amount : (ev.healAmount || 0);
       if (healAmt > 0) {
         const healEl = document.createElement('div');
-        healEl.className = 'floating-dmg';
+        healEl.className = 'floating-dmg floating-heal';
         healEl.style.color = '#4ade80';
         healEl.textContent = `💚 +${healAmt}`;
         targetEl.appendChild(healEl);
@@ -286,9 +303,58 @@ export class CombatStageAdapter {
       return;
     }
 
+    // 3. SHIELD_BREAK
+    if (ev.type === CombatEventType.SHIELD_BREAK || presentationItem?.kind === 'SHIELD_BREAK') {
+      const breakEl = document.createElement('div');
+      breakEl.className = 'floating-dmg floating-shield-break';
+      breakEl.style.color = '#f97316';
+      breakEl.style.fontWeight = 'bold';
+      breakEl.textContent = '🛡️ 破盾！';
+      targetEl.appendChild(breakEl);
+      const timer = setTimeout(() => {
+        if (breakEl.parentNode) breakEl.remove();
+        this.activeTimers.delete(timer);
+      }, 900);
+      this.activeTimers.add(timer);
+      return;
+    }
+
+    // 4. SHIELD_DAMAGE
+    if (ev.type === CombatEventType.SHIELD_DAMAGE || presentationItem?.kind === 'SHIELD_DAMAGE') {
+      const sDamage = presentationItem ? (presentationItem.shieldDamage ?? presentationItem.amount) : (ev.shieldDamage ?? ev.damage ?? 0);
+      if (sDamage > 0) {
+        const shieldEl = document.createElement('div');
+        shieldEl.className = 'floating-dmg floating-shield-dmg';
+        shieldEl.style.color = '#38bdf8';
+        shieldEl.textContent = `🛡️ -${sDamage}`;
+        targetEl.appendChild(shieldEl);
+        const timer = setTimeout(() => {
+          if (shieldEl.parentNode) shieldEl.remove();
+          this.activeTimers.delete(timer);
+        }, 800);
+        this.activeTimers.add(timer);
+      }
+      return;
+    }
+
+    // 5. STATUS
+    if (presentationItem?.kind === 'STATUS') {
+      const statusEl = document.createElement('div');
+      statusEl.className = 'floating-dmg floating-status';
+      statusEl.style.color = '#a855f7';
+      statusEl.textContent = ev.text ? `✨ ${ev.text}` : '✨ 狀態觸發';
+      targetEl.appendChild(statusEl);
+      const timer = setTimeout(() => {
+        if (statusEl.parentNode) statusEl.remove();
+        this.activeTimers.delete(timer);
+      }, 800);
+      this.activeTimers.add(timer);
+      return;
+    }
+
+    // 6. 普通 HP DAMAGE
     const finalDamage = presentationItem ? presentationItem.amount : ev.damage;
     if (finalDamage !== undefined && finalDamage > 0) {
-      if (typeof document === 'undefined') return;
       const isCrit = presentationItem ? presentationItem.isCrit : (ev.type === CombatEventType.CRIT);
 
       const dmgEl = document.createElement('div');

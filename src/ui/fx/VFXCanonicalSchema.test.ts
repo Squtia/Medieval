@@ -32,7 +32,7 @@ describe('VFXCanonicalSchema - Phase 6 Canonical Schema 收斂與無損轉譯驗
         track.clips.forEach(clip => {
           expect(clip.id).toBeTruthy();
           expect(clip.payload).toBeDefined();
-          expect(['MESH', 'PARTICLE', 'IMPACT', 'SCREEN_FX', 'AUDIO', 'COMPOSITE_LAYER']).toContain(clip.payload.type);
+          expect(['MESH', 'SLASH', 'PROJECTILE', 'PARTICLE', 'IMPACT', 'SCREEN_FX', 'AUDIO', 'COMPOSITE_LAYER']).toContain(clip.payload.type);
         });
       });
     });

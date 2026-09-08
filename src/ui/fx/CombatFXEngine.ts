@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { VFXPreset, VFXImpactConfig, VFXImpactCue } from '../../models/VFX';
+import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXSequence, sequenceToLegacyPreset } from '../../models/VFX';
 import defaultVFXPresets from '../../data/vfx_presets.json';
 import { VFXPresetRepository } from './VFXPresetRepository';
 import { PlaybackClock } from './PlaybackClock';
@@ -18,6 +18,35 @@ export type { ScreenPoint };
 
 export class CombatFXEngine extends VFXPlayer {
   private static fxInstance: CombatFXEngine | null = null;
+
+  /**
+   * 🌟 依據 §6.1 條款：Combat Runtime 原生支援播放 Canonical VFXSequence
+   */
+  public playSequence(
+    sequence: VFXSequence,
+    from: ScreenPoint,
+    to: ScreenPoint,
+    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void),
+    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void
+  ): Promise<void> {
+    const preset = sequenceToLegacyPreset(sequence);
+    return this.playPresetConfig(preset, from, to, isPlayerOrOnImpact, onImpactCallback);
+  }
+
+  /**
+   * 🌟 依據 §6.1 條款：原生支援 Sequence 世界座標確定性影格求值
+   */
+  public renderSequenceWorldAt(
+    sequence: VFXSequence,
+    timeSeconds: number,
+    casterPos: THREE.Vector3,
+    targetPos: THREE.Vector3,
+    customRootGroup?: THREE.Group,
+    customTrackGroups?: THREE.Group[]
+  ): void {
+    const preset = sequenceToLegacyPreset(sequence);
+    this.renderFrameWorldAt(preset, timeSeconds, casterPos, targetPos, customRootGroup, customTrackGroups);
+  }
   private scheduledTimers = new Set<ReturnType<typeof setTimeout>>();
   private instanceRegistry: VFXInstanceRegistry = new VFXInstanceRegistry();
 
@@ -473,7 +502,8 @@ export class CombatFXEngine extends VFXPlayer {
     if (track.preset?.trajectory === 'SHIELD_BARRIER' || track.spatialMode === 'SHIELD_BARRIER' || track.preset?.id === 'VFX_HOLY_SHIELD') {
       trackGroup.position.copy(targetPos);
       if (!cache.shieldGroup) {
-        cache.shieldGroup = MeshLayerRenderer.buildHolyShieldGroup(sc, track.colorCore || '#fde047', track.colorRim || '#eab308');
+        const shieldShape = track.preset?.shieldShape || 'HEX';
+        cache.shieldGroup = MeshLayerRenderer.buildHolyShieldGroup(sc, track.colorCore || '#fde047', track.colorRim || '#eab308', shieldShape as any);
         trackGroup.add(cache.shieldGroup);
       }
       cache.shieldGroup.visible = true;
@@ -487,7 +517,8 @@ export class CombatFXEngine extends VFXPlayer {
     if (track.preset?.trajectory === 'SHOUT_WAVE' || track.spatialMode === 'SHOUT_WAVE' || track.preset?.id === 'VFX_TAUNT_SHOUT') {
       trackGroup.position.copy(casterPos);
       if (!cache.shoutGroup) {
-        cache.shoutGroup = MeshLayerRenderer.buildTauntShoutGroup(3, track.colorRim || '#ef4444');
+        const waveCount = Math.max(1, Math.min(8, track.preset?.waveCount || 3));
+        cache.shoutGroup = MeshLayerRenderer.buildTauntShoutGroup(waveCount, track.colorRim || '#ef4444');
         trackGroup.add(cache.shoutGroup);
       }
       cache.shoutGroup.visible = true;
@@ -1055,7 +1086,8 @@ export class CombatFXEngine extends VFXPlayer {
     onComplete: () => void
   ): void {
     const sc = preset.scale || 1.0;
-    const group = MeshLayerRenderer.buildHolyShieldGroup(sc, preset.colorCore || '#fde047', preset.colorRim || '#eab308');
+    const shieldShape = preset.shieldShape || 'HEX';
+    const group = MeshLayerRenderer.buildHolyShieldGroup(sc, preset.colorCore || '#fde047', preset.colorRim || '#eab308', shieldShape as any);
     group.position.copy(pos);
     this.scene.add(group);
 
@@ -1101,7 +1133,8 @@ export class CombatFXEngine extends VFXPlayer {
     onComplete: () => void
   ): void {
     const sc = preset.scale || 1.0;
-    const group = MeshLayerRenderer.buildTauntShoutGroup(3, preset.colorRim || '#ef4444');
+    const waveCount = Math.max(1, Math.min(8, preset.waveCount || 3));
+    const group = MeshLayerRenderer.buildTauntShoutGroup(waveCount, preset.colorRim || '#ef4444');
     group.position.copy(casterPos);
     this.scene.add(group);
 
@@ -1578,14 +1611,35 @@ export class CombatFXEngine extends VFXPlayer {
       sub.add(glow);
       coreMesh = sub;
     } else {
-      const coneGeo = new THREE.ConeGeometry(5 * sc, 35 * sc, 6);
-      coneGeo.rotateX(Math.PI / 2);
+      const shape = preset.coreMeshShape || 'ARROW';
+      let geo: THREE.BufferGeometry;
+      if (shape === 'SPHERE') {
+        geo = new THREE.SphereGeometry(10 * sc, 16, 16);
+      } else if (shape === 'DIAMOND') {
+        geo = new THREE.OctahedronGeometry(11 * sc, 0);
+      } else if (shape === 'STAR') {
+        geo = new THREE.DodecahedronGeometry(9 * sc, 0);
+      } else if (shape === 'RING') {
+        geo = new THREE.TorusGeometry(10 * sc, 3 * sc, 8, 16);
+      } else {
+        // 預設 ARROW (錐形箭頭)
+        geo = new THREE.ConeGeometry(5 * sc, 35 * sc, 6);
+        geo.rotateX(Math.PI / 2);
+      }
+
+      const brightness = Math.max(0.2, preset.coreBrightness ?? 1.0);
+      const baseColor = new THREE.Color(preset.colorRim || '#38bdf8');
+      baseColor.multiplyScalar(brightness);
+
       const mat = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(preset.colorRim),
+        color: baseColor,
         transparent: true,
+        opacity: Math.min(1.0, 0.9 * brightness),
         blending: THREE.AdditiveBlending
       });
-      coreMesh = new THREE.Mesh(coneGeo, mat);
+      coreMesh = new THREE.Mesh(geo, mat);
+      (coreMesh as any).__coreShape = shape;
+      (coreMesh as any).__coreBrightness = brightness;
       group.lookAt(endPos);
     }
     group.add(coreMesh);

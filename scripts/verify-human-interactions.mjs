@@ -1,12 +1,71 @@
 import { chromium } from 'playwright';
+import { spawn } from 'child_process';
+import http from 'http';
+import { fileURLToPath } from 'url';
+
+const PORT = 5173;
+const HOST = '127.0.0.1';
+const TEST_URL = `http://${HOST}:${PORT}/Medieval/tools/vfx-studio.html`;
+
+async function isServerRunning() {
+  return new Promise((resolve) => {
+    const req = http.get(TEST_URL, (res) => {
+      resolve(res.statusCode === 200 || res.statusCode === 304);
+    });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
+async function waitForServer(timeoutMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await isServerRunning()) return true;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
 
 async function run() {
   console.log('🧪 開始進行真實人類視角交互驗證 (Human-Centric Interaction Verification)...');
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
-  await page.goto('http://localhost:5174/Medieval/tools/vfx-studio.html', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1000);
+  let serverProcess = null;
+  let browser = null;
+
+  try {
+    const alreadyRunning = await isServerRunning();
+    if (!alreadyRunning) {
+      console.log('Starting vite dev server...');
+      const viteBin = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url));
+      serverProcess = spawn(process.execPath, [viteBin, '--host', HOST, '--port', PORT.toString()], {
+        stdio: 'pipe',
+        shell: false
+      });
+      const ready = await waitForServer();
+      if (!ready) {
+        console.error('Failed to start vite server');
+        if (serverProcess) serverProcess.kill();
+        process.exit(1);
+      }
+    }
+
+    browser = await chromium.launch({ headless: true });
+    const consoleErrors = [];
+    const notFoundUrls = [];
+
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    page.on('console', msg => {
+      if (msg.type() === 'error') consoleErrors.push(`[BROWSER ERROR] ${msg.text()}`);
+    });
+    page.on('pageerror', err => {
+      consoleErrors.push(`[PAGE ERROR] ${err.message}`);
+    });
+    page.on('response', res => {
+      if (res.status() === 404) notFoundUrls.push(`[404 NOT FOUND] ${res.url()}`);
+    });
+
+    await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1000);
 
   // 1. 測試主圖層 🔒 鎖頭按鈕點擊交互
   console.log('\n👉 1. 測試主圖層 🔒 鎖頭按鈕點擊...');
@@ -118,8 +177,19 @@ async function run() {
   }
   console.log('  ✅ 主圖層 Clip 成功平移前搖時間 (mainDelay)！');
 
+  if (notFoundUrls.length > 0) {
+    throw new Error(`❌ 驗收失敗，載入過程出現 404 請求: ${JSON.stringify(notFoundUrls)}`);
+  }
+
+  if (consoleErrors.length > 0) {
+    throw new Error(`❌ 驗收失敗，瀏覽器出現錯誤日誌: ${JSON.stringify(consoleErrors)}`);
+  }
+
   console.log('\n🎉 所有真實人類視角交互驗收項目全數通過！');
-  await browser.close();
+  } finally {
+    if (browser) await browser.close();
+    if (serverProcess) serverProcess.kill();
+  }
 }
 
 run().catch(err => {

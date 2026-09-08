@@ -129,7 +129,7 @@
     </div>
 
     <!-- 左卡片 3: 🛡️ 防護壁壘與音波形態 -->
-    <div class="inspector-card">
+    <div class="inspector-card card-shield-section">
       <div class="inspector-card-title">
         <span>🛡️ 護盾、音波與粒子貼圖 (Model & Sprite)</span>
       </div>
@@ -286,45 +286,22 @@
           </select>
         </div>
 
-        <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">🔄 運動方向 (Reverse)</span>
-            </div>
-            <select id="param-reverse" class="param-select">
-              <option value="false">正向運動 (Forward)</option>
-              <option value="true">🔄 反向倒流 (Reverse)</option>
-            </select>
-          </div>
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">傳統彈道 (Legacy)</span>
-            </div>
-            <select id="param-trajectory" class="param-select">
-              <option value="HORIZONTAL">🏹 水平破空 (A➔B)</option>
-              <option value="VERTICAL_DROP">☀️ 雲端垂直墜擊</option>
-              <option value="DIAGONAL_DROP">☄️ 傾斜天頂隕落</option>
-              <option value="PARABOLA_ARC">🌈 拋物弧線下墜</option>
-              <option value="ARC_MULTI">🪃 漫天弧線連環</option>
-              <option value="COLUMN_PIERCE">⚡ 直線貫穿光柱</option>
-              <option value="GROUND_FISSURE">🌊 延伸地裂浪湧</option>
-              <option value="GROUND_BURST">🌋 目標地面破土</option>
-              <option value="MELEE_SWEEP">⚔️ 近戰弧光橫掃</option>
-              <option value="BODY_AURA">🛡️ 護體光環蓄能</option>
-              <option value="SHOUT_WAVE">📢 戰吼擴散震波</option>
-              <option value="SHIELD_BARRIER">🛡️ 神聖護盾壁壘</option>
-            </select>
-          </div>
-        </div>
         <div class="param-row">
           <div class="param-label-row">
-            <span class="param-label">特效總時長 (duration)</span>
-            <span id="val-duration" class="param-value">0.35s</span>
+            <span class="param-label">🔄 運動方向 (Reverse)</span>
           </div>
-          <div class="param-control">
-            <input type="range" id="param-duration" class="param-slider" min="0.1" max="1.5" step="0.05" value="0.35">
-          </div>
+          <select id="param-reverse" class="param-select">
+            <option value="false">正向運動 (Forward)</option>
+            <option value="true">🔄 反向倒流 (Reverse)</option>
+          </select>
         </div>
+
+        <!-- 依文件 §5.6 移除 Legacy 彈道 UI，保留隱藏 DOM 供 Legacy Migration 相容 -->
+        <select id="param-trajectory" style="display: none;">
+          <option value="HORIZONTAL">HORIZONTAL</option>
+          <option value="MELEE_SWEEP">MELEE_SWEEP</option>
+          <option value="GROUND_EXPLODE">GROUND_EXPLODE</option>
+        </select>
         <div class="param-row-2col">
           <div class="param-col">
             <div class="param-label-row">
@@ -428,7 +405,7 @@
               <input type="range" id="param-core-brightness" class="param-slider" min="0.2" max="2.0" step="0.1" value="1.0">
             </div>
           </div>
-          <div class="param-col">
+          <div class="param-col" id="col-fresnel">
             <div class="param-label-row">
               <span class="param-label">菲涅爾指數</span>
               <span id="val-fresnel" class="param-value">1.8</span>
@@ -439,7 +416,7 @@
           </div>
         </div>
 
-        <div class="param-row-2col">
+        <div class="param-row-2col" id="row-flame-turbulence">
           <div class="param-col">
             <div class="param-label-row">
               <span class="param-label">火焰熱浪震顫</span>
@@ -594,8 +571,6 @@
           </div>
         </div>
       </div>
-    </div>
-
     <!-- 右卡片 4: 🥊 戰鬥打擊感與受擊衝擊波 (全雙欄緊湊排列，永不被截斷) -->
     <div class="inspector-card card-impact-section" style="border-color: #ef4444;">
       <div class="inspector-card-title" style="color: #f87171; background: #2a1215;">

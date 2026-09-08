@@ -40,13 +40,24 @@ export type SalvoRhythmCurve =
   | 'BURST_PAIRS'  // 雙發點射成對
   | 'STAGGERED';   // 隨機微擾散佈
 
+export type VFXRendererType =
+  | 'SLASH'
+  | 'PROJECTILE'
+  | 'LIGHTNING'
+  | 'BEAM'
+  | 'GROUND_FISSURE'
+  | 'AURA'
+  | 'SHIELD'
+  | 'SHOUT_WAVE';
+
 export interface VFXPreset {
   id: string;
   name: string;
   category: 'PHYSICAL' | 'ELEMENTAL' | 'HOLY_DARK' | 'SPECIAL';
   description: string;
   
-  // 視覺渲染參數
+  // 視覺渲染與渲染器形態
+  rendererType?: VFXRendererType;
   trajectory: VFXTrajectory;
   spatialMode?: VFXSpatialMode; // 規範新版：時空發生模式 (AT_CASTER | AT_TARGET | 5大彈道路徑)
   trajectoryPath?: VFXTrajectoryPath; // 5 大幾何彈道路徑
@@ -127,7 +138,8 @@ export interface VFXPreset {
 
   // 🔮 複合多圖層特效支援 (Composite VFX Layers)
   layers?: VFXLayer[];
-  hitCount?: number;            // 戰鬥 HIT 判定段數（未填則預設使用 salvoCount 或 1）
+  /** @deprecated VFX 不得決定真正戰鬥 HIT；僅供舊資料 migration。 */
+  hitCount?: number;
   impactCues?: VFXImpactCue[];  // 具名時間軸 Impact Cue
   impactPresentationMode?: ImpactPresentationMode; // 傷害數值呈現模式
 }
@@ -254,8 +266,53 @@ export interface VFXCompositeLayerClipPayload {
   generatesHit?: boolean;
 }
 
+export interface VFXSlashClipPayload {
+  rendererType: 'SLASH';
+  colorCore: string;
+  colorRim: string;
+  scale: number;
+  angle: number;
+  arcSpan: number;
+  aspect: number;
+  bladeWidth: number;
+  radius: number;
+  reverse: boolean;
+  shape: 'CRESCENT' | 'CROSS' | 'WHIRLWIND';
+  shaderMode?: VFXShaderMode;
+  trajectory?: VFXTrajectory;
+  salvo?: {
+    count: number;
+    rhythm: SalvoRhythmCurve;
+    angleJitter: number;
+    alternating: boolean;
+  };
+}
+
+export interface VFXProjectileClipPayload {
+  rendererType: 'PROJECTILE';
+  shape: 'SPHERE' | 'DIAMOND' | 'ARROW' | 'STAR' | 'RING';
+  shaderMode: VFXShaderMode;
+  colorCore: string;
+  colorRim: string;
+  coreBrightness: number;
+  scale: number;
+  spin: number;
+  path: VFXTrajectoryPath;
+  reverse: boolean;
+  arcHeight: number;
+  salvo?: {
+    count: number;
+    duration: number;
+    rhythm: SalvoRhythmCurve;
+    spreadAngle: number;
+    spreadRadius: number;
+  };
+}
+
 export type VFXClipPayload =
   | { type: 'MESH'; data: VFXMeshClipPayload }
+  | { type: 'SLASH'; data: VFXSlashClipPayload }
+  | { type: 'PROJECTILE'; data: VFXProjectileClipPayload }
   | { type: 'PARTICLE'; data: VFXParticleClipPayload }
   | { type: 'IMPACT'; data: VFXImpactConfig }
   | { type: 'SCREEN_FX'; data: VFXScreenFxClipPayload }
@@ -307,33 +364,96 @@ export interface SkillVfxBinding {
  */
 export function migrateLegacyPreset(preset: VFXPreset): VFXSequence {
   const dur = Math.max(0.05, preset.duration || 0.35);
+  const rendererType = preset.rendererType || (
+    preset.trajectory === 'MELEE_SWEEP' || preset.shaderMode === 'SLASH_BLADE'
+      ? 'SLASH'
+      : (preset.trajectory === 'HORIZONTAL' || preset.trajectory === 'PARABOLA_ARC' || preset.spatialMode === 'TRAJECTORY')
+        ? 'PROJECTILE'
+        : 'MESH'
+  );
+
+  let mainPayload: VFXClipPayload;
+  if (rendererType === 'SLASH') {
+    const isWhirlwind = preset.slashShape === 'WHIRLWIND';
+    mainPayload = {
+      type: 'SLASH',
+      data: {
+        rendererType: 'SLASH',
+        shaderMode: preset.shaderMode,
+        trajectory: preset.trajectory,
+        colorCore: preset.colorCore || '#ffffff',
+        colorRim: preset.colorRim || '#f59e0b',
+        scale: preset.scale ?? 1.0,
+        angle: preset.slashAngle !== undefined ? preset.slashAngle : -45,
+        arcSpan: isWhirlwind ? 360 : (preset.slashArcSpan || 135),
+        aspect: preset.slashAspect || 1.0,
+        bladeWidth: preset.slashBladeWidth || (isWhirlwind ? 18 : 10),
+        radius: preset.slashRadius || (isWhirlwind ? 85 : 65),
+        reverse: !!preset.slashReverse || !!preset.reverse,
+        shape: preset.slashShape || (isWhirlwind ? 'WHIRLWIND' : 'CRESCENT'),
+        salvo: preset.salvoCount && preset.salvoCount > 1 ? {
+          count: preset.salvoCount,
+          rhythm: preset.salvoRhythmCurve || 'LINEAR',
+          angleJitter: preset.slashAngleJitter || 0,
+          alternating: !!preset.slashAlternating
+        } : undefined
+      }
+    };
+  } else if (rendererType === 'PROJECTILE') {
+    mainPayload = {
+      type: 'PROJECTILE',
+      data: {
+        rendererType: 'PROJECTILE',
+        shape: preset.coreMeshShape || 'SPHERE',
+        shaderMode: preset.shaderMode || 'VOLUMETRIC_FIRE',
+        colorCore: preset.colorCore || '#ffffff',
+        colorRim: preset.colorRim || '#38bdf8',
+        coreBrightness: preset.coreBrightness ?? 1.0,
+        scale: preset.scale ?? 1.0,
+        spin: preset.spin || 0,
+        path: preset.trajectoryPath || 'A_TO_B',
+        reverse: !!preset.reverse,
+        arcHeight: preset.arcHeight || 0,
+        salvo: preset.salvoCount && preset.salvoCount > 1 ? {
+          count: preset.salvoCount,
+          duration: preset.salvoDuration || 0.35,
+          rhythm: preset.salvoRhythmCurve || 'LINEAR',
+          spreadAngle: preset.salvoSpreadAngle || 0,
+          spreadRadius: preset.salvoSpreadRadius || 0
+        } : undefined
+      }
+    };
+  } else {
+    mainPayload = {
+      type: 'MESH',
+      data: {
+        trajectory: preset.trajectory,
+        shaderMode: preset.shaderMode,
+        colorCore: preset.colorCore,
+        colorRim: preset.colorRim,
+        scale: preset.scale,
+        spikeWidth: preset.spikeWidth,
+        spikeHeight: preset.spikeHeight,
+        spikeAngle: preset.spikeAngle,
+        spikes: preset.spikes,
+        spikeMaterialMode: preset.spikeMaterialMode,
+        reverse: preset.reverse,
+        spatialMode: preset.spatialMode
+      }
+    };
+  }
+
   const tracks: VFXTrack[] = [
     {
       id: 'trk_main',
       name: '主特效軌 (Main Track)',
-      type: 'MESH',
+      type: rendererType === 'SLASH' ? 'MESH' : (rendererType === 'PROJECTILE' ? 'MESH' : 'MESH'),
       enabled: true,
       clips: [{
         id: `clip_main_${preset.id}`,
         startTime: preset.mainDelay || 0,
         duration: preset.mainDuration || dur,
-        payload: {
-          type: 'MESH',
-          data: {
-            trajectory: preset.trajectory,
-            shaderMode: preset.shaderMode,
-            colorCore: preset.colorCore,
-            colorRim: preset.colorRim,
-            scale: preset.scale,
-            spikeWidth: preset.spikeWidth,
-            spikeHeight: preset.spikeHeight,
-            spikeAngle: preset.spikeAngle,
-            spikes: preset.spikes,
-            spikeMaterialMode: preset.spikeMaterialMode,
-            reverse: preset.reverse,
-            spatialMode: preset.spatialMode
-          }
-        }
+        payload: mainPayload
       }]
     },
     {
@@ -441,6 +561,8 @@ export function migrateLegacyPreset(preset: VFXPreset): VFXSequence {
  */
 export function sequenceToLegacyPreset(seq: VFXSequence): VFXPreset {
   let meshData: VFXMeshClipPayload = {};
+  let slashData: Partial<VFXSlashClipPayload> = {};
+  let projData: Partial<VFXProjectileClipPayload> = {};
   let partData: VFXParticleClipPayload = {};
   let impactData: VFXImpactConfig = {
     hitStopTime: 30,
@@ -456,7 +578,11 @@ export function sequenceToLegacyPreset(seq: VFXSequence): VFXPreset {
 
   for (const track of seq.tracks) {
     for (const clip of track.clips) {
-      if (clip.payload.type === 'MESH') {
+      if (clip.payload.type === 'SLASH') {
+        slashData = { ...slashData, ...clip.payload.data };
+      } else if (clip.payload.type === 'PROJECTILE') {
+        projData = { ...projData, ...clip.payload.data };
+      } else if (clip.payload.type === 'MESH') {
         meshData = { ...meshData, ...clip.payload.data };
       } else if (clip.payload.type === 'PARTICLE') {
         partData = { ...partData, ...clip.payload.data };
@@ -471,18 +597,22 @@ export function sequenceToLegacyPreset(seq: VFXSequence): VFXPreset {
     }
   }
 
+  const isSlash = !!slashData.rendererType;
+  const isProj = !!projData.rendererType;
+
   return {
     id: seq.id,
     name: seq.name,
     category: seq.category,
     description: seq.description,
     duration: seq.duration,
-    trajectory: meshData.trajectory || 'MELEE_SWEEP',
-    shaderMode: meshData.shaderMode || 'SLASH_BLADE',
-    colorCore: meshData.colorCore || '#ffffff',
-    colorRim: meshData.colorRim || '#f59e0b',
-    scale: meshData.scale ?? 1.0,
-    spin: 0,
+    rendererType: isSlash ? 'SLASH' : (isProj ? 'PROJECTILE' : undefined),
+    trajectory: slashData.trajectory || (isSlash ? 'MELEE_SWEEP' : (isProj ? 'HORIZONTAL' : (meshData.trajectory || 'MELEE_SWEEP'))),
+    shaderMode: slashData.shaderMode || (isSlash ? 'SLASH_BLADE' : (isProj ? (projData.shaderMode || 'VOLUMETRIC_FIRE') : (meshData.shaderMode || 'SLASH_BLADE'))),
+    colorCore: slashData.colorCore || projData.colorCore || meshData.colorCore || '#ffffff',
+    colorRim: slashData.colorRim || projData.colorRim || meshData.colorRim || '#f59e0b',
+    scale: slashData.scale ?? projData.scale ?? meshData.scale ?? 1.0,
+    spin: projData.spin ?? 0,
     fresnel: 1.0,
     trailCount: partData.trailCount ?? 10,
     trailSize: partData.trailSize ?? 4,
@@ -495,8 +625,26 @@ export function sequenceToLegacyPreset(seq: VFXSequence): VFXPreset {
     spikeWidth: meshData.spikeWidth,
     spikeAngle: meshData.spikeAngle,
     spikeMaterialMode: meshData.spikeMaterialMode,
-    reverse: meshData.reverse,
-    spatialMode: meshData.spatialMode,
+    reverse: isSlash ? slashData.reverse : (isProj ? projData.reverse : meshData.reverse),
+    spatialMode: isSlash ? 'AT_TARGET' : (isProj ? 'TRAJECTORY' : meshData.spatialMode),
+    trajectoryPath: projData.path,
+    coreBrightness: projData.coreBrightness,
+    coreMeshShape: projData.shape,
+    arcHeight: projData.arcHeight,
+    slashShape: slashData.shape,
+    slashAngle: slashData.angle,
+    slashArcSpan: slashData.arcSpan,
+    slashAspect: slashData.aspect,
+    slashBladeWidth: slashData.bladeWidth,
+    slashRadius: slashData.radius,
+    slashReverse: slashData.reverse,
+    slashAngleJitter: slashData.salvo?.angleJitter,
+    slashAlternating: slashData.salvo?.alternating,
+    salvoCount: slashData.salvo?.count ?? projData.salvo?.count ?? 1,
+    salvoDuration: projData.salvo?.duration,
+    salvoRhythmCurve: slashData.salvo?.rhythm ?? projData.salvo?.rhythm ?? 'LINEAR',
+    salvoSpreadAngle: projData.salvo?.spreadAngle,
+    salvoSpreadRadius: projData.salvo?.spreadRadius,
     impactPresentationMode: seq.impactPresentationMode,
     impact: impactData,
     impactCues: seq.impactCues,
@@ -528,11 +676,13 @@ export type VFXTrajectoryPath =
   | 'DIAGONAL_SKY_TO_B';
 
 /**
- * 🌐 完整的時空發生模式 (包含 2 種原地類 + 5 種位移彈道類)
+ * 🌐 完整的時空發生模式 (包含 3 大核心模式與相容擴展)
+ * 遵循文件 §5.6: 'AT_CASTER' | 'AT_TARGET' | 'TRAJECTORY'
  */
 export type VFXSpatialMode =
   | 'AT_CASTER'
   | 'AT_TARGET'
+  | 'TRAJECTORY'
   | 'A_TO_B'
   | 'A_TO_VERTICAL_SKY'
   | 'VERTICAL_SKY_TO_B'
