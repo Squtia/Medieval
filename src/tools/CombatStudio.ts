@@ -4369,7 +4369,6 @@ class CombatStudioController {
     // 非 CombatAction 之單一事件（例如：回合提示、波次開始、無 actionId 之獨立事件）
     const currentEv = currentItem;
     this.appendLogEntry(currentEv);
-    this.currentEventIndex++;
 
     if (currentEv.type === CombatEventType.WAVE_START && currentEv.wave) {
       this.renderArenaWave(currentEv.wave);

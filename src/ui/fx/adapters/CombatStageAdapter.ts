@@ -189,14 +189,16 @@ export class CombatStageAdapter {
       onPresentImpact: (item: CombatImpactPresentation, cue?: VFXImpactCue) => {
         const targetEl = this.findCardElement(item.targetId) || defaultTargetEl;
         const dummyEv: CombatEvent = {
-          type: item.kind === 'HEAL' ? CombatEventType.HEAL : (item.isCrit ? CombatEventType.CRIT : CombatEventType.HIT),
+          type: item.kind === 'HEAL' ? CombatEventType.HEAL : (item.kind === 'SHIELD_DAMAGE' ? CombatEventType.SHIELD_DAMAGE : (item.kind === 'SHIELD_BREAK' ? CombatEventType.SHIELD_BREAK : (item.kind === 'STATUS' ? CombatEventType.STATUS_APPLY : (item.isCrit ? CombatEventType.CRIT : CombatEventType.HIT)))),
           actorId: action.actorId,
           targetId: item.targetId || mainTargetId,
-          damage: item.amount,
+          damage: item.kind === 'DAMAGE' ? item.amount : undefined,
           healAmount: item.kind === 'HEAL' ? item.amount : undefined,
+          shieldDamage: (item.kind === 'SHIELD_DAMAGE' || item.kind === 'SHIELD_BREAK') ? item.amount : item.shieldDamage,
           targetHp: item.targetHp,
           targetMaxHp: item.targetMaxHp,
-          text: ''
+          text: item.text || '',
+          skillName: item.skillName
         };
 
         const preset = VFXPresetRepository.getInstance().getPreset(finalAction.vfxId || '');
@@ -342,7 +344,7 @@ export class CombatStageAdapter {
       const statusEl = document.createElement('div');
       statusEl.className = 'floating-dmg floating-status';
       statusEl.style.color = '#a855f7';
-      statusEl.textContent = ev.text ? `✨ ${ev.text}` : '✨ 狀態觸發';
+      statusEl.textContent = presentationItem?.text || ev.text || (presentationItem?.statusType ? `✨ ${presentationItem.statusType}` : '✨ 狀態觸發');
       targetEl.appendChild(statusEl);
       const timer = setTimeout(() => {
         if (statusEl.parentNode) statusEl.remove();

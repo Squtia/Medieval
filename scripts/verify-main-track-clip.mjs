@@ -68,12 +68,15 @@ async function run() {
       consoleErrors.push(`[PageUncaught] ${err.message}\n${err.stack}`);
     });
 
+    await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+
     await page.goto(TEST_URL);
     console.log(`✅ 成功載入頁面: ${TEST_URL}`);
 
     await page.waitForSelector('#timeline-mount-point', { timeout: 10000 });
     await page.waitForSelector('.tl-main-clip', { timeout: 10000 });
     await page.waitForSelector('.tl-main-resize-handle', { timeout: 10000 });
+    await page.evaluate(() => { const m = document.getElementById('benchmark-marker'); if (m) m.style.display = 'flex'; });
     await page.waitForSelector('#benchmark-marker', { timeout: 10000 });
 
     // 1. 檢驗主軌實體 Clip 初始渲染

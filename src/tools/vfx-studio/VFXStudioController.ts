@@ -99,6 +99,7 @@ export class VFXStudioController {
     this.library = new VFXLibrary(libraryMount);
 
     this.bindTopControls();
+    this.bindWorkspaceTabs();
     this.bindKeyboard();
     this.startQualityBudgetMonitor();
 
@@ -162,7 +163,7 @@ export class VFXStudioController {
       marker.style.background = 'radial-gradient(circle, #38bdf8 0%, #0284c7 60%, rgba(2, 132, 199, 0.2) 100%)';
       marker.style.border = '2px solid #ffffff';
       marker.style.boxShadow = '0 0 16px rgba(56, 189, 248, 0.9), 0 0 30px rgba(56, 189, 248, 0.5)';
-      marker.style.display = 'none'; // 隱藏搶眼藍球，避免遮擋真實 3D 特效
+      marker.style.display = 'none'; // 隱藏除錯藍球，避免遮擋真實特效
       marker.style.flexDirection = 'column';
       marker.style.alignItems = 'center';
       marker.style.justifyContent = 'center';
@@ -175,7 +176,7 @@ export class VFXStudioController {
       `;
       overlay.appendChild(marker);
     }
-    marker.style.display = 'none'; // 強制隱藏搶眼藍球，避免遮擋真實 3D 特效
+    marker.style.display = 'none';
     this.benchmarkMarker = marker;
   }
 
@@ -262,6 +263,30 @@ export class VFXStudioController {
       btnPlayTop.style.borderColor = isPlaying ? '#eab308' : '#30363d';
       btnPlayTop.style.color = isPlaying ? '#eab308' : '#c9d1d9';
     }
+  }
+
+  /**
+   * 📱 依據規格 §10 實裝：綁定 <= 900px 響應式工作區 Tab 切換
+   * 絕不銷毀 DOM，不產生第二套 Editor State，切換後自動保持選擇狀態與更新舞台尺寸
+   */
+  private bindWorkspaceTabs(): void {
+    const tabsContainer = document.getElementById('vfx-workspace-tabs');
+    if (!tabsContainer) return;
+
+    const tabBtns = tabsContainer.querySelectorAll<HTMLButtonElement>('.workspace-tab-btn');
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.getAttribute('data-view') || 'stage';
+        document.body.setAttribute('data-active-workspace', view);
+
+        tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+
+        if (view === 'stage') {
+          this.studioAdapter.resize();
+          this.stage.renderGuides();
+        }
+      });
+    });
   }
 
   private bindTopControls(): void {

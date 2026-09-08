@@ -1,13 +1,67 @@
 import { chromium } from 'playwright';
-import path from 'path';
+import { spawn } from 'child_process';
+import http from 'http';
+import { fileURLToPath } from 'url';
+
+const PORT = 5173;
+const HOST = '127.0.0.1';
+const TEST_URL = `http://${HOST}:${PORT}/Medieval/tools/vfx-studio.html`;
+
+async function isServerRunning() {
+  return new Promise((resolve) => {
+    const req = http.get(TEST_URL, (res) => {
+      resolve(res.statusCode === 200 || res.statusCode === 304);
+    });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
+async function waitForServer(timeoutMs = 15000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await isServerRunning()) return true;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
 
 async function verifySkillVfxPicker() {
   console.log('🚀 Starting Skill VFX Picker Modal E2E Verification...');
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
-  await page.goto('http://localhost:5174/Medieval/tools/vfx-studio.html');
-  await page.waitForSelector('#lib-preset-select');
+  let serverProcess = null;
+  let browser = null;
+
+  try {
+    const alreadyRunning = await isServerRunning();
+    if (!alreadyRunning) {
+      console.log('Starting vite dev server...');
+      const viteBin = fileURLToPath(new URL('../node_modules/vite/bin/vite.js', import.meta.url));
+      serverProcess = spawn(process.execPath, [viteBin, '--host', HOST, '--port', PORT.toString()], {
+        stdio: 'pipe',
+        shell: false
+      });
+      const ready = await waitForServer();
+      if (!ready) {
+        console.error('Failed to start vite server');
+        if (serverProcess) serverProcess.kill();
+        process.exit(1);
+      }
+    }
+
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+
+    await page.route(/(fonts\.googleapis\.com|fonts\.gstatic\.com)/, route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/css',
+        body: '/* mock */'
+      });
+    });
+
+    await page.goto(TEST_URL, { waitUntil: 'networkidle' });
+    await page.waitForSelector('#lib-preset-select');
 
   // 切換當前特效為 VFX_FIREBALL 以測試跨特效覆蓋綁定
   await page.selectOption('#lib-preset-select', 'VFX_FIREBALL');
@@ -124,7 +178,16 @@ async function verifySkillVfxPicker() {
   });
   console.log('🚪 Modal 成功關閉:', modalClosed);
 
-  await browser.close();
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+    if (serverProcess) {
+      serverProcess.kill();
+      await Promise.race([
+        new Promise(resolve => serverProcess.once('exit', resolve)),
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
+    }
+  }
   console.log('🎉 All E2E Verification steps PASSED with 100% success!');
 }
 

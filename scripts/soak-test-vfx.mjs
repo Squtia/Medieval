@@ -60,8 +60,10 @@ async function run() {
       }
     });
 
+    await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+
     console.log(`Navigating to ${TEST_URL}...`);
-    await page.goto(TEST_URL, { waitUntil: 'networkidle', timeout: 30000 });
+    await page.goto(TEST_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await page.waitForSelector('#btn-play', { timeout: 10000 });
     await page.waitForFunction(() => !!window.__vfxStudioController, { timeout: 10000 });
 

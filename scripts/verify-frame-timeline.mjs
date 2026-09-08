@@ -69,6 +69,8 @@ async function run() {
       consoleErrors.push(`[PageUncaught] ${err.message}\n${err.stack}`);
     });
 
+    await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+
     let targetUrl = TEST_URL;
     let resp = await page.goto(targetUrl).catch(() => null);
     if (!resp || resp.status() >= 400) {
@@ -78,12 +80,24 @@ async function run() {
     console.log(`✅ 成功載入頁面: ${targetUrl}`);
 
     await page.waitForSelector('#timeline-mount-point', { timeout: 10000 });
+    await page.evaluate(() => { const m = document.getElementById('benchmark-marker'); if (m) m.style.display = 'flex'; });
     await page.waitForSelector('#benchmark-marker', { timeout: 10000 });
 
     // 選取水平飛行彈道以驗證 A➔B 逐格位移
+    const spatialSelect = await page.$('#param-spatial-mode');
+    if (spatialSelect && await spatialSelect.isVisible()) {
+      await spatialSelect.selectOption('TRAJECTORY');
+    }
+    const pathSelect = await page.$('#param-trajectory-path');
+    if (pathSelect && await pathSelect.isVisible()) {
+      await pathSelect.selectOption('A_TO_B');
+    }
     const trajectorySelect = await page.$('#param-trajectory');
     if (trajectorySelect) {
-      await trajectorySelect.selectOption('HORIZONTAL');
+      await page.evaluate((el) => {
+        el.value = 'HORIZONTAL';
+        el.dispatchEvent(new Event('change'));
+      }, trajectorySelect);
       await page.waitForTimeout(100);
     }
 

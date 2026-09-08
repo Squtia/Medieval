@@ -52,7 +52,7 @@ export class TimelineView {
       rulerTicks.push({ time: duration, pct: 100 });
     }
 
-    const anchor = getTrajectorySpatialAnchor(preset.trajectory);
+    const anchor = getTrajectorySpatialAnchor(preset.spatialMode || preset.trajectoryPath || preset.trajectory);
     const anchorLabel = anchor === 'AT_CASTER' ? '🏠 自身(A)' : anchor === 'TRAJECTORY' ? '🚀 彈道(A➔B)' : '💥 目標(B)';
     const mainDelay = Math.max(0, preset.mainDelay || 0);
     const mainDuration = Math.max(0.05, Math.min(duration - mainDelay, preset.mainDuration !== undefined ? preset.mainDuration : (duration - mainDelay)));

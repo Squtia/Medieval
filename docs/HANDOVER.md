@@ -1,3 +1,19 @@
+- **[Bugfix/VFXStudio & CombatStudio] 特效工坊四大 UI 死鎖與戰鬥工坊跳幀缺陷修復交接（2026-09-08）**：
+  - **核心交接重點**：
+    1. **戰鬥工坊事件跳幀徹底根除**：
+       - `src/tools/CombatStudio.ts`：移除 `stepPlayback()` 中多餘的 `this.currentEventIndex++`，消除單一事件（MP 回復、陣亡、回合結算）後緊隨之傷害或波次切換事件被跳過的重大缺陷。修復後哥布林/史萊姆不會憑空倒下，第二波次正常推進且頭像/棋盤完全同步。
+    2. **特效工坊廢棄幽靈卡片清除**：
+       - `tools/vfx-studio.html`：徹底刪除左側版面廢棄幽靈卡片「🔮 複合多圖層積木 (Sequencer)」及其未綁定按鈕 `#btn-add-layer`。
+    3. **彈幕調整卡片解除收合死鎖**：
+       - `src/tools/vfx-studio/VFXInspector.ts`：移除 `&& isSalvo` 死鎖條件。投射物幾何特效隨時可展開【🚀 彈幕發射與節奏曲線】卡片，自由微調連射彈數、節奏曲線、散射角度與半徑。
+    4. **Cue 點檢查器常駐化與互斥隱藏解除**：
+       - `tools/vfx-studio.html` & `src/tools/vfx-studio/VFXInspector.ts`：Cue 卡片改為常駐顯示（預設展開），頂部新增 `#cue-selector-tabs` 標籤切換列與 `➕ 加 Cue` 快捷按鈕。
+       - 移除 `!isCueSelected` 對打擊感、動作、幾何卡片的互斥隱藏，修正 `getSelectionCapabilities` 使選中 Cue 點時施法動作與受擊衝擊卡片維持可見可調，徹底解決未點中菱形卡片消失、點中菱形其他面板全滅的死鎖。
+    5. **驗收與品質保證**：
+       - 依據「真實使用者視角審查原則」，編寫專屬 E2E 腳本（`scratch/verify_user_complaints.mjs`），在 1440x900 真實瀏覽器環境下驗收通過。
+       - `npm run typecheck` 0 錯誤。
+       - `npm test` 62 個測試檔案、376 項單元測試 100% PASS。
+
 - **[Refactor/CombatVFX/Phase5] 戰鬥 VFX 管線重整 Phase 5 完整驗收、回歸防線修復與 DoD 全面落實完工交接（2026-09-08）**：
   - **核心交接重點**：
     1. **消除假陽性與無頭驗證腳本修復 (§1.10 & §11)**：

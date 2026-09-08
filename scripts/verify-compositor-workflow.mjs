@@ -69,6 +69,8 @@ async function run() {
       consoleErrors.push(`[PageUncaught] ${err.message}\n${err.stack}`);
     });
 
+    await page.route(/fonts\.(googleapis|gstatic)\.com/, (route) => route.abort());
+
     let targetUrl = TEST_URL;
     let resp = await page.goto(targetUrl).catch(() => null);
     if (!resp || resp.status() >= 400) {

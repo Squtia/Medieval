@@ -175,6 +175,7 @@ export interface VFXLayer {
 
 export type VFXCueKind = 'IMPACT' | 'HEAL' | 'SHIELD' | 'STATUS' | 'VISUAL_ONLY';
 export type VFXCueTargetPolicy = 'PRIMARY_TARGET' | 'EACH_TARGET' | 'CASTER';
+export type VFXTargetPolicy = VFXCueTargetPolicy;
 
 export interface VFXImpactCue {
   cueId: string;
@@ -697,6 +698,7 @@ export function getTrajectorySpatialAnchor(trajectory?: VFXTrajectory | string):
     case 'SHOUT_WAVE':
     case 'AT_CASTER':
       return 'AT_CASTER';
+    case 'TRAJECTORY':
     case 'HORIZONTAL':
     case 'PARABOLA_ARC':
     case 'COLUMN_PIERCE':

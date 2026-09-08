@@ -761,10 +761,18 @@ export class CombatFXEngine extends VFXPlayer {
     isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void),
     onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number) => void
   ): Promise<void> {
-    const startPos = this.screenToWorld(from);
-    let endPos = this.screenToWorld(to);
-    const preset = this.getPreset(vfxId) || this.getPreset('VFX_DEFAULT_SLASH') || (defaultVFXPresets[0] as unknown as VFXPreset);
-    return this.playPresetWorld(preset, startPos, endPos, isPlayerOrOnImpact, onImpactCallback);
+    const repo = VFXPresetRepository.getInstance();
+    const seq = repo.getSequence(vfxId) || repo.getSequence('VFX_DEFAULT_SLASH');
+    if (seq) {
+      return this.playSequence(seq, from, to, isPlayerOrOnImpact, onImpactCallback);
+    }
+    const preset = this.getPreset(vfxId) || this.getPreset('VFX_DEFAULT_SLASH');
+    if (preset) {
+      const startPos = this.screenToWorld(from);
+      const endPos = this.screenToWorld(to);
+      return this.playPresetWorld(preset, startPos, endPos, isPlayerOrOnImpact, onImpactCallback);
+    }
+    return Promise.resolve();
   }
 
   /**

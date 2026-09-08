@@ -97,12 +97,12 @@ describe('Phase 3 驗收: Inspector 與欄位收斂 (Capability-Driven & SSOT Du
       expect(caps.has('SLASH_GEOMETRY')).toBe(false);
     });
 
-    it('選中 Cue 時，僅具備 CUE 能力，絕對不外溢幾何與圖層控制項', () => {
+    it('選中 Cue 時，必須具備 CUE 能力，且保有打擊反饋與施法動作能力以利微調對齊', () => {
       const caps = getSelectionCapabilities(slashPreset, { type: 'CUE', cueId: 'cue_1' });
-      expect(caps.size).toBe(1);
       expect(caps.has('CUE')).toBe(true);
-      expect(caps.has('SLASH_GEOMETRY')).toBe(false);
-      expect(caps.has('TRANSFORM')).toBe(false);
+      expect(caps.has('IMPACT_FEEDBACK')).toBe(true);
+      expect(caps.has('CASTER_MOTION')).toBe(true);
+      expect(caps.has('SLASH_GEOMETRY')).toBe(true);
     });
 
     it('選中 Binding 時，僅具備 BINDING 能力', () => {

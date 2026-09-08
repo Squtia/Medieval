@@ -281,9 +281,9 @@ describe('⚡ VFX Studio 實質互動與全參數連通測試 (Fix 1 + Fix 2 核
       selectKind.dispatchEvent({ type: 'change' });
       expect(store.getPreset().impactCues?.[0].kind).toBe('VISUAL_ONLY');
 
-      // 4. 取消選取 (null)
+      // 4. 取消選取 (null) - 卡片依然保持展開（透過標籤頁常駐編輯，避免突然消失造成操作中斷）
       inspector.setSelectedCueIndex(null);
-      expect(cardEl.style.display).toBe('none');
+      expect(cardEl.style.display).toBe('block');
     });
   });
 });

@@ -3,6 +3,7 @@ import { CombatEvent, CombatEventType } from '../../models/Combat';
 import { mapImpactsToCues, CombatActionPlayer, CombatAction, collectCombatActions, isCombatAction } from '../../ui/fx/CombatActionPlayer';
 import { SkillVfxBindingRegistry } from './SkillVfxBindingRegistry';
 import { VFXImpactCue, VFXPreset } from '../../models/VFX';
+import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 import { CombatUIManager } from '../../ui/CombatUIManager';
 
 /**
@@ -33,8 +34,8 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
   // ─────────────────────────────────────────────────────────────
   // 缺陷 1：Cue targetPolicy 在多目標 AOE 與 CASTER 時未實際執行
   // ─────────────────────────────────────────────────────────────
-  describe('缺陷 1: mapImpactsToCues 之 targetPolicy 未真實執行', () => {
-    it('PRIMARY_TARGET 應只在主目標生效，不得在所有 AOE 目標重複生成', () => {
+  describe('缺陷 1: mapImpactsToCues 之 targetPolicy 未真實執行與目標分離 (規格 §5)', () => {
+    it('PRIMARY_TARGET 應只將 3D visualTarget 設為主目標，但副目標之真實傷害 presentation 必須完整保留且傷害守恆', () => {
       const aoeEvents: CombatEvent[] = [
         {
           type: CombatEventType.HIT,
@@ -64,16 +65,27 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
         }
       ];
 
-      // 依規格 3.2：PRIMARY_TARGET 不得複製到所有目標，若未給 primaryTargetId 預設取第一個目標
+      // 依規格 §5：PRIMARY_TARGET 只限制 3D 視覺位置，但 logical presentations 同時包含 enemy_main 與 enemy_sub
       const presentations = mapImpactsToCues(aoeEvents, cues, 'EXACT_IMPACTS');
 
-      // 預期：只應有 1 筆呈現給 enemy_main
-      const primaryItems = presentations.filter(p => p.cueId === 'CUE_PRIMARY_BURST');
-      expect(primaryItems.length).toBe(1);
-      expect(primaryItems[0].targetId).toBe('enemy_main');
+      // 1. 邏輯呈現必須同時包含主目標與副目標
+      const mainItems = presentations.filter(p => p.targetId === 'enemy_main' && p.kind === 'DAMAGE');
+      const subItems = presentations.filter(p => p.targetId === 'enemy_sub' && p.kind === 'DAMAGE');
+      expect(mainItems.length).toBe(1);
+      expect(subItems.length).toBe(1);
+
+      // 2. 3D 特效播放位置 (visualTargetId) 應指向 enemy_main
+      expect(mainItems[0].visualTargetId ?? mainItems[0].targetId).toBe('enemy_main');
+      expect(subItems[0].visualTargetId).toBe('enemy_main');
+
+      // 3. 傷害總值守恆：100 + 100 === 200
+      const totalPresentationDmg = presentations
+        .filter(p => p.kind === 'DAMAGE')
+        .reduce((sum, p) => sum + p.amount, 0);
+      expect(totalPresentationDmg).toBe(200);
     });
 
-    it('CASTER 應指向施法者 actorId，且不得直接挪用敵方目標傷害', () => {
+    it('CASTER 應將 3D 特效指向施法者 actorId，但敵方目標之真實傷害仍在原 target 呈現且不被挪用', () => {
       const events: CombatEvent[] = [
         {
           type: CombatEventType.HIT,
@@ -96,10 +108,13 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
 
       const presentations = mapImpactsToCues(events, cues, 'EXACT_IMPACTS');
 
-      const casterItems = presentations.filter(p => p.cueId === 'CUE_CASTER_AURA');
-      expect(casterItems.length).toBe(1);
-      // 依規格 3.2：CASTER 指向 actorId
-      expect(casterItems[0].targetId).toBe('hero_paladin');
+      // 敵方目標真實 damage 仍歸 boss_dragon
+      const enemyDmgItems = presentations.filter(p => p.targetId === 'boss_dragon' && p.kind === 'DAMAGE');
+      expect(enemyDmgItems.length).toBe(1);
+      expect(enemyDmgItems[0].amount).toBe(500);
+
+      // 3D 視覺位置應指向施法者 hero_paladin
+      expect(enemyDmgItems[0].visualTargetId).toBe('hero_paladin');
     });
   });
 
@@ -325,6 +340,341 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
         expect(collected[1].actionId).toBe('act_studio_1');
         expect(collected[1].events.length).toBe(2);
       }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 缺陷 5：多段真實 Impact 少 Cue 時，後段呈現被吞 (規格 §3)
+  // ─────────────────────────────────────────────────────────────
+  describe('缺陷 5: 多段真實 Impact 少 Cue 時 fallback 派發 (規格 §3)', () => {
+    it('2 impacts / 1 cue: 兩筆真實 impact 必須依序呈現且各恰好一次', async () => {
+      const action: CombatAction = {
+        actionId: 'act_dual_hit',
+        actorId: 'attacker',
+        skillId: 'SKILL_DOUBLE_SLASH',
+        vfxId: 'VFX_SINGLE_CUE', // 僅有 1 個 Cue
+        events: [
+          {
+            type: CombatEventType.HIT,
+            actionId: 'act_dual_hit',
+            actorId: 'attacker',
+            targetId: 'defender',
+            damage: 60,
+            text: '第 1 擊'
+          },
+          {
+            type: CombatEventType.HIT,
+            actionId: 'act_dual_hit',
+            actorId: 'attacker',
+            targetId: 'defender',
+            damage: 80,
+            text: '第 2 擊'
+          }
+        ]
+      };
+
+      const captured: any[] = [];
+      const player = new CombatActionPlayer();
+
+      // 模擬 preset: 只有 1 個 Cue
+      const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
+      const mockPreset: VFXPreset = {
+        ...basePreset,
+        id: 'VFX_SINGLE_CUE',
+        name: 'Single Cue Slash',
+        duration: 0.3,
+        impactCues: [
+          { cueId: 'CUE_1', time: 0.1, kind: 'IMPACT', weight: 1.0, isPrimary: true }
+        ]
+      };
+      (player as any).presetRepository = {
+        getPreset: () => mockPreset,
+        getSequence: () => null
+      };
+
+      await player.playAction(action, {
+        fromPoint: { x: 0, y: 0 },
+        toPoint: { x: 100, y: 100 },
+        skipVfx: false,
+        onPresentImpact: (item) => {
+          captured.push(item);
+        }
+      });
+
+      // 斷言：2 個 impact 都必須被派發，總和 140
+      expect(captured.length).toBe(2);
+      expect(captured[0].amount).toBe(60);
+      expect(captured[1].amount).toBe(80);
+      expect(captured[0].targetId).toBe('defender');
+      expect(captured[1].targetId).toBe('defender');
+    });
+
+    it('成功播放、Skip、WebGL failure 三條路徑之呈現集合必須 100% 一致', async () => {
+      const events: CombatEvent[] = [
+        {
+          type: CombatEventType.HIT,
+          actionId: 'act_compare',
+          actorId: 'hero',
+          targetId: 'monster',
+          damage: 100,
+          text: '斬'
+        },
+        {
+          type: CombatEventType.SHIELD_DAMAGE,
+          actionId: 'act_compare',
+          actorId: 'hero',
+          targetId: 'monster',
+          shieldDamage: 50,
+          text: '護盾吸收'
+        }
+      ];
+
+      const action: CombatAction = {
+        actionId: 'act_compare',
+        actorId: 'hero',
+        events
+      };
+
+      const player = new CombatActionPlayer();
+      const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
+      const mockPreset: VFXPreset = {
+        ...basePreset,
+        id: 'VFX_TEST',
+        name: 'Test',
+        duration: 0.2,
+        impactCues: [
+          { cueId: 'CUE_1', time: 0.1, kind: 'IMPACT', weight: 1.0, isPrimary: true }
+        ]
+      };
+      (player as any).presetRepository = {
+        getPreset: () => mockPreset,
+        getSequence: () => null
+      };
+
+      // 1. Skip 路徑
+      const skipCaptured: any[] = [];
+      await player.playAction(action, {
+        fromPoint: { x: 0, y: 0 },
+        toPoint: { x: 100, y: 100 },
+        skipVfx: true,
+        onPresentImpact: item => skipCaptured.push(item)
+      });
+
+      // 2. 正常播放路徑
+      const normalCaptured: any[] = [];
+      await player.playAction(action, {
+        fromPoint: { x: 0, y: 0 },
+        toPoint: { x: 100, y: 100 },
+        skipVfx: false,
+        onPresentImpact: item => normalCaptured.push(item)
+      });
+
+      // 3. WebGL failure 路徑
+      const failureCaptured: any[] = [];
+      (player as any).fxEngine = {
+        playPresetConfig: () => Promise.reject(new Error('WebGL context lost simulation'))
+      };
+      await player.playAction(action, {
+        fromPoint: { x: 0, y: 0 },
+        toPoint: { x: 100, y: 100 },
+        skipVfx: false,
+        onPresentImpact: item => failureCaptured.push(item)
+      });
+
+      // 斷言：三條路徑獲得的活躍 impact 數量與金額完全一致
+      expect(skipCaptured.length).toBe(normalCaptured.length);
+      expect(failureCaptured.length).toBe(normalCaptured.length);
+      expect(normalCaptured.some(i => i.amount === 50 && (i.kind === 'SHIELD_DAMAGE' || i.shieldDamage === 50))).toBe(true);
+      expect(skipCaptured.some(i => i.amount === 50 && (i.kind === 'SHIELD_DAMAGE' || i.shieldDamage === 50))).toBe(true);
+      expect(failureCaptured.some(i => i.amount === 50 && (i.kind === 'SHIELD_DAMAGE' || i.shieldDamage === 50))).toBe(true);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 缺陷 6：護盾事件數值解析與破盾呈現 (規格 §4)
+  // ─────────────────────────────────────────────────────────────
+  describe('缺陷 6: 護盾事件數值解析與破盾呈現 (規格 §4)', () => {
+    it('SHIELD_DAMAGE 應正確讀取 shieldDamage，且 amount 不得為 0 或 -0', () => {
+      const shieldEv: CombatEvent = {
+        type: CombatEventType.SHIELD_DAMAGE,
+        actionId: 'act_shield',
+        actorId: 'adv_1',
+        targetId: 'enemy_shielded',
+        shieldDamage: 75,
+        damage: 0,
+        text: '部隊護盾吸收了 75 點傷害'
+      };
+
+      const presentations = mapImpactsToCues([shieldEv], [{ cueId: 'CUE_1', time: 0.1, kind: 'SHIELD' }]);
+      expect(presentations.length).toBe(1);
+      expect(presentations[0].amount).toBe(75);
+      expect(presentations[0].kind).toBe('SHIELD_DAMAGE');
+      expect(Object.is(presentations[0].amount, -0)).toBe(false);
+    });
+
+    it('SHIELD_BREAK 應能同時表達破盾提示與吸收數值', () => {
+      const breakEv: CombatEvent = {
+        type: CombatEventType.SHIELD_BREAK,
+        actionId: 'act_shield_break',
+        actorId: 'adv_1',
+        targetId: 'enemy_broken',
+        shieldDamage: 120,
+        damage: 0,
+        text: '部隊護盾破碎！'
+      };
+
+      const presentations = mapImpactsToCues([breakEv], [{ cueId: 'CUE_1', time: 0.1, kind: 'SHIELD' }]);
+      expect(presentations.length).toBe(1);
+      expect(presentations[0].amount).toBe(120);
+      expect(presentations[0].kind).toBe('SHIELD_BREAK');
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 缺陷 7：Final state reconciliation 多欄位快照遺失 (規格 §6)
+  // ─────────────────────────────────────────────────────────────
+  describe('缺陷 7: Final state reconciliation 多欄位快照遺失 (規格 §6)', () => {
+    it('HIT 後接 STATUS_APPLY，仍必須正確校準 HIT 的 HP 數值', () => {
+      const oldDoc = (globalThis as any).document;
+      try {
+        const hpTxt = { textContent: '300/300' };
+        const hpFill = { style: { width: '100%' }, classList: { add: vi.fn(), remove: vi.fn() } };
+        const cardEl = { classList: { add: vi.fn(), remove: vi.fn() }, querySelectorAll: () => [] };
+
+        (globalThis as any).document = {
+          getElementById: (id: string) => {
+            if (id === 'hp-txt-target_1') return hpTxt;
+            if (id === 'hp-fill-target_1') return hpFill;
+            if (id === 'combat-p-target_1') return cardEl;
+            return null;
+          }
+        };
+
+        const events: CombatEvent[] = [
+          {
+            type: CombatEventType.HIT,
+            actionId: 'act_1',
+            actorId: 'hero',
+            targetId: 'target_1',
+            damage: 100,
+            targetHp: 80,
+            targetMaxHp: 300,
+            text: '重擊'
+          },
+          {
+            type: CombatEventType.STATUS_APPLY,
+            actionId: 'act_1',
+            actorId: 'hero',
+            targetId: 'target_1',
+            text: '中毒狀態觸發'
+          }
+        ];
+
+        CombatUIManager.reconcileFinalActionState(events);
+        // 若只取最後一筆事件，HP 快照將遺失；期望 HP 仍正確校準為 80/300
+        expect(hpTxt.textContent).toBe('80/300');
+      } finally {
+        (globalThis as any).document = oldDoc;
+      }
+    });
+
+    it('MP 消耗後接 HIT，仍必須正確校準 MP 數值', () => {
+      const oldDoc = (globalThis as any).document;
+      try {
+        const mpTxt = { textContent: '100/100' };
+        const mpFill = { style: { width: '100%' } };
+        const hpTxt = { textContent: '200/200' };
+        const hpFill = { style: { width: '100%' }, classList: { add: vi.fn(), remove: vi.fn() } };
+
+        (globalThis as any).document = {
+          getElementById: (id: string) => {
+            if (id === 'mp-txt-actor_1') return mpTxt;
+            if (id === 'mp-fill-actor_1') return mpFill;
+            if (id === 'hp-txt-actor_1') return hpTxt;
+            if (id === 'hp-fill-actor_1') return hpFill;
+            return null;
+          }
+        };
+
+        const events: CombatEvent[] = [
+          {
+            type: CombatEventType.SKILL_CAST,
+            actionId: 'act_cast',
+            actorId: 'actor_1',
+            targetId: 'actor_1',
+            targetMp: 45,
+            targetMaxMp: 100,
+            text: '施法消耗 MP'
+          },
+          {
+            type: CombatEventType.HIT,
+            actionId: 'act_cast',
+            actorId: 'actor_1',
+            targetId: 'actor_1',
+            damage: 20,
+            targetHp: 180,
+            targetMaxHp: 200,
+            text: '反噬受傷'
+          }
+        ];
+
+        CombatUIManager.reconcileFinalActionState(events);
+        expect(mpTxt.textContent).toBe('45/100');
+        expect(hpTxt.textContent).toBe('180/200');
+      } finally {
+        (globalThis as any).document = oldDoc;
+      }
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // 缺陷 8：Action collector 跨越 Barrier 聚合改變事件時序 (規格 §8)
+  // ─────────────────────────────────────────────────────────────
+  describe('缺陷 8: Action collector 跨越 Barrier 聚合改變事件時序 (規格 §8)', () => {
+    it('相同 actionId 不得跨越 DEATH 等 barrier 強行合併，且 flatten 後順序嚴格等於原始事件', () => {
+      const ev1: CombatEvent = {
+        type: CombatEventType.HIT,
+        actionId: 'act_combo',
+        actorId: 'attacker',
+        targetId: 'target_A',
+        damage: 50,
+        text: '第一段攻擊'
+      };
+      const evDeath: CombatEvent = {
+        type: CombatEventType.DEATH,
+        targetId: 'target_B',
+        text: '目標 B 倒下'
+      };
+      const ev2: CombatEvent = {
+        type: CombatEventType.HIT,
+        actionId: 'act_combo',
+        actorId: 'attacker',
+        targetId: 'target_A',
+        damage: 60,
+        text: '第二段追擊'
+      };
+
+      const originalEvents = [ev1, evDeath, ev2];
+      const collected = collectCombatActions(originalEvents);
+
+      // 依規格 §8：遇到 DEATH 必須作為 barrier 切分，不可把 ev2 合併回 ev1 的 Action
+      // 預期 collected 應為 [ActionSegment1(ev1), evDeath, ActionSegment2(ev2)]
+      expect(collected.length).toBe(3);
+
+      // 驗證 flatten 後物件 identity 順序與輸入完全一致
+      const flattened: CombatEvent[] = [];
+      collected.forEach(item => {
+        if (isCombatAction(item)) {
+          flattened.push(...item.events);
+        } else {
+          flattened.push(item);
+        }
+      });
+
+      expect(flattened.length).toBe(3);
+      expect(flattened[0]).toBe(ev1);
+      expect(flattened[1]).toBe(evDeath);
+      expect(flattened[2]).toBe(ev2);
     });
   });
 });

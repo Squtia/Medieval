@@ -10,6 +10,9 @@ class MockElement {
   public value: string = '';
   public textContent: string = '';
   public addEventListener(_type: string, _fn: Function): void {}
+  public querySelector(_sel: string): any { return new MockElement(); }
+  public querySelectorAll(_sel: string): any[] { return []; }
+  public appendChild(_child: any): void {}
   constructor(id: string = '') {
     this.id = id;
   }
@@ -85,7 +88,7 @@ describe('⏱️ VFXTimelineTrackControls (Phase 4 軌道專業控制項與 Phas
     expect(store.isTrackLocked('main')).toBe(false);
   });
 
-  it('5. 情境式 Inspector：選中 Cue 時應隱藏主軌施法動作與受擊衝擊卡片', () => {
+  it('5. 情境式 Inspector：選中 Cue 時應展開 Cue Inspector，且施法動作與受擊卡片保持可見互不遮蔽', () => {
     const slashCard = new MockElement();
     const salvoCard = new MockElement();
     const spikeCard = new MockElement();
@@ -94,6 +97,7 @@ describe('⏱️ VFXTimelineTrackControls (Phase 4 軌道專業控制項與 Phas
     const cueCard = new MockElement('card-cue-inspector');
 
     (globalThis as any).document = {
+      createElement: () => new MockElement(),
       getElementById: (id: string) => {
         if (id === 'card-cue-inspector') return cueCard;
         return new MockElement(id);
@@ -115,8 +119,9 @@ describe('⏱️ VFXTimelineTrackControls (Phase 4 軌道專業控制項與 Phas
 
     // 模擬選中 Cue 0
     inspector.setContextualTarget({ type: 'CUE', index: 0 });
-    expect(casterCard.style.display).toBe('none');
-    expect(impactCard.style.display).toBe('none');
+    expect(cueCard.style.display).toBe('block');
+    expect(casterCard.style.display).toBe('block');
+    expect(impactCard.style.display).toBe('block');
 
     // 模擬取消選取，切換回主軌
     inspector.setContextualTarget({ type: 'MAIN' });

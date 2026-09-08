@@ -662,35 +662,72 @@ export class CombatUIManager {
   public static reconcileFinalActionState(events: readonly CombatEvent[]): void {
     if (typeof document === 'undefined') return;
 
-    // 依目標整理最後狀態
-    const targetMap = new Map<string, CombatEvent>();
+    interface TargetFinalSnapshot {
+      hp?: { current: number; max: number };
+      mp?: { current: number; max: number };
+      shield?: { current: number; max?: number };
+      dead: boolean;
+    }
+
+    const snapshotMap = new Map<string, TargetFinalSnapshot>();
+    const getOrCreateSnapshot = (tid: string): TargetFinalSnapshot => {
+      let snap = snapshotMap.get(tid);
+      if (!snap) {
+        snap = { dead: false };
+        snapshotMap.set(tid, snap);
+      }
+      return snap;
+    };
+
     for (const ev of events) {
-      if (ev.targetId) {
-        targetMap.set(ev.targetId, ev);
+      const tid = ev.targetId || ev.actorId;
+      if (!tid) continue;
+
+      const snap = getOrCreateSnapshot(tid);
+
+      // 1. 有 targetHp/targetMaxHp 才更新 hp 快照
+      if (ev.targetHp !== undefined && ev.targetMaxHp !== undefined) {
+        snap.hp = { current: ev.targetHp, max: ev.targetMaxHp };
+        if (ev.targetHp <= 0) snap.dead = true;
+      }
+
+      // 2. 有 targetMp/targetMaxMp 才更新 mp 快照
+      if (ev.targetMp !== undefined && ev.targetMaxMp !== undefined) {
+        snap.mp = { current: ev.targetMp, max: ev.targetMaxMp };
+      }
+
+      // 3. 有 shieldRemaining 才更新 shield 快照
+      if (ev.shieldRemaining !== undefined) {
+        snap.shield = { current: ev.shieldRemaining };
+      }
+
+      // 4. 死亡事件直接標記 dead
+      if (ev.type === CombatEventType.DEATH) {
+        snap.dead = true;
       }
     }
 
-    targetMap.forEach((lastEv, targetId) => {
-      // 1. 校準 HP
-      if (lastEv.targetHp !== undefined && lastEv.targetMaxHp !== undefined) {
-        this.updateTargetHpUi(targetId, lastEv.targetHp, lastEv.targetMaxHp);
+    snapshotMap.forEach((snap, targetId) => {
+      // 1. 安全校準 HP
+      if (snap.hp) {
+        this.updateTargetHpUi(targetId, snap.hp.current, snap.hp.max);
       }
 
-      // 2. 校準 MP
-      if (lastEv.targetMp !== undefined && lastEv.targetMaxMp !== undefined) {
+      // 2. 安全校準 MP
+      if (snap.mp) {
         const mpFillEl = document.getElementById(`mp-fill-${targetId}`);
         if (mpFillEl) {
-          const mpPct = Math.max(0, Math.min(100, (lastEv.targetMp / lastEv.targetMaxMp) * 100));
+          const mpPct = Math.max(0, Math.min(100, (snap.mp.current / snap.mp.max) * 100));
           mpFillEl.style.width = `${mpPct}%`;
         }
         const mpTxtEl = document.getElementById(`mp-txt-${targetId}`);
         if (mpTxtEl) {
-          mpTxtEl.textContent = `${Math.max(0, lastEv.targetMp)}/${lastEv.targetMaxMp}`;
+          mpTxtEl.textContent = `${Math.max(0, snap.mp.current)}/${snap.mp.max}`;
         }
       }
 
       // 3. 死亡標記校準
-      if (lastEv.targetHp !== undefined && lastEv.targetHp <= 0) {
+      if (snap.dead || (snap.hp && snap.hp.current <= 0)) {
         const targetEl = document.getElementById(`combat-p-${targetId}`);
         if (targetEl) targetEl.classList.add('is-dead');
       }

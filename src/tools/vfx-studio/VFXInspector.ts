@@ -1,4 +1,4 @@
-import { VFXPreset } from '../../models/VFX';
+import { VFXPreset, getTrajectorySpatialAnchor } from '../../models/VFX';
 import { VFXStudioStore, VFXEditorSelection } from './VFXStudioStore';
 
 export type InspectorCapability =
@@ -47,10 +47,11 @@ export function getSelectionCapabilities(
 
   if (selection.type === 'CUE') {
     caps.add('CUE');
-    return caps;
+    caps.add('IMPACT_FEEDBACK');
+    caps.add('CASTER_MOTION');
   }
 
-  // PRESET, MAIN_TRACK, LAYER 基本能力
+  // PRESET, MAIN_TRACK, CUE, LAYER 基本能力
   caps.add('TRANSFORM');
   caps.add('TRAJECTORY');
   caps.add('PARTICLES');
@@ -314,6 +315,10 @@ export class VFXInspector {
             const cur = this.store.getPreset();
             const impact = { ...(cur.impact || {}), wavePlane: val };
             this.store.updateConfig({ wavePlane: val as any, impact }, false);
+          } else if (c.id === 'param-trajectory') {
+            const anchor = getTrajectorySpatialAnchor(val);
+            const spatialMode = anchor === 'TRAJECTORY' ? 'TRAJECTORY' : anchor;
+            this.store.updateConfig({ trajectory: val as any, spatialMode: spatialMode as any }, false);
           } else if (c.isImpact) {
             const cur = this.store.getPreset();
             const impact = { ...(cur.impact || {}), [c.key]: val };
@@ -459,47 +464,47 @@ export class VFXInspector {
 
     const slashCard = document.querySelector('.card-slash-section') as HTMLElement;
     if (slashCard) {
-      slashCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('SLASH_GEOMETRY')) ? 'block' : 'none';
+      slashCard.style.display = (!isBindingSelected && caps.has('SLASH_GEOMETRY')) ? 'block' : 'none';
     }
 
     const spikeCard = document.querySelector('.card-spike-section') as HTMLElement;
     if (spikeCard) {
-      spikeCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('SPIKE_GEOMETRY')) ? 'block' : 'none';
+      spikeCard.style.display = (!isBindingSelected && caps.has('SPIKE_GEOMETRY')) ? 'block' : 'none';
     }
 
     const salvoCard = document.querySelector('.card-salvo-section') as HTMLElement;
-    const isSalvo = (p.salvoCount !== undefined && p.salvoCount > 1);
     if (salvoCard) {
-      salvoCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('PROJECTILE_GEOMETRY') && isSalvo) ? 'block' : 'none';
+      // 🚀 徹底解鎖彈幕卡片：只要是投射物幾何，隨時開放創作者調整發射彈數、節奏與散佈
+      salvoCard.style.display = (!isBindingSelected && caps.has('PROJECTILE_GEOMETRY')) ? 'block' : 'none';
     }
 
-    // 施法動作與受擊回饋卡片：僅在主軌選中或未特選時展示，避免圖層與 Cue 干擾
+    // 施法動作與受擊回饋卡片：在主軌或常規編輯時始終開放調整
     const casterCard = document.querySelector('.card-caster-motion') as HTMLElement;
     if (casterCard) {
-      casterCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('CASTER_MOTION')) ? 'block' : 'none';
+      casterCard.style.display = (!isBindingSelected && caps.has('CASTER_MOTION')) ? 'block' : 'none';
     }
 
     const impactCard = document.querySelector('.card-impact-section') as HTMLElement;
     if (impactCard) {
-      impactCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('IMPACT_FEEDBACK')) ? 'block' : 'none';
+      impactCard.style.display = (!isBindingSelected && caps.has('IMPACT_FEEDBACK')) ? 'block' : 'none';
     }
 
     // 🛡️ 依 §5.8 規則：Shield shape 只有 shield renderer 顯示
     const shieldCard = document.querySelector('.card-shield-section') as HTMLElement;
     if (shieldCard) {
-      shieldCard.style.display = (!isCueSelected && !isBindingSelected && caps.has('SHIELD_GEOMETRY')) ? 'block' : 'none';
+      shieldCard.style.display = (!isBindingSelected && caps.has('SHIELD_GEOMETRY')) ? 'block' : 'none';
     }
 
     // 🔥 依 §5.8 規則：Fire turbulence 只有 fire renderer 顯示
     const rowFire = document.getElementById('row-flame-turbulence');
     if (rowFire) {
-      rowFire.style.display = (!isCueSelected && !isBindingSelected && caps.has('FIRE_SHADER')) ? 'flex' : 'none';
+      rowFire.style.display = (!isBindingSelected && caps.has('FIRE_SHADER')) ? 'flex' : 'none';
     }
 
     // ❄️ 依 §5.8 規則：Fresnel 只有 ice/fresnel shader 顯示
     const colFresnel = document.getElementById('col-fresnel');
     if (colFresnel) {
-      colFresnel.style.display = (!isCueSelected && !isBindingSelected && caps.has('ICE_SHADER')) ? 'block' : 'none';
+      colFresnel.style.display = (!isBindingSelected && caps.has('ICE_SHADER')) ? 'block' : 'none';
     }
 
     // 隱藏 Legacy trajectory 與無效欄位
@@ -543,6 +548,18 @@ export class VFXInspector {
       this.store.setSelection({ type: 'CUE', cueId: cue?.cueId || `cue_${index}` });
     }
     this.syncSelectedCueUI(this.store.getPreset());
+
+    if (index !== null) {
+      const cueCard = document.getElementById('card-cue-inspector');
+      if (cueCard && typeof cueCard.scrollIntoView === 'function') {
+        cueCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        cueCard.classList.remove('cue-card-highlight');
+        if (typeof (cueCard as any).offsetWidth === 'number') {
+          void (cueCard as any).offsetWidth;
+        }
+        cueCard.classList.add('cue-card-highlight');
+      }
+    }
   }
 
   private syncSelectedCueUI(preset: VFXPreset): void {
@@ -555,13 +572,85 @@ export class VFXInspector {
     }
 
     const cues = preset.impactCues || [];
-    if (this.selectedCueIndex === null || this.selectedCueIndex < 0 || this.selectedCueIndex >= cues.length) {
-      cueCard.style.display = 'none';
+    cueCard.style.display = 'block';
+
+    const tabsContainer = document.getElementById('cue-selector-tabs');
+    const bodyEl = typeof (cueCard as any).querySelector === 'function'
+      ? (cueCard as any).querySelector('.inspector-card-body') as HTMLElement | null
+      : null;
+
+    if (cues.length === 0) {
+      this.selectedCueIndex = null;
+      if (tabsContainer) {
+        tabsContainer.innerHTML = `
+          <span style="font-size: 0.72rem; color: #94a3b8;">目前尚無打擊 Cue 點</span>
+          <button id="btn-add-first-cue" style="background: #f59e0b; color: #000; border: none; font-weight: bold; border-radius: 3px; font-size: 0.68rem; padding: 2px 8px; cursor: pointer;">➕ 新增打擊 Cue</button>
+        `;
+        if (typeof tabsContainer.querySelector === 'function') {
+          tabsContainer.querySelector('#btn-add-first-cue')?.addEventListener('click', () => {
+            this.store.recordSnapshot();
+            const newCue = {
+              cueId: `hit_${Date.now() % 10000}`,
+              time: Number(((preset.duration || 0.5) * 0.5).toFixed(2)),
+              kind: 'IMPACT' as const,
+              weight: 1.0,
+              isPrimary: true
+            };
+            this.store.updateConfig({ impactCues: [newCue] }, true);
+            this.setSelectedCueIndex(0);
+            this.triggerChange();
+          });
+        }
+      }
+      if (bodyEl) bodyEl.style.display = 'none';
       return;
     }
 
+    if (bodyEl) bodyEl.style.display = 'block';
+
+    // 若未特選或索引越界，預設選取第 0 個 Cue
+    if (this.selectedCueIndex === null || this.selectedCueIndex < 0 || this.selectedCueIndex >= cues.length) {
+      this.selectedCueIndex = 0;
+    }
+
+    // 渲染 Cue 標籤切換列
+    if (tabsContainer) {
+      tabsContainer.innerHTML = '';
+      cues.forEach((c, idx) => {
+        const isSel = idx === this.selectedCueIndex;
+        const tabBtn = document.createElement('button');
+        tabBtn.style.cssText = isSel
+          ? 'background: #f59e0b; color: #000; border: 1px solid #fbbf24; font-weight: bold; border-radius: 3px; font-size: 0.68rem; padding: 2px 7px; cursor: pointer;'
+          : 'background: #272013; color: #f59e0b; border: 1px solid #78350f; border-radius: 3px; font-size: 0.68rem; padding: 2px 7px; cursor: pointer;';
+        tabBtn.textContent = `🎯 #${idx + 1} ${(c.time || 0).toFixed(2)}s`;
+        tabBtn.onclick = () => this.setSelectedCueIndex(idx);
+        tabsContainer.appendChild(tabBtn);
+      });
+
+      const addBtn = document.createElement('button');
+      addBtn.style.cssText = 'background: #1e293b; color: #38bdf8; border: 1px dashed #38bdf8; border-radius: 3px; font-size: 0.68rem; padding: 2px 6px; cursor: pointer; margin-left: auto;';
+      addBtn.textContent = '➕ 加 Cue';
+      addBtn.onclick = () => {
+        this.store.recordSnapshot();
+        const lastCueTime = cues[cues.length - 1]?.time ?? 0.2;
+        const nextTime = Number(Math.min((preset.duration || 1.0), lastCueTime + 0.15).toFixed(2));
+        const newCue = {
+          cueId: `hit_${cues.length + 1}`,
+          time: nextTime,
+          kind: 'IMPACT' as const,
+          weight: 1.0,
+          isPrimary: false
+        };
+        const updated = [...cues, newCue];
+        this.store.updateConfig({ impactCues: updated }, true);
+        this.setSelectedCueIndex(updated.length - 1);
+        this.triggerChange();
+      };
+      tabsContainer.appendChild(addBtn);
+    }
+
     const cue = cues[this.selectedCueIndex];
-    cueCard.style.display = 'block';
+    if (!cue) return;
 
     const inputId = document.getElementById('param-cue-id') as HTMLInputElement;
     const inputTime = document.getElementById('param-cue-time') as HTMLInputElement;

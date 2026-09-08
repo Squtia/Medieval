@@ -54,11 +54,30 @@ async function verifyCombatDirection() {
     const notFoundUrls = [];
 
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+
+    // 🛡️ 依據規格 §11.3 條款：攔截外部字型請求，避免離線或受限網路環境出現 ERR_NETWORK_ACCESS_DENIED 假報錯
+    await page.route(/(fonts\.googleapis\.com|fonts\.gstatic\.com)/, route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/css',
+        body: '/* mock font for offline headless verification */'
+      });
+    });
+
     page.on('console', msg => {
-      if (msg.type() === 'error') consoleErrors.push(`[BROWSER ERROR] ${msg.text()}`);
-      else console.log('BROWSER:', msg.text());
+      const text = msg.text();
+      // 隔離已知外部字型或連線拒絕通知
+      if (text.includes('fonts.googleapis.com') || text.includes('fonts.gstatic.com') || text.includes('net::ERR_NETWORK_ACCESS_DENIED')) {
+        console.warn(`[EXTERNAL RESOURCE NOTICE] ${text}`);
+        return;
+      }
+      if (msg.type() === 'error') consoleErrors.push(`[BROWSER ERROR] ${text}`);
+      else console.log('BROWSER:', text);
     });
     page.on('pageerror', err => {
+      if (err.message.includes('fonts.googleapis.com') || err.message.includes('ERR_NETWORK_ACCESS_DENIED')) {
+        return;
+      }
       consoleErrors.push(`[PAGE ERROR] ${err.message}`);
     });
     page.on('response', res => {

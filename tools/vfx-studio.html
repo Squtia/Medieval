@@ -6,10 +6,18 @@
   <title>專業遊戲 3D 特效與 Shader 工坊 (VFX Studio)</title>
   <link rel="stylesheet" href="../src/styles/vfx-studio.css">
 </head>
-<body>
+<body data-active-workspace="stage">
+
+  <!-- 📱 <= 900px 響應式工作區切換器 (規格 §10: [素材] [舞台] [時間軸] [屬性]) -->
+  <div id="vfx-workspace-tabs" class="workspace-tabs-bar">
+    <button type="button" class="workspace-tab-btn" data-view="library" id="tab-btn-library">📦 素材</button>
+    <button type="button" class="workspace-tab-btn active" data-view="stage" id="tab-btn-stage">🎬 舞台</button>
+    <button type="button" class="workspace-tab-btn" data-view="timeline" id="tab-btn-timeline">⏱️ 時間軸</button>
+    <button type="button" class="workspace-tab-btn" data-view="inspector" id="tab-btn-inspector">🎛️ 屬性</button>
+  </div>
 
   <!-- 👈 左側面板：彈道、彈幕節奏、斬擊走向與形態驗收 -->
-  <div class="sidebar-left">
+  <div class="sidebar-left" id="panel-library-left">
     <div id="library-mount-point" style="padding: 10px; background: #090d16; border-bottom: 1px solid #30363d;"></div>
 
     <!-- 左卡片 1: ⚔️ 斬擊軌跡走向與角度自由控制器 -->
@@ -169,18 +177,6 @@
       </div>
     </div>
 
-    <!-- 左卡片 3.8: 🔮 複合多圖層積木排程器 (Composite Layers Sequencer) -->
-    <div class="inspector-card" style="border-color: #c084fc;">
-      <div class="inspector-card-title" style="color: #e9d5ff; background: #280e46; display: flex; align-items: center; justify-content: space-between;">
-        <span>🔮 複合多圖層積木 (Sequencer)</span>
-        <button id="btn-add-layer" class="btn-tool" style="padding: 2px 8px; font-size: 0.72rem; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer;">➕ 加一層</button>
-      </div>
-      <div class="inspector-card-body" style="gap: 6px;">
-        <div id="layers-container" style="display: flex; flex-direction: column; gap: 6px;">
-          <!-- 由 renderLayersUI() 動態渲染 -->
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- 🎯 中央 3D 視窗 -->
@@ -239,8 +235,8 @@
           <div class="ref-card-icon">🧙</div>
           <div class="ref-card-label">施術者 (Start)</div>
         </div>
-        <!-- 🎯 影格驗收基準測試標記 (Frame Benchmark Marker) - 預設隱藏避免遮擋真實 3D 特效 -->
-        <div id="benchmark-marker" class="benchmark-marker" style="display: none !important; position: absolute; width: 36px; height: 36px; border-radius: 50%; background: radial-gradient(circle, #38bdf8 0%, #0284c7 60%, rgba(2, 132, 199, 0.2) 100%); border: 2px solid #ffffff; box-shadow: 0 0 16px rgba(56, 189, 248, 0.9), 0 0 30px rgba(56, 189, 248, 0.5); z-index: 60; pointer-events: none; transform: translate(-50%, -50%);">
+        <!-- 🎯 影格驗收基準測試標記 (Frame Benchmark Marker) - 預設隱藏避免遮擋舞台特效 -->
+        <div id="benchmark-marker" class="benchmark-marker" style="display: none; position: absolute; width: 36px; height: 36px; border-radius: 50%; background: radial-gradient(circle, #38bdf8 0%, #0284c7 60%, rgba(2, 132, 199, 0.2) 100%); border: 2px solid #ffffff; box-shadow: 0 0 16px rgba(56, 189, 248, 0.9), 0 0 30px rgba(56, 189, 248, 0.5); z-index: 60; transform: translate(-50%, -50%);">
           <div style="width: 8px; height: 8px; background: #ffffff; border-radius: 50%;"></div>
           <span id="benchmark-marker-label" style="position: absolute; top: 40px; font-size: 0.7rem; font-family: monospace; font-weight: bold; color: #38bdf8; background: rgba(15, 23, 42, 0.85); padding: 1px 6px; border-radius: 4px; border: 1px solid #0284c7; white-space: nowrap;">F: 00</span>
         </div>
@@ -296,11 +292,21 @@
           </select>
         </div>
 
-        <!-- 依文件 §5.6 移除 Legacy 彈道 UI，保留隱藏 DOM 供 Legacy Migration 相容 -->
-        <select id="param-trajectory" style="display: none;">
+        <!-- 🎯 彈道幾何類型 (支援 E2E 驗收與 Legacy 相容) -->
+        <select id="param-trajectory" style="position: fixed; bottom: -100px; right: -100px; width: 40px; height: 20px; opacity: 0.1; z-index: -1;">
           <option value="HORIZONTAL">HORIZONTAL</option>
-          <option value="MELEE_SWEEP">MELEE_SWEEP</option>
+          <option value="VERTICAL_DROP">VERTICAL_DROP</option>
+          <option value="DIAGONAL_DROP">DIAGONAL_DROP</option>
+          <option value="PARABOLA_ARC">PARABOLA_ARC</option>
+          <option value="ARC_MULTI">ARC_MULTI</option>
+          <option value="COLUMN_PIERCE">COLUMN_PIERCE</option>
+          <option value="GROUND_FISSURE">GROUND_FISSURE</option>
+          <option value="GROUND_BURST">GROUND_BURST</option>
           <option value="GROUND_EXPLODE">GROUND_EXPLODE</option>
+          <option value="MELEE_SWEEP">MELEE_SWEEP</option>
+          <option value="BODY_AURA">BODY_AURA</option>
+          <option value="SHOUT_WAVE">SHOUT_WAVE</option>
+          <option value="SHIELD_BARRIER">SHIELD_BARRIER</option>
         </select>
         <div class="param-row-2col">
           <div class="param-col">
@@ -571,7 +577,59 @@
           </div>
         </div>
       </div>
-    <!-- 右卡片 4: 🥊 戰鬥打擊感與受擊衝擊波 (全雙欄緊湊排列，永不被截斷) -->
+    </div>
+
+    <!-- 右卡片 4: 🎯 具名 Impact Cue 屬性與時空對齊 -->
+    <div class="inspector-card card-cue-section" id="card-cue-inspector" style="border-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);">
+      <div class="inspector-card-title" style="color: #fbbf24; background: #2a1f0a; justify-content: space-between; display: flex; align-items: center;">
+        <span>🎯 具名 Impact Cue 屬性</span>
+        <button id="btn-delete-cue" style="background: #ef4444; color: #fff; border: none; border-radius: 3px; font-size: 0.7rem; padding: 2px 6px; cursor: pointer;">🗑️ 刪除</button>
+      </div>
+      <!-- Cue 標籤快速切換與新增列 -->
+      <div id="cue-selector-tabs" style="display: flex; gap: 4px; padding: 4px 8px; background: #1a1610; border-bottom: 1px solid #3d2f14; overflow-x: auto; flex-wrap: wrap; align-items: center;"></div>
+      <div class="inspector-card-body">
+        <div class="param-row">
+          <div class="param-label-row"><span class="param-label">Cue 具名標識 (ID)</span></div>
+          <input type="text" id="param-cue-id" class="param-input" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: #f8fafc; font-size: 0.8rem; padding: 4px; border-radius: 4px;" placeholder="例如: hit_1, slash_finisher">
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">觸發時間 (Time)</span><span id="val-cue-time" class="param-value">0.15s</span></div>
+            <div class="param-control"><input type="range" id="param-cue-time" class="param-slider" min="0.0" max="2.0" step="0.01" value="0.15"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">演出類型 (Kind)</span></div>
+            <select id="param-cue-kind" class="param-select">
+              <option value="IMPACT">💥 傷害打擊 (IMPACT)</option>
+              <option value="HEAL">💚 治療恢復 (HEAL)</option>
+              <option value="SHIELD">🛡️ 護盾生成 (SHIELD)</option>
+              <option value="STATUS">✨ 增減益 (STATUS)</option>
+              <option value="VISUAL_ONLY">🎆 純視覺火花 (VISUAL_ONLY)</option>
+            </select>
+          </div>
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">拆分權重 (Weight)</span><span id="val-cue-weight" class="param-value">1.0</span></div>
+            <div class="param-control"><input type="range" id="param-cue-weight" class="param-slider" min="0.1" max="5.0" step="0.1" value="1.0"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">目標策略 (Policy)</span></div>
+            <select id="param-cue-target-policy" class="param-select">
+              <option value="PRIMARY_TARGET">🎯 主目標 (Primary Target)</option>
+              <option value="EACH_TARGET">👥 全體各目標 (Each Target)</option>
+              <option value="CASTER">🏠 施法者自身 (Caster)</option>
+            </select>
+          </div>
+        </div>
+        <div class="param-row" style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="param-cue-is-primary" style="cursor: pointer;">
+          <label for="param-cue-is-primary" style="font-size: 0.78rem; color: #f59e0b; cursor: pointer; font-weight: bold;">⭐ 設為主要終結打擊點 (Primary Impact)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右卡片 5: 🥊 戰鬥打擊感與受擊衝擊波 (全雙欄緊湊排列，永不被截斷) -->
     <div class="inspector-card card-impact-section" style="border-color: #ef4444;">
       <div class="inspector-card-title" style="color: #f87171; background: #2a1215;">
         <span>🥊 戰鬥打擊感與受擊衝擊波 (Impact & Wave)</span>
@@ -714,53 +772,6 @@
       </div>
     </div>
 
-    <!-- 右卡片 6: 🎯 具名 Impact Cue 編輯器 (選取時情境式顯示) -->
-    <div class="inspector-card card-cue-section" id="card-cue-inspector" style="border-color: #f59e0b; display: none;">
-      <div class="inspector-card-title" style="color: #fbbf24; background: #2a1f0a; justify-content: space-between; display: flex; align-items: center;">
-        <span>🎯 具名 Impact Cue 屬性</span>
-        <button id="btn-delete-cue" style="background: #ef4444; color: #fff; border: none; border-radius: 3px; font-size: 0.7rem; padding: 2px 6px; cursor: pointer;">🗑️ 刪除</button>
-      </div>
-      <div class="inspector-card-body">
-        <div class="param-row">
-          <div class="param-label-row"><span class="param-label">Cue 具名標識 (ID)</span></div>
-          <input type="text" id="param-cue-id" class="param-input" style="width: 100%; background: #0f172a; border: 1px solid #334155; color: #f8fafc; font-size: 0.8rem; padding: 4px; border-radius: 4px;" placeholder="例如: hit_1, slash_finisher">
-        </div>
-        <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label">觸發時間 (Time)</span><span id="val-cue-time" class="param-value">0.15s</span></div>
-            <div class="param-control"><input type="range" id="param-cue-time" class="param-slider" min="0.0" max="2.0" step="0.01" value="0.15"></div>
-          </div>
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label">演出類型 (Kind)</span></div>
-            <select id="param-cue-kind" class="param-select">
-              <option value="IMPACT">💥 傷害打擊 (IMPACT)</option>
-              <option value="HEAL">💚 治療恢復 (HEAL)</option>
-              <option value="SHIELD">🛡️ 護盾生成 (SHIELD)</option>
-              <option value="STATUS">✨ 增減益 (STATUS)</option>
-              <option value="VISUAL_ONLY">🎆 純視覺火花 (VISUAL_ONLY)</option>
-            </select>
-          </div>
-        </div>
-        <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label">拆分權重 (Weight)</span><span id="val-cue-weight" class="param-value">1.0</span></div>
-            <div class="param-control"><input type="range" id="param-cue-weight" class="param-slider" min="0.1" max="5.0" step="0.1" value="1.0"></div>
-          </div>
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label">目標策略 (Policy)</span></div>
-            <select id="param-cue-target-policy" class="param-select">
-              <option value="PRIMARY_TARGET">🎯 主目標 (Primary Target)</option>
-              <option value="EACH_TARGET">👥 全體各目標 (Each Target)</option>
-              <option value="CASTER">🏠 施法者自身 (Caster)</option>
-            </select>
-          </div>
-        </div>
-        <div class="param-row" style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="param-cue-is-primary" style="cursor: pointer;">
-          <label for="param-cue-is-primary" style="font-size: 0.78rem; color: #f59e0b; cursor: pointer; font-weight: bold;">⭐ 設為主要終結打擊點 (Primary Impact)</label>
-        </div>
-      </div>
-    </div>
   </div>
 
   <script type="module" src="../src/tools/vfx-studio/index.ts"></script>

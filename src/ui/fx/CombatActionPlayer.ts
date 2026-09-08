@@ -1,5 +1,5 @@
-import { CombatEvent, CombatEventType, CombatImpactKind } from '../../models/Combat';
-import { ImpactPresentationMode, VFXImpactConfig, VFXImpactCue, VFXPreset, VFXCueKind } from '../../models/VFX';
+import { CombatEvent, CombatEventType, CombatImpactKind, StatusEffectType } from '../../models/Combat';
+import { ImpactPresentationMode, VFXImpactConfig, VFXImpactCue, VFXPreset, VFXCueKind, VFXTargetPolicy, VFXSequence } from '../../models/VFX';
 import { CombatFXEngine, ScreenPoint } from './CombatFXEngine';
 import { VFXPresetRepository } from './VFXPresetRepository';
 import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingRegistry';
@@ -8,11 +8,15 @@ import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingReg
  * 🎯 CombatImpactPresentation
  * 已解析之打擊/Cue 呈現項目 (Immutable Presentation Item)
  * 禁止 StageAdapter 額外計算 damage * weight 或 damage / count 等二度計算
+ * 依據規格 §5.2、§7.2、§11.1 分離 targetId 與 visualTargetId，完整保留文字與狀態資訊
  */
 export interface CombatImpactPresentation {
   cueIndex: number;
   cueId: string;
+  // 真實結算目標；數字、HP、status 必須使用此欄位。
   targetId: string;
+  // 3D VFX 實際播放位置；可以是 primary、each target 或 caster。
+  visualTargetId?: string;
   amount: number;
   kind: 'DAMAGE' | 'HEAL' | 'SHIELD_DAMAGE' | 'SHIELD_BREAK' | 'STATUS' | 'MISS' | 'VISUAL_ONLY';
   isCrit: boolean;
@@ -25,6 +29,43 @@ export interface CombatImpactPresentation {
   presentationCount?: number;
   shieldDamage?: number;
   shieldRemaining?: number;
+  text?: string;
+  statusType?: StatusEffectType;
+  skillName?: string;
+}
+
+/**
+ * 🎯 resolveImpactAmount (規格 §4.2)
+ * 單一純函式：解析結算事件之真實數值，嚴格使用 ?? 杜絕錯誤使用 0，且不得產生 -0
+ */
+export function resolveImpactAmount(
+  event: CombatEvent,
+  kind: CombatImpactPresentation['kind']
+): number {
+  switch (kind) {
+    case 'DAMAGE':
+      return Math.max(0, event.damage ?? 0);
+    case 'HEAL':
+      return Math.max(0, event.healAmount ?? event.damage ?? 0);
+    case 'SHIELD_DAMAGE':
+    case 'SHIELD_BREAK':
+      return Math.max(0, event.shieldDamage ?? event.damage ?? 0);
+    case 'STATUS':
+    case 'MISS':
+    case 'VISUAL_ONLY':
+      return 0;
+  }
+}
+
+/**
+ * 🎯 shouldPresentImpact (規格 §4.3)
+ * 共用活躍 presentation 判定純函式
+ * Skip、Preset missing、正常播放補償、WebGL failure 必須全部使用同一 predicate
+ */
+export function shouldPresentImpact(item: CombatImpactPresentation): boolean {
+  if (item.kind === 'VISUAL_ONLY') return false;
+  if (item.kind === 'MISS' || item.kind === 'STATUS' || item.kind === 'SHIELD_BREAK') return true;
+  return item.amount > 0;
 }
 
 /**
@@ -88,21 +129,36 @@ export function isCombatAction(item: CombatAction | CombatEvent): item is Combat
  */
 export function collectCombatActions(events: readonly CombatEvent[]): Array<CombatAction | CombatEvent> {
   const result: Array<CombatAction | CombatEvent> = [];
-  const actionMap = new Map<string, CombatAction>();
-  const seenActionIds = new Set<string>();
+  let currentAction: CombatAction | null = null;
 
   for (let i = 0; i < events.length; i++) {
     const ev = events[i];
 
-    // DEATH、WAVE_START 等非打擊事件，或沒有 actionId 的獨立事件，作為獨立事件獨立排程
-    if (ev.type === CombatEventType.DEATH || !ev.actionId) {
+    // 🎯 依據規格 §8.2: DEATH、TURN_START、TURN_END、END、SQUAD_CHANGE 或無 actionId 之獨立事件為 Barrier
+    const isBarrier =
+      ev.type === CombatEventType.DEATH ||
+      ev.type === CombatEventType.TURN_START ||
+      ev.type === CombatEventType.TURN_END ||
+      ev.type === CombatEventType.END ||
+      ev.type === CombatEventType.SQUAD_CHANGE ||
+      !ev.actionId;
+
+    if (isBarrier) {
+      currentAction = null; // 中斷連續 span
       result.push(ev);
       continue;
     }
 
-    const actionId = ev.actionId;
-    if (!seenActionIds.has(actionId)) {
-      seenActionIds.add(actionId);
+    const actionId = ev.actionId!;
+
+    // 若當前正在聚合的 Action 處於同一連續 span，則聚合之
+    if (currentAction && currentAction.actionId === actionId) {
+      currentAction.events.push(ev);
+      if (!currentAction.actorId && ev.actorId) currentAction.actorId = ev.actorId;
+      if (!currentAction.skillId && ev.skillId) currentAction.skillId = ev.skillId;
+      if (!currentAction.vfxId && ev.vfxId) currentAction.vfxId = ev.vfxId;
+    } else {
+      // 否則（包含被 barrier 中斷後再次出現相同 actionId），建立新的獨立播放 segment
       const newAction: CombatAction = {
         actionId,
         actorId: ev.actorId || '',
@@ -110,16 +166,8 @@ export function collectCombatActions(events: readonly CombatEvent[]): Array<Comb
         vfxId: ev.vfxId,
         events: [ev]
       };
-      actionMap.set(actionId, newAction);
+      currentAction = newAction;
       result.push(newAction);
-    } else {
-      const existingAction = actionMap.get(actionId);
-      if (existingAction) {
-        existingAction.events.push(ev);
-        if (!existingAction.actorId && ev.actorId) existingAction.actorId = ev.actorId;
-        if (!existingAction.skillId && ev.skillId) existingAction.skillId = ev.skillId;
-        if (!existingAction.vfxId && ev.vfxId) existingAction.vfxId = ev.vfxId;
-      }
     }
   }
 
@@ -194,22 +242,21 @@ export function mapImpactsToCues(
     return 'DAMAGE';
   }
 
-  function resolveCueTargetIds(
+  function resolveCueVisualTargetId(
     cue: VFXImpactCue,
     actorId: string,
-    primaryTargetId: string | undefined,
-    impactTargetIds: readonly string[]
-  ): string[] {
-    const policy = cue.targetPolicy ?? (impactTargetIds.length > 1 ? 'EACH_TARGET' : 'PRIMARY_TARGET');
+    primaryTargetId: string,
+    logicalTargetId: string
+  ): string {
+    const policy = cue.targetPolicy ?? 'PRIMARY_TARGET';
     switch (policy) {
       case 'CASTER':
-        return actorId ? [actorId] : [];
+        return actorId || logicalTargetId;
       case 'EACH_TARGET':
-        return [...new Set(impactTargetIds)];
+        return logicalTargetId;
       case 'PRIMARY_TARGET':
       default:
-        if (primaryTargetId) return [primaryTargetId];
-        return impactTargetIds.length > 0 ? [impactTargetIds[0]] : [];
+        return primaryTargetId || logicalTargetId;
     }
   }
 
@@ -236,7 +283,7 @@ export function mapImpactsToCues(
   const primaryTargetId = ctx.primaryTargetId || actualImpactTargetIds[0] || '';
   const actorId = ctx.actorId || events[0]?.actorId || '';
 
-  // 整理所有涉及的目標：包含受擊目標，以及被 CASTER Cue 指向的施法者
+  // 依目標整理所有真實結算事件
   const targetEventsMap = new Map<string, CombatEvent[]>();
   impactEvents.forEach(ev => {
     const tid = ev.targetId || 'UNKNOWN';
@@ -244,45 +291,39 @@ export function mapImpactsToCues(
     targetEventsMap.get(tid)!.push(ev);
   });
 
-  const allTargetIds = new Set<string>(actualImpactTargetIds);
-  effectiveCues.forEach(cue => {
-    const targetIdsForCue = resolveCueTargetIds(cue, actorId, primaryTargetId, actualImpactTargetIds);
-    targetIdsForCue.forEach(tid => allTargetIds.add(tid));
-  });
-
   const allResults: CombatImpactPresentation[] = [];
 
-  allTargetIds.forEach(targetId => {
-    // 找出所有投射到該 targetId 的 Cues
-    const targetCuesWithIndices = effectiveCues
-      .map((c, originalIndex) => ({ cue: c, originalIndex }))
-      .filter(item => {
-        const targetIdsForCue = resolveCueTargetIds(item.cue, actorId, primaryTargetId, actualImpactTargetIds);
-        return targetIdsForCue.includes(targetId);
+  // 🎯 情況 1：若有專屬 CASTER Cue，且施法者自身沒有被列入傷害結算事件中，為施法者建立 VISUAL_ONLY presentation
+  const casterCues = effectiveCues
+    .map((c, originalIndex) => ({ cue: c, originalIndex }))
+    .filter(item => item.cue.targetPolicy === 'CASTER');
+
+  if (casterCues.length > 0 && actorId && !actualImpactTargetIds.includes(actorId)) {
+    casterCues.forEach(item => {
+      allResults.push({
+        cueIndex: item.originalIndex,
+        cueId: item.cue.cueId,
+        targetId: actorId,
+        visualTargetId: actorId,
+        amount: 0,
+        kind: 'VISUAL_ONLY',
+        isCrit: false,
+        isPrimary: false,
+        targetPolicy: item.cue.targetPolicy
       });
+    });
+  }
 
-    if (targetCuesWithIndices.length === 0) return;
-
+  // 🎯 情況 2：遍歷所有實際受擊目標，確保 100% 呈現，絕不因 targetPolicy 是 PRIMARY_TARGET 或 CASTER 丟棄真實 impact
+  actualImpactTargetIds.forEach(targetId => {
     const targetEvents = targetEventsMap.get(targetId) || [];
-    const targetResults: CombatImpactPresentation[] = [];
+    if (targetEvents.length === 0) return;
 
-    // 情況 A：施法者或無實體傷害事件目標 -> 全部產生 VISUAL_ONLY，絕不挪用其他目標數值
-    if (targetEvents.length === 0) {
-      targetCuesWithIndices.forEach(item => {
-        targetResults.push({
-          cueIndex: item.originalIndex,
-          cueId: item.cue.cueId,
-          targetId,
-          amount: 0,
-          kind: 'VISUAL_ONLY',
-          isCrit: false,
-          isPrimary: false,
-          targetPolicy: item.cue.targetPolicy
-        });
-      });
-    }
-    // 情況 B：多筆真實事件 -> EXACT 對齊
-    else if (targetEvents.length > 1) {
+    const targetResults: CombatImpactPresentation[] = [];
+    const targetCuesWithIndices = effectiveCues.map((c, originalIndex) => ({ cue: c, originalIndex }));
+
+    // 情況 A：多筆真實事件 -> EXACT 對齊
+    if (targetEvents.length > 1) {
       const alignedItems = [...targetCuesWithIndices];
       if (alignedItems.length < targetEvents.length) {
         console.warn(
@@ -313,13 +354,16 @@ export function mapImpactsToCues(
       }
 
       let eventIdx = 0;
-      alignedItems.forEach((item, _i) => {
+      alignedItems.forEach((item) => {
         const { cue, originalIndex } = item;
+        const visualTargetId = resolveCueVisualTargetId(cue, actorId, primaryTargetId, targetId);
+
         if (cue.kind === 'VISUAL_ONLY' || eventIdx >= targetEvents.length) {
           targetResults.push({
             cueIndex: originalIndex,
             cueId: cue.cueId,
             targetId,
+            visualTargetId,
             amount: 0,
             kind: 'VISUAL_ONLY',
             isCrit: false,
@@ -331,11 +375,14 @@ export function mapImpactsToCues(
 
         const ev = targetEvents[eventIdx++];
         const kind = resolveEventKind(ev);
+        const amount = resolveImpactAmount(ev, kind);
+
         targetResults.push({
           cueIndex: originalIndex,
           cueId: cue.cueId,
           targetId,
-          amount: (kind === 'STATUS' || kind === 'MISS') ? 0 : (ev.damage || ev.healAmount || 0),
+          visualTargetId,
+          amount,
           kind,
           isCrit: ev.type === CombatEventType.CRIT,
           isPrimary: cue.isPrimary || eventIdx === targetEvents.length,
@@ -343,15 +390,18 @@ export function mapImpactsToCues(
           targetMaxHp: ev.targetMaxHp,
           targetPolicy: cue.targetPolicy,
           shieldDamage: ev.shieldDamage,
-          shieldRemaining: ev.shieldRemaining
+          shieldRemaining: ev.shieldRemaining,
+          text: ev.text,
+          statusType: (ev as any).statusType || (ev as any).statusEffect?.type,
+          skillName: ev.skillName
         });
       });
     }
-    // 情況 C：單筆真實事件
+    // 情況 B：單筆真實事件
     else {
       const singleEv = targetEvents[0];
       const kind = resolveEventKind(singleEv);
-      const totalAmount = (kind === 'STATUS' || kind === 'MISS') ? 0 : (singleEv.damage || singleEv.healAmount || 0);
+      const totalAmount = resolveImpactAmount(singleEv, kind);
       const isCrit = singleEv.type === CombatEventType.CRIT;
 
       // 隔離出可承載數值之 Cues (排除 VISUAL_ONLY)
@@ -359,10 +409,12 @@ export function mapImpactsToCues(
 
       if (damageableItems.length === 0) {
         targetCuesWithIndices.forEach(item => {
+          const visualTargetId = resolveCueVisualTargetId(item.cue, actorId, primaryTargetId, targetId);
           targetResults.push({
             cueIndex: item.originalIndex,
             cueId: item.cue.cueId,
             targetId,
+            visualTargetId,
             amount: 0,
             kind: 'VISUAL_ONLY',
             isCrit: false,
@@ -375,10 +427,12 @@ export function mapImpactsToCues(
 
         targetCuesWithIndices.forEach(item => {
           const isPri = item.originalIndex === primaryItem.originalIndex;
+          const visualTargetId = resolveCueVisualTargetId(item.cue, actorId, primaryTargetId, targetId);
           targetResults.push({
             cueIndex: item.originalIndex,
             cueId: item.cue.cueId,
             targetId,
+            visualTargetId,
             amount: isPri ? totalAmount : 0,
             kind: isPri ? kind : 'VISUAL_ONLY',
             isCrit: isPri && isCrit,
@@ -387,7 +441,10 @@ export function mapImpactsToCues(
             targetMaxHp: singleEv.targetMaxHp,
             targetPolicy: item.cue.targetPolicy,
             shieldDamage: isPri ? singleEv.shieldDamage : undefined,
-            shieldRemaining: isPri ? singleEv.shieldRemaining : undefined
+            shieldRemaining: isPri ? singleEv.shieldRemaining : undefined,
+            text: isPri ? singleEv.text : undefined,
+            statusType: isPri ? ((singleEv as any).statusType || (singleEv as any).statusEffect?.type) : undefined,
+            skillName: singleEv.skillName
           });
         });
       } else if (mode === 'SPLIT_SINGLE_IMPACT' && damageableItems.length > 1 && totalAmount > 0) {
@@ -416,6 +473,7 @@ export function mapImpactsToCues(
         const finalDamageable = damageableItems[damageableItems.length - 1];
 
         targetCuesWithIndices.forEach(item => {
+          const visualTargetId = resolveCueVisualTargetId(item.cue, actorId, primaryTargetId, targetId);
           if (sliceMap.has(item.originalIndex)) {
             const sliceAmount = sliceMap.get(item.originalIndex)!;
             const isFinalSlice = item.originalIndex === finalDamageable.originalIndex;
@@ -423,6 +481,7 @@ export function mapImpactsToCues(
               cueIndex: item.originalIndex,
               cueId: item.cue.cueId,
               targetId,
+              visualTargetId,
               amount: sliceAmount,
               kind,
               isCrit: isFinalSlice && isCrit,
@@ -431,13 +490,17 @@ export function mapImpactsToCues(
               targetMaxHp: singleEv.targetMaxHp,
               targetPolicy: item.cue.targetPolicy,
               shieldDamage: isFinalSlice ? singleEv.shieldDamage : undefined,
-              shieldRemaining: isFinalSlice ? singleEv.shieldRemaining : undefined
+              shieldRemaining: isFinalSlice ? singleEv.shieldRemaining : undefined,
+              text: isFinalSlice ? singleEv.text : undefined,
+              statusType: isFinalSlice ? ((singleEv as any).statusType || (singleEv as any).statusEffect?.type) : undefined,
+              skillName: singleEv.skillName
             });
           } else {
             targetResults.push({
               cueIndex: item.originalIndex,
               cueId: item.cue.cueId,
               targetId,
+              visualTargetId,
               amount: 0,
               kind: 'VISUAL_ONLY',
               isCrit: false,
@@ -447,23 +510,28 @@ export function mapImpactsToCues(
           }
         });
       } else {
-        // EXACT_IMPACTS 預設：單筆事件直接於第一個有效 Cue 呈現完整數值
-        const firstItem = damageableItems[0];
+        // EXACT_IMPACTS 預設：單筆事件直接於第一個有效 Cue (或 Primary Cue) 呈現完整數值
+        const primaryOrFirst = damageableItems.find(i => i.cue.isPrimary) || damageableItems[0];
         targetCuesWithIndices.forEach(item => {
-          const isFirst = item.originalIndex === firstItem.originalIndex;
+          const isTargetCue = item.originalIndex === primaryOrFirst.originalIndex;
+          const visualTargetId = resolveCueVisualTargetId(item.cue, actorId, primaryTargetId, targetId);
           targetResults.push({
             cueIndex: item.originalIndex,
             cueId: item.cue.cueId,
             targetId,
-            amount: isFirst ? totalAmount : 0,
-            kind: isFirst ? kind : 'VISUAL_ONLY',
-            isCrit: isFirst && isCrit,
-            isPrimary: item.cue.isPrimary || isFirst,
-            targetHp: isFirst ? singleEv.targetHp : undefined,
+            visualTargetId,
+            amount: isTargetCue ? totalAmount : 0,
+            kind: isTargetCue ? kind : 'VISUAL_ONLY',
+            isCrit: isTargetCue && isCrit,
+            isPrimary: item.cue.isPrimary || isTargetCue,
+            targetHp: isTargetCue ? singleEv.targetHp : undefined,
             targetMaxHp: singleEv.targetMaxHp,
             targetPolicy: item.cue.targetPolicy,
-            shieldDamage: isFirst ? singleEv.shieldDamage : undefined,
-            shieldRemaining: isFirst ? singleEv.shieldRemaining : undefined
+            shieldDamage: isTargetCue ? singleEv.shieldDamage : undefined,
+            shieldRemaining: isTargetCue ? singleEv.shieldRemaining : undefined,
+            text: isTargetCue ? singleEv.text : undefined,
+            statusType: isTargetCue ? ((singleEv as any).statusType || (singleEv as any).statusEffect?.type) : undefined,
+            skillName: singleEv.skillName
           });
         });
       }
@@ -593,7 +661,7 @@ export class CombatActionPlayer {
     }
   ): Promise<void> {
     const vfxId = action.vfxId || 'VFX_DEFAULT_SLASH';
-    const preset = this.presetRepo.getPreset(vfxId);
+    const sequence = this.presetRepo.getSequence(vfxId);
     const mainTargetId = resolveActionMainTargetId(action);
 
     this.updateDebugOverlay({
@@ -601,7 +669,7 @@ export class CombatActionPlayer {
       actorId: action.actorId,
       vfxId,
       targetId: mainTargetId,
-      isFallback: options.skipVfx || !preset,
+      isFallback: options.skipVfx || !sequence,
       impactCount: 0
     });
 
@@ -609,7 +677,7 @@ export class CombatActionPlayer {
     const resolvedMode: ImpactPresentationMode =
       action.presentationMode ||
       binding?.impactPresentationMode ||
-      preset?.impactPresentationMode ||
+      sequence?.impactPresentationMode ||
       'EXACT_IMPACTS';
     const resolvedCueMap = action.cueMap || binding?.cueMap;
 
@@ -629,17 +697,17 @@ export class CombatActionPlayer {
           actorId: action.actorId,
           vfxId,
           targetId: mainTargetId,
-          isFallback: options.skipVfx || !preset,
+          isFallback: options.skipVfx || !sequence,
           isDegraded: true,
           impactCount: 0
         });
       }
     };
 
-    // 若 skipVfx 或找不到 preset，直接無特效結算所有呈現項目
-    if (options?.skipVfx || !preset) {
-      const items = mapImpactsToCues(action.events, preset?.impactCues || [], mapContext);
-      const activeItems = items.filter(i => i.amount > 0 || i.kind === 'MISS' || i.kind === 'STATUS' || i.kind === 'SHIELD_BREAK');
+    // 若 skipVfx 或找不到 sequence，直接無特效結算所有呈現項目 (規格 §4.3: 統一使用 shouldPresentImpact)
+    if (options?.skipVfx || !sequence) {
+      const items = mapImpactsToCues(action.events, sequence?.impactCues || [], mapContext);
+      const activeItems = items.filter(i => shouldPresentImpact(i));
       activeItems.forEach(item => {
         options?.onPresentImpact?.(item);
       });
@@ -651,7 +719,7 @@ export class CombatActionPlayer {
     // 計算各目標之呈現項目
     const presentationItems = mapImpactsToCues(
       action.events,
-      preset.impactCues || [],
+      sequence.impactCues || [],
       mapContext
     );
 
@@ -662,15 +730,15 @@ export class CombatActionPlayer {
       cueMap.get(item.cueIndex)!.push(item);
     });
 
-    // 呼叫底層 3D FX 引擎，精確播放一次 Preset！
+    // 呼叫底層 3D FX 引擎，精確播放一次 Canonical Sequence！
     // 🛡️ 遵循 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md 第 11 節驗收標準：
     // 「WebGL 失敗戰鬥仍完成」— 當 WebGL 崩潰、上下文丟失或 Shader 編譯失敗時，絕不得中斷戰鬥！
     const dispatchedItems = new Set<CombatImpactPresentation>();
     let triggeredImpactCount = 0;
 
     try {
-      await this.fxEngine.playPresetConfig(
-        preset,
+      await this.fxEngine.playSequence(
+        sequence,
         options.fromPoint,
         options.toPoint,
         (_impact: VFXImpactConfig, hitIdx: number, _totalHits: number, cue?: VFXImpactCue) => {
@@ -712,6 +780,27 @@ export class CombatActionPlayer {
           }
         }
       );
+
+      // 🎯 規格 §3.2 方案 A：Sequence 播放完成後，派發尚未派發的真實 impact presentation！
+      const remainingPresentations = presentationItems.filter(
+        item => shouldPresentImpact(item) && !dispatchedItems.has(item)
+      );
+
+      if (remainingPresentations.length > 0) {
+        // 依 fallback presentation 的時間順序排程，保留時鐘節奏
+        const delayMs = Math.max(80, Math.min(150, ((sequence.duration || 0.3) * 1000) / Math.max(1, remainingPresentations.length)));
+        for (let rIdx = 0; rIdx < remainingPresentations.length; rIdx++) {
+          const item = remainingPresentations[rIdx];
+          if (!dispatchedItems.has(item)) {
+            dispatchedItems.add(item);
+            triggeredImpactCount++;
+            options.onPresentImpact?.(item);
+          }
+          if (rIdx < remainingPresentations.length - 1 && !options.skipVfx) {
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
+        }
+      }
     } catch (renderError) {
       console.warn('[CombatActionPlayer] WebGL or VFX rendering failed, executing safe logical impact fallback:', renderError);
       this.updateDebugOverlay({
@@ -723,8 +812,8 @@ export class CombatActionPlayer {
         impactCount: triggeredImpactCount
       });
 
-      // 安全容錯派發：確保所有有效數值與狀態呈現項目 100% 傳遞至 UI，不吞事件也不派發幽靈項目
-      const activeItems = presentationItems.filter(i => i.amount > 0 || i.kind === 'MISS' || i.kind === 'STATUS');
+      // 安全容錯派發：確保所有有效數值與狀態呈現項目 100% 傳遞至 UI，使用統一 shouldPresentImpact
+      const activeItems = presentationItems.filter(i => shouldPresentImpact(i));
       activeItems.forEach(item => {
         if (!dispatchedItems.has(item)) {
           dispatchedItems.add(item);

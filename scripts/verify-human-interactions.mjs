@@ -54,10 +54,26 @@ async function run() {
     const notFoundUrls = [];
 
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+
+    await page.route(/(fonts\.googleapis\.com|fonts\.gstatic\.com)/, route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/css',
+        body: '/* mock font */'
+      });
+    });
+
     page.on('console', msg => {
-      if (msg.type() === 'error') consoleErrors.push(`[BROWSER ERROR] ${msg.text()}`);
+      const text = msg.text();
+      if (text.includes('fonts.googleapis.com') || text.includes('fonts.gstatic.com') || text.includes('net::ERR_NETWORK_ACCESS_DENIED')) {
+        return;
+      }
+      if (msg.type() === 'error') consoleErrors.push(`[BROWSER ERROR] ${text}`);
     });
     page.on('pageerror', err => {
+      if (err.message.includes('fonts.googleapis.com') || err.message.includes('ERR_NETWORK_ACCESS_DENIED')) {
+        return;
+      }
       consoleErrors.push(`[PAGE ERROR] ${err.message}`);
     });
     page.on('response', res => {

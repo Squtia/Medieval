@@ -112,7 +112,6 @@ export type CombatImpactKind =
   | 'SHIELD_DAMAGE'
   | 'SHIELD_BREAK'
   | 'STATUS'
-  | 'STATUS_APPLY'
   | 'MISS';
 
 export interface CombatEvent {

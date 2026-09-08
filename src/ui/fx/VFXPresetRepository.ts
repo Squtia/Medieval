@@ -4,8 +4,10 @@ import { VFXPresetValidator } from './VFXPresetValidator';
 
 export interface VFXStorageSchema {
   version: number;
-  customPresets: VFXPreset[];
+  customPresets?: VFXPreset[];
+  customSequences?: VFXSequence[];
   overrides?: Record<string, Partial<VFXPreset>>;
+  overrideSequences?: Record<string, Partial<VFXSequence>>;
   deletedCustomIds?: string[];
 }
 
@@ -15,14 +17,16 @@ export const CURRENT_SCHEMA_VERSION = 2;
 export class VFXPresetRepository {
   private static instance: VFXPresetRepository | null = null;
 
-  // 1. 官方內建預設庫 (SSOT Source)
-  private builtInMap: Map<string, VFXPreset> = new Map();
-  // 2. 使用者自訂擴充預設庫
-  private customMap: Map<string, VFXPreset> = new Map();
+  // 1. 官方內建 Canonical Sequence 庫 (Resolved SSOT 基準)
+  private builtInSequences: Map<string, VFXSequence> = new Map();
+  // 2. 使用者自訂 Canonical Sequence 庫
+  private customSequences: Map<string, VFXSequence> = new Map();
   // 3. 官方預設微調覆寫 (Overrides)
-  private overrideMap: Map<string, Partial<VFXPreset>> = new Map();
-  // 4. 快取合成字典
-  private resolvedMap: Map<string, VFXPreset> = new Map();
+  private overrideSequences: Map<string, Partial<VFXSequence>> = new Map();
+  // 4. 快取合成字典 (Resolved SSOT!)
+  private resolvedSequenceMap: Map<string, VFXSequence> = new Map();
+  // 5. 相容快取 Legacy Preset 字典 (向下相容邊界適配層)
+  private resolvedPresetMap: Map<string, VFXPreset> = new Map();
 
   private listeners: Set<() => void> = new Set();
 
@@ -40,21 +44,21 @@ export class VFXPresetRepository {
   }
 
   /**
-   * 載入官方內建預設
+   * 載入官方內建預設，啟動時全部直接遷移為 Canonical VFXSequence
    */
   private loadBuiltIn(): void {
-    this.builtInMap.clear();
+    this.builtInSequences.clear();
     (defaultVFXPresets as unknown as VFXPreset[]).forEach(p => {
-      this.builtInMap.set(p.id, { ...p });
+      this.builtInSequences.set(p.id, migrateLegacyPreset(p));
     });
   }
 
   /**
-   * 自 LocalStorage 載入並進行 schema migration
+   * 自 LocalStorage 載入並進行 schema migration 至 Canonical Sequence
    */
   public loadFromStorage(): void {
-    this.customMap.clear();
-    this.overrideMap.clear();
+    this.customSequences.clear();
+    this.overrideSequences.clear();
 
     if (typeof localStorage === 'undefined') return;
 
@@ -67,23 +71,34 @@ export class VFXPresetRepository {
       if (Array.isArray(parsed)) {
         // v1 相容格式：直接存自訂陣列
         parsed.forEach((p: any) => {
-          if (p && p.id && !this.builtInMap.has(p.id)) {
-            this.customMap.set(p.id, p);
+          if (p && p.id && !this.builtInSequences.has(p.id)) {
+            const seq = p.tracks ? (p as VFXSequence) : migrateLegacyPreset(p);
+            this.customSequences.set(p.id, seq);
           }
         });
       } else if (parsed && typeof parsed === 'object') {
         // v2 格式
         const schema = parsed as VFXStorageSchema;
-        if (schema.customPresets && Array.isArray(schema.customPresets)) {
+        if (schema.customSequences && Array.isArray(schema.customSequences)) {
+          schema.customSequences.forEach(s => {
+            if (s && s.id) {
+              this.customSequences.set(s.id, s);
+            }
+          });
+        } else if (schema.customPresets && Array.isArray(schema.customPresets)) {
           schema.customPresets.forEach(p => {
             if (p && p.id) {
-              this.customMap.set(p.id, p);
+              this.customSequences.set(p.id, migrateLegacyPreset(p));
             }
           });
         }
-        if (schema.overrides && typeof schema.overrides === 'object') {
+        if (schema.overrideSequences && typeof schema.overrideSequences === 'object') {
+          Object.entries(schema.overrideSequences).forEach(([id, ov]) => {
+            this.overrideSequences.set(id, ov);
+          });
+        } else if (schema.overrides && typeof schema.overrides === 'object') {
           Object.entries(schema.overrides).forEach(([id, ov]) => {
-            this.overrideMap.set(id, ov);
+            this.overrideSequences.set(id, ov as any);
           });
         }
       }
@@ -93,16 +108,24 @@ export class VFXPresetRepository {
   }
 
   /**
-   * 保存目前自訂庫與覆寫庫至 LocalStorage
+   * 保存目前自訂庫與覆寫庫至 LocalStorage (同時維護 canonical 與相容欄位)
    */
   private saveToStorage(): void {
     if (typeof localStorage === 'undefined') return;
 
     try {
+      const customSequences = Array.from(this.customSequences.values());
       const schema: VFXStorageSchema = {
         version: CURRENT_SCHEMA_VERSION,
-        customPresets: Array.from(this.customMap.values()),
-        overrides: Object.fromEntries(this.overrideMap.entries())
+        customSequences,
+        customPresets: customSequences.map(s => sequenceToLegacyPreset(s)),
+        overrideSequences: Object.fromEntries(this.overrideSequences.entries()),
+        overrides: Object.fromEntries(
+          Array.from(this.overrideSequences.entries()).map(([id, ov]) => [
+            id,
+            sequenceToLegacyPreset(ov as any)
+          ])
+        )
       };
       localStorage.setItem(VFX_STORAGE_KEY, JSON.stringify(schema));
     } catch (err) {
@@ -111,59 +134,88 @@ export class VFXPresetRepository {
   }
 
   /**
-   * 重新合成最終可用的 Preset 字典
+   * 重新合成最終可用的 Sequence SSOT 與相容 Preset 字典
    */
   private rebuildResolvedMap(): void {
-    this.resolvedMap.clear();
+    this.resolvedSequenceMap.clear();
+    this.resolvedPresetMap.clear();
 
-    // 1. 加入內建預設
-    this.builtInMap.forEach((preset, id) => {
-      const override = this.overrideMap.get(id);
+    // 1. 加入內建 Sequence
+    this.builtInSequences.forEach((seq, id) => {
+      const override = this.overrideSequences.get(id);
       if (override) {
-        this.resolvedMap.set(id, { ...preset, ...override });
+        this.resolvedSequenceMap.set(id, { ...seq, ...override });
       } else {
-        this.resolvedMap.set(id, { ...preset });
+        this.resolvedSequenceMap.set(id, { ...seq });
       }
     });
 
-    // 2. 加入自訂預設 (覆蓋或擴充)
-    this.customMap.forEach((preset, id) => {
-      this.resolvedMap.set(id, { ...preset });
+    // 2. 加入自訂 Sequence (覆蓋或擴充)
+    this.customSequences.forEach((seq, id) => {
+      this.resolvedSequenceMap.set(id, { ...seq });
+    });
+
+    // 3. 合成相容字典 (向下相容既有方法呼叫)
+    this.resolvedSequenceMap.forEach((seq, id) => {
+      this.resolvedPresetMap.set(id, sequenceToLegacyPreset(seq));
     });
 
     this.notifyListeners();
   }
 
   public getAllPresets(): VFXPreset[] {
-    return Array.from(this.resolvedMap.values());
+    return Array.from(this.resolvedPresetMap.values());
   }
 
   public getPreset(id: string): VFXPreset | undefined {
-    return this.resolvedMap.get(id);
+    return this.resolvedPresetMap.get(id);
   }
 
   public hasPreset(id: string): boolean {
-    return this.resolvedMap.has(id);
+    return this.resolvedSequenceMap.has(id);
   }
 
   /**
-   * 🌟 依據 §6.1 條款：Repository 對外提供 resolved Canonical VFXSequence
+   * 🌟 依據 §9.2 條款：Repository 對外直接提供 resolved Canonical VFXSequence SSOT
+   * 絕不再臨時從 legacy preset 重新轉換！若未命中但相容方法 getPreset 有返回值（如單元測試 mock 攔截），安全適配
    */
   public getSequence(id: string): VFXSequence | undefined {
-    const preset = this.getPreset(id);
-    if (!preset) return undefined;
-    return migrateLegacyPreset(preset);
+    const seq = this.resolvedSequenceMap.get(id);
+    if (seq) return seq;
+    // 相容防禦：若 getPreset 被外部 mock 或攔截，安全適配為 sequence
+    const fallbackPreset = this.getPreset(id);
+    if (fallbackPreset) {
+      return migrateLegacyPreset(fallbackPreset);
+    }
+    return undefined;
+  }
+
+  public getAllSequences(): VFXSequence[] {
+    return Array.from(this.resolvedSequenceMap.values());
+  }
+
+  public hasSequence(id: string): boolean {
+    return this.resolvedSequenceMap.has(id);
   }
 
   /**
-   * 🌟 依據 §6.1 條款：保存 Canonical VFXSequence 並透過 Runtime Adapter 寫入 Repository
+   * 🌟 依據 §9.2 條款：直接保存 Canonical VFXSequence
+   * 純 Sequence 即使完全沒有 legacy 欄位，也能完整保存於 SSOT
    */
   public saveSequence(sequence: VFXSequence): { success: boolean; error?: string } {
     if (!sequence || !sequence.id) {
       return { success: false, error: 'Sequence 無效或缺少 ID' };
     }
-    const legacyPreset = sequenceToLegacyPreset(sequence);
-    return this.saveCustomPreset(legacyPreset);
+
+    if (this.builtInSequences.has(sequence.id)) {
+      this.overrideSequences.set(sequence.id, { ...sequence });
+    } else {
+      this.customSequences.set(sequence.id, { ...sequence });
+    }
+
+    this.saveToStorage();
+    this.rebuildResolvedMap();
+    return { success: true };
   }
 
   /**
@@ -193,23 +245,16 @@ export class VFXPresetRepository {
   /**
    * 📝 將編輯器最新草稿寫回 Repository，使其在組裝發布清單時生效
    */
-  public upsertDraft(preset: VFXPreset): { success: boolean; error?: string } {
-    if (!preset || !preset.id) {
+  public upsertDraft(draft: VFXPreset | VFXSequence): { success: boolean; error?: string } {
+    if (!draft || !draft.id) {
       return { success: false, error: '草稿無效或缺少 ID' };
     }
-    const cleanPreset = VFXPresetRepository.sanitizePresetContent(preset);
-    if (this.builtInMap.has(cleanPreset.id)) {
-      this.overrideMap.set(cleanPreset.id, cleanPreset);
-    } else {
-      this.customMap.set(cleanPreset.id, cleanPreset);
-    }
-    this.saveToStorage();
-    this.rebuildResolvedMap();
-    return { success: true };
+    const sequence = (draft as any).tracks ? (draft as VFXSequence) : migrateLegacyPreset(VFXPresetRepository.sanitizePresetContent(draft as VFXPreset));
+    return this.saveSequence(sequence);
   }
 
   /**
-   * 儲存或更新自訂 Preset
+   * 儲存或更新自訂 Preset (相容適配層)
    */
   public saveCustomPreset(preset: VFXPreset): { success: boolean; error?: string } {
     const validation = VFXPresetValidator.validatePreset(preset);
@@ -217,28 +262,21 @@ export class VFXPresetRepository {
       return { success: false, error: validation.errors.join('; ') };
     }
 
-    // 若為內建 ID，寫入 overrideMap；否則寫入 customMap
-    if (this.builtInMap.has(preset.id)) {
-      this.overrideMap.set(preset.id, { ...preset });
-    } else {
-      this.customMap.set(preset.id, { ...preset });
-    }
-
-    this.saveToStorage();
-    this.rebuildResolvedMap();
-    return { success: true };
+    const cleanPreset = VFXPresetRepository.sanitizePresetContent(preset);
+    const sequence = migrateLegacyPreset(cleanPreset);
+    return this.saveSequence(sequence);
   }
 
   /**
    * 刪除自訂 Preset（內建預設若有覆寫則還原）
    */
   public deletePreset(id: string): boolean {
-    if (this.builtInMap.has(id)) {
+    if (this.builtInSequences.has(id)) {
       // 內建預設：清除覆寫
-      this.overrideMap.delete(id);
+      this.overrideSequences.delete(id);
     } else {
-      // 自訂預設：自 customMap 移除
-      this.customMap.delete(id);
+      // 自訂預設：自 customSequences 移除
+      this.customSequences.delete(id);
     }
 
     this.saveToStorage();
@@ -250,8 +288,8 @@ export class VFXPresetRepository {
    * 還原出廠設定 (清空所有 LocalStorage 覆寫與自訂庫)
    */
   public resetToFactoryDefaults(): void {
-    this.customMap.clear();
-    this.overrideMap.clear();
+    this.customSequences.clear();
+    this.overrideSequences.clear();
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(VFX_STORAGE_KEY);
     }
@@ -263,8 +301,8 @@ export class VFXPresetRepository {
    */
   public reloadPresets(newPresets?: VFXPreset[]): void {
     if (newPresets && Array.isArray(newPresets)) {
-      this.builtInMap.clear();
-      newPresets.forEach(p => this.builtInMap.set(p.id, { ...p }));
+      this.builtInSequences.clear();
+      newPresets.forEach(p => this.builtInSequences.set(p.id, migrateLegacyPreset(p)));
     } else {
       this.loadBuiltIn();
     }

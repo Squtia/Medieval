@@ -1,4 +1,4 @@
-import { VFXPreset, VFXImpactConfig, VFXImpactCue, ImpactPresentationMode } from '../../models/VFX';
+import { VFXPreset, VFXImpactConfig, VFXImpactCue, ImpactPresentationMode, VFXSequence, migrateLegacyPreset } from '../../models/VFX';
 import { CombatFXEngine, ScreenPoint } from './CombatFXEngine';
 import { VFXPresetRepository } from './VFXPresetRepository';
 import { ScreenFxRenderer } from './renderers/ScreenFxRenderer';
@@ -84,6 +84,7 @@ export class VFXStudioAdapter {
     cue?: VFXImpactCue,
     presentationMode?: ImpactPresentationMode
   ): void {
+    if (typeof document === 'undefined' || !targetEl) return;
     const isFinal = hitIndex >= totalHits - 1;
     const isPrimary = cue?.isPrimary !== undefined ? cue.isPrimary : isFinal;
 
@@ -134,13 +135,14 @@ export class VFXStudioAdapter {
   }
 
   /**
-   * 播放當前 Preset 配置（支援單目標或多目標輪巡）
+   * 播放當前 Preset 或 Canonical Sequence 配置（支援單目標或多目標輪巡）
    */
   public async play(
-    preset: VFXPreset,
+    presetOrSeq: VFXPreset | VFXSequence,
     targetIndex: number = 0,
     customOnImpact?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, targetEl: HTMLElement, cue?: VFXImpactCue) => void
   ): Promise<void> {
+    const sequence = (presetOrSeq as any).tracks ? (presetOrSeq as VFXSequence) : migrateLegacyPreset(presetOrSeq as VFXPreset);
     const casterCenter = this.getElementCenter(this.options.casterElement);
     const targetEl = this.options.targetElements[targetIndex] || this.options.targetElements[0];
     if (!targetEl) return;
@@ -153,9 +155,9 @@ export class VFXStudioAdapter {
         impact,
         hitIdx,
         totalHits,
-        preset.multiHitImpact !== false,
+        (presetOrSeq as any).multiHitImpact !== false,
         cue,
-        preset.impactPresentationMode
+        sequence.impactPresentationMode
       );
 
       if (customOnImpact) {
@@ -165,16 +167,17 @@ export class VFXStudioAdapter {
       }
     };
 
-    return this.fxEngine.playPresetConfig(preset, casterCenter, targetCenter, onHit);
+    return this.fxEngine.playSequence(sequence, casterCenter, targetCenter, onHit);
   }
 
   /**
    * 多目標 AOE 同步預覽播放
    */
   public async playMultiTarget(
-    preset: VFXPreset,
+    presetOrSeq: VFXPreset | VFXSequence,
     customOnImpact?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, targetEl: HTMLElement, cue?: VFXImpactCue) => void
   ): Promise<void> {
+    const sequence = (presetOrSeq as any).tracks ? (presetOrSeq as VFXSequence) : migrateLegacyPreset(presetOrSeq as VFXPreset);
     const casterCenter = this.getElementCenter(this.options.casterElement);
     const targets = this.options.targetElements.length > 0 ? this.options.targetElements : [this.options.casterElement];
 
@@ -186,9 +189,9 @@ export class VFXStudioAdapter {
           impact,
           hitIdx,
           totalHits,
-          preset.multiHitImpact !== false,
+          (presetOrSeq as any).multiHitImpact !== false,
           cue,
-          preset.impactPresentationMode
+          sequence.impactPresentationMode
         );
 
         if (customOnImpact) {
@@ -198,7 +201,7 @@ export class VFXStudioAdapter {
         }
       };
 
-      return this.fxEngine.playPresetConfig(preset, casterCenter, targetCenter, onHit);
+      return this.fxEngine.playSequence(sequence, casterCenter, targetCenter, onHit);
     });
 
     await Promise.all(promises);

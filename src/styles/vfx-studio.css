@@ -1147,5 +1147,132 @@
   background: #475569;
 }
 
+/* ==========================================================================
+   📱 響應式工作區 Tab 控制器 (依據規格 §10 實裝)
+   ========================================================================== */
+#vfx-workspace-tabs {
+  display: none; /* 桌面版預設隱藏，維持三欄佈局 */
+}
+
+@media (max-width: 900px) {
+  body {
+    flex-direction: column !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  /* 📱 工作區 Tab 橫列：觸控目標高度至少 42px */
+  #vfx-workspace-tabs {
+    display: flex !important;
+    flex-shrink: 0;
+    width: 100%;
+    background: #0f172a;
+    border-bottom: 2px solid #1e293b;
+    padding: 4px 8px;
+    gap: 6px;
+    z-index: 100;
+  }
+
+  .workspace-tab-btn {
+    flex: 1;
+    min-height: 42px;
+    padding: 8px 4px;
+    background: #1e293b;
+    color: #94a3b8;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .workspace-tab-btn:hover {
+    background: #334155;
+    color: #f8fafc;
+  }
+
+  .workspace-tab-btn.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+  }
+
+  /* 📱 側面板與主視窗依 data-active-workspace 進行純 CSS 切換，絕不重建 DOM */
+  .sidebar-left,
+  .sidebar-right,
+  .inspector-panel,
+  .viewport-container {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: calc(100vh - 50px) !important;
+    display: none !important;
+    border: none !important;
+  }
+
+  /* 1. 素材視圖 [📦 素材] */
+  body[data-active-workspace="library"] .sidebar-left {
+    display: flex !important;
+    height: calc(100vh - 50px) !important;
+    overflow-y: auto !important;
+  }
+
+  /* 2. 舞台視圖 [🎬 舞台] */
+  body[data-active-workspace="stage"] .viewport-container {
+    display: flex !important;
+    height: calc(100vh - 50px) !important;
+  }
+  body[data-active-workspace="stage"] #viewport {
+    display: flex !important;
+    flex: 1 !important;
+    min-height: 280px !important;
+  }
+  body[data-active-workspace="stage"] #timeline-mount-point {
+    display: none !important; /* 舞台視圖保留寬敞預覽空間 */
+  }
+
+  /* 3. 時間軸視圖 [⏱️ 時間軸] */
+  body[data-active-workspace="timeline"] .viewport-container {
+    display: flex !important;
+    height: calc(100vh - 50px) !important;
+  }
+  body[data-active-workspace="timeline"] #viewport {
+    display: none !important; /* 讓時間軸享有全螢幕高度，不需垂直大幅捲動 */
+  }
+  body[data-active-workspace="timeline"] #timeline-mount-point {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1 !important;
+    height: calc(100vh - 100px) !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+  }
+
+  /* 4. 屬性視圖 [🎛️ 屬性]：首屏立即可見 Inspector 控制項，無需捲動數千像素！ */
+  body[data-active-workspace="inspector"] .sidebar-right,
+  body[data-active-workspace="inspector"] .inspector-panel {
+    display: flex !important;
+    height: calc(100vh - 50px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* 🎯 Cue 點選中高亮呼吸光效 */
+@keyframes cueCardPulse {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.8), inset 0 0 0 0 rgba(245, 158, 11, 0.4); border-color: #f59e0b; }
+  50% { box-shadow: 0 0 18px 4px rgba(245, 158, 11, 0.9), inset 0 0 10px rgba(245, 158, 11, 0.3); border-color: #fde047; }
+  100% { box-shadow: 0 0 10px rgba(245, 158, 11, 0.2), inset 0 0 0 0 rgba(245, 158, 11, 0); border-color: #f59e0b; }
+}
+
+.cue-card-highlight {
+  animation: cueCardPulse 1.2s ease-in-out;
+}
+
 
 

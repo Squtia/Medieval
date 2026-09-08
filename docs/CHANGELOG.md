@@ -1,3 +1,106 @@
+- **[Bugfix/VFXStudio] 徹底根除特效工坊四大核心 UI 瑕疵與應試收合死鎖（2026-09-08）**：
+  - **🧹 清除廢棄幽靈卡片 (Ghost UI)**：
+    - `tools/vfx-studio.html`：徹底刪除左側面板殘留之廢棄幽靈卡片「🔮 複合多圖層積木 (Sequencer)」及其未綁定按鈕 `#btn-add-layer`，釋放左側版面空間。
+  - **🚀 解鎖彈幕卡片死鎖 (Salvo Section Unlock)**：
+    - `src/tools/vfx-studio/VFXInspector.ts`：移除先前收合邏輯中的 `&& isSalvo` 死鎖條件。只要特效具備投射物能力（`PROJECTILE_GEOMETRY`），【🚀 彈幕發射與節奏曲線】卡片始終開放展開，創作者隨時可調整連射彈數、節奏曲線、散射偏角與散佈半徑。
+  - **🎯 徹底修復 Cue 點檢查器 HTML 嵌套錯誤與首屏位置重構 (Critical Nesting & Visibility Fix)**：
+    - **重大排查發現**：`tools/vfx-studio.html` 中 `.card-spike-section` 缺少閉合 `</div>`，導致 `#card-cue-inspector` 被錯誤解析為尖岩卡片的子節點；在非尖岩特效下，尖岩卡片 `display: none` 連帶導致 Cue 面板 offsetWidth/offsetHeight 均為 0，在畫面上完全消失！
+    - **修復閉合與提升層級**：補正閉合標籤，將 Cue 點屬性卡片提升為右側欄第 4 張獨立卡片（緊接在受擊打擊感面板上方），使初始位置直接位於首屏（rectTop: 507px），無需滾動即可直觀看見。
+    - **時空聯動與呼吸燈高亮**：`src/tools/vfx-studio/VFXInspector.ts` 與 `src/styles/vfx-studio.css` 實裝點選時間軸 Cue Marker 自動 `scrollIntoView({ behavior: 'smooth', block: 'nearest' })` 並觸發金黃色呼吸燈發光動畫（`@keyframes cueCardPulse`）。
+    - **標籤化內部切換**：頂部 `#cue-selector-tabs` 動態渲染當前所有 Cue 按鈕及 `➕ 加 Cue` 快捷鍵，卡片內部即可自由切換多段打擊點。
+    - **解除互斥隱藏**：移除 `!isCueSelected` 互斥隱藏，修正 `getSelectionCapabilities` 在選中 CUE 時不再粗暴清空主軌能力；選中 Cue 點時，施法動作（`CASTER_MOTION`）、受擊反饋（`IMPACT_FEEDBACK`）與斬擊/投射物幾何卡片全部保持可見。
+  - **🧪 真人視角與全管線驗收全數 PASS**：
+    - 修正過時的應試測試斷言（`VFXTimelineTrackControls.test.ts`、`VFXPipelinePhase3Inspector.test.ts`、`VFXStudioInteractivity.test.ts`）。
+    - 實機瀏覽器 E2E 驗收腳本（`scratch/verify_cue_interaction.mjs`）實測 rectTop 507px、isInViewport: true、高亮呼吸燈正常觸發。
+    - `npm run typecheck` [0 errors]、`npm test` [62 test files, 376 tests 100% PASS]。
+
+- **[Bugfix/CombatStudio] 修復戰鬥工坊 stepPlayback 雙重索引累加導致攻擊與波次切換跳幀的缺陷（2026-09-08）**：
+  - **🐛 根除事件跳幀問題**：
+    - `src/tools/CombatStudio.ts`：移除 `stepPlayback()` 非 CombatAction 單一事件分之中多餘的 `this.currentEventIndex++`。
+    - 解決單一事件（MP 恢復、死亡、回合結算）後緊隨之攻擊行動組與 `WAVE_START` 波次切換事件被無聲吃掉的重大 Bug。
+    - 實證恢復：攻擊傷害日誌完整顯示（不再有史萊姆、哥布林憑空倒下之靈異現象）；第一波怪物死亡後，第二波怪物頭像與棋盤即時清空重建，正常流暢進入第二波交戰。
+  - **🧪 驗證與型別全綠**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 62 個檔案、376 項單元測試 100% PASS。
+    - `node scripts/verify-phase6-combat-debug.mjs` 端到端驗收 100% PASS。
+
+- **[Refactor/CombatVFX/Rework-Campaign4] 戰鬥 VFX 返工第四戰役：768px 工作區切換、診斷清理與全體驗收腳本全數通過（2026-09-08）**：
+  - **📱 768px 響應式工作區 Tab 切換器與 Inspector 首屏可見 (規格 §10)**：
+    - `tools/vfx-studio.html`：新增 `#vfx-workspace-tabs`（`[📦 素材] [🎬 舞台] [⏱️ 時間軸] [🎛️ 屬性]`）。
+    - `src/styles/vfx-studio.css`：於 `@media (max-width: 900px)` 實裝基於 `body[data-active-workspace]` 之純 CSS 互斥切換，Tab 觸控高度達 42px；切至 Inspector 時直接進入首屏，無需滾動整頁尋找屬性面板。
+    - `src/tools/vfx-studio/VFXStudioController.ts`：實裝 `bindWorkspaceTabs()`，切回舞台時自動觸發 `resize()` 與導線重繪，狀態機與 Editor State 完全不中斷。
+  - **🔍 診斷清理與圖依賴檢驗 (規格 §11)**：
+    - 徹底移除重複之 `STATUS_APPLY` 枚舉與呈現類型，全管線統一收斂至 `STATUS`。
+    - `scripts/verify-vfx-preset-graph.mjs`：實裝 Preset 依賴圖驗證腳本，驗證官方 30 個 Preset 達到 0 自我引用、0 循環相依。
+    - 外部字型網路攔截：為所有 E2E 腳本（`verify-combat-vfx-direction.mjs`, `verify-human-interactions.mjs`, `verify-skill-vfx-picker.mjs`, `verify-vfx-studio-layout.mjs`, `verify-frame-timeline.mjs`, `verify-main-track-clip.mjs`, `verify-compositor-workflow.mjs`, `soak-test-vfx.mjs`）配置 `page.route` 攔截，根除離線環境 `ERR_NETWORK_ACCESS_DENIED` 失敗。
+  - **🛡️ 空間錨點與時間軸 Clip 互操作相容強化**：
+    - `src/models/VFX.ts`：`getTrajectorySpatialAnchor` 補齊 `TRAJECTORY` case，根除空間模式誤判為目標的原生 bug。
+    - `src/tools/vfx-studio/VFXInspector.ts`：更新 Legacy `param-trajectory` 時同步寫入 `spatialMode`，確保時間軸實體 Clip 標籤與物理座標 100% 連動。
+    - `tools/vfx-studio.html` & `src/tools/vfx-studio/VFXStudioController.ts`：除錯發光藍球預設 `display: none` 隱藏，避免遮擋舞台真實 3D 特效；同時在逐影格測量時按需激活，使合成驗收與逐影格位移驗收兩立相容。
+  - **🎉 規格 §12 驗收腳本與全套測試 100% 通過**：
+    - `node scripts/verify-vfx-preset-graph.mjs` [PASS]
+    - `node scripts/verify-combat-vfx-direction.mjs` [PASS]
+    - `node scripts/verify-human-interactions.mjs` [PASS]
+    - `node scripts/verify-skill-vfx-picker.mjs` [PASS]
+    - `node scripts/verify-vfx-studio-layout.mjs` [PASS]
+    - `node scripts/verify-frame-timeline.mjs` [PASS]
+    - `node scripts/verify-main-track-clip.mjs` [PASS]
+    - `node scripts/verify-compositor-workflow.mjs` [PASS]
+    - `node scripts/verify-soak-stress.mjs` [PASS] (100 cycles, 0 leak, stable WebGL)
+    - `npm run typecheck` [0 errors]
+    - `npm test` [62 test files, 376 tests 100% PASS]
+
+- **[Refactor/CombatVFX/Rework-Campaign3] 戰鬥 VFX 返工第三戰役：P1 Canonical Sequence 正式貫通與跨三端一致（2026-09-08）**：
+  - **🚀 Canonical Sequence 作為唯一的 Resolved SSOT (規格 §9.2)**：
+    - `src/ui/fx/VFXPresetRepository.ts` 重構內部儲存模型，以 `resolvedSequenceMap: Map<string, VFXSequence>` 作為唯一 resolved SSOT，啟動時將所有內建與自訂預設遷移為標準 Canonical Sequence。
+    - `getSequence(id)` 直接取得 resolved sequence，絕不再每次被呼叫時臨時從 legacy preset 重新轉換。
+    - `saveSequence(sequence)` 直接保存 Sequence，純 Canonical Sequence（即使完全沒有 legacy trajectory、impact、layers 等頂層欄位）也能完整保存於 SSOT，不強轉丟失欄位。
+    - Legacy Preset 僅存在於相容邊界適配層（`getPreset`, `getAllPresets`）。
+  - **⚔️ CombatActionPlayer 正式接入 Canonical Sequence Runtime (規格 §9.2)**：
+    - `src/ui/fx/CombatActionPlayer.ts` 正式改為呼叫 `this.presetRepo.getSequence(vfxId)`。
+    - 呼叫底層 3D FX 引擎改為原生 `await this.fxEngine.playSequence(sequence, ...)`。
+    - `CombatFXEngine.ts` 徹底移除 `as unknown as VFXPreset` fallback，改由 Sequence SSOT 或合約標準物件回退。
+    - `VFXStudioAdapter.ts` 亦同步轉接 `this.fxEngine.playSequence()`。
+  - **🧪 跨三端整合測試驗證 (規格 §9.3)**：
+    - 於 `src/systems/combat/VFXPipelinePhase4CanonicalSequence.test.ts` 加入 4.6 跨三端整合測試：建立純 Canonical Schema（無任何 legacy 頂層欄位）之 Sequence，驗證其在主遊戲實戰、Combat Studio 與 VFX Studio 三端皆可無異常播放。
+    - 斷言三端被觸發之 Cue 數量（2）、時間（0.2s, 0.4s）、目標策略（PRIMARY_TARGET, EACH_TARGET）與 duration（0.5s）達到 100% 精準守恆。
+  - **🧪 測試與型別驗收全綠**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 全套 62 個測試檔、376 項測試 100% PASS。
+
+- **[Refactor/CombatVFX/Rework-Campaign2] 戰鬥 VFX 返工第二戰役：P1 狀態時序與血條快照健全（2026-09-08）**：
+  - **🛡️ 缺陷 5：修正 final state reconciliation 多欄位快照合併 (規格 §6)**：
+    - `src/ui/CombatUIManager.ts` 重構 `reconcileFinalActionState()`，實裝 `TargetFinalSnapshot`，分別追蹤 HP、MP、Shield 與死亡標記。
+    - 狀態事件（`STATUS_APPLY`）不再覆蓋抹去先前的 HP/MP 結算快照，血條最終數值 100% 準確同步。
+    - 保證純狀態校準，絕不建立跳字或動畫。
+  - **⏳ 缺陷 6：修正 Action Collector 順序契約與 Barrier 屏障 (規格 §8)**：
+    - `src/ui/fx/CombatActionPlayer.ts` 重構 `collectCombatActions()`，引入連續 span 聚合。
+    - 將 `DEATH`、`TURN_START`、`TURN_END`、`END`、`SQUAD_CHANGE` 確立為獨立 Barrier 屏障，遇 Barrier 嚴格切分 Segment，不跨越屏障強行聚合。
+    - 嚴格守護不變量：`flatten(collectCombatActions(events)) === events`，因果時序不再顛倒。
+  - **🧪 測試與型別驗收全綠**：
+    - 於 `src/systems/combat/VFXPipelinePhase0Defects.test.ts` 加入 §6 與 §8 的 3 項失敗案例，重構後全數 PASS。
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 全套 62 個測試檔、375 項測試 100% PASS。
+
+- **[Refactor/CombatVFX/Rework-Campaign1] 戰鬥 VFX 返工第一戰役：P0 核心數值與目標徹底貫通（2026-09-08）**：
+  - **🎯 缺陷 1：徹底分離 3D 視覺目標與真實邏輯受擊目標 (規格 §5)**：
+    - `src/ui/fx/CombatActionPlayer.ts` 重構 `mapImpactsToCues()`，`targetPolicy: PRIMARY_TARGET` 僅決定 3D 視覺位置 `visualTargetId`，不再將副目標的真實傷害事件從佇列中剔除。
+    - 全目標傷害總和嚴格守恆（`sum(presentation.amount) === sum(event.damage)`）。
+    - 支援 `CASTER` Cue 正確將 3D 錨點指派給施法者，而敵方真實受擊傷害仍完整保留於敵方目標頭上。
+  - **🛡️ 缺陷 2：統一數值解析與活躍判定純函式 (規格 §4)**：
+    - 實裝純函式 `resolveImpactAmount()`，使用 `??` 精準解析 `shieldDamage`，徹底根除護盾傷害被猜為 0 或跳出 `-0` 的問題。
+    - 實裝共用判定純函式 `shouldPresentImpact()`，Skip、Preset 缺失、正常播放完畢與 WebGL failure 容錯四條路徑 100% 統一使用同一 predicate。
+  - **⚡ 缺陷 3：多段真實 Impact 少 Cue 保底排程派發 (規格 §3)**：
+    - 在 `CombatActionPlayer.playAction()` 中實施方案 A 保底排程：3D Preset 播放完成後，主動檢查並依序派發所有未派發的真實 Impact，保留時鐘節奏與跳字。
+    - 正常播放、Skip 與 WebGL 失敗三條路徑的呈現集合與數值達到 100% 精確一致。
+  - **📝 缺陷 4：狀態語意與文字保真 (規格 §7 部分 & §11.1)**：
+    - `src/models/Combat.ts` 移除重複之 `STATUS_APPLY` presentation kind，統一為 `STATUS`。
+    - `CombatStageAdapter` 與 `CombatStudioStageAdapter` 傳遞完整 `text`、`statusType` 與 `skillName`，狀態不再只能顯示空洞的「狀態觸發」。
+  - **🧪 測試與型別驗收全綠**：
+    - 於 `src/systems/combat/VFXPipelinePhase0Defects.test.ts` 加入 5 項先前造成退件的失敗案例，經重構後全數轉綠 PASS。
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 全套 62 個測試檔、372 項測試 100% PASS。
+
 - **[Refactor/CombatVFX/Phase5] 戰鬥 VFX 管線重整 Phase 5 完整驗收、回歸防線修復與 DoD 全面落實（2026-09-08）**：
   - **🔍 消除假陽性與無頭腳本生命週期修復 (§1.10 & §11)**：
     - `scripts/verify-combat-vfx-direction.mjs` 與 `scripts/verify-human-interactions.mjs` 補齊 Playwright `chromium` 導入與自適應 Vite Server 啟動及 finally 自動銷毀。

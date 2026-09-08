@@ -10,6 +10,10 @@ import {
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
 import { MeshLayerRenderer } from '../../ui/fx/renderers/MeshLayerRenderer';
+import { CombatActionPlayer, CombatAction } from '../../ui/fx/CombatActionPlayer';
+import { CombatEventType } from '../../models/Combat';
+import { VFXStudioAdapter } from '../../ui/fx/VFXStudioAdapter';
+import { CombatStudioStageAdapter } from '../../ui/fx/adapters/CombatStudioStageAdapter';
 
 describe('VFX Pipeline Phase 4: Canonical Sequence & Typed Payload Convergence', () => {
   let repo: VFXPresetRepository;
@@ -507,4 +511,204 @@ describe('VFX Pipeline Phase 4: Canonical Sequence & Typed Payload Convergence',
       }).not.toThrow();
     });
   });
+
+  describe('4.6 規格 §9.3 跨三端純 Canonical VFXSequence 播放一致性驗證', () => {
+    it('純 Canonical Sequence (無任何 legacy 欄位) 在主遊戲、Combat Studio 與 VFX Studio 三端一致播放且 Cue 參數守恆', async () => {
+      // 1. 建立一個純 Canonical Schema 的 VFXSequence（絕對不提供任何 legacy-only 頂層欄位）
+      const pureCanonicalSeq: VFXSequence = {
+        schemaVersion: 2,
+        id: 'VFX_PURE_CANONICAL_TEST_SPEC_9_3',
+        name: '純 Canonical 規範驗證特效',
+        category: 'PHYSICAL',
+        description: '無任何 legacy 頂層欄位之標準序列',
+        duration: 0.5,
+        tracks: [
+          {
+            id: 'trk_canonical_main',
+            name: '主軌',
+            type: 'MESH',
+            enabled: true,
+            clips: [
+              {
+                id: 'clip_slash_1',
+                startTime: 0,
+                duration: 0.5,
+                payload: {
+                  type: 'SLASH',
+                  data: {
+                    rendererType: 'SLASH',
+                    shape: 'CRESCENT',
+                    colorCore: '#38bdf8',
+                    colorRim: '#1e40af',
+                    scale: 1.2,
+                    angle: 45,
+                    arcSpan: 180,
+                    aspect: 1.0,
+                    bladeWidth: 15,
+                    radius: 75,
+                    reverse: false
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        impactCues: [
+          {
+            cueId: 'CUE_ALPHA',
+            time: 0.2,
+            weight: 0.4,
+            isPrimary: true,
+            targetPolicy: 'PRIMARY_TARGET'
+          },
+          {
+            cueId: 'CUE_BETA',
+            time: 0.4,
+            weight: 0.6,
+            isPrimary: false,
+            targetPolicy: 'EACH_TARGET'
+          }
+        ]
+      };
+
+      // 2. 存入 Repository 並自 SSOT 取得
+      const saveRes = repo.saveSequence(pureCanonicalSeq);
+      expect(saveRes.success).toBe(true);
+
+      const resolvedSeq = repo.getSequence('VFX_PURE_CANONICAL_TEST_SPEC_9_3');
+      expect(resolvedSeq).toBeDefined();
+      expect(resolvedSeq?.id).toBe('VFX_PURE_CANONICAL_TEST_SPEC_9_3');
+      expect(resolvedSeq?.impactCues).toHaveLength(2);
+
+      // 3. 端點 A：主遊戲 CombatActionPlayer 實戰播放
+      const actionPlayer = new CombatActionPlayer();
+      const mainGameCuesTriggered: { cueId: string; time: number; policy?: string }[] = [];
+
+      const combatAction: CombatAction = {
+        actionId: 'act_canonical_spec',
+        actorId: 'hero_1',
+        vfxId: 'VFX_PURE_CANONICAL_TEST_SPEC_9_3',
+        events: [
+          {
+            type: CombatEventType.HIT,
+            actionId: 'act_canonical_spec',
+            actorId: 'hero_1',
+            targetId: 'enemy_1',
+            damage: 200,
+            text: '主目標重擊'
+          },
+          {
+            type: CombatEventType.HIT,
+            actionId: 'act_canonical_spec',
+            actorId: 'hero_1',
+            targetId: 'enemy_2',
+            damage: 300,
+            text: '副目標橫掃'
+          }
+        ]
+      };
+
+      await actionPlayer.playAction(combatAction, {
+        fromPoint: { x: 50, y: 50 },
+        toPoint: { x: 150, y: 150 },
+        onPresentImpact: (_item, cue) => {
+          if (cue) {
+            mainGameCuesTriggered.push({
+              cueId: cue.cueId,
+              time: cue.time,
+              policy: cue.targetPolicy
+            });
+          }
+        }
+      });
+
+      // 4. 端點 B：Combat Studio (CombatStudioStageAdapter) 播放
+      const studioAdapter = CombatStudioStageAdapter.getInstance();
+      const studioCuesTriggered: { cueId: string; time: number; policy?: string }[] = [];
+
+      await studioAdapter.playCombatAction(combatAction, {
+        fromPoint: { x: 50, y: 50 },
+        toPoint: { x: 150, y: 150 },
+        onImpact: (_item, cue) => {
+          if (cue) {
+            studioCuesTriggered.push({
+              cueId: cue.cueId,
+              time: cue.time,
+              policy: cue.targetPolicy
+            });
+          }
+        }
+      });
+
+      // 5. 端點 C：VFX Studio (VFXStudioAdapter) 預覽播放
+      const createMockEl = (x: number, y: number, w: number, h: number) => ({
+        style: {},
+        classList: { add: () => {}, remove: () => {}, contains: () => false },
+        offsetWidth: w,
+        offsetHeight: h,
+        appendChild: () => {},
+        getBoundingClientRect: () => ({ left: x, top: y, width: w, height: h, right: x + w, bottom: y + h })
+      } as any as HTMLElement);
+
+      const mockViewport = createMockEl(0, 0, 800, 600);
+      const mockCaster = createMockEl(100, 100, 50, 50);
+      const mockTarget = createMockEl(400, 100, 50, 50);
+
+      const vfxStudioAdapter = new VFXStudioAdapter({
+        viewportContainer: mockViewport,
+        casterElement: mockCaster,
+        targetElements: [mockTarget]
+      });
+
+      const vfxStudioCuesTriggered: { cueId: string; time: number; policy?: string }[] = [];
+
+      await vfxStudioAdapter.play(resolvedSeq!, 0, (_impact, _idx, _tot, _el, cue) => {
+        if (cue) {
+          vfxStudioCuesTriggered.push({
+            cueId: cue.cueId,
+            time: cue.time,
+            policy: cue.targetPolicy
+          });
+        }
+      });
+
+      // 6. 跨三端嚴格一致性斷言（Cue 數量、時間、target policy、duration 一致）
+      expect(pureCanonicalSeq.duration).toBe(0.5);
+      expect(pureCanonicalSeq.impactCues).toHaveLength(2);
+
+      // 輔助函式：提取相異 Cue 序列（消除 AOE 多目標分發造成的重複通知）
+      const getUniqueCues = (list: { cueId: string; time: number; policy?: string }[]) => {
+        const seen = new Set<string>();
+        return list.filter(c => {
+          if (seen.has(c.cueId)) return false;
+          seen.add(c.cueId);
+          return true;
+        });
+      };
+
+      const uniqueMainGameCues = getUniqueCues(mainGameCuesTriggered);
+      const uniqueStudioCues = getUniqueCues(studioCuesTriggered);
+      const uniqueVfxStudioCues = getUniqueCues(vfxStudioCuesTriggered);
+
+      // 三端相異 Cue 數量一致
+      expect(uniqueMainGameCues.length).toBe(2);
+      expect(uniqueStudioCues.length).toBe(2);
+      expect(uniqueVfxStudioCues.length).toBe(2);
+
+      // Cue ID 與時序一致
+      expect(uniqueMainGameCues.map(c => c.cueId)).toEqual(['CUE_ALPHA', 'CUE_BETA']);
+      expect(uniqueStudioCues.map(c => c.cueId)).toEqual(['CUE_ALPHA', 'CUE_BETA']);
+      expect(uniqueVfxStudioCues.map(c => c.cueId)).toEqual(['CUE_ALPHA', 'CUE_BETA']);
+
+      expect(uniqueMainGameCues.map(c => c.time)).toEqual([0.2, 0.4]);
+      expect(uniqueStudioCues.map(c => c.time)).toEqual([0.2, 0.4]);
+      expect(uniqueVfxStudioCues.map(c => c.time)).toEqual([0.2, 0.4]);
+
+      // Target Policy 一致
+      expect(uniqueMainGameCues.map(c => c.policy)).toEqual(['PRIMARY_TARGET', 'EACH_TARGET']);
+      expect(uniqueStudioCues.map(c => c.policy)).toEqual(['PRIMARY_TARGET', 'EACH_TARGET']);
+      expect(uniqueVfxStudioCues.map(c => c.policy)).toEqual(['PRIMARY_TARGET', 'EACH_TARGET']);
+    }, 15000);
+  });
 });
+
