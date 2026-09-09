@@ -161,7 +161,10 @@ export const INSPECTOR_CONTROL_MAP: ControlConfig[] = [
   // 4. ⚔️ 斬擊走向與形態 (Slash Section)
   { id: 'param-slash-traj', key: 'slashTrajectory', type: 'select', defaultVal: 'CLEAVE_DOWN', capability: 'SLASH_GEOMETRY' },
   { id: 'param-slash-shape', key: 'slashShape', type: 'select', defaultVal: 'CRESCENT', capability: 'SLASH_GEOMETRY' },
-  { id: 'param-slash-angle', labelId: 'val-slash-angle', key: 'slashAngle', type: 'range', unit: '°', defaultVal: -45, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-rot-x', labelId: 'val-slash-rot-x', key: 'slashRotX', type: 'range', unit: '°', defaultVal: 0, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-rot-y', labelId: 'val-slash-rot-y', key: 'slashRotY', type: 'range', unit: '°', defaultVal: 0, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-rot-z', labelId: 'val-slash-rot-z', key: 'slashRotZ', type: 'range', unit: '°', defaultVal: -45, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-slash-angle', key: 'slashAngle', type: 'range', unit: '°', defaultVal: -45, capability: 'SLASH_GEOMETRY' },
   { id: 'param-slash-arc-span', labelId: 'val-slash-arc-span', key: 'slashArcSpan', type: 'range', unit: '°', defaultVal: 120, capability: 'SLASH_GEOMETRY' },
   { id: 'param-slash-aspect', labelId: 'val-slash-aspect', key: 'slashAspect', type: 'range', unit: 'x', defaultVal: 1.0, capability: 'SLASH_GEOMETRY' },
   { id: 'param-slash-width', labelId: 'val-slash-width', key: 'slashBladeWidth', type: 'range', unit: 'px', defaultVal: 10, capability: 'SLASH_GEOMETRY' },
@@ -301,6 +304,10 @@ export class VFXInspector {
             const cur = this.store.getPreset();
             const casterMotion = { ...(cur.casterMotion || {}), [c.key]: val };
             this.store.updateConfig({ casterMotion }, false);
+          } else if (c.id === 'param-slash-rot-z') {
+            this.store.updateConfig({ slashRotZ: val, slashAngle: val }, false);
+          } else if (c.id === 'param-slash-angle') {
+            this.store.updateConfig({ slashAngle: val, slashRotZ: val }, false);
           } else {
             this.store.updateConfig({ [c.key]: val }, false);
           }
@@ -315,6 +322,39 @@ export class VFXInspector {
             const cur = this.store.getPreset();
             const impact = { ...(cur.impact || {}), wavePlane: val };
             this.store.updateConfig({ wavePlane: val as any, impact }, false);
+          } else if (c.id === 'param-slash-traj') {
+            const updates: Partial<VFXPreset> = { slashTrajectory: val as any };
+            if (val === 'CLEAVE_DOWN') {
+              updates.slashAngle = -45;
+              updates.slashRotX = 0;
+              updates.slashRotY = 0;
+              updates.slashRotZ = -45;
+              updates.slashArcSpan = 120;
+              updates.slashReverse = false;
+            } else if (val === 'UPPER_CUT') {
+              updates.slashAngle = 135;
+              updates.slashRotX = 0;
+              updates.slashRotY = 0;
+              updates.slashRotZ = 135;
+              updates.slashArcSpan = 110;
+              updates.slashReverse = true;
+            } else if (val === 'HORIZONTAL') {
+              updates.slashAngle = -15;
+              updates.slashRotX = 0;
+              updates.slashRotY = 0;
+              updates.slashRotZ = -15;
+              updates.slashArcSpan = 140;
+              updates.slashReverse = false;
+            } else if (val === 'VERTICAL_DOWN') {
+              updates.slashAngle = 90;
+              updates.slashRotX = 0;
+              updates.slashRotY = 0;
+              updates.slashRotZ = 90;
+              updates.slashArcSpan = 130;
+              updates.slashReverse = false;
+            }
+            this.store.updateConfig(updates, false);
+            this.syncUI(this.store.getPreset());
           } else if (c.id === 'param-trajectory') {
             const anchor = getTrajectorySpatialAnchor(val);
             const spatialMode = anchor === 'TRAJECTORY' ? 'TRAJECTORY' : anchor;

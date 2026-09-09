@@ -298,8 +298,11 @@ export class CombatSystem {
         gridR: p.gridR,
         gridC: p.gridC,
         maxHp: p.maxHp,
+        currentHp: p.currentHp,
         maxMp: maxMp,
         currentMp: p.currentMp ?? maxMp,
+        shieldMaxHp: p.shieldMaxHp,
+        shieldCurrentHp: p.shieldCurrentHp,
         avatarIndex: adv?.avatarIndex ?? 0,
         avatarIcon: (adv as any)?.avatarIcon,
         gender: adv?.gender,
@@ -475,8 +478,11 @@ export class CombatSystem {
           gridR: e.gridR,
           gridC: e.gridC,
           maxHp: e.maxHp,
+          currentHp: e.currentHp,
           maxMp: e.maxMp || 50,
           currentMp: e.currentMp || 50,
+          shieldMaxHp: e.shieldMaxHp,
+          shieldCurrentHp: e.shieldCurrentHp,
           avatarIcon: e.avatarIcon
         })),
         text: `--- 第 ${wave} 波戰鬥開始！遭遇了 ${enemyCount} 名敵人。 ---` 

@@ -38,8 +38,19 @@
         </div>
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row"><span class="param-label">起手起始角</span><span id="val-slash-angle" class="param-value">-45°</span></div>
-            <div class="param-control"><input type="range" id="param-slash-angle" class="param-slider" min="-180" max="180" step="5" value="-45"></div>
+            <div class="param-label-row"><span class="param-label">X 旋轉 (俯仰)</span><span id="val-slash-rot-x" class="param-value">0°</span></div>
+            <div class="param-control"><input type="range" id="param-slash-rot-x" class="param-slider" min="-90" max="90" step="5" value="0"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">Y 旋轉 (偏航)</span><span id="val-slash-rot-y" class="param-value">0°</span></div>
+            <div class="param-control"><input type="range" id="param-slash-rot-y" class="param-slider" min="-90" max="90" step="5" value="0"></div>
+          </div>
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">Z 旋轉 (滾轉/平面角)</span><span id="val-slash-rot-z" class="param-value">-45°</span></div>
+            <div class="param-control"><input type="range" id="param-slash-rot-z" class="param-slider" min="-180" max="180" step="5" value="-45"></div>
+            <input type="hidden" id="param-slash-angle" value="-45">
           </div>
           <div class="param-col">
             <div class="param-label-row"><span class="param-label">揮斬跨度</span><span id="val-slash-arc-span" class="param-value">120°</span></div>

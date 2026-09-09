@@ -186,6 +186,12 @@ export class CombatStageAdapter {
       fromPoint: fromPt,
       toPoint: toPt,
       skipVfx: skip,
+      resolveVisualPoint: (targetId) => this.getUnitPoint(
+        targetId,
+        targetId === action.actorId
+          ? (isAttackerPlayer ? 'player' : 'enemy')
+          : (isAttackerPlayer ? 'enemy' : 'player')
+      ),
       onPresentImpact: (item: CombatImpactPresentation, cue?: VFXImpactCue) => {
         const targetEl = this.findCardElement(item.targetId) || defaultTargetEl;
         const dummyEv: CombatEvent = {
@@ -213,14 +219,6 @@ export class CombatStageAdapter {
           cue,
           item
         );
-
-        // 🌟 Phase 4：多目標 AOE 隔離反饋，為各受擊目標派發獨立 3D 受擊打擊火花
-        if (!skip && item.targetId && item.targetId !== mainTargetId) {
-          const fxEngine = CombatFXEngine.getInstance();
-          const targetPt = this.getUnitPoint(item.targetId, isAttackerPlayer ? 'enemy' : 'player');
-          const targetWorld = fxEngine.screenToWorld(targetPt);
-          fxEngine.playCueSparks(targetWorld, preset?.colorCore || '#f59e0b', 12);
-        }
 
         options?.onImpact?.(item, cue);
       },

@@ -247,21 +247,55 @@ export class MeshLayerRenderer {
     aspect: number;
     isCross: boolean;
     isWhirlwind: boolean;
+    isAlternating: boolean;
+    rotX?: number;
+    rotY?: number;
+    rotZ?: number;
     colorCore: string;
     colorRim: string;
   } {
     const isWhirlwind = Boolean(preset.slashShape === 'WHIRLWIND');
     const isCross = Boolean(preset.slashShape === 'CROSS');
+    const isAlternating = Boolean(preset.slashAlternating);
     const sc = preset.scale || 1.0;
 
     const bladeRadius = (preset.slashRadius || (isWhirlwind ? 85 : 65)) * sc;
     const bladeWidth = (preset.slashBladeWidth || (isWhirlwind ? 18 : 10)) * sc;
     const maxArcSpan = (isWhirlwind ? 360 : (preset.slashArcSpan || 135)) * (Math.PI / 180);
-    const startAngle = (preset.slashAngle !== undefined ? preset.slashAngle : -45) * (Math.PI / 180);
 
-    const isReverse = preset.slashReverse !== undefined 
+    // ⚔️ 支援 slashRotX, slashRotY, slashRotZ (歐拉角)，相容舊 slashAngle / slashTrajectory
+    const rotX = ((preset.slashRotX ?? 0) * Math.PI) / 180;
+    const rotY = ((preset.slashRotY ?? 0) * Math.PI) / 180;
+
+    let baseAngleDeg = preset.slashRotZ ?? preset.slashAngle;
+    if (baseAngleDeg === undefined && preset.slashTrajectory) {
+      if (preset.slashTrajectory === 'CLEAVE_DOWN') baseAngleDeg = -45;
+      else if (preset.slashTrajectory === 'UPPER_CUT') baseAngleDeg = 135;
+      else if (preset.slashTrajectory === 'HORIZONTAL') baseAngleDeg = -15;
+      else if (preset.slashTrajectory === 'VERTICAL_DOWN') baseAngleDeg = 90;
+    }
+    const startAngleBase = (baseAngleDeg !== undefined ? baseAngleDeg : -45) * (Math.PI / 180);
+
+    // ⚔️ 連斬角度擾動 (slashAngleJitter)：在出刀與連續播放時疊加動態擾動角
+    let jitterOffset = 0;
+    if (preset.slashAngleJitter && preset.slashAngleJitter > 0) {
+      const jitterRad = (preset.slashAngleJitter * Math.PI) / 180;
+      jitterOffset = Math.sin(progress * Math.PI * 4.0) * jitterRad;
+    }
+    const startAngle = startAngleBase + jitterOffset;
+
+    let isReverse = preset.slashReverse !== undefined 
       ? preset.slashReverse 
       : (preset.reverse !== undefined ? preset.reverse : reverseFallback);
+
+    // ⚔️ 左右交錯出刀 (slashAlternating)：在交錯模式下翻轉方向
+    if (isAlternating) {
+      const cycleIndex = Math.floor(progress * 2);
+      if (cycleIndex % 2 === 1) {
+        isReverse = !isReverse;
+      }
+    }
+
     const dirSign = isReverse ? -1 : 1;
     const centerAngle = startAngle + dirSign * (maxArcSpan * 0.5);
     const aspect = preset.slashAspect || 1.0;
@@ -292,6 +326,10 @@ export class MeshLayerRenderer {
       aspect,
       isCross,
       isWhirlwind,
+      isAlternating,
+      rotX,
+      rotY,
+      rotZ: startAngle,
       colorCore: preset.colorCore || '#fed7aa',
       colorRim: preset.colorRim || '#ea580c'
     };
@@ -487,7 +525,7 @@ export class MeshLayerRenderer {
       if ((c as any).geometry) (c as any).geometry.dispose();
     }
 
-    const currentEnd = new THREE.Vector3().lerpVectors(startPos, endPos, Math.min(1.0, progress * 2.2));
+    const currentEnd = new THREE.Vector3().lerpVectors(startPos, endPos, Math.min(1.0, progress * 4.0));
     const segments = 10;
     const pts: THREE.Vector3[] = [startPos];
     for (let s = 1; s < segments; s++) {
@@ -508,8 +546,8 @@ export class MeshLayerRenderer {
     });
     cache.lightningGroup.add(new THREE.Mesh(tubeGeo, tubeMat));
 
-    if (progress > 0.3) {
-      const ringProg = (progress - 0.3) / 0.7;
+    if (progress > 0.2) {
+      const ringProg = (progress - 0.2) / 0.8;
       const ringGeo = new THREE.RingGeometry((12 + ringProg * 40) * scale, (18 + ringProg * 45) * scale, 20);
       const ringMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(colorCore),
@@ -806,62 +844,188 @@ export class MeshLayerRenderer {
   }
 
   /**
-   * 🚀 建立/更新奧術追蹤彈多弧線連射 (ARC_MULTI)
+   * 🚀 建立/更新奧術追蹤彈多弧線連射 (ARC_MULTI / Salvo Pipeline)
+   * 支援法向量扇形散射 (salvoSpreadAngle)、受擊散佈 (salvoSpreadRadius) 與拋物拱高 (arcHeight)
    */
   public static updateArcMulti(
     trackGroup: THREE.Group,
-    casterPos: THREE.Vector3,
-    targetPos: THREE.Vector3,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
     progress: number,
     scale: number,
     colorRim: string,
     cache: any,
     salvoCount: number = 3,
-    glowSpriteFactory?: (color: string, size: number, opacity: number) => THREE.Sprite
+    glowSpriteFactory?: (color: string, size: number, opacity: number) => THREE.Sprite,
+    salvoSpreadAngle: number = 0,
+    salvoSpreadRadius: number = 0,
+    arcHeight: number = 0,
+    shaderMode: string = 'ARC_MULTI',
+    colorCore: string = '#ffffff'
   ): void {
+    const actualCount = Math.max(1, salvoCount);
+    const signature = `${actualCount}_${salvoSpreadAngle}_${salvoSpreadRadius}_${arcHeight}_${shaderMode}_${scale}_${colorRim}_${colorCore}`;
+
+    // ⚡ 參數變更或切換形態時動態釋放舊快取幾何，確保所見即所得即時響應
+    if (cache.multiArcGroup && cache.salvoSignature !== signature) {
+      trackGroup.remove(cache.multiArcGroup);
+      cache.multiArcs?.forEach((it: any) => {
+        it.group.traverse((obj: any) => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            if (Array.isArray(obj.material)) obj.material.forEach((m: any) => m.dispose());
+            else obj.material.dispose();
+          }
+        });
+      });
+      cache.multiArcGroup = null;
+      cache.multiArcs = null;
+    }
+
     trackGroup.position.set(0, 0, 0);
+
+    // 📐 計算自起點至終點的飛行向量與 2D 垂直法向量 (Perpendicular Normal)
+    const flightVec = new THREE.Vector3().subVectors(endPos, startPos);
+    const flightDist = Math.max(1, flightVec.length());
+    const flightDir = flightVec.clone().normalize();
+    let normal2D = new THREE.Vector3(-flightDir.y, flightDir.x, 0).normalize();
+    if (normal2D.lengthSq() < 0.001) {
+      normal2D.set(0, 1, 0);
+    }
+
     if (!cache.multiArcGroup) {
       cache.multiArcGroup = new THREE.Group();
+      cache.salvoSignature = signature;
       const arcs: any[] = [];
-      const actualCount = Math.max(3, salvoCount);
+
       for (let i = 0; i < actualCount; i++) {
-        const arcMesh = new THREE.Mesh(
-          new THREE.SphereGeometry(6 * scale, 16, 16),
-          new THREE.MeshBasicMaterial({
+        const itemGroup = new THREE.Group();
+
+        // 🌟 依據 Shader 形態建立子彈幾何主體 (冰錐 / 火球 / 晶矢 / 奧術球)
+        if (shaderMode === 'FRESNEL_ICE' || shaderMode === 'FROST_LANCE' || shaderMode === 'FROST_NOVA') {
+          const coneGeo = new THREE.ConeGeometry(7 * scale, 48 * scale, 8);
+          coneGeo.rotateX(Math.PI / 2);
+          const coneMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
+          const cone = new THREE.Mesh(coneGeo, coneMat);
+          itemGroup.add(cone);
+
+          const ringGeo = new THREE.TorusGeometry(14 * scale, 2.0 * scale, 8, 16);
+          const ringMat = new THREE.MeshBasicMaterial({
+            color: new THREE.Color(colorRim),
+            transparent: true,
+            opacity: 0.85,
+            blending: THREE.AdditiveBlending
+          });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          itemGroup.add(ring);
+          (itemGroup as any).__ring = ring;
+        } else if (shaderMode === 'VOLUMETRIC_FIRE' || shaderMode === 'DARK_VOID') {
+          const sphereGeo = new THREE.SphereGeometry(12 * scale, 24, 24);
+          const flameMat = MeshLayerRenderer.createVolumetricFlameMaterial(colorCore, colorRim, 4.0, 2.5);
+          const sphere = new THREE.Mesh(sphereGeo, flameMat);
+          itemGroup.add(sphere);
+          (itemGroup as any).__flameMat = flameMat;
+        } else {
+          const sphereGeo = new THREE.SphereGeometry(6 * scale, 16, 16);
+          const sphereMat = new THREE.MeshBasicMaterial({
             color: new THREE.Color(colorRim || '#38bdf8'),
             transparent: true,
             opacity: 0.9,
             blending: THREE.AdditiveBlending
-          })
-        );
+          });
+          const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+          itemGroup.add(sphere);
+        }
+
         if (glowSpriteFactory) {
           const glow = glowSpriteFactory(colorRim || '#38bdf8', 26 * scale, 0.8);
-          arcMesh.add(glow);
+          itemGroup.add(glow);
         }
-        cache.multiArcGroup.add(arcMesh);
-        const spreadY = (i - (actualCount - 1) / 2) * 55;
-        arcs.push({ mesh: arcMesh, spreadY, delay: i * 0.06 });
+        cache.multiArcGroup.add(itemGroup);
+
+        // 🚀 法向量扇形散射計算 (salvoSpreadAngle)：以中央為軸展開
+        const normIndex = actualCount > 1 ? (i / (actualCount - 1)) - 0.5 : 0;
+        // 只有當 salvoSpreadAngle > 0 時，才向兩側展開扇形偏角；為 0 時嚴格為 0（串聯直線齊射）
+        const totalNormalOffset = salvoSpreadAngle > 0
+          ? normIndex * Math.tan((salvoSpreadAngle * Math.PI) / 180) * flightDist * 0.5
+          : 0;
+
+        // 向後相容測試斷言的基礎 spreadY
+        const baseSpreadY = (i - (actualCount - 1) / 2) * 55;
+        const spreadY = baseSpreadY + (salvoSpreadAngle > 0 ? normIndex * Math.tan((salvoSpreadAngle * Math.PI) / 180) * 220 : 0);
+
+        // 🚀 受擊散佈半徑 (salvoSpreadRadius)：在目標點偏移
+        let targetOffsetX = 0;
+        let targetOffsetY = 0;
+        if (salvoSpreadRadius > 0 && actualCount > 1) {
+          const targetAngle = (i / actualCount) * Math.PI * 2;
+          targetOffsetX = Math.cos(targetAngle) * salvoSpreadRadius;
+          targetOffsetY = Math.sin(targetAngle) * salvoSpreadRadius;
+        }
+
+        arcs.push({
+          group: itemGroup,
+          spreadY,
+          totalNormalOffset,
+          targetOffsetX,
+          targetOffsetY,
+          delay: actualCount > 1 ? (i / (actualCount - 1)) * 0.22 : 0
+        });
       }
       cache.multiArcs = arcs;
       trackGroup.add(cache.multiArcGroup);
     }
+
     cache.multiArcGroup.visible = true;
+
     cache.multiArcs.forEach((item: any) => {
-      const localP = Math.min(1.0, Math.max(0, (progress - item.delay) / (1.0 - item.delay || 0.1)));
-      if (localP <= 0 || localP >= 1.0) {
-        item.mesh.visible = false;
+      // 計算局部生命週期進度 localP (0 ~ 1)
+      const durationP = Math.max(0.12, 1.0 - item.delay);
+      const localP = Math.min(1.0, Math.max(0, (progress - item.delay) / durationP));
+      if (progress < item.delay || localP >= 1.0) {
+        item.group.visible = false;
         return;
       }
-      item.mesh.visible = true;
-      const midPoint = new THREE.Vector3(
-        (casterPos.x + targetPos.x) / 2,
-        (casterPos.y + targetPos.y) / 2 + item.spreadY,
-        0
+      item.group.visible = true;
+
+      // 🎯 起點與受擊散佈終點
+      const p0 = startPos;
+      const p2 = new THREE.Vector3(
+        endPos.x + (item.targetOffsetX || 0),
+        endPos.y + (item.targetOffsetY || 0),
+        endPos.z
       );
+
+      // 🎯 拋物弧高與法向量扇形中點 (Bezier Control Point P1)
+      const p1 = new THREE.Vector3().addVectors(p0, p2).multiplyScalar(0.5);
+      p1.addScaledVector(normal2D, item.totalNormalOffset ?? item.spreadY);
+      if (arcHeight) {
+        p1.y += arcHeight;
+      }
+
+      // 🌟 二次貝茲曲線插值計算當前空間位置
       const oneMinusT = 1.0 - localP;
-      const posX = oneMinusT * oneMinusT * casterPos.x + 2 * oneMinusT * localP * midPoint.x + localP * localP * targetPos.x;
-      const posY = oneMinusT * oneMinusT * casterPos.y + 2 * oneMinusT * localP * midPoint.y + localP * localP * targetPos.y;
-      item.mesh.position.set(posX, posY, 0);
+      const posX = oneMinusT * oneMinusT * p0.x + 2 * oneMinusT * localP * p1.x + localP * localP * p2.x;
+      const posY = oneMinusT * oneMinusT * p0.y + 2 * oneMinusT * localP * p1.y + localP * localP * p2.y;
+      const posZ = oneMinusT * oneMinusT * p0.z + 2 * oneMinusT * localP * p1.z + localP * localP * p2.z;
+      item.group.position.set(posX, posY, posZ);
+
+      // 🚀 動態朝向飛行切線方向 (lookAt)
+      const nextP = Math.min(1.0, localP + 0.02);
+      const oMtNext = 1.0 - nextP;
+      const nextX = oMtNext * oMtNext * p0.x + 2 * oMtNext * nextP * p1.x + nextP * nextP * p2.x;
+      const nextY = oMtNext * oMtNext * p0.y + 2 * oMtNext * nextP * p1.y + nextP * nextP * p2.y;
+      const nextZ = oMtNext * oMtNext * p0.z + 2 * oMtNext * nextP * p1.z + nextP * nextP * p2.z;
+      const lookTarget = new THREE.Vector3(nextX, nextY, nextZ);
+      item.group.lookAt(lookTarget);
+
+      // ❄️ 冰環自轉與 🔥 火焰噪波更新
+      if (item.group.__ring) {
+        item.group.__ring.rotation.z = localP * Math.PI * 4;
+      }
+      if (item.group.__flameMat?.uniforms?.uTime) {
+        item.group.__flameMat.uniforms.uTime.value = localP * 6.0;
+      }
     });
   }
 

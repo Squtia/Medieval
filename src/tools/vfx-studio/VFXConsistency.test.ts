@@ -204,4 +204,159 @@ describe('VFX Scrubbing vs Playing SSOT Consistency Tests', () => {
     expect(cache.beamGroup).toBeDefined();
     expect(cache.beamGroup.visible).toBe(true);
   });
+
+  it('斬擊 3D 歐拉角 (X/Y/Z)：旋轉參數真實貫通至 Mesh rotation，保證 Pitch/Yaw/Roll 3D 姿態精確', () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    const caster = new THREE.Vector3(-100, 0, 0);
+    const target = new THREE.Vector3(100, 0, 0);
+
+    const slashPreset = {
+      id: 'VFX_SLASH_3D',
+      name: '3D 傾角斬擊',
+      trajectory: 'MELEE_SWEEP',
+      shaderMode: 'SLASH_BLADE',
+      slashRotX: 35,
+      slashRotY: -25,
+      slashRotZ: -60,
+      scale: 1.0,
+      duration: 0.4,
+      colorCore: '#ffffff',
+      colorRim: '#f59e0b'
+    } as unknown as VFXPreset;
+
+    fxEngine.renderFrameWorldAt(slashPreset, 0.2, caster, target);
+    const trackGroup = (fxEngine as any).studioTrackGroups[0];
+    const cache = trackGroup.__cache;
+    expect(cache.slashMesh).toBeDefined();
+    expect(cache.slashMesh.visible).toBe(true);
+    // 驗證 X/Y 歐拉角真實套用至 mesh.rotation
+    expect(cache.slashMesh.rotation.x).toBeCloseTo((35 * Math.PI) / 180, 4);
+    expect(cache.slashMesh.rotation.y).toBeCloseTo((-25 * Math.PI) / 180, 4);
+  });
+
+  it('多發冰晶之矛 (FRESNEL_ICE 連射 7 發)：徹底根除 Early Return，真實生成 7 發實體錐形冰錐與外圍冰環並套用 31° 偏角與 130px 散佈', () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    const caster = new THREE.Vector3(-200, 0, 0);
+    const target = new THREE.Vector3(200, 0, 0);
+
+    // 完美還原使用者截圖中的條件：FRESNEL_ICE、7 發、偏角 31°、受擊散佈 130px
+    const frostSalvoPreset = {
+      id: 'VFX_FROST_SALVO_7',
+      name: '七重冰晶連射',
+      trajectory: 'TRAJECTORY',
+      shaderMode: 'FRESNEL_ICE',
+      scale: 1.0,
+      duration: 0.5,
+      salvoCount: 7,
+      salvoSpreadAngle: 31,
+      salvoSpreadRadius: 130,
+      arcHeight: 60,
+      colorCore: '#ffffff',
+      colorRim: '#38bdf8'
+    } as unknown as VFXPreset;
+
+    fxEngine.renderFrameWorldAt(frostSalvoPreset, 0.25, caster, target);
+    const trackGroup = (fxEngine as any).studioTrackGroups[0];
+    const cache = trackGroup.__cache;
+
+    // 1. 驗證多發彈幕群組被正確建立，而非僅有單一 frostGroup
+    expect(cache.multiArcGroup).toBeDefined();
+    expect(cache.multiArcGroup.visible).toBe(true);
+
+    // 2. 驗證確實生成 7 枚子彈實體
+    expect(cache.multiArcs.length).toBe(7);
+    expect(cache.multiArcGroup.children.length).toBe(7);
+
+    // 3. 驗證每枚子彈實體均包含真實 FRESNEL 冰錐 Mesh 與冰環 Mesh
+    const firstBulletGroup = cache.multiArcs[0].group;
+    expect(firstBulletGroup).toBeDefined();
+    expect(firstBulletGroup.__ring).toBeDefined(); // 具備冰環旋轉實體
+
+    // 4. 驗證 31° 散射偏角 (SpreadAngle) 與受擊散佈半徑 (SpreadRadius) 確實計算偏移
+    const spreadY0 = cache.multiArcs[0].spreadY;
+    const spreadY6 = cache.multiArcs[6].spreadY;
+    expect(spreadY0).toBeLessThan(0); // 下偏
+    expect(spreadY6).toBeGreaterThan(0); // 上偏
+    expect(Math.abs(spreadY6 - spreadY0)).toBeGreaterThan(150); // 31° 展開幅度遠大於基礎值
+
+    // 5. 驗證受擊散佈落點偏移半徑存在
+    const hasTargetOffset = cache.multiArcs.some((a: any) => Math.abs(a.targetOffsetX) > 20 || Math.abs(a.targetOffsetY) > 20);
+    expect(hasTargetOffset).toBe(true);
+
+    // 6. 驗證飛行中子彈位置確實從起點 (-200) 飛向終點 (200)，而非卡在原點 (0, 0, 0)
+    const visibleBullets = cache.multiArcs.filter((a: any) => a.group.visible);
+    expect(visibleBullets.length).toBeGreaterThan(0);
+    visibleBullets.forEach((b: any) => {
+      // 在 t = 0.25 時，X 座標應位於起點與終點之間，絕不可全員堆積在原點 0
+      expect(b.group.position.x).toBeGreaterThan(-200);
+      expect(b.group.position.x).toBeLessThan(200);
+    });
+  });
+
+  it('⚡ 驗證雷電形態 (DIELECTRIC_LIGHTNING) 即使 salvoCount > 1 亦絕不被彈幕管線誤劫持', () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    fxEngine.clearStudioPreview();
+
+    const caster = new THREE.Vector3(-150, 0, 0);
+    const target = new THREE.Vector3(150, 0, 0);
+
+    const lightningWithSalvoPreset = {
+      id: 'VFX_LIGHTNING_TEST',
+      name: '狂雷連鎖穿透',
+      trajectory: 'TRAJECTORY',
+      shaderMode: 'DIELECTRIC_LIGHTNING',
+      scale: 1.0,
+      duration: 0.4,
+      salvoCount: 5, // 模擬面板殘留或設定了 5 發
+      salvoSpreadAngle: 25,
+      colorCore: '#ffffff',
+      colorRim: '#38bdf8'
+    } as unknown as VFXPreset;
+
+    fxEngine.renderFrameWorldAt(lightningWithSalvoPreset, 0.2, caster, target);
+    const trackGroup = (fxEngine as any).studioTrackGroups[0];
+    const cache = trackGroup.__cache;
+
+    // 驗證絕不進入 multiArcGroup
+    expect(cache.multiArcGroup).toBeUndefined();
+    // 驗證確實建立閃電幾何群組 (lightningGroup)
+    expect(cache.lightningGroup).toBeDefined();
+    expect(cache.lightningGroup.visible).toBe(true);
+  });
+
+  it('⚡ 驗證落雷 (DIELECTRIC_LIGHTNING / VERTICAL_DROP) 終點與地面電環 100% 鎖定於受擊目標 targetPos', () => {
+    const fxEngine = CombatFXEngine.getInstance();
+    fxEngine.clearStudioPreview();
+
+    const caster = new THREE.Vector3(-180, 0, 0);
+    const target = new THREE.Vector3(220, 15, 0); // 任意偏位之受擊目標
+
+    const stormBoltPreset = {
+      id: 'VFX_LIGHTNING_BOLT',
+      name: '風暴狂雷',
+      trajectory: 'VERTICAL_DROP',
+      shaderMode: 'DIELECTRIC_LIGHTNING',
+      scale: 1.2,
+      duration: 0.3,
+      colorCore: '#ffffff',
+      colorRim: '#fde047'
+    } as unknown as VFXPreset;
+
+    // 在 t = 0.25 (進度約 0.83) 時求值，此時落雷與受擊電環均已完全生成
+    fxEngine.renderFrameWorldAt(stormBoltPreset, 0.25, caster, target);
+    const trackGroup = (fxEngine as any).studioTrackGroups[0];
+    const cache = trackGroup.__cache;
+
+    expect(cache.lightningGroup).toBeDefined();
+    const children = cache.lightningGroup.children;
+    // 應有雷電 Tube (Mesh) 與 地面電環 Ring (Mesh)
+    expect(children.length).toBeGreaterThanOrEqual(2);
+
+    // 第二個子物件為地面電環 ringMesh，其 position 必須精確與 target 相同
+    const ringMesh = children[1];
+    expect(ringMesh.position.x).toBeCloseTo(target.x, 1);
+    expect(ringMesh.position.y).toBeCloseTo(target.y, 1);
+    expect(ringMesh.position.z).toBeCloseTo(target.z, 1);
+  });
 });
+

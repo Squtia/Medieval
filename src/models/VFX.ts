@@ -100,7 +100,10 @@ export interface VFXPreset {
   // 🛡️ 專屬幾何與模型紋理形態
   slashShape?: 'CRESCENT' | 'CROSS' | 'WHIRLWIND';
   slashTrajectory?: 'CLEAVE_DOWN' | 'UPPER_CUT' | 'HORIZONTAL' | 'VERTICAL_DOWN' | 'CUSTOM';
-  slashAngle?: number;          // 斬擊起手起始角度 (-180° ~ 180°)
+  slashAngle?: number;          // 斬擊起手起始角度 (-180° ~ 180°，相容 slashRotZ)
+  slashRotX?: number;           // 斬擊 X 軸歐拉角俯仰傾角 (-90° ~ 90°，預設 0°)
+  slashRotY?: number;           // 斬擊 Y 軸歐拉角偏航傾角 (-90° ~ 90°，預設 0°)
+  slashRotZ?: number;           // 斬擊 Z 軸歐拉角滾轉旋轉 (-180° ~ 180°，預設 -45°)
   slashArcSpan?: number;        // 斬擊揮砍弧度跨度 (30° ~ 240°)
   slashAspect?: number;         // 刀芒長寬扁平比例 (0.4 ~ 2.0)
   slashReverse?: boolean;       // 是否反轉揮砍方向

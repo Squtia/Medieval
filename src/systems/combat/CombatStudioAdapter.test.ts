@@ -279,6 +279,7 @@ describe('⚔️ CombatStudioStageAdapter (Phase 6 戰鬥演播室同源適配�
   });
 
   it('8. playCombatAction 應正確以 CombatAction 為單位播放，多段打擊依 Cue 觸發呈現', async () => {
+    const expectedDegradedWarning = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const adapter = CombatStudioStageAdapter.getInstance();
     adapter.mount(container as any);
 
@@ -337,5 +338,6 @@ describe('⚔️ CombatStudioStageAdapter (Phase 6 戰鬥演播室同源適配�
     // 驗證已成功呈現打擊
     expect(impactAmounts.length).toBeGreaterThan(0);
     expect(impactAmounts.reduce((a, b) => a + b, 0)).toBe(140);
+    expect(expectedDegradedWarning).toHaveBeenCalledTimes(1);
   });
 });

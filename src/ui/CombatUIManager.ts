@@ -622,6 +622,16 @@ export class CombatUIManager {
     const curMp = state.currentMp !== undefined ? state.currentMp : maxMp;
     const mpPct = Math.max(0, Math.min(100, (curMp / maxMp) * 100));
 
+    const maxShield = Math.max(0, state.shieldMaxHp ?? 0);
+    const curShield = Math.max(0, Math.min(maxShield, state.shieldCurrentHp ?? maxShield));
+    const shieldPct = maxShield > 0 ? (curShield / maxShield) * 100 : 0;
+    const shieldBarHtml = maxShield > 0 ? `
+        <div id="shield-bg-${state.id}" class="combat-shield-bg" data-shield-max="${maxShield}">
+          <div id="shield-fill-${state.id}" class="combat-shield-fill" style="width: ${shieldPct}%;"></div>
+          <span id="shield-txt-${state.id}" class="combat-shield-text">🛡 ${curShield}/${maxShield}</span>
+        </div>
+    ` : '';
+
     div.innerHTML = `
       <!-- 滿版背景肖像 (取消內層小框) -->
       <div class="combat-p-avatar-bg">
@@ -636,6 +646,7 @@ export class CombatUIManager {
 
       <!-- 底部懸浮血條與魔力條 (內嵌即時數值) -->
       <div class="combat-p-bottom-bar">
+        ${shieldBarHtml}
         <div class="combat-hp-bg">
           <div id="hp-fill-${state.id}" class="combat-hp-fill ${hpPct < 30 ? 'low' : ''}" style="width: ${hpPct}%;"></div>
           <span id="hp-txt-${state.id}" class="combat-hp-text">${curHp}/${maxHp}</span>
@@ -726,7 +737,26 @@ export class CombatUIManager {
         }
       }
 
-      // 3. 死亡標記校準
+      // 3. 安全校準部隊護盾；最大值取卡片建立時保存的 SSOT。
+      if (snap.shield) {
+        const shieldBgEl = document.getElementById(`shield-bg-${targetId}`);
+        const shieldFillEl = document.getElementById(`shield-fill-${targetId}`);
+        const shieldTxtEl = document.getElementById(`shield-txt-${targetId}`);
+        const storedMax = shieldBgEl?.getAttribute('data-shield-max');
+        const maxShield = snap.shield.max ?? (storedMax ? Number(storedMax) : undefined);
+        const currentShield = Math.max(0, snap.shield.current);
+        if (shieldFillEl && maxShield !== undefined && maxShield > 0) {
+          shieldFillEl.style.width = `${Math.max(0, Math.min(100, (currentShield / maxShield) * 100))}%`;
+        }
+        if (shieldTxtEl) {
+          shieldTxtEl.textContent = maxShield !== undefined
+            ? `🛡 ${currentShield}/${maxShield}`
+            : `🛡 ${currentShield}`;
+        }
+        if (shieldBgEl) shieldBgEl.classList.toggle('is-broken', currentShield <= 0);
+      }
+
+      // 4. 死亡標記校準
       if (snap.dead || (snap.hp && snap.hp.current <= 0)) {
         const targetEl = document.getElementById(`combat-p-${targetId}`);
         if (targetEl) targetEl.classList.add('is-dead');

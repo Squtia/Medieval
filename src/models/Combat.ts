@@ -120,6 +120,7 @@ export interface CombatEvent {
   impactIndex?: number;    // 在該 actionId 下的命中順序 (0, 1, 2...)
   impactCount?: number;    // 該 actionId 總計包含的打擊段數
   impactKind?: CombatImpactKind; // 打擊種類
+  cueId?: string;           // 可選：由技能結算指定要消費的 VFX Cue ID
   actorId?: string;
   actorName?: string;
   targetId?: string;
@@ -163,6 +164,8 @@ export interface CombatParticipantState {
   currentHp?: number;
   maxMp?: number;
   currentMp?: number;
+  shieldMaxHp?: number;
+  shieldCurrentHp?: number;
   gridR?: number;
   gridC?: number;
   avatarIndex?: number;

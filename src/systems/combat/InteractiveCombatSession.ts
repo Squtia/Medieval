@@ -324,6 +324,8 @@ export class InteractiveCombatSession {
       currentHp: p.currentHp,
       maxMp: p.maxMp,
       currentMp: p.currentMp,
+      shieldMaxHp: p.shieldMaxHp,
+      shieldCurrentHp: p.shieldCurrentHp,
       avatarIndex: p.avatarIndex,
       avatarIcon: p.avatarIcon,
       gender: p.gender,
@@ -351,6 +353,8 @@ export class InteractiveCombatSession {
       currentHp: e.currentHp,
       maxMp: e.maxMp,
       currentMp: e.currentMp,
+      shieldMaxHp: e.shieldMaxHp,
+      shieldCurrentHp: e.shieldCurrentHp,
       avatarIndex: e.avatarIndex,
       avatarIcon: e.avatarIcon,
       gender: e.gender
@@ -649,6 +653,8 @@ export class InteractiveCombatSession {
           currentHp: e.currentHp,
           maxMp: e.maxMp,
           currentMp: e.currentMp,
+          shieldMaxHp: e.shieldMaxHp,
+          shieldCurrentHp: e.shieldCurrentHp,
           avatarIndex: e.avatarIndex,
           avatarIcon: e.avatarIcon,
           gender: e.gender
@@ -690,8 +696,11 @@ export class InteractiveCombatSession {
           gridR: p.gridR,
           gridC: p.gridC,
           maxHp: p.maxHp,
+          currentHp: p.currentHp,
           maxMp: p.maxMp,
           currentMp: p.currentMp,
+          shieldMaxHp: p.shieldMaxHp,
+          shieldCurrentHp: p.shieldCurrentHp,
           avatarIndex: p.avatarIndex,
           gender: p.gender
         }));

@@ -13,6 +13,7 @@ import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingReg
 export interface CombatImpactPresentation {
   cueIndex: number;
   cueId: string;
+  cueTime: number;
   // 真實結算目標；數字、HP、status 必須使用此欄位。
   targetId: string;
   // 3D VFX 實際播放位置；可以是 primary、each target 或 caster。
@@ -115,7 +116,8 @@ export function resolveActionMainTargetId(action: CombatAction): string {
  * 🎯 判斷項目是否為 CombatAction
  */
 export function isCombatAction(item: CombatAction | CombatEvent): item is CombatAction {
-  return typeof item === 'object' && item !== null && 'actionId' in item && 'events' in item && Array.isArray((item as any).events);
+  if (typeof item !== 'object' || item === null || !('events' in item)) return false;
+  return Array.isArray(item.events);
 }
 
 /**
@@ -200,6 +202,14 @@ export interface MapImpactsContext {
   onDegraded?: (info: { actionId?: string; skillId?: string; vfxId?: string; targetId: string; impactCount: number; cueCount: number }) => void;
 }
 
+function impactKindToCueKind(kind: CombatImpactPresentation['kind']): VFXCueKind {
+  if (kind === 'HEAL') return 'HEAL';
+  if (kind === 'SHIELD_DAMAGE' || kind === 'SHIELD_BREAK') return 'SHIELD';
+  if (kind === 'STATUS') return 'STATUS';
+  if (kind === 'VISUAL_ONLY') return 'VISUAL_ONLY';
+  return 'IMPACT';
+}
+
 /**
  * 🎯 mapImpactsToCues
  * 核心純函式：將戰鬥已結算事件精確配對至視覺時間軸 Cue
@@ -274,10 +284,8 @@ export function mapImpactsToCues(
 
   if (impactEvents.length === 0) return [];
 
-  // 若預設未定義 Cues，建立單一 Fallback Cue
-  const effectiveCues: VFXImpactCue[] = cues.length > 0
-    ? [...cues]
-    : [{ cueId: 'CUE_DEFAULT', time: 0.15, weight: 1.0, isPrimary: true, kind: 'IMPACT' }];
+  // 不偽造通用 IMPACT Cue；沒有 authored Cue 時，依每筆真實 impact kind 建立 runtime fallback。
+  const effectiveCues: VFXImpactCue[] = [...cues];
 
   const actualImpactTargetIds = [...new Set(impactEvents.map(e => e.targetId).filter((id): id is string => !!id))];
   const primaryTargetId = ctx.primaryTargetId || actualImpactTargetIds[0] || '';
@@ -292,6 +300,36 @@ export function mapImpactsToCues(
   });
 
   const allResults: CombatImpactPresentation[] = [];
+  let nextFallbackCueIndex = effectiveCues.length;
+
+  const getMappedCueId = (event: CombatEvent, eventIndex: number): string | undefined => {
+    if (!ctx.cueMap) return undefined;
+    const keys = [
+      event.cueId,
+      event.impactIndex !== undefined ? `${event.targetId ?? ''}:${event.impactIndex}` : undefined,
+      event.impactIndex !== undefined ? String(event.impactIndex) : undefined,
+      String(eventIndex)
+    ].filter((key): key is string => key !== undefined);
+    for (const key of keys) {
+      const mapped = ctx.cueMap[key];
+      if (mapped) return mapped;
+    }
+    return undefined;
+  };
+
+  const createFallbackCue = (
+    impactKind: CombatImpactPresentation['kind'],
+    fallbackIndex: number
+  ): VFXImpactCue => {
+    const lastAuthoredTime = effectiveCues.reduce((max, cue) => Math.max(max, cue.time), 0);
+    return {
+      cueId: `CUE_FALLBACK_${fallbackIndex}`,
+      time: Math.max(0.05, lastAuthoredTime + (fallbackIndex + 1) * 0.1),
+      weight: 1,
+      isPrimary: true,
+      kind: impactKindToCueKind(impactKind)
+    };
+  };
 
   // 🎯 情況 1：若有專屬 CASTER Cue，且施法者自身沒有被列入傷害結算事件中，為施法者建立 VISUAL_ONLY presentation
   const casterCues = effectiveCues
@@ -303,6 +341,7 @@ export function mapImpactsToCues(
       allResults.push({
         cueIndex: item.originalIndex,
         cueId: item.cue.cueId,
+        cueTime: item.cue.time,
         targetId: actorId,
         visualTargetId: actorId,
         amount: 0,
@@ -322,12 +361,46 @@ export function mapImpactsToCues(
     const targetResults: CombatImpactPresentation[] = [];
     const targetCuesWithIndices = effectiveCues.map((c, originalIndex) => ({ cue: c, originalIndex }));
 
-    // 情況 A：多筆真實事件 -> EXACT 對齊
+    // 情況 A：多筆真實事件 -> cueMap 優先，其次依 kind compatibility 對齊。
     if (targetEvents.length > 1) {
-      const alignedItems = [...targetCuesWithIndices];
-      if (alignedItems.length < targetEvents.length) {
+      const assignedEvents = new Map<number, CombatEvent>();
+      const usedCueIndices = new Set<number>();
+      const fallbackItems: Array<{ cue: VFXImpactCue; originalIndex: number }> = [];
+
+      targetEvents.forEach((event, eventIndex) => {
+        const impactKind = resolveEventKind(event);
+        const mappedCueId = getMappedCueId(event, eventIndex);
+        let selected = mappedCueId
+          ? targetCuesWithIndices.find(item =>
+              !usedCueIndices.has(item.originalIndex) &&
+              item.cue.cueId === mappedCueId &&
+              cueAcceptsImpact(item.cue.kind, impactKind)
+            )
+          : undefined;
+
+        if (!selected) {
+          selected = targetCuesWithIndices.find(item =>
+            !usedCueIndices.has(item.originalIndex) &&
+            cueAcceptsImpact(item.cue.kind, impactKind)
+          );
+        }
+
+        if (selected) {
+          usedCueIndices.add(selected.originalIndex);
+          assignedEvents.set(selected.originalIndex, event);
+          return;
+        }
+
+        const originalIndex = nextFallbackCueIndex++;
+        const fallbackIndex = originalIndex - effectiveCues.length;
+        const cue = createFallbackCue(impactKind, fallbackIndex);
+        fallbackItems.push({ cue, originalIndex });
+        assignedEvents.set(originalIndex, event);
+      });
+
+      if (fallbackItems.length > 0) {
         console.warn(
-          `[CombatActionPlayer] Cue count (${alignedItems.length}) insufficient for real impacts (${targetEvents.length}). ` +
+          `[CombatActionPlayer] Compatible cue count (${targetEvents.length - fallbackItems.length}) insufficient for real impacts (${targetEvents.length}). ` +
           `actionId=${ctx.actionId || 'N/A'}, skillId=${ctx.skillId || 'N/A'}, vfxId=${ctx.vfxId || 'N/A'}, targetId=${targetId}`
         );
         if (ctx.onDegraded) {
@@ -337,31 +410,23 @@ export function mapImpactsToCues(
             vfxId: ctx.vfxId,
             targetId,
             impactCount: targetEvents.length,
-            cueCount: alignedItems.length
+            cueCount: targetEvents.length - fallbackItems.length
           });
-        }
-        while (alignedItems.length < targetEvents.length) {
-          const newIdx = alignedItems.length;
-          const fallbackCue: VFXImpactCue = {
-            cueId: `CUE_FALLBACK_${newIdx}`,
-            time: 0.15 + newIdx * 0.1,
-            weight: 1.0,
-            isPrimary: newIdx === targetEvents.length - 1,
-            kind: 'IMPACT'
-          };
-          alignedItems.push({ cue: fallbackCue, originalIndex: effectiveCues.length + newIdx });
         }
       }
 
-      let eventIdx = 0;
+      const alignedItems = [...targetCuesWithIndices, ...fallbackItems]
+        .sort((a, b) => a.cue.time - b.cue.time || a.originalIndex - b.originalIndex);
       alignedItems.forEach((item) => {
         const { cue, originalIndex } = item;
         const visualTargetId = resolveCueVisualTargetId(cue, actorId, primaryTargetId, targetId);
+        const ev = assignedEvents.get(originalIndex);
 
-        if (cue.kind === 'VISUAL_ONLY' || eventIdx >= targetEvents.length) {
+        if (!ev) {
           targetResults.push({
             cueIndex: originalIndex,
             cueId: cue.cueId,
+            cueTime: cue.time,
             targetId,
             visualTargetId,
             amount: 0,
@@ -373,26 +438,26 @@ export function mapImpactsToCues(
           return;
         }
 
-        const ev = targetEvents[eventIdx++];
         const kind = resolveEventKind(ev);
         const amount = resolveImpactAmount(ev, kind);
 
         targetResults.push({
           cueIndex: originalIndex,
           cueId: cue.cueId,
+          cueTime: cue.time,
           targetId,
           visualTargetId,
           amount,
           kind,
           isCrit: ev.type === CombatEventType.CRIT,
-          isPrimary: cue.isPrimary || eventIdx === targetEvents.length,
+          isPrimary: cue.isPrimary || originalIndex === alignedItems[alignedItems.length - 1].originalIndex,
           targetHp: ev.targetHp,
           targetMaxHp: ev.targetMaxHp,
           targetPolicy: cue.targetPolicy,
           shieldDamage: ev.shieldDamage,
           shieldRemaining: ev.shieldRemaining,
           text: ev.text,
-          statusType: (ev as any).statusType || (ev as any).statusEffect?.type,
+          statusType: ev.statusType,
           skillName: ev.skillName
         });
       });
@@ -404,25 +469,35 @@ export function mapImpactsToCues(
       const totalAmount = resolveImpactAmount(singleEv, kind);
       const isCrit = singleEv.type === CombatEventType.CRIT;
 
-      // 隔離出可承載數值之 Cues (排除 VISUAL_ONLY)
-      const damageableItems = targetCuesWithIndices.filter(item => item.cue.kind !== 'VISUAL_ONLY');
+      // 只允許 kind-compatible Cue 承載數值；不相容 Cue 保持純視覺。
+      let damageableItems = targetCuesWithIndices.filter(item => cueAcceptsImpact(item.cue.kind, kind));
+
+      const mappedCueId = getMappedCueId(singleEv, 0);
+      if (mappedCueId) {
+        const mappedItem = damageableItems.find(item => item.cue.cueId === mappedCueId);
+        damageableItems = mappedItem ? [mappedItem] : [];
+      }
 
       if (damageableItems.length === 0) {
-        targetCuesWithIndices.forEach(item => {
-          const visualTargetId = resolveCueVisualTargetId(item.cue, actorId, primaryTargetId, targetId);
-          targetResults.push({
-            cueIndex: item.originalIndex,
-            cueId: item.cue.cueId,
-            targetId,
-            visualTargetId,
-            amount: 0,
-            kind: 'VISUAL_ONLY',
-            isCrit: false,
-            isPrimary: false,
-            targetPolicy: item.cue.targetPolicy
-          });
+        const originalIndex = nextFallbackCueIndex++;
+        const fallbackCue = createFallbackCue(kind, originalIndex - effectiveCues.length);
+        damageableItems = [{ cue: fallbackCue, originalIndex }];
+        targetCuesWithIndices.push(damageableItems[0]);
+        console.warn(
+          `[CombatActionPlayer] No compatible cue for ${kind}; created runtime fallback. ` +
+          `actionId=${ctx.actionId || 'N/A'}, skillId=${ctx.skillId || 'N/A'}, vfxId=${ctx.vfxId || 'N/A'}, targetId=${targetId}`
+        );
+        ctx.onDegraded?.({
+          actionId: ctx.actionId,
+          skillId: ctx.skillId,
+          vfxId: ctx.vfxId,
+          targetId,
+          impactCount: 1,
+          cueCount: 0
         });
-      } else if (mode === 'PRIMARY_ONLY') {
+      }
+
+      if (mode === 'PRIMARY_ONLY') {
         const primaryItem = damageableItems.find(item => item.cue.isPrimary) || damageableItems[damageableItems.length - 1];
 
         targetCuesWithIndices.forEach(item => {
@@ -431,6 +506,7 @@ export function mapImpactsToCues(
           targetResults.push({
             cueIndex: item.originalIndex,
             cueId: item.cue.cueId,
+            cueTime: item.cue.time,
             targetId,
             visualTargetId,
             amount: isPri ? totalAmount : 0,
@@ -443,7 +519,7 @@ export function mapImpactsToCues(
             shieldDamage: isPri ? singleEv.shieldDamage : undefined,
             shieldRemaining: isPri ? singleEv.shieldRemaining : undefined,
             text: isPri ? singleEv.text : undefined,
-            statusType: isPri ? ((singleEv as any).statusType || (singleEv as any).statusEffect?.type) : undefined,
+            statusType: isPri ? singleEv.statusType : undefined,
             skillName: singleEv.skillName
           });
         });
@@ -480,6 +556,7 @@ export function mapImpactsToCues(
             targetResults.push({
               cueIndex: item.originalIndex,
               cueId: item.cue.cueId,
+              cueTime: item.cue.time,
               targetId,
               visualTargetId,
               amount: sliceAmount,
@@ -492,13 +569,14 @@ export function mapImpactsToCues(
               shieldDamage: isFinalSlice ? singleEv.shieldDamage : undefined,
               shieldRemaining: isFinalSlice ? singleEv.shieldRemaining : undefined,
               text: isFinalSlice ? singleEv.text : undefined,
-              statusType: isFinalSlice ? ((singleEv as any).statusType || (singleEv as any).statusEffect?.type) : undefined,
+              statusType: isFinalSlice ? singleEv.statusType : undefined,
               skillName: singleEv.skillName
             });
           } else {
             targetResults.push({
               cueIndex: item.originalIndex,
               cueId: item.cue.cueId,
+              cueTime: item.cue.time,
               targetId,
               visualTargetId,
               amount: 0,
@@ -518,6 +596,7 @@ export function mapImpactsToCues(
           targetResults.push({
             cueIndex: item.originalIndex,
             cueId: item.cue.cueId,
+            cueTime: item.cue.time,
             targetId,
             visualTargetId,
             amount: isTargetCue ? totalAmount : 0,
@@ -530,7 +609,7 @@ export function mapImpactsToCues(
             shieldDamage: isTargetCue ? singleEv.shieldDamage : undefined,
             shieldRemaining: isTargetCue ? singleEv.shieldRemaining : undefined,
             text: isTargetCue ? singleEv.text : undefined,
-            statusType: isTargetCue ? ((singleEv as any).statusType || (singleEv as any).statusEffect?.type) : undefined,
+            statusType: isTargetCue ? singleEv.statusType : undefined,
             skillName: singleEv.skillName
           });
         });
@@ -551,6 +630,42 @@ export function mapImpactsToCues(
 }
 
 /**
+ * 將 mapping 階段建立的 fallback Cue 併入本次播放用 Sequence。
+ * 只建立 ephemeral copy，不寫回 Repository，讓所有 Cue 共用 Engine 的 PlaybackClock。
+ */
+export function buildRuntimeSequence(
+  sequence: VFXSequence,
+  presentations: readonly CombatImpactPresentation[]
+): VFXSequence {
+  const runtimeCues = [...(sequence.impactCues || [])];
+  const byIndex = new Map<number, CombatImpactPresentation>();
+  presentations.forEach(item => {
+    if (!byIndex.has(item.cueIndex)) byIndex.set(item.cueIndex, item);
+  });
+
+  [...byIndex.entries()]
+    .sort(([a], [b]) => a - b)
+    .forEach(([cueIndex, item]) => {
+      if (runtimeCues[cueIndex]) return;
+      runtimeCues[cueIndex] = {
+        cueId: item.cueId,
+        time: item.cueTime,
+        kind: impactKindToCueKind(item.kind),
+        isPrimary: item.isPrimary,
+        targetPolicy: item.targetPolicy
+      };
+    });
+
+  const compactCues = runtimeCues.filter((cue): cue is VFXImpactCue => !!cue);
+  const finalCueTime = compactCues.reduce((max, cue) => Math.max(max, cue.time), 0);
+  return {
+    ...sequence,
+    duration: Math.max(sequence.duration, finalCueTime + 0.05),
+    impactCues: compactCues
+  };
+}
+
+/**
  * 🎯 CombatActionPlayer
  * 一次性技能完整播放器 (Single Action VFX Pipeline Player)
  * 職責：
@@ -560,15 +675,18 @@ export function mapImpactsToCues(
  * 4. 內建 Debug Overlay 即時視覺化三端狀態。
  */
 export class CombatActionPlayer {
-  private fxEngine: CombatFXEngine;
-  private presetRepo: VFXPresetRepository;
+  private fxEngine: Pick<CombatFXEngine, 'playSequence'>;
+  private presetRepo: Pick<VFXPresetRepository, 'getSequence'>;
 
   private static debugOverlayEnabled: boolean = false;
   private static debugOverlayEl: HTMLElement | null = null;
 
-  constructor() {
-    this.fxEngine = CombatFXEngine.getInstance();
-    this.presetRepo = VFXPresetRepository.getInstance();
+  constructor(
+    fxEngine: Pick<CombatFXEngine, 'playSequence'> = CombatFXEngine.getInstance(),
+    presetRepo: Pick<VFXPresetRepository, 'getSequence'> = VFXPresetRepository.getInstance()
+  ) {
+    this.fxEngine = fxEngine;
+    this.presetRepo = presetRepo;
   }
 
   public static setDebugOverlayEnabled(enabled: boolean): void {
@@ -656,6 +774,7 @@ export class CombatActionPlayer {
       fromPoint: ScreenPoint;
       toPoint: ScreenPoint;
       skipVfx?: boolean;
+      resolveVisualPoint?: (targetId: string) => ScreenPoint | undefined;
       onPresentImpact?: (item: CombatImpactPresentation, cue?: VFXImpactCue) => void;
       onActionComplete?: () => void;
     }
@@ -675,11 +794,11 @@ export class CombatActionPlayer {
 
     const binding = action.skillId ? SkillVfxBindingRegistry.getInstance().getBinding(action.skillId) : undefined;
     const resolvedMode: ImpactPresentationMode =
-      action.presentationMode ||
       binding?.impactPresentationMode ||
+      action.presentationMode ||
       sequence?.impactPresentationMode ||
       'EXACT_IMPACTS';
-    const resolvedCueMap = action.cueMap || binding?.cueMap;
+    const resolvedCueMap = binding?.cueMap || action.cueMap;
 
     let isDegradedAction = false;
     const mapContext: MapImpactsContext = {
@@ -722,12 +841,16 @@ export class CombatActionPlayer {
       sequence.impactCues || [],
       mapContext
     );
+    const runtimeSequence = buildRuntimeSequence(sequence, presentationItems);
 
     // 依 cueIndex 建立查找表
     const cueMap = new Map<number, CombatImpactPresentation[]>();
+    const cueIdMap = new Map<string, CombatImpactPresentation[]>();
     presentationItems.forEach(item => {
       if (!cueMap.has(item.cueIndex)) cueMap.set(item.cueIndex, []);
       cueMap.get(item.cueIndex)!.push(item);
+      if (!cueIdMap.has(item.cueId)) cueIdMap.set(item.cueId, []);
+      cueIdMap.get(item.cueId)!.push(item);
     });
 
     // 呼叫底層 3D FX 引擎，精確播放一次 Canonical Sequence！
@@ -738,7 +861,7 @@ export class CombatActionPlayer {
 
     try {
       await this.fxEngine.playSequence(
-        sequence,
+        runtimeSequence,
         options.fromPoint,
         options.toPoint,
         (_impact: VFXImpactConfig, hitIdx: number, _totalHits: number, cue?: VFXImpactCue) => {
@@ -751,11 +874,12 @@ export class CombatActionPlayer {
             activeCueId: cue?.cueId || `CUE_${hitIdx}`,
             activeCueIndex: hitIdx,
             isFallback: false,
+            isDegraded: isDegradedAction,
             impactCount: triggeredImpactCount
           });
 
           // 當時間軸觸發特定 Cue 時，分發已配對之呈現項目
-          const matchedItems = cueMap.get(hitIdx) || [];
+          const matchedItems = (cue ? cueIdMap.get(cue.cueId) : undefined) || cueMap.get(hitIdx) || [];
           if (matchedItems.length > 0) {
             matchedItems.forEach(item => {
               dispatchedItems.add(item);
@@ -771,6 +895,7 @@ export class CombatActionPlayer {
             options.onPresentImpact?.({
               cueIndex: hitIdx,
               cueId: cue?.cueId || `CUE_${hitIdx}`,
+              cueTime: cue?.time ?? 0,
               targetId: '',
               amount: 0,
               kind: fallbackKind,
@@ -778,29 +903,19 @@ export class CombatActionPlayer {
               isPrimary: cue?.isPrimary ?? false
             }, cue);
           }
-        }
+        },
+        undefined,
+        options.resolveVisualPoint
+          ? (_cue, cueIndex) => {
+              const ids = (cueIdMap.get(_cue.cueId) || cueMap.get(cueIndex) || [])
+                .map(item => item.visualTargetId || item.targetId)
+                .filter((id, index, all) => !!id && all.indexOf(id) === index);
+              return ids
+                .map(id => options.resolveVisualPoint?.(id))
+                .filter((point): point is ScreenPoint => !!point);
+            }
+          : undefined
       );
-
-      // 🎯 規格 §3.2 方案 A：Sequence 播放完成後，派發尚未派發的真實 impact presentation！
-      const remainingPresentations = presentationItems.filter(
-        item => shouldPresentImpact(item) && !dispatchedItems.has(item)
-      );
-
-      if (remainingPresentations.length > 0) {
-        // 依 fallback presentation 的時間順序排程，保留時鐘節奏
-        const delayMs = Math.max(80, Math.min(150, ((sequence.duration || 0.3) * 1000) / Math.max(1, remainingPresentations.length)));
-        for (let rIdx = 0; rIdx < remainingPresentations.length; rIdx++) {
-          const item = remainingPresentations[rIdx];
-          if (!dispatchedItems.has(item)) {
-            dispatchedItems.add(item);
-            triggeredImpactCount++;
-            options.onPresentImpact?.(item);
-          }
-          if (rIdx < remainingPresentations.length - 1 && !options.skipVfx) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
-          }
-        }
-      }
     } catch (renderError) {
       console.warn('[CombatActionPlayer] WebGL or VFX rendering failed, executing safe logical impact fallback:', renderError);
       this.updateDebugOverlay({

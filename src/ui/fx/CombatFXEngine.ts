@@ -15,6 +15,8 @@ import { VFXTimelineEvaluator } from './VFXTimelineEvaluator';
 import { VFXEffectInstance, VFXInstanceRegistry } from './VFXEffectInstance';
 
 export type { ScreenPoint };
+export type VFXCueScreenPointResolver = (cue: VFXImpactCue, cueIndex: number) => readonly ScreenPoint[];
+type VFXCueWorldPointResolver = (cue: VFXImpactCue, cueIndex: number) => readonly THREE.Vector3[];
 
 export class CombatFXEngine extends VFXPlayer {
   private static fxInstance: CombatFXEngine | null = null;
@@ -27,10 +29,23 @@ export class CombatFXEngine extends VFXPlayer {
     from: ScreenPoint,
     to: ScreenPoint,
     isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void),
-    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void
+    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void,
+    resolveCueScreenPoints?: VFXCueScreenPointResolver
   ): Promise<void> {
     const preset = sequenceToLegacyPreset(sequence);
-    return this.playPresetConfig(preset, from, to, isPlayerOrOnImpact, onImpactCallback);
+    const resolveCueWorldPoints = resolveCueScreenPoints
+      ? (cue: VFXImpactCue, cueIndex: number) => resolveCueScreenPoints(cue, cueIndex).map(point => this.screenToWorld(point))
+      : undefined;
+    return this.playPresetWorld(
+      preset,
+      this.screenToWorld(from),
+      this.screenToWorld(to),
+      isPlayerOrOnImpact,
+      onImpactCallback,
+      undefined,
+      0,
+      resolveCueWorldPoints
+    );
   }
 
   /**
@@ -166,7 +181,7 @@ export class CombatFXEngine extends VFXPlayer {
       fadeOut: 0.08,
       scale: preset.scale || 1.0,
       shaderMode: preset.shaderMode || (preset.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : 'ENERGY_BEAM'),
-      spatialMode: preset.spatialMode || preset.trajectoryPath || preset.trajectory || 'A_TO_B',
+      spatialMode: (preset.spatialMode === 'TRAJECTORY' ? (preset.trajectoryPath || preset.trajectory || 'A_TO_B') : (preset.spatialMode || preset.trajectoryPath || preset.trajectory || 'A_TO_B')),
       reverse: !!preset.reverse,
       colorCore: preset.colorCore || '#ffffff',
       colorRim: preset.colorRim || '#38bdf8',
@@ -188,7 +203,7 @@ export class CombatFXEngine extends VFXPlayer {
         fadeOut: l.fadeOut ?? 0.08,
         scale: (l.scale || 1.0) * (refPreset?.scale || 1.0),
         shaderMode: l.shaderMode || refPreset?.shaderMode || 'ENERGY_BEAM',
-        spatialMode: l.spatialMode || refPreset?.spatialMode || 'A_TO_B',
+        spatialMode: (l.spatialMode === 'TRAJECTORY' ? (l.trajectoryPath || refPreset?.trajectoryPath || refPreset?.trajectory || 'A_TO_B') : (l.spatialMode || refPreset?.spatialMode || 'A_TO_B')),
         reverse: l.reverse !== undefined ? l.reverse : (refPreset?.reverse || false),
         colorCore: refPreset?.colorCore || preset.colorCore || '#ffffff',
         colorRim: refPreset?.colorRim || preset.colorRim || '#f59e0b',
@@ -277,7 +292,8 @@ export class CombatFXEngine extends VFXPlayer {
       return reverse ? new THREE.Vector3().lerpVectors(targetPos, sky, progress) : new THREE.Vector3().lerpVectors(sky, targetPos, progress);
     }
     if (mode === 'DIAGONAL_DROP' || mode === 'DIAGONAL_SKY_TO_B') {
-      const sky = new THREE.Vector3(targetPos.x - 260, targetPos.y + 380, targetPos.z);
+      const offsetX = Math.max(260, Math.abs(targetPos.x - casterPos.x) * 0.7);
+      const sky = new THREE.Vector3(targetPos.x - offsetX, targetPos.y + 380, targetPos.z);
       return reverse ? new THREE.Vector3().lerpVectors(targetPos, sky, progress) : new THREE.Vector3().lerpVectors(sky, targetPos, progress);
     }
     if (mode === 'GROUND_BURST') {
@@ -372,6 +388,8 @@ export class CombatFXEngine extends VFXPlayer {
         cache.slashMesh.geometry = cache.slashGeo;
         cache.slashMesh.visible = true;
       }
+      // ⚔️ 套用 3D 歐拉角旋轉 (X 俯仰 / Y 偏航，Z 軸已融入 head/tail angle 動態弧面)
+      cache.slashMesh.rotation.set(params.rotX || 0, params.rotY || 0, 0);
 
       // 十字十字斬支援
       if (params.isCross) {
@@ -391,17 +409,98 @@ export class CombatFXEngine extends VFXPlayer {
           cache.crossMesh.geometry = cache.crossGeo;
           cache.crossMesh.visible = true;
         }
+        cache.crossMesh.rotation.set(params.rotX || 0, params.rotY || 0, 0);
       } else if (cache.crossMesh) {
         cache.crossMesh.visible = false;
       }
 
       return;
     }
-    if (shader === 'DIELECTRIC_LIGHTNING') {
-      MeshLayerRenderer.updateLightningTube(
+
+    // ─────────────────────────────────────────────────────────────
+    // 🏹 2. 🚀 通用多發彈幕發射器管線 (Universal Salvo Pipeline)
+    // 凡是 salvoCount > 1 或 ARC_MULTI，且屬於投射物 Shader (FRESNEL_ICE, VOLUMETRIC_FIRE, ARC_MULTI, ENERGY_BEAM 等)
+    // 均統一生成 N 發子彈實體，套用 3D 散射偏角 (salvoSpreadAngle)、受擊散佈 (salvoSpreadRadius) 與拋物弧高 (arcHeight)
+    // 注意：非投射物形態（閃電、近戰、地刺、護盾、戰吼、天柱、地裂、自身環）絕不誤入彈幕管線
+    // ─────────────────────────────────────────────────────────────
+    const isSpecialNonProjectile =
+      isSlash ||
+      shader === 'DIELECTRIC_LIGHTNING' ||
+      shader === 'EARTH_SHATTER' ||
+      shader === 'SHIELD_BARRIER' ||
+      shader === 'SHOUT_WAVE' ||
+      shader === 'HOLY_LIGHT' ||
+      shader === 'GROUND_FISSURE' ||
+      track.preset?.trajectory === 'PARABOLA_ARC' ||
+      track.preset?.id === 'VFX_ARROW_VOLLEY' ||
+      track.preset?.id === 'VFX_WATCHTOWER_VOLLEY' ||
+      track.preset?.trajectory === 'SHIELD_BARRIER' ||
+      track.preset?.trajectory === 'SHOUT_WAVE' ||
+      track.preset?.trajectory === 'GROUND_FISSURE' ||
+      track.spatialMode === 'AT_CASTER' ||
+      track.preset?.trajectory === 'BODY_AURA';
+
+    const isSalvo = !isSpecialNonProjectile && (
+      (track.preset?.salvoCount && track.preset.salvoCount > 1) ||
+      track.preset?.trajectory === 'ARC_MULTI' ||
+      track.spatialMode === 'ARC_MULTI'
+    );
+    if (isSalvo) {
+      if (cache.volumetricGroup) cache.volumetricGroup.visible = false;
+      if (cache.projectileGroup) cache.projectileGroup.visible = false;
+      if (cache.frostGroup) cache.frostGroup.visible = false;
+      if (cache.beamMesh) cache.beamMesh.visible = false;
+      if (cache.slashMesh) cache.slashMesh.visible = false;
+      if (cache.crossMesh) cache.crossMesh.visible = false;
+      if (cache.lightningGroup) cache.lightningGroup.visible = false;
+      if (cache.earthShatterGroup) cache.earthShatterGroup.visible = false;
+      if (cache.shieldGroup) cache.shieldGroup.visible = false;
+      if (cache.shoutGroup) cache.shoutGroup.visible = false;
+      if (cache.holyPillarMesh) cache.holyPillarMesh.visible = false;
+      if (cache.auraRing) cache.auraRing.visible = false;
+
+      MeshLayerRenderer.updateArcMulti(
         trackGroup,
         startPos,
         endPos,
+        p,
+        sc,
+        track.colorRim || '#38bdf8',
+        cache,
+        track.preset?.salvoCount || 3,
+        (col, sz, op) => this.createGlowSprite(col, sz, op),
+        track.preset?.salvoSpreadAngle || 0,
+        track.preset?.salvoSpreadRadius || 0,
+        track.preset?.arcHeight || 0,
+        shader,
+        track.colorCore || '#ffffff'
+      );
+      return;
+    } else if (cache.multiArcGroup) {
+      cache.multiArcGroup.visible = false;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // ⚡ 3. 閃電穿透 (DIELECTRIC_LIGHTNING - 落雷與雷霆穿透)
+    // ─────────────────────────────────────────────────────────────
+    if (shader === 'DIELECTRIC_LIGHTNING') {
+      // ⚡ 終點 100% 強制鎖定在受擊目標 (End / targetPos) 身上，絕不偏離
+      const lightningEnd = targetPos.clone();
+
+      // ⚡ 判定是否為橫向 A>B 穿透模式，否則皆為垂直天頂天降狂雷
+      const isAB =
+        track.spatialMode === 'A_TO_B' ||
+        track.preset?.trajectoryPath === 'A_TO_B' ||
+        (track.preset?.trajectory === 'A_TO_B');
+
+      const lightningStart = isAB
+        ? casterPos.clone()
+        : new THREE.Vector3(targetPos.x, targetPos.y + 380, targetPos.z);
+
+      MeshLayerRenderer.updateLightningTube(
+        trackGroup,
+        lightningStart,
+        lightningEnd,
         p,
         sc,
         track.colorRim,
@@ -413,7 +512,7 @@ export class CombatFXEngine extends VFXPlayer {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 🪨 3. 破土錐狀地刺陣列 (EARTH_SHATTER)
+    // 🪨 4. 破土錐狀地刺陣列 (EARTH_SHATTER)
     // ─────────────────────────────────────────────────────────────
     if (shader === 'EARTH_SHATTER') {
       MeshLayerRenderer.updateEarthShatter(
@@ -429,9 +528,10 @@ export class CombatFXEngine extends VFXPlayer {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // ❄️ 4. 冰晶之矛與旋轉冰環 (FRESNEL_ICE / FROST_LANCE / FROST_NOVA)
+    // ❄️ 5. 冰晶之矛與旋轉冰環 (FRESNEL_ICE / FROST_LANCE / FROST_NOVA - 單發模式)
     // ─────────────────────────────────────────────────────────────
     if (shader === 'FRESNEL_ICE' || shader === 'FROST_LANCE' || shader === 'FROST_NOVA') {
+      if (cache.multiArcGroup) cache.multiArcGroup.visible = false;
       MeshLayerRenderer.updateFresnelIce(
         trackGroup,
         curPos,
@@ -446,9 +546,10 @@ export class CombatFXEngine extends VFXPlayer {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 🔮 5. 能量貫穿光束 (ENERGY_BEAM - 非多彈道時)
+    // 🔮 6. 能量貫穿光束 (ENERGY_BEAM - 單發模式)
     // ─────────────────────────────────────────────────────────────
     if (shader === 'ENERGY_BEAM' && track.preset?.trajectory !== 'ARC_MULTI' && track.spatialMode !== 'ARC_MULTI') {
+      if (cache.multiArcGroup) cache.multiArcGroup.visible = false;
       MeshLayerRenderer.updateEnergyBeam(
         trackGroup,
         startPos,
@@ -467,6 +568,7 @@ export class CombatFXEngine extends VFXPlayer {
     // 🔥 6. 體積黑體動態火焰彈道 (VOLUMETRIC_FIRE / DARK_VOID - 毀滅隕石、熾熱天火)
     // ─────────────────────────────────────────────────────────────
     if (shader === 'VOLUMETRIC_FIRE' || shader === 'DARK_VOID') {
+      if (cache.multiArcGroup) cache.multiArcGroup.visible = false;
       trackGroup.position.copy(curPos);
 
       if (!cache.volumetricGroup) {
@@ -666,21 +768,6 @@ export class CombatFXEngine extends VFXPlayer {
       }
     }
 
-    // 🏹 多彈道弧線散佈 (ARC_MULTI / 奧術飛彈)
-    if (track.preset?.trajectory === 'ARC_MULTI' || track.spatialMode === 'ARC_MULTI') {
-      MeshLayerRenderer.updateArcMulti(
-        trackGroup,
-        casterPos,
-        targetPos,
-        p,
-        sc,
-        track.colorRim || '#38bdf8',
-        cache,
-        track.preset?.salvoCount,
-        (col, sz, op) => this.createGlowSprite(col, sz, op)
-      );
-      return;
-    }
 
     // 🚀 位移彈道 (TRAJECTORY)：沿軌跡運動之柔和發光彈道
     trackGroup.position.copy(curPos);
@@ -800,7 +887,8 @@ export class CombatFXEngine extends VFXPlayer {
     isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void),
     onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void,
     visitedPresetIds?: Set<string>,
-    recursionDepth: number = 0
+    recursionDepth: number = 0,
+    resolveCueWorldPoints?: VFXCueWorldPointResolver
   ): Promise<void> {
     const isPlayer = typeof isPlayerOrOnImpact === 'boolean' ? isPlayerOrOnImpact : true;
     const onImpact = typeof isPlayerOrOnImpact === 'function' ? isPlayerOrOnImpact : onImpactCallback;
@@ -910,7 +998,8 @@ export class CombatFXEngine extends VFXPlayer {
           if (this.isRunning && this.playbackGeneration === curGen) {
             fireImpact(cueIdx, cue);
             const sparkCount = cue.isPrimary || cueIdx === totalHits - 1 ? 12 : 6;
-            this.playSlashSparks(actualEndPos, preset.colorCore, sparkCount);
+            const cuePositions = resolveCueWorldPoints?.(cue, cueIdx) || [actualEndPos];
+            cuePositions.forEach(position => this.playSlashSparks(position, preset.colorCore, sparkCount));
           }
         });
       });

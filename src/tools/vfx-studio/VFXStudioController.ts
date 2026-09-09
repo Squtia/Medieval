@@ -84,8 +84,8 @@ export class VFXStudioController {
       this.inspector.setContextualTarget(trackInfo);
     });
 
-    // ⚡ 當 Preset 參數變更時，若有效演示時長有改則同步更新 FrameTimelineEngine，並檢查草稿暫存狀態
-    this.store.subscribe((preset) => {
+    // ⚡ 當 Preset 參數變更時，若有效演示時長有改則同步更新 FrameTimelineEngine，並檢查草稿暫存狀態、HUD 與未發布指示燈
+    this.store.subscribe((preset, isDirty) => {
       const effectiveDur = VFXTimelineEvaluator.getEffectivePresentationDuration(preset);
       if (effectiveDur && effectiveDur !== frameEngine.getDuration()) {
         frameEngine.setDuration(effectiveDur);
@@ -93,6 +93,8 @@ export class VFXStudioController {
       this.renderStudioFrameAt(frameEngine.getCurrentTime());
       this.updateBenchmarkMarkerAt(frameEngine.getCurrentTime(), frameEngine.getCurrentFrame(), frameEngine.getTotalFrames());
       this.syncStashButtonUI();
+      this.updateImpactMetricsHUD(preset);
+      this.updateDirtyIndicator(isDirty !== undefined ? isDirty : this.store.getIsDirty());
     });
 
     const libraryMount = document.getElementById('library-mount-point')!;
@@ -105,6 +107,8 @@ export class VFXStudioController {
 
     // 初始狀態同步
     this.syncStashButtonUI();
+    this.updateImpactMetricsHUD(this.store.getPreset());
+    this.updateDirtyIndicator(this.store.getIsDirty());
     this.renderStudioFrameAt(0);
     this.updateBenchmarkMarkerAt(0, 0, frameEngine.getTotalFrames());
 
@@ -383,6 +387,33 @@ export class VFXStudioController {
       btn.textContent = `🔙 返回草稿 [${info?.name || '先前技能'}]`;
     } else {
       btn.style.display = 'none';
+    }
+  }
+
+  /**
+   * 🥊 即時連動更新舞台中央浮動打擊感 HUD (消除死資料)
+   */
+  private updateImpactMetricsHUD(preset: VFXPreset): void {
+    const salvoEl = document.getElementById('hud-salvo');
+    const hitStopEl = document.getElementById('hud-hit-stop');
+    const punchEl = document.getElementById('hud-punch');
+    const shakeEl = document.getElementById('hud-shake');
+    const knockbackEl = document.getElementById('hud-knockback');
+
+    if (salvoEl) salvoEl.textContent = `${preset.salvoCount || 1}發`;
+    if (hitStopEl) hitStopEl.textContent = `${preset.impact?.hitStopTime ?? 55}ms`;
+    if (punchEl) punchEl.textContent = `${(preset.impact?.targetPunchScale ?? 0.88).toFixed(2)}x`;
+    if (shakeEl) shakeEl.textContent = `${preset.impact?.shakeIntensity ?? 12}px`;
+    if (knockbackEl) knockbackEl.textContent = `${preset.impact?.knockbackDistance ?? 18}px`;
+  }
+
+  /**
+   * 💡 即時連動頂部工具列未發布黃色指示燈
+   */
+  private updateDirtyIndicator(isDirty: boolean): void {
+    const indicator = document.getElementById('vfx-dirty-indicator');
+    if (indicator) {
+      indicator.style.display = isDirty ? 'inline-block' : 'none';
     }
   }
 

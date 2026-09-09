@@ -202,6 +202,12 @@ export class CombatStudioStageAdapter {
       fromPoint: fromPt,
       toPoint: toPt,
       skipVfx: skip,
+      resolveVisualPoint: (targetId) => this.getUnitPoint(
+        targetId,
+        targetId === action.actorId
+          ? (isAttackerPlayer ? 'player' : 'enemy')
+          : (isAttackerPlayer ? 'enemy' : 'player')
+      ),
       onPresentImpact: (item: CombatImpactPresentation, cue?: VFXImpactCue) => {
         const targetEl = this.findCardElement(item.targetId) || defaultTargetEl;
         const dummyEv: CombatEvent = {

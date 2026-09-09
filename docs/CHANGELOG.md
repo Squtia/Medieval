@@ -1,3 +1,70 @@
+- **[Planning/VFXStudio] 特效工房子圖層落雷 A>B 空間軌跡斷點排查、深度遮擋防線與 Shader 升級計畫制定（2026-09-09）**：
+  - **⚡ 子圖層落雷變 A>B 直線雷射根本原因排查**：
+    - 排查發現：在 `TimelineInteraction.ts` 切換子圖層素材時，採用 `spatialMode: targetPreset.spatialMode || 'A_TO_B'`。由於「風暴狂雷 (Storm Bolt)」預設僅定義 `trajectory: "VERTICAL_DROP"`，其 `spatialMode` 為 `undefined`，觸發 fallback 被硬塞成 `'A_TO_B'`。
+    - 渲染衝突：`CombatFXEngine.ts` 讀取到 `'A_TO_B'` 判定為橫向穿透模式，將閃電起點強制設為施術者胸口 `casterPos`，導致垂直落雷退化為水平雷射。
+  - **🪟 圖層深度遮擋與 Z-Buffer 挖空病灶分析**：
+    - 排查發現半透明 ShaderMaterial 未關閉 `depthWrite: false`，導致透明物體深度寫入 Z-Buffer 挖空後方特效粒子；且缺乏明確 `renderOrder` 分層。
+  - **📋 制定次世代 GLSL Shader 與圖層修復實作計畫**：
+    - 建立 `docs/implementation_plan.md`，納入落雷空間軌跡修復、全域 `depthWrite: false` 與 `renderOrder` 排序規範，並規劃天雷、冰晶、黑體火焰與破土地刺 4 大專屬 GLSL Shader 升級方案。
+  - **🧪 測試與驗證**：
+    - `npm test` 62 個測試檔案、383 項測試 100% PASS。
+
+- **[Bugfix/VFXStudio] 徹底修復落雷與 A>B 雷電未對齊目標偏離中央之病灶（2026-09-09）**：
+  - **⚡ 落雷（DIELECTRIC_LIGHTNING / 風暴狂雷）100% 鎖定受擊目標 (End / targetPos)**：
+    - **重大缺陷根因**：原先落雷起訖點直接信任空間路徑求值結果，若路徑退回預設 `(0, 0, 0)`，落雷便從畫面天頂 `(0, 380, 0)` 劈在幾何中心 `(0, 0, 0)`，導致在中央跳舞且無法擊中受擊目標。
+    - **受擊目標強制鎖定**：在 `CombatFXEngine.ts` 中將閃電終點 `lightningEnd` 100% 強制鎖定在真實受擊目標 `targetPos.clone()`；天降起點鎖定在受擊目標正上方天頂 `new THREE.Vector3(targetPos.x, targetPos.y + 380, targetPos.z)`，地面衝擊波電環同步綻放於目標腳下，徹底終結在畫面中央空劈的缺陷。
+    - **A>B 穿透直連修正**：若切換為 A>B 彈道路徑，起點精確自施術者 `casterPos` 貫穿至受擊目標 `targetPos`，雷電電弧不再卡在中央縮成一截跳舞。
+    - **⚡ 衝擊節奏優化**：在 `MeshLayerRenderer.ts` 將落雷貫地插值係數加速至 `Math.min(1.0, progress * 4.0)`，雷光在前段瞬間灌頂擊中受擊目標，地面電環提早於 `progress > 0.2` 破空綻放。
+  - **🧪 測試與驗證**：
+    - 在 `src/tools/vfx-studio/VFXConsistency.test.ts` 新增「落雷終點與地面電環 100% 鎖定受擊目標 targetPos」斷言驗證。
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 62 個測試檔案、383 項測試 100% PASS。
+
+- **[Bugfix/VFXStudio] 徹底修復多發彈幕中央跳舞、非投射物誤攔截與中央幽靈光球殘留病灶（2026-09-09）**：
+  - **🧹 徹底消滅畫面中央幽靈殘留實體（中央大光球消失）**：
+    - **重大排查發現**：先前由單發狀態（如 `VOLUMETRIC_FIRE`、`FRESNEL_ICE`）切換至多發彈幕時，舊的 `volumetricGroup`、`projectileGroup` 等幾何群組未被設為 `visible = false`。由於多發管線將軌道原點歸零在 `(0, 0, 0)`，導致舊的火焰體積大光球被永久死死釘在畫面中央正原點。
+    - **全互斥幾何管線守護**：在進入 `isSalvo` 時全面隱藏所有單發幾何群組；反之在單發模式時隱藏 `multiArcGroup`，保證畫面上絕無任何幽靈實體殘留。
+  - **🚀 0° 散射偏角直線連貫齊射與天降起點優化**：
+    - **0° 嚴格直線齊射**：修正 `updateArcMulti` 當 `salvoSpreadAngle === 0` 時，法向偏移量嚴格歸零，5 顆流星/子彈不再被生硬扯開，而是呈連貫直線一發接一發砸向受擊目標。
+    - **天降起點動態適應**：優化 `DIAGONAL_DROP` / `DIAGONAL_SKY_TO_B` 天頂起點計算公式，依受擊目標與施術者距離動態展開天頂外側偏角（$X \approx -104, Y = +380 \to X = +260, Y = 0$），不再死死插在畫面水平中心線上方。
+    - **TRAJECTORY 模式支援 trajectoryPath**：確保選擇位移彈道時，具體幾何路徑（如斜向天降）能被正確解析與求值。
+  - **⚡ 徹底隔離非投射物形態，釋放雷電、地刺與光柱管線**：
+    - 在 `CombatFXEngine.ts` 明確定義非投射物排除清單，保證雷電、地刺、護盾、光柱等 100% 走回專屬管線。
+  - **🧪 測試與驗證**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 62 個測試檔案、382 項測試 100% PASS。
+
+- **[Feature/Refactor/VFXStudio] 斬擊升級 3D 歐拉角控制與通用多發彈幕發射器管線重構（2026-09-09）**：
+  - **⚔️ 斬擊全面升級 3D 歐拉角控制器 (3D Euler Slash Rotations)**：
+    - `src/models/VFX.ts`：在 `VFXPreset` 新增 `slashRotX`（-90°~90° 俯仰 Pitch）、`slashRotY`（-90°~90° 偏航 Yaw）、`slashRotZ`（-180°~180° 滾轉 Roll）屬性定義，與既有 `slashAngle` 保持雙向相容。
+    - `tools/vfx-studio.html`：左側斬擊面板全面改為「X 旋轉 (俯仰)」、「Y 旋轉 (偏航)」、「Z 旋轉 (滾轉/平面角)」三軸獨立滑桿與數值顯示。
+    - `src/tools/vfx-studio/VFXInspector.ts`：在 `INSPECTOR_CONTROL_MAP` 註冊 X/Y/Z 旋轉控制項；走向選單（`#param-slash-traj`）切換時自動同步寫入 X/Y/Z 預設角度；在 range 輸入事件中將 `slashRotZ` 與 `slashAngle` 保持雙向同步相容。
+    - `src/ui/fx/renderers/MeshLayerRenderer.ts`：在 `calculateSlashGeometryParams` 計算並回傳 `rotX`, `rotY`, `rotZ`。
+    - `src/ui/fx/CombatFXEngine.ts`：在 `renderTrack3DGeometry` 中將 `rotX` 與 `rotY` 套用至斬擊網格 `mesh.rotation.set(rotX, rotY, 0)`（Z 軸已融入 head/tail angle 動態弧面），使斬擊具備真實前後俯仰、左右側身與平面起手姿態。
+  - **🚀 通用多發彈幕發射器管線重構（徹底根除 Early Return 攔截缺陷）**：
+    - **重大缺陷根因**：原先 `CombatFXEngine.ts` 在 `renderTrack3DGeometry` 頂層依序處理特定 Shader（如 `FRESNEL_ICE` 冰錐、`VOLUMETRIC_FIRE` 火焰球），繪製單一物件後便直接 `return`，導致後面 `salvoCount > 1` 的多發彈幕代碼永遠被跳過，使用者設定 7 發彈幕、31° 偏角與 130px 散佈時畫面上永遠只有單一冰錐。
+    - **管線重構提升**：將多發彈幕發射器判定（`salvoCount > 1` 或 `ARC_MULTI`）提升至單發投射物 Shader 之前統一調度，徹底根除早退攔截。
+    - **多幾何多形態彈幕支援**：`MeshLayerRenderer.updateArcMulti` 升級為通用管線，支援依據當前 `shaderMode` 動態生成真實 3D 幾何主體（包含 `FRESNEL_ICE` 錐形冰箭＋外圍旋轉冰晶環、`VOLUMETRIC_FIRE` 熱浪顫動火球、奧術球體），並完整實裝 3D 扇形偏角（`salvoSpreadAngle`）、目標受擊落點半徑散佈（`salvoSpreadRadius`）、拋物弧高（`arcHeight`）與飛行切線動態轉向（`lookAt`）。
+  - **🧪 測試與驗證**：
+    - 在 `src/tools/vfx-studio/VFXConsistency.test.ts` 新增「斬擊 3D 歐拉角旋轉驗證」與「FRESNEL_ICE 7發彈幕、31°偏角、130px散佈真實生成驗證」。
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 62 個測試檔案、379 項測試 100% PASS。
+
+- **[Refactor/VFXStudio] 特效工房控制項全域貫通與斷路修復（2026-09-09）**：
+  - **⚔️ 斬擊幾何走向選單與多段動態貫通 (Slash Geometry Integration)**：
+    - `src/tools/vfx-studio/VFXInspector.ts`：實裝 `#param-slash-traj` 走向選單與起手起始角、揮斬跨度與出刀方向的自動雙向連動（順勢斜劈 -45°/120°、反手挑斬 135°/110° 反向、腰際橫斬 -15°/140°、天頂垂直力劈 90°/130°），即時連動刷新滑桿 UI。
+    - `src/ui/fx/renderers/MeshLayerRenderer.ts`：在 `calculateSlashGeometryParams` 實裝 `slashAngleJitter`（連斬角度動態擾動）與 `slashAlternating`（左右交錯反挑）之真實 3D 頂點幾何運算，並加入 `slashTrajectory` 預設回退角度，徹底終結斬擊角度不隨選單改變的斷路缺陷。
+  - **🚀 彈幕散射偏角與受擊散佈半徑實裝 (Salvo Spread & Scatter)**：
+    - `src/ui/fx/renderers/MeshLayerRenderer.ts`：在 `updateArcMulti` 中實裝 `salvoSpreadAngle`（展開多彈發射中途點夾角）與 `salvoSpreadRadius`（於目標受擊點依半徑產生落點散佈偏移），保持 0° 預設狀態下基準 -55..55px 完美相容。
+    - `src/ui/fx/CombatFXEngine.ts`：在多發彈幕求值時傳遞 `salvoSpreadAngle` 與 `salvoSpreadRadius`，且當 `salvoCount > 1` 時自動啟用多彈道渲染。
+  - **🥊 舞台中央浮動 HUD 與未發布指示燈接通 (HUD & Dirty Indicator)**：
+    - `src/tools/vfx-studio/VFXStudioController.ts`：實裝 `updateImpactMetricsHUD`，將舞台中央浮動 HUD（`#hud-salvo`、`#hud-hit-stop`、`#hud-punch`、`#hud-shake`、`#hud-knockback`）與 Store 訂閱連動，即時反映當前真實打擊感數據，徹底根除靜態寫死假資料。
+    - `src/tools/vfx-studio/VFXStudioController.ts`：實裝 `updateDirtyIndicator`，將頂部工具列未發布指示燈（`#vfx-dirty-indicator`）與 Store 的 `isDirty` 狀態雙向連動，有編輯時點亮黃燈提醒，無修改或發布成功後自動隱藏。
+  - **🧪 全套單元測試與 E2E 實機驗收全數通過**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 62 個檔案、379 項測試 100% PASS。
+    - `node scratch/verify_controls_fix.mjs` 實機 Playwright 瀏覽器 DOM 與 3D 幾何頂點驗收 100% PASS。
+
 - **[Bugfix/VFXStudio] 徹底根除特效工坊四大核心 UI 瑕疵與應試收合死鎖（2026-09-08）**：
   - **🧹 清除廢棄幽靈卡片 (Ghost UI)**：
     - `tools/vfx-studio.html`：徹底刪除左側面板殘留之廢棄幽靈卡片「🔮 複合多圖層積木 (Sequencer)」及其未綁定按鈕 `#btn-add-layer`，釋放左側版面空間。

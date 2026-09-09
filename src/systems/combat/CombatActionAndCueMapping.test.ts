@@ -2,11 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
 import { mapImpactsToCues, CombatActionPlayer, CombatAction } from '../../ui/fx/CombatActionPlayer';
 import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
-import { VFXImpactCue, VFXPreset } from '../../models/VFX';
+import { VFXImpactCue, VFXPreset, migrateLegacyPreset } from '../../models/VFX';
+import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 
 describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -172,6 +173,7 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
     });
 
     it('不變量 6: 治療 (HEAL) 與吸血 (DAMAGE + HEAL) 具備確定性呈現', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const vampireEvents: CombatEvent[] = [
         { type: CombatEventType.HIT, actionId: 'act_vamp', actorId: 'witch', targetId: 'warrior', damage: 200, text: '吸血傷害' },
         { type: CombatEventType.HEAL, actionId: 'act_vamp', actorId: 'witch', targetId: 'witch', healAmount: 100, text: '吸血恢復' }
@@ -184,6 +186,7 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
 
       expect(items.find(i => i.targetId === 'witch')?.kind).toBe('HEAL');
       expect(items.find(i => i.targetId === 'witch')?.amount).toBe(100);
+      expect(warnSpy).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -192,10 +195,6 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
   // ─────────────────────────────────────────────────────────────
   describe('批次 C：CombatActionPlayer 完整播放鏈與調度', () => {
     it('應驗證 1 個 SKILL_CAST + 3 個 HIT 事件組成一個 Action，底層只播放一次 VFX', async () => {
-      const actionPlayer = new CombatActionPlayer();
-      const fxEngine = CombatFXEngine.getInstance();
-      (fxEngine as any).isRunning = true;
-
       const mock3CuePreset: VFXPreset = {
         ...((CombatFXEngine.getInstance() as any).getPreset?.('VFX_HEAVY_STRIKE') || {}),
         id: 'TEST_COMBO_VFX',
@@ -206,16 +205,18 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
           { cueId: 'CUE_3', time: 0.3, weight: 1, isPrimary: true }
         ]
       } as any;
-      vi.spyOn((actionPlayer as any).presetRepo, 'getPreset').mockReturnValue(mock3CuePreset);
-
-      const playPresetSpy = vi.spyOn(fxEngine, 'playPresetConfig').mockImplementation(async (_preset, _from, _to, onImpact: any) => {
+      const mockSequence = migrateLegacyPreset(mock3CuePreset);
+      const playSequenceSpy = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
+        const [runtimeSequence, , , onImpact] = args;
         // 模擬觸發 3 個 Cue
         if (typeof onImpact === 'function') {
-          onImpact({} as any, 0, 3, { cueId: 'CUE_1', time: 0.1, weight: 1, isPrimary: false });
-          onImpact({} as any, 1, 3, { cueId: 'CUE_2', time: 0.2, weight: 1, isPrimary: false });
-          onImpact({} as any, 2, 3, { cueId: 'CUE_3', time: 0.3, weight: 1, isPrimary: true });
+          runtimeSequence.impactCues.forEach((cue, index) => onImpact(mock3CuePreset.impact, index, runtimeSequence.impactCues.length, cue));
         }
       });
+      const actionPlayer = new CombatActionPlayer(
+        { playSequence: playSequenceSpy },
+        { getSequence: () => mockSequence }
+      );
 
       const action: CombatAction = {
         actionId: 'act_combo',
@@ -240,7 +241,7 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
       });
 
       // 核心驗證 1：一個 Action 嚴格只呼叫一次 3D 引擎播放！
-      expect(playPresetSpy).toHaveBeenCalledTimes(1);
+      expect(playSequenceSpy).toHaveBeenCalledTimes(1);
 
       // 核心驗證 2：三個 Cue 各精準消費一個已結算 impact
       expect(receivedItems.length).toBe(3);
@@ -249,9 +250,11 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
     });
 
     it('應驗證 skipVfx 模式下直接同步結算所有呈現項目，不呼叫 3D 引擎', async () => {
-      const actionPlayer = new CombatActionPlayer();
-      const fxEngine = CombatFXEngine.getInstance();
-      const playPresetSpy = vi.spyOn(fxEngine, 'playPresetConfig');
+      const playSequenceSpy = vi.fn<CombatFXEngine['playSequence']>();
+      const actionPlayer = new CombatActionPlayer(
+        { playSequence: playSequenceSpy },
+        VFXPresetRepository.getInstance()
+      );
 
       const action: CombatAction = {
         actionId: 'act_skip',
@@ -273,18 +276,18 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
         onActionComplete: () => { completeCalled = true; }
       });
 
-      expect(playPresetSpy).not.toHaveBeenCalled();
+      expect(playSequenceSpy).not.toHaveBeenCalled();
       expect(presented.length).toBe(1);
       expect(presented[0].amount).toBe(300);
       expect(completeCalled).toBe(true);
     });
 
     it('規範第 11 節驗收標準: WebGL 或 3D 渲染拋出異常時，戰鬥依然完成且不遺失結算項目', async () => {
-      const actionPlayer = new CombatActionPlayer();
-      const fxEngine = CombatFXEngine.getInstance();
-
-      // 模擬 WebGL Context Lost 或 Shader 拋出重大異常
-      vi.spyOn(fxEngine, 'playPresetConfig').mockRejectedValue(new Error('WebGL context lost simulation'));
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const failingEngine: Pick<CombatFXEngine, 'playSequence'> = {
+        playSequence: async () => { throw new Error('WebGL context lost simulation'); }
+      };
+      const actionPlayer = new CombatActionPlayer(failingEngine, VFXPresetRepository.getInstance());
 
       const action: CombatAction = {
         actionId: 'act_webgl_fail',
@@ -311,6 +314,7 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
       expect(presented.length).toBe(1);
       expect(presented[0].amount).toBe(999);
       expect(presented[0].isCrit).toBe(true);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
     });
 
     it('規範第 8 節: STATUS_APPLY 事件映射為 STATUS 且不虛構傷害', () => {

@@ -182,6 +182,7 @@ describe('⚔️ CombatStageAdapter (主遊戲實戰模態框同源適配器驗�
   });
 
   it('5. playCombatAction 應以 CombatAction 為單位調度多段打擊呈現', async () => {
+    const expectedDegradedWarning = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const adapter = CombatStageAdapter.getInstance();
     adapter.mount(modal as any);
 
@@ -238,5 +239,6 @@ describe('⚔️ CombatStageAdapter (主遊戲實戰模態框同源適配器驗�
 
     expect(done).toBe(true);
     expect(impacts.reduce((a, b) => a + b, 0)).toBe(125);
+    expect(expectedDegradedWarning).toHaveBeenCalledTimes(1);
   });
 });

@@ -2,9 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
 import { mapImpactsToCues, CombatActionPlayer, CombatAction, collectCombatActions, isCombatAction } from '../../ui/fx/CombatActionPlayer';
 import { SkillVfxBindingRegistry } from './SkillVfxBindingRegistry';
-import { VFXImpactCue, VFXPreset } from '../../models/VFX';
+import { VFXImpactCue, VFXPreset, VFXSequence, migrateLegacyPreset } from '../../models/VFX';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 import { CombatUIManager } from '../../ui/CombatUIManager';
+import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
 
 /**
  * 🚨 Phase 0：固定現有缺陷測試案例 (Pin Down Existing Defects)
@@ -115,6 +116,62 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
 
       // 3D 視覺位置應指向施法者 hero_paladin
       expect(enemyDmgItems[0].visualTargetId).toBe('hero_paladin');
+    });
+
+    it('EACH_TARGET 的 visualTargetId 必須由 Player 傳給 Engine Cue 世界座標 resolver', async () => {
+      const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
+      const sequence = migrateLegacyPreset({
+        ...basePreset,
+        id: 'VFX_EACH_TARGET_TEST',
+        impactCues: [{ cueId: 'CUE_EACH', time: 0.1, kind: 'IMPACT', targetPolicy: 'EACH_TARGET' }]
+      });
+      let resolvedPoints: readonly { x: number; y: number }[] = [];
+      const playSequence = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
+        const [runtimeSequence, , , callback, , resolveCuePoints] = args;
+        const cue = runtimeSequence.impactCues[0];
+        resolvedPoints = resolveCuePoints?.(cue, 0) || [];
+        if (typeof callback === 'function') callback(basePreset.impact, 0, 1, cue);
+      });
+      const player = new CombatActionPlayer(
+        { playSequence },
+        { getSequence: () => sequence }
+      );
+
+      await player.playAction({
+        actionId: 'act_each',
+        actorId: 'hero',
+        vfxId: sequence.id,
+        events: [
+          { type: CombatEventType.HIT, actionId: 'act_each', actorId: 'hero', targetId: 'enemy_a', damage: 10, text: 'A' },
+          { type: CombatEventType.HIT, actionId: 'act_each', actorId: 'hero', targetId: 'enemy_b', damage: 20, text: 'B' }
+        ]
+      }, {
+        fromPoint: { x: 0, y: 0 },
+        toPoint: { x: 100, y: 100 },
+        resolveVisualPoint: id => id === 'enemy_a' ? { x: 10, y: 20 } : { x: 30, y: 40 }
+      });
+
+      expect(resolvedPoints).toEqual([{ x: 10, y: 20 }, { x: 30, y: 40 }]);
+    });
+
+    it('cueMap 必須優先於順序映射，且 Cue kind 不相容時不得承載數值', () => {
+      const events: CombatEvent[] = [
+        { type: CombatEventType.HIT, actionId: 'act_map', targetId: 'enemy', damage: 10, impactIndex: 0, text: '第一段' },
+        { type: CombatEventType.HIT, actionId: 'act_map', targetId: 'enemy', damage: 20, impactIndex: 1, text: '第二段' }
+      ];
+      const cues: VFXImpactCue[] = [
+        { cueId: 'CUE_EARLY', time: 0.1, kind: 'IMPACT' },
+        { cueId: 'CUE_HEAL_ONLY', time: 0.15, kind: 'HEAL' },
+        { cueId: 'CUE_LATE', time: 0.2, kind: 'IMPACT' }
+      ];
+      const presentations = mapImpactsToCues(events, cues, {
+        presentationMode: 'EXACT_IMPACTS',
+        cueMap: { '0': 'CUE_LATE', '1': 'CUE_EARLY' }
+      });
+
+      expect(presentations.find(item => item.cueId === 'CUE_LATE')?.amount).toBe(10);
+      expect(presentations.find(item => item.cueId === 'CUE_EARLY')?.amount).toBe(20);
+      expect(presentations.find(item => item.cueId === 'CUE_HEAL_ONLY')?.kind).toBe('VISUAL_ONLY');
     });
   });
 
@@ -348,6 +405,7 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
   // ─────────────────────────────────────────────────────────────
   describe('缺陷 5: 多段真實 Impact 少 Cue 時 fallback 派發 (規格 §3)', () => {
     it('2 impacts / 1 cue: 兩筆真實 impact 必須依序呈現且各恰好一次', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const action: CombatAction = {
         actionId: 'act_dual_hit',
         actorId: 'attacker',
@@ -374,7 +432,6 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
       };
 
       const captured: any[] = [];
-      const player = new CombatActionPlayer();
 
       // 模擬 preset: 只有 1 個 Cue
       const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
@@ -387,10 +444,16 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
           { cueId: 'CUE_1', time: 0.1, kind: 'IMPACT', weight: 1.0, isPrimary: true }
         ]
       };
-      (player as any).presetRepository = {
-        getPreset: () => mockPreset,
-        getSequence: () => null
-      };
+      const mockSequence = migrateLegacyPreset(mockPreset);
+      const playSequence = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
+          const [runtimeSequence, , , callback] = args;
+          if (typeof callback === 'function') {
+            runtimeSequence.impactCues.forEach((cue, index) => callback(mockPreset.impact, index, runtimeSequence.impactCues.length, cue));
+          }
+      });
+      const engine: Pick<CombatFXEngine, 'playSequence'> = { playSequence };
+      const repository: Pick<VFXPresetRepository, 'getSequence'> = { getSequence: () => mockSequence };
+      const player = new CombatActionPlayer(engine, repository);
 
       await player.playAction(action, {
         fromPoint: { x: 0, y: 0 },
@@ -407,9 +470,14 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
       expect(captured[1].amount).toBe(80);
       expect(captured[0].targetId).toBe('defender');
       expect(captured[1].targetId).toBe('defender');
+      expect(playSequence).toHaveBeenCalledTimes(1);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+      const playedSequence = playSequence.mock.calls[0][0] as VFXSequence;
+      expect(playedSequence.impactCues).toHaveLength(2);
     });
 
     it('成功播放、Skip、WebGL failure 三條路徑之呈現集合必須 100% 一致', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const events: CombatEvent[] = [
         {
           type: CombatEventType.HIT,
@@ -435,7 +503,6 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
         events
       };
 
-      const player = new CombatActionPlayer();
       const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
       const mockPreset: VFXPreset = {
         ...basePreset,
@@ -446,10 +513,16 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
           { cueId: 'CUE_1', time: 0.1, kind: 'IMPACT', weight: 1.0, isPrimary: true }
         ]
       };
-      (player as any).presetRepository = {
-        getPreset: () => mockPreset,
-        getSequence: () => null
-      };
+      const mockSequence = migrateLegacyPreset(mockPreset);
+      const normalPlaySequence = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
+          const [runtimeSequence, , , callback] = args;
+          if (typeof callback === 'function') {
+            runtimeSequence.impactCues.forEach((cue, index) => callback(mockPreset.impact, index, runtimeSequence.impactCues.length, cue));
+          }
+      });
+      const normalEngine: Pick<CombatFXEngine, 'playSequence'> = { playSequence: normalPlaySequence };
+      const repository: Pick<VFXPresetRepository, 'getSequence'> = { getSequence: () => mockSequence };
+      const player = new CombatActionPlayer(normalEngine, repository);
 
       // 1. Skip 路徑
       const skipCaptured: any[] = [];
@@ -471,10 +544,11 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
 
       // 3. WebGL failure 路徑
       const failureCaptured: any[] = [];
-      (player as any).fxEngine = {
-        playPresetConfig: () => Promise.reject(new Error('WebGL context lost simulation'))
+      const failingEngine: Pick<CombatFXEngine, 'playSequence'> = {
+        playSequence: async () => { throw new Error('WebGL context lost simulation'); }
       };
-      await player.playAction(action, {
+      const failingPlayer = new CombatActionPlayer(failingEngine, repository);
+      await failingPlayer.playAction(action, {
         fromPoint: { x: 0, y: 0 },
         toPoint: { x: 100, y: 100 },
         skipVfx: false,
@@ -487,6 +561,7 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
       expect(normalCaptured.some(i => i.amount === 50 && (i.kind === 'SHIELD_DAMAGE' || i.shieldDamage === 50))).toBe(true);
       expect(skipCaptured.some(i => i.amount === 50 && (i.kind === 'SHIELD_DAMAGE' || i.shieldDamage === 50))).toBe(true);
       expect(failureCaptured.some(i => i.amount === 50 && (i.kind === 'SHIELD_DAMAGE' || i.shieldDamage === 50))).toBe(true);
+      expect(warnSpy).toHaveBeenCalled();
     });
   });
 
@@ -623,6 +698,52 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
         expect(hpTxt.textContent).toBe('180/200');
       } finally {
         (globalThis as any).document = oldDoc;
+      }
+    });
+
+    it('SHIELD_DAMAGE 後接 STATUS 仍必須更新既有護盾 HUD', () => {
+      const oldDoc = globalThis.document;
+      try {
+        const shieldFill = { style: { width: '100%' } };
+        const shieldText = { textContent: '🛡 200/200' };
+        const shieldBg = {
+          getAttribute: (name: string) => name === 'data-shield-max' ? '200' : null,
+          classList: { toggle: vi.fn() }
+        };
+        Object.defineProperty(globalThis, 'document', {
+          configurable: true,
+          value: {
+            getElementById: (id: string) => {
+              if (id === 'shield-fill-target_1') return shieldFill;
+              if (id === 'shield-txt-target_1') return shieldText;
+              if (id === 'shield-bg-target_1') return shieldBg;
+              return null;
+            }
+          }
+        });
+
+        CombatUIManager.reconcileFinalActionState([
+          {
+            type: CombatEventType.SHIELD_DAMAGE,
+            actionId: 'act_shield_ui',
+            targetId: 'target_1',
+            shieldDamage: 75,
+            shieldRemaining: 125,
+            text: '護盾吸收'
+          },
+          {
+            type: CombatEventType.STATUS_APPLY,
+            actionId: 'act_shield_ui',
+            targetId: 'target_1',
+            text: '狀態附加'
+          }
+        ]);
+
+        expect(shieldFill.style.width).toBe('62.5%');
+        expect(shieldText.textContent).toBe('🛡 125/200');
+        expect(shieldBg.classList.toggle).toHaveBeenCalledWith('is-broken', false);
+      } finally {
+        Object.defineProperty(globalThis, 'document', { configurable: true, value: oldDoc });
       }
     });
   });
