@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { VFX_RENDER_ORDER } from '../VFXSpatialPolicy';
 import { defaultVfxRng } from '../VFXRng';
 
 export interface ParticleEmitterOptions {
@@ -37,6 +38,7 @@ export class ParticleLayerRenderer {
     });
 
     const points = new THREE.Points(geometry, material);
+    points.renderOrder = VFX_RENDER_ORDER.IMPACT;
     return { points, geometry, material, positions };
   }
 
@@ -155,6 +157,7 @@ export class ParticleLayerRenderer {
       depthWrite: false
     });
     const points = new THREE.Points(geo, mat);
+    points.renderOrder = VFX_RENDER_ORDER.IMPACT;
     scene.add(points);
 
     let sparkElapsed = 0;

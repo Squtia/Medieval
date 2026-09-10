@@ -1,3 +1,15 @@
+- **[Infra/DevTools] 導入雙引擎記憶領航員 (Memory Copilot) 與專案一鍵配置腳本（2026-09-10）**：
+  - **🧠 雙引擎架構整合 (Headroom CCR + codebase-memory Code Graph)**：
+    - 完成 `headroom-ai[mcp]` (v0.37.0) 整合，支援大容量終端日誌與對話快取壓縮。
+    - 完成 `codebase-memory-mcp` (v0.10.8) 整合，建立 Medieval 專案全域代碼知識圖譜（包含 23,380 個語法節點與 42,813 條關聯邊）。
+  - **📦 技能與一鍵配置腳本**：
+    - 部署技能至專案 `.agents/skills/memory_copilot/SKILL.md`。
+    - 新增跨機一鍵環境初始化腳本 `scripts/setup-memory-copilot.ps1`，方便在不同工作環境 pull 後快速還原雙引擎 MCP 設定。
+  - **🛡️ 行為準則升級 (AGENTS.md 第 8 條)**：
+    - 新增《禁止空口憑空推測與強制代碼查證防線 (Anti-Hallucination & Code Truth Mandate)》。
+    - 強制凡回答架構與邏輯必先調用 MCP 工具/閱讀具體行號，嚴禁憑空推測與口頭斷言。
+
+
 - **[Planning/VFXStudio] 特效工房子圖層落雷 A>B 空間軌跡斷點排查、深度遮擋防線與 Shader 升級計畫制定（2026-09-09）**：
   - **⚡ 子圖層落雷變 A>B 直線雷射根本原因排查**：
     - 排查發現：在 `TimelineInteraction.ts` 切換子圖層素材時，採用 `spatialMode: targetPreset.spatialMode || 'A_TO_B'`。由於「風暴狂雷 (Storm Bolt)」預設僅定義 `trajectory: "VERTICAL_DROP"`，其 `spatialMode` 為 `undefined`，觸發 fallback 被硬塞成 `'A_TO_B'`。

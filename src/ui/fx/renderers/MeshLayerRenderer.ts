@@ -8,6 +8,25 @@ import { defaultVfxRng } from '../VFXRng';
  * 包含：動態月牙斬芒 (Slash)、立體破土地裂尖岩 (Spikes)、體積黑體火焰 (Volumetric Fire)、菲涅爾冰晶 (Ice) 與護盾 (Shield)
  */
 export class MeshLayerRenderer {
+  private static readonly noiseGLSL = `
+    float hash31(vec3 p) {
+      p = fract(p * 0.1031); p += dot(p, p.yzx + 33.33);
+      return fract((p.x + p.y) * p.z);
+    }
+    float noise3(vec3 p) {
+      vec3 i = floor(p), f = fract(p);
+      f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(mix(hash31(i), hash31(i + vec3(1,0,0)), f.x),
+                     mix(hash31(i + vec3(0,1,0)), hash31(i + vec3(1,1,0)), f.x), f.y),
+                 mix(mix(hash31(i + vec3(0,0,1)), hash31(i + vec3(1,0,1)), f.x),
+                     mix(hash31(i + vec3(0,1,1)), hash31(i + vec3(1,1,1)), f.x), f.y), f.z);
+    }
+    float fbm(vec3 p) {
+      float value = 0.0, amplitude = 0.5;
+      for (int i = 0; i < 4; i++) { value += noise3(p) * amplitude; p *= 2.03; amplitude *= 0.5; }
+      return value;
+    }
+  `;
   /**
    * 🎨 專屬劍氣漸層著色器：外緣白熾刀刃，內弧透明漸散，兩端收尖
    */
@@ -108,17 +127,28 @@ export class MeshLayerRenderer {
     colorRim: string = '#38bdf8',
     fresnelExponent: number = 2.0
   ): THREE.ShaderMaterial {
+    return this.createAdvancedIceShaderMaterial(colorCore, colorRim, fresnelExponent);
+  }
+
+  public static createAdvancedIceShaderMaterial(
+    colorCore: string = '#ffffff',
+    colorRim: string = '#38bdf8',
+    fresnelExponent: number = 2.0
+  ): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       uniforms: {
         colorCore: { value: new THREE.Color(colorCore) },
         colorEdge: { value: new THREE.Color(colorRim) },
-        uFresnel: { value: fresnelExponent }
+        uFresnel: { value: fresnelExponent },
+        uTime: { value: 0 }
       },
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vViewDir;
+        varying vec3 vLocalPos;
         void main() {
           vNormal = normalize(normalMatrix * normal);
+          vLocalPos = position;
           vec4 worldPos = modelViewMatrix * vec4(position, 1.0);
           vViewDir = normalize(-worldPos.xyz);
           gl_Position = projectionMatrix * worldPos;
@@ -128,15 +158,22 @@ export class MeshLayerRenderer {
         uniform vec3 colorCore;
         uniform vec3 colorEdge;
         uniform float uFresnel;
+        uniform float uTime;
         varying vec3 vNormal;
         varying vec3 vViewDir;
+        varying vec3 vLocalPos;
         void main() {
           float fresnel = pow(1.0 - max(dot(vNormal, vViewDir), 0.0), uFresnel);
-          vec3 finalColor = mix(colorCore, colorEdge, fresnel);
-          gl_FragColor = vec4(finalColor, 0.9 + fresnel * 0.1);
+          float facets = pow(abs(sin(vLocalPos.y * 0.22 + vLocalPos.x * 0.17 + uTime * 2.0)), 12.0);
+          float frost = smoothstep(0.35, 0.9, sin(vLocalPos.y * 0.35 - uTime * 1.7) * 0.5 + 0.5);
+          vec3 finalColor = mix(colorCore * 0.55, colorEdge, fresnel);
+          finalColor += vec3(0.7, 0.9, 1.0) * (facets * 1.4 + frost * 0.22);
+          gl_FragColor = vec4(finalColor * 1.25, clamp(0.48 + fresnel * 0.5 + facets * 0.25, 0.0, 1.0));
         }
       `,
       transparent: true,
+      depthWrite: false,
+      depthTest: true,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide
     });
@@ -158,6 +195,12 @@ export class MeshLayerRenderer {
     turbulence: number = 5.0,
     speed: number = 2.0
   ): THREE.ShaderMaterial {
+    return this.createVolumetricBlackbodyFlameMaterial(colorCore, colorRim, turbulence, speed);
+  }
+
+  public static createVolumetricBlackbodyFlameMaterial(
+    colorCore: string = '#ffffff', colorRim: string = '#f97316', turbulence: number = 5.0, speed: number = 2.0
+  ): THREE.ShaderMaterial {
     return new THREE.ShaderMaterial({
       uniforms: {
         colorCore: { value: new THREE.Color(colorCore) },
@@ -167,6 +210,7 @@ export class MeshLayerRenderer {
         uSpeed: { value: speed }
       },
       vertexShader: `
+        ${this.noiseGLSL}
         uniform float uTime;
         uniform float uTurbulence;
         uniform float uSpeed;
@@ -175,26 +219,54 @@ export class MeshLayerRenderer {
         void main() {
           vNormal = normalize(normalMatrix * normal);
           vPosition = position;
-          float displacement = sin(position.x * 0.15 + uTime * uSpeed * 6.0) *
-                               cos(position.y * 0.15 + uTime * uSpeed * 4.0) * uTurbulence;
+          float displacement = (fbm(position * 0.075 + vec3(0.0, -uTime * uSpeed, uTime * 0.3)) - 0.5) * uTurbulence;
           vec3 newPos = position + normal * displacement;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
         }
       `,
       fragmentShader: `
+        ${this.noiseGLSL}
         uniform vec3 colorCore;
         uniform vec3 colorRim;
+        uniform float uTime;
         varying vec3 vNormal;
         varying vec3 vPosition;
         void main() {
-          float intensity = pow(dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.2);
-          vec3 col = mix(colorRim, colorCore, intensity);
-          gl_FragColor = vec4(col * 1.6, 0.85);
+          float n = fbm(vPosition * 0.09 + vec3(0.0, -uTime * 1.8, 0.0));
+          float facing = pow(max(abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 0.0), 0.8);
+          float heat = clamp(facing * 0.55 + n * 0.75, 0.0, 1.0);
+          vec3 smoke = vec3(0.035, 0.025, 0.02);
+          vec3 red = mix(vec3(0.35, 0.015, 0.0), colorRim, 0.7);
+          vec3 yellow = vec3(1.0, 0.45, 0.025);
+          vec3 col = heat < 0.28 ? mix(smoke, red, heat / 0.28)
+            : heat < 0.68 ? mix(red, yellow, (heat - 0.28) / 0.4)
+            : mix(yellow, colorCore + vec3(0.7, 0.55, 0.35), (heat - 0.68) / 0.32);
+          gl_FragColor = vec4(col * 1.8, smoothstep(0.08, 0.42, heat) * 0.92);
         }
       `,
       transparent: true,
+      depthWrite: false,
+      depthTest: true,
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide
+    });
+  }
+
+  public static createProceduralLightningShader(colorCore: string = '#ffffff', colorRim: string = '#38bdf8'): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: { colorCore: { value: new THREE.Color(colorCore) }, colorRim: { value: new THREE.Color(colorRim) }, uTime: { value: 0 }, uOpacity: { value: 1 } },
+      vertexShader: `varying vec3 vNormal; varying vec2 vUv; void main(){ vNormal=normalize(normalMatrix*normal); vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+      fragmentShader: `uniform vec3 colorCore; uniform vec3 colorRim; uniform float uTime; uniform float uOpacity; varying vec3 vNormal; varying vec2 vUv; void main(){ float pulse=0.75+0.25*sin(uTime*41.0+vUv.x*29.0); float core=pow(max(abs(vNormal.z),0.0),5.0); vec3 col=mix(colorRim,colorCore,core)*pulse; gl_FragColor=vec4(col*2.2,clamp((0.5+core*0.5)*uOpacity,0.0,1.0)); }`,
+      transparent: true, depthWrite: false, depthTest: true, blending: THREE.AdditiveBlending, side: THREE.DoubleSide
+    });
+  }
+
+  public static createRockCragShaderMaterial(color: string = '#78716c'): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: { uColor: { value: new THREE.Color(color) }, uTime: { value: 0 }, uOpacity: { value: 1 } },
+      vertexShader: `${this.noiseGLSL} varying vec3 vNormal; varying vec3 vPos; void main(){ vPos=position; vNormal=normalize(normalMatrix*normal); vec3 p=position+normal*(fbm(position*0.1)-0.5)*2.5; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
+      fragmentShader: `${this.noiseGLSL} uniform vec3 uColor; uniform float uOpacity; varying vec3 vNormal; varying vec3 vPos; void main(){ float grain=fbm(vPos*0.18); float light=max(dot(normalize(vNormal),normalize(vec3(-0.3,0.8,0.6))),0.0); float crack=smoothstep(0.46,0.5,abs(noise3(vPos*0.12)-0.5)); vec3 col=uColor*(0.32+light*0.72)*(0.72+grain*0.4)+vec3(1.0,0.32,0.06)*crack*0.35; gl_FragColor=vec4(col,uOpacity); }`,
+      transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide
     });
   }
 
@@ -523,6 +595,7 @@ export class MeshLayerRenderer {
       const c = cache.lightningGroup.children[0];
       cache.lightningGroup.remove(c);
       if ((c as any).geometry) (c as any).geometry.dispose();
+      if ((c as any).material) (c as any).material.dispose();
     }
 
     const currentEnd = new THREE.Vector3().lerpVectors(startPos, endPos, Math.min(1.0, progress * 4.0));
@@ -538,12 +611,9 @@ export class MeshLayerRenderer {
 
     const curve = new THREE.CatmullRomCurve3(pts);
     const tubeGeo = new THREE.TubeGeometry(curve, 20, 4.5 * scale, 6, false);
-    const tubeMat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(colorRim),
-      transparent: true,
-      opacity: Math.max(0.3, fadeAlpha),
-      blending: THREE.AdditiveBlending
-    });
+    const tubeMat = MeshLayerRenderer.createProceduralLightningShader(colorCore, colorRim);
+    tubeMat.uniforms.uTime.value = progress * 4.0;
+    tubeMat.uniforms.uOpacity.value = Math.max(0.3, fadeAlpha);
     cache.lightningGroup.add(new THREE.Mesh(tubeGeo, tubeMat));
 
     if (progress > 0.2) {
@@ -554,11 +624,30 @@ export class MeshLayerRenderer {
         transparent: true,
         opacity: Math.max(0.1, (1 - ringProg) * fadeAlpha),
         blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: true,
         side: THREE.DoubleSide
       });
       const ringMesh = new THREE.Mesh(ringGeo, ringMat);
       ringMesh.position.copy(endPos);
       cache.lightningGroup.add(ringMesh);
+    }
+
+    // Deterministic fork arcs: stable while scrubbing, animated by progress.
+    for (let branch = 0; branch < 3; branch++) {
+      const forkAt = 0.32 + branch * 0.18;
+      if (progress * 4.0 < forkAt) continue;
+      const origin = curve.getPoint(Math.min(0.88, forkAt));
+      const direction = branch % 2 === 0 ? -1 : 1;
+      const length = (42 + branch * 11) * scale;
+      const forkEnd = origin.clone().add(new THREE.Vector3(direction * length, -length * 0.42, (branch - 1) * 12));
+      const forkMid = origin.clone().lerp(forkEnd, 0.5).add(new THREE.Vector3(direction * 9, 8, -6));
+      const forkCurve = new THREE.CatmullRomCurve3([origin, forkMid, forkEnd]);
+      const forkGeo = new THREE.TubeGeometry(forkCurve, 8, 1.35 * scale, 5, false);
+      const forkMat = MeshLayerRenderer.createProceduralLightningShader(colorCore, colorRim);
+      forkMat.uniforms.uTime.value = progress * 4.0 + branch * 0.37;
+      forkMat.uniforms.uOpacity.value = fadeAlpha * 0.72;
+      cache.lightningGroup.add(new THREE.Mesh(forkGeo, forkMat));
     }
   }
 
@@ -588,10 +677,7 @@ export class MeshLayerRenderer {
       offsets.forEach(off => {
         const coneGeo = new THREE.ConeGeometry(9 * scale * off.scale, 58 * scale * off.scale, 6);
         coneGeo.translate(0, 29 * scale * off.scale, 0);
-        const coneMat = new THREE.MeshBasicMaterial({
-          color: new THREE.Color(colorRim),
-          wireframe: false
-        });
+        const coneMat = MeshLayerRenderer.createRockCragShaderMaterial(colorRim);
         const cone = new THREE.Mesh(coneGeo, coneMat);
         cone.position.set(off.x * scale, off.y * scale, 0);
         cone.rotation.z = off.rot;
@@ -602,14 +688,15 @@ export class MeshLayerRenderer {
     cache.spikesGroup.visible = true;
 
     const hScale = progress < 0.35
-      ? Math.pow(progress / 0.35, 0.6)
+      ? (() => { const t = progress / 0.35; return 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2); })()
       : (progress > 0.75 ? Math.max(0.1, 1 - (progress - 0.75) / 0.25) : 1.0);
     cache.spikesGroup.scale.set(1.0, Math.max(0.05, hScale), 1.0);
 
     cache.spikesGroup.children.forEach((mesh: any) => {
       if (mesh.material) {
-        mesh.material.color.set(colorRim);
-        mesh.material.opacity = fadeAlpha;
+        if (mesh.material.uniforms?.uColor) mesh.material.uniforms.uColor.value.set(colorRim);
+        if (mesh.material.uniforms?.uOpacity) mesh.material.uniforms.uOpacity.value = fadeAlpha;
+        if (mesh.material.uniforms?.uTime) mesh.material.uniforms.uTime.value = progress;
       }
     });
   }
@@ -632,26 +719,49 @@ export class MeshLayerRenderer {
 
     if (!cache.frostGroup) {
       cache.frostGroup = new THREE.Group();
-      const coneGeo = new THREE.ConeGeometry(9 * scale, 60 * scale, 8);
+      const coneGeo = new THREE.ConeGeometry(9 * scale, 60 * scale, 16, 2);
       coneGeo.rotateX(Math.PI / 2);
       const coneMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       cache.frostGroup.add(cone);
+      cache.iceMaterial = coneMat;
 
       const ringGeo = new THREE.TorusGeometry(18 * scale, 2.5 * scale, 8, 20);
       const ringMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(colorRim),
         transparent: true,
         opacity: 0.9,
-        blending: THREE.AdditiveBlending
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: true
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       cache.frostGroup.add(ring);
+      cache.iceRing = ring;
+
+      const crystalGeo = new THREE.OctahedronGeometry(2.4 * scale, 0);
+      const crystalMat = MeshLayerRenderer.createAdvancedIceShaderMaterial(colorCore, colorRim, 1.5);
+      cache.iceTrail = new THREE.Group();
+      for (let i = 0; i < 7; i++) {
+        const shard = new THREE.Mesh(crystalGeo, crystalMat);
+        shard.position.set(0, 0, 11 + i * 8 * scale);
+        shard.scale.setScalar(1 - i * 0.1);
+        cache.iceTrail.add(shard);
+      }
+      cache.frostGroup.add(cache.iceTrail);
 
       trackGroup.add(cache.frostGroup);
     }
     cache.frostGroup.visible = true;
     cache.frostGroup.rotation.z = progress * Math.PI * 4;
+    if (cache.iceMaterial?.uniforms?.uTime) cache.iceMaterial.uniforms.uTime.value = progress * 4.0;
+    if (cache.iceTrail) {
+      cache.iceTrail.rotation.z = -progress * Math.PI * 7;
+      cache.iceTrail.children.forEach((shard: THREE.Object3D, i: number) => {
+        shard.position.x = Math.sin(progress * 18 + i * 1.7) * (3 + i * 0.6) * scale;
+        shard.position.y = Math.cos(progress * 15 + i * 1.3) * (3 + i * 0.45) * scale;
+      });
+    }
   }
 
   /**

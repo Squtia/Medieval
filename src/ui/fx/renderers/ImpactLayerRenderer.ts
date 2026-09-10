@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { VFX_RENDER_ORDER } from '../VFXSpatialPolicy';
 
 export interface ImpactWaveOptions {
   radius?: number;
@@ -46,6 +47,7 @@ export class ImpactLayerRenderer {
     });
 
     const mesh = new THREE.Mesh(ringGeo, ringMat);
+    mesh.renderOrder = isGround ? VFX_RENDER_ORDER.GROUND : VFX_RENDER_ORDER.IMPACT;
     mesh.position.copy(origin);
     if (isGround) {
       mesh.rotation.x = Math.PI * 0.38; // 2.5D 俯視傾角

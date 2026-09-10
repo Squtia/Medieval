@@ -5,6 +5,7 @@ import { VFXPlayer } from '../../../ui/fx/VFXPlayer';
 import { VFXPresetRepository } from '../../../ui/fx/VFXPresetRepository';
 import { TimelineSelection } from './TimelineSelection';
 import { TimelineCommands } from './TimelineCommands';
+import { resolvePresetSpatialMode } from '../../../ui/fx/VFXSpatialPolicy';
 
 /**
  * 🖱️ TimelineInteraction
@@ -708,7 +709,9 @@ export class TimelineInteraction {
               presetId: targetPreset.id,
               name: targetPreset.name,
               shaderMode: targetPreset.shaderMode || 'ENERGY_BEAM',
-              spatialMode: targetPreset.spatialMode || 'A_TO_B',
+              spatialMode: resolvePresetSpatialMode(targetPreset),
+              trajectory: targetPreset.trajectory,
+              trajectoryPath: targetPreset.trajectoryPath,
               reverse: targetPreset.reverse || false
             };
             this.store.updateConfig({ layers }, true);

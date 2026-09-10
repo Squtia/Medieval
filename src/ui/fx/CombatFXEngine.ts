@@ -13,6 +13,7 @@ import { ScreenFxRenderer } from './renderers/ScreenFxRenderer';
 import { AudioLayerRenderer } from './renderers/AudioLayerRenderer';
 import { VFXTimelineEvaluator } from './VFXTimelineEvaluator';
 import { VFXEffectInstance, VFXInstanceRegistry } from './VFXEffectInstance';
+import { resolvePresetSpatialMode, resolveVFXWorldStart, VFX_RENDER_ORDER } from './VFXSpatialPolicy';
 
 export type { ScreenPoint };
 export type VFXCueScreenPointResolver = (cue: VFXImpactCue, cueIndex: number) => readonly ScreenPoint[];
@@ -333,6 +334,13 @@ export class CombatFXEngine extends VFXPlayer {
     const sc = track.scale || 1.0;
     const shader = track.shaderMode || 'ENERGY_BEAM';
     const isSlash = shader === 'SLASH_BLADE' || track.spatialMode === 'MELEE_SWEEP';
+    const trajectoryMode = track.spatialMode || track.preset?.trajectoryPath || track.preset?.trajectory;
+    trackGroup.renderOrder =
+      shader === 'EARTH_SHATTER' || shader === 'GROUND_FISSURE' || trajectoryMode === 'GROUND_BURST'
+        ? VFX_RENDER_ORDER.GROUND
+        : trajectoryMode === 'AT_TARGET'
+          ? VFX_RENDER_ORDER.IMPACT
+          : VFX_RENDER_ORDER.MAIN;
 
     // 檢查既有快取
     let cache = (trackGroup as any).__cache;
@@ -488,14 +496,12 @@ export class CombatFXEngine extends VFXPlayer {
       const lightningEnd = targetPos.clone();
 
       // ⚡ 判定是否為橫向 A>B 穿透模式，否則皆為垂直天頂天降狂雷
-      const isAB =
-        track.spatialMode === 'A_TO_B' ||
-        track.preset?.trajectoryPath === 'A_TO_B' ||
-        (track.preset?.trajectory === 'A_TO_B');
-
-      const lightningStart = isAB
-        ? casterPos.clone()
-        : new THREE.Vector3(targetPos.x, targetPos.y + 380, targetPos.z);
+      const lightningMode = track.spatialMode
+        || track.trajectory
+        || track.preset?.spatialMode
+        || track.preset?.trajectoryPath
+        || track.preset?.trajectory;
+      const lightningStart = resolveVFXWorldStart(lightningMode, casterPos, targetPos);
 
       MeshLayerRenderer.updateLightningTube(
         trackGroup,
@@ -957,10 +963,15 @@ export class CombatFXEngine extends VFXPlayer {
             if (layer.presetId) {
               const subPreset = this.getPreset(layer.presetId);
               if (subPreset) {
-                // 🧩 積木式引用庫中任一現有 Preset，直傳已轉換之世界座標與遞迴防線！
+                const subMode = layer.spatialMode
+                  || layer.trajectoryPath
+                  || layer.trajectory
+                  || resolvePresetSpatialMode(subPreset);
+                const subStartPos = resolveVFXWorldStart(subMode, startPos, actualEndPos);
+                // 🧩 積木式引用庫中任一現有 Preset，依其空間模式校準世界座標與遞迴防線。
                 this.playPresetWorld(
                   subPreset,
-                  startPos,
+                  subStartPos,
                   actualEndPos,
                   isPlayer,
                   (layer.emitsImpactCue || layer.generatesHit) ? (imp, hIdx, tHits) => onImpact?.(imp, hIdx, tHits) : undefined,
@@ -975,13 +986,11 @@ export class CombatFXEngine extends VFXPlayer {
               this.playGroundFissure(startPos, actualEndPos, resolvedPreset, () => {}, () => {});
             } else if (resolvedPreset.trajectory === 'MELEE_SWEEP' || resolvedPreset.shaderMode === 'SLASH_BLADE') {
               this.playArcSlash(actualEndPos, resolvedPreset, () => {}, () => {});
-            } else if (resolvedPreset.trajectory === 'VERTICAL_DROP') {
+            } else if (resolvedPreset.trajectory === 'VERTICAL_DROP' && resolvedPreset.shaderMode !== 'DIELECTRIC_LIGHTNING') {
               this.playHolyPillar(actualEndPos, resolvedPreset, () => {}, () => {});
             } else if (resolvedPreset.shaderMode === 'DIELECTRIC_LIGHTNING') {
-              const layerTraj = (layer.trajectory || '') as string;
-              const lightningStart = (layerTraj === 'VERTICAL_DROP' || layerTraj === 'VERTICAL_SKY_TO_B')
-                ? new THREE.Vector3(actualEndPos.x, actualEndPos.y + 380, 0)
-                : startPos;
+              const layerTraj = (layer.spatialMode || layer.trajectoryPath || layer.trajectory || resolvePresetSpatialMode(resolvedPreset)) as string;
+              const lightningStart = resolveVFXWorldStart(layerTraj, startPos, actualEndPos);
               this.playDynamicLightning(lightningStart, actualEndPos, resolvedPreset, () => {}, () => {});
             } else if (resolvedPreset.shaderMode === 'ENERGY_BEAM' || resolvedPreset.trajectory === 'COLUMN_PIERCE') {
               this.playDynamicBeam(startPos, actualEndPos, resolvedPreset, () => {}, () => {});
@@ -1666,15 +1675,10 @@ export class CombatFXEngine extends VFXPlayer {
   ): void {
     let actualStart = startPos.clone();
     const trajMode = (preset.spatialMode || preset.trajectoryPath || preset.trajectory || '') as string;
-    if (trajMode === 'VERTICAL_DROP' || trajMode === 'VERTICAL_SKY_TO_B') {
-      actualStart = new THREE.Vector3(endPos.x, endPos.y + 380, 0);
-    } else if (trajMode === 'DIAGONAL_DROP' || trajMode === 'DIAGONAL_SKY_TO_B') {
-      actualStart = new THREE.Vector3(endPos.x - 260, endPos.y + 380, 0);
-    } else if (trajMode === 'GROUND_BURST') {
-      actualStart = new THREE.Vector3(endPos.x, endPos.y - 120, 0);
-    }
+    actualStart = resolveVFXWorldStart(trajMode, actualStart, endPos);
 
     const group = new THREE.Group();
+    group.renderOrder = VFX_RENDER_ORDER.MAIN;
     group.position.copy(actualStart);
     this.scene.add(group);
 

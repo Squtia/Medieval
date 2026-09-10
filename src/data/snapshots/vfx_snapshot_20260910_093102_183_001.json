@@ -1592,7 +1592,6 @@
     "bloomThresh": 0.1,
     "spikeWidth": 12,
     "spikeMaterialMode": "PHONG",
-    "spikeEruptFire": true,
     "salvoCount": 1,
     "salvoRhythmCurve": "LINEAR",
     "impactPresentationMode": "EXACT_IMPACTS",

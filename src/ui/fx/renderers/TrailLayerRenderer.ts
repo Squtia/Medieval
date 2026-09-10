@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { defaultVfxRng } from '../VFXRng';
+import { VFX_RENDER_ORDER } from '../VFXSpatialPolicy';
 
 export interface TrailInstance {
   points: THREE.Points;
@@ -51,6 +52,7 @@ export class TrailLayerRenderer {
     });
 
     const points = new THREE.Points(geometry, material);
+    points.renderOrder = VFX_RENDER_ORDER.TRAIL;
     scene.add(points);
 
     let currentIndex = 0;
@@ -127,6 +129,7 @@ export class TrailLayerRenderer {
       blending: THREE.AdditiveBlending
     });
     const mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = VFX_RENDER_ORDER.MAIN;
     scene.add(mesh);
 
     let life = Math.max(0.15, (options.duration || 0.3) * 0.6);
@@ -164,6 +167,7 @@ export class TrailLayerRenderer {
   } {
     const dist = startPos.distanceTo(endPos);
     const group = new THREE.Group();
+    group.renderOrder = VFX_RENDER_ORDER.MAIN;
     group.position.copy(startPos);
     group.lookAt(endPos);
     scene.add(group);
@@ -230,6 +234,7 @@ export class TrailLayerRenderer {
   } {
     const rng = options.rng || defaultVfxRng;
     const group = new THREE.Group();
+    group.renderOrder = VFX_RENDER_ORDER.MAIN;
     scene.add(group);
 
     const arrowCount = options.arrowCount || 9;
