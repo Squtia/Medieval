@@ -67,6 +67,11 @@ if (Get-Command codebase-memory-mcp.cmd -ErrorAction SilentlyContinue) {
     codebase-memory-mcp install -y
 }
 
+# 🔄 立即刷新當前進程的 PATH 環境變數，確保剛安裝的執行檔能立即被抓到
+$userPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
+$machinePath = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+$env:Path = "$userPath;$machinePath;$env:USERPROFILE\.local\bin;$env:APPDATA\npm"
+
 # ------------------------------------------------------------------------------
 # 3. 寫入 Antigravity 全域 MCP 設定檔
 # ------------------------------------------------------------------------------
@@ -79,18 +84,18 @@ if (-not (Test-Path $geminiConfigDir)) {
     New-Item -ItemType Directory -Path $geminiConfigDir -Force | Out-Null
 }
 
-# 取得可用執行檔路徑
+# 取得可用執行檔路徑 (優先檢測原生完整路徑)
 $headroomExe = (Get-Command headroom.exe -ErrorAction SilentlyContinue).Source
 if (-not $headroomExe) {
-    $headroomExe = (Get-ChildItem -Path "$env:LOCALAPPDATA\Python\*\Scripts\headroom.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName)
+    $headroomExe = (Get-ChildItem -Path "$env:LOCALAPPDATA\Python\*\Scripts\headroom.exe", "$env:APPDATA\Python\*\Scripts\headroom.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName)
 }
 if (-not $headroomExe) { $headroomExe = "headroom" }
 
-$codebaseExe = (Get-Command codebase-memory-mcp.exe -ErrorAction SilentlyContinue).Source
-if (-not $codebaseExe) {
-    $codebaseExe = "$env:USERPROFILE\.local\bin\codebase-memory-mcp.exe"
-}
+$codebaseExe = "$env:USERPROFILE\.local\bin\codebase-memory-mcp.exe"
 if (-not (Test-Path $codebaseExe)) {
+    $codebaseExe = (Get-Command codebase-memory-mcp.exe -ErrorAction SilentlyContinue).Source
+}
+if (-not $codebaseExe -or -not (Test-Path $codebaseExe)) {
     $codebaseExe = (Get-Command codebase-memory-mcp.cmd -ErrorAction SilentlyContinue).Source
 }
 if (-not $codebaseExe) { $codebaseExe = "codebase-memory-mcp" }

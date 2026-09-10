@@ -4,6 +4,7 @@
     - 完成 `codebase-memory-mcp` (v0.10.8) 整合，建立 Medieval 專案全域代碼知識圖譜（包含 23,380 個語法節點與 42,813 條關聯邊）。
   - **📦 技能與一鍵配置腳本**：
     - 部署技能至專案 `.agents/skills/memory_copilot/SKILL.md`。
+    - 納入完整原始工具包至專案 `tools/memory_copilot/`（含跨平台安裝檔與說明文檔）。
     - 新增跨機一鍵環境初始化腳本 `scripts/setup-memory-copilot.ps1`，方便在不同工作環境 pull 後快速還原雙引擎 MCP 設定。
   - **🛡️ 行為準則升級 (AGENTS.md 第 8 條)**：
     - 新增《禁止空口憑空推測與強制代碼查證防線 (Anti-Hallucination & Code Truth Mandate)》。

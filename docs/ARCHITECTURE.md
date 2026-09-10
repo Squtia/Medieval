@@ -31,7 +31,8 @@
 │   ├── equipment-studio.html# 獨立裝備、素材與配方工坊 (Equipment Studio) 入口
 │   ├── skill-workshop.html  # 獨立全自訂積木技能工坊 (Skill Workshop) 入口
 │   ├── icon-studio.html     # 獨立全圖集圖標工坊 (Icon Studio) 入口
-│   └── vfx-studio.html      # 獨立 3D 特效與 Shader 工坊 (VFX Studio) 入口
+│   ├── vfx-studio.html      # 獨立 3D 特效與 Shader 工坊 (VFX Studio) 入口
+│   └── memory_copilot/      # [AI 記憶工具包] 雙引擎 Memory Copilot (Headroom + codebase-memory) 原始安裝檔與腳本
 ├── src/
 │   ├── core/                # 核心驅動引擎
 │   │   ├── EventBus.ts      # [核心] 全局事件總線
