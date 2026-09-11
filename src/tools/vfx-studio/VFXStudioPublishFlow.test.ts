@@ -259,7 +259,7 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
 
     // 驗證：因深層比對失敗，Dirty 嚴格不可被清除，畫面草稿完整保留
     expect(store.getIsDirty()).toBe(true);
-    expect(store.getPreset().impactCues?.some(c => c.cueId === 'cue_test_deep_eq')).toBe(true);
+    expect(store.getPreset().impactCues?.some((c: any) => c.cueId === 'cue_test_deep_eq')).toBe(true);
   });
 
   it('🔴 驗證 6：回讀端點網路異常 (HTTP 500 / 連線失敗) 時，必須判定發布未完成且 Dirty 保持 true', async () => {

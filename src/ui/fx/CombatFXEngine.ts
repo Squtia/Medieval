@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXSequence, sequenceToLegacyPreset } from '../../models/VFX';
-import defaultVFXPresets from '../../data/vfx_presets.json';
+import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXSequence } from '../../models/VFX';
 import { VFXPresetRepository } from './VFXPresetRepository';
 import { PlaybackClock } from './PlaybackClock';
 
@@ -33,12 +32,11 @@ export class CombatFXEngine extends VFXPlayer {
     onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void,
     resolveCueScreenPoints?: VFXCueScreenPointResolver
   ): Promise<void> {
-    const preset = sequenceToLegacyPreset(sequence);
     const resolveCueWorldPoints = resolveCueScreenPoints
       ? (cue: VFXImpactCue, cueIndex: number) => resolveCueScreenPoints(cue, cueIndex).map(point => this.screenToWorld(point))
       : undefined;
-    return this.playPresetWorld(
-      preset,
+    return this.playSequenceWorld(
+      sequence,
       this.screenToWorld(from),
       this.screenToWorld(to),
       isPlayerOrOnImpact,
@@ -60,8 +58,174 @@ export class CombatFXEngine extends VFXPlayer {
     customRootGroup?: THREE.Group,
     customTrackGroups?: THREE.Group[]
   ): void {
-    const preset = sequenceToLegacyPreset(sequence);
-    this.renderFrameWorldAt(preset, timeSeconds, casterPos, targetPos, customRootGroup, customTrackGroups);
+    const rootGroup = customRootGroup || (() => {
+      if (!this.studioPreviewGroup) {
+        this.studioPreviewGroup = new THREE.Group();
+      }
+      return this.studioPreviewGroup;
+    })();
+
+    if (!this.scene.children.includes(rootGroup)) {
+      this.scene.add(rootGroup);
+    }
+    rootGroup.visible = true;
+
+    // 貫穿彈道延伸終點 (COLUMN_PIERCE)
+    let actualTargetPos = targetPos.clone();
+    const impactTrack = sequence.tracks.find(t => t.type === 'IMPACT');
+    const impactClip = impactTrack?.clips.find(c => c.payload.type === 'IMPACT');
+    const impactData = (impactClip?.payload.data as VFXImpactConfig);
+    const penDist = impactData?.penetrationDistance;
+    const mainTrack = sequence.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH' || t.type === 'SLASH') || sequence.tracks[0];
+    const mainClip = mainTrack?.clips[0];
+    const mainPayload = mainClip?.payload.data as any;
+    if (mainPayload?.trajectory === 'COLUMN_PIERCE' && penDist) {
+      const dir = new THREE.Vector3().subVectors(actualTargetPos, casterPos).normalize();
+      actualTargetPos.addScaledVector(dir, penDist);
+    }
+
+    // 整理所有可渲染幾何軌道（排除 PARTICLE, IMPACT 與 AUDIO 軌道）
+    const renderableTracks = sequence.tracks.filter(t => !t.isMuted && t.type !== 'IMPACT' && t.type !== 'AUDIO' && t.type !== 'PARTICLE');
+    const trackGroups = customTrackGroups || (this.studioTrackGroups = this.studioTrackGroups || []);
+
+    while (trackGroups.length < renderableTracks.length) {
+      const g = new THREE.Group();
+      trackGroups.push(g);
+      rootGroup.add(g);
+    }
+    for (let i = renderableTracks.length; i < trackGroups.length; i++) {
+      trackGroups[i].visible = false;
+    }
+
+    // 逐軌進行確定性影格求值與 3D 幾何繪製
+    for (let i = 0; i < renderableTracks.length; i++) {
+      const track = renderableTracks[i];
+      const trackGroup = trackGroups[i];
+      const clip = track.clips[0];
+      const clipData = (clip?.payload.data || {}) as any;
+      const trackStart = clip?.startTime || 0;
+      const trackDur = clip?.duration || sequence.duration || 0.4;
+      const trackEnd = trackStart + trackDur;
+
+      if (timeSeconds < trackStart || timeSeconds > trackEnd) {
+        trackGroup.visible = false;
+        continue;
+      }
+      trackGroup.visible = true;
+
+      const p = Math.max(0, Math.min(1.0, (timeSeconds - trackStart) / Math.max(0.001, trackDur)));
+      const fadeIn = clip?.fadeIn ?? 0.05;
+      const fadeOut = clip?.fadeOut ?? 0.08;
+      let fadeAlpha = 1.0;
+      const elapsed = timeSeconds - trackStart;
+      const remaining = trackEnd - timeSeconds;
+      if (fadeIn > 0 && elapsed < fadeIn) {
+        fadeAlpha = Math.min(fadeAlpha, Math.max(0.1, elapsed / fadeIn));
+      }
+      if (fadeOut > 0 && remaining < fadeOut) {
+        fadeAlpha = Math.min(fadeAlpha, Math.max(0.1, remaining / fadeOut));
+      }
+
+      // 次生引用圖層 COMPOSITE_LAYER
+      let resolvedData = { ...clipData };
+      const subPresetId = clipData.presetId;
+      if (clip?.payload.type === 'COMPOSITE_LAYER' && subPresetId) {
+        const subSeq = VFXPresetRepository.getInstance().getSequence(subPresetId);
+        if (subSeq) {
+          const subMainTrack = subSeq.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH' || t.type === 'SLASH') || subSeq.tracks[0];
+          const subMainClip = subMainTrack?.clips[0];
+          if (subMainClip?.payload.data) {
+            resolvedData = {
+              ...(subMainClip.payload.data as any),
+              ...clipData,
+              scale: (clipData.scale || 1.0) * ((subMainClip.payload.data as any).scale || 1.0)
+            };
+          }
+        }
+      }
+
+      const spatialMode = resolvedData.spatialMode || (resolvedData.trajectory === 'MELEE_SWEEP' ? 'MELEE_SWEEP' : 'A_TO_B');
+      const reverse = !!resolvedData.reverse;
+
+      const curPos = this.calculate3DTrackPos(spatialMode, reverse, p, casterPos, actualTargetPos);
+      const startPos = this.calculate3DTrackPos(spatialMode, reverse, 0.0, casterPos, actualTargetPos);
+      const endPos = this.calculate3DTrackPos(spatialMode, reverse, 1.0, casterPos, actualTargetPos);
+
+      // 🌟 附著型粒子拖尾處理 (Attachment Trail to curPos or Blade Tip)
+      if (i === 0) {
+        const particleTrack = sequence.tracks.find(t => !t.isMuted && t.type === 'PARTICLE');
+        const pClip = particleTrack?.clips[0];
+        const pData = (pClip?.payload.data || {}) as any;
+        const isSlash = track.type === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP';
+        const trailCount = resolvedData.trailCount || pData.trailCount || 35;
+        const isTrailEnabled = resolvedData.enableTrail === true || pData.enableTrail === true ||
+          (resolvedData.enableTrail !== false && pData.enableTrail !== false && trailCount > 0);
+
+        // 只有啟用拖尾且在出刀區間內才生成與更新拖尾粒子
+        // 出刀結束 (timeSeconds >= trackEnd 或 p >= 0.999) 必須立即回收，絕不殘留在最後一個 frame
+        if (isTrailEnabled && trailCount > 0 && timeSeconds >= trackStart && timeSeconds < trackEnd && p < 0.999) {
+          const slashPreset = (track as any).preset || resolvedData;
+          let emissionPos = curPos;
+          if (isSlash) {
+            emissionPos = MeshLayerRenderer.calculateSlashBladeTip(slashPreset, p, actualTargetPos, reverse);
+          }
+
+          let trailCache = (rootGroup as any).__trailCache;
+          if (!trailCache) {
+            const trailColorHex = resolvedData.trailColor || pData.trailColor || resolvedData.colorRim || pData.colorRim || '#f59e0b';
+            trailCache = TrailLayerRenderer.createTrail(
+              rootGroup as any,
+              emissionPos,
+              trailColorHex,
+              trailCount,
+              resolvedData.trailSize || pData.trailSize || 8,
+              resolvedData.scale || pData.scale || 1.0,
+              () => this.getRandom()
+            );
+            (rootGroup as any).__trailCache = trailCache;
+          }
+
+          if (isSlash && typeof trailCache.updateArcTrail === 'function') {
+            trailCache.updateArcTrail(
+              (prog: number) => MeshLayerRenderer.calculateSlashBladeTip(slashPreset, prog, actualTargetPos, reverse),
+              p
+            );
+          } else {
+            trailCache.update(emissionPos);
+          }
+        } else if ((rootGroup as any).__trailCache) {
+          (rootGroup as any).__trailCache.dispose();
+          (rootGroup as any).__trailCache = null;
+        }
+      }
+
+      const inferredShader = resolvedData.shaderMode || (track.type === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : undefined);
+
+      const renderTrackObj = {
+        id: track.id,
+        name: track.name,
+        delay: trackStart,
+        duration: trackDur,
+        fadeIn,
+        fadeOut,
+        scale: resolvedData.scale || 1.0,
+        shaderMode: inferredShader,
+        spatialMode,
+        reverse,
+        colorCore: resolvedData.colorCore || '#ffffff',
+        colorRim: resolvedData.colorRim || '#38bdf8',
+        preset: resolvedData,
+        enabled: true
+      };
+
+      if (inferredShader) {
+        this.renderTrack3DGeometry(trackGroup, renderTrackObj, p, fadeAlpha, curPos, startPos, endPos, casterPos, actualTargetPos);
+      } else {
+        trackGroup.visible = false;
+      }
+    }
+
+    this.renderer.render(this.scene, this.camera);
   }
   private scheduledTimers = new Set<ReturnType<typeof setTimeout>>();
   private instanceRegistry: VFXInstanceRegistry = new VFXInstanceRegistry();
@@ -141,13 +305,18 @@ export class CombatFXEngine extends VFXPlayer {
    * 支援獨立 Instance 專屬 RootGroup 與 TrackGroups，徹底防止並發播放相互覆蓋
    */
   public renderFrameWorldAt(
-    preset: VFXPreset,
+    preset: VFXPreset | any,
     timeSeconds: number,
     casterPos: THREE.Vector3,
     targetPos: THREE.Vector3,
     customRootGroup?: THREE.Group,
     customTrackGroups?: THREE.Group[]
   ): void {
+    if (preset && Array.isArray((preset as any).tracks)) {
+      this.renderSequenceWorldAt(preset as VFXSequence, timeSeconds, casterPos, targetPos, customRootGroup, customTrackGroups);
+      return;
+    }
+
     const rootGroup = customRootGroup || (() => {
       if (!this.studioPreviewGroup) {
         this.studioPreviewGroup = new THREE.Group();
@@ -181,7 +350,7 @@ export class CombatFXEngine extends VFXPlayer {
       fadeIn: 0.05,
       fadeOut: 0.08,
       scale: preset.scale || 1.0,
-      shaderMode: preset.shaderMode || (preset.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : 'ENERGY_BEAM'),
+      shaderMode: preset.shaderMode || (preset.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : undefined),
       spatialMode: (preset.spatialMode === 'TRAJECTORY' ? (preset.trajectoryPath || preset.trajectory || 'A_TO_B') : (preset.spatialMode || preset.trajectoryPath || preset.trajectory || 'A_TO_B')),
       reverse: !!preset.reverse,
       colorCore: preset.colorCore || '#ffffff',
@@ -190,7 +359,7 @@ export class CombatFXEngine extends VFXPlayer {
       enabled: !(preset as any)._mainTrackMuted
     };
 
-    const secondaryTracks = (preset.layers || []).map((l, idx) => {
+    const secondaryTracks = (preset.layers || []).map((l: any, idx: number) => {
       let refPreset: VFXPreset | null = null;
       if (l.presetId) {
         refPreset = VFXPresetRepository.getInstance().getPreset(l.presetId) || null;
@@ -203,7 +372,7 @@ export class CombatFXEngine extends VFXPlayer {
         fadeIn: l.fadeIn ?? 0.05,
         fadeOut: l.fadeOut ?? 0.08,
         scale: (l.scale || 1.0) * (refPreset?.scale || 1.0),
-        shaderMode: l.shaderMode || refPreset?.shaderMode || 'ENERGY_BEAM',
+        shaderMode: l.shaderMode || refPreset?.shaderMode || undefined,
         spatialMode: (l.spatialMode === 'TRAJECTORY' ? (l.trajectoryPath || refPreset?.trajectoryPath || refPreset?.trajectory || 'A_TO_B') : (l.spatialMode || refPreset?.spatialMode || 'A_TO_B')),
         reverse: l.reverse !== undefined ? l.reverse : (refPreset?.reverse || false),
         colorCore: refPreset?.colorCore || preset.colorCore || '#ffffff',
@@ -285,7 +454,7 @@ export class CombatFXEngine extends VFXPlayer {
     if (mode === 'AT_CASTER') {
       return casterPos.clone();
     }
-    if (mode === 'AT_TARGET') {
+    if (mode === 'AT_TARGET' || mode === 'MELEE_SWEEP') {
       return targetPos.clone();
     }
     if (mode === 'VERTICAL_DROP' || mode === 'VERTICAL_SKY_TO_B') {
@@ -332,7 +501,11 @@ export class CombatFXEngine extends VFXPlayer {
     targetPos: THREE.Vector3
   ): void {
     const sc = track.scale || 1.0;
-    const shader = track.shaderMode || 'ENERGY_BEAM';
+    const shader = track.shaderMode || track.preset?.shaderMode;
+    if (!shader) {
+      trackGroup.visible = false;
+      return;
+    }
     const isSlash = shader === 'SLASH_BLADE' || track.spatialMode === 'MELEE_SWEEP';
     const trajectoryMode = track.spatialMode || track.preset?.trajectoryPath || track.preset?.trajectory;
     trackGroup.renderOrder =
@@ -859,12 +1032,6 @@ export class CombatFXEngine extends VFXPlayer {
     if (seq) {
       return this.playSequence(seq, from, to, isPlayerOrOnImpact, onImpactCallback);
     }
-    const preset = this.getPreset(vfxId) || this.getPreset('VFX_DEFAULT_SLASH');
-    if (preset) {
-      const startPos = this.screenToWorld(from);
-      const endPos = this.screenToWorld(to);
-      return this.playPresetWorld(preset, startPos, endPos, isPlayerOrOnImpact, onImpactCallback);
-    }
     return Promise.resolve();
   }
 
@@ -884,32 +1051,45 @@ export class CombatFXEngine extends VFXPlayer {
   }
 
   /**
-   * 🌍 核心世界座標播放管線（避免子圖層重複 screenToWorld 轉換）
+   * 🌍 依據 §6.1 條款：原生支援 Canonical VFXSequence 世界座標播放管線
    */
-  public playPresetWorld(
-    preset: VFXPreset,
+  public playSequenceWorld(
+    sequence: VFXSequence,
     startPos: THREE.Vector3,
     endPos: THREE.Vector3,
     isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void),
     onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void,
-    visitedPresetIds?: Set<string>,
+    visitedSequenceIds?: Set<string>,
     recursionDepth: number = 0,
     resolveCueWorldPoints?: VFXCueWorldPointResolver
   ): Promise<void> {
     const isPlayer = typeof isPlayerOrOnImpact === 'boolean' ? isPlayerOrOnImpact : true;
     const onImpact = typeof isPlayerOrOnImpact === 'function' ? isPlayerOrOnImpact : onImpactCallback;
 
-    // 🛡️ 運行時循環引用防線 (Runtime Cycle & Max Depth Recursion Guard)
-    const currentVisited = new Set(visitedPresetIds);
-    if (currentVisited.has(preset.id) || recursionDepth >= 8) {
-      console.warn(`[CombatFXEngine] Recursion loop or max depth (8) reached for preset ${preset.id}, aborting sub-layer.`);
+    const currentVisited = new Set(visitedSequenceIds);
+    if (currentVisited.has(sequence.id) || recursionDepth >= 8) {
+      console.warn(`[CombatFXEngine] Recursion loop or max depth (8) reached for sequence ${sequence.id}, aborting sub-layer.`);
       return Promise.resolve();
     }
-    currentVisited.add(preset.id);
+    currentVisited.add(sequence.id);
 
     return new Promise((resolve) => {
-      const impactConfig = preset.impact;
-      const resolvedCues = VFXTimelineEvaluator.resolveImpactCues(preset);
+      const impactTrack = sequence.tracks.find(t => t.type === 'IMPACT');
+      const impactClip = impactTrack?.clips.find(c => c.payload.type === 'IMPACT');
+      const impactConfig: VFXImpactConfig = (impactClip?.payload.data as VFXImpactConfig) || {
+        hitStopTime: 30,
+        targetPunchScale: 0.95,
+        shakeIntensity: 6,
+        shakeDuration: 0.2,
+        penetrationDistance: 0,
+        knockbackDistance: 0,
+        hitFlashColor: '#ffffff',
+        screenShake: false
+      };
+
+      const resolvedCues = sequence.impactCues && sequence.impactCues.length > 0
+        ? sequence.impactCues
+        : [{ cueId: 'CUE_1', time: Number((sequence.duration * 0.7).toFixed(2)), weight: 1.0, isPrimary: true }];
       const totalHits = resolvedCues.length;
       const firedHits = new Set<number>();
       let resolved = false;
@@ -917,14 +1097,14 @@ export class CombatFXEngine extends VFXPlayer {
       const fireImpact = (hitIdx: number = 0, cue?: VFXImpactCue) => {
         if (!firedHits.has(hitIdx)) {
           firedHits.add(hitIdx);
-          if (onImpact && !(preset as any).muteImpact) {
+          if (onImpact) {
             onImpact(impactConfig, hitIdx, totalHits, cue);
           }
         }
       };
 
       const curGen = this.playbackGeneration;
-      this.playbackClock.extendDuration(preset.duration);
+      this.playbackClock.extendDuration(sequence.duration);
       this.playbackClock.setSpeed(this.playbackSpeed);
 
       const safeResolve = () => {
@@ -939,8 +1119,7 @@ export class CombatFXEngine extends VFXPlayer {
         }
       };
 
-      // Failsafe: 物理牆時鐘防護，確保遇極端異常時流程不永久掛起
-      const failsafeWallMs = Math.max(1200, ((preset.duration + 0.8) / this.playbackSpeed) * 1000);
+      const failsafeWallMs = Math.max(1200, ((sequence.duration + 0.8) / this.playbackSpeed) * 1000);
       const failsafeTimer = setTimeout(() => {
         this.scheduledTimers.delete(failsafeTimer);
         if (this.playbackGeneration === curGen && !resolved) {
@@ -950,117 +1129,127 @@ export class CombatFXEngine extends VFXPlayer {
       this.scheduledTimers.add(failsafeTimer);
 
       let actualEndPos = endPos.clone();
-      if (preset.trajectory === 'COLUMN_PIERCE' && impactConfig.penetrationDistance > 0) {
+      const mainTrack = sequence.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH') || sequence.tracks[0];
+      const mainClip = mainTrack?.clips[0];
+      const mainData = mainClip?.payload.data as any;
+      if (mainData?.trajectory === 'COLUMN_PIERCE' && impactConfig.penetrationDistance > 0) {
         const dir = new THREE.Vector3().subVectors(actualEndPos, startPos).normalize();
         actualEndPos = actualEndPos.addScaledVector(dir, impactConfig.penetrationDistance);
       }
 
-      // 🔮 複合多圖層特效排程 (委派 VFXTimelineEvaluator)
-      const compositeLayers = VFXTimelineEvaluator.resolveCompositeLayers(preset);
-      compositeLayers.forEach(({ layer, delay, resolvedPreset }) => {
-        this.playbackClock.schedule(delay, () => {
-          if (this.isRunning && this.playbackGeneration === curGen) {
-            if (layer.presetId) {
-              const subPreset = this.getPreset(layer.presetId);
-              if (subPreset) {
-                const subMode = layer.spatialMode
-                  || layer.trajectoryPath
-                  || layer.trajectory
-                  || resolvePresetSpatialMode(subPreset);
-                const subStartPos = resolveVFXWorldStart(subMode, startPos, actualEndPos);
-                // 🧩 積木式引用庫中任一現有 Preset，依其空間模式校準世界座標與遞迴防線。
-                this.playPresetWorld(
-                  subPreset,
-                  subStartPos,
-                  actualEndPos,
-                  isPlayer,
-                  (layer.emitsImpactCue || layer.generatesHit) ? (imp, hIdx, tHits) => onImpact?.(imp, hIdx, tHits) : undefined,
-                  currentVisited,
-                  recursionDepth + 1
-                );
+      // 🔮 複合圖層排程 (遍歷 COMPOSITE_LAYER clips)
+      for (const track of sequence.tracks) {
+        for (const clip of track.clips) {
+          if (clip.payload.type === 'COMPOSITE_LAYER') {
+            const layerData = clip.payload.data;
+            const delay = clip.startTime || 0;
+            this.playbackClock.schedule(delay, () => {
+              if (this.isRunning && this.playbackGeneration === curGen && layerData.presetId) {
+                const subSeq = VFXPresetRepository.getInstance().getSequence(layerData.presetId);
+                if (subSeq) {
+                  const subMode = layerData.spatialMode || subSeq.spatialMode || 'A_TO_B';
+                  const subStart = resolveVFXWorldStart(subMode, startPos, actualEndPos);
+                  this.playSequenceWorld(
+                    subSeq,
+                    subStart,
+                    actualEndPos,
+                    isPlayer,
+                    (layerData.emitsImpactCue || layerData.generatesHit) ? (imp, hIdx, tHits) => onImpact?.(imp, hIdx, tHits) : undefined,
+                    currentVisited,
+                    recursionDepth + 1
+                  );
+                }
               }
-              return;
-            }
-
-            if (resolvedPreset.trajectory === 'GROUND_FISSURE') {
-              this.playGroundFissure(startPos, actualEndPos, resolvedPreset, () => {}, () => {});
-            } else if (resolvedPreset.trajectory === 'MELEE_SWEEP' || resolvedPreset.shaderMode === 'SLASH_BLADE') {
-              this.playArcSlash(actualEndPos, resolvedPreset, () => {}, () => {});
-            } else if (resolvedPreset.trajectory === 'VERTICAL_DROP' && resolvedPreset.shaderMode !== 'DIELECTRIC_LIGHTNING') {
-              this.playHolyPillar(actualEndPos, resolvedPreset, () => {}, () => {});
-            } else if (resolvedPreset.shaderMode === 'DIELECTRIC_LIGHTNING') {
-              const layerTraj = (layer.spatialMode || layer.trajectoryPath || layer.trajectory || resolvePresetSpatialMode(resolvedPreset)) as string;
-              const lightningStart = resolveVFXWorldStart(layerTraj, startPos, actualEndPos);
-              this.playDynamicLightning(lightningStart, actualEndPos, resolvedPreset, () => {}, () => {});
-            } else if (resolvedPreset.shaderMode === 'ENERGY_BEAM' || resolvedPreset.trajectory === 'COLUMN_PIERCE') {
-              this.playDynamicBeam(startPos, actualEndPos, resolvedPreset, () => {}, () => {});
-            } else {
-              this.playDynamicProjectile(startPos, actualEndPos, resolvedPreset, () => {}, () => {});
-            }
+            });
           }
-        });
-      });
+        }
+      }
 
-      // 🎯 具名 Impact Cue 與連擊節奏排程 (委派 VFXTimelineEvaluator)
+      // 🎯 具名 Impact Cue 與連擊節奏排程
       resolvedCues.forEach((cue, cueIdx) => {
         this.playbackClock.schedule(Math.max(0, cue.time), () => {
           if (this.isRunning && this.playbackGeneration === curGen) {
             fireImpact(cueIdx, cue);
             const sparkCount = cue.isPrimary || cueIdx === totalHits - 1 ? 12 : 6;
             const cuePositions = resolveCueWorldPoints?.(cue, cueIdx) || [actualEndPos];
-            cuePositions.forEach(position => this.playSlashSparks(position, preset.colorCore, sparkCount));
+            const colorCore = mainData?.colorCore || '#ffffff';
+            cuePositions.forEach(position => this.playSlashSparks(position, colorCore, sparkCount));
           }
         });
       });
 
-      // 🌟 核心：統一確定性影格主視覺求值管線 (Deterministic Unified Frame Evaluator)
-      // 遵循 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md 第 3.2 節與第 14 節規範：
-      // 連續播放與時間軸定格在物理層面 100% 共享相同的 renderFrameWorldAt 求值核心，徹底消除雙軌分裂
-      if ((preset as any).muteMain) {
-        this.playbackClock.schedule(preset.duration, () => {
-          safeResolve();
-        });
-      } else {
-        let effectElapsed = 0;
-        const totalDuration = Math.max(0.05, preset.duration || 0.4);
+      // 🌟 核心：確定性多軌影格更新 (播放中逐訊框更新)
+      let effectElapsed = 0;
+      const totalDuration = Math.max(0.05, sequence.duration || 0.4);
 
-        const instanceId = `inst_${preset.id}_${curGen}_${Math.floor(this.getRandom() * 100000)}`;
-        const instanceRoot = new THREE.Group();
-        instanceRoot.name = instanceId;
-        const instanceTrackGroups: THREE.Group[] = [];
+      const instanceId = `inst_${sequence.id}_${curGen}_${Math.floor(this.getRandom() * 100000)}`;
+      const instanceRoot = new THREE.Group();
+      instanceRoot.name = instanceId;
+      const instanceTrackGroups: THREE.Group[] = [];
 
-        const effectInstance: VFXEffectInstance = {
-          id: instanceId,
-          root: instanceRoot,
-          startTime: performance.now(),
-          duration: preset.duration,
-          dispose: () => {
-            instanceTrackGroups.forEach(g => CombatFXEngine.disposeTrackGroup(g));
-            if (instanceRoot.parent) {
-              instanceRoot.parent.remove(instanceRoot);
-            }
-            instanceRoot.clear();
+      const effectInstance: VFXEffectInstance = {
+        id: instanceId,
+        root: instanceRoot,
+        startTime: performance.now(),
+        duration: sequence.duration,
+        dispose: () => {
+          if ((instanceRoot as any).__trailCache) {
+            (instanceRoot as any).__trailCache.dispose();
+            (instanceRoot as any).__trailCache = null;
           }
-        };
-        this.instanceRegistry.register(effectInstance, this.scene);
-
-        this.activeEffects.push({
-          update: (delta) => {
-            if (this.playbackGeneration !== curGen) return true;
-            effectElapsed += delta;
-            this.renderFrameWorldAt(preset, effectElapsed, startPos, actualEndPos, instanceRoot, instanceTrackGroups);
-            if (effectElapsed >= totalDuration) {
-              safeResolve();
-              return true;
-            }
-            return false;
-          },
-          dispose: () => {
-            this.instanceRegistry.unregister(instanceId, this.scene);
+          instanceTrackGroups.forEach(g => CombatFXEngine.disposeTrackGroup(g));
+          if (instanceRoot.parent) {
+            instanceRoot.parent.remove(instanceRoot);
           }
-        });
-      }
+          instanceRoot.clear();
+        }
+      };
+      this.instanceRegistry.register(effectInstance, this.scene);
+
+      this.activeEffects.push({
+        update: (delta) => {
+          if (this.playbackGeneration !== curGen) return true;
+          effectElapsed += delta;
+          this.renderSequenceWorldAt(sequence, effectElapsed, startPos, actualEndPos, instanceRoot, instanceTrackGroups);
+          if (effectElapsed >= totalDuration) {
+            safeResolve();
+            return true;
+          }
+          return false;
+        },
+        dispose: () => {
+          this.instanceRegistry.unregister(instanceId, this.scene);
+        }
+      });
     });
+  }
+
+  /**
+   * 🌍 核心世界座標播放管線 (相容包裝，直接委派原生 playSequenceWorld)
+   */
+  public playPresetWorld(
+    preset: any,
+    startPos: THREE.Vector3,
+    endPos: THREE.Vector3,
+    isPlayerOrOnImpact?: boolean | ((impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void),
+    onImpactCallback?: (impact: VFXImpactConfig, hitIndex: number, totalHits: number, cue?: VFXImpactCue) => void,
+    visitedPresetIds?: Set<string>,
+    recursionDepth: number = 0,
+    resolveCueWorldPoints?: VFXCueWorldPointResolver
+  ): Promise<void> {
+    const sequence: VFXSequence = preset.tracks
+      ? (preset as VFXSequence)
+      : (VFXPresetRepository.getInstance().getSequence(preset?.id) || (preset as VFXSequence));
+    return this.playSequenceWorld(
+      sequence,
+      startPos,
+      endPos,
+      isPlayerOrOnImpact,
+      onImpactCallback,
+      visitedPresetIds,
+      recursionDepth,
+      resolveCueWorldPoints
+    );
   }
 
   /**

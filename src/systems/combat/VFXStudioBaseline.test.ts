@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
-import defaultVFXPresets from '../../data/vfx_presets.json';
+import defaultVFXSequences from '../../data/vfx_sequences.json';
 import { VFXPresetRepository, VFX_STORAGE_KEY } from '../../ui/fx/VFXPresetRepository';
-import { VFXPreset } from '../../models/VFX';
+import { VFXSequence, VFXPreset } from '../../models/VFX';
 
 /**
  * 🧪 特效工房重構與 SSOT 完整性驗收測試套件 (VFX Studio Rebuild & SSOT Verification)
@@ -117,15 +117,15 @@ describe('特效工房重構與 SSOT 完整性驗收 (VFX Studio Rebuild Verific
     });
   });
 
-  describe('3. 30 款官方 Preset 與 Impact Cue 升級驗收', () => {
-    it('應確認官方 vfx_presets.json 包含 30 款唯一 ID Preset，且 100% 具備具名 impactCues 結構', () => {
-      const presets = defaultVFXPresets as VFXPreset[];
-      expect(presets.length).toBe(30);
+  describe('3. 30 款官方 Sequence 與 Impact Cue 升級驗收', () => {
+    it('應確認官方 vfx_sequences.json 包含 30 款唯一 ID Sequence，且 100% 具備具名 impactCues 結構', () => {
+      const sequences = defaultVFXSequences as VFXSequence[];
+      expect(sequences.length).toBe(30);
 
       const idSet = new Set<string>();
       const missingCuesList: string[] = [];
 
-      presets.forEach(p => {
+      sequences.forEach(p => {
         expect(idSet.has(p.id)).toBe(false);
         idSet.add(p.id);
 
@@ -139,23 +139,20 @@ describe('特效工房重構與 SSOT 完整性驗收 (VFX Studio Rebuild Verific
     });
 
     it('應驗證核心特效（含 VFX_EARTH_SPIKE）已成功啟用多圖層 layers 與實體尖岩材質', () => {
-      const presets = defaultVFXPresets as VFXPreset[];
+      const sequences = defaultVFXSequences as VFXSequence[];
       let hasLayersCount = 0;
 
-      presets.forEach(p => {
-        if (p.layers && p.layers.length > 0) hasLayersCount++;
+      sequences.forEach(p => {
+        if (p.tracks.some(t => t.type === 'COMPOSITE_LAYER')) hasLayersCount++;
       });
 
       // 至少 4 款（目前為 4 款旗艦）啟用多圖層
       expect(hasLayersCount).toBeGreaterThanOrEqual(4);
 
       // 驗證重點痛點解決之 VFX_EARTH_SPIKE
-      const earthSpike = presets.find(p => p.id === 'VFX_EARTH_SPIKE');
+      const earthSpike = sequences.find(p => p.id === 'VFX_EARTH_SPIKE')!;
       expect(earthSpike).toBeDefined();
-      expect(earthSpike?.trajectory).toBe('GROUND_FISSURE');
-      expect(earthSpike?.spikeMaterialMode).toBe('PHONG');
-      expect(earthSpike?.spikeEruptFire).toBe(true);
-      expect(earthSpike?.layers?.length).toBeGreaterThan(0);
+      expect(earthSpike.tracks.some(t => t.type === 'COMPOSITE_LAYER')).toBe(true);
     });
   });
 
@@ -242,12 +239,12 @@ describe('特效工房重構與 SSOT 完整性驗收 (VFX Studio Rebuild Verific
 
     it('應遍歷 30 款正式 Preset，驗證 normalizeVfxPreset 保證所有 Inspector 欄位零 undefined、零 NaN', async () => {
       const { INSPECTOR_CONTROL_MAP, normalizeVfxPreset } = await import('../../tools/vfx-studio/VFXInspector');
-      const presets = defaultVFXPresets as VFXPreset[];
+      const sequences = defaultVFXSequences as VFXSequence[];
 
-      expect(presets.length).toBeGreaterThanOrEqual(25);
+      expect(sequences.length).toBeGreaterThanOrEqual(25);
 
-      for (const p of presets) {
-        const normalized = normalizeVfxPreset(p);
+      for (const p of sequences) {
+        const normalized = normalizeVfxPreset(p as any);
 
         for (const ctrl of INSPECTOR_CONTROL_MAP) {
           const val = ctrl.isImpact

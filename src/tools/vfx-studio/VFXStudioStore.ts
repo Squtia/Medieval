@@ -1,4 +1,4 @@
-import { VFXPreset } from '../../models/VFX';
+import { VFXSequence, getSequenceMainTrack, getSequenceMainClip } from '../../models/VFX';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 
 export interface TrackMuteStates {
@@ -14,7 +14,7 @@ export type VFXEditorSelection =
   | { type: 'CUE'; cueId: string }
   | { type: 'BINDING'; skillId: string };
 
-export type StoreChangeListener = (preset: VFXPreset, isDirty: boolean) => void;
+export type StoreChangeListener = (preset: any, isDirty: boolean, sequence?: VFXSequence) => void;
 export type SelectionChangeListener = (selection: VFXEditorSelection) => void;
 
 /**
@@ -27,10 +27,10 @@ export class VFXStudioStore {
 
   public static readonly MAX_HISTORY = 50;
 
-  private currentPreset: VFXPreset;
+  private currentSequence: VFXSequence;
   private selection: VFXEditorSelection = { type: 'PRESET' };
-  private undoStack: VFXPreset[] = [];
-  private redoStack: VFXPreset[] = [];
+  private undoStack: VFXSequence[] = [];
+  private redoStack: VFXSequence[] = [];
   private isDirty: boolean = false;
   private isFixedSeed: boolean = false;
   private fixedSeedValue: number = 12345;
@@ -46,7 +46,7 @@ export class VFXStudioStore {
   };
 
   // 🛡️ 草稿無損暫存棧 (Draft Stash Stack) - 支援編輯素材時自動暫存當前複合技能
-  private stashStack: { preset: VFXPreset; name: string }[] = [];
+  private stashStack: { sequence: VFXSequence; name: string }[] = [];
 
   private listeners = new Set<StoreChangeListener>();
   private selectionListeners = new Set<SelectionChangeListener>();
@@ -54,9 +54,18 @@ export class VFXStudioStore {
 
   private constructor() {
     const repo = VFXPresetRepository.getInstance();
-    const all = repo.getAllPresets();
-    const initPreset = all.find(p => p.id === 'VFX_HEAVY_STRIKE') || all[0] || ({} as VFXPreset);
-    this.currentPreset = JSON.parse(JSON.stringify(initPreset));
+    const all = repo.getAllSequences();
+    const initSeq = all.find(s => s.id === 'VFX_HEAVY_STRIKE') || all[0] || ({
+      schemaVersion: 2,
+      id: 'VFX_HEAVY_STRIKE',
+      name: '巨力重劈',
+      category: 'PHYSICAL',
+      description: '',
+      duration: 0.28,
+      tracks: [],
+      impactCues: []
+    } as VFXSequence);
+    this.currentSequence = JSON.parse(JSON.stringify(initSeq));
   }
 
   public static getInstance(): VFXStudioStore {
@@ -91,35 +100,59 @@ export class VFXStudioStore {
   }
 
   private notify(): void {
-    const clone = JSON.parse(JSON.stringify(this.currentPreset));
-    this.listeners.forEach(fn => fn(clone, this.isDirty));
+    const cloneSeq = JSON.parse(JSON.stringify(this.currentSequence));
+    this.listeners.forEach(fn => fn(cloneSeq, this.isDirty, cloneSeq));
   }
 
-  public getPreset(): VFXPreset {
-    return JSON.parse(JSON.stringify(this.currentPreset));
+  public getSequence(): VFXSequence {
+    return JSON.parse(JSON.stringify(this.currentSequence));
   }
 
-  public setPreset(newPreset: VFXPreset, recordHistory: boolean = true): void {
+  public setSequence(newSequence: VFXSequence, recordHistory: boolean = true): void {
     if (recordHistory && !this.isSnapshotPaused) {
       this.recordSnapshot();
     }
-    this.currentPreset = JSON.parse(JSON.stringify(newPreset));
+    this.currentSequence = JSON.parse(JSON.stringify(newSequence));
     this.isDirty = true;
     this.notify();
   }
 
-  public updateConfig(partial: Partial<VFXPreset>, recordHistory: boolean = false): void {
+  public updateSequence(partial: Partial<VFXSequence>, recordHistory: boolean = false): void {
     if (recordHistory && !this.isSnapshotPaused) {
       this.recordSnapshot();
     }
-    Object.assign(this.currentPreset, partial);
+    Object.assign(this.currentSequence, partial);
     this.isDirty = true;
     this.notify();
+  }
+
+  public updateMainClipData(partialData: Record<string, any>, recordHistory: boolean = false): void {
+    if (recordHistory && !this.isSnapshotPaused) {
+      this.recordSnapshot();
+    }
+    const mainClip = getSequenceMainClip(this.currentSequence);
+    if (mainClip && mainClip.payload) {
+      mainClip.payload.data = { ...(mainClip.payload.data as any), ...partialData };
+      this.isDirty = true;
+      this.notify();
+    }
+  }
+
+  public getPreset(): any {
+    return this.getSequence();
+  }
+
+  public setPreset(newPreset: any, recordHistory: boolean = true): void {
+    this.setSequence(newPreset, recordHistory);
+  }
+
+  public updateConfig(partial: any, recordHistory: boolean = false): void {
+    this.updateSequence(partial, recordHistory);
   }
 
   public recordSnapshot(): void {
     if (this.isSnapshotPaused) return;
-    this.undoStack.push(JSON.parse(JSON.stringify(this.currentPreset)));
+    this.undoStack.push(JSON.parse(JSON.stringify(this.currentSequence)));
     if (this.undoStack.length > VFXStudioStore.MAX_HISTORY) {
       this.undoStack.shift();
     }
@@ -137,10 +170,10 @@ export class VFXStudioStore {
 
   public undo(): boolean {
     if (!this.canUndo()) return false;
-    this.redoStack.push(JSON.parse(JSON.stringify(this.currentPreset)));
+    this.redoStack.push(JSON.parse(JSON.stringify(this.currentSequence)));
     const prev = this.undoStack.pop()!;
     this.isSnapshotPaused = true;
-    this.currentPreset = prev;
+    this.currentSequence = prev;
     this.isSnapshotPaused = false;
     this.isDirty = true;
     this.notify();
@@ -149,10 +182,10 @@ export class VFXStudioStore {
 
   public redo(): boolean {
     if (!this.canRedo()) return false;
-    this.undoStack.push(JSON.parse(JSON.stringify(this.currentPreset)));
+    this.undoStack.push(JSON.parse(JSON.stringify(this.currentSequence)));
     const next = this.redoStack.pop()!;
     this.isSnapshotPaused = true;
-    this.currentPreset = next;
+    this.currentSequence = next;
     this.isSnapshotPaused = false;
     this.isDirty = true;
     this.notify();
@@ -318,9 +351,9 @@ export class VFXStudioStore {
    * 當創作者跳轉去編輯某素材時調用，保存當前未發布的所有圖層排程、CUE 點與時長
    */
   public stashCurrentDraft(displayName?: string): void {
-    const name = displayName || this.currentPreset.name || this.currentPreset.id;
+    const name = displayName || this.currentSequence.name || this.currentSequence.id;
     this.stashStack.push({
-      preset: JSON.parse(JSON.stringify(this.currentPreset)),
+      sequence: JSON.parse(JSON.stringify(this.currentSequence)),
       name
     });
   }
@@ -328,11 +361,11 @@ export class VFXStudioStore {
   /**
    * 🔙 恢復並彈出最上層暫存草稿
    */
-  public popStashedDraft(): VFXPreset | null {
+  public popStashedDraft(): VFXSequence | null {
     if (this.stashStack.length === 0) return null;
     const entry = this.stashStack.pop()!;
-    this.setPreset(entry.preset, true);
-    return entry.preset;
+    this.setSequence(entry.sequence, true);
+    return entry.sequence;
   }
 
   public getHasStash(): boolean {

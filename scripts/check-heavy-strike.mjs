@@ -1,12 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 
-const vfxFile = path.resolve('./src/data/vfx_presets.json');
+const vfxFile = path.resolve('./src/data/vfx_sequences.json');
 const presets = JSON.parse(fs.readFileSync(vfxFile, 'utf-8'));
 const heavy = presets.find(p => p.id === 'VFX_HEAVY_STRIKE');
 
 if (!heavy) {
-  console.error('❌ VFX_HEAVY_STRIKE not found in vfx_presets.json');
+  console.error('❌ VFX_HEAVY_STRIKE not found in vfx_sequences.json');
   process.exit(1);
 }
 

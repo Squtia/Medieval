@@ -326,20 +326,26 @@ export class MeshLayerRenderer {
     colorCore: string;
     colorRim: string;
   } {
-    const isWhirlwind = Boolean(preset.slashShape === 'WHIRLWIND');
-    const isCross = Boolean(preset.slashShape === 'CROSS');
+    const shapeVal = (preset as any).shape ?? preset.slashShape ?? 'CRESCENT';
+    const isWhirlwind = Boolean(shapeVal === 'WHIRLWIND');
+    const isCross = Boolean(shapeVal === 'CROSS');
     const isAlternating = Boolean(preset.slashAlternating);
     const sc = preset.scale || 1.0;
 
-    const bladeRadius = (preset.slashRadius || (isWhirlwind ? 85 : 65)) * sc;
-    const bladeWidth = (preset.slashBladeWidth || (isWhirlwind ? 18 : 10)) * sc;
-    const maxArcSpan = (isWhirlwind ? 360 : (preset.slashArcSpan || 135)) * (Math.PI / 180);
+    const radiusVal = (preset as any).radius ?? preset.slashRadius ?? (isWhirlwind ? 85 : 65);
+    const bladeRadius = radiusVal * sc;
+    const widthVal = (preset as any).bladeWidth ?? preset.slashBladeWidth ?? (isWhirlwind ? 18 : 10);
+    const bladeWidth = widthVal * sc;
+    const arcSpanVal = (preset as any).arcSpan ?? preset.slashArcSpan ?? (isWhirlwind ? 360 : 135);
+    const maxArcSpan = arcSpanVal * (Math.PI / 180);
 
-    // ⚔️ 支援 slashRotX, slashRotY, slashRotZ (歐拉角)，相容舊 slashAngle / slashTrajectory
-    const rotX = ((preset.slashRotX ?? 0) * Math.PI) / 180;
-    const rotY = ((preset.slashRotY ?? 0) * Math.PI) / 180;
+    // ⚔️ 支援 rotX, rotY, rotZ (歐拉角)，相容 slashRotX / slashAngle / slashTrajectory
+    const rotXDeg = (preset as any).rotX ?? preset.slashRotX ?? 0;
+    const rotX = (rotXDeg * Math.PI) / 180;
+    const rotYDeg = (preset as any).rotY ?? preset.slashRotY ?? 0;
+    const rotY = (rotYDeg * Math.PI) / 180;
 
-    let baseAngleDeg = preset.slashRotZ ?? preset.slashAngle;
+    let baseAngleDeg = (preset as any).rotZ ?? preset.slashRotZ ?? preset.slashAngle ?? (preset as any).angle;
     if (baseAngleDeg === undefined && preset.slashTrajectory) {
       if (preset.slashTrajectory === 'CLEAVE_DOWN') baseAngleDeg = -45;
       else if (preset.slashTrajectory === 'UPPER_CUT') baseAngleDeg = 135;
@@ -356,9 +362,9 @@ export class MeshLayerRenderer {
     }
     const startAngle = startAngleBase + jitterOffset;
 
-    let isReverse = preset.slashReverse !== undefined 
-      ? preset.slashReverse 
-      : (preset.reverse !== undefined ? preset.reverse : reverseFallback);
+    let isReverse = (preset as any).reverse !== undefined
+      ? (preset as any).reverse
+      : (preset.slashReverse !== undefined ? preset.slashReverse : reverseFallback);
 
     // ⚔️ 左右交錯出刀 (slashAlternating)：在交錯模式下翻轉方向
     if (isAlternating) {
@@ -370,7 +376,7 @@ export class MeshLayerRenderer {
 
     const dirSign = isReverse ? -1 : 1;
     const centerAngle = startAngle + dirSign * (maxArcSpan * 0.5);
-    const aspect = preset.slashAspect || 1.0;
+    const aspect = (preset as any).aspect ?? preset.slashAspect ?? 1.0;
 
     const p = Math.max(0, Math.min(1.0, progress));
     let headT: number;
@@ -405,6 +411,40 @@ export class MeshLayerRenderer {
       colorCore: preset.colorCore || '#fed7aa',
       colorRim: preset.colorRim || '#ea580c'
     };
+  }
+
+  /**
+   * 🗡️ 單一真理來源 (SSOT)：精準計算斬擊當前影格刀尖（刃鋒外緣最前端）3D 世界座標
+   * 同時套用月牙弧刃中心偏移、扁平率以及 3D 歐拉角 (rotX/rotY)，讓拖尾粒子 100% 精準附著在刀尖上
+   */
+  public static calculateSlashBladeTip(
+    preset: Partial<VFXPreset>,
+    progress: number,
+    targetPos: THREE.Vector3,
+    reverseFallback: boolean = false
+  ): THREE.Vector3 {
+    const params = this.calculateSlashGeometryParams(preset, progress, reverseFallback);
+    const bladeRadius = params.bladeRadius;
+    const safeAspect = Math.max(0.2, Math.min(params.aspect, 3.0));
+
+    const offsetX = Math.cos(params.centerAngle) * bladeRadius * 0.82;
+    const offsetY = Math.sin(params.centerAngle) * bladeRadius * 0.82;
+
+    // 刀光最前端外緣點（刃鋒 tip）
+    const tipAngle = params.headAngle;
+    const localX = (Math.cos(tipAngle) * bladeRadius - offsetX) * safeAspect;
+    const localY = (Math.sin(tipAngle) * bladeRadius - offsetY) / Math.sqrt(safeAspect);
+    const tipVec = new THREE.Vector3(localX, localY, 0);
+
+    // 套用與 slashMesh 相同的 3D 歐拉角旋轉 (X 俯仰 / Y 偏航)
+    if (params.rotX || params.rotY) {
+      const euler = new THREE.Euler(params.rotX || 0, params.rotY || 0, 0, 'XYZ');
+      tipVec.applyEuler(euler);
+    }
+
+    // 疊加目標世界座標 (targetPos)
+    tipVec.add(targetPos);
+    return tipVec;
   }
 
   /**

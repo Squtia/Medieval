@@ -70,11 +70,11 @@ describe('Phase 4: SkillVfxBindingRegistry 解耦與雙向查詢測試', () => {
     const { BasicAttackVfxRepository } = await import('./BasicAttackVfxRepository');
     const { SKILLS } = await import('../../data/SkillData');
 
-    // 1. 讀取專案核心 SSOT vfx_presets.json
-    const vfxPresetsPath = path.resolve(__dirname, '../../data/vfx_presets.json');
-    const rawData = fs.readFileSync(vfxPresetsPath, 'utf-8');
-    const presets = JSON.parse(rawData);
-    const availableVfxIds = new Set<string>(presets.map((p: any) => p.id));
+    // 1. 讀取專案核心 SSOT vfx_sequences.json
+    const vfxSequencesPath = path.resolve(__dirname, '../../data/vfx_sequences.json');
+    const rawData = fs.readFileSync(vfxSequencesPath, 'utf-8');
+    const sequences = JSON.parse(rawData);
+    const availableVfxIds = new Set<string>(sequences.map((p: any) => p.id));
 
     expect(availableVfxIds.size).toBeGreaterThanOrEqual(30);
 

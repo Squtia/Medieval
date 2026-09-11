@@ -489,13 +489,20 @@ export class VFXStudioController {
     // 🌟 嚴格套用 Solo 與 Mute 狀態，直接作用於底層 3D 渲染與幾何繪製
     const isMainActive = this.store.isMainTrackActive();
     const isImpactActive = !this.store.getTrackMuteStates().impact;
-    const filteredPreset: VFXPreset = {
+    const filteredPreset: any = {
       ...preset,
-      layers: (preset.layers || []).map((l, idx) => ({
+      layers: (preset.layers || []).map((l: any, idx: number) => ({
         ...l,
         enabled: this.store.isLayerTrackActive(idx, l.enabled !== false)
       }))
     };
+    if (preset.tracks && Array.isArray(preset.tracks)) {
+      filteredPreset.tracks = preset.tracks.map((t: any) => {
+        if (t.id === 'trk_main') return { ...t, isMuted: !isMainActive };
+        if (t.type === 'IMPACT') return { ...t, isMuted: !isImpactActive };
+        return t;
+      });
+    }
     if (!isMainActive) {
       (filteredPreset as any)._mainTrackMuted = true;
     }

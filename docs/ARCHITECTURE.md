@@ -355,10 +355,10 @@
 
 本專案之戰鬥 3D 視覺特效系統與獨立工坊（`tools/vfx-studio.html`）採用單向依賴、分層隔離與純邏輯求值設計，杜絕表層應試與雙重時鐘：
 
-1. **標準資料層 (Canonical Schema & Runtime Adapter)**：
-   - **Canonical Schema (`VFXSequence`, Schema v2)**：具備嚴格 Discriminated Union 之 `VFXClipPayload`（MESH, PARTICLE, IMPACT, SCREEN_FX, AUDIO, COMPOSITE_LAYER），徹底淘汰任意型別與弱契約欄位。
-   - **雙向純函式轉譯器**：`migrateLegacyPreset` (升級) 與 `sequenceToLegacyPreset` (降級相容)，保證 30+ 款正式 Preset 雙向 Roundtrip 零失真。
-   - **發布與讀回資料閉環**：`VFXLibrary.ts` 經前端驗證、草稿寫回、POST 發布、GET 磁碟回讀深比對，完全一致後解除 Dirty。
+1. **標準資料層 (Pure Canonical Sequence SSOT & Zero-Translation Pipeline)**：
+   - **唯一真理來源 (`src/data/vfx_sequences.json`, Schema v2)**：全專案 30 款正式特效 100% 採用多軌 Canonical `VFXSequence`，具備嚴格 Discriminated Union 之 `VFXClipPayload`（MESH, SLASH, PROJECTILE, PARTICLE, IMPACT, SCREEN_FX, AUDIO, COMPOSITE_LAYER）。
+   - **徹底拔除雙軌轉譯包袱**：已物理刪除歷史雙軌轉譯器（`migrateLegacyPreset`、`sequenceToLegacyPreset`）與舊版 `vfx_presets.json`，主遊戲、Combat Studio 與 VFX Studio 三端 100% 直通原生 Sequence，杜絕任何執行期動態轉譯損耗與契約漂移。
+   - **發布與讀回資料閉環**：`VFXLibrary.ts` 經前端驗證、草稿寫回、`POST /__vfx_api/save_ssot` 原生原子寫入、GET 磁碟回讀深比對，完全一致後解除 Dirty。
 2. **純邏輯求值與排程架構 (VFXTimelineEvaluator & Single Clock)**：
    - **`VFXTimelineEvaluator.ts`**：純函數求值器，計算 `LINEAR`、`ACCELERATE`、`DECELERATE`、`BURST_PAIRS` 等連擊時間戳、具名 Cue 提取與複合圖層排程。
    - **`PlaybackClock.ts`**：全局單一演出邏輯時鐘，統一步進比例、暫停凍結與跳轉，絕無分散的 wall-clock `setTimeout`。

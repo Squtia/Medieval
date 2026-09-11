@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { resolvePresetSpatialMode, resolveVFXWorldStart, VFX_RENDER_ORDER } from './VFXSpatialPolicy';
 import { MeshLayerRenderer } from './renderers/MeshLayerRenderer';
-import defaultVFXPresets from '../../data/vfx_presets.json';
-import { VFXPreset } from '../../models/VFX';
+import defaultVFXSequences from '../../data/vfx_sequences.json';
+import { VFXSequence } from '../../models/VFX';
 
 describe('VFX spatial and layering policy', () => {
   it('maps a trajectory-only vertical-drop preset to the sky-to-target mode', () => {
@@ -12,10 +12,9 @@ describe('VFX spatial and layering policy', () => {
   });
 
   it('maps the shipped Storm Bolt preset without relying on a synthetic fixture', () => {
-    const stormBolt = (defaultVFXPresets as VFXPreset[]).find(preset => preset.id === 'VFX_LIGHTNING_BOLT');
+    const stormBolt = (defaultVFXSequences as VFXSequence[]).find(s => s.id === 'VFX_LIGHTNING_BOLT');
     expect(stormBolt).toBeDefined();
-    expect(stormBolt?.trajectory).toBe('VERTICAL_DROP');
-    expect(resolvePresetSpatialMode(stormBolt!)).toBe('VERTICAL_SKY_TO_B');
+    expect(stormBolt?.spatialMode).toBe('VERTICAL_SKY_TO_B');
   });
 
   it('preserves an explicitly authored spatial mode', () => {

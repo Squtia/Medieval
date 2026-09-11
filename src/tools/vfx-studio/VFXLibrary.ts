@@ -353,8 +353,8 @@ export class VFXLibrary {
           throw new Error('伺服器回讀資料與當前草稿深層比對不一致 (Layer、Cue 或屬性未同步寫入磁碟)');
         }
 
-        this.repo.reloadPresets(serverPresets);
-        alert(`✅ 已成功發布 ${data.count} 款特效至專案 SSOT (src/data/vfx_presets.json)！\n歷史快照：${data.snapshot}`);
+        this.repo.reloadPresets(serverPresets as any);
+        alert(`✅ 已成功發布 ${data.count} 款特效至專案 SSOT (src/data/vfx_sequences.json)！\n歷史快照：${data.snapshot}`);
         if (btn) btn.textContent = '✅ 已發布！';
         this.store.setDirty(false);
       } catch (err: any) {

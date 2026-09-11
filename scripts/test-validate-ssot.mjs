@@ -17,7 +17,7 @@ if (!process.env.VITE_NODE) {
 
 const { VFXPresetValidator } = await import('../src/ui/fx/VFXPresetValidator.ts');
 
-const vfxFile = path.resolve('./src/data/vfx_presets.json');
+const vfxFile = path.resolve('./src/data/vfx_sequences.json');
 const presets = JSON.parse(fs.readFileSync(vfxFile, 'utf-8'));
 const res = VFXPresetValidator.validatePresetList(presets);
 

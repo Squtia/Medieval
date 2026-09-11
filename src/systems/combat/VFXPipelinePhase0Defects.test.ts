@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
 import { mapImpactsToCues, CombatActionPlayer, CombatAction, collectCombatActions, isCombatAction } from '../../ui/fx/CombatActionPlayer';
 import { SkillVfxBindingRegistry } from './SkillVfxBindingRegistry';
-import { VFXImpactCue, VFXPreset, VFXSequence, migrateLegacyPreset } from '../../models/VFX';
+import { VFXImpactCue, VFXSequence } from '../../models/VFX';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 import { CombatUIManager } from '../../ui/CombatUIManager';
 import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
@@ -119,18 +119,18 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
     });
 
     it('EACH_TARGET 的 visualTargetId 必須由 Player 傳給 Engine Cue 世界座標 resolver', async () => {
-      const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
-      const sequence = migrateLegacyPreset({
-        ...basePreset,
+      const baseSequence = VFXPresetRepository.getInstance().getSequence('VFX_DEFAULT_SLASH')!;
+      const sequence: VFXSequence = {
+        ...baseSequence,
         id: 'VFX_EACH_TARGET_TEST',
         impactCues: [{ cueId: 'CUE_EACH', time: 0.1, kind: 'IMPACT', targetPolicy: 'EACH_TARGET' }]
-      });
+      };
       let resolvedPoints: readonly { x: number; y: number }[] = [];
       const playSequence = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
         const [runtimeSequence, , , callback, , resolveCuePoints] = args;
         const cue = runtimeSequence.impactCues[0];
         resolvedPoints = resolveCuePoints?.(cue, 0) || [];
-        if (typeof callback === 'function') callback(basePreset.impact, 0, 1, cue);
+        if (typeof callback === 'function') callback({} as any, 0, 1, cue);
       });
       const player = new CombatActionPlayer(
         { playSequence },
@@ -434,9 +434,9 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
       const captured: any[] = [];
 
       // 模擬 preset: 只有 1 個 Cue
-      const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
-      const mockPreset: VFXPreset = {
-        ...basePreset,
+      const baseSequence = VFXPresetRepository.getInstance().getSequence('VFX_DEFAULT_SLASH')!;
+      const mockSequence: VFXSequence = {
+        ...baseSequence,
         id: 'VFX_SINGLE_CUE',
         name: 'Single Cue Slash',
         duration: 0.3,
@@ -444,11 +444,10 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
           { cueId: 'CUE_1', time: 0.1, kind: 'IMPACT', weight: 1.0, isPrimary: true }
         ]
       };
-      const mockSequence = migrateLegacyPreset(mockPreset);
       const playSequence = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
           const [runtimeSequence, , , callback] = args;
           if (typeof callback === 'function') {
-            runtimeSequence.impactCues.forEach((cue, index) => callback(mockPreset.impact, index, runtimeSequence.impactCues.length, cue));
+            runtimeSequence.impactCues.forEach((cue, index) => callback({} as any, index, runtimeSequence.impactCues.length, cue));
           }
       });
       const engine: Pick<CombatFXEngine, 'playSequence'> = { playSequence };
@@ -503,9 +502,9 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
         events
       };
 
-      const basePreset = VFXPresetRepository.getInstance().getPreset('VFX_DEFAULT_SLASH')!;
-      const mockPreset: VFXPreset = {
-        ...basePreset,
+      const baseSequence = VFXPresetRepository.getInstance().getSequence('VFX_DEFAULT_SLASH')!;
+      const mockSequence: VFXSequence = {
+        ...baseSequence,
         id: 'VFX_TEST',
         name: 'Test',
         duration: 0.2,
@@ -513,11 +512,10 @@ describe('Phase 0: VFX 管線現有已知缺陷測試 (Pin Down Failure Cases)',
           { cueId: 'CUE_1', time: 0.1, kind: 'IMPACT', weight: 1.0, isPrimary: true }
         ]
       };
-      const mockSequence = migrateLegacyPreset(mockPreset);
       const normalPlaySequence = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
           const [runtimeSequence, , , callback] = args;
           if (typeof callback === 'function') {
-            runtimeSequence.impactCues.forEach((cue, index) => callback(mockPreset.impact, index, runtimeSequence.impactCues.length, cue));
+            runtimeSequence.impactCues.forEach((cue, index) => callback({} as any, index, runtimeSequence.impactCues.length, cue));
           }
       });
       const normalEngine: Pick<CombatFXEngine, 'playSequence'> = { playSequence: normalPlaySequence };

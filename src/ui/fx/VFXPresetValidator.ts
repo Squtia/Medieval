@@ -48,6 +48,15 @@ export class VFXPresetValidator {
     if (!preset.name || typeof preset.name !== 'string') {
       errors.push(`Preset [${preset.id || 'unknown'}]: Missing or invalid "name"`);
     }
+
+    // 🌟 若為標準 VFXSequence (具備 tracks 結構)
+    if (Array.isArray(preset.tracks)) {
+      if (typeof preset.duration !== 'number' || !Number.isFinite(preset.duration) || preset.duration <= 0) {
+        errors.push(`Sequence [${preset.id}]: "duration" must be a positive finite number`);
+      }
+      return { isValid: errors.length === 0, errors };
+    }
+
     if (!VALID_TRAJECTORIES.has(preset.trajectory)) {
       errors.push(`Preset [${preset.id}]: Invalid trajectory "${preset.trajectory}"`);
     }

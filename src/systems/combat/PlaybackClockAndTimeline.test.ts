@@ -371,14 +371,14 @@ describe('Fix 2: PlaybackClock \u0026 VFXTimeline Verification (Batches E \u0026
 
       // 驗證最終時間已被更新為 200/500 * 0.5 = 0.20s
       const updatedPreset = store.getPreset();
-      const movedCue = updatedPreset.impactCues?.find(c => c.cueId === 'CUE_1');
+      const movedCue = updatedPreset.impactCues?.find((c: any) => c.cueId === 'CUE_1');
       expect(movedCue?.time).toBe(0.20);
 
       // 驗證可以正確 Undo 回到初始狀態
       expect(store.canUndo()).toBe(true);
       store.undo();
       const undonePreset = store.getPreset();
-      const restoredCue = undonePreset.impactCues?.find(c => c.cueId === 'CUE_1');
+      const restoredCue = undonePreset.impactCues?.find((c: any) => c.cueId === 'CUE_1');
       expect(restoredCue?.time).toBe(0.1);
     });
 

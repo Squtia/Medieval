@@ -1,3 +1,62 @@
+- **[Fix/VFXStudio/SlashAndParticleSSOT] 徹底修復斬擊原生幾何欄位對齊、Inspector 雙向資料鏈路貫通與粒子軌道求值（2026-09-11）**：
+  - **⚔️ 斬擊原生欄位 100% 貫通 (SSOT Key Alignment)**：
+    - `src/ui/fx/renderers/MeshLayerRenderer.ts`：`calculateSlashGeometryParams` 全面支援原生標準鍵值（`radius`, `bladeWidth`, `arcSpan`, `rotX`, `rotY`, `rotZ`, `aspect`, `shape`, `reverse`）並相容 `slash` 前綴別名，徹底消除因名稱不匹配而導致巨力重劈幾何外觀退回預設值的嚴重問題。
+  - **🎛️ Inspector 讀寫層級完全對接主軌資料**：
+    - `src/tools/vfx-studio/VFXInspector.ts`：`normalizeVfxPreset` 深度讀取 `tracks[0].clips[0].payload.data`，消除頂層找不到屬性而錯誤回退為 `defaultVal` 的缺陷；拉動滑桿時同步寫入原生鍵值與相容別名，確保拉動控制項即時 100% 影響 3D 渲染幾何。
+  - **✨ 粒子軌道求值與拖尾恢復**：
+    - `src/ui/fx/CombatFXEngine.ts`：修復 `isTrailEnabled` 判斷邏輯，當資產配置 `trailCount > 0` 時正常啟動粒子流，明確關閉時才停用，讓金屬碎屑與刀尖流光火花正常噴發。
+  - **🧪 測試與型別驗收全綠**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 63 個測試套件、390 項單元測試 100% PASS。
+
+- **[Fix/VFXStudio/DeterministicArcTrail] 斬擊確定性圓弧刀尖拖尾、最後一影格零殘留回收與粒子控制項解耦（2026-09-11）**：
+  - **🗡️ 確定性圓弧刀尖流光取樣 (Deterministic Arc Blade Trail)**：
+    - `src/ui/fx/renderers/TrailLayerRenderer.ts`：實裝 `updateArcTrail(tipSampler, currentProgress)`，沿著揮砍過去進度弧線分散取樣，刀尖集中明亮、尾端向外擴散微散逸，且在進度超過 0.75 後平滑漸隱。
+    - 當出刀完畢（$p \ge 1.0$ 或時間結束）時，立即將 `points.visible = false` 且透明度歸零，保證最後一影格乾淨俐落。
+  - **🧹 根除「最後一格凍結殘留」病灶**：
+    - `src/ui/fx/CombatFXEngine.ts`：重構 `renderSequenceWorldAt` 拖尾生命週期，出刀結束（`timeSeconds >= trackEnd` 或 `p >= 0.999`）時強制銷毀 `__trailCache`，徹底杜絕最後一影格拖尾未回收、畫面凍結點雲的嚴重瑕疵。
+    - 解除對 `particleTrack` 的硬編碼依賴，斬擊主軌即使無獨立粒子軌道亦能自立啟用刀尖流光火花拖尾（預設 35 顆火花）。
+  - **🎛️ 特效工房 UI 控制項解耦與獨立粒子面板**：
+    - `tools/vfx-studio.html` & `src/tools/vfx-studio/VFXInspector.ts`：將原本被誤綁在 `card-spike-section`（地刺專用卡片）內的拖尾與爆散控制項抽離，建立專屬的 `card-particle-section`（綁定常駐的 `PARTICLES` 能力），讓創作者在任何技能與軌道均能直覺調整拖尾數量、粒子尺寸與爆散碎屑。
+  - **🧪 測試防線**：
+    - `src/ui/fx/VFXDeterministicPlayback.test.ts` 新增出刀中途圓弧取樣與出刀結束零殘留斷言，測試全數 PASS。
+    - `npm run typecheck` 0 錯誤。
+
+- **[Feature/VFXStudio/BladeTipTrail] 斬擊精準刀尖拖尾動態附著、羽化星芒圓球與自訂開關/顏色控制項（2026-09-11）**：
+  - **🗡️ 斬擊刀尖動態附著 (Blade Tip Attachment Pipeline)**：
+    - `src/ui/fx/renderers/MeshLayerRenderer.ts`：實裝 `calculateSlashBladeTip` 單一真理來源函式，依據進度 $p$ 即時求出月牙弧刃外緣頂點，並套用 3D 歐拉角旋轉（`rotX` 俯仰、`rotY` 偏航）與目標世界座標，精準算出當前影格刀尖 3D 世界座標。
+    - `src/ui/fx/CombatFXEngine.ts`：修復 `calculate3DTrackPos` 原地近戰判定（`MELEE_SWEEP` 錨定在 `targetPos`，絕不再插值橫向飄移）；在主軌逐訊框循環中，當檢測到斬擊動作時，將粒子發射錨點直接綁定至動態 `bladeTipPos`，揮砍時粒子自然隨弧形光刃在空間中散落。
+  - **✨ 徹底告別硬邊方塊點雲 (Soft Radial Dot Sprite)**：
+    - `src/ui/fx/renderers/TrailLayerRenderer.ts`：為點雲材質（`PointsMaterial`）掛載動態 Canvas 產生的徑向高斯羽化貼圖（Radial Alpha Map），讓拖尾粒子呈現如破空火花般柔和發光的圓球光屑，並在無頭測試環境優雅相容。
+  - **🎛️ 特效工房獨立控制項與資料契約**：
+    - `src/models/VFX.ts`：擴充 `VFXPreset` 與 `VFXParticleClipPayload`，加入 `enableTrail?: boolean`（預設關閉）與 `trailColor?: string`（自訂色彩）。
+    - `tools/vfx-studio.html` & `src/tools/vfx-studio/VFXInspector.ts`：在粒子流控制卡片實裝「啟用軌跡/刀尖拖尾」選單與「拖尾粒子顏色」取色器，完全支援 Inspector 雙向資料綁定與即時熱更新。
+  - **🧪 測試與型別驗收全綠**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 63 個測試套件、389 項單元測試 100% PASS。
+
+- **[Refactor/VFXStudio/Phase1BasePipeline] 特效系統第一階段基礎地基重構：軌道分流、附著型粒子與光束病灶徹底切除（2026-09-11）**：
+  - **🚫 徹底終結無端冒出的貫穿光束**：
+    - `src/ui/fx/CombatFXEngine.ts`：將 `renderableTracks` 篩選規則嚴格限定為實體 3D 幾何軌道（`MESH` / `SLASH` / `PROJECTILE` / `COMPOSITE_LAYER`），嚴格排除 `PARTICLE`、`IMPACT` 與 `AUDIO`，杜絕粒子軌道被送進 3D 網格管線。
+    - 徹底拔除 `shaderMode || 'ENERGY_BEAM'` 的危險 fallback，缺少或未指定 3D Shader 的軌道明確靜默跳過，絕不憑空捏造貫穿光束。
+  - **✨ 粒子回歸附著本質 (Attach-to-Main Pipeline)**：
+    - 粒子系統與拖尾點雲改由主軌道（`trk_main`）於逐訊框計算頂點座標 `curPos` 時動態錨定並跟隨，不再作為孤立亂飛的獨立軌道。
+  - **🧪 測試防線**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 63 個測試套件、389 項單元測試 100% PASS。
+
+- **[Refactor/VFXStudio/PureSequenceMigration] 徹底淘汰舊版 VFXPreset 雙軌轉換包袱，全面落實標準 Canonical VFXSequence 原生化（2026-09-11）**：
+  - **📦 標準資產檔案換裝 (`vfx_sequences.json`)**：
+    - 將 30 款官方預設 100% 無損轉換為 `src/data/vfx_sequences.json`，完整保留 3D 歐拉角（`rotX`, `rotY`, `rotZ`）、多發彈幕、受擊打擊感與光學參數，並徹底解耦舊扁平結構。
+  - **🛡️ 儲存庫 SSOT 原生化 (`VFXPresetRepository.ts`)**：
+    - 啟動載入源直接對接 `vfx_sequences.json`，內部只維護 `resolvedSequenceMap: Map<string, VFXSequence>`，徹底淘汰 `resolvedPresetMap` 與相容字典合成。
+    - 伺服器端 SSOT 發布端點（`POST /__vfx_api/save_ssot`）同步更新為直接原子寫入 `src/data/vfx_sequences.json`，並通過 `VFXPresetValidator` 原生 Sequence 驗證。
+  - **🎬 特效工房狀態機 Sequence 原生化 (`VFXStudioStore.ts`)**：
+    - 工房內部集中狀態直接持有 `currentSequence: VFXSequence`，Undo/Redo 歷史快照棧全面改為 `VFXSequence[]`，草稿暫存棧全面支援 Sequence。
+  - **🧪 測試與型別驗收全綠**：
+    - `npm run typecheck` 0 錯誤。
+    - `npm test` 63 個測試檔案、391 項測試 100% PASS。
+
 - **[Infra/DevTools] 導入雙引擎記憶領航員 (Memory Copilot) 與專案一鍵配置腳本（2026-09-10）**：
   - **🧠 雙引擎架構整合 (Headroom CCR + codebase-memory Code Graph)**：
     - 完成 `headroom-ai[mcp]` (v0.37.0) 整合，支援大容量終端日誌與對話快取壓縮。

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { CombatEventType, CombatEvent, CombatImpactKind } from '../../models/Combat';
-import defaultVFXPresets from '../../data/vfx_presets.json';
+import defaultVFXSequences from '../../data/vfx_sequences.json';
 import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 import { VFXPresetValidator } from '../../ui/fx/VFXPresetValidator';
@@ -62,7 +62,7 @@ describe('CombatActionTimeline & Contract Verification', () => {
     it('所有 Preset ID 必須唯一，不得有重複 ID', () => {
       const idSet = new Set<string>();
       const duplicates: string[] = [];
-      defaultVFXPresets.forEach((p: any) => {
+      defaultVFXSequences.forEach((p: any) => {
         if (idSet.has(p.id)) {
           duplicates.push(p.id);
         }
@@ -87,8 +87,13 @@ describe('CombatActionTimeline & Contract Verification', () => {
         'SHOUT_WAVE'
       ]);
 
-      defaultVFXPresets.forEach((p: any) => {
-        expect(validTrajectories.has(p.trajectory)).toBe(true);
+      defaultVFXSequences.forEach((s: any) => {
+        const mainTrack = s.tracks?.find((t: any) => t.id === 'trk_main' || t.type === 'SLASH' || t.type === 'PROJECTILE' || t.type === 'MESH');
+        const clip = mainTrack?.clips?.[0];
+        const trajectory = clip?.payload?.data?.trajectory;
+        if (trajectory) {
+          expect(validTrajectories.has(trajectory)).toBe(true);
+        }
       });
     });
   });

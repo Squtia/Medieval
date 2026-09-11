@@ -295,9 +295,9 @@ function developmentStudioPlugin(): Plugin {
         }
 
         // ==========================================
-        // 特效工坊 SSOT 資料庫 (VFX Presets SSOT API)
+        // 特效工坊 SSOT 資料庫 (VFX Sequences SSOT API)
         // ==========================================
-        const vfxFile = path.resolve(__dirname, 'src/data/vfx_presets.json');
+        const vfxFile = path.resolve(__dirname, 'src/data/vfx_sequences.json');
         const vfxSnapshotsDir = path.resolve(__dirname, 'src/data/snapshots');
 
         // 🛡️ 伺服器端最終防線驗證器 (委派共用 VFXPresetValidator，確保前後端 100% 規則對齊)
@@ -374,7 +374,7 @@ function developmentStudioPlugin(): Plugin {
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({
                 success: true,
-                message: '已成功通過伺服器驗證並發布至專案 SSOT (src/data/vfx_presets.json)！',
+                message: '已成功通過伺服器驗證並發布至專案 SSOT (src/data/vfx_sequences.json)！',
                 snapshot: snapshotFilename,
                 count: presets.length
               }));

@@ -1,3 +1,51 @@
+- **[Fix/VFXStudio/DeterministicArcTrailAndSSOT] 斬擊原生欄位 100% 貫通、確定性圓弧刀尖拖尾與粒子流重構完工交接（2026-09-11）**：
+  - **核心交接重點**：
+    1. **斬擊原生欄位 100% 貫通 (SSOT Alignment)**：
+       - `src/ui/fx/renderers/MeshLayerRenderer.ts`：`calculateSlashGeometryParams` 全面相容讀取 `radius`, `bladeWidth`, `arcSpan`, `rotX`, `rotY`, `rotZ`, `aspect`, `shape`, `reverse` 等資產標準欄位，巨力重劈載入時 100% 還原原始幾何姿態與打擊手感。
+    2. **Inspector 雙向讀寫完全對接主軌資料**：
+       - `src/tools/vfx-studio/VFXInspector.ts`：`normalizeVfxPreset` 深度合併主軌 `mainClip.payload.data`，消除預設值覆蓋問題；拉動控制項時同步寫入原生標準鍵值與別名，滑桿即時 100% 反饋至畫面。
+    3. **確定性圓弧刀尖流光與最後一影格零殘留**：
+       - `src/ui/fx/renderers/TrailLayerRenderer.ts`：實裝 `updateArcTrail`，沿著揮砍過去進度弧線分散取樣，刀尖明亮集中、尾端向外擴散微散逸，進度超過 0.75 後平滑漸隱；出刀結束（$p \ge 1.0$）立即隱藏與銷毀，徹底根除最後一影格凍結殘留缺陷。
+    4. **粒子流面板獨立解耦與噴發修復**：
+       - `tools/vfx-studio.html`：拆分出獨立的 `card-particle-section`，解除對地刺幾何的依賴。
+       - `src/ui/fx/CombatFXEngine.ts`：修正 `isTrailEnabled` 判定，使資產定義的 `trailCount` 與爆散碎屑正常噴發。
+    5. **品質保證與驗證防線**：
+       - `npm run typecheck` 0 錯誤。
+       - `npm test` 全專案 63 個測試套件、390 項單元測試 100% PASS。
+  - **待後續推進項目**：
+    - 進入 Shader 重構計畫：落雷（DIELECTRIC_LIGHTNING）、地刺（EARTH_SPIKE）、黑體火球（VOLUMETRIC_FIRE）的專屬次世代著色器開發。
+
+- **[Refactor/VFXStudio/Phase1BasePipeline] 特效系統第一階段基礎地基重構完工交接（2026-09-11）**：
+  - **核心交接重點**：
+    1. **徹底終結無端冒出的貫穿光束**：
+       - `src/ui/fx/CombatFXEngine.ts`：將 `renderableTracks` 篩選規則嚴格限定為實體 3D 幾何軌道（`MESH` / `SLASH` / `PROJECTILE` / `COMPOSITE_LAYER`），嚴格排除 `PARTICLE`、`IMPACT` 與 `AUDIO`，徹底終結粒子軌道誤入幾何管線。
+       - 徹底拔除 `shaderMode || 'ENERGY_BEAM'` 的危險 fallback，未指定合適 Shader 則明確靜默，絕不憑空捏造光束。
+    2. **粒子回歸附著本質 (Attach-to-Main Pipeline)**：
+       - 粒子系統與拖尾點雲改由主軌道（`trk_main`）於逐訊框計算頂點座標 `curPos` 時動態錨定並跟隨，不再作為孤立亂飛的獨立軌道。
+    3. **品質保證與驗證防線**：
+       - `npm run typecheck` 0 錯誤。
+       - `npm test` 63 個測試套件、389 項單元測試 100% PASS。
+  - **待後續推進項目**：
+    - 進入第二階段：專注重寫雷電（DIELECTRIC_LIGHTNING）、地刺（EARTH_SPIKE）、黑體火球（VOLUMETRIC_FIRE）的專屬頂級 GLSL Shader。
+
+- **[Refactor/VFXStudio/PureSequenceMigration] 徹底淘汰舊版 VFXPreset 雙軌轉換包袱，全面落實標準 Canonical VFXSequence 原生化與死碼清理交接（2026-09-11）**：
+  - **核心交接重點**：
+    1. **物理刪除歷史雙向轉譯器與舊版資產**：
+       - 徹底自 `src/models/VFX.ts` 拔除 `migrateLegacyPreset` 與 `sequenceToLegacyPreset` 轉譯函式（減少 308 行死碼包袱）。
+       - 物理刪除舊版 `src/data/vfx_presets.json`，專案唯一真理來源全面換裝為標準 `src/data/vfx_sequences.json`。
+    2. **全管線原生 Sequence 貫通**：
+       - `VFXPresetRepository.ts`：以 `vfx_sequences.json` 為唯一基準，維護 `resolvedSequenceMap`，伺服器發布端點（`POST /__vfx_api/save_ssot`）原子寫入 `src/data/vfx_sequences.json`。
+       - `CombatFXEngine.ts`：`playSequenceWorld` 與 `renderSequenceWorldAt` 原生直通多軌影格求值與 3D 繪製；清理 `playPreset` 中已廢棄之 `getPreset` 回退。
+       - `CombatActionPlayer.ts`：以 `VFXSequence` 為第一公民，直接依據序列內之 `tracks`、`clips` 與具名 `impactCues` 執行傷害與回呼派發。
+       - `VFXStudioStore.ts` & `VFXStudioAdapter.ts`：集中狀態持有 `currentSequence: VFXSequence`，Undo/Redo 棧以 Sequence 紀錄快照。
+    3. **模型層與腳本對齊**：
+       - `VFXTrack`、`VFXSlashClipPayload`、`VFXProjectileClipPayload` 補齊型別彈性；修復 `VFX_LIGHTNING_BOLT` 空間模式；改寫 `scripts/test-validate-ssot.mjs`、`verify-vfx-preset-graph.mjs`、`check-heavy-strike.mjs` 直讀 `vfx_sequences.json`。
+    4. **品質保證與驗證防線**：
+       - `npm run typecheck` 0 錯誤。
+       - `npm test` 全專案 63 個測試套件、389 項單元測試 100% PASS。
+  - **待後續推進項目**：
+    - 繼續依規劃推進次世代 Shader 與新特效素材打磨。
+
 - **[Planning/VFXStudio] 子圖層落雷 A>B 空間軌跡斷點排查與 Shader 升級計畫交接（2026-09-09）**：
   - **核心交接重點**：
     1. **子圖層選取風暴狂雷變 A>B 直線雷射之根本病灶**：

@@ -85,4 +85,35 @@ describe('VFXDeterministicPlayback - Phase 0 失敗案例驗證 (確定性隨機
     // 斷言：不同 Seed 必須產生實質頂點抖動差異
     expect(positionsA).not.toEqual(positionsC);
   });
+
+  it('✅ 驗證刀尖圓弧拖尾 updateArcTrail 於出刀中途產生流光，於出刀結束 (p >= 1.0) 徹底回收零殘留', () => {
+    const scene = new THREE.Scene();
+    const trail = TrailLayerRenderer.createTrail(scene, new THREE.Vector3(0, 0, 0), '#f59e0b', 25, 8, 1.0);
+
+    // 模擬刀尖位置採樣函數：圓弧運動
+    const bladeTipSampler = (p: number) => {
+      const angle = p * Math.PI;
+      return new THREE.Vector3(Math.cos(angle) * 100, Math.sin(angle) * 100, 0);
+    };
+
+    // 1. 出刀中途 (p = 0.5)
+    trail.updateArcTrail!(bladeTipSampler, 0.5);
+    expect(trail.points.visible).toBe(true);
+    expect(trail.material.opacity).toBeGreaterThan(0.5);
+
+    const midPosArray = Array.from(trail.points.geometry.attributes.position.array);
+    // 刀尖點 (最後一個點或 u=1) 應該靠近 (cos(0.5pi)*100, sin(0.5pi)*100, 0) 即 (0, 100, 0)
+    const tipX = midPosArray[(trail.count - 1) * 3];
+    const tipY = midPosArray[(trail.count - 1) * 3 + 1];
+    expect(Math.abs(tipX)).toBeLessThan(15);
+    expect(tipY).toBeGreaterThan(85);
+
+    // 2. 出刀結束 (p = 1.0)
+    trail.updateArcTrail!(bladeTipSampler, 1.0);
+    expect(trail.points.visible).toBe(false);
+    expect(trail.material.opacity).toBe(0);
+
+    trail.dispose();
+  });
 });
+

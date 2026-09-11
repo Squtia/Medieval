@@ -1,41 +1,73 @@
 import { describe, it, expect, vi } from 'vitest';
 import { CombatFXEngine } from './CombatFXEngine';
-import { VFXPreset } from '../../models/VFX';
+import { VFXSequence } from '../../models/VFX';
 import * as THREE from 'three';
 
 describe('VFXLifecycle - Phase 0 失敗案例驗證 (計時器洩漏與 RAF 控制)', () => {
-  const createTestPreset = (id: string, duration: number): VFXPreset => ({
+  const createTestPreset = (id: string, duration: number): VFXSequence => ({
+    schemaVersion: 2,
     id,
     name: `測試預設 ${id}`,
     category: 'PHYSICAL',
     description: '測試生命週期清理',
-    trajectory: 'MELEE_SWEEP',
-    shaderMode: 'SLASH_BLADE',
-    colorCore: '#ffffff',
-    colorRim: '#f59e0b',
     duration,
-    scale: 1,
-    spin: 0,
-    fresnel: 1,
-    trailCount: 10,
-    trailSize: 5,
-    spikes: 0,
-    spikeHeight: 0,
-    burstCount: 10,
-    bloomStr: 1,
-    bloomRad: 0.5,
-    bloomThresh: 0.2,
-    impact: {
-      hitStopTime: 30,
-      targetPunchScale: 0.9,
-      shakeIntensity: 5,
-      shakeDuration: 0.2,
-      penetrationDistance: 0,
-      knockbackDistance: 0,
-      hitFlashColor: '#ffffff',
-      screenShake: false
-    },
-    layers: []
+    spatialMode: 'A_TO_B',
+    impactCues: [{ cueId: `${id}_cue_0`, time: duration * 0.7, weight: 1, isPrimary: true }],
+    tracks: [
+      {
+        id: 'trk_main',
+        name: '主斬擊',
+        type: 'SLASH',
+        clips: [
+          {
+            id: 'clip_slash_1',
+            name: '斬擊',
+            startTime: 0,
+            duration,
+            payload: {
+              type: 'SLASH',
+              data: {
+                rendererType: 'SLASH',
+                trajectory: 'MELEE_SWEEP',
+                shaderMode: 'SLASH_BLADE',
+                colorCore: '#ffffff',
+                colorRim: '#f59e0b',
+                scale: 1,
+                rotX: 0,
+                rotY: 0,
+                rotZ: 0
+              }
+            }
+          }
+        ]
+      },
+      {
+        id: 'trk_impact',
+        name: '打擊反饋',
+        type: 'IMPACT',
+        clips: [
+          {
+            id: 'clip_impact_1',
+            name: '打擊',
+            startTime: duration * 0.7,
+            duration: 0.2,
+            payload: {
+              type: 'IMPACT',
+              data: {
+                hitStopTime: 30,
+                targetPunchScale: 0.9,
+                shakeIntensity: 5,
+                shakeDuration: 0.2,
+                penetrationDistance: 0,
+                knockbackDistance: 0,
+                hitFlashColor: '#ffffff',
+                screenShake: false
+              }
+            }
+          }
+        ]
+      }
+    ]
   });
 
   it('🔴 缺陷 1：播放完成後，CombatFXEngine 的 scheduledTimers 必須清空，不可殘留失效 Timer ID', async () => {

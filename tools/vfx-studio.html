@@ -95,6 +95,19 @@
             <option value="WHIRLWIND">🌪️ 360° 雙刃旋風 (Whirlwind Dual Moon)</option>
           </select>
         </div>
+        <div class="param-row-2col" style="margin-top: 6px; border-top: 1px solid rgba(245, 158, 11, 0.2); padding-top: 6px;">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label" style="color: #fbbf24;">✨ 啟用刀尖拖尾</span></div>
+            <select id="param-enable-trail" class="param-select"><option value="false">關閉 (無拖尾)</option><option value="true">✨ 開啟刀尖動態拖尾</option></select>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label" style="color: #fbbf24;">拖尾粒子顏色</span></div>
+            <div class="param-control" style="display: flex; gap: 8px; align-items: center;">
+              <input type="color" id="param-trail-color" class="param-color" value="#f59e0b" style="width: 42px; height: 26px; padding: 0; border: 1px solid #30363d; background: transparent; cursor: pointer; border-radius: 4px;">
+              <span style="font-size: 0.72rem; color: #8b949e;">(光芒色彩)</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -456,31 +469,33 @@
       </div>
     </div>
 
-    <!-- 右卡片 3: ✨ 粒子流、爆散與地刺幾何形態 -->
-    <div class="inspector-card card-spike-section">
-      <div class="inspector-card-title">✨ 粒子流、爆散與地刺幾何 (Spikes & Mesh)</div>
+    <!-- 右卡片 3: ✨ 粒子流、拖尾與爆散 (Particles & Trails) -->
+    <div class="inspector-card card-particle-section" style="border-color: #38bdf8;">
+      <div class="inspector-card-title" style="color: #38bdf8; background: #0c2338;">
+        <span>✨ 粒子流、拖尾與爆散 (Particles & Trails)</span>
+      </div>
       <div class="inspector-card-body">
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">拖尾數量</span>
-              <span id="val-trail-count" class="param-value">40</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-trail-count" class="param-slider" min="0" max="100" step="5" value="40">
-            </div>
+            <div class="param-label-row"><span class="param-label">拖尾數量</span><span id="val-trail-count" class="param-value">40</span></div>
+            <div class="param-control"><input type="range" id="param-trail-count" class="param-slider" min="0" max="100" step="5" value="40"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">粒子尺寸</span>
-              <span id="val-trail-size" class="param-value">10px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-trail-size" class="param-slider" min="2" max="30" step="1" value="10">
-            </div>
+            <div class="param-label-row"><span class="param-label">粒子尺寸</span><span id="val-trail-size" class="param-value">10px</span></div>
+            <div class="param-control"><input type="range" id="param-trail-size" class="param-slider" min="2" max="30" step="1" value="10"></div>
           </div>
         </div>
+        <div class="param-row">
+          <div class="param-label-row"><span class="param-label">爆裂碎屑數量 (Burst Sparks)</span><span id="val-burst-count" class="param-value">60 顆</span></div>
+          <div class="param-control"><input type="range" id="param-burst-count" class="param-slider" min="0" max="120" step="10" value="60"></div>
+        </div>
+      </div>
+    </div>
 
+    <!-- 右卡片 4: 🏔️ 地裂與地刺幾何形態 (Spikes & Fissure) -->
+    <div class="inspector-card card-spike-section">
+      <div class="inspector-card-title">🏔️ 地裂與地刺幾何 (Spikes & Fissure)</div>
+      <div class="inspector-card-body">
         <div class="param-row-2col">
           <div class="param-col">
             <div class="param-label-row">
@@ -537,18 +552,6 @@
           </div>
           <div class="param-col">
             <div class="param-label-row">
-              <span class="param-label">爆裂碎屑</span>
-              <span id="val-burst-count" class="param-value">60 顆</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-burst-count" class="param-slider" min="0" max="120" step="10" value="60">
-            </div>
-          </div>
-        </div>
-
-        <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row">
               <span class="param-label">地刺分佈範圍</span>
               <span id="val-spike-radius" class="param-value">80px</span>
             </div>
@@ -556,14 +559,15 @@
               <input type="range" id="param-spike-radius" class="param-slider" min="20" max="280" step="10" value="80">
             </div>
           </div>
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">破土連鎖時差</span>
-              <span id="val-spike-stagger" class="param-value">25ms</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-spike-stagger" class="param-slider" min="0" max="80" step="5" value="25">
-            </div>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">破土連鎖時差</span>
+            <span id="val-spike-stagger" class="param-value">25ms</span>
+          </div>
+          <div class="param-control">
+            <input type="range" id="param-spike-stagger" class="param-slider" min="0" max="80" step="5" value="25">
           </div>
         </div>
 

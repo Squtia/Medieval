@@ -10,6 +10,7 @@ export interface TrailInstance {
   count: number;
   currentIndex: number;
   update: (currentPos: THREE.Vector3) => void;
+  updateArcTrail?: (tipSampler: (prog: number) => THREE.Vector3, currentProgress: number) => void;
   dispose: () => void;
 }
 
@@ -19,8 +20,42 @@ export interface TrailInstance {
  * 依據 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md §6 規格建立
  */
 export class TrailLayerRenderer {
+  private static softParticleTexture: THREE.Texture | null = null;
+
   /**
-   * 建立標準點雲拖尾實例
+   * 🌟 取得動態生成之高斯羽化星芒圓球紋理 (徹底消除硬邊方塊像素)
+   */
+  public static getSoftParticleTexture(): THREE.Texture {
+    if (this.softParticleTexture) return this.softParticleTexture;
+    if (typeof document === 'undefined') {
+      // 測試環境 (無頭 node) 回傳 dummy Texture
+      this.softParticleTexture = new THREE.Texture();
+      return this.softParticleTexture;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+      grad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.85)');
+      grad.addColorStop(0.55, 'rgba(255, 255, 255, 0.35)');
+      grad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 64, 64);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    this.softParticleTexture = tex;
+    return tex;
+  }
+
+  /**
+   * 建立標準點雲拖尾實例 (支援傳統點雲更新與確定性刀尖弧度採樣)
    */
   public static createTrail(
     scene: THREE.Scene,
@@ -46,7 +81,8 @@ export class TrailLayerRenderer {
       color: new THREE.Color(colorRim),
       size: trailSize * scale,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.85,
+      map: this.getSoftParticleTexture(),
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
@@ -74,6 +110,47 @@ export class TrailLayerRenderer {
       currentIndex = (currentIndex + 2) % count;
     };
 
+    /**
+     * ⚔️ 確定性圓弧刀尖流光取樣 (Deterministic Arc Blade Trail)
+     * 沿著過去進度弧線分散取樣，越靠近刀尖越集中，出刀尾聲平滑消散，出刀完畢徹底隱藏零殘留
+     */
+    const updateArcTrail = (tipSampler: (prog: number) => THREE.Vector3, currentProgress: number) => {
+      const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
+      if (!posAttr) return;
+
+      if (currentProgress <= 0.001 || currentProgress >= 0.999) {
+        // 出刀完畢或尚未出刀：立即隱藏且透明度歸零，保證最後一影格絕對零殘留
+        points.visible = false;
+        material.opacity = 0;
+        return;
+      }
+
+      points.visible = true;
+      // 尾段漸隱衰減 (Progress > 0.75 開始淡出)
+      if (currentProgress > 0.75) {
+        const fade = Math.max(0, 1.0 - (currentProgress - 0.75) / 0.24);
+        material.opacity = 0.85 * fade;
+      } else {
+        material.opacity = 0.85;
+      }
+
+      const trailSpan = Math.min(0.35, currentProgress);
+      for (let i = 0; i < count; i++) {
+        const u = i / Math.max(1, count - 1); // 1 = 刀尖, 0 = 尾端
+        const sampleProg = Math.max(0, currentProgress - (1 - u) * trailSpan);
+        const basePos = tipSampler(sampleProg);
+        const jitter = (1 - u * 0.6) * 7 * scale;
+
+        posAttr.setXYZ(
+          i,
+          basePos.x + (rng() - 0.5) * jitter,
+          basePos.y + (rng() - 0.5) * jitter,
+          basePos.z + (rng() - 0.5) * jitter
+        );
+      }
+      posAttr.needsUpdate = true;
+    };
+
     const dispose = () => {
       scene.remove(points);
       geometry.dispose();
@@ -88,6 +165,7 @@ export class TrailLayerRenderer {
       count,
       currentIndex,
       update,
+      updateArcTrail,
       dispose
     };
   }

@@ -154,6 +154,8 @@ export const INSPECTOR_CONTROL_MAP: ControlConfig[] = [
   { id: 'param-flame-speed', labelId: 'val-flame-speed', key: 'flameTurbulenceSpeed', type: 'range', unit: 'x', defaultVal: 2.0, capability: 'FIRE_SHADER' },
 
   // 3. ✨ 粒子流、拖尾與爆散
+  { id: 'param-enable-trail', key: 'enableTrail', type: 'select-boolean', defaultVal: false, capability: 'SLASH_GEOMETRY' },
+  { id: 'param-trail-color', key: 'trailColor', type: 'color', defaultVal: '#f59e0b', capability: 'SLASH_GEOMETRY' },
   { id: 'param-trail-count', labelId: 'val-trail-count', key: 'trailCount', type: 'range', unit: '', defaultVal: 40, capability: 'PARTICLES' },
   { id: 'param-trail-size', labelId: 'val-trail-size', key: 'trailSize', type: 'range', unit: 'px', defaultVal: 10, capability: 'PARTICLES' },
   { id: 'param-burst-count', labelId: 'val-burst-count', key: 'burstCount', type: 'range', unit: ' 顆', defaultVal: 60, capability: 'PARTICLES' },
@@ -224,6 +226,38 @@ export function normalizeVfxPreset(preset: VFXPreset): VFXPreset {
   const normalized: any = { ...preset };
   normalized.impact = { ...(preset.impact || {}) };
   normalized.casterMotion = { ...(preset.casterMotion || {}) };
+
+  // 🌟 若傳入的是標準 VFXSequence，自動提取主軌與粒子軌真實 clip 數據，保證 SSOT 絕不丟失
+  if ((preset as any).tracks && Array.isArray((preset as any).tracks)) {
+    const tracks: any[] = (preset as any).tracks;
+    const mainTrack = tracks.find(t => t.id === 'trk_main' || t.type === 'MESH' || t.type === 'SLASH') || tracks[0];
+    const mainData = mainTrack?.clips?.[0]?.payload?.data || {};
+    const partTrack = tracks.find(t => t.type === 'PARTICLE');
+    const partData = partTrack?.clips?.[0]?.payload?.data || {};
+    const impactTrack = tracks.find(t => t.type === 'IMPACT');
+    const impactData = impactTrack?.clips?.[0]?.payload?.data || {};
+
+    Object.assign(normalized, {
+      ...mainData,
+      slashRotX: mainData.rotX ?? mainData.slashRotX ?? normalized.slashRotX,
+      slashRotY: mainData.rotY ?? mainData.slashRotY ?? normalized.slashRotY,
+      slashRotZ: mainData.rotZ ?? mainData.slashRotZ ?? mainData.angle ?? normalized.slashRotZ,
+      slashAngle: mainData.angle ?? mainData.slashAngle ?? mainData.rotZ ?? normalized.slashAngle,
+      slashArcSpan: mainData.arcSpan ?? mainData.slashArcSpan ?? normalized.slashArcSpan,
+      slashBladeWidth: mainData.bladeWidth ?? mainData.slashBladeWidth ?? normalized.slashBladeWidth,
+      slashRadius: mainData.radius ?? mainData.slashRadius ?? normalized.slashRadius,
+      slashAspect: mainData.aspect ?? mainData.slashAspect ?? normalized.slashAspect,
+      slashShape: mainData.shape ?? mainData.slashShape ?? normalized.slashShape,
+      slashReverse: mainData.reverse ?? mainData.slashReverse ?? normalized.slashReverse,
+      trailCount: mainData.trailCount ?? partData.trailCount ?? normalized.trailCount,
+      trailSize: mainData.trailSize ?? partData.trailSize ?? normalized.trailSize,
+      burstCount: mainData.burstCount ?? partData.burstCount ?? normalized.burstCount,
+      enableTrail: mainData.enableTrail ?? partData.enableTrail ?? normalized.enableTrail,
+      trailColor: mainData.trailColor ?? partData.trailColor ?? normalized.trailColor
+    });
+
+    normalized.impact = { ...impactData, ...normalized.impact };
+  }
 
   for (const c of INSPECTOR_CONTROL_MAP) {
     if (c.isImpact) {
@@ -304,10 +338,20 @@ export class VFXInspector {
             const cur = this.store.getPreset();
             const casterMotion = { ...(cur.casterMotion || {}), [c.key]: val };
             this.store.updateConfig({ casterMotion }, false);
-          } else if (c.id === 'param-slash-rot-z') {
-            this.store.updateConfig({ slashRotZ: val, slashAngle: val }, false);
-          } else if (c.id === 'param-slash-angle') {
-            this.store.updateConfig({ slashAngle: val, slashRotZ: val }, false);
+          } else if (c.id === 'param-slash-rot-x') {
+            this.store.updateConfig({ slashRotX: val, rotX: val }, false);
+          } else if (c.id === 'param-slash-rot-y') {
+            this.store.updateConfig({ slashRotY: val, rotY: val }, false);
+          } else if (c.id === 'param-slash-rot-z' || c.id === 'param-slash-angle') {
+            this.store.updateConfig({ slashRotZ: val, rotZ: val, slashAngle: val, angle: val }, false);
+          } else if (c.id === 'param-slash-width') {
+            this.store.updateConfig({ slashBladeWidth: val, bladeWidth: val }, false);
+          } else if (c.id === 'param-slash-radius') {
+            this.store.updateConfig({ slashRadius: val, radius: val }, false);
+          } else if (c.id === 'param-slash-arc-span') {
+            this.store.updateConfig({ slashArcSpan: val, arcSpan: val }, false);
+          } else if (c.id === 'param-slash-aspect') {
+            this.store.updateConfig({ slashAspect: val, aspect: val }, false);
           } else {
             this.store.updateConfig({ [c.key]: val }, false);
           }
@@ -322,36 +366,62 @@ export class VFXInspector {
             const cur = this.store.getPreset();
             const impact = { ...(cur.impact || {}), wavePlane: val };
             this.store.updateConfig({ wavePlane: val as any, impact }, false);
+          } else if (c.id === 'param-slash-shape') {
+            this.store.updateConfig({ slashShape: val as any, shape: val as any }, false);
           } else if (c.id === 'param-slash-traj') {
-            const updates: Partial<VFXPreset> = { slashTrajectory: val as any };
+            const updates: any = { slashTrajectory: val as any };
             if (val === 'CLEAVE_DOWN') {
               updates.slashAngle = -45;
+              updates.angle = -45;
               updates.slashRotX = 0;
+              updates.rotX = 0;
               updates.slashRotY = 0;
+              updates.rotY = 0;
               updates.slashRotZ = -45;
+              updates.rotZ = -45;
               updates.slashArcSpan = 120;
+              updates.arcSpan = 120;
               updates.slashReverse = false;
+              updates.reverse = false;
             } else if (val === 'UPPER_CUT') {
               updates.slashAngle = 135;
+              updates.angle = 135;
               updates.slashRotX = 0;
+              updates.rotX = 0;
               updates.slashRotY = 0;
+              updates.rotY = 0;
               updates.slashRotZ = 135;
+              updates.rotZ = 135;
               updates.slashArcSpan = 110;
+              updates.arcSpan = 110;
               updates.slashReverse = true;
+              updates.reverse = true;
             } else if (val === 'HORIZONTAL') {
               updates.slashAngle = -15;
+              updates.angle = -15;
               updates.slashRotX = 0;
+              updates.rotX = 0;
               updates.slashRotY = 0;
+              updates.rotY = 0;
               updates.slashRotZ = -15;
+              updates.rotZ = -15;
               updates.slashArcSpan = 140;
+              updates.arcSpan = 140;
               updates.slashReverse = false;
+              updates.reverse = false;
             } else if (val === 'VERTICAL_DOWN') {
               updates.slashAngle = 90;
+              updates.angle = 90;
               updates.slashRotX = 0;
+              updates.rotX = 0;
               updates.slashRotY = 0;
+              updates.rotY = 0;
               updates.slashRotZ = 90;
+              updates.rotZ = 90;
               updates.slashArcSpan = 130;
+              updates.arcSpan = 130;
               updates.slashReverse = false;
+              updates.reverse = false;
             }
             this.store.updateConfig(updates, false);
             this.syncUI(this.store.getPreset());
@@ -377,7 +447,9 @@ export class VFXInspector {
         sel.addEventListener('change', (e) => {
           this.store.recordSnapshot();
           const val = (e.target as HTMLSelectElement).value === 'true';
-          if (c.isImpact) {
+          if (c.id === 'param-slash-reverse') {
+            this.store.updateConfig({ slashReverse: val, reverse: val }, false);
+          } else if (c.isImpact) {
             const cur = this.store.getPreset();
             const impact = { ...(cur.impact || {}), [c.key]: val };
             this.store.updateConfig({ impact }, false);
@@ -505,6 +577,11 @@ export class VFXInspector {
     const slashCard = document.querySelector('.card-slash-section') as HTMLElement;
     if (slashCard) {
       slashCard.style.display = (!isBindingSelected && caps.has('SLASH_GEOMETRY')) ? 'block' : 'none';
+    }
+
+    const particleCard = document.querySelector('.card-particle-section') as HTMLElement;
+    if (particleCard) {
+      particleCard.style.display = (!isBindingSelected && caps.has('PARTICLES')) ? 'block' : 'none';
     }
 
     const spikeCard = document.querySelector('.card-spike-section') as HTMLElement;

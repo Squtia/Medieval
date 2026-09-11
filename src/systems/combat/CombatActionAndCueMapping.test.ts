@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
 import { mapImpactsToCues, CombatActionPlayer, CombatAction } from '../../ui/fx/CombatActionPlayer';
 import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
-import { VFXImpactCue, VFXPreset, migrateLegacyPreset } from '../../models/VFX';
+import { VFXImpactCue, VFXSequence } from '../../models/VFX';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 
 describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () => {
@@ -195,22 +195,26 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
   // ─────────────────────────────────────────────────────────────
   describe('批次 C：CombatActionPlayer 完整播放鏈與調度', () => {
     it('應驗證 1 個 SKILL_CAST + 3 個 HIT 事件組成一個 Action，底層只播放一次 VFX', async () => {
-      const mock3CuePreset: VFXPreset = {
-        ...((CombatFXEngine.getInstance() as any).getPreset?.('VFX_HEAVY_STRIKE') || {}),
+      const mockSequence: VFXSequence = {
+        schemaVersion: 2,
         id: 'TEST_COMBO_VFX',
+        name: 'Combo VFX',
+        category: 'PHYSICAL',
+        description: '',
         duration: 0.4,
+        spatialMode: 'A_TO_B',
+        tracks: [],
         impactCues: [
           { cueId: 'CUE_1', time: 0.1, weight: 1, isPrimary: false },
           { cueId: 'CUE_2', time: 0.2, weight: 1, isPrimary: false },
           { cueId: 'CUE_3', time: 0.3, weight: 1, isPrimary: true }
         ]
-      } as any;
-      const mockSequence = migrateLegacyPreset(mock3CuePreset);
+      };
       const playSequenceSpy = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
         const [runtimeSequence, , , onImpact] = args;
         // 模擬觸發 3 個 Cue
         if (typeof onImpact === 'function') {
-          runtimeSequence.impactCues.forEach((cue, index) => onImpact(mock3CuePreset.impact, index, runtimeSequence.impactCues.length, cue));
+          runtimeSequence.impactCues.forEach((cue, index) => onImpact({} as any, index, runtimeSequence.impactCues.length, cue));
         }
       });
       const actionPlayer = new CombatActionPlayer(

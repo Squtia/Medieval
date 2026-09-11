@@ -157,7 +157,7 @@ export class TimelineInteraction {
       }
 
       // 檢查副圖層
-      (preset.layers || []).forEach((l, idx) => {
+      (preset.layers || []).forEach((l: any, idx: number) => {
         const lEnd = (l.delay || 0) + (l.duration || 0.2);
         if (lEnd > targetDur + 0.001) {
           overflows.push(`🔮 圖層 #${idx + 1} (${l.presetId || l.id || '圖層'}): 結束時間 ${lEnd.toFixed(2)}s (超出 ${(lEnd - targetDur).toFixed(2)}s)`);
@@ -166,7 +166,7 @@ export class TimelineInteraction {
       });
 
       // 檢查 Cue
-      (preset.impactCues || []).forEach((c, idx) => {
+      (preset.impactCues || []).forEach((c: any, idx: number) => {
         if (c.time > targetDur + 0.001) {
           overflows.push(`🎯 Cue #${idx + 1} (${c.cueId}): 時間點 ${c.time.toFixed(2)}s (超出 ${(c.time - targetDur).toFixed(2)}s)`);
           requiredMaxDuration = Math.max(requiredMaxDuration, c.time);
@@ -240,14 +240,14 @@ export class TimelineInteraction {
       const newMainDuration = Number((currentMainDur * scaleRatio).toFixed(2));
 
       // 縮放副圖層
-      const newLayers = (preset.layers || []).map(l => ({
+      const newLayers = (preset.layers || []).map((l: any) => ({
         ...l,
         delay: Number(((l.delay || 0) * scaleRatio).toFixed(2)),
         duration: Number(((l.duration || 0.2) * scaleRatio).toFixed(2))
       }));
 
       // 縮放 Cue
-      const newCues = (preset.impactCues || []).map(c => ({
+      const newCues = (preset.impactCues || []).map((c: any) => ({
         ...c,
         time: Number((c.time * scaleRatio).toFixed(2))
       }));
