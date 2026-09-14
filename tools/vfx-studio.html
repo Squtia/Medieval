@@ -27,6 +27,13 @@
       </div>
       <div class="inspector-card-body">
         <div class="param-row">
+          <div class="param-label-row"><span class="param-label">自動朝向飛行路徑 (Align To Path)</span></div>
+          <select id="param-slash-align-to-path" class="param-select">
+            <option value="true">🗡️ 自動順應飛行向量 (飛出劍氣推薦)</option>
+            <option value="false">🎯 固定角度 (由旋轉滑桿自訂)</option>
+          </select>
+        </div>
+        <div class="param-row">
           <div class="param-label-row"><span class="param-label">斬擊軌跡走向 (Slash Motion)</span></div>
           <select id="param-slash-traj" class="param-select">
             <option value="CLEAVE_DOWN">🗡️ 45° 順勢斜劈 (Downward Cleave)</option>
@@ -284,6 +291,18 @@
       <div class="inspector-card-body">
         <div class="param-row">
           <div class="param-label-row">
+            <span class="param-label">空間傳播形態 (Spatial Topology)</span>
+          </div>
+          <select id="param-spatial-topology" class="param-select">
+            <option value="POINT_TRANSPORT">🚀 質點運動 (火球、箭矢、飛出劍氣)</option>
+            <option value="SPAN_BEAM">⚡ 跨空間能量柱 (天頂落雷、連鎖電弧)</option>
+            <option value="STAGGERED_ARRAY">🌋 沿途連鎖陣列 (浪湧破土、連鎖地火)</option>
+            <option value="LOCAL_MORPH">🏠 原地展開 (近戰重劈、護盾結界、戰吼)</option>
+          </select>
+        </div>
+
+        <div class="param-row">
+          <div class="param-label-row">
             <span class="param-label">時空發生模式 (Spatial Mode)</span>
           </div>
           <select id="param-spatial-mode" class="param-select">
@@ -372,7 +391,7 @@
               <option value="ENERGY_BEAM">💫 雙頻高能雷射光柱</option>
               <option value="HOLY_LIGHT">☀️ 天罰神聖純白光柱</option>
               <option value="DARK_VOID">🌑 暗影虛空侵蝕</option>
-              <option value="EARTH_SHATTER">🔨 碎石崩裂重擊</option>
+              <option value="EARTH_SHATTER">⛰️ 地刺 (Earth Spike)</option>
             </select>
           </div>
           <div class="param-col">
@@ -496,6 +515,27 @@
     <div class="inspector-card card-spike-section">
       <div class="inspector-card-title">🏔️ 地裂與地刺幾何 (Spikes & Fissure)</div>
       <div class="inspector-card-body">
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">連鎖生長模式 (Array Mode)</span>
+            </div>
+            <select id="param-spike-array-behavior" class="param-select">
+              <option value="PERSIST_FADE">⏳ 破土停留後淡出 (Persist)</option>
+              <option value="SURGE_RECEDE">🌊 浪湧竄出縮回 (Surge)</option>
+            </select>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row">
+              <span class="param-label">連鎖尖刺數量</span>
+              <span id="val-spike-array-count" class="param-value">5 根</span>
+            </div>
+            <div class="param-control">
+              <input type="range" id="param-spike-array-count" class="param-slider" min="2" max="12" step="1" value="5">
+            </div>
+          </div>
+        </div>
+
         <div class="param-row-2col">
           <div class="param-col">
             <div class="param-label-row">
@@ -651,63 +691,16 @@
       </div>
       <div class="inspector-card-body">
         <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">命中定格</span>
-              <span id="val-hit-stop" class="param-value">55ms</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-hit-stop" class="param-slider" min="0" max="150" step="5" value="55">
-            </div>
-          </div>
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">受擊擠壓</span>
-              <span id="val-punch-scale" class="param-value">0.88x</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-punch-scale" class="param-slider" min="0.75" max="1.15" step="0.01" value="0.88">
-            </div>
-          </div>
+          <div class="param-col"><div class="param-label-row"><span class="param-label">打擊定格</span><span id="val-hit-stop" class="param-value">55ms</span></div><div class="param-control"><input type="range" id="param-hit-stop" class="param-slider" min="0" max="150" step="5" value="55"></div></div>
+          <div class="param-col"><div class="param-label-row"><span class="param-label">受擊擠壓</span><span id="val-punch-scale" class="param-value">0.88x</span></div><div class="param-control"><input type="range" id="param-punch-scale" class="param-slider" min="0.75" max="1.15" step="0.01" value="0.88"></div></div>
         </div>
-
         <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">受擊震動</span>
-              <span id="val-shake-intensity" class="param-value">12px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-shake-intensity" class="param-slider" min="0" max="30" step="1" value="12">
-            </div>
-          </div>
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">震動時長</span>
-              <span id="val-shake-dur" class="param-value">0.28s</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-shake-dur" class="param-slider" min="0.1" max="0.6" step="0.02" value="0.28">
-            </div>
-          </div>
+          <div class="param-col"><div class="param-label-row"><span class="param-label">受擊震動</span><span id="val-shake-intensity" class="param-value">12px</span></div><div class="param-control"><input type="range" id="param-shake-intensity" class="param-slider" min="0" max="30" step="1" value="12"></div></div>
+          <div class="param-col"><div class="param-label-row"><span class="param-label">震動時長</span><span id="val-shake-dur" class="param-value">0.28s</span></div><div class="param-control"><input type="range" id="param-shake-dur" class="param-slider" min="0.1" max="0.6" step="0.02" value="0.28"></div></div>
         </div>
-
         <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">受擊擊退</span>
-              <span id="val-knockback" class="param-value">18px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-knockback" class="param-slider" min="0" max="60" step="2" value="18">
-            </div>
-          </div>
-          <div class="param-col">
-            <div class="param-color-row">
-              <span class="param-label">受擊閃光色</span>
-              <input type="color" id="param-flash-color" class="param-color-input" value="#ffffff">
-            </div>
-          </div>
+          <div class="param-col"><div class="param-label-row"><span class="param-label">受擊擊退</span><span id="val-knockback" class="param-value">18px</span></div><div class="param-control"><input type="range" id="param-knockback" class="param-slider" min="0" max="60" step="2" value="18"></div></div>
+          <div class="param-col"><div class="param-color-row"><span class="param-label">受擊閃光色</span><input type="color" id="param-flash-color" class="param-color-input" value="#ffffff"></div></div>
         </div>
 
         <!-- 💥 受擊擴散光圈 (Impact Ring) 全可調設定 -->
@@ -789,6 +782,6 @@
 
   </div>
 
-  <script type="module" src="../src/tools/vfx-studio/index.ts"></script>
+  <script type="module" src="../src/tools/vfx-studio/index.ts?v=20260914_ssot_fix"></script>
 </body>
 </html>

@@ -115,24 +115,34 @@
     "title": "【測試用騎士】",
     "quality": "R",
     "jobKey": "KNIGHT",
-    "traitKey": "GUARDIAN",
+    "traitKey": "BRAVE",
     "gender": "MALE",
-    "isGuardian": true,
-    "isTestOnly": true,
+    "isGuardian": false,
     "avatarIndex": 0,
+    "avatarIcon": "avatars_male:male_0",
     "level": 1,
+    "isAdvanced": false,
+    "customSkills": [
+      "GREATSWORD_WHIRLWIND",
+      "GREATSWORD_WHIRLWIND",
+      "GREATSWORD_WHIRLWIND"
+    ],
     "biography": "僅供自動化測試驗證守護傭兵死亡繼承機制的專用英雄。",
     "customAttributes": {
       "str": 10,
-      "con": 10,
       "agi": 10,
-      "spr": 10,
+      "con": 10,
       "int": 10,
+      "spr": 10,
       "luk": 10,
-      "charm": 5,
-      "command": 5
+      "charm": 10,
+      "command": 10
     },
-    "equipment": {}
+    "equipment": {
+      "weaponEnhance": 0,
+      "weaponElement": "NONE",
+      "armorEnhance": 0
+    }
   },
   {
     "id": "custom_hero_1788078225739",

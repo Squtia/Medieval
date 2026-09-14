@@ -5,7 +5,7 @@
     "name": "巨力重劈 (Heavy Strike)",
     "category": "PHYSICAL",
     "description": "沉重的近戰大威力劈砍，伴隨耀眼刃芒與金屬碎屑。",
-    "duration": 0.28,
+    "duration": 0.5,
     "spatialMode": "AT_TARGET",
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
@@ -17,8 +17,8 @@
         "clips": [
           {
             "id": "clip_main_VFX_HEAVY_STRIKE",
-            "startTime": 0,
-            "duration": 0.28,
+            "startTime": 0.04,
+            "duration": 0.27,
             "payload": {
               "type": "SLASH",
               "data": {
@@ -28,16 +28,31 @@
                 "colorCore": "#ffffff",
                 "colorRim": "#f59e0b",
                 "scale": 1.3,
-                "angle": -45,
-                "rotX": 0,
-                "rotY": 0,
-                "rotZ": -45,
-                "arcSpan": 135,
-                "aspect": 1,
-                "bladeWidth": 10,
-                "radius": 65,
-                "reverse": false,
-                "shape": "CRESCENT"
+                "angle": 85,
+                "rotX": -15,
+                "rotY": -25,
+                "rotZ": 85,
+                "arcSpan": 195,
+                "aspect": 0.8,
+                "bladeWidth": 21,
+                "radius": 90,
+                "reverse": true,
+                "shape": "CRESCENT",
+                "spin": 0,
+                "mainDelay": 0.04,
+                "slashRotX": -15,
+                "slashRotY": -25,
+                "slashRotZ": 85,
+                "slashAngle": 85,
+                "slashAlignToPath": false,
+                "slashReverse": true,
+                "slashAspect": 0.8,
+                "slashArcSpan": 195,
+                "slashRadius": 90,
+                "slashBladeWidth": 21,
+                "slashAngleJitter": 5,
+                "angleJitter": 5,
+                "mainDuration": 0.27
               }
             }
           }
@@ -100,7 +115,7 @@
     "impactCues": [
       {
         "cueId": "CLEAVE_HEAVY_HIT",
-        "time": 0.22,
+        "time": 0.28,
         "weight": 1,
         "isPrimary": true
       }
@@ -112,7 +127,101 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "trajectory": "MELEE_SWEEP",
+    "shaderMode": "SLASH_BLADE",
+    "colorCore": "#ffffff",
+    "colorRim": "#f59e0b",
+    "scale": 1.3,
+    "spin": 0,
+    "fresnel": 2.2,
+    "trailCount": 35,
+    "trailSize": 14,
+    "spikes": 0,
+    "spikeHeight": 0,
+    "burstCount": 40,
+    "bloomStr": 1.6,
+    "bloomRad": 0.4,
+    "bloomThresh": 0.1,
+    "impact": {
+      "hitStopTime": 55,
+      "targetPunchScale": 0.88,
+      "shakeIntensity": 12,
+      "shakeDuration": 0.28,
+      "penetrationDistance": 0,
+      "knockbackDistance": 18,
+      "hitFlashColor": "#ffffff",
+      "screenShake": false,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "salvoCount": 1,
+    "salvoDuration": 0.31,
+    "salvoRhythmCurve": "LINEAR",
+    "salvoSpreadAngle": 0,
+    "arcHeight": 0,
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "slashReverse": true,
+    "slashAngle": 85,
+    "slashArcSpan": 195,
+    "slashAspect": 0.8,
+    "slashBladeWidth": 21,
+    "slashRadius": 90,
+    "mainDelay": 0.04,
+    "slashRotX": -15,
+    "rotX": -15,
+    "slashRotY": -25,
+    "rotY": -25,
+    "slashRotZ": 85,
+    "rotZ": 85,
+    "angle": 85,
+    "slashAlignToPath": false,
+    "reverse": true,
+    "aspect": 0.8,
+    "arcSpan": 195,
+    "radius": 90,
+    "bladeWidth": 21,
+    "slashAngleJitter": 5,
+    "angleJitter": 5,
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "mainDuration": 0.27,
+    "rendererType": "SLASH",
+    "shape": "CRESCENT",
+    "spatialTopology": "LOCAL_MORPH",
+    "trajectoryPath": "A_TO_B",
+    "slashShape": "CRESCENT",
+    "slashAlternating": false,
+    "spikeArrayBehavior": "PERSIST_FADE",
+    "spikeArrayCount": 5,
+    "spikeShape": "CONE_SPIKE",
+    "spikeWidth": 7,
+    "spikeRadius": 80,
+    "spikeStagger": 25,
+    "spikeAngle": 0,
+    "spikeEruptFire": false,
+    "salvoSpreadRadius": 0,
+    "glowRadius": 75,
+    "glowOpacity": 0.85,
+    "coreBrightness": 1.5,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "coreMeshShape": "CRESCENT",
+    "enableTrail": false,
+    "trailColor": "#f59e0b",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW"
   },
   {
     "schemaVersion": 2,
@@ -143,16 +252,30 @@
                 "colorCore": "#fed7aa",
                 "colorRim": "#ea580c",
                 "scale": 1.8,
-                "angle": -45,
-                "rotX": 0,
-                "rotY": 0,
-                "rotZ": -45,
+                "angle": 100,
+                "rotX": -50,
+                "rotY": -15,
+                "rotZ": 100,
                 "arcSpan": 360,
                 "aspect": 1,
-                "bladeWidth": 18,
-                "radius": 85,
+                "bladeWidth": 45,
+                "radius": 130,
                 "reverse": false,
-                "shape": "WHIRLWIND"
+                "shape": "WHIRLWIND",
+                "slashRotX": -50,
+                "slashRotY": -15,
+                "slashRotZ": 100,
+                "slashAngle": 100,
+                "slashRadius": 130,
+                "slashAngleJitter": 5,
+                "angleJitter": 5,
+                "enableTrail": true,
+                "trailCount": 95,
+                "trailSize": 30,
+                "burstCount": 80,
+                "slashBladeWidth": 45,
+                "slashAspect": 1,
+                "trailColor": "#ff9500"
               }
             }
           }
@@ -171,15 +294,17 @@
             "payload": {
               "type": "PARTICLE",
               "data": {
-                "burstCount": 60,
-                "trailCount": 60,
-                "trailSize": 18,
+                "burstCount": 80,
+                "trailCount": 95,
+                "trailSize": 30,
                 "colorCore": "#fed7aa",
                 "colorRim": "#ea580c",
                 "scale": 1.8,
                 "bloomStr": 1.8,
                 "bloomRad": 0.45,
-                "bloomThresh": 0.12
+                "bloomThresh": 0.12,
+                "enableTrail": true,
+                "trailColor": "#ff9500"
               }
             }
           }
@@ -227,7 +352,96 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "slashRotX": -50,
+    "rotX": -50,
+    "slashRotY": -15,
+    "rotY": -15,
+    "slashRotZ": 100,
+    "rotZ": 100,
+    "slashAngle": 100,
+    "angle": 100,
+    "slashRadius": 130,
+    "radius": 130,
+    "slashAngleJitter": 5,
+    "angleJitter": 5,
+    "enableTrail": true,
+    "trailCount": 95,
+    "trailSize": 30,
+    "burstCount": 80,
+    "slashBladeWidth": 45,
+    "bladeWidth": 45,
+    "slashAspect": 1,
+    "aspect": 1,
+    "impact": {
+      "hitStopTime": 65,
+      "targetPunchScale": 0.86,
+      "shakeIntensity": 15,
+      "shakeDuration": 0.35,
+      "penetrationDistance": 0,
+      "knockbackDistance": 22,
+      "hitFlashColor": "#ffedd5",
+      "screenShake": true,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "mainDelay": 0,
+    "mainDuration": 0.38,
+    "rendererType": "SLASH",
+    "shaderMode": "SLASH_BLADE",
+    "trajectory": "MELEE_SWEEP",
+    "colorCore": "#fed7aa",
+    "colorRim": "#ea580c",
+    "scale": 1.8,
+    "arcSpan": 360,
+    "reverse": false,
+    "shape": "WHIRLWIND",
+    "slashArcSpan": 360,
+    "slashShape": "WHIRLWIND",
+    "slashReverse": false,
+    "slashAlternating": false,
+    "spikes": 0,
+    "spikeShape": "CONE_SPIKE",
+    "spikeWidth": 7,
+    "spikeHeight": 45,
+    "spikeRadius": 80,
+    "spikeStagger": 25,
+    "spikeAngle": 0,
+    "spikeMaterialMode": "PHONG",
+    "spikeEruptFire": false,
+    "salvoCount": 1,
+    "salvoDuration": 0.35,
+    "salvoRhythmCurve": "LINEAR",
+    "salvoSpreadAngle": 0,
+    "salvoSpreadRadius": 0,
+    "arcHeight": 0,
+    "multiHitImpact": true,
+    "glowRadius": 75,
+    "glowOpacity": 0.85,
+    "coreBrightness": 1.5,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "coreMeshShape": "WHIRLWIND",
+    "spin": 0,
+    "fresnel": 1.8,
+    "trailColor": "#ff9500",
+    "trajectoryPath": "A_TO_B",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW",
+    "spatialTopology": "LOCAL_MORPH",
+    "slashAlignToPath": true,
+    "spikeArrayBehavior": "PERSIST_FADE",
+    "spikeArrayCount": 5
   },
   {
     "schemaVersion": 2,
@@ -235,7 +449,7 @@
     "name": "幻影連斬 (Phantom Slash)",
     "category": "PHYSICAL",
     "description": "雙刃高速穿梭殘影，連續多段急速致命突刺。",
-    "duration": 1.1,
+    "duration": 0.85,
     "spatialMode": "AT_TARGET",
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
@@ -247,8 +461,8 @@
         "clips": [
           {
             "id": "clip_main_VFX_PHANTOM_SLASH",
-            "startTime": 0,
-            "duration": 1.1,
+            "startTime": 0.22,
+            "duration": 0.5,
             "payload": {
               "type": "SLASH",
               "data": {
@@ -273,7 +487,9 @@
                   "rhythm": "ACCELERATE",
                   "angleJitter": 0,
                   "alternating": false
-                }
+                },
+                "mainDelay": 0.22,
+                "mainDuration": 0.5
               }
             }
           }
@@ -301,68 +517,6 @@
                 "bloomStr": 1.5,
                 "bloomRad": 0.35,
                 "bloomThresh": 0.15
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "trk_layers",
-        "name": "次生圖層軌 (Layers Track)",
-        "type": "COMPOSITE_LAYER",
-        "enabled": true,
-        "clips": [
-          {
-            "id": "LAYER_CROSS_SLASH",
-            "startTime": 0.44,
-            "duration": 0.26,
-            "payload": {
-              "type": "COMPOSITE_LAYER",
-              "data": {
-                "scale": 0.95,
-                "delay": 0.44,
-                "duration": 0.26,
-                "shaderMode": "SLASH_BLADE",
-                "colorCore": "#ffffff",
-                "colorRim": "#a855f7",
-                "emitsImpactCue": true,
-                "generatesHit": false
-              }
-            }
-          },
-          {
-            "id": "layer_1789003678562_458",
-            "startTime": 0.54,
-            "duration": 0.4,
-            "payload": {
-              "type": "COMPOSITE_LAYER",
-              "data": {
-                "presetId": "VFX_DEFAULT_SLASH",
-                "spatialMode": "AT_TARGET",
-                "reverse": false,
-                "scale": 1,
-                "delay": 0.54,
-                "duration": 0.4,
-                "shaderMode": "SLASH_BLADE",
-                "generatesHit": false
-              }
-            }
-          },
-          {
-            "id": "layer_1789003743354_937",
-            "startTime": 0,
-            "duration": 0.35,
-            "payload": {
-              "type": "COMPOSITE_LAYER",
-              "data": {
-                "presetId": "VFX_HOLY_RAIN",
-                "spatialMode": "AT_CASTER",
-                "reverse": false,
-                "scale": 1,
-                "delay": 0,
-                "duration": 0.35,
-                "shaderMode": "HOLY_LIGHT",
-                "generatesHit": false
               }
             }
           }
@@ -398,19 +552,19 @@
     "impactCues": [
       {
         "cueId": "PHANTOM_SLASH_1",
-        "time": 0.45,
+        "time": 0.33,
         "weight": 0.3,
         "isPrimary": false
       },
       {
         "cueId": "PHANTOM_SLASH_2",
-        "time": 0.75,
+        "time": 0.52,
         "weight": 0.3,
         "isPrimary": false
       },
       {
         "cueId": "PHANTOM_SLASH_3",
-        "time": 0.97,
+        "time": 0.71,
         "weight": 0.4,
         "isPrimary": true
       }
@@ -422,7 +576,102 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "mainDelay": 0.22,
+    "mainDuration": 0.5,
+    "layers": [],
+    "impact": {
+      "hitStopTime": 25,
+      "targetPunchScale": 0.94,
+      "shakeIntensity": 6,
+      "shakeDuration": 0.18,
+      "penetrationDistance": 0,
+      "knockbackDistance": 8,
+      "hitFlashColor": "#38bdf8",
+      "screenShake": false,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "rendererType": "SLASH",
+    "shaderMode": "SLASH_BLADE",
+    "trajectory": "MELEE_SWEEP",
+    "colorCore": "#e0f2fe",
+    "colorRim": "#0284c7",
+    "scale": 0.9,
+    "angle": -45,
+    "rotX": 0,
+    "rotY": 0,
+    "rotZ": -45,
+    "arcSpan": 135,
+    "aspect": 1,
+    "bladeWidth": 10,
+    "radius": 65,
+    "reverse": false,
+    "shape": "CROSS",
+    "salvo": {
+      "count": 4,
+      "rhythm": "ACCELERATE",
+      "angleJitter": 0,
+      "alternating": false
+    },
+    "spatialTopology": "LOCAL_MORPH",
+    "trajectoryPath": "A_TO_B",
+    "slashAlignToPath": true,
+    "slashRotX": 0,
+    "slashRotY": 0,
+    "slashRotZ": -45,
+    "slashAngle": -45,
+    "slashArcSpan": 135,
+    "slashBladeWidth": 10,
+    "slashRadius": 65,
+    "slashAspect": 1,
+    "slashShape": "CROSS",
+    "slashReverse": false,
+    "slashAngleJitter": 0,
+    "slashAlternating": false,
+    "spikeArrayBehavior": "PERSIST_FADE",
+    "spikeArrayCount": 5,
+    "spikes": 0,
+    "spikeShape": "CONE_SPIKE",
+    "spikeWidth": 7,
+    "spikeHeight": 45,
+    "spikeRadius": 80,
+    "spikeStagger": 25,
+    "spikeAngle": 0,
+    "spikeMaterialMode": "PHONG",
+    "spikeEruptFire": false,
+    "salvoCount": 4,
+    "salvoDuration": 0.35,
+    "salvoRhythmCurve": "ACCELERATE",
+    "salvoSpreadAngle": 0,
+    "salvoSpreadRadius": 0,
+    "arcHeight": 0,
+    "multiHitImpact": true,
+    "glowRadius": 75,
+    "glowOpacity": 0.85,
+    "coreBrightness": 1.5,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "coreMeshShape": "CROSS",
+    "spin": 0,
+    "fresnel": 1.8,
+    "trailCount": 25,
+    "trailSize": 10,
+    "burstCount": 25,
+    "enableTrail": false,
+    "trailColor": "#f59e0b",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW"
   },
   {
     "schemaVersion": 2,
@@ -546,6 +795,8 @@
     "category": "PHYSICAL",
     "description": "直線排式貫穿射擊，音速箭矢筆直穿透整排敵人護甲。",
     "duration": 0.28,
+    "spatialMode": "TRAJECTORY",
+    "spatialTopology": "POINT_TRANSPORT",
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
       {
@@ -562,10 +813,14 @@
               "type": "MESH",
               "data": {
                 "trajectory": "COLUMN_PIERCE",
-                "shaderMode": "ENERGY_BEAM",
+                "trajectoryPath": "A_TO_B",
+                "spatialMode": "TRAJECTORY",
+                "spatialTopology": "POINT_TRANSPORT",
+                "coreMeshShape": "ARROW",
+                "shape": "ARROW",
                 "colorCore": "#ffffff",
                 "colorRim": "#38bdf8",
-                "scale": 1.1,
+                "scale": 1.2,
                 "spikeHeight": 0,
                 "spikes": 0,
                 "spikeMaterialMode": "PHONG"
@@ -653,6 +908,8 @@
     "description": "無視前排遮擋，直接穿心鎖定後排目標的必殺強矢。",
     "duration": 0.22,
     "spatialMode": "TRAJECTORY",
+    "trajectoryPath": "A_TO_B",
+    "spatialTopology": "POINT_TRANSPORT",
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
       {
@@ -669,23 +926,35 @@
               "type": "PROJECTILE",
               "data": {
                 "rendererType": "PROJECTILE",
-                "shape": "SPHERE",
-                "shaderMode": "ENERGY_BEAM",
+                "shape": "ARROW",
+                "coreMeshShape": "ARROW",
+                "spatialTopology": "POINT_TRANSPORT",
+                "trajectoryPath": "A_TO_B",
+                "spatialMode": "TRAJECTORY",
                 "colorCore": "#ffffff",
                 "colorRim": "#eab308",
-                "coreBrightness": 1,
-                "scale": 1.2,
-                "spin": 45,
+                "coreBrightness": 0.5,
+                "scale": 0.3,
+                "spin": 0,
                 "path": "A_TO_B",
                 "reverse": false,
-                "arcHeight": 0,
+                "arcHeight": 30,
                 "salvo": {
                   "count": 2,
                   "duration": 0.25,
                   "rhythm": "BURST_PAIRS",
                   "spreadAngle": 4,
                   "spreadRadius": 0
-                }
+                },
+                "shaderMode": "FRESNEL_ICE",
+                "salvoCount": 1,
+                "salvoSpreadRadius": 0,
+                "salvoSpreadAngle": 0,
+                "salvoRhythmCurve": "STAGGERED",
+                "glowRadius": 55,
+                "fresnel": 3.2,
+                "glowOpacity": 0.25,
+                "trailCount": 80
               }
             }
           }
@@ -705,7 +974,7 @@
               "type": "PARTICLE",
               "data": {
                 "burstCount": 50,
-                "trailCount": 50,
+                "trailCount": 80,
                 "trailSize": 14,
                 "colorCore": "#ffffff",
                 "colorRim": "#eab308",
@@ -768,7 +1037,93 @@
     },
     "metadata": {
       "coreBrightness": 1
-    }
+    },
+    "shaderMode": "FRESNEL_ICE",
+    "salvoCount": 1,
+    "salvoSpreadRadius": 0,
+    "salvoSpreadAngle": 0,
+    "spin": 0,
+    "scale": 0.3,
+    "salvoRhythmCurve": "STAGGERED",
+    "arcHeight": 30,
+    "glowRadius": 55,
+    "coreBrightness": 0.5,
+    "fresnel": 3.2,
+    "glowOpacity": 0.25,
+    "trailCount": 80,
+    "impact": {
+      "hitStopTime": 65,
+      "targetPunchScale": 0.86,
+      "shakeIntensity": 16,
+      "shakeDuration": 0.32,
+      "penetrationDistance": 45,
+      "knockbackDistance": 20,
+      "hitFlashColor": "#fef08a",
+      "screenShake": true,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "mainDelay": 0,
+    "mainDuration": 0.22,
+    "rendererType": "PROJECTILE",
+    "shape": "ARROW",
+    "coreMeshShape": "ARROW",
+    "colorCore": "#ffffff",
+    "colorRim": "#eab308",
+    "path": "A_TO_B",
+    "reverse": false,
+    "salvo": {
+      "count": 2,
+      "duration": 0.25,
+      "rhythm": "BURST_PAIRS",
+      "spreadAngle": 4,
+      "spreadRadius": 0
+    },
+    "slashAlignToPath": true,
+    "slashRotX": 0,
+    "slashRotY": 0,
+    "slashRotZ": -45,
+    "slashAngle": -45,
+    "slashArcSpan": 120,
+    "slashBladeWidth": 10,
+    "slashRadius": 65,
+    "slashAspect": 1,
+    "slashShape": "ARROW",
+    "slashReverse": false,
+    "slashAngleJitter": 0,
+    "slashAlternating": false,
+    "spikeArrayBehavior": "PERSIST_FADE",
+    "spikeArrayCount": 5,
+    "spikes": 0,
+    "spikeShape": "CONE_SPIKE",
+    "spikeWidth": 7,
+    "spikeHeight": 45,
+    "spikeRadius": 80,
+    "spikeStagger": 25,
+    "spikeAngle": 0,
+    "spikeMaterialMode": "PHONG",
+    "spikeEruptFire": false,
+    "salvoDuration": 0.25,
+    "multiHitImpact": true,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "trailSize": 14,
+    "burstCount": 50,
+    "enableTrail": false,
+    "trailColor": "#f59e0b",
+    "trajectory": "HORIZONTAL",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW"
   },
   {
     "schemaVersion": 2,
@@ -776,7 +1131,7 @@
     "name": "精靈矢雨 (Spirit Dance)",
     "category": "ELEMENTAL",
     "description": "翡翠與元素交織的高頻連鎖精靈箭矢彈幕。",
-    "duration": 0.25,
+    "duration": 0.5,
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
       {
@@ -788,7 +1143,7 @@
           {
             "id": "clip_main_VFX_SPIRIT_DANCE",
             "startTime": 0,
-            "duration": 0.25,
+            "duration": 0.31,
             "payload": {
               "type": "MESH",
               "data": {
@@ -796,10 +1151,18 @@
                 "shaderMode": "FRESNEL_ICE",
                 "colorCore": "#dcfce7",
                 "colorRim": "#22c55e",
-                "scale": 0.95,
+                "scale": 0.7,
                 "spikeHeight": 0,
                 "spikes": 0,
-                "spikeMaterialMode": "PHONG"
+                "spikeMaterialMode": "PHONG",
+                "salvoCount": 7,
+                "spin": 0,
+                "salvoDuration": 0.5,
+                "salvoRhythmCurve": "STAGGERED",
+                "salvoSpreadAngle": 0,
+                "salvoSpreadRadius": 125,
+                "arcHeight": 90,
+                "mainDuration": 0.31
               }
             }
           }
@@ -874,7 +1237,86 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "salvoCount": 7,
+    "spin": 0,
+    "salvoDuration": 0.5,
+    "salvoRhythmCurve": "STAGGERED",
+    "salvoSpreadAngle": 0,
+    "salvoSpreadRadius": 125,
+    "arcHeight": 90,
+    "mainDuration": 0.31,
+    "scale": 0.7,
+    "impact": {
+      "hitStopTime": 25,
+      "targetPunchScale": 0.94,
+      "shakeIntensity": 6,
+      "shakeDuration": 0.18,
+      "penetrationDistance": 15,
+      "knockbackDistance": 6,
+      "hitFlashColor": "#bbf7d0",
+      "screenShake": false,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "mainDelay": 0,
+    "trajectory": "ARC_MULTI",
+    "shaderMode": "FRESNEL_ICE",
+    "colorCore": "#dcfce7",
+    "colorRim": "#22c55e",
+    "spikeHeight": 0,
+    "spikes": 0,
+    "spikeMaterialMode": "PHONG",
+    "spatialTopology": "POINT_TRANSPORT",
+    "spatialMode": "TRAJECTORY",
+    "trajectoryPath": "A_TO_B",
+    "reverse": false,
+    "slashAlignToPath": true,
+    "slashRotX": 0,
+    "slashRotY": 0,
+    "slashRotZ": -45,
+    "slashAngle": -45,
+    "slashArcSpan": 120,
+    "slashBladeWidth": 10,
+    "slashRadius": 65,
+    "slashAspect": 1,
+    "slashShape": "CRESCENT",
+    "slashReverse": false,
+    "slashAngleJitter": 0,
+    "slashAlternating": false,
+    "spikeArrayBehavior": "PERSIST_FADE",
+    "spikeArrayCount": 5,
+    "spikeShape": "CONE_SPIKE",
+    "spikeWidth": 7,
+    "spikeRadius": 80,
+    "spikeStagger": 25,
+    "spikeAngle": 0,
+    "spikeEruptFire": false,
+    "multiHitImpact": true,
+    "glowRadius": 75,
+    "glowOpacity": 0.85,
+    "coreBrightness": 1.5,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "coreMeshShape": "SPHERE",
+    "fresnel": 1.8,
+    "trailCount": 30,
+    "trailSize": 10,
+    "burstCount": 30,
+    "enableTrail": false,
+    "trailColor": "#f59e0b",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW"
   },
   {
     "schemaVersion": 2,
@@ -1166,32 +1608,6 @@
         ]
       },
       {
-        "id": "trk_layers",
-        "name": "次生圖層軌 (Layers Track)",
-        "type": "COMPOSITE_LAYER",
-        "enabled": true,
-        "clips": [
-          {
-            "id": "LAYER_METEOR_SHOCKWAVE",
-            "startTime": 0.36,
-            "duration": 0.38,
-            "payload": {
-              "type": "COMPOSITE_LAYER",
-              "data": {
-                "scale": 1.6,
-                "delay": 0.36,
-                "duration": 0.38,
-                "shaderMode": "EARTH_SHATTER",
-                "colorCore": "#f97316",
-                "colorRim": "#451a03",
-                "emitsImpactCue": true,
-                "generatesHit": false
-              }
-            }
-          }
-        ]
-      },
-      {
         "id": "trk_impact",
         "name": "打擊反饋軌 (Impact Track)",
         "type": "IMPACT",
@@ -1233,7 +1649,24 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "layers": [
+      {
+        "id": "LAYER_METEOR_SHOCKWAVE",
+        "name": "LAYER_METEOR_SHOCKWAVE",
+        "enabled": true,
+        "delay": 0.36,
+        "duration": 0.38,
+        "fadeIn": 0.05,
+        "fadeOut": 0.08,
+        "scale": 1.6,
+        "shaderMode": "EARTH_SHATTER",
+        "colorCore": "#f97316",
+        "colorRim": "#451a03",
+        "emitsImpactCue": true,
+        "generatesHit": false
+      }
+    ]
   },
   {
     "schemaVersion": 2,
@@ -1669,7 +2102,10 @@
     },
     "metadata": {
       "coreBrightness": 1
-    }
+    },
+    "spin": 0,
+    "trajectoryPath": "A_TO_B",
+    "shaderMode": "FRESNEL_ICE"
   },
   {
     "schemaVersion": 2,
@@ -1677,8 +2113,10 @@
     "name": "風暴狂雷 (Storm Bolt)",
     "category": "ELEMENTAL",
     "description": "垂直天降曲折狂暴雷弧，瞬間電殛目標全身。",
-    "duration": 0.22,
-    "spatialMode": "VERTICAL_SKY_TO_B",
+    "duration": 0.44,
+    "spatialMode": "TRAJECTORY",
+    "trajectoryPath": "VERTICAL_SKY_TO_B",
+    "spatialTopology": "SPAN_BEAM",
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
       {
@@ -1689,19 +2127,25 @@
         "clips": [
           {
             "id": "clip_main_VFX_LIGHTNING_BOLT",
-            "startTime": 0,
-            "duration": 0.22,
+            "startTime": 0.17,
+            "duration": 0.14,
             "payload": {
               "type": "MESH",
               "data": {
                 "trajectory": "VERTICAL_DROP",
+                "trajectoryPath": "VERTICAL_SKY_TO_B",
+                "spatialMode": "TRAJECTORY",
+                "spatialTopology": "SPAN_BEAM",
                 "shaderMode": "DIELECTRIC_LIGHTNING",
                 "colorCore": "#ffffff",
                 "colorRim": "#fde047",
-                "scale": 1.3,
+                "scale": 1.1,
                 "spikeHeight": 0,
                 "spikes": 0,
-                "spikeMaterialMode": "PHONG"
+                "spikeMaterialMode": "PHONG",
+                "spin": 44,
+                "mainDelay": 0.17,
+                "mainDuration": 0.14
               }
             }
           }
@@ -1764,7 +2208,7 @@
     "impactCues": [
       {
         "cueId": "VFX_LIGHTNING_BOLT_IMPACT",
-        "time": 0.19,
+        "time": 0.31,
         "weight": 1,
         "isPrimary": true
       }
@@ -1776,7 +2220,84 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "spin": 44,
+    "scale": 1.1,
+    "mainDelay": 0.17,
+    "mainDuration": 0.14,
+    "layers": [],
+    "impact": {
+      "hitStopTime": 40,
+      "targetPunchScale": 0.9,
+      "shakeIntensity": 14,
+      "shakeDuration": 0.25,
+      "penetrationDistance": 0,
+      "knockbackDistance": 12,
+      "hitFlashColor": "#fef08a",
+      "screenShake": false,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "trajectory": "VERTICAL_DROP",
+    "shaderMode": "DIELECTRIC_LIGHTNING",
+    "colorCore": "#ffffff",
+    "colorRim": "#fde047",
+    "spikeHeight": 0,
+    "spikes": 0,
+    "spikeMaterialMode": "PHONG",
+    "reverse": false,
+    "slashAlignToPath": true,
+    "slashRotX": 0,
+    "slashRotY": 0,
+    "slashRotZ": -45,
+    "slashAngle": -45,
+    "slashArcSpan": 120,
+    "slashBladeWidth": 10,
+    "slashRadius": 65,
+    "slashAspect": 1,
+    "slashShape": "CRESCENT",
+    "slashReverse": false,
+    "slashAngleJitter": 0,
+    "slashAlternating": false,
+    "spikeArrayBehavior": "PERSIST_FADE",
+    "spikeArrayCount": 5,
+    "spikeShape": "CONE_SPIKE",
+    "spikeWidth": 7,
+    "spikeRadius": 80,
+    "spikeStagger": 25,
+    "spikeAngle": 0,
+    "spikeEruptFire": false,
+    "salvoCount": 1,
+    "salvoDuration": 0.35,
+    "salvoRhythmCurve": "LINEAR",
+    "salvoSpreadAngle": 0,
+    "salvoSpreadRadius": 0,
+    "arcHeight": 0,
+    "multiHitImpact": true,
+    "glowRadius": 75,
+    "glowOpacity": 0.85,
+    "coreBrightness": 1.5,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "coreMeshShape": "SPHERE",
+    "fresnel": 1.8,
+    "trailCount": 30,
+    "trailSize": 14,
+    "burstCount": 45,
+    "enableTrail": false,
+    "trailColor": "#f59e0b",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW"
   },
   {
     "schemaVersion": 2,
@@ -2761,32 +3282,6 @@
         ]
       },
       {
-        "id": "trk_layers",
-        "name": "次生圖層軌 (Layers Track)",
-        "type": "COMPOSITE_LAYER",
-        "enabled": true,
-        "clips": [
-          {
-            "id": "LAYER_BOULDER_CRACK",
-            "startTime": 0.44,
-            "duration": 0.35,
-            "payload": {
-              "type": "COMPOSITE_LAYER",
-              "data": {
-                "scale": 1.45,
-                "delay": 0.44,
-                "duration": 0.35,
-                "shaderMode": "EARTH_SHATTER",
-                "colorCore": "#f97316",
-                "colorRim": "#78350f",
-                "emitsImpactCue": true,
-                "generatesHit": false
-              }
-            }
-          }
-        ]
-      },
-      {
         "id": "trk_impact",
         "name": "打擊反饋軌 (Impact Track)",
         "type": "IMPACT",
@@ -2828,7 +3323,24 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "layers": [
+      {
+        "id": "LAYER_BOULDER_CRACK",
+        "name": "LAYER_BOULDER_CRACK",
+        "enabled": true,
+        "delay": 0.44,
+        "duration": 0.35,
+        "fadeIn": 0.05,
+        "fadeOut": 0.08,
+        "scale": 1.45,
+        "shaderMode": "EARTH_SHATTER",
+        "colorCore": "#f97316",
+        "colorRim": "#78350f",
+        "emitsImpactCue": true,
+        "generatesHit": false
+      }
+    ]
   },
   {
     "schemaVersion": 2,
@@ -3417,7 +3929,7 @@
     "name": "地裂衝擊浪湧 (Earth Fissure Surge)",
     "category": "ELEMENTAL",
     "description": "施術者引導大地之力，自腳下向目標依序破土推進實體尖岩稜角波浪，尖峰伴生連環烈火。",
-    "duration": 0.48,
+    "duration": 1.5,
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
       {
@@ -3428,20 +3940,32 @@
         "clips": [
           {
             "id": "clip_main_VFX_EARTH_SPIKE",
-            "startTime": 0,
-            "duration": 0.48,
+            "startTime": 0.13,
+            "duration": 0.95,
             "payload": {
               "type": "MESH",
               "data": {
                 "trajectory": "GROUND_FISSURE",
                 "shaderMode": "EARTH_SHATTER",
-                "colorCore": "#ff7700",
-                "colorRim": "#78350f",
+                "colorCore": "#4deaff",
+                "colorRim": "#004cff",
                 "scale": 1.4,
-                "spikeWidth": 12,
-                "spikeHeight": 65,
-                "spikes": 8,
-                "spikeMaterialMode": "PHONG"
+                "spikeWidth": 11,
+                "spikeHeight": 60,
+                "spikes": 11,
+                "spikeMaterialMode": "PHONG",
+                "spikeArrayCount": 6,
+                "spikeRadius": 90,
+                "spikeStagger": 60,
+                "spikeEruptFire": true,
+                "spikeArrayBehavior": "SURGE_RECEDE",
+                "spikeShape": "JAGGED_ROCK",
+                "spikeAngle": 120,
+                "coreBrightness": 1.1,
+                "glowOpacity": 0.45,
+                "glowRadius": 90,
+                "mainDelay": 0.13,
+                "mainDuration": 0.95
               }
             }
           }
@@ -3469,32 +3993,6 @@
                 "bloomStr": 1.8,
                 "bloomRad": 0.5,
                 "bloomThresh": 0.1
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "trk_layers",
-        "name": "次生圖層軌 (Layers Track)",
-        "type": "COMPOSITE_LAYER",
-        "enabled": true,
-        "clips": [
-          {
-            "id": "LAYER_FISSURE_FIRE",
-            "startTime": 0.06,
-            "duration": 0.42,
-            "payload": {
-              "type": "COMPOSITE_LAYER",
-              "data": {
-                "scale": 1.2,
-                "delay": 0.06,
-                "duration": 0.42,
-                "shaderMode": "VOLUMETRIC_FIRE",
-                "colorCore": "#ffcc00",
-                "colorRim": "#ea580c",
-                "emitsImpactCue": true,
-                "generatesHit": false
               }
             }
           }
@@ -3530,19 +4028,19 @@
     "impactCues": [
       {
         "cueId": "FISSURE_SURGE_1",
-        "time": 0.14,
+        "time": 0.34,
         "weight": 0.25,
         "isPrimary": false
       },
       {
         "cueId": "FISSURE_SURGE_2",
-        "time": 0.28,
+        "time": 0.43,
         "weight": 0.25,
         "isPrimary": false
       },
       {
         "cueId": "FISSURE_IMPACT_CRUSH",
-        "time": 0.44,
+        "time": 0.53,
         "weight": 0.5,
         "isPrimary": true
       }
@@ -3554,6 +4052,310 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "layers": [],
+    "impact": {
+      "hitStopTime": 65,
+      "targetPunchScale": 0.84,
+      "shakeIntensity": 18,
+      "shakeDuration": 0.35,
+      "penetrationDistance": 0,
+      "knockbackDistance": 25,
+      "hitFlashColor": "#f97316",
+      "screenShake": true,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "mainDelay": 0.13,
+    "mainDuration": 0.95,
+    "trajectory": "GROUND_FISSURE",
+    "shaderMode": "EARTH_SHATTER",
+    "colorCore": "#4deaff",
+    "colorRim": "#004cff",
+    "scale": 1.4,
+    "spikeWidth": 11,
+    "spikeHeight": 60,
+    "spikes": 11,
+    "spikeMaterialMode": "PHONG",
+    "spatialTopology": "POINT_TRANSPORT",
+    "spatialMode": "TRAJECTORY",
+    "trajectoryPath": "A_TO_B",
+    "reverse": false,
+    "slashAlignToPath": true,
+    "slashRotX": 0,
+    "slashRotY": 0,
+    "slashRotZ": -45,
+    "slashAngle": -45,
+    "slashArcSpan": 120,
+    "slashBladeWidth": 10,
+    "slashRadius": 65,
+    "slashAspect": 1,
+    "slashShape": "CRESCENT",
+    "slashReverse": false,
+    "slashAngleJitter": 0,
+    "slashAlternating": false,
+    "spikeArrayBehavior": "SURGE_RECEDE",
+    "spikeArrayCount": 6,
+    "spikeShape": "JAGGED_ROCK",
+    "spikeRadius": 90,
+    "spikeStagger": 60,
+    "spikeAngle": 120,
+    "spikeEruptFire": true,
+    "salvoCount": 1,
+    "salvoDuration": 0.35,
+    "salvoRhythmCurve": "LINEAR",
+    "salvoSpreadAngle": 0,
+    "salvoSpreadRadius": 0,
+    "arcHeight": 0,
+    "multiHitImpact": true,
+    "glowRadius": 90,
+    "glowOpacity": 0.45,
+    "coreBrightness": 1.1,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "coreMeshShape": "SPHERE",
+    "spin": 0,
+    "fresnel": 1.8,
+    "trailCount": 40,
+    "trailSize": 12,
+    "burstCount": 70,
+    "enableTrail": false,
+    "trailColor": "#f59e0b",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW"
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789374072176",
+    "name": "測試",
+    "category": "SPECIAL",
+    "description": "使用者自訂特效",
+    "duration": 0.5,
+    "spatialMode": "AT_TARGET",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_VFX_HEAVY_STRIKE",
+            "startTime": 0.04,
+            "duration": 0.27,
+            "payload": {
+              "type": "SLASH",
+              "data": {
+                "rendererType": "SLASH",
+                "shaderMode": "FRESNEL_ICE",
+                "trajectory": "MELEE_SWEEP",
+                "colorCore": "#ffffff",
+                "colorRim": "#f59e0b",
+                "scale": 1.3,
+                "angle": 85,
+                "rotX": -15,
+                "rotY": -25,
+                "rotZ": 85,
+                "arcSpan": 195,
+                "aspect": 0.8,
+                "bladeWidth": 21,
+                "radius": 90,
+                "reverse": true,
+                "shape": "CRESCENT",
+                "spin": 0,
+                "mainDelay": 0.04,
+                "slashRotX": -15,
+                "slashRotY": -25,
+                "slashRotZ": 85,
+                "slashAngle": 85,
+                "slashAlignToPath": false,
+                "slashReverse": true,
+                "slashAspect": 0.8,
+                "slashArcSpan": 195,
+                "slashRadius": 90,
+                "slashBladeWidth": 21,
+                "slashAngleJitter": 5,
+                "angleJitter": 5,
+                "mainDuration": 0.27
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "trk_particle",
+        "name": "粒子爆散軌 (Particle Track)",
+        "type": "PARTICLE",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_part_VFX_HEAVY_STRIKE",
+            "startTime": 0,
+            "duration": 0.28,
+            "payload": {
+              "type": "PARTICLE",
+              "data": {
+                "burstCount": 40,
+                "trailCount": 35,
+                "trailSize": 14,
+                "colorCore": "#ffffff",
+                "colorRim": "#f59e0b",
+                "scale": 1.3,
+                "bloomStr": 1.6,
+                "bloomRad": 0.4,
+                "bloomThresh": 0.1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "trk_impact",
+        "name": "打擊反饋軌 (Impact Track)",
+        "type": "IMPACT",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_impact_VFX_HEAVY_STRIKE",
+            "startTime": 0.22,
+            "duration": 0.28,
+            "payload": {
+              "type": "IMPACT",
+              "data": {
+                "hitStopTime": 55,
+                "targetPunchScale": 0.88,
+                "shakeIntensity": 12,
+                "shakeDuration": 0.28,
+                "penetrationDistance": 0,
+                "knockbackDistance": 18,
+                "hitFlashColor": "#ffffff",
+                "screenShake": false
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [
+      {
+        "cueId": "CLEAVE_HEAVY_HIT",
+        "time": 0.28,
+        "weight": 1,
+        "isPrimary": true
+      }
+    ],
+    "quality": {
+      "maxParticles": 40,
+      "maxDrawCalls": 12,
+      "maxConcurrentObjects": 30,
+      "allowScreenShake": false,
+      "allowBloom": true
+    },
+    "metadata": {},
+    "trajectory": "MELEE_SWEEP",
+    "shaderMode": "FRESNEL_ICE",
+    "colorCore": "#ffffff",
+    "colorRim": "#f59e0b",
+    "scale": 1.3,
+    "spin": 0,
+    "fresnel": 2.2,
+    "trailCount": 35,
+    "trailSize": 14,
+    "spikes": 0,
+    "spikeHeight": 0,
+    "burstCount": 40,
+    "bloomStr": 1.6,
+    "bloomRad": 0.4,
+    "bloomThresh": 0.1,
+    "impact": {
+      "hitStopTime": 55,
+      "targetPunchScale": 0.88,
+      "shakeIntensity": 12,
+      "shakeDuration": 0.28,
+      "penetrationDistance": 0,
+      "knockbackDistance": 18,
+      "hitFlashColor": "#ffffff",
+      "screenShake": false,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "salvoCount": 1,
+    "salvoDuration": 0.31,
+    "salvoRhythmCurve": "LINEAR",
+    "salvoSpreadAngle": 0,
+    "arcHeight": 0,
+    "multiHitImpact": true,
+    "spikeMaterialMode": "PHONG",
+    "layers": [],
+    "hitCount": 1,
+    "slashReverse": true,
+    "slashAngle": 85,
+    "slashArcSpan": 195,
+    "slashAspect": 0.8,
+    "slashBladeWidth": 21,
+    "slashRadius": 90,
+    "mainDelay": 0.04,
+    "slashRotX": -15,
+    "rotX": -15,
+    "slashRotY": -25,
+    "rotY": -25,
+    "slashRotZ": 85,
+    "rotZ": 85,
+    "angle": 85,
+    "slashAlignToPath": false,
+    "reverse": true,
+    "aspect": 0.8,
+    "arcSpan": 195,
+    "radius": 90,
+    "bladeWidth": 21,
+    "slashAngleJitter": 5,
+    "angleJitter": 5,
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "mainDuration": 0.27,
+    "rendererType": "SLASH",
+    "shape": "CRESCENT",
+    "spatialTopology": "LOCAL_MORPH",
+    "trajectoryPath": "A_TO_B",
+    "slashShape": "CRESCENT",
+    "slashAlternating": false,
+    "spikeArrayBehavior": "PERSIST_FADE",
+    "spikeArrayCount": 5,
+    "spikeShape": "CONE_SPIKE",
+    "spikeWidth": 7,
+    "spikeRadius": 80,
+    "spikeStagger": 25,
+    "spikeAngle": 0,
+    "spikeEruptFire": false,
+    "salvoSpreadRadius": 0,
+    "glowRadius": 75,
+    "glowOpacity": 0.85,
+    "coreBrightness": 1.5,
+    "flameTurbulence": 5,
+    "flameTurbulenceSpeed": 2,
+    "coreMeshShape": "CRESCENT",
+    "enableTrail": false,
+    "trailColor": "#f59e0b",
+    "slashTrajectory": "CLEAVE_DOWN",
+    "shieldShape": "HEX",
+    "waveCount": 3,
+    "textureSprite": "GLOW"
   }
 ]

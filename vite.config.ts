@@ -421,8 +421,9 @@ function developmentStudioPlugin(): Plugin {
           return res.end(JSON.stringify({ success: true, snapshots: files, backups: files }));
         }
 
-        if ((url === '/api/get-vfx-presets' || url === '/__vfx_api/get_presets') && req.method === 'GET') {
+        if ((url.startsWith('/api/get-vfx-presets') || url.startsWith('/__vfx_api/get_presets')) && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
           return res.end(fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]');
         }
 

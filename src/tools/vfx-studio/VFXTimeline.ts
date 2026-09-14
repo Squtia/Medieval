@@ -1,4 +1,4 @@
-import { VFXPreset } from '../../models/VFX';
+import { VFXSequence } from '../../models/VFX';
 import { VFXStudioStore } from './VFXStudioStore';
 import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
@@ -190,7 +190,7 @@ export class VFXTimeline {
     }
   }
 
-  public render(preset: VFXPreset): void {
+  public render(preset: VFXSequence): void {
     this.duration = Math.max(0.1, VFXTimelineEvaluator.getEffectivePresentationDuration(preset));
 
     const html = TimelineView.renderHTML({

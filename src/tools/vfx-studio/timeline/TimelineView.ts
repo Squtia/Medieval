@@ -1,4 +1,4 @@
-import { VFXPreset, getTrajectorySpatialAnchor } from '../../../models/VFX';
+import { VFXSequence, getTrajectorySpatialAnchor, getSequenceMainClip } from '../../../models/VFX';
 
 /**
  * 🎨 TimelineView
@@ -6,7 +6,7 @@ import { VFXPreset, getTrajectorySpatialAnchor } from '../../../models/VFX';
  * 負責渲染標尺、多軌條、Clip 區塊、Cue 菱形 Marker 與貫穿播放頭
  */
 export interface TimelineRenderContext {
-  preset: VFXPreset;
+  preset: VFXSequence;
   duration: number;
   totalFrames: number;
   isPaused: boolean;
@@ -14,7 +14,7 @@ export interface TimelineRenderContext {
   selectedCueIndex: number | null;
   trackMuteStates: { main: boolean; layers: boolean; impact: boolean };
   soloTrack: string | null;
-  allPresets: VFXPreset[];
+  allPresets: VFXSequence[];
   isTrackLocked: (key: string) => boolean;
   isTrackSoloed: (key: string) => boolean;
 }
@@ -37,6 +37,8 @@ export class TimelineView {
 
     const cues = preset.impactCues || [];
     const layers = preset.layers || [];
+    const mainClip = getSequenceMainClip(preset);
+    const mainData = (mainClip?.payload?.data as Record<string, any>) || {};
 
     // 計算尺規時間刻度
     const step = duration > 1.2 ? 0.2 : 0.1;
@@ -52,10 +54,11 @@ export class TimelineView {
       rulerTicks.push({ time: duration, pct: 100 });
     }
 
-    const anchor = getTrajectorySpatialAnchor(preset.spatialMode || preset.trajectoryPath || preset.trajectory);
+    const trajectoryMode = mainData.trajectoryPath || mainData.trajectory || preset.spatialMode || 'A_TO_B';
+    const anchor = getTrajectorySpatialAnchor(trajectoryMode);
     const anchorLabel = anchor === 'AT_CASTER' ? '🏠 自身(A)' : anchor === 'TRAJECTORY' ? '🚀 彈道(A➔B)' : '💥 目標(B)';
-    const mainDelay = Math.max(0, preset.mainDelay || 0);
-    const mainDuration = Math.max(0.05, Math.min(duration - mainDelay, preset.mainDuration !== undefined ? preset.mainDuration : (duration - mainDelay)));
+    const mainDelay = Math.max(0, mainClip?.startTime ?? 0);
+    const mainDuration = Math.max(0.05, Math.min(duration - mainDelay, mainClip?.duration ?? (duration - mainDelay)));
     const mainStartPct = Math.min(95, Math.max(0, (mainDelay / duration) * 100));
     const mainDurPct = Math.min(100 - mainStartPct, Math.max(5, (mainDuration / duration) * 100));
 
@@ -137,9 +140,9 @@ export class TimelineView {
               </div>
             </div>
             <div id="tl-main-track-bar" class="tl-track-bar" style="flex: 1; height: 20px; background: #1e293b; border-radius: 3px; position: relative; border: 1px solid #334155;">
-              <div class="tl-main-clip ${isTrackLocked('main') ? 'locked' : ''}" style="position: absolute; left: ${mainStartPct}%; top: 1px; bottom: 1px; width: ${mainDurPct}%; background: linear-gradient(90deg, rgba(56, 189, 248, 0.75), rgba(2, 132, 199, 0.9)); border: 1px solid #38bdf8; border-radius: 2px; display: flex; align-items: center; justify-content: space-between; padding: 0 5px; font-size: 0.65rem; color: #fff; cursor: ${isTrackLocked('main') ? 'not-allowed' : 'grab'}; user-select: none; touch-action: none;" title="主圖層: ${anchorLabel} ${preset.trajectoryPath || preset.trajectory || 'DIRECT'}${preset.reverse ? ' [🔄反向]' : ''}\n起點: ${mainDelay.toFixed(2)}s | 時長: ${mainDuration.toFixed(2)}s\n(${isTrackLocked('main') ? '🔒 已鎖定禁止拖動' : '拖動本體調整起始前搖 / 拖拉右緣調整時長'})">
+              <div class="tl-main-clip ${isTrackLocked('main') ? 'locked' : ''}" style="position: absolute; left: ${mainStartPct}%; top: 1px; bottom: 1px; width: ${mainDurPct}%; background: linear-gradient(90deg, rgba(56, 189, 248, 0.75), rgba(2, 132, 199, 0.9)); border: 1px solid #38bdf8; border-radius: 2px; display: flex; align-items: center; justify-content: space-between; padding: 0 5px; font-size: 0.65rem; color: #fff; cursor: ${isTrackLocked('main') ? 'not-allowed' : 'grab'}; user-select: none; touch-action: none;" title="主圖層: ${anchorLabel} ${mainData.trajectoryPath || mainData.trajectory || preset.spatialMode || 'DIRECT'}${mainData.reverse ? ' [🔄反向]' : ''}\n起點: ${mainDelay.toFixed(2)}s | 時長: ${mainDuration.toFixed(2)}s\n(${isTrackLocked('main') ? '🔒 已鎖定禁止拖動' : '拖動本體調整起始前搖 / 拖拉右緣調整時長'})">
                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; font-size: 0.64rem;">
-                  <b style="color: #fef08a;">${anchorLabel}</b> ${preset.trajectoryPath || preset.trajectory || 'DIRECT'}${preset.reverse ? ' 🔄' : ''} (${mainDuration.toFixed(2)}s)
+                  <b style="color: #fef08a;">${anchorLabel}</b> ${mainData.trajectoryPath || mainData.trajectory || preset.spatialMode || 'DIRECT'}${mainData.reverse ? ' 🔄' : ''} (${mainDuration.toFixed(2)}s)
                 </span>
                 <div class="tl-main-resize-handle" style="width: 10px; height: 100%; background: #bae6fd; opacity: 0.9; cursor: ${isTrackLocked('main') ? 'not-allowed' : 'ew-resize'}; border-radius: 2px; margin-right: -4px; z-index: 5;" title="${isTrackLocked('main') ? '🔒 已鎖定禁止拉伸' : '拖動調整主圖層時長'}"></div>
               </div>
@@ -147,7 +150,7 @@ export class TimelineView {
           </div>
 
           <!-- 軌道 2..N: 獨立次生圖層列表 (Multi-layer Tracks) -->
-          ${layers.map((layer, idx) => {
+          ${layers.map((layer: any, idx: number) => {
             const lDelay = Math.max(0, layer.delay || 0);
             const lDur = Math.max(0.05, Math.min(duration - lDelay, layer.duration !== undefined ? layer.duration : 0.2));
             const startPct = Math.min(95, Math.max(0, (lDelay / duration) * 100));
@@ -172,7 +175,8 @@ export class TimelineView {
                     <select class="tl-layer-preset-select" data-layer-idx="${idx}" ${isLocked ? 'disabled' : ''} style="flex: 1; min-width: 48px; max-width: 88px; background: #0f172a; border: 1px solid ${isLocked ? '#475569' : '#3b82f6'}; color: #93c5fd; font-size: 0.61rem; padding: 1px; border-radius: 3px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${isLocked ? '🔒 軌道已鎖定無法更換' : '切換此圖層引用的特效素材'}">
                       <option value="" disabled ${!layer.presetId ? 'selected' : ''}>-- 選擇素材 --</option>
                       ${allPresets.map(p => {
-                        const anchor = getTrajectorySpatialAnchor(p.spatialMode || p.trajectoryPath || p.trajectory);
+                        const pClipData = getSequenceMainClip(p)?.payload?.data as Record<string, any> | undefined;
+                        const anchor = getTrajectorySpatialAnchor(p.spatialMode || pClipData?.spatialMode || pClipData?.trajectoryPath || pClipData?.trajectory);
                         const tag = anchor === 'AT_CASTER' ? '[自身]' : anchor === 'TRAJECTORY' ? '[彈道]' : '[目標]';
                         return `<option value="${p.id}" ${p.id === layer.presetId ? 'selected' : ''}>${tag} ${p.name || p.id}</option>`;
                       }).join('')}

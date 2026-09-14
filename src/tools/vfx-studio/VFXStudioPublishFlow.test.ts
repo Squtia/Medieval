@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VFXStudioStore } from './VFXStudioStore';
 import { VFXLibrary } from './VFXLibrary';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
-import { VFXPreset } from '../../models/VFX';
+import { VFXPreset, getSequenceMainClip } from '../../models/VFX';
 
 // 建立輕量 Mock DOM 環境
 function setupMockDom() {
@@ -83,7 +83,7 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
     const testColor = '#00ffcc';
     store.updateConfig({ colorCore: testColor }, true);
 
-    expect(store.getPreset().colorCore).toBe(testColor);
+    expect((getSequenceMainClip(store.getSequence())?.payload.data as any)?.colorCore).toBe(testColor);
     expect(store.getIsDirty()).toBe(true);
 
     // 2. 攔截 fetch，檢查發布給伺服器的 body 內容
@@ -196,10 +196,10 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
           json: async () => ({ success: true, count: payload.presets.length, snapshot: 'snap_123.json' })
         };
       }
-      if (url === '/api/get-vfx-presets') {
+      if (url.startsWith('/api/get-vfx-presets')) {
         return {
           ok: true,
-          json: async () => repo.getAllPresets()
+          json: async () => repo.getAllSequences()
         };
       }
       return { ok: false, json: async () => ({}) };
@@ -236,9 +236,9 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
           json: async () => ({ success: true, count: 30, snapshot: 'snap_123.json' })
         };
       }
-      if (url === '/api/get-vfx-presets') {
+      if (url.startsWith('/api/get-vfx-presets')) {
         // 模擬伺服器返回的資料中，該 Cue 遺漏（例如寫入失敗或資料未同步）
-        const stalePresets = repo.getAllPresets().map(p => {
+        const stalePresets = repo.getAllSequences().map(p => {
           if (p.id === current.id) {
             return { ...p, impactCues: [] }; // 故意回傳空 cues
           }
@@ -276,7 +276,7 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
           json: async () => ({ success: true, count: 30, snapshot: 'snap_123.json' })
         };
       }
-      if (url === '/api/get-vfx-presets') {
+      if (url.startsWith('/api/get-vfx-presets')) {
         // 模擬回讀端點崩潰或中斷
         return {
           ok: false,
@@ -294,6 +294,6 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
 
     // 驗證：因回讀異常，絕不可視為成功，Dirty 依然為 true
     expect(store.getIsDirty()).toBe(true);
-    expect(store.getPreset().colorCore).toBe('#123456');
+    expect((getSequenceMainClip(store.getSequence())?.payload.data as any)?.colorCore).toBe('#123456');
   });
 });

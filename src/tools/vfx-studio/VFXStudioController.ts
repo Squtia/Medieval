@@ -6,7 +6,7 @@ import { VFXStage } from './VFXStage';
 import { CombatFXEngine, ScreenPoint } from '../../ui/fx/CombatFXEngine';
 import { VFXStudioAdapter } from '../../ui/fx/VFXPlayer';
 import { createLcgRng } from '../../ui/fx/VFXRng';
-import { VFXPreset, VFXImpactCue, getTrajectorySpatialAnchor, calculateSpatialPoint, calculateCasterMotionOffset } from '../../models/VFX';
+import { VFXPreset, VFXSequence, VFXImpactCue, getTrajectorySpatialAnchor, calculateSpatialPoint, calculateCasterMotionOffset, getSequenceMainClip, getSequenceImpactConfig } from '../../models/VFX';
 import { VFXTimelineEvaluator } from '../../ui/fx/VFXTimelineEvaluator';
 
 /**
@@ -191,13 +191,15 @@ export class VFXStudioController {
     const viewport = document.getElementById('viewport');
     if (!casterEl || !targetEl || !viewport) return;
 
-    const preset = this.store.getPreset();
-    const mode = preset.spatialMode || preset.trajectoryPath || preset.trajectory || 'A_TO_B';
-    const isReverse = !!preset.reverse;
+    const preset = this.store.getSequence();
+    const mainClip = getSequenceMainClip(preset);
+    const mainData = (mainClip?.payload?.data as any) || {};
+    const mode = preset.spatialMode || mainData.spatialMode || mainData.trajectoryPath || mainData.trajectory || 'A_TO_B';
+    const isReverse = !!mainData.reverse;
     const anchor = getTrajectorySpatialAnchor(mode);
-    const mainDelay = Math.max(0, preset.mainDelay || 0);
+    const mainDelay = Math.max(0, mainClip?.startTime ?? (preset as any).mainDelay ?? 0);
     const totalDuration = this.timeline.getFrameEngine().getDuration();
-    const mainDuration = Math.max(0.05, preset.mainDuration !== undefined ? preset.mainDuration : (totalDuration - mainDelay));
+    const mainDuration = Math.max(0.05, mainClip?.duration ?? (preset as any).mainDuration ?? (totalDuration - mainDelay));
     const mainEnd = mainDelay + mainDuration;
 
     // 計算主軌有效播放進度 (0 ~ 1)
@@ -445,8 +447,8 @@ export class VFXStudioController {
     this.hudBudgetTimer = setInterval(() => {
       const fxEngine = CombatFXEngine.getInstance();
       const currentPreset = this.store.getPreset();
-
-      const isCompositeOrAOE = (currentPreset.layers && currentPreset.layers.length > 0) || this.stage.isAOE();
+      const hasCompositeTracks = (currentPreset.tracks && currentPreset.tracks.some((t: any) => t.type === 'COMPOSITE_LAYER')) || ((currentPreset as any).layers && (currentPreset as any).layers.length > 0);
+      const isCompositeOrAOE = hasCompositeTracks || this.stage.isAOE();
       const budgetMaxCalls = isCompositeOrAOE ? 70 : 35;
       const budgetMaxParticles = isCompositeOrAOE ? 600 : 250;
 
@@ -520,7 +522,7 @@ export class VFXStudioController {
   /**
    * 🏃 依時間 t 動態計算施術者發力動作 (Step / Recoil / Tilt)
    */
-  private updateCasterMotionAt(preset: VFXPreset, currentTime: number, casterEl: HTMLElement | null): void {
+  private updateCasterMotionAt(preset: VFXSequence, currentTime: number, casterEl: HTMLElement | null): void {
     if (!casterEl) return;
     const motion = preset.casterMotion;
     if (!motion || (!motion.stepForward && !motion.recoil && !motion.tiltAngle)) {
@@ -539,9 +541,9 @@ export class VFXStudioController {
   /**
    * 🥊 依時間 t 動態計算受擊卡牌的打擊回饋 (Punch / Shake / Knockback)
    */
-  private updateTargetImpactFeedbackAt(preset: VFXPreset, currentTime: number, targetEl: HTMLElement | null): void {
+  private updateTargetImpactFeedbackAt(preset: VFXSequence, currentTime: number, targetEl: HTMLElement | null): void {
     if (!targetEl) return;
-    const impact = preset.impact;
+    const impact = getSequenceImpactConfig(preset) || (preset as any).impact;
     if (!impact) {
       targetEl.style.transform = '';
       targetEl.style.filter = '';
@@ -569,7 +571,9 @@ export class VFXStudioController {
         this.showDamagePopup(targetEl, !!activeCue.isPrimary);
         const targetPt = this.studioAdapter.getElementCenter(targetEl);
         const worldPos = CombatFXEngine.getInstance().screenToWorld(targetPt);
-        CombatFXEngine.getInstance().playCueSparks(worldPos, preset.colorCore || '#f59e0b', 14);
+        const mainClip = getSequenceMainClip(preset);
+        const colorCore = (mainClip?.payload.data as any)?.colorCore || '#f59e0b';
+        CombatFXEngine.getInstance().playCueSparks(worldPos, colorCore, 14);
       }
 
       const progress = cueElapsed / shakeDur;

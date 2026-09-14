@@ -368,5 +368,22 @@
         "statusDuration": 3
       }
     ]
+  },
+  {
+    "id": "SKILL_arrow_rain",
+    "name": "箭雨",
+    "icon": "🏹",
+    "description": "自訂積木技能描述",
+    "category": "MONSTER",
+    "mpCost": 20,
+    "cooldown": 0,
+    "blocks": [
+      {
+        "trigger": "ACTIVE",
+        "effectType": "DAMAGE_PHYSICAL",
+        "targetType": "ALL_ENEMIES",
+        "multiplier": 1.2
+      }
+    ]
   }
 ]

@@ -1,6 +1,6 @@
 import { CombatEvent, CombatEventType } from '../../../models/Combat';
 import { CombatFXEngine, ScreenPoint } from '../CombatFXEngine';
-import { VFXImpactConfig, VFXImpactCue } from '../../../models/VFX';
+import { VFXImpactConfig, VFXImpactCue, getSequenceImpactConfig } from '../../../models/VFX';
 import { VFXPresetRepository } from '../VFXPresetRepository';
 import { mapImpactsToCues, CombatImpactPresentation, CombatAction, CombatActionPlayer, resolveActionMainTargetId } from '../CombatActionPlayer';
 import { ScreenFxRenderer } from '../renderers/ScreenFxRenderer';
@@ -223,8 +223,8 @@ export class CombatStudioStageAdapter {
           skillName: item.skillName
         };
 
-        const preset = VFXPresetRepository.getInstance().getPreset(finalAction.vfxId || '');
-        const impactCfg = preset?.impact || null;
+        const seq = VFXPresetRepository.getInstance().getSequence(finalAction.vfxId || '');
+        const impactCfg = seq ? (getSequenceImpactConfig(seq) || null) : null;
 
         this.triggerHitFeedback(
           targetEl,
@@ -265,8 +265,8 @@ export class CombatStudioStageAdapter {
     await this.playCombatAction(action, {
       skipVfx: options?.skipVfx,
       onImpact: (_item, cue) => {
-        const preset = VFXPresetRepository.getInstance().getPreset(action.vfxId || '');
-        const impactCfg = preset?.impact || ({} as VFXImpactConfig);
+        const seq = VFXPresetRepository.getInstance().getSequence(action.vfxId || '');
+        const impactCfg = seq ? (getSequenceImpactConfig(seq) || ({} as VFXImpactConfig)) : ({} as VFXImpactConfig);
         options?.onImpact?.(impactCfg, hitCount++, 1, cue);
       }
     });

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXSequence } from '../../models/VFX';
+import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXSequence, VFXSpatialTopology } from '../../models/VFX';
 import { VFXPresetRepository } from './VFXPresetRepository';
 import { PlaybackClock } from './PlaybackClock';
 
@@ -12,7 +12,7 @@ import { ScreenFxRenderer } from './renderers/ScreenFxRenderer';
 import { AudioLayerRenderer } from './renderers/AudioLayerRenderer';
 import { VFXTimelineEvaluator } from './VFXTimelineEvaluator';
 import { VFXEffectInstance, VFXInstanceRegistry } from './VFXEffectInstance';
-import { resolvePresetSpatialMode, resolveVFXWorldStart, VFX_RENDER_ORDER } from './VFXSpatialPolicy';
+import { resolvePresetSpatialMode, resolvePresetSpatialTopology, resolveVFXWorldStart, resolveVFXEndpoints, VFX_RENDER_ORDER } from './VFXSpatialPolicy';
 
 export type { ScreenPoint };
 export type VFXCueScreenPointResolver = (cue: VFXImpactCue, cueIndex: number) => readonly ScreenPoint[];
@@ -84,27 +84,80 @@ export class CombatFXEngine extends VFXPlayer {
       actualTargetPos.addScaledVector(dir, penDist);
     }
 
-    // 整理所有可渲染幾何軌道（排除 PARTICLE, IMPACT 與 AUDIO 軌道）
-    const renderableTracks = sequence.tracks.filter(t => !t.isMuted && t.type !== 'IMPACT' && t.type !== 'AUDIO' && t.type !== 'PARTICLE');
+    // 整理所有可渲染項目（包含 sequence.tracks 實體軌道與 sequence.layers 次生圖層）
+    interface RenderableTrackItem {
+      id: string;
+      name?: string;
+      isMain: boolean;
+      trackType: string;
+      startTime: number;
+      duration: number;
+      fadeIn: number;
+      fadeOut: number;
+      data: Record<string, any>;
+      presetId?: string;
+    }
+
+    const renderableItems: RenderableTrackItem[] = [];
+
+    // 1. 主要軌道與既有 3D 軌道
+    // 🛡️ 遵循「CLIP(特效軌)單一特效原則」：tracks 陣列只允許 MESH 與 SLASH 原生主軌，嚴禁任何 COMPOSITE_LAYER 幽靈軌道
+    const activeTracks = sequence.tracks.filter(
+      t => !t.isMuted && t.type !== 'IMPACT' && t.type !== 'AUDIO' && t.type !== 'PARTICLE' && t.type !== 'COMPOSITE_LAYER'
+    );
+    activeTracks.forEach((t, idx) => {
+      const clip = t.clips[0];
+      const clipData = (clip?.payload?.data || {}) as Record<string, any>;
+      renderableItems.push({
+        id: t.id,
+        name: t.name,
+        isMain: idx === 0,
+        trackType: t.type,
+        startTime: clip?.startTime || 0,
+        duration: clip?.duration || sequence.duration || 0.4,
+        fadeIn: clip?.fadeIn ?? 0.05,
+        fadeOut: clip?.fadeOut ?? 0.08,
+        data: clipData,
+        presetId: clipData.presetId
+      });
+    });
+
+    // 2. 🌟 將次生圖層 (sequence.layers) 正式納入獨立 3D 渲染通道
+    if (Array.isArray(sequence.layers)) {
+      sequence.layers.forEach((layer, lIdx) => {
+        if (layer.enabled === false) return;
+        renderableItems.push({
+          id: layer.id || `layer_${lIdx}`,
+          name: layer.name || `圖層 ${lIdx + 1}`,
+          isMain: false,
+          trackType: 'COMPOSITE_LAYER',
+          startTime: layer.delay || 0,
+          duration: layer.duration || 0.3,
+          fadeIn: layer.fadeIn ?? 0.05,
+          fadeOut: layer.fadeOut ?? 0.08,
+          data: { ...layer },
+          presetId: layer.presetId
+        });
+      });
+    }
+
     const trackGroups = customTrackGroups || (this.studioTrackGroups = this.studioTrackGroups || []);
 
-    while (trackGroups.length < renderableTracks.length) {
+    while (trackGroups.length < renderableItems.length) {
       const g = new THREE.Group();
       trackGroups.push(g);
       rootGroup.add(g);
     }
-    for (let i = renderableTracks.length; i < trackGroups.length; i++) {
+    for (let i = renderableItems.length; i < trackGroups.length; i++) {
       trackGroups[i].visible = false;
     }
 
     // 逐軌進行確定性影格求值與 3D 幾何繪製
-    for (let i = 0; i < renderableTracks.length; i++) {
-      const track = renderableTracks[i];
+    for (let i = 0; i < renderableItems.length; i++) {
+      const item = renderableItems[i];
       const trackGroup = trackGroups[i];
-      const clip = track.clips[0];
-      const clipData = (clip?.payload.data || {}) as any;
-      const trackStart = clip?.startTime || 0;
-      const trackDur = clip?.duration || sequence.duration || 0.4;
+      const trackStart = item.startTime;
+      const trackDur = item.duration;
       const trackEnd = trackStart + trackDur;
 
       if (timeSeconds < trackStart || timeSeconds > trackEnd) {
@@ -114,8 +167,8 @@ export class CombatFXEngine extends VFXPlayer {
       trackGroup.visible = true;
 
       const p = Math.max(0, Math.min(1.0, (timeSeconds - trackStart) / Math.max(0.001, trackDur)));
-      const fadeIn = clip?.fadeIn ?? 0.05;
-      const fadeOut = clip?.fadeOut ?? 0.08;
+      const fadeIn = item.fadeIn;
+      const fadeOut = item.fadeOut;
       let fadeAlpha = 1.0;
       const elapsed = timeSeconds - trackStart;
       const remaining = trackEnd - timeSeconds;
@@ -126,10 +179,18 @@ export class CombatFXEngine extends VFXPlayer {
         fadeAlpha = Math.min(fadeAlpha, Math.max(0.1, remaining / fadeOut));
       }
 
-      // 次生引用圖層 COMPOSITE_LAYER
-      let resolvedData = { ...clipData };
-      const subPresetId = clipData.presetId;
-      if (clip?.payload.type === 'COMPOSITE_LAYER' && subPresetId) {
+      // 次生引用圖層 COMPOSITE_LAYER 遞迴解析素材（若未自定義空間模式，強制繼承主軌空間契約）
+      let resolvedData: Record<string, any> = item.isMain
+        ? { ...(sequence as any), ...item.data }
+        : {
+            spatialMode: sequence.spatialMode || mainPayload?.spatialMode,
+            trajectoryPath: mainPayload?.trajectoryPath,
+            trajectory: mainPayload?.trajectory,
+            spatialTopology: mainPayload?.spatialTopology,
+            ...item.data
+          };
+      const subPresetId = item.presetId;
+      if (subPresetId) {
         const subSeq = VFXPresetRepository.getInstance().getSequence(subPresetId);
         if (subSeq) {
           const subMainTrack = subSeq.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH' || t.type === 'SLASH') || subSeq.tracks[0];
@@ -137,55 +198,83 @@ export class CombatFXEngine extends VFXPlayer {
           if (subMainClip?.payload.data) {
             resolvedData = {
               ...(subMainClip.payload.data as any),
-              ...clipData,
-              scale: (clipData.scale || 1.0) * ((subMainClip.payload.data as any).scale || 1.0)
+              ...item.data,
+              scale: (item.data.scale || 1.0) * ((subMainClip.payload.data as any).scale || 1.0)
             };
           }
         }
       }
 
-      const spatialMode = resolvedData.spatialMode || (resolvedData.trajectory === 'MELEE_SWEEP' ? 'MELEE_SWEEP' : 'A_TO_B');
+      // 🎯 基礎彈道、空間傳播形態與時空路徑精準解析 (遵從 Rule 9 全域空間契約)
+      const spatialTopology: VFXSpatialTopology = resolvedData.spatialTopology || resolvePresetSpatialTopology(resolvedData);
       const reverse = !!resolvedData.reverse;
+      const inferredShader = resolvedData.shaderMode || (item.trackType === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : (item.trackType === 'MESH' ? 'PROJECTILE' : undefined));
 
-      const curPos = this.calculate3DTrackPos(spatialMode, reverse, p, casterPos, actualTargetPos);
-      const startPos = this.calculate3DTrackPos(spatialMode, reverse, 0.0, casterPos, actualTargetPos);
-      const endPos = this.calculate3DTrackPos(spatialMode, reverse, 1.0, casterPos, actualTargetPos);
+      const endpoints = resolveVFXEndpoints(
+        resolvedData.spatialMode,
+        resolvedData.trajectoryPath,
+        resolvedData.trajectory,
+        reverse,
+        casterPos,
+        actualTargetPos,
+        0,
+        {
+          shaderMode: inferredShader,
+          spatialTopology
+        }
+      );
+      const startPos = endpoints.startPos;
+      const endPos = endpoints.endPos;
+      const curPos = new THREE.Vector3().lerpVectors(startPos, endPos, p);
+      if (resolvedData.arcHeight && resolvedData.arcHeight > 0) {
+        curPos.y += Math.sin(p * Math.PI) * resolvedData.arcHeight;
+      }
+      const spatialMode = resolvedData.spatialMode || (resolvedData.trajectory === 'MELEE_SWEEP' ? 'MELEE_SWEEP' : 'A_TO_B');
 
-      // 🌟 附著型粒子拖尾處理 (Attachment Trail to curPos or Blade Tip)
-      if (i === 0) {
+      // 🌟 附著型粒子拖尾處理 (支援斬擊刀尖、飛出劍氣與彈道附著，且支援即時熱更新)
+      if (item.isMain) {
         const particleTrack = sequence.tracks.find(t => !t.isMuted && t.type === 'PARTICLE');
         const pClip = particleTrack?.clips[0];
-        const pData = (pClip?.payload.data || {}) as any;
-        const isSlash = track.type === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP';
+        const pData = (pClip?.payload.data || {}) as Record<string, any>;
+        const isSlash = item.trackType === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP';
         const trailCount = resolvedData.trailCount || pData.trailCount || 35;
         const isTrailEnabled = resolvedData.enableTrail === true || pData.enableTrail === true ||
           (resolvedData.enableTrail !== false && pData.enableTrail !== false && trailCount > 0);
 
-        // 只有啟用拖尾且在出刀區間內才生成與更新拖尾粒子
-        // 出刀結束 (timeSeconds >= trackEnd 或 p >= 0.999) 必須立即回收，絕不殘留在最後一個 frame
         if (isTrailEnabled && trailCount > 0 && timeSeconds >= trackStart && timeSeconds < trackEnd && p < 0.999) {
-          const slashPreset = (track as any).preset || resolvedData;
+          const slashPreset = resolvedData;
           let emissionPos = curPos;
           if (isSlash) {
-            emissionPos = MeshLayerRenderer.calculateSlashBladeTip(slashPreset, p, actualTargetPos, reverse);
+            // 若為飛出劍氣 (POINT_TRANSPORT)，拖尾附著於飛行中的質點；若為原地揮砍，則附著於刀尖弧光
+            if (spatialTopology === 'POINT_TRANSPORT') {
+              emissionPos = curPos;
+            } else {
+              emissionPos = MeshLayerRenderer.calculateSlashBladeTip(slashPreset, p, actualTargetPos, reverse);
+            }
           }
+
+          const currentTrailColor = resolvedData.trailColor || pData.trailColor || resolvedData.colorRim || pData.colorRim || '#f59e0b';
+          const currentTrailSize = resolvedData.trailSize || pData.trailSize || 8;
+          const currentScale = resolvedData.scale || pData.scale || 1.0;
 
           let trailCache = (rootGroup as any).__trailCache;
           if (!trailCache) {
-            const trailColorHex = resolvedData.trailColor || pData.trailColor || resolvedData.colorRim || pData.colorRim || '#f59e0b';
             trailCache = TrailLayerRenderer.createTrail(
               rootGroup as any,
               emissionPos,
-              trailColorHex,
+              currentTrailColor,
               trailCount,
-              resolvedData.trailSize || pData.trailSize || 8,
-              resolvedData.scale || pData.scale || 1.0,
+              currentTrailSize,
+              currentScale,
               () => this.getRandom()
             );
             (rootGroup as any).__trailCache = trailCache;
+          } else if (typeof trailCache.updateStyle === 'function') {
+            // 🌟 即時熱更新色彩與粒子尺寸，解決控制項改了沒反應的病灶
+            trailCache.updateStyle(currentTrailColor, currentTrailSize, currentScale);
           }
 
-          if (isSlash && typeof trailCache.updateArcTrail === 'function') {
+          if (isSlash && spatialTopology !== 'POINT_TRANSPORT' && typeof trailCache.updateArcTrail === 'function') {
             trailCache.updateArcTrail(
               (prog: number) => MeshLayerRenderer.calculateSlashBladeTip(slashPreset, prog, actualTargetPos, reverse),
               p
@@ -199,18 +288,19 @@ export class CombatFXEngine extends VFXPlayer {
         }
       }
 
-      const inferredShader = resolvedData.shaderMode || (track.type === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : undefined);
-
       const renderTrackObj = {
-        id: track.id,
-        name: track.name,
+        sequenceId: sequence.id,
+        id: item.id,
+        name: item.name,
         delay: trackStart,
         duration: trackDur,
         fadeIn,
         fadeOut,
         scale: resolvedData.scale || 1.0,
+        spin: resolvedData.spin || 0,
         shaderMode: inferredShader,
         spatialMode,
+        spatialTopology,
         reverse,
         colorCore: resolvedData.colorCore || '#ffffff',
         colorRim: resolvedData.colorRim || '#38bdf8',
@@ -317,133 +407,42 @@ export class CombatFXEngine extends VFXPlayer {
       return;
     }
 
-    const rootGroup = customRootGroup || (() => {
-      if (!this.studioPreviewGroup) {
-        this.studioPreviewGroup = new THREE.Group();
-      }
-      return this.studioPreviewGroup;
-    })();
-
-    if (!this.scene.children.includes(rootGroup)) {
-      this.scene.add(rootGroup);
-    }
-    rootGroup.visible = true;
-
-    // 貫穿彈道延伸終點 (COLUMN_PIERCE)
-    let actualTargetPos = targetPos.clone();
-    const penDist = preset.impact?.penetrationDistance || (preset as any).penetrationDistance;
-    if (preset.trajectory === 'COLUMN_PIERCE' && penDist) {
-      const dir = new THREE.Vector3().subVectors(actualTargetPos, casterPos).normalize();
-      actualTargetPos.addScaledVector(dir, penDist);
-    }
-
-    // 🌟 1. 整理所有軌道（主軌 Layer 0 ＋ 次生圖層 Layer 1..N）
-    const mainDelay = Math.max(0, preset.mainDelay || 0);
-    const totalDur = Math.max(0.05, preset.duration || 0.4);
-    const mainDuration = Math.max(0.05, preset.mainDuration !== undefined ? preset.mainDuration : (totalDur - mainDelay));
-
-    const mainTrack = {
-      id: 'main',
-      name: preset.name || '主軌',
-      delay: mainDelay,
-      duration: mainDuration,
-      fadeIn: 0.05,
-      fadeOut: 0.08,
-      scale: preset.scale || 1.0,
-      shaderMode: preset.shaderMode || (preset.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : undefined),
-      spatialMode: (preset.spatialMode === 'TRAJECTORY' ? (preset.trajectoryPath || preset.trajectory || 'A_TO_B') : (preset.spatialMode || preset.trajectoryPath || preset.trajectory || 'A_TO_B')),
-      reverse: !!preset.reverse,
-      colorCore: preset.colorCore || '#ffffff',
-      colorRim: preset.colorRim || '#38bdf8',
-      preset: preset,
-      enabled: !(preset as any)._mainTrackMuted
+    // 🛡️ 極端向下相容：若傳入無 tracks 的舊物件，自動包裝為 Canonical Sequence 呼叫核心
+    const mainDelay = Math.max(0, preset?.mainDelay || 0);
+    const totalDur = Math.max(0.05, preset?.duration || 0.4);
+    const mainDuration = Math.max(0.05, preset?.mainDuration !== undefined ? preset.mainDuration : (totalDur - mainDelay));
+    const synthSeq: VFXSequence = {
+      schemaVersion: 2,
+      id: preset?.id || 'synth_seq',
+      name: preset?.name || '合成序列',
+      category: preset?.category || 'PHYSICAL',
+      description: preset?.description || '',
+      duration: totalDur,
+      spatialMode: resolvePresetSpatialMode(preset),
+      impactCues: preset?.impactCues || [],
+      tracks: [
+        {
+          id: 'trk_main',
+          name: preset?.name || '主軌',
+          type: (preset?.trajectory === 'MELEE_SWEEP' || preset?.shaderMode === 'SLASH_BLADE') ? 'SLASH' : 'MESH',
+          enabled: !(preset as any)?._mainTrackMuted,
+          clips: [
+            {
+              id: 'clip_synth_main',
+              startTime: mainDelay,
+              duration: mainDuration,
+              payload: {
+                type: (preset?.trajectory === 'MELEE_SWEEP' || preset?.shaderMode === 'SLASH_BLADE') ? 'SLASH' : 'MESH',
+                data: { ...preset } as any
+              }
+            }
+          ]
+        }
+      ]
     };
-
-    const secondaryTracks = (preset.layers || []).map((l: any, idx: number) => {
-      let refPreset: VFXPreset | null = null;
-      if (l.presetId) {
-        refPreset = VFXPresetRepository.getInstance().getPreset(l.presetId) || null;
-      }
-      return {
-        id: l.id || `layer_${idx}`,
-        name: l.name || `圖層 ${idx + 1}`,
-        delay: Math.max(0, l.delay || 0),
-        duration: Math.max(0.05, l.duration || 0.3),
-        fadeIn: l.fadeIn ?? 0.05,
-        fadeOut: l.fadeOut ?? 0.08,
-        scale: (l.scale || 1.0) * (refPreset?.scale || 1.0),
-        shaderMode: l.shaderMode || refPreset?.shaderMode || undefined,
-        spatialMode: (l.spatialMode === 'TRAJECTORY' ? (l.trajectoryPath || refPreset?.trajectoryPath || refPreset?.trajectory || 'A_TO_B') : (l.spatialMode || refPreset?.spatialMode || 'A_TO_B')),
-        reverse: l.reverse !== undefined ? l.reverse : (refPreset?.reverse || false),
-        colorCore: refPreset?.colorCore || preset.colorCore || '#ffffff',
-        colorRim: refPreset?.colorRim || preset.colorRim || '#f59e0b',
-        preset: refPreset || preset,
-        enabled: l.enabled !== false
-      };
-    });
-
-    const allTracks = [mainTrack, ...secondaryTracks];
-
-    // 確保每條軌道具備專屬的 Group
-    const trackGroups = customTrackGroups || (this.studioTrackGroups = this.studioTrackGroups || []);
-
-    while (trackGroups.length < allTracks.length) {
-      const g = new THREE.Group();
-      trackGroups.push(g);
-      rootGroup.add(g);
-    }
-
-    // 隱藏多餘的群組
-    for (let i = allTracks.length; i < trackGroups.length; i++) {
-      trackGroups[i].visible = false;
-    }
-
-    // 🌟 2. 逐軌進行確定性影格求值與 3D 幾何繪製
-    for (let i = 0; i < allTracks.length; i++) {
-      const track = allTracks[i];
-      const trackGroup = trackGroups[i];
-
-      // 檢查是否在該圖層的有效時間區間內
-      const trackStart = track.delay;
-      const trackEnd = track.delay + track.duration;
-
-      if (!track.enabled || timeSeconds < trackStart || timeSeconds > trackEnd) {
-        trackGroup.visible = false;
-        continue;
-      }
-
-      trackGroup.visible = true;
-
-      // 計算局部時間進度 (0 ~ 1)
-      const p = Math.max(0, Math.min(1.0, (timeSeconds - trackStart) / track.duration));
-
-      // 計算淡入淡出透明度 (Fade In / Fade Out)
-      let fadeAlpha = 1.0;
-      const elapsed = timeSeconds - trackStart;
-      const remaining = trackEnd - timeSeconds;
-      if (track.fadeIn > 0 && elapsed < track.fadeIn) {
-        fadeAlpha = Math.min(fadeAlpha, Math.max(0.1, elapsed / track.fadeIn));
-      }
-      if (track.fadeOut > 0 && remaining < track.fadeOut) {
-        fadeAlpha = Math.min(fadeAlpha, Math.max(0.1, remaining / track.fadeOut));
-      }
-
-      // 計算 3D 空間錨點位置
-      const curPos = this.calculate3DTrackPos(track.spatialMode, track.reverse, p, casterPos, actualTargetPos);
-      const startPos = this.calculate3DTrackPos(track.spatialMode, track.reverse, 0.0, casterPos, actualTargetPos);
-      const endPos = this.calculate3DTrackPos(track.spatialMode, track.reverse, 1.0, casterPos, actualTargetPos);
-
-      // 渲染對應形態之真實 3D 幾何與 Shader
-      this.renderTrack3DGeometry(trackGroup, track, p, fadeAlpha, curPos, startPos, endPos, casterPos, actualTargetPos);
-    }
-
-    // 立即刷新畫面
-    this.renderer.render(this.scene, this.camera);
+    this.renderSequenceWorldAt(synthSeq, timeSeconds, casterPos, targetPos, customRootGroup, customTrackGroups);
   }
 
-  /**
-   * 📐 依據時空路徑計算 3D 世界座標
-   */
   private calculate3DTrackPos(
     mode: string,
     reverse: boolean,
@@ -451,39 +450,8 @@ export class CombatFXEngine extends VFXPlayer {
     casterPos: THREE.Vector3,
     targetPos: THREE.Vector3
   ): THREE.Vector3 {
-    if (mode === 'AT_CASTER') {
-      return casterPos.clone();
-    }
-    if (mode === 'AT_TARGET' || mode === 'MELEE_SWEEP') {
-      return targetPos.clone();
-    }
-    if (mode === 'VERTICAL_DROP' || mode === 'VERTICAL_SKY_TO_B') {
-      const sky = new THREE.Vector3(targetPos.x, targetPos.y + 380, targetPos.z);
-      return reverse ? new THREE.Vector3().lerpVectors(targetPos, sky, progress) : new THREE.Vector3().lerpVectors(sky, targetPos, progress);
-    }
-    if (mode === 'DIAGONAL_DROP' || mode === 'DIAGONAL_SKY_TO_B') {
-      const offsetX = Math.max(260, Math.abs(targetPos.x - casterPos.x) * 0.7);
-      const sky = new THREE.Vector3(targetPos.x - offsetX, targetPos.y + 380, targetPos.z);
-      return reverse ? new THREE.Vector3().lerpVectors(targetPos, sky, progress) : new THREE.Vector3().lerpVectors(sky, targetPos, progress);
-    }
-    if (mode === 'GROUND_BURST') {
-      const ground = new THREE.Vector3(targetPos.x, targetPos.y - 120, targetPos.z);
-      return reverse ? new THREE.Vector3().lerpVectors(targetPos, ground, progress) : new THREE.Vector3().lerpVectors(ground, targetPos, progress);
-    }
-    if (mode === 'A_TO_VERTICAL_SKY') {
-      const sky = new THREE.Vector3(casterPos.x, casterPos.y + 380, casterPos.z);
-      return reverse ? new THREE.Vector3().lerpVectors(sky, casterPos, progress) : new THREE.Vector3().lerpVectors(casterPos, sky, progress);
-    }
-    if (mode === 'A_TO_DIAGONAL_SKY') {
-      const sky = new THREE.Vector3(casterPos.x + 260, casterPos.y + 380, casterPos.z);
-      return reverse ? new THREE.Vector3().lerpVectors(sky, casterPos, progress) : new THREE.Vector3().lerpVectors(casterPos, sky, progress);
-    }
-
-    // A_TO_B 與預設彈道
-    const from = reverse ? targetPos : casterPos;
-    const to = reverse ? casterPos : targetPos;
-    const pt = new THREE.Vector3().lerpVectors(from, to, progress);
-    return pt;
+    const endpoints = resolveVFXEndpoints(mode, mode, mode, reverse, casterPos, targetPos);
+    return new THREE.Vector3().lerpVectors(endpoints.startPos, endpoints.endPos, progress);
   }
 
   /**
@@ -506,6 +474,7 @@ export class CombatFXEngine extends VFXPlayer {
       trackGroup.visible = false;
       return;
     }
+    const topology: VFXSpatialTopology = track.spatialTopology || resolvePresetSpatialTopology(track.preset || track);
     const isSlash = shader === 'SLASH_BLADE' || track.spatialMode === 'MELEE_SWEEP';
     const trajectoryMode = track.spatialMode || track.preset?.trajectoryPath || track.preset?.trajectory;
     trackGroup.renderOrder =
@@ -515,6 +484,15 @@ export class CombatFXEngine extends VFXPlayer {
           ? VFX_RENDER_ORDER.IMPACT
           : VFX_RENDER_ORDER.MAIN;
 
+    const isSpanBeam = shader === 'DIELECTRIC_LIGHTNING' || shader === 'ENERGY_BEAM';
+    const spin = track.spin || track.preset?.spin || 0;
+    const spinAngle = spin * p * Math.PI * 2;
+    if (spin && !isSpanBeam) {
+      trackGroup.rotation.z = spinAngle;
+    } else if (!isSlash) {
+      trackGroup.rotation.z = 0;
+    }
+
     // 檢查既有快取
     let cache = (trackGroup as any).__cache;
     if (!cache) {
@@ -522,20 +500,29 @@ export class CombatFXEngine extends VFXPlayer {
       (trackGroup as any).__cache = cache;
     }
 
-    // 若 shader 類型變更，清空舊網格
-    if (cache.currentShader !== shader) {
+    // 若 shader 類型變更或切換不同特效技能，清空舊網格與快取群組
+    const currentSeqId = track.sequenceId || track.preset?.id;
+    if (cache.currentShader !== shader || (currentSeqId && cache.currentSequenceId !== currentSeqId)) {
       while (trackGroup.children.length > 0) {
         trackGroup.remove(trackGroup.children[0]);
       }
-      cache = { currentShader: shader };
+      cache = { currentShader: shader, currentSequenceId: currentSeqId };
       (trackGroup as any).__cache = cache;
     }
 
     // ─────────────────────────────────────────────────────────────
-    // ⚔️ 1. 近戰刀芒與劍氣斬裂 (SLASH_BLADE)
+    // ⚔️ 1. 近戰刀芒、劍氣飛出與斬裂 (SLASH_BLADE)
+    // 支援 POINT_TRANSPORT（飛出劍氣：位置沿 curPos 移動，刀尖指向飛行向量）
+    // 與 LOCAL_MORPH（原地劈砍揮擊）
     // ─────────────────────────────────────────────────────────────
     if (isSlash) {
-      trackGroup.position.copy(targetPos);
+      const isFlyingBlade = topology === 'POINT_TRANSPORT';
+      if (isFlyingBlade) {
+        trackGroup.position.copy(curPos);
+      } else {
+        const isAtCaster = track.spatialMode === 'AT_CASTER';
+        trackGroup.position.copy(isAtCaster ? casterPos : targetPos);
+      }
 
       const slashPreset = track.preset || track;
       const params = MeshLayerRenderer.calculateSlashGeometryParams(
@@ -569,8 +556,16 @@ export class CombatFXEngine extends VFXPlayer {
         cache.slashMesh.geometry = cache.slashGeo;
         cache.slashMesh.visible = true;
       }
-      // ⚔️ 套用 3D 歐拉角旋轉 (X 俯仰 / Y 偏航，Z 軸已融入 head/tail angle 動態弧面)
-      cache.slashMesh.rotation.set(params.rotX || 0, params.rotY || 0, 0);
+
+      // ⚔️ 姿態旋轉：若為飛出劍氣，依據飛行向量自動朝向（若 slashAlignToPath !== false），並疊加 spin 自轉
+      if (isFlyingBlade && slashPreset.slashAlignToPath !== false) {
+        const dir = new THREE.Vector3().subVectors(endPos, startPos);
+        const heading = Math.atan2(dir.y, dir.x);
+        const spinOffset = spin ? spin * p * Math.PI * 2 : 0;
+        cache.slashMesh.rotation.set(params.rotX || 0, params.rotY || 0, heading + spinOffset);
+      } else {
+        cache.slashMesh.rotation.set(params.rotX || 0, params.rotY || 0, 0);
+      }
 
       // 十字十字斬支援
       if (params.isCross) {
@@ -590,7 +585,14 @@ export class CombatFXEngine extends VFXPlayer {
           cache.crossMesh.geometry = cache.crossGeo;
           cache.crossMesh.visible = true;
         }
-        cache.crossMesh.rotation.set(params.rotX || 0, params.rotY || 0, 0);
+        if (isFlyingBlade && slashPreset.slashAlignToPath !== false) {
+          const dir = new THREE.Vector3().subVectors(endPos, startPos);
+          const heading = Math.atan2(dir.y, dir.x);
+          const spinOffset = spin ? spin * p * Math.PI * 2 : 0;
+          cache.crossMesh.rotation.set(params.rotX || 0, params.rotY || 0, heading + spinOffset);
+        } else {
+          cache.crossMesh.rotation.set(params.rotX || 0, params.rotY || 0, 0);
+        }
       } else if (cache.crossMesh) {
         cache.crossMesh.visible = false;
       }
@@ -665,33 +667,24 @@ export class CombatFXEngine extends VFXPlayer {
     // ⚡ 3. 閃電穿透 (DIELECTRIC_LIGHTNING - 落雷與雷霆穿透)
     // ─────────────────────────────────────────────────────────────
     if (shader === 'DIELECTRIC_LIGHTNING') {
-      // ⚡ 終點 100% 強制鎖定在受擊目標 (End / targetPos) 身上，絕不偏離
-      const lightningEnd = targetPos.clone();
-
-      // ⚡ 判定是否為橫向 A>B 穿透模式，否則皆為垂直天頂天降狂雷
-      const lightningMode = track.spatialMode
-        || track.trajectory
-        || track.preset?.spatialMode
-        || track.preset?.trajectoryPath
-        || track.preset?.trajectory;
-      const lightningStart = resolveVFXWorldStart(lightningMode, casterPos, targetPos);
-
+      // ⚡ 100% 遵從統一時空路徑求解器：天雷可自施術者 (A>B)、天頂 (VERTICAL_SKY)、或斜天 (DIAGONAL_SKY) 發生並貫穿至受擊者
       MeshLayerRenderer.updateLightningTube(
         trackGroup,
-        lightningStart,
-        lightningEnd,
+        startPos,
+        endPos,
         p,
         sc,
         track.colorRim,
         track.colorCore,
         fadeAlpha,
-        cache
+        cache,
+        spinAngle
       );
       return;
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 🪨 4. 破土錐狀地刺陣列 (EARTH_SHATTER)
+    // ⛰️ 4. 破土尖岩地刺陣列 (EARTH_SHATTER)
     // ─────────────────────────────────────────────────────────────
     if (shader === 'EARTH_SHATTER') {
       MeshLayerRenderer.updateEarthShatter(
@@ -701,7 +694,23 @@ export class CombatFXEngine extends VFXPlayer {
         sc,
         track.colorRim,
         fadeAlpha,
-        cache
+        cache,
+        track.colorCore,
+        {
+          spikeShape: track.spikeShape ?? track.preset?.spikeShape,
+          spikeArrayBehavior: track.spikeArrayBehavior ?? track.preset?.spikeArrayBehavior,
+          spikeArrayCount: track.spikeArrayCount ?? track.preset?.spikeArrayCount,
+          spikeAngle: track.spikeAngle ?? track.preset?.spikeAngle,
+          spikes: track.spikes ?? track.preset?.spikes,
+          spikeWidth: track.spikeWidth ?? track.preset?.spikeWidth,
+          spikeHeight: track.spikeHeight ?? track.preset?.spikeHeight,
+          spikeRadius: track.spikeRadius ?? track.preset?.spikeRadius,
+          spikeStagger: track.spikeStagger ?? track.preset?.spikeStagger,
+          spikeMaterialMode: track.spikeMaterialMode ?? track.preset?.spikeMaterialMode,
+          spikeEruptFire: track.spikeEruptFire ?? track.preset?.spikeEruptFire,
+          colorRim: track.colorRim ?? track.preset?.colorRim,
+          colorCore: track.colorCore ?? track.preset?.colorCore
+        }
       );
       return;
     }
@@ -710,18 +719,23 @@ export class CombatFXEngine extends VFXPlayer {
     // ❄️ 5. 冰晶之矛與旋轉冰環 (FRESNEL_ICE / FROST_LANCE / FROST_NOVA - 單發模式)
     // ─────────────────────────────────────────────────────────────
     if (shader === 'FRESNEL_ICE' || shader === 'FROST_LANCE' || shader === 'FROST_NOVA') {
-      if (cache.multiArcGroup) cache.multiArcGroup.visible = false;
-      MeshLayerRenderer.updateFresnelIce(
-        trackGroup,
-        curPos,
-        endPos,
-        p,
-        sc,
-        track.colorCore,
-        track.colorRim,
-        cache
-      );
-      return;
+      const isPointTransport = topology === 'POINT_TRANSPORT' || track.spatialMode === 'POINT_TRANSPORT' || track.preset?.topology === 'POINT_TRANSPORT';
+      const hasCustomCoreMesh = !!(track.coreMeshShape || track.preset?.coreMeshShape);
+      // 若為質點運動且自訂了核心幾何形狀（如 ARROW / SPHERE / DIAMOND 等），放行至下方通用 3D 投射物實體管線
+      if (!isPointTransport || !hasCustomCoreMesh) {
+        if (cache.multiArcGroup) cache.multiArcGroup.visible = false;
+        MeshLayerRenderer.updateFresnelIce(
+          trackGroup,
+          curPos,
+          endPos,
+          p,
+          sc,
+          track.colorCore,
+          track.colorRim,
+          cache
+        );
+        return;
+      }
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -738,7 +752,8 @@ export class CombatFXEngine extends VFXPlayer {
         track.colorCore,
         track.colorRim,
         fadeAlpha,
-        cache
+        cache,
+        spinAngle
       );
       return;
     }
@@ -839,9 +854,15 @@ export class CombatFXEngine extends VFXPlayer {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 🌋 11. 大地裂地波推進 (GROUND_FISSURE)
+    // 🌋 11. 大地裂地波與沿途連鎖尖刺 (GROUND_FISSURE / STAGGERED_ARRAY)
+    // 支援路徑連鎖破土尖刺陣列，自動依據 spikeArrayBehavior 執行停留或浪湧動畫
     // ─────────────────────────────────────────────────────────────
-    if (track.preset?.trajectory === 'GROUND_FISSURE' || track.spatialMode === 'GROUND_FISSURE') {
+    if (
+      topology === 'STAGGERED_ARRAY' ||
+      track.preset?.trajectory === 'GROUND_FISSURE' ||
+      track.spatialMode === 'GROUND_FISSURE' ||
+      shader === 'CONE_SPIKE'
+    ) {
       MeshLayerRenderer.updateGroundFissure(
         trackGroup,
         casterPos,
@@ -948,17 +969,58 @@ export class CombatFXEngine extends VFXPlayer {
     }
 
 
-    // 🚀 位移彈道 (TRAJECTORY)：沿軌跡運動之柔和發光彈道
+    // 🚀 14. 通用 3D 位移實體 (Universal 3D Projectile Mesh - 穿甲箭/狙擊彈/幾何核心)
+    // 拒絕以單顆發光球敷衍，嚴格支援 ARROW / DIAMOND / STAR / RING / SPHERE 真實 3D 幾何體
     trackGroup.position.copy(curPos);
-    trackGroup.lookAt(endPos);
+    if (curPos.distanceTo(endPos) > 0.01) {
+      trackGroup.lookAt(endPos);
+    }
 
     if (!cache.projectileGroup) {
       cache.projectileGroup = new THREE.Group();
-      const glow = this.createGlowSprite(track.colorRim, 45 * sc, 0.85);
+      const shape = track.coreMeshShape || (track.shape !== 'CRESCENT' ? track.shape : undefined) || track.preset?.coreMeshShape || track.preset?.shape || 'ARROW';
+      let geo: THREE.BufferGeometry;
+      if (shape === 'SPHERE') {
+        geo = new THREE.SphereGeometry(10 * sc, 16, 16);
+      } else if (shape === 'DIAMOND') {
+        geo = new THREE.OctahedronGeometry(11 * sc, 0);
+      } else if (shape === 'STAR') {
+        geo = new THREE.DodecahedronGeometry(9 * sc, 0);
+      } else if (shape === 'RING') {
+        geo = new THREE.TorusGeometry(10 * sc, 3 * sc, 8, 16);
+      } else {
+        // 預設 ARROW：錐形穿甲箭尖/破空矢身，精準指向飛行向量 (-Z)
+        geo = new THREE.ConeGeometry(5.5 * sc, 36 * sc, 8);
+        geo.rotateX(-Math.PI / 2);
+      }
+
+      const brightness = Math.max(0.2, track.preset?.coreBrightness ?? 1.2);
+      const baseColor = new THREE.Color(track.colorCore || '#ffffff');
+      baseColor.multiplyScalar(brightness);
+
+      const mat = new THREE.MeshBasicMaterial({
+        color: baseColor,
+        transparent: true,
+        opacity: Math.min(1.0, 0.95 * fadeAlpha),
+        blending: THREE.AdditiveBlending
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      const glow = this.createGlowSprite(
+        track.colorRim || '#38bdf8',
+        (track.preset?.glowRadius || 50) * sc,
+        Math.min(0.85, (track.preset?.glowOpacity ?? 0.85) * fadeAlpha)
+      );
+
+      cache.projectileGroup.add(mesh);
       cache.projectileGroup.add(glow);
+      cache.projectileMesh = mesh;
+      cache.projectileGlow = glow;
       trackGroup.add(cache.projectileGroup);
     }
     cache.projectileGroup.visible = true;
+    if (cache.projectileMesh?.material) {
+      (cache.projectileMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(1.0, 0.95 * fadeAlpha);
+    }
   }
 
   public clearStudioPreview(): void {
@@ -1010,8 +1072,8 @@ export class CombatFXEngine extends VFXPlayer {
   // ─────────────────────────────────────────────────────────────
   // 🌟 VFX 預設庫與打擊感統一驅動中樞 (Preset-Driven Impact Pipeline)
   // ─────────────────────────────────────────────────────────────
-  public getPreset(id: string): VFXPreset | undefined {
-    return VFXPresetRepository.getInstance().getPreset(id);
+  public getPreset(id: string): VFXSequence | undefined {
+    return VFXPresetRepository.getInstance().getSequence(id);
   }
 
   /**

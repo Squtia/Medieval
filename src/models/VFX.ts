@@ -20,7 +20,7 @@ export type VFXShaderMode =
   | 'HOLY_LIGHT'           // 神聖光耀天罰柱
   | 'DARK_VOID'            // 暗影虛空侵蝕
   | 'SLASH_BLADE'          // 刀刃弧芒與殘影斬光
-  | 'EARTH_SHATTER';       // 碎石崩裂與重擊震波
+  | 'EARTH_SHATTER';       // ⛰️ 地刺與重擊震波 (Earth Spike & Ground Shatter)
 
 export interface VFXImpactConfig {
   hitStopTime: number;          // 命中瞬間定格時間 (ms，例如 30~80ms，營造砍入肉裡的重量感)
@@ -58,29 +58,33 @@ export interface VFXPreset {
   
   // 視覺渲染與渲染器形態
   rendererType?: VFXRendererType;
-  trajectory: VFXTrajectory;
+  spatialTopology?: VFXSpatialTopology; // 規範新版：空間傳播形態 (POINT_TRANSPORT | SPAN_BEAM | STAGGERED_ARRAY | LOCAL_MORPH)
+  trajectory?: VFXTrajectory;
   spatialMode?: VFXSpatialMode; // 規範新版：時空發生模式 (AT_CASTER | AT_TARGET | 5大彈道路徑)
   trajectoryPath?: VFXTrajectoryPath; // 5 大幾何彈道路徑
   reverse?: boolean;            // 🔄 反向開關 (例如 B➔A 吸血、垂直沖天、斜向擊飛)
-  shaderMode: VFXShaderMode;
+  slashAlignToPath?: boolean;   // 劍氣是否自動對齊飛行向量 (預設 true)
+  spikeArrayBehavior?: SpikeArrayBehavior; // 沿途地刺動畫模式 (PERSIST_FADE | SURGE_RECEDE)
+  spikeArrayCount?: number;     // 沿途連鎖尖刺數量 (預設 5，範圍 2~12)
+  shaderMode?: VFXShaderMode;
   colorCore: string;
   colorRim: string;
   duration: number;             // 飛行/動畫總時間 (s)
   mainDelay?: number;           // 主軌前搖延遲 (s，預設 0.0s)
   mainDuration?: number;        // 主軌有效播放時長 (s，預設等於或小於 duration)
   scale: number;                // 尺寸比例
-  spin: number;                 // 自轉速度
-  fresnel: number;              // 邊緣高光權重
-  trailCount: number;           // 拖尾粒子數
-  trailSize: number;            // 拖尾尺寸
+  spin?: number;                // 自轉速度
+  fresnel?: number;             // 邊緣高光權重
+  trailCount?: number;          // 拖尾粒子數
+  trailSize?: number;           // 拖尾尺寸
   enableTrail?: boolean;        // 是否啟用軌跡/刀尖拖尾
   trailColor?: string;          // 拖尾粒子自訂顏色 (留空則跟隨 colorRim)
-  spikes: number;               // 次生尖刺/碎屑數量
-  spikeHeight: number;          // 尖刺高度
-  burstCount: number;           // 命中爆散粒子數
-  bloomStr: number;             // 發光光學強度
-  bloomRad: number;             // 輝光模糊半徑
-  bloomThresh: number;          // 輝光閾值
+  spikes?: number;              // 次生尖刺/碎屑數量
+  spikeHeight?: number;         // 尖刺高度
+  burstCount?: number;          // 命中爆散粒子數
+  bloomStr?: number;            // 發光光學強度
+  bloomRad?: number;            // 輝光模糊半徑
+  bloomThresh?: number;         // 輝光閾值
 
   // 💡 精準光學與泛光控制
   glowRadius?: number;          // 光暈面片半徑 (px，預設 80，範圍 10~220)
@@ -136,7 +140,7 @@ export interface VFXPreset {
   wavePlane?: 'CAMERA' | 'GROUND'; // 擴散平面 (CAMERA=面朝鏡頭，GROUND=水平地面)
   
   // 戰鬥打擊感與節奏斷點參數
-  impact: VFXImpactConfig;
+  impact?: VFXImpactConfig;
 
   // 🏃 施術者發力動作與反饋 (Caster Action Motion)
   casterMotion?: VFXCasterMotionConfig;
@@ -147,6 +151,10 @@ export interface VFXPreset {
   hitCount?: number;
   impactCues?: VFXImpactCue[];  // 具名時間軸 Impact Cue
   impactPresentationMode?: ImpactPresentationMode; // 傷害數值呈現模式
+
+  // 🌟 Schema v2 軌道制完全閉合支援
+  tracks?: VFXTrack[];
+  schemaVersion?: number;
 }
 
 export interface VFXCasterMotionConfig {
@@ -160,10 +168,14 @@ export interface VFXLayer {
   id?: string;
   name?: string;
   presetId?: string;           // 引用現有特效庫之 Preset ID 單元 (積木組合)
+  spatialTopology?: VFXSpatialTopology;
   trajectory?: VFXTrajectory;
   spatialMode?: VFXSpatialMode; // 原地類 或 5種彈道路徑之一
   trajectoryPath?: VFXTrajectoryPath;
   reverse?: boolean;           // 🔄 是否反向運動
+  slashAlignToPath?: boolean;
+  spikeArrayBehavior?: SpikeArrayBehavior;
+  spikeArrayCount?: number;
   enabled?: boolean;           // 是否啟用 (false 即 Mute 靜音)
   shaderMode?: VFXShaderMode;
   colorCore?: string;
@@ -227,9 +239,28 @@ export interface VFXMeshClipPayload {
   spikeHeight?: number;
   spikeAngle?: number;
   spikes?: number;
+  spikeRadius?: number;
+  spikeStagger?: number;
   spikeMaterialMode?: 'BASIC' | 'PHONG';
+  spikeEruptFire?: boolean;
+  salvoCount?: number;
+  salvoDuration?: number;
+  salvoRhythmCurve?: SalvoRhythmCurve;
+  salvoSpreadAngle?: number;
+  salvoSpreadRadius?: number;
+  arcHeight?: number;
+  multiHitImpact?: boolean;
+  glowRadius?: number;
+  glowOpacity?: number;
+  coreBrightness?: number;
+  flameTurbulence?: number;
+  flameTurbulenceSpeed?: number;
   reverse?: boolean;
   spatialMode?: VFXSpatialMode;
+  spatialTopology?: VFXSpatialTopology;
+  slashAlignToPath?: boolean;
+  spikeArrayBehavior?: SpikeArrayBehavior;
+  spikeArrayCount?: number;
 }
 
 export interface VFXParticleClipPayload {
@@ -275,7 +306,38 @@ export interface VFXCompositeLayerClipPayload {
   generatesHit?: boolean;
 }
 
-export interface VFXSlashClipPayload {
+export interface SlashGeometryInput {
+  shape?: 'CRESCENT' | 'CROSS' | 'WHIRLWIND' | string;
+  slashShape?: 'CRESCENT' | 'CROSS' | 'WHIRLWIND' | string;
+  radius?: number;
+  slashRadius?: number;
+  bladeWidth?: number;
+  slashBladeWidth?: number;
+  arcSpan?: number;
+  slashArcSpan?: number;
+  rotX?: number;
+  slashRotX?: number;
+  rotY?: number;
+  slashRotY?: number;
+  rotZ?: number;
+  slashRotZ?: number;
+  angle?: number;
+  slashAngle?: number;
+  aspect?: number;
+  slashAspect?: number;
+  reverse?: boolean;
+  slashReverse?: boolean;
+  angleJitter?: number;
+  slashAngleJitter?: number;
+  isAlternating?: boolean;
+  slashAlternating?: boolean;
+  slashTrajectory?: 'CLEAVE_DOWN' | 'UPPER_CUT' | 'HORIZONTAL' | 'VERTICAL_DOWN' | 'CUSTOM';
+  colorCore?: string;
+  colorRim?: string;
+  scale?: number;
+}
+
+export interface VFXSlashClipPayload extends SlashGeometryInput {
   rendererType: 'SLASH';
   colorCore?: string;
   colorRim?: string;
@@ -312,6 +374,11 @@ export interface VFXProjectileClipPayload {
   path?: VFXTrajectoryPath;
   reverse?: boolean;
   arcHeight?: number;
+  salvoCount?: number;
+  salvoDuration?: number;
+  salvoRhythmCurve?: SalvoRhythmCurve;
+  salvoSpreadAngle?: number;
+  salvoSpreadRadius?: number;
   salvo?: {
     count: number;
     duration: number;
@@ -368,12 +435,152 @@ export interface VFXSequence {
   impactPresentationMode?: ImpactPresentationMode;
   quality?: VFXQualityProfile;
   metadata?: Record<string, any>;
+  layers?: VFXLayer[];
+}
+
+/**
+ * 🔄 將舊版扁平 VFXPreset 100% 確定性升級為 Schema v2 的純 VFXSequence
+ */
+export function presetToSequence(preset: VFXPreset): VFXSequence {
+  if ((preset as any).tracks && Array.isArray((preset as any).tracks)) {
+    return preset as unknown as VFXSequence;
+  }
+  const dur = preset.duration || 0.5;
+  const isMelee = preset.rendererType === 'SLASH' || preset.trajectory === 'MELEE_SWEEP';
+  const mainTrackType: VFXTrackType = isMelee ? 'SLASH' : (preset.rendererType === 'PROJECTILE' ? 'PROJECTILE' : 'MESH');
+
+  const mainClipPayload: any = {
+    rendererType: mainTrackType,
+    shaderMode: preset.shaderMode,
+    colorCore: preset.colorCore,
+    colorRim: preset.colorRim,
+    scale: preset.scale ?? 1.0,
+    spin: preset.spin,
+    fresnel: preset.fresnel,
+    glowRadius: preset.glowRadius,
+    glowOpacity: preset.glowOpacity,
+    coreBrightness: preset.coreBrightness,
+    flameTurbulence: preset.flameTurbulence,
+    flameTurbulenceSpeed: preset.flameTurbulenceSpeed,
+    spikes: preset.spikes,
+    spikeHeight: preset.spikeHeight,
+    spikeWidth: preset.spikeWidth,
+    spikeRadius: preset.spikeRadius,
+    spikeAngle: preset.spikeAngle,
+    spikeStagger: preset.spikeStagger,
+    spikeShape: preset.spikeShape,
+    spikeMaterialMode: preset.spikeMaterialMode,
+    spikeEruptFire: preset.spikeEruptFire,
+    salvoCount: preset.salvoCount,
+    salvoDuration: preset.salvoDuration,
+    salvoRhythmCurve: preset.salvoRhythmCurve,
+    salvoSpreadAngle: preset.salvoSpreadAngle,
+    salvoSpreadRadius: preset.salvoSpreadRadius,
+    arcHeight: preset.arcHeight,
+    multiHitImpact: preset.multiHitImpact,
+    reverse: preset.reverse,
+    spatialMode: preset.spatialMode,
+    slashShape: preset.slashShape,
+    slashTrajectory: preset.slashTrajectory,
+    slashAngle: preset.slashAngle,
+    slashRotX: preset.slashRotX,
+    slashRotY: preset.slashRotY,
+    slashRotZ: preset.slashRotZ,
+    slashArcSpan: preset.slashArcSpan,
+    slashAspect: preset.slashAspect,
+    slashReverse: preset.slashReverse,
+    slashBladeWidth: preset.slashBladeWidth,
+    slashRadius: preset.slashRadius,
+    slashAngleJitter: preset.slashAngleJitter,
+    slashAlternating: preset.slashAlternating
+  };
+
+  const tracks: VFXTrack[] = [
+    {
+      id: 'trk_main',
+      name: 'Main Track',
+      type: mainTrackType,
+      clips: [
+        {
+          id: 'clip_main_0',
+          startTime: preset.mainDelay || 0,
+          duration: preset.mainDuration !== undefined ? preset.mainDuration : dur,
+          payload: {
+            type: mainTrackType,
+            data: mainClipPayload
+          }
+        }
+      ]
+    },
+    {
+      id: 'trk_particles',
+      name: 'Particles',
+      type: 'PARTICLE',
+      clips: [
+        {
+          id: 'clip_part_0',
+          startTime: 0,
+          duration: dur,
+          payload: {
+            type: 'PARTICLE',
+            data: {
+              burstCount: preset.burstCount,
+              trailCount: preset.trailCount,
+              trailSize: preset.trailSize,
+              enableTrail: preset.enableTrail,
+              trailColor: preset.trailColor,
+              bloomStr: preset.bloomStr,
+              bloomRad: preset.bloomRad,
+              bloomThresh: preset.bloomThresh
+            }
+          }
+        }
+      ]
+    }
+  ];
+
+  if (preset.impact) {
+    tracks.push({
+      id: 'trk_impact',
+      name: 'Impact Feedback',
+      type: 'IMPACT',
+      clips: [
+        {
+          id: 'clip_impact_0',
+          startTime: (preset.impactCues && preset.impactCues[0]) ? preset.impactCues[0].time : dur * 0.6,
+          duration: preset.impact.shakeDuration || 0.25,
+          payload: {
+            type: 'IMPACT',
+            data: { ...preset.impact }
+          }
+        }
+      ]
+    });
+  }
+
+  return {
+    schemaVersion: CANONICAL_SEQUENCE_SCHEMA_VERSION,
+    id: preset.id,
+    name: preset.name || preset.id,
+    category: preset.category || 'SPECIAL',
+    description: preset.description || '',
+    duration: dur,
+    spatialMode: preset.spatialMode,
+    casterMotion: preset.casterMotion,
+    tracks,
+    impactCues: preset.impactCues || [
+      { cueId: 'default', time: dur * 0.6, weight: 1.0, isPrimary: true }
+    ],
+    impactPresentationMode: preset.impactPresentationMode,
+    layers: preset.layers
+  };
 }
 
 /**
  * 🔍 取得 Sequence 的主要視覺軌 (Main Track / 第一條 MESH 或主特效軌)
  */
 export function getSequenceMainTrack(sequence: VFXSequence): VFXTrack | undefined {
+  if (!sequence || !Array.isArray(sequence.tracks)) return undefined;
   return sequence.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH') || sequence.tracks[0];
 }
 
@@ -382,15 +589,16 @@ export function getSequenceMainTrack(sequence: VFXSequence): VFXTrack | undefine
  */
 export function getSequenceMainClip(sequence: VFXSequence): VFXClip | undefined {
   const mainTrack = getSequenceMainTrack(sequence);
-  return mainTrack?.clips[0];
+  return mainTrack?.clips?.[0];
 }
 
 /**
  * 🔍 取得 Sequence 的受擊反饋設定 (ImpactConfig)
  */
 export function getSequenceImpactConfig(sequence: VFXSequence): VFXImpactConfig | undefined {
+  if (!sequence || !Array.isArray(sequence.tracks)) return undefined;
   const impactTrack = sequence.tracks.find(t => t.type === 'IMPACT');
-  const clip = impactTrack?.clips.find(c => c.payload.type === 'IMPACT');
+  const clip = impactTrack?.clips?.find(c => c.payload.type === 'IMPACT');
   return clip ? (clip.payload.data as VFXImpactConfig) : undefined;
 }
 
@@ -398,8 +606,9 @@ export function getSequenceImpactConfig(sequence: VFXSequence): VFXImpactConfig 
  * 🔍 取得 Sequence 的粒子發射設定 (ParticlePayload)
  */
 export function getSequenceParticlePayload(sequence: VFXSequence): VFXParticleClipPayload | undefined {
+  if (!sequence || !Array.isArray(sequence.tracks)) return undefined;
   const partTrack = sequence.tracks.find(t => t.type === 'PARTICLE');
-  const clip = partTrack?.clips.find(c => c.payload.type === 'PARTICLE');
+  const clip = partTrack?.clips?.find(c => c.payload.type === 'PARTICLE');
   return clip ? (clip.payload.data as VFXParticleClipPayload) : undefined;
 }
 
@@ -434,6 +643,18 @@ export type VFXTrajectoryPath =
   | 'VERTICAL_SKY_TO_B'
   | 'A_TO_DIAGONAL_SKY'
   | 'DIAGONAL_SKY_TO_B';
+
+/**
+ * 🌐 空間傳播形態 (Spatial Topology)
+ * 規範新版：將特效存在方式與幾何網格徹底解耦
+ */
+export type VFXSpatialTopology =
+  | 'POINT_TRANSPORT'   // 質點運動（火球、箭矢、飛出劍氣）
+  | 'SPAN_BEAM'          // 跨空間能量柱（天雷、連鎖電弧、貫穿光束）
+  | 'STAGGERED_ARRAY'    // 沿途連鎖陣列（連鎖破土尖刺、地火、冰霜小徑）
+  | 'LOCAL_MORPH';       // 原地幾何展開（近戰重劈、護盾、戰吼）
+
+export type SpikeArrayBehavior = 'PERSIST_FADE' | 'SURGE_RECEDE';
 
 /**
  * 🌐 完整的時空發生模式 (包含 3 大核心模式與相容擴展)

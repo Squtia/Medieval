@@ -1,4 +1,13 @@
-import { VFXPreset, VFXImpactCue, ImpactPresentationMode } from '../../../models/VFX';
+import { 
+  VFXPreset, 
+  VFXImpactCue, 
+  VFXLayer, 
+  ImpactPresentationMode, 
+  getSequenceMainClip,
+  VFXShaderMode,
+  VFXTrajectory,
+  VFXTrajectoryPath
+} from '../../../models/VFX';
 import { VFXStudioStore } from '../VFXStudioStore';
 import { FrameTimelineEngine } from '../FrameTimelineEngine';
 import { VFXPlayer } from '../../../ui/fx/VFXPlayer';
@@ -136,72 +145,62 @@ export class TimelineInteraction {
     const numInput = this.container.querySelector('#tl-input-duration') as HTMLInputElement | null;
     const rangeInput = this.container.querySelector('#tl-range-duration') as HTMLInputElement | null;
     const overflowDialog = this.container.querySelector('#tl-duration-overflow-dialog') as HTMLElement | null;
-    const overflowList = this.container.querySelector('#tl-overflow-items-list') as HTMLElement | null;
-    const btnExtend = this.container.querySelector('#tl-btn-dur-extend') as HTMLButtonElement | null;
-    const btnScale = this.container.querySelector('#tl-btn-dur-scale') as HTMLButtonElement | null;
-    const btnCancel = this.container.querySelector('#tl-btn-dur-cancel') as HTMLButtonElement | null;
 
-    let pendingTargetDuration: number | null = null;
-    let requiredMaxDuration = 0;
-
-    const checkOverflow = (targetDur: number): string[] => {
-      const preset = this.store.getPreset();
-      const overflows: string[] = [];
-      requiredMaxDuration = targetDur;
-
-      // 檢查主軌
-      const mainEnd = (preset.mainDelay || 0) + (preset.mainDuration !== undefined ? preset.mainDuration : (preset.duration - (preset.mainDelay || 0)));
-      if (mainEnd > targetDur + 0.001) {
-        overflows.push(`👑 主圖層: 結束時間 ${mainEnd.toFixed(2)}s (超出 ${(mainEnd - targetDur).toFixed(2)}s)`);
-        requiredMaxDuration = Math.max(requiredMaxDuration, mainEnd);
-      }
-
-      // 檢查副圖層
-      (preset.layers || []).forEach((l: any, idx: number) => {
-        const lEnd = (l.delay || 0) + (l.duration || 0.2);
-        if (lEnd > targetDur + 0.001) {
-          overflows.push(`🔮 圖層 #${idx + 1} (${l.presetId || l.id || '圖層'}): 結束時間 ${lEnd.toFixed(2)}s (超出 ${(lEnd - targetDur).toFixed(2)}s)`);
-          requiredMaxDuration = Math.max(requiredMaxDuration, lEnd);
-        }
-      });
-
-      // 檢查 Cue
-      (preset.impactCues || []).forEach((c: any, idx: number) => {
-        if (c.time > targetDur + 0.001) {
-          overflows.push(`🎯 Cue #${idx + 1} (${c.cueId}): 時間點 ${c.time.toFixed(2)}s (超出 ${(c.time - targetDur).toFixed(2)}s)`);
-          requiredMaxDuration = Math.max(requiredMaxDuration, c.time);
-        }
-      });
-
-      return overflows;
-    };
-
-    const applyDurationDirectly = (val: number) => {
-      this.store.recordSnapshot();
-      this.store.updateConfig({ duration: Number(val.toFixed(2)) }, true);
-      this.callbacks.requestRender();
-    };
+    if (overflowDialog) overflowDialog.style.display = 'none';
 
     const handleDurationChange = (val: number) => {
       if (Number.isNaN(val) || val < 0.1 || val > 5.0) return;
       const targetVal = Number(val.toFixed(2));
 
-      // 雙向同步顯示
+      // 雙向同步數值顯示
       if (numInput) numInput.value = targetVal.toFixed(2);
       if (rangeInput) rangeInput.value = targetVal.toFixed(2);
 
-      const overflows = checkOverflow(targetVal);
-      if (overflows.length > 0) {
-        // 依文件 §5.5：若縮短後會超出，顯示確認區塊，列出超出的項目
-        pendingTargetDuration = targetVal;
-        if (overflowList) {
-          overflowList.innerHTML = overflows.map(item => `<div>• ${item}</div>`).join('');
-        }
-        if (overflowDialog) overflowDialog.style.display = 'block';
-      } else {
-        if (overflowDialog) overflowDialog.style.display = 'none';
-        applyDurationDirectly(targetVal);
+      const currentSeq = this.store.getSequence();
+      const mainClip = getSequenceMainClip(currentSeq);
+      const preset = this.store.getPreset();
+
+      // 1. 精確計算主圖層實際起點與長度 (主圖層合法小於等於總時長)
+      const startDelay = Math.max(0, mainClip?.startTime ?? (preset.mainDelay || 0));
+      const currentMainDur = Math.max(0.05, mainClip?.duration ?? (preset.mainDuration !== undefined ? preset.mainDuration : (preset.duration - startDelay)));
+
+      // 2. 智慧夾緊 (Auto-Clamp)：若縮短後總時長小於主圖層結束時間，平滑縮短主圖層以適應新時長
+      let newMainDelay = startDelay;
+      if (newMainDelay >= targetVal) {
+        newMainDelay = Math.max(0, Number((targetVal - 0.05).toFixed(2)));
       }
+      const maxMainDur = Math.max(0.05, Number((targetVal - newMainDelay).toFixed(2)));
+      const newMainDuration = Math.min(currentMainDur, maxMainDur);
+
+      // 3. 智慧夾緊副圖層
+      const newLayers: VFXLayer[] = (preset.layers || []).map((l: VFXLayer) => {
+        let lDelay = Math.max(0, l.delay || 0);
+        if (lDelay >= targetVal) lDelay = Math.max(0, Number((targetVal - 0.05).toFixed(2)));
+        const maxLDur = Math.max(0.05, Number((targetVal - lDelay).toFixed(2)));
+        const lDur = Math.min(l.duration || 0.2, maxLDur);
+        return {
+          ...l,
+          delay: lDelay,
+          duration: Number(lDur.toFixed(2))
+        };
+      });
+
+      // 4. 智慧夾緊打擊 Cue
+      const newCues: VFXImpactCue[] = (preset.impactCues || []).map((c: VFXImpactCue) => ({
+        ...c,
+        time: Number(Math.min(targetVal, c.time).toFixed(2))
+      }));
+
+      this.store.recordSnapshot();
+      this.store.updateConfig({
+        duration: targetVal,
+        mainDelay: newMainDelay,
+        mainDuration: newMainDuration,
+        layers: newLayers,
+        impactCues: newCues
+      }, true);
+
+      this.callbacks.requestRender();
     };
 
     numInput?.addEventListener('change', (e) => {
@@ -215,61 +214,6 @@ export class TimelineInteraction {
 
     rangeInput?.addEventListener('change', (e) => {
       handleDurationChange(parseFloat((e.target as HTMLInputElement).value));
-    });
-
-    // 選擇 1: 「延長 sequence」配合項目
-    btnExtend?.addEventListener('click', () => {
-      if (overflowDialog) overflowDialog.style.display = 'none';
-      const extendedDuration = Number(Math.min(5.0, requiredMaxDuration).toFixed(2));
-      applyDurationDirectly(extendedDuration);
-    });
-
-    // 選擇 2: 「按比例縮放全部」
-    btnScale?.addEventListener('click', () => {
-      if (overflowDialog) overflowDialog.style.display = 'none';
-      if (pendingTargetDuration === null) return;
-      const preset = this.store.getPreset();
-      const oldDur = preset.duration || 1.0;
-      const scaleRatio = pendingTargetDuration / oldDur;
-
-      this.store.recordSnapshot();
-
-      // 縮放主軌
-      const newMainDelay = Number(((preset.mainDelay || 0) * scaleRatio).toFixed(2));
-      const currentMainDur = preset.mainDuration !== undefined ? preset.mainDuration : (oldDur - (preset.mainDelay || 0));
-      const newMainDuration = Number((currentMainDur * scaleRatio).toFixed(2));
-
-      // 縮放副圖層
-      const newLayers = (preset.layers || []).map((l: any) => ({
-        ...l,
-        delay: Number(((l.delay || 0) * scaleRatio).toFixed(2)),
-        duration: Number(((l.duration || 0.2) * scaleRatio).toFixed(2))
-      }));
-
-      // 縮放 Cue
-      const newCues = (preset.impactCues || []).map((c: any) => ({
-        ...c,
-        time: Number((c.time * scaleRatio).toFixed(2))
-      }));
-
-      this.store.updateConfig({
-        duration: pendingTargetDuration,
-        mainDelay: newMainDelay,
-        mainDuration: newMainDuration,
-        layers: newLayers,
-        impactCues: newCues
-      }, true);
-
-      this.callbacks.requestRender();
-    });
-
-    // 選擇 3: 「取消」
-    btnCancel?.addEventListener('click', () => {
-      if (overflowDialog) overflowDialog.style.display = 'none';
-      const currentDur = this.store.getPreset().duration || 1.0;
-      if (numInput) numInput.value = currentDur.toFixed(2);
-      if (rangeInput) rangeInput.value = currentDur.toFixed(2);
-      pendingTargetDuration = null;
     });
   }
 
@@ -522,23 +466,37 @@ export class TimelineInteraction {
       mainHandle.setPointerCapture(e.pointerId);
 
       const trackRect = mainTrackBar.getBoundingClientRect();
-      const currentPreset = this.store.getPreset();
-      const startDelay = Math.max(0, currentPreset.mainDelay || 0);
-      const initialDuration = Math.max(0.05, currentPreset.mainDuration !== undefined ? currentPreset.mainDuration : (duration - startDelay));
+      const currentSeq = this.store.getSequence();
+      const mainClipModel = getSequenceMainClip(currentSeq);
+      const startDelay = Math.max(0, mainClipModel?.startTime ?? 0);
+      const initialDuration = Math.max(0.05, mainClipModel?.duration ?? (duration - startDelay));
       let lastDuration = initialDuration;
       let hasResized = false;
 
       this.store.recordSnapshot();
 
+      let currentTotalDuration = duration;
+
       const onHandleMove = (moveEvt: PointerEvent) => {
         hasResized = true;
-        const offsetX = Math.max(0, Math.min(moveEvt.clientX - trackRect.left, trackRect.width));
-        const pointerTime = (offsetX / trackRect.width) * duration;
-        const maxDur = Math.max(0.05, duration - startDelay);
+        const rawOffsetX = moveEvt.clientX - trackRect.left;
+
+        // 若滑鼠往右拖曳超出時間軸且總時長小於 5.0s，自適應動態延展總時長
+        if (rawOffsetX > trackRect.width && currentTotalDuration < 5.0) {
+          const projectedDuration = Math.min(5.0, Number(((rawOffsetX / Math.max(1, trackRect.width)) * currentTotalDuration).toFixed(2)));
+          if (projectedDuration > currentTotalDuration) {
+            currentTotalDuration = projectedDuration;
+            this.store.updateConfig({ duration: currentTotalDuration }, false);
+          }
+        }
+
+        const effectiveWidth = Math.max(1, trackRect.width);
+        const pointerTime = (Math.max(0, Math.min(rawOffsetX, effectiveWidth)) / effectiveWidth) * currentTotalDuration;
+        const maxDur = Math.max(0.05, currentTotalDuration - startDelay);
         const newDur = Math.max(0.05, Math.min(maxDur, pointerTime - startDelay));
         lastDuration = Number(newDur.toFixed(2));
 
-        const durPct = Math.min(100 - ((startDelay / duration) * 100), Math.max(5, (lastDuration / duration) * 100));
+        const durPct = Math.min(100 - ((startDelay / currentTotalDuration) * 100), Math.max(5, (lastDuration / currentTotalDuration) * 100));
         mainClip.style.width = `${durPct}%`;
 
         this.store.updateConfig({ mainDuration: lastDuration }, false);
@@ -551,8 +509,11 @@ export class TimelineInteraction {
         mainHandle.removeEventListener('pointerup', onHandleUp);
         mainHandle.removeEventListener('pointercancel', onHandleUp);
 
-        if (hasResized && lastDuration !== initialDuration) {
-          this.store.updateConfig({ mainDuration: lastDuration }, false);
+        if (hasResized && (lastDuration !== initialDuration || currentTotalDuration !== duration)) {
+          this.store.updateConfig({ 
+            duration: currentTotalDuration,
+            mainDuration: lastDuration 
+          }, false);
         }
         this.callbacks.requestRender();
       };
@@ -576,9 +537,10 @@ export class TimelineInteraction {
       mainClip.setPointerCapture(e.pointerId);
 
       const trackRect = mainTrackBar.getBoundingClientRect();
-      const currentPreset = this.store.getPreset();
-      const curDuration = Math.max(0.05, currentPreset.mainDuration !== undefined ? currentPreset.mainDuration : (duration - (currentPreset.mainDelay || 0)));
-      const initialDelay = Math.max(0, currentPreset.mainDelay || 0);
+      const currentSeq = this.store.getSequence();
+      const mainClipModel = getSequenceMainClip(currentSeq);
+      const initialDelay = Math.max(0, mainClipModel?.startTime || 0);
+      const curDuration = Math.max(0.05, mainClipModel?.duration ?? (duration - initialDelay));
       const clickOffsetTime = ((e.clientX - mainClip.getBoundingClientRect().left) / trackRect.width) * duration;
       let lastDelay = initialDelay;
       let hasMoved = false;
@@ -624,10 +586,10 @@ export class TimelineInteraction {
    * 7. 次生圖層快捷新增、素材切換下拉選單、淡入淡出面板
    */
   private bindLayerButtonsAndPresets(duration: number): void {
-    const addLayerWithConfig = (partialConfig: any) => {
+    const addLayerWithConfig = (partialConfig: Partial<VFXLayer>) => {
       const currentPreset = this.store.getPreset();
       const curLayers = currentPreset.layers || [];
-      const newLayer = {
+      const newLayer: VFXLayer = {
         id: `layer_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         name: partialConfig.name || `圖層 ${curLayers.length + 1}`,
         spatialMode: partialConfig.spatialMode || 'A_TO_B',
@@ -636,8 +598,7 @@ export class TimelineInteraction {
         delay: partialConfig.delay !== undefined ? partialConfig.delay : Number(Math.min(duration * 0.8, duration * 0.15 * curLayers.length).toFixed(2)),
         duration: partialConfig.duration !== undefined ? partialConfig.duration : Number((duration * 0.4).toFixed(2)),
         scale: partialConfig.scale || 1.0,
-        enabled: true,
-        generatesHit: false
+        enabled: true
       };
       this.store.updateConfig({ layers: [...curLayers, newLayer] }, true);
       this.callbacks.requestRender();
@@ -704,15 +665,23 @@ export class TimelineInteraction {
           const repo = VFXPresetRepository.getInstance();
           const targetPreset = repo.getPreset(presetId);
           if (targetPreset) {
+            const targetMainClip = getSequenceMainClip(targetPreset);
+            interface TargetPresetClipData {
+              shaderMode?: VFXShaderMode;
+              trajectory?: VFXTrajectory;
+              trajectoryPath?: VFXTrajectoryPath;
+              reverse?: boolean;
+            }
+            const targetData = (targetMainClip?.payload?.data as TargetPresetClipData | undefined) || {};
             layers[layerIdx] = {
               ...layers[layerIdx],
               presetId: targetPreset.id,
               name: targetPreset.name,
-              shaderMode: targetPreset.shaderMode || 'ENERGY_BEAM',
+              shaderMode: targetData.shaderMode || 'ENERGY_BEAM',
               spatialMode: resolvePresetSpatialMode(targetPreset),
-              trajectory: targetPreset.trajectory,
-              trajectoryPath: targetPreset.trajectoryPath,
-              reverse: targetPreset.reverse || false
+              trajectory: targetData.trajectory,
+              trajectoryPath: targetData.trajectoryPath,
+              reverse: !!targetData.reverse
             };
             this.store.updateConfig({ layers }, true);
             this.callbacks.requestRender();

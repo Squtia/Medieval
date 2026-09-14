@@ -1,13 +1,13 @@
-import { VFXPreset, VFXSequence } from '../../models/VFX';
+import { VFXPreset, VFXSequence, presetToSequence } from '../../models/VFX';
 import defaultVFXSequences from '../../data/vfx_sequences.json';
 import { VFXPresetValidator } from './VFXPresetValidator';
 
 export interface VFXStorageSchema {
   version: number;
   customSequences?: VFXSequence[];
-  customPresets?: any[];
+  customPresets?: VFXSequence[];
   overrideSequences?: Record<string, Partial<VFXSequence>>;
-  overrides?: Record<string, any>;
+  overrides?: Record<string, Partial<VFXSequence>>;
   deletedCustomIds?: string[];
 }
 
@@ -134,19 +134,22 @@ export class VFXPresetRepository {
       }
     });
 
-    // 2. 加入自訂 Sequence (覆蓋或擴充)
+    // 2. 加入自訂 Sequence (若已有 override 覆寫，以最新草稿 override 為準，防止 LocalStorage 舊殘留快照逆向覆蓋)
     this.customSequences.forEach((seq, id) => {
+      if (this.overrideSequences.has(id)) {
+        return;
+      }
       this.resolvedSequenceMap.set(id, { ...seq });
     });
 
     this.notifyListeners();
   }
 
-  public getAllPresets(): any[] {
+  public getAllPresets(): VFXSequence[] {
     return this.getAllSequences();
   }
 
-  public getPreset(id: string): any | undefined {
+  public getPreset(id: string): VFXSequence | undefined {
     return this.getSequence(id);
   }
 
@@ -180,6 +183,8 @@ export class VFXPresetRepository {
 
     if (this.builtInSequences.has(sequence.id)) {
       this.overrideSequences.set(sequence.id, { ...sequence });
+      // 🛡️ 徹底拔除 LocalStorage 中自訂時期的舊殘留，避免逆向污染
+      this.customSequences.delete(sequence.id);
     } else {
       this.customSequences.set(sequence.id, { ...sequence });
     }
@@ -216,7 +221,7 @@ export class VFXPresetRepository {
   /**
    * 📝 將編輯器最新草稿寫回 Repository，使其在組裝發布清單時生效
    */
-  public upsertDraft(draft: VFXSequence | any): { success: boolean; error?: string } {
+  public upsertDraft(draft: VFXSequence): { success: boolean; error?: string } {
     if (!draft || !draft.id) {
       return { success: false, error: '草稿無效或缺少 ID' };
     }
@@ -224,10 +229,16 @@ export class VFXPresetRepository {
   }
 
   /**
-   * 儲存或更新自訂 Preset (相容適配層)
+   * 儲存或更新自訂 Preset (相容適配層，自動升級為 Sequence SSOT)
    */
-  public saveCustomPreset(preset: any): { success: boolean; error?: string } {
-    return this.saveSequence(preset);
+  public saveCustomPreset(preset: VFXPreset | VFXSequence): { success: boolean; error?: string } {
+    if (!preset || !preset.id) {
+      return { success: false, error: '預設無效或缺少 ID' };
+    }
+    const seq = (preset as any).tracks && Array.isArray((preset as any).tracks)
+      ? (preset as VFXSequence)
+      : presetToSequence(preset as VFXPreset);
+    return this.saveSequence(seq);
   }
 
   /**
@@ -265,7 +276,12 @@ export class VFXPresetRepository {
   public reloadPresets(newPresets?: VFXSequence[]): void {
     if (newPresets && Array.isArray(newPresets)) {
       this.builtInSequences.clear();
-      newPresets.forEach(p => this.builtInSequences.set(p.id, p));
+      newPresets.forEach(p => {
+        this.builtInSequences.set(p.id, p);
+        this.overrideSequences.delete(p.id);
+        this.customSequences.delete(p.id);
+      });
+      this.saveToStorage();
     } else {
       this.loadBuiltIn();
     }

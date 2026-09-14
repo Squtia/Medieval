@@ -1,6 +1,6 @@
 import { CombatEvent, CombatEventType } from '../../../models/Combat';
 import { CombatFXEngine, ScreenPoint } from '../CombatFXEngine';
-import { VFXImpactConfig, VFXImpactCue } from '../../../models/VFX';
+import { VFXImpactConfig, VFXImpactCue, getSequenceImpactConfig } from '../../../models/VFX';
 import { VFXPresetRepository } from '../VFXPresetRepository';
 import { CombatAction, CombatActionPlayer, CombatImpactPresentation, resolveActionMainTargetId } from '../CombatActionPlayer';
 import { ScreenFxRenderer } from '../renderers/ScreenFxRenderer';
@@ -207,8 +207,8 @@ export class CombatStageAdapter {
           skillName: item.skillName
         };
 
-        const preset = VFXPresetRepository.getInstance().getPreset(finalAction.vfxId || '');
-        const impactCfg = preset?.impact || null;
+        const seq = VFXPresetRepository.getInstance().getSequence(finalAction.vfxId || '');
+        const impactCfg = seq ? (getSequenceImpactConfig(seq) || null) : null;
 
         this.triggerHitFeedback(
           targetEl,

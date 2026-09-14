@@ -4402,7 +4402,7 @@ class CombatStudioController {
       if (ev.vfxId && ev.impactCount !== undefined) {
         const repo = VFXPresetRepository.getInstance();
         const p = repo.getPreset(ev.vfxId);
-        const cuesCount = p ? (p.hitCount || p.salvoCount || 1) : 1;
+        const cuesCount = p ? (p.impactCues?.length || (p as any).hitCount || (p as any).salvoCount || 1) : 1;
         if (ev.impactCount !== cuesCount) {
           warningTag = `<span class="cs-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.65rem;" title="戰鬥數值段數與視覺段數不一致">⚠️ impact(${ev.impactCount}) ≠ cue(${cuesCount})</span>`;
         }

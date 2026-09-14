@@ -1,4 +1,4 @@
-import { VFXPreset, getTrajectorySpatialAnchor } from '../../models/VFX';
+import { VFXSequence, getTrajectorySpatialAnchor, getSequenceMainClip } from '../../models/VFX';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 import { VFXPresetValidator } from '../../ui/fx/VFXPresetValidator';
 import { VFXStudioStore } from './VFXStudioStore';
@@ -7,35 +7,107 @@ import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingReg
 import { BasicAttackVfxRepository } from '../../systems/combat/BasicAttackVfxRepository';
 import { SkillVfxPickerModal } from './SkillVfxPickerModal';
 
-function deepEqual(a: any, b: any): boolean {
-  if (a === b) return true;
-  if (a == null || b == null) return false;
-  if (typeof a !== 'object' || typeof b !== 'object') return false;
-
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  if (Array.isArray(a)) {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-      if (!deepEqual(a[i], b[i])) return false;
-    }
-    return true;
-  }
-
-  const keysA = Object.keys(a).filter(k => a[k] !== undefined);
-  const keysB = Object.keys(b).filter(k => b[k] !== undefined);
-  if (keysA.length !== keysB.length) return false;
-  for (const key of keysA) {
-    if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
-    if (!deepEqual(a[key], b[key])) return false;
-  }
-  return true;
+/**
+ * 🛡️ 規範 §9.2、§9.3、§10 與 §11 強制：純淨強型別 VFXSequence 規格比對器
+ * 0 any、0 as any，嚴格比對 Canonical Sequence 核心屬性、軌道、片段、Cues
+ */
+export interface SequenceDiffResult {
+  isMatch: boolean;
+  reason?: string;
 }
 
-function isPresetDeepEqual(a: VFXPreset, b: VFXPreset): boolean {
-  if (!a || !b) return false;
-  const cleanA = VFXPresetRepository.sanitizePresetContent(a);
-  const cleanB = VFXPresetRepository.sanitizePresetContent(b);
-  return deepEqual(cleanA, cleanB);
+/**
+ * 🛡️ 規範 §9.2、§9.3、§10 與 §11 強制：純淨強型別 VFXSequence 規格比對器
+ * 0 any、0 as any，嚴格比對 Canonical Sequence 核心屬性、軌道、片段、Cues
+ */
+export function checkSequenceDeepEqual(a: VFXSequence, b: VFXSequence): SequenceDiffResult {
+  if (!a || !b) return { isMatch: false, reason: 'Sequence 物件為空 (Null/Undefined)' };
+  if (a.id !== b.id) return { isMatch: false, reason: `ID 不一致 (草稿: ${a.id}, 回讀: ${b.id})` };
+  if (a.schemaVersion !== b.schemaVersion) return { isMatch: false, reason: `schemaVersion 不一致` };
+  if (a.name !== b.name) return { isMatch: false, reason: `名稱不一致 (草稿: ${a.name}, 回讀: ${b.name})` };
+  if (a.category !== b.category) return { isMatch: false, reason: `分類不一致` };
+  if (Math.abs(a.duration - b.duration) > 0.001) return { isMatch: false, reason: `時長 duration 不一致 (草稿: ${a.duration}, 回讀: ${b.duration})` };
+  if ((a.spatialMode || 'TRAJECTORY') !== (b.spatialMode || 'TRAJECTORY')) {
+    return { isMatch: false, reason: `時空模式 spatialMode 不一致 (草稿: ${a.spatialMode}, 回讀: ${b.spatialMode})` };
+  }
+  if ((a.impactPresentationMode || 'EXACT_IMPACTS') !== (b.impactPresentationMode || 'EXACT_IMPACTS')) {
+    return { isMatch: false, reason: `打擊演出模式 impactPresentationMode 不一致` };
+  }
+
+  // 比對 impactCues
+  const cuesA = a.impactCues || [];
+  const cuesB = b.impactCues || [];
+  if (cuesA.length !== cuesB.length) {
+    return { isMatch: false, reason: `打擊 Cue 數量不一致 (草稿: ${cuesA.length}, 回讀: ${cuesB.length})` };
+  }
+  for (let i = 0; i < cuesA.length; i++) {
+    const ca = cuesA[i];
+    const cb = cuesB[i];
+    if (ca.cueId !== cb.cueId) return { isMatch: false, reason: `Cue[${i}] ID 不一致 (${ca.cueId} vs ${cb.cueId})` };
+    if (Math.abs(ca.time - cb.time) > 0.001) return { isMatch: false, reason: `Cue[${i}] 時間不一致 (${ca.time} vs ${cb.time})` };
+    if ((ca.kind || 'IMPACT') !== (cb.kind || 'IMPACT')) return { isMatch: false, reason: `Cue[${i}] 類型不一致` };
+    if (Boolean(ca.isPrimary) !== Boolean(cb.isPrimary)) return { isMatch: false, reason: `Cue[${i}] 主打擊點標記不一致` };
+  }
+
+  // 比對 tracks
+  const tracksA = a.tracks || [];
+  const tracksB = b.tracks || [];
+  if (tracksA.length !== tracksB.length) {
+    return { isMatch: false, reason: `軌道數量不一致 (草稿: ${tracksA.length}, 回讀: ${tracksB.length})` };
+  }
+  for (let t = 0; t < tracksA.length; t++) {
+    const ta = tracksA[t];
+    const tb = tracksB[t];
+    if (ta.id !== tb.id) return { isMatch: false, reason: `軌道[${t}] ID 不一致 (${ta.id} vs ${tb.id})` };
+    if (ta.type !== tb.type) return { isMatch: false, reason: `軌道[${t}] 類型不一致 (${ta.type} vs ${tb.type})` };
+    if (Boolean(ta.enabled) !== Boolean(tb.enabled)) return { isMatch: false, reason: `軌道[${t}] 啟用狀態不一致` };
+
+    // 比對 clips
+    const clipsA = ta.clips || [];
+    const clipsB = tb.clips || [];
+    if (clipsA.length !== clipsB.length) {
+      return { isMatch: false, reason: `軌道[${ta.id}] 片段數量不一致 (草稿: ${clipsA.length}, 回讀: ${clipsB.length})` };
+    }
+    for (let c = 0; c < clipsA.length; c++) {
+      const cla = clipsA[c];
+      const clb = clipsB[c];
+      if (cla.id !== clb.id) return { isMatch: false, reason: `片段[${c}] ID 不一致` };
+      if (Math.abs(cla.startTime - clb.startTime) > 0.001) return { isMatch: false, reason: `片段[${c}] 起始時間不一致` };
+      if (Math.abs(cla.duration - clb.duration) > 0.001) return { isMatch: false, reason: `片段[${c}] 持續時間不一致` };
+      if (cla.payload.type !== clb.payload.type) return { isMatch: false, reason: `片段[${c}] Payload 類型不一致` };
+
+      // 比對 payload.data
+      const dataA = cla.payload.data as Record<string, unknown> | undefined;
+      const dataB = clb.payload.data as Record<string, unknown> | undefined;
+      if (!dataA && !dataB) continue;
+      if (!dataA || !dataB) return { isMatch: false, reason: `片段[${c}] 缺少 payload.data` };
+
+      const keysA = Object.keys(dataA).filter(k => dataA[k] !== undefined);
+      const keysB = Object.keys(dataB).filter(k => dataB[k] !== undefined);
+      const diffA = keysA.filter(k => !keysB.includes(k));
+      const diffB = keysB.filter(k => !keysA.includes(k));
+      if (diffA.length > 0 || diffB.length > 0) {
+        return { isMatch: false, reason: `片段[${c}] 屬性鍵差異: 草稿多出[${diffA.join(',')}], 回讀多出[${diffB.join(',')}]` };
+      }
+      for (const k of keysA) {
+        const valA = dataA[k];
+        const valB = dataB[k];
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          if (Math.abs(valA - valB) > 0.001) {
+            return { isMatch: false, reason: `片段[${c}].${k} 數值不一致 (${valA} vs ${valB})` };
+          }
+        } else if (JSON.stringify(valA) !== JSON.stringify(valB)) {
+          return { isMatch: false, reason: `片段[${c}].${k} 內容不一致 (${JSON.stringify(valA)} vs ${JSON.stringify(valB)})` };
+        }
+      }
+    }
+  }
+
+  return { isMatch: true };
+}
+
+export function isSequenceDeepEqual(a: VFXSequence, b: VFXSequence): boolean {
+  return checkSequenceDeepEqual(a, b).isMatch;
 }
 
 export type VFXLibraryTab = 'ALL' | 'CASTER' | 'TRAJECTORY' | 'TARGET' | 'COMPOSITE';
@@ -74,9 +146,11 @@ export class VFXLibrary {
     // 依據四大分類進行動態歸類
     const filteredPresets = allPresets.filter(p => {
       if (this.currentTab === 'ALL') return true;
-      const isComposite = (p.layers && p.layers.length > 0);
+      const isComposite = (p.tracks && p.tracks.some(t => t.type === 'COMPOSITE_LAYER')) || Boolean(p.layers && p.layers.length > 0);
       if (this.currentTab === 'COMPOSITE') return isComposite;
-      const anchor = getTrajectorySpatialAnchor(p.spatialMode || p.trajectoryPath || p.trajectory);
+      const mainClip = getSequenceMainClip(p);
+      const mainData = (mainClip?.payload?.data as Record<string, unknown> | undefined) || {};
+      const anchor = getTrajectorySpatialAnchor(p.spatialMode || (mainData.spatialMode as string) || (mainData.trajectoryPath as string) || (mainData.trajectory as string));
       if (this.currentTab === 'CASTER') return anchor === 'AT_CASTER';
       if (this.currentTab === 'TRAJECTORY') return anchor === 'TRAJECTORY';
       if (this.currentTab === 'TARGET') return anchor === 'AT_TARGET';
@@ -103,7 +177,9 @@ export class VFXLibrary {
 
         <select id="lib-preset-select" class="preset-select" style="width: 100%; background: #1f2937; border: 1px solid #374151; color: #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem;">
           ${filteredPresets.map(p => {
-            const anchor = getTrajectorySpatialAnchor(p.spatialMode || p.trajectoryPath || p.trajectory);
+            const mainClip = getSequenceMainClip(p);
+            const mainData = (mainClip?.payload?.data as any) || {};
+            const anchor = getTrajectorySpatialAnchor(p.spatialMode || mainData.spatialMode || mainData.trajectoryPath || mainData.trajectory);
             const tag = anchor === 'AT_CASTER' ? '[自身]' : anchor === 'TRAJECTORY' ? '[彈道]' : '[目標]';
             return `
               <option value="${p.id}" ${p.id === current.id ? 'selected' : ''}>
@@ -244,15 +320,17 @@ export class VFXLibrary {
       const targetPreset = this.repo.getPreset(targetId);
       if (!targetPreset) return;
 
-      const current = this.store.getPreset();
+      const current = this.store.getSequence();
       const curLayers = current.layers || [];
+      const targetMainClip = getSequenceMainClip(targetPreset);
+      const targetData = (targetMainClip?.payload?.data as Record<string, unknown> | undefined) || {};
       const newLayer = {
         id: `layer_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
         presetId: targetPreset.id,
         name: targetPreset.name || targetPreset.id,
-        spatialMode: targetPreset.spatialMode || 'A_TO_B',
-        reverse: targetPreset.reverse || false,
-        shaderMode: targetPreset.shaderMode || 'ENERGY_BEAM',
+        spatialMode: targetPreset.spatialMode || targetData.spatialMode || 'A_TO_B',
+        reverse: !!targetData.reverse,
+        shaderMode: targetData.shaderMode || 'ENERGY_BEAM',
         delay: Number(Math.min((current.duration || 1.2) * 0.8, (current.duration || 1.2) * 0.15 * curLayers.length).toFixed(2)),
         duration: Number(((current.duration || 1.2) * 0.4).toFixed(2)),
         fadeIn: 0.05,
@@ -264,41 +342,82 @@ export class VFXLibrary {
       this.store.updateConfig({ layers: [...curLayers, newLayer] }, true);
     });
 
-    // 2. 新增預設
+    // 2. 新增預設：建立乾淨標準的通用空白骨架，徹底解耦斬擊舊屬性
     this.container.querySelector('#lib-btn-new')?.addEventListener('click', () => {
       const name = prompt('請輸入新特效名稱：', '新自訂特效');
       if (!name) return;
       const id = 'VFX_CUSTOM_' + Date.now();
-      const current = this.store.getPreset();
-      const newP: VFXPreset = {
-        ...current,
+      const newSeq: VFXSequence = {
+        schemaVersion: 2,
         id,
         name,
         category: 'SPECIAL',
-        description: '使用者自訂特效'
+        description: '全新自訂特效',
+        duration: 0.5,
+        spatialMode: 'TRAJECTORY',
+        impactPresentationMode: 'EXACT_IMPACTS',
+        tracks: [
+          {
+            id: 'trk_main',
+            name: '主特效軌 (Main Track)',
+            type: 'MESH',
+            enabled: true,
+            clips: [
+              {
+                id: 'clip_main_0',
+                name: '主特效片段',
+                startTime: 0.0,
+                duration: 0.45,
+                payload: {
+                  type: 'MESH',
+                  data: {
+                    shaderMode: 'VOLUMETRIC_FIRE',
+                    spatialMode: 'TRAJECTORY',
+                    colorCore: '#ffffff',
+                    colorRim: '#f97316',
+                    scale: 1.0,
+                    glowRadius: 75,
+                    glowOpacity: 0.85,
+                    coreBrightness: 1.5,
+                    salvoCount: 1,
+                    salvoDuration: 0.35
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        impactCues: [
+          {
+            cueId: 'cue_impact',
+            time: 0.42,
+            kind: 'IMPACT',
+            isPrimary: true
+          }
+        ]
       };
-      const res = this.repo.saveCustomPreset(newP);
+      const res = this.repo.saveCustomPreset(newSeq);
       if (res.success) {
-        this.store.setPreset(newP, false);
+        this.store.setPreset(newSeq, false);
         this.render();
       }
     });
 
     // 3. 複製預設
     this.container.querySelector('#lib-btn-clone')?.addEventListener('click', () => {
-      const current = this.store.getPreset();
+      const current = this.store.getSequence();
       const name = prompt('請輸入複製之新特效名稱：', (current.name || current.id) + ' (副本)');
       if (!name) return;
       const id = 'VFX_CLONE_' + Date.now();
-      const cloneP: VFXPreset = {
+      const cloneSeq: VFXSequence = {
         ...current,
         id,
         name,
         description: `複製自 ${current.name || current.id}`
       };
-      const res = this.repo.saveCustomPreset(cloneP);
+      const res = this.repo.saveCustomPreset(cloneSeq);
       if (res.success) {
-        this.store.setPreset(cloneP, false);
+        this.store.setPreset(cloneSeq, false);
         this.render();
       }
     });
@@ -308,7 +427,7 @@ export class VFXLibrary {
       const btn = this.container.querySelector('#lib-btn-publish') as HTMLButtonElement;
       if (btn) btn.textContent = '⏳ 發布中...';
 
-      const current = this.store.getPreset();
+      const current = this.store.getSequence();
 
       // 1. 客戶端預先校驗
       const validation = VFXPresetValidator.validatePreset(current);
@@ -320,7 +439,7 @@ export class VFXLibrary {
 
       // 2. 將草稿寫回 Repository
       this.repo.upsertDraft(current);
-      const all = this.repo.getAllPresets();
+      const all = this.repo.getAllSequences();
 
       try {
         const resp = await fetch('/__vfx_api/save_ssot', {
@@ -335,33 +454,35 @@ export class VFXLibrary {
         }
 
         // 3. 重新讀回驗證資料閉環 (Readback Verification & Deep Equality Check)
-        const getResp = await fetch('/api/get-vfx-presets');
+        const getResp = await fetch(`/api/get-vfx-presets?t=${Date.now()}`, { cache: 'no-store' });
         if (!getResp.ok) {
           throw new Error(`伺服器回讀失敗 (HTTP ${getResp.status})`);
         }
-        const serverPresets: VFXPreset[] = await getResp.json();
-        if (!Array.isArray(serverPresets)) {
+        const serverSequences: VFXSequence[] = await getResp.json();
+        if (!Array.isArray(serverSequences)) {
           throw new Error('伺服器回讀資料格式錯誤 (非陣列)');
         }
-        const matching = serverPresets.find(p => p.id === current.id);
+        const matching = serverSequences.find(p => p.id === current.id);
         if (!matching) {
           throw new Error(`伺服器回讀資料中找不到目前預設 [${current.id}]`);
         }
 
-        const isMatch = isPresetDeepEqual(current, matching);
-        if (!isMatch) {
-          throw new Error('伺服器回讀資料與當前草稿深層比對不一致 (Layer、Cue 或屬性未同步寫入磁碟)');
+        const compResult = checkSequenceDeepEqual(current, matching);
+        if (!compResult.isMatch) {
+          console.warn('[VFXLibrary] Publish verification mismatch:', compResult.reason, { current, matching });
+          throw new Error(`伺服器回讀與草稿不一致 [${compResult.reason}]`);
         }
 
-        this.repo.reloadPresets(serverPresets as any);
+        this.repo.reloadPresets(serverSequences);
         alert(`✅ 已成功發布 ${data.count} 款特效至專案 SSOT (src/data/vfx_sequences.json)！\n歷史快照：${data.snapshot}`);
         if (btn) btn.textContent = '✅ 已發布！';
         this.store.setDirty(false);
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         if (typeof navigator !== 'undefined' && navigator.clipboard) {
           navigator.clipboard.writeText(JSON.stringify(all, null, 2));
         }
-        alert(`⚠️ 發布失敗 (${err.message})，草稿已保留在畫面上並將 JSON 複製至剪貼簿！`);
+        alert(`⚠️ 發布失敗 (${errMsg})，草稿已保留在畫面上並將 JSON 複製至剪貼簿！`);
         if (btn) btn.textContent = '📋 已複製 JSON';
       }
       setTimeout(() => { if (btn) btn.textContent = '🚀 發布至專案 SSOT'; }, 3000);

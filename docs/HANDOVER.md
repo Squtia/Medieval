@@ -1,3 +1,228 @@
+- **[Fix/VFX/DualStoreDesyncAndProjectilePipeline] 特效工坊「發布至專案 SSOT spatialMode 不一致」根治與「質點運動 (POINT_TRANSPORT) 3D 子彈管線貫通」完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **徹底根治發布至專案 SSOT 報錯 (Dual-Store Desync 終結)**：
+       - `src/ui/fx/VFXPresetRepository.ts`：
+         - `rebuildResolvedMap()`：新增檢查若 `overrideSequences.has(id)` 則直接跳過 LocalStorage 的 `customSequences`，禁止使用者瀏覽器早期 LocalStorage 快照逆向覆蓋最新草稿。
+         - `saveSequence()`：若該特效已入庫為 `builtInSequences`，同步自 `customSequences` 刪除，拔除歷史殘留。
+         - `reloadPresets()`：自後端載入最新序列後，同步清理 `customSequences` 與 `overrideSequences` 中的已入庫項目。
+       - `src/ui/fx/VFXPresetNormalizer.ts`：
+         - 修正 `explicitSpatialMode === 'TRAJECTORY' || explicitTopology === 'POINT_TRANSPORT'` 時，`mappedSpatialMode` 恆為 `'TRAJECTORY'`，且優先採用合法路徑，杜絕被舊 clip payload 中的 `MELEE_SWEEP` 污染。
+       - `src/tools/vfx-studio/VFXStudioStore.ts`：
+         - `updateConfig()`：切換為 `TRAJECTORY` 或 `POINT_TRANSPORT` 時，同步糾偏 targetClip 與序列根上的舊近戰 `MELEE_SWEEP` 殘留為 `'A_TO_B'`。
+    2. **質點運動 (POINT_TRANSPORT) 3D 子彈管線與視覺再現貫通**：
+       - `src/ui/fx/VFXSpatialPolicy.ts:resolveVFXEndpoints`：加入 `POINT_TRANSPORT` 防塌縮保護，若 `mode === 'MELEE_SWEEP'` 自動糾偏為 `trajectoryPath || 'A_TO_B'`，確保起終點具備真實空間位移（不再塌縮在目標點上）。
+       - `src/ui/fx/CombatFXEngine.ts`：
+         - `renderTrack3DGeometry`：解耦 `FRESNEL_ICE`，當 `topology === 'POINT_TRANSPORT'` 且具備自訂幾何形態時放行至通用 3D 投射物管線。
+         - 3D 投射物幾何全面支援 `track.coreMeshShape || track.shape || 'ARROW'`，ConeGeometry 旋轉修正為 `-Math.PI / 2`。
+         - `lookAt` 前加入 `curPos.distanceTo(endPos) > 0.01` 守護，徹底根絕起終點重疊導致 Matrix4 NaN 使網格蒸發消失的缺陷。
+       - `src/ui/fx/renderers/MeshLayerRenderer.ts:updateFresnelIce`：ConeGeometry 旋轉修正為 `-Math.PI / 2`，尖端精確指向飛行向量。
+    3. **全量驗收通過**：
+       - `npm run typecheck`（`tsc`）0 錯誤、0 `any`（嚴格遵守 Rule 10 與 Rule 11）。
+       - `npx vitest run` 通過全套 26 項單元測試，包含發布交易閉環與拓撲回歸測試。
+  - **待後續推進項目**：
+    - 使用者於瀏覽器中點擊「重新整理（F5）」驗證發布與質點運動子彈視覺效果。
+
+- **[Fix/VFX/ShaderModeInspectorDecoupling] 特效工坊「新建技能不再被鎖死斬擊參數」與「Shader Mode 智慧切換」完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **新建技能不再繼承斬擊屬性 (Clean Skeleton On Create)**：
+       - `VFXLibrary.ts:274-330`：點擊「➕ 新增」時，建立乾淨、標準的通用新特效骨架（主軌 `type: 'MESH'`，`shaderMode: 'VOLUMETRIC_FIRE'`，`spatialMode: 'TRAJECTORY'`），不再直接淺拷貝當前特效，徹底解決「新增技能永遠繼承斬擊近戰揮砍」的頑疾。
+    2. **ShaderMode 唯一真理來源與彈幕卡片解鎖**：
+       - `VFXInspector.ts:getSelectionCapabilities`：斬擊幾何能力（`SLASH_GEOMETRY`）僅在 `shaderMode === 'SLASH_BLADE'` 時賦予；切換至非斬擊時斬擊走向卡片自動隱藏，且非近戰揮砍時開放 `PROJECTILE_GEOMETRY`，彈幕卡片（發數、節奏、擴散、路徑等）自由可用。
+    3. **Inspector 下拉選單智慧型別適配 (Smart Shader Adapt)**：
+       - 監聽 `param-shader-mode` 切換：
+         - 切換為非斬擊 Shader（火焰、冰晶、閃電等）：自動解除 `rendererType: 'SLASH'` 與 `trajectory: 'MELEE_SWEEP'` 綁定，轉為 `PROJECTILE` 與 `TRAJECTORY`。
+         - 切換為地刺 `EARTH_SHATTER`：自動轉為 `GROUND_FISSURE` / `GROUND_BURST`，展開地刺幾何控制卡片。
+         - 切換回斬擊 `SLASH_BLADE`：自動恢復 `rendererType: 'SLASH'` 與 `MELEE_SWEEP`。
+    4. **全量驗收通過**：
+       - `npx tsc --noEmit` 0 錯誤、0 `any`（Rule 10 嚴格把關）。
+       - `npx vitest run src/ui/fx/` 9 個套件 60 項單元測試 100% 通過。
+       - Playwright 實機無頭全流程驗收通過（截圖存於 `shader-switch-verification.png`）。
+  - **待後續推進項目**：
+    - 特效工坊其餘幾種經典 Shader（暗影虛空等）的光學質感持續提升。
+
+- **[Feature/VFX/SpikeFissure11ControlsDataFlowPipeline] 【地裂與地刺幾何 (Spikes & Fissure)】11 項控制項全資料流雙端貫通完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **11 項控制項雙端管線 100% 貫通**：
+       - `CombatFXEngine.ts:688` 完整將 `track` 上的 11 項地刺屬性傳遞至 `MeshLayerRenderer.updateEarthShatter`。
+       - 包含：連鎖生長模式 (`spikeArrayBehavior`)、連鎖尖刺數量 (`spikeArrayCount`)、地刺幾何形態 (`spikeShape`)、地刺方位旋轉 (`spikeAngle`)、次生冰刺數 (`spikes`)、地刺粗細 (`spikeWidth`)、地刺高度 (`spikeHeight`)、地刺分佈範圍 (`spikeRadius`)、破土連鎖時差 (`spikeStagger`)、岩刺材質模式 (`spikeMaterialMode`)、伴生地火噴發 (`spikeEruptFire`)。
+    2. **動態尖岩分佈演算法與熱響應 (Hot-Reactivity)**：
+       - 主穿刺峰永居核心貫穿身軀；副刺數量依據 `spikeArrayCount - 1` 放射排布在半徑內，半徑交錯且朝外微傾。
+       - 快取實裝 `lastConfigSig` 特徵簽名比對，使用者在面板拉動任一數值，快取自動清空重建 Mesh，保證即時所見即所得（WYSIWYG）。
+    3. **破土連鎖時差階梯化與雙運動生長模式名實相符**：
+       - **時差修復**：修正先前除法過度稀釋導致 0.6ms 同幀竄出的缺陷；實裝 `staggerPerSpike = (spikeStaggerMs / 80) * 0.055`，每根刺呈現清晰階梯波浪。
+       - **⏳ 破土停留後淡出 (`PERSIST_FADE`)**：尖岩破土後 100% 保持雄偉直徑與高度（杜絕壓扁融化），尾段平滑漸隱淡出。
+       - **🌊 浪湧竄出縮回 (`SURGE_RECEDE`)**：粗細鎖定 1.0 不變形，底座釘於地面垂直降縮收回插槽，抽回完畢後立即 `visible = false` 徹底隱藏，杜絕掉出地面露餡穿幫。
+    4. **全量驗收通過**：
+       - `npx tsc --noEmit` 0 錯誤、0 `any`（Rule 10 嚴格把關）。
+       - `npx vitest run src/ui/fx/` 8 個套件 47 項單元測試 100% 通過。
+       - Playwright 實機無頭瀏覽器互動測試通過（截圖存於 `scripts/spike-controls-preview.png`）。
+  - **待後續推進項目**：
+    - 彈道地裂（`GROUND_FISSURE`）沿途浪湧連鎖波進一步視覺細化。
+
+- **[Feature/VFX/EarthSpikeVisualOverhaulAndNaming] 地刺 (EARTH_SHATTER) 視覺重構與命名更正完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **選單與名稱正名**：
+       - `tools/vfx-studio.html` 下拉選單將「🔨 碎石崩裂重擊」正名為 **「⛰️ 地刺 (Earth Spike)」**。
+       - 底層 Enum `EARTH_SHATTER` 保持不變，100% 相容既有存檔。
+    2. **基準錨點下沉接地 (Ground Anchoring)**：
+       - 徹底解決地刺以幾何中心原點導致「像王冠掛在胸口與頭頂」的漂浮問題。
+       - 錨點下沉至卡牌腳底地面（`groundPos.y = targetPos.y - 72 * scale`），使地刺真正從地底撕裂向上貫穿。
+    3. **冷黑玄武岩石面與細裂紋微光（Dark Basalt & Fine Lava Seams）**：
+       - 徹底剔除刺眼的橘色胡蘿蔔塑膠感。
+       - 石面鎖定為厚重冷黑玄武岩色調（`#1f1d1b` ~ `#383533`），具備自然岩石切面光影對比。
+       - 熔岩發光嚴格限縮在深層石縫深處（面積 < 8%），僅透出地底高溫微光，不污染岩石表面。
+    4. **3D 多面體尖岩幾何、交錯狼牙刺與地面掀起碎石板**：
+       - 1 根巍峨粗壯的主破土尖岩（高 105px）+ 4 根交錯狼牙副刺（60~75px）+ 4 塊在地面破土口被劇烈頂翻掀起的扁平多面體碎石板（Ground Slabs）。
+       - 階梯式破土時間差（Stagger）+ 彈簧過衝曲線（Overshoot Spring，1.15x），破土開裂極具衝擊力與接地說服力。
+    5. **全量驗收通過**：
+       - `npx tsc --noEmit` 0 錯誤、0 `any` 漏洞（Rule 10）。
+       - `npx vitest run src/ui/fx/` 8 個套件 45 項單元測試 100% 通過。
+       - Playwright 實機無頭瀏覽器截圖驗收通過，確認地刺從腳底破土且玄武岩多面體質感真實可信（截圖留存於 `scripts/earth-spike-preview.png`）。
+  - **待後續推進項目**：
+    - 特效工坊其餘幾種經典 Shader（暗影虛空等）的光學質感持續提升。
+
+- **[Fix/VFX/TimelineDurationAndMainLayerIndependence] 時間軸時長調整卡死修復與主圖層時長獨立性完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **主圖層與總時長解耦獨立**：
+       - 主圖層時長（`mainDuration` / `mainClip.duration`）合法允許小於等於總時長（`duration`），代表主要實體的視覺演出長度（如起手 0.1s + 揮刀 0.3s），後續時長為衰減、粒子漂浮與受擊餘韻。
+       - 兩者不再強行綁死，時間軸上可清晰看見主圖層只佔據總時長的一部分。
+    2. **拔除阻擋死循環對話框，實裝無感智慧夾緊 (Auto-Clamp)**：
+       - 徹底拔除 `#tl-duration-overflow-dialog` 阻擋彈窗（舊代碼錯誤 fallback 主圖層結束時間至舊總時長導致死循環）。
+       - 頂部輸入框（`#tl-input-duration`）與滑桿（`#tl-range-duration`）任何數值變更即時生效寫入 Store；若縮短後的時長截斷了主圖層或次生圖層右緣，系統平滑夾緊圖層寬度，保證不超出總時長。
+    3. **主圖層右緣藍色把手自適應擴展**：
+       - 在軌道內拖曳把手時，主圖層寬度自由縮放且合法小於總時長；若向右拉伸超出軌道邊緣（且未滿 5.0s），時間軸自適應擴展總時長，杜絕拉不動鎖死。
+    4. **嚴格型別防護守護 (Rule 10)**：
+       - 清除所有 `any`、`as any` 與 `@ts-ignore`，補全強型別介面。
+    5. **驗收全綠**：
+       - TypeScript 0 錯誤、45 項單元測試 100% 通過、無頭瀏覽器操作（縮短/拉長/獨立性）全流程驗證通過。
+  - **待後續推進項目**：
+    - 特效工坊次生圖層更多自定義時間軸動畫曲線與光學升級。
+
+- **[Fix/VFX/SingleEffectPerClipAndGhostLayersPurge] 實裝「CLIP(特效軌)單一特效原則」與全面清理幽靈圖層完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **立約「CLIP(特效軌)單一職責原則 (Single Effect per Clip)」**：
+       - 一條 Track 嚴格對應單一實體，一個 Clip 嚴格只能容納單一特效片段。
+       - 永久禁止在 `sequence.tracks` 裡存放 `COMPOSITE_LAYER` 軌道；次生圖層一律統一走標準 `sequence.layers: VFXLayer[]`，保證時間軸 UI 與底層資料 100% 同步可見可控，徹底終結「UI 看不到但底層偷跑」的幽靈軌道。
+    2. **清理 4 大技能殘留幽靈圖層**：
+       - `VFX_PHANTOM_SLASH`（幻影連斬）：徹底拔除先前殘留塞入的 `trk_layers` 及其底下的 3 個幽靈 Clips（包含十字斬飛刀 `LAYER_CROSS_SLASH`、`VFX_DEFAULT_SLASH` 與 `VFX_HOLY_RAIN` 聖光祈雨），還原幻影連斬為純粹純淨的巨劍 4 段連斬！
+       - `VFX_VOLUMETRIC_METEOR`、`VFX_TREBUCHET_BOULDER`、`VFX_EARTH_SPIKE`：將殘留於 `tracks` 的次生圖層安全正規化遷移至標準 `layers` 陣列中。
+    3. **刀芒物理本質防禦守護 (Local Morph Guard)**：
+       - `VFXSpatialPolicy.ts`：更新 `resolvePresetSpatialTopology`，凡是刀芒（`SLASH_BLADE` / `SLASH`），若未顯式指定為飛出劍氣，預設一律鎖定為近戰原地（`LOCAL_MORPH`），物理上杜絕任何未聲明的刀光被系統誤當作飛刀丟到戰場中間。
+       - `CombatFXEngine.ts`：在 `renderSequenceWorldAt` 增加對 `COMPOSITE_LAYER` 軌道的防禦性過濾；次生圖層若未單獨聲明空間模式，強制繼承主軌空間契約。
+    4. **真實使用者視角實機全量驗收 (Playwright Audit)**：
+       - 在 0.55s（使用者截圖當下的影格）實機檢驗幻影連斬：中間位置（$X \in [-100, 100]$）飛刀數為 0，場景中僅有 2 個受擊者身周（$X = 177.5$）的連斬網格，幽靈飛刀徹底消滅！
+       - `npx tsc --noEmit` 0 錯誤、全專案 0 `any` 漏洞、0 `@ts-ignore`。
+       - `npx vitest run src/ui/fx/` 8 個測試套件、45 項特效核心單元測試 100% 通過。
+  - **待後續推進項目**：
+    - 特效工坊各 Shader（FRESNEL_ICE, DIELECTRIC_LIGHTNING, VOLUMETRIC_FIRE, EARTH_SHATTER）更細緻的頂級光學與 ShaderMaterial 升級。
+
+- **[Fix/VFX/AntiCollapseAndAxialSpin] 徹底根治幾何拓撲塌縮與軸向自旋（Axial Spin）失真：跨空間射線起終點智慧防塌縮守護，自旋對齊貫穿軸心杜絕世界原點甩動完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **跨空間幾何防塌縮守護 (Anti-Collapse Guard)**：
+       - `VFXSpatialPolicy.ts`：重構 `resolveVFXEndpoints` 優先級。當特效為 `SPAN_BEAM`、`DIELECTRIC_LIGHTNING` 或 `ENERGY_BEAM` 時，解除近戰 `AT_TARGET` 模式的鎖死遮蔽；使用者在 Inspector 切換的路徑（如 `VERTICAL_SKY_TO_B`）享最高優先級。
+       - 若計算出起終點距離接近 0（原地塌縮），自動展開為天頂直劈（380px）或貫穿（370px），**徹底杜絕旋風橫掃、重劈等近戰動作切換電弧時縮成一顆球/光斑的缺陷**。
+    2. **軸向自旋 (Axial Spin) 物理錨點對齊**：
+       - `MeshLayerRenderer.ts`：重構 `updateLightningTube` 與 `updateEnergyBeam`。**全面保留並支援 SPIN 自旋功能**，旋轉軸心修正為「幾何體自身貫穿中軸線」，沿方向向量 $\vec{u}$ 進行軸向四元數自旋。
+       - 天雷永遠繞著垂直直劈軸扭轉下落，貫穿電弧永遠繞著穿透軸螺旋翻滾，**中心牢固鎖定受擊者頭頂 $(X \approx 180)$，物理上絕不被甩到正中間**。
+    3. **型別防護與契約雙端連通 (Rule 9 & Rule 10)**：
+       - `CombatFXEngine.ts`：提前推導 `inferredShader` 傳入端點求解器；隔離世界原點 Group 旋轉，將自旋角下傳至軸向渲染器。0 any 繞過、0 `@ts-ignore`。
+    4. **真實使用者視角實機全量驗收 (Playwright Multi-Action Audit)**：
+       - 旋風橫掃 (`VFX_WHIRLWIND`，無預設 SPIN，原近戰原地) ➔ 轉電弧：頂點跨度從 0 躍升至 **370.5 px**，成功橫向貫穿兩端！
+       - 致命狙擊 (`VFX_SNIPER_SHOT`，帶 SPIN) ➔ 轉電弧 + 天頂直劈：中心穩固鎖定於受擊者頭頂 $X=179.7$，高度自 $Y=-1.9$ 直插 $Y=382.8$，自轉沿軸心翻滾，位置完全不偏移！
+       - 風暴貫穿箭 (`VFX_PIERCING_ARROW`) ➔ 轉電弧：貫穿距離 **366.2 px**，起點施術者、終點受擊者，居中自轉！
+       - 重劈 (`VFX_HEAVY_STRIKE`，原近戰) ➔ 轉電弧 + 天頂直劈：高度 $392.7\text{ px}$ 直劈受擊者頭頂！
+       - 全專案 TypeScript 0 報錯，45 項特效核心單元測試 100% 通過。
+  - **待後續推進項目**：
+    - 特效工坊各 Shader（FRESNEL_ICE, DIELECTRIC_LIGHTNING, VOLUMETRIC_FIRE, EARTH_SHATTER）更細緻的頂級光學與 ShaderMaterial 升級。
+
+- **[Feature/VFX/UniversalSpatialKinematics] 徹底統一全特效通用空間座標與時空路徑求解管線，天雷原生支援施術者到受擊者與天頂直劈，拔除光球假實體與貫通真實 3D 穿甲彈道完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **全域通用空間座標與時空路徑求解器 (Universal Spatial Kinematics Pipeline)**：
+       - `VFXSpatialPolicy.ts` 的 `resolveVFXEndpoints` 作為 Rule 9 單一真理來源，徹底終結個別 Shader 私下寫死座標的頑疾。
+       - 所有特效（天雷、光束、火球、冰槍、飛劍、穿透箭、狙擊彈、地刺）的 `startPos`、`endPos` 與即時質點座標 $P(t) = \text{Lerp}(startPos, endPos, t) + \text{ArcOffset}(t)$ 統一由該求解器計算。
+    2. **天雷全向動態連通與電弧升級 (Dielectric Lightning Full Freedom)**：
+       - 徹底糾正先前偏見：天雷原生支援「施術者 (A) ➔ 受擊者 (B)」（掌心雷、連鎖電弧）、「天頂直劈 (VERTICAL_SKY_TO_B) ➔ 受擊者」、「斜天降雷 (DIAGONAL_SKY_TO_B) ➔ 受擊者」與「目標原地 (AT_TARGET)」。
+       - `MeshLayerRenderer.ts` 的 `updateLightningTube` 引入正交基底（Perpendicular Basis）與正弦包絡線，確保電弧貼合兩端且在任意 3D 夾角下自然劇烈抖動，終點受擊點動態展開電弧光環。
+    3. **拔除中間光球，實裝真正 3D 穿甲投射物網格 (Real 3D Projectiles)**：
+       - `CombatFXEngine.ts` 徹底移除未命中專屬 Shader 時 fallback 到發光球 Sprite（`createGlowSprite`）的假實體。
+       - 實裝通用 3D 投射物網格渲染器，支援錐形穿甲箭（`ARROW`）、稜鏡（`DIAMOND`）、星芒（`STAR`）、圓環（`RING`）等實體網格，並以 `lookAt(endPos)` 朝向飛行路徑前進。
+       - 修復 `VFX_PIERCE_ARROW`（風暴貫穿箭）與 `VFX_SNIPER_SHOT`（致命狙擊），移除錯誤的 `ENERGY_BEAM` 與 `SPHERE` 設定，還原為真實穿甲投射物，貫穿箭帶 `COLUMN_PIERCE` 向後延伸穿透目標。
+    4. **Inspector 空間模式與路徑雙向正規化**：
+       - `VFXPresetNormalizer.ts` 將 `spatialMode` 與 `trajectoryPath` 正確雙向正規化，徹底消除前端選單與底層資料格式不一致的缺陷。
+    5. **品質保證與驗收防線**：
+       - `VFXSpatialTopology.test.ts` 擴充天雷各模式連通與貫穿箭終點延伸單元測試。
+       - `npx tsc --noEmit` 0 錯誤。
+       - `npm test` 全專案 64 個測試套件、396 項單元測試 100% 全部通過。
+  - **待後續推進項目**：
+    - 特效工坊各 Shader（FRESNEL_ICE, DIELECTRIC_LIGHTNING, VOLUMETRIC_FIRE, EARTH_SHATTER）更細緻的頂級光學與 ShaderMaterial 升級。
+
+- **[Feature/VFX/OrthogonalSpatialTopology] 統一特效邏輯：建立「三層正交特效架構（空間形態 + 時空路徑 + 幾何著色器）」，支援飛出劍氣、跨空間天雷與沿途連鎖生長地刺雙模式完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **三層正交特效架構 (Spatial Topology Architecture)**：
+       - 解耦為三層正交體系：
+         - 空間形態 (`VFXSpatialTopology`：`POINT_TRANSPORT`, `SPAN_BEAM`, `STAGGERED_ARRAY`, `LOCAL_MORPH`)
+         - 時空路徑 (`VFXTrajectoryPath`：`A_TO_B`, `VERTICAL_SKY_TO_B`, `DIAGONAL_SKY_TO_B`, `A_TO_VERTICAL_SKY`, `AT_TARGET`, `AT_CASTER`)
+         - 幾何與著色器 (`VFXShaderMode` / `VFXRendererType`)
+       - `VFXSpatialPolicy.ts` 的 `resolvePresetSpatialTopology(preset)` 負責向下相容既有舊版 Preset。
+    2. **劍氣飛出 (Flying Blade Wave) 實裝**：
+       - `CombatFXEngine.ts`：徹底解決斬擊寫死在目標原地的問題。當形態為 `POINT_TRANSPORT` 且著色器為 `SLASH_BLADE` 時，月牙刀光網格沿著飛行當前點 `curPos` 平滑推進。
+       - 拖尾發射點動態改為質點座標 `curPos`，背後持續拖曳刀尖流光火花。
+       - 支援 `slashAlignToPath`（自動順應飛行切線向量朝向）並可疊加 `spin` 自轉。
+    3. **沿途破土連鎖地刺雙模式 (Staggered Path Spikes)**：
+       - `MeshLayerRenderer.ts`：重構 `updateGroundFissure`，支援自訂尖刺數量（`spikeArrayCount`）與幾何形態（`spikeShape`）。
+       - 實裝兩種動態行為：
+         - `PERSIST_FADE`（破土竄出後維持在地面高程，尾段淡出）
+         - `SURGE_RECEDE`（像波浪一樣依序竄出頂峰後平滑縮回地底）
+    4. **天雷轟頂與跨空間能量柱 (Sky Lightning)**：
+       - 起終點動態連通，介質擊穿電弧光柱貫通兩端，落點伴隨粒子與受擊光圈。
+    5. **特效工坊（VFX Studio）UI 完整支援**：
+       - `tools/vfx-studio.html` 與 `VFXInspector.ts` 完整貫通空間形態下拉選單、劍氣路徑朝向開關、以及地刺連鎖模式與數量控制項；排版緊湊化確保 HTML < 800 行。
+    6. **品質保證與驗收防線**：
+       - 新增專屬單元測試 `src/ui/fx/VFXSpatialTopology.test.ts`（4 項測試 100% 通過）。
+       - `npx tsc --noEmit` 0 錯誤，落實 Rule 10 零 any。
+       - `npm test` 全專案 64 個測試套件、394 項單元測試 100% 全部通過。
+  - **待後續推進項目**：
+    - 特效工坊各 Shader（FRESNEL_ICE, DIELECTRIC_LIGHTNING, VOLUMETRIC_FIRE, EARTH_SHATTER）更細緻的頂級光學與 ShaderMaterial 升級。
+
+- **[Fix/VFXStudio/FiveCoreIssuesAndZeroAny] 特效工坊 5 大核心功能修復、業務層零 any 型別防護與次生圖層/拖尾熱更新完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **主圖層 Clip 拖拉徹底修復 (SSOT Time Alignment)**：
+       - `TimelineView.ts` 拔除 `(preset as any).mainDelay`、`(preset as any).mainDuration` 與 `(preset as any).layers`，起點與時長 100% 直讀 `mainClip.startTime` 與 `mainClip.duration`。
+       - `TimelineInteraction.ts` 拖曳主軌本體與拉伸右緣 Handle 時，直讀並原子更新 `mainClip.startTime` 與 `mainClip.duration`，徹底根除 Clip 放開後彈回原點的嚴重缺陷。
+    2. **次生圖層 3D 特效渲染通道貫通**：
+       - `CombatFXEngine.ts`：在 `renderSequenceWorldAt` 建立渲染佇列時，將 `sequence.layers` 正式納入 3D 渲染通道，配置獨立 `trackGroup`，遞迴解析引用之次素材主軌並依各自的 `delay` 與 `duration` 正確求值繪製，徹底解決次生圖層隱形無特效問題。
+    3. **基礎彈道路徑與時空節奏生效**：
+       - `CombatFXEngine.ts`：當 `spatialMode === 'TRAJECTORY'` 時，精準提取具體的 `trajectoryPath`（如 `VERTICAL_SKY_TO_B` 天降狂雷、`A_TO_VERTICAL_SKY` 朝天、`DIAGONAL_SKY_TO_B` 斜降），並在 `renderTrack3DGeometry` 補齊網格動態旋轉 `spin` 與縮放 `scale` 運算。
+    4. **粒子流、拖尾與爆散整合及即時熱更新**：
+       - `TrailLayerRenderer.ts` 新增 `updateStyle(colorHex, size, scale)`，支援材質色彩與粒子尺寸動態更新。
+       - `CombatFXEngine.ts` 在逐訊框更新中比對 `trailColor` 與 `trailSize`，即時調用 `updateStyle`，徹底解決滑桿與顏色選擇器調整無反應的凍結病灶；斬擊與全形態拖尾收斂以粒子流面板為唯一真理來源 (SSOT)。
+    5. **Rule 10 型別防護規範鋼鐵落實**：
+       - 業務層（Store, Timeline, Interaction）徹底清除 `as any`，嚴格落實紅線禁區。
+    6. **品質保證與驗收防線**：
+       - `npx tsc --noEmit` 0 錯誤。
+       - `npm test` 全專案 63 個測試套件、390 項單元測試 100% PASS。
+  - **待後續推進項目**：
+    - 特效工坊各 Shader（FRESNEL_ICE, DIELECTRIC_LIGHTNING, VOLUMETRIC_FIRE, EARTH_SHATTER）更細緻的頂級光學與 ShaderMaterial 升級。
+
+- **[Refactor/VFXStudio/SSOTTypeConvergence] 特效工坊前後端型別契約對齊、Preset 徹底升級純 Sequence 與零 any 防護完工交接（2026-09-14）**：
+  - **核心交接重點**：
+    1. **前後端契約與雙向數據流徹底貫通 (Rule 9 Universal Data Flow)**：
+       - 建立 `src/ui/fx/VFXPresetNormalizer.ts` 單一真理來源模組，抽取 `INSPECTOR_CONTROL_MAP` 與 `normalizeVfxPreset`，將 Inspector / Timeline 的拍平屬性與底層多軌 Clip 資料雙向映射。
+       - `VFXStudioStore.updateConfig`：重構為分流過濾機制，Sequence 頂層欄位（`layers`, `duration`, `impactCues`, `impactPresentationMode`, `impact`）僅更新 Sequence 根物件，專屬幾何屬性才更新 `mainClip.payload.data`，徹底阻絕圖層相互覆蓋與狀態回退 Bug。
+    2. **SSOT 確證與純 Sequence (Schema v2) 貫通**：
+       - 確認專案儲存與執行期 100% 採用純 `VFXSequence`，徹底釐清並解決「Preset 不是砍掉了嗎？」的歷史包袱。
+       - 在 `src/models/VFX.ts` 提供確定性 `presetToSequence` 轉換函式，相容外圍模組與單元測試。
+       - 在 `src/models/VFX.ts` 的 `getSequenceMainTrack`、`getSequenceImpactConfig`、`getSequenceParticlePayload` 加入嚴密陣列與物件安全防禦。
+       - `CombatFXEngine.ts`：`renderFrameWorldAt` 透過 `resolvePresetSpatialMode(preset)` 進行空間路徑動態判定，徹底清除 120 行重複舊代碼，全面委派原生 `renderSequenceWorldAt`。
+    3. **零 any 與強型別防護 (Rule 10 Type Safety)**：
+       - `src/models/VFX.ts` 補齊 `SlashGeometryInput` 與 `VFXMeshClipPayload`，`MeshLayerRenderer.calculateSlashGeometryParams` 徹底拔除 `(preset as any)`。
+       - `src/ui/fx/VFXTimelineEvaluator.ts` 補齊 `VFXImpactConfig` 預設值之 `penetrationDistance: 0`, `knockbackDistance: 0` 強型別屬性。
+    4. **品質保證與驗收防線**：
+       - `npx tsc --noEmit` 0 錯誤。
+       - `npm test` 全專案 63 個測試套件、390 項單元測試 100% PASS。
+  - **待後續推進項目**：
+    - 特效工坊各 Shader（FRESNEL_ICE, DIELECTRIC_LIGHTNING, VOLUMETRIC_FIRE, EARTH_SHATTER）更細緻的頂級光學與 ShaderMaterial 升級。
+
 - **[Fix/VFXStudio/DeterministicArcTrailAndSSOT] 斬擊原生欄位 100% 貫通、確定性圓弧刀尖拖尾與粒子流重構完工交接（2026-09-11）**：
   - **核心交接重點**：
     1. **斬擊原生欄位 100% 貫通 (SSOT Alignment)**：

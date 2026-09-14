@@ -1,4 +1,5 @@
-import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXLayer, SalvoRhythmCurve } from '../../models/VFX';
+import { VFXPreset, VFXSequence, VFXImpactConfig, VFXImpactCue, VFXLayer, SalvoRhythmCurve } from '../../models/VFX';
+import { normalizeVfxPreset } from './VFXPresetNormalizer';
 
 export interface ResolvedLayerItem {
   layer: VFXLayer;
@@ -27,23 +28,24 @@ export class VFXTimelineEvaluator {
    * 綜合計算主軌有效時長、連射持續時間、所有次生圖層 (delay + duration) 以及所有 Impact Cue 點位的最大包絡線
    * 遵循 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md §5 與選項 B 邊界守護規範
    */
-  public static getEffectivePresentationDuration(preset: VFXPreset): number {
-    let maxDur = Math.max(0.05, preset.duration || 0.35);
+  public static getEffectivePresentationDuration(preset: VFXPreset | VFXSequence): number {
+    const norm = normalizeVfxPreset(preset);
+    let maxDur = Math.max(0.05, norm.duration || 0.35);
 
     // 1. 主軌延遲與時長
-    const mainDelay = Math.max(0, preset.mainDelay || 0);
-    const mainDur = preset.mainDuration !== undefined ? preset.mainDuration : (preset.duration || 0.35);
+    const mainDelay = Math.max(0, norm.mainDelay || 0);
+    const mainDur = norm.mainDuration !== undefined ? norm.mainDuration : (norm.duration || 0.35);
     maxDur = Math.max(maxDur, mainDelay + mainDur);
 
     // 2. 連擊時長（僅在真正具備多發連射時生效）
-    const isActualSalvo = (preset.salvoCount !== undefined && preset.salvoCount > 1) || preset.trajectory === 'ARC_MULTI';
-    if (isActualSalvo && preset.salvoDuration !== undefined && preset.salvoDuration > 0) {
-      maxDur = Math.max(maxDur, preset.salvoDuration);
+    const isActualSalvo = (norm.salvoCount !== undefined && norm.salvoCount > 1) || norm.trajectory === 'ARC_MULTI';
+    if (isActualSalvo && norm.salvoDuration !== undefined && norm.salvoDuration > 0) {
+      maxDur = Math.max(maxDur, norm.salvoDuration);
     }
 
     // 3. 次生圖層時間包絡線
-    if (Array.isArray(preset.layers)) {
-      for (const layer of preset.layers) {
+    if (Array.isArray(norm.layers)) {
+      for (const layer of norm.layers) {
         if (layer.enabled !== false) {
           const lDelay = Math.max(0, layer.delay || 0);
           const lDur = Math.max(0.05, layer.duration || 0.2);
@@ -53,10 +55,22 @@ export class VFXTimelineEvaluator {
     }
 
     // 4. 打擊點 Cue 點位時間包絡線
-    if (Array.isArray(preset.impactCues)) {
-      for (const cue of preset.impactCues) {
+    if (Array.isArray(norm.impactCues)) {
+      for (const cue of norm.impactCues) {
         if (typeof cue.time === 'number' && !Number.isNaN(cue.time)) {
           maxDur = Math.max(maxDur, cue.time);
+        }
+      }
+    }
+
+    // 5. Schema v2 Tracks 時間包絡線
+    if (Array.isArray(norm.tracks)) {
+      for (const track of norm.tracks) {
+        if (track.isMuted !== true && Array.isArray(track.clips)) {
+          for (const clip of track.clips) {
+            const clipEnd = (clip.startTime || 0) + (clip.duration || 0);
+            maxDur = Math.max(maxDur, clipEnd);
+          }
         }
       }
     }
@@ -72,13 +86,14 @@ export class VFXTimelineEvaluator {
    */
   public static evaluateSalvoTimings(preset: VFXPreset, totalHits: number): number[] {
     const hits = Math.max(1, Math.floor(totalHits));
-    const baseOffset = Math.min(preset.duration * 0.4, 0.2);
+    const presetDur = preset.duration || 0.5;
+    const baseOffset = Math.min(presetDur * 0.4, 0.2);
 
     if (hits === 1) {
       return [baseOffset];
     }
 
-    const salvoDur = preset.salvoDuration || Math.min(preset.duration * 0.85, 0.45);
+    const salvoDur = preset.salvoDuration || Math.min(presetDur * 0.85, 0.45);
     const curve: SalvoRhythmCurve = preset.salvoRhythmCurve || 'LINEAR';
     const timings: number[] = [];
 
@@ -119,7 +134,7 @@ export class VFXTimelineEvaluator {
           break;
       }
 
-      const triggerTimeSec = Math.min(preset.duration, timeOffset + baseOffset);
+      const triggerTimeSec = Math.min(presetDur, timeOffset + baseOffset);
       timings.push(Number(triggerTimeSec.toFixed(4)));
     }
 
@@ -182,8 +197,8 @@ export class VFXTimelineEvaluator {
         shaderMode: layer.shaderMode || preset.shaderMode,
         colorCore: layer.colorCore || preset.colorCore,
         colorRim: layer.colorRim || preset.colorRim,
-        scale: (layer.scale || 1) * preset.scale,
-        duration: layer.duration || preset.duration,
+        scale: (layer.scale || 1) * (preset.scale ?? 1.0),
+        duration: layer.duration || preset.duration || 0.5,
         layers: undefined // 避免無限遞迴
       };
 
@@ -201,33 +216,43 @@ export class VFXTimelineEvaluator {
    * 💥 計算單次打擊之受擊回饋參數 (支援前段輕顫 + 終結重震 multiHitImpact)
    */
   public static calculateHitFeedback(
-    impactConfig: VFXImpactConfig,
-    hitIndex: number,
-    totalHits: number,
+    impactConfig?: VFXImpactConfig | null,
+    hitIndex: number = 0,
+    totalHits: number = 1,
     multiHitImpact: boolean = false
   ): HitFeedbackParams {
+    const cfg: VFXImpactConfig = impactConfig || {
+      shakeIntensity: 10,
+      shakeDuration: 0.25,
+      targetPunchScale: 0.88,
+      hitStopTime: 50,
+      penetrationDistance: 0,
+      knockbackDistance: 0,
+      hitFlashColor: '#ffffff',
+      screenShake: true
+    };
     const isFinalHit = hitIndex >= totalHits - 1;
 
     if (multiHitImpact && !isFinalHit) {
       // 多段打擊前段：輕顫、微形變、無全螢幕震動
       return {
-        shakeIntensity: Math.max(2, impactConfig.shakeIntensity * 0.4),
-        shakeDuration: Math.max(0.1, impactConfig.shakeDuration * 0.6),
-        punchScale: 1.0 - (1.0 - impactConfig.targetPunchScale) * 0.5,
-        hitStopTime: Math.floor(impactConfig.hitStopTime * 0.3),
-        hitFlashColor: impactConfig.hitFlashColor,
+        shakeIntensity: Math.max(2, (cfg.shakeIntensity ?? 10) * 0.4),
+        shakeDuration: Math.max(0.1, (cfg.shakeDuration ?? 0.25) * 0.6),
+        punchScale: 1.0 - (1.0 - (cfg.targetPunchScale ?? 0.88)) * 0.5,
+        hitStopTime: Math.floor((cfg.hitStopTime ?? 50) * 0.3),
+        hitFlashColor: cfg.hitFlashColor || '#ffffff',
         screenShake: false
       };
     }
 
     // 終結擊或單擊：完整重量反饋
     return {
-      shakeIntensity: impactConfig.shakeIntensity,
-      shakeDuration: impactConfig.shakeDuration,
-      punchScale: impactConfig.targetPunchScale,
-      hitStopTime: impactConfig.hitStopTime,
-      hitFlashColor: impactConfig.hitFlashColor,
-      screenShake: impactConfig.screenShake
+      shakeIntensity: cfg.shakeIntensity ?? 10,
+      shakeDuration: cfg.shakeDuration ?? 0.25,
+      punchScale: cfg.targetPunchScale ?? 0.88,
+      hitStopTime: cfg.hitStopTime ?? 50,
+      hitFlashColor: cfg.hitFlashColor || '#ffffff',
+      screenShake: !!cfg.screenShake
     };
   }
 }

@@ -13,8 +13,6 @@
 - **禁止直接撰寫代碼**：在開始任何實際編碼（Coding）工作前，必須先與使用者進行確認。
 - **不要馬上寫報告，先討論**：在產生正式的實作計畫（Implementation Plan）或任何形式的報告文件前，必須先以對話的形式與使用者逐一討論想法與設計細節。
 - **執行一個編碼後，收到問題回報**：收到問題回報後，不要馬上編碼。
-
-
 - **優化流程討論**：動手前，需先將思維轉入「討論模式」，主動與使用者分析、討論架構與優化過程，得到明確授權後方可開始寫代碼。
 
 ## 4. 文件同步更新與交接機制 (Documentation Maintenance)
@@ -23,13 +21,11 @@
 
 ## 5. 核心規範文件強制預讀與對齊機制 (Mandatory Core Spec Inspection)
 - **禁止憑空推測或套用外在概念**：在進行任何系統討論、設計提案、產生計畫 (Implementation Plan) 或編碼前，**必須強制使用 `view_file` 自動預讀 `docs/` 下的對應權威規範文件**：
-  - ⚔️ 涉及職業與武器 ➔ **強制預讀 [docs/CLASS_SYSTEM.md](file:///i:/gameproject/Medieval/docs/CLASS_SYSTEM.md)**
-  - 📊 涉及八維屬性與戰鬥公式 ➔ **強制預讀 [docs/ATTRIBUTE_SYSTEM.md](file:///i:/gameproject/Medieval/docs/ATTRIBUTE_SYSTEM.md)**
-  - 👾 涉及怪物與元素相剋 ➔ **強制預讀 [docs/MONSTERS_AND_ELEMENTS.md](file:///i:/gameproject/Medieval/docs/MONSTERS_AND_ELEMENTS.md)**
-  - 🏰 涉及封建爵位、領地規模、繁榮度與內政設施 ➔ **強制預讀 [docs/FEUDAL_AND_TERRITORY_SYSTEM.md](file:///i:/gameproject/Medieval/docs/FEUDAL_AND_TERRITORY_SYSTEM.md)**
-  - 🗺️ 涉及未來系統擴充 ➔ **強制預讀 [docs/FUTURE_DESIGN.md](file:///i:/gameproject/Medieval/docs/FUTURE_DESIGN.md)**
-  - ⚖️ 涉及平衡性數據 ➔ **強制預讀 [docs/BALANCE_TEST_REPORT.md](file:///i:/gameproject/Medieval/docs/BALANCE_TEST_REPORT.md)**
-- **自動對齊稽核**：所有提案、計畫或代碼變更，必須 100% 通過這 6 大權威文件的交叉比對，確保完全符合專案原創規範後方可交由使用者審閱。
+  - ⚔️ 涉及職業與武器 ➔ **強制預讀 [docs/CLASS_SYSTEM.md](file:///d:/tryagent/Medieval/docs/CLASS_SYSTEM.md)**
+  - 📊 涉及八維屬性與戰鬥公式 ➔ **強制預讀 [docs/ATTRIBUTE_SYSTEM.md](file:///d:/tryagent/Medieval/docs/ATTRIBUTE_SYSTEM.md)**
+  - 👾 涉及怪物與元素相剋 ➔ **強制預讀 [docs/MONSTERS_AND_ELEMENTS.md](file:///d:/tryagent/Medieval/docs/MONSTERS_AND_ELEMENTS.md)**
+  - 🏰 涉及封建爵位、領地規模、繁榮度與內政設施 ➔ **強制預讀 [docs/FEUDAL_AND_TERRITORY_SYSTEM.md](file:///d:/tryagent/Medieval/docs/FEUDAL_AND_TERRITORY_SYSTEM.md)**
+- **自動對齊稽核**：所有提案、計畫或代碼變更，必須 100% 通過這 4 大權威文件的交叉比對，確保完全符合專案原創規範後方可交由使用者審閱。
 
 ## 6. HTML 檔案保護規則 (HTML File Protection Rules)
 
@@ -101,4 +97,34 @@
   - 調用 `view_file` 查閱實作細節。
 - **違背此條款（未調用工具即妄加論斷）視為重大工程違規**。
 
+## 9. 全專案通用架構契約規範 (Universal Data Flow Rule)
+- **強制全域適用**：在修改專案中「任何」功能時，Agent 必須強制遵循以下原則：
 
+### 9.1 識別資料管道的兩端 (Two-End Identification)
+- **雙端同步定位**：任何改動只要涉及「使用者操作 $\to$ 系統反應」或「模組 A $\to$ 模組 B」，動手前必須同時定位：
+  - 📤 **【輸入/發送端】**：UI 組件、輸入事件、指令發起處。
+  - 📥 **【處理/接收端】**：狀態管理器 (State/Store)、底層運算邏輯、執行器。
+- **嚴禁單端作業**：嚴禁只讀取或只修改其中一端，必須確保兩端資料流向貫通。
+
+### 9.2 必須具備唯一真理來源 (SSOT Enforcement)
+- **明確型別與結構定義**：兩端之間傳遞的資料物件，必須有明確的型別定義（Type/Interface）或資料架構（Schema）。
+- **嚴禁手寫字串字典**：嚴禁在發送端和接收端各自使用手寫的字串字典（Raw Object / ad-hoc 鍵值對）。
+- **先行建立共享型別**：若兩端尚未建立共享型別，必須先建立獨立的型別定義，讓兩端共同引用，方可開始修改功能邏輯。
+
+### 9.3 跨端交付前核對 (Cross-End Verification Before Delivery)
+- **欄位契約 100% 對齊**：每次修復宣稱完成時，必須確認發送端發出的欄位名稱與接收端讀取的欄位名稱 100% 相同。
+- **資料閉環實質確認**：確認發送端動作能實質傳遞至接收端並被正確解析處理，嚴禁任何一端欄位脫節。
+
+
+10【型別防護規範】
+
+業務與資料傳遞嚴格禁止： 凡涉及特效參數、資料庫、事件廣播（EventBus）與 UI 對接的欄位，嚴禁使用 any、as any 或 // @ts-ignore，必須提供完整的型別定義。
+
+禁止空泛轉型： 嚴禁使用全可選屬性（全是 ?）或空介面來規避檢查。
+
+引擎例外需說明： 僅在調用第三方圖形庫（如 Phaser/Canvas）且缺乏原生型別時允許局部轉型，且必須在回覆中註明原因。
+
+## 11. 嚴禁表層抹平技術債與反妥協防線 (Anti-Compromise & Root-Cause Mandate)
+- **嚴禁順著爛代碼滑坡**：當發現既有代碼存在 `as any`、`any` 或混合了已淘汰的舊型別（例如在 Sequence 架構中調用舊世代 Preset）時，**嚴禁為了求快或避免報錯而在表層套皮、打補丁或順著舊架構寫相容黑魔法**。
+- **主動揭發底層債務**：遇到型別腐敗或架構斷層時，必須主動向使用者揭露問題本質，並提出「拔除 `any`、淘汰舊型別、對齊唯一真實來源 (SSOT)」的根治療法。
+- **違者判定**：任何「一臉正經講幹話、用爛方法補洞、試圖掩蓋底層架構腐朽」的行為，一律視為重大工程違規。

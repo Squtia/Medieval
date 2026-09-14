@@ -1,5 +1,6 @@
-import { VFXSequence, getSequenceMainTrack, getSequenceMainClip } from '../../models/VFX';
+import { VFXPreset, VFXSequence, getSequenceMainTrack, getSequenceMainClip } from '../../models/VFX';
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
+import { normalizeVfxPreset } from '../../ui/fx/VFXPresetNormalizer';
 
 export interface TrackMuteStates {
   main: boolean;
@@ -138,16 +139,109 @@ export class VFXStudioStore {
     }
   }
 
-  public getPreset(): any {
-    return this.getSequence();
+  public getPreset(): VFXPreset & VFXSequence {
+    return normalizeVfxPreset(this.getSequence());
   }
 
-  public setPreset(newPreset: any, recordHistory: boolean = true): void {
-    this.setSequence(newPreset, recordHistory);
+  public setPreset(newSequence: VFXSequence, recordHistory: boolean = true): void {
+    this.setSequence(newSequence, recordHistory);
   }
 
-  public updateConfig(partial: any, recordHistory: boolean = false): void {
-    this.updateSequence(partial, recordHistory);
+  public updateConfig(partial: Record<string, any>, recordHistory: boolean = false): void {
+    if (recordHistory && !this.isSnapshotPaused) {
+      this.recordSnapshot();
+    }
+    // 1. 同步根物件
+    Object.assign(this.currentSequence, partial);
+
+    // 2. 自動判斷目標 Clip (選取次生圖層 vs 主軌)
+    const {
+      layers: _l,
+      tracks: _t,
+      duration: _d,
+      impactCues: _c,
+      impactPresentationMode: _m,
+      impact: _imp,
+      ...clipSpecificData
+    } = partial;
+
+    const mainClip = getSequenceMainClip(this.currentSequence);
+    if (mainClip) {
+      if (partial.mainDelay !== undefined) {
+        mainClip.startTime = partial.mainDelay;
+      }
+      if (partial.mainDuration !== undefined) {
+        mainClip.duration = partial.mainDuration;
+      }
+    }
+
+    let targetClip = undefined;
+    if (this.selection.type === 'LAYER') {
+      const layerId = this.selection.layerId;
+      const layerTrack = this.currentSequence.tracks.find(t => t.id === layerId);
+      targetClip = layerTrack?.clips[0];
+
+      if (Array.isArray(this.currentSequence.layers)) {
+        const lIdx = this.currentSequence.layers.findIndex(l => l.id === layerId);
+        if (lIdx >= 0) {
+          this.currentSequence.layers[lIdx] = {
+            ...this.currentSequence.layers[lIdx],
+            ...clipSpecificData
+          };
+        }
+      }
+    }
+    if (!targetClip) {
+      targetClip = mainClip;
+    }
+
+    if (targetClip && targetClip.payload && Object.keys(clipSpecificData).length > 0) {
+      targetClip.payload.data = {
+        ...(targetClip.payload.data as any),
+        ...clipSpecificData
+      };
+      // 🛡️ 時空傳播形態轉換保護：若切換為質點運動或 TRAJECTORY，同步糾偏 targetClip 殘留的 MELEE_SWEEP
+      if (partial.spatialMode === 'TRAJECTORY' || partial.spatialTopology === 'POINT_TRANSPORT') {
+        const data = targetClip.payload.data as any;
+        if (data.trajectory === 'MELEE_SWEEP' || data.trajectory === 'AT_TARGET') {
+          data.trajectory = partial.trajectoryPath || 'A_TO_B';
+        }
+        if ((this.currentSequence as any).trajectory === 'MELEE_SWEEP' || (this.currentSequence as any).trajectory === 'AT_TARGET') {
+          (this.currentSequence as any).trajectory = partial.trajectoryPath || 'A_TO_B';
+        }
+      }
+    }
+
+    // 3. 粒子軌同步
+    const partTrack = this.currentSequence.tracks.find(t => t.type === 'PARTICLE');
+    const partClip = partTrack?.clips[0];
+    if (partClip && partClip.payload) {
+      const particleProps: Record<string, any> = {};
+      if (partial.trailCount !== undefined) particleProps.trailCount = partial.trailCount;
+      if (partial.trailSize !== undefined) particleProps.trailSize = partial.trailSize;
+      if (partial.burstCount !== undefined) particleProps.burstCount = partial.burstCount;
+      if (partial.enableTrail !== undefined) particleProps.enableTrail = partial.enableTrail;
+      if (partial.trailColor !== undefined) particleProps.trailColor = partial.trailColor;
+      if (partial.bloomStr !== undefined) particleProps.bloomStr = partial.bloomStr;
+      if (partial.bloomRad !== undefined) particleProps.bloomRad = partial.bloomRad;
+      if (partial.bloomThresh !== undefined) particleProps.bloomThresh = partial.bloomThresh;
+      if (Object.keys(particleProps).length > 0) {
+        partClip.payload.data = { ...(partClip.payload.data as any), ...particleProps };
+      }
+    }
+
+    // 4. 受擊反饋軌同步
+    const impactTrack = this.currentSequence.tracks.find(t => t.type === 'IMPACT');
+    const impactClip = impactTrack?.clips[0];
+    if (impactClip && impactClip.payload && partial.impact) {
+      impactClip.payload.data = {
+        ...(impactClip.payload.data as any),
+        ...partial.impact
+      };
+    }
+
+    this.isDirty = true;
+    this.notify();
   }
 
   public recordSnapshot(): void {

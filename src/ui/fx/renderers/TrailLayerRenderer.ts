@@ -11,6 +11,7 @@ export interface TrailInstance {
   currentIndex: number;
   update: (currentPos: THREE.Vector3) => void;
   updateArcTrail?: (tipSampler: (prog: number) => THREE.Vector3, currentProgress: number) => void;
+  updateStyle?: (colorHex: string, size: number, currentScale?: number) => void;
   dispose: () => void;
 }
 
@@ -151,6 +152,12 @@ export class TrailLayerRenderer {
       posAttr.needsUpdate = true;
     };
 
+    const updateStyle = (colorHex: string, size: number, currentScale: number = 1.0) => {
+      material.color.set(colorHex);
+      material.size = size * currentScale;
+      material.needsUpdate = true;
+    };
+
     const dispose = () => {
       scene.remove(points);
       geometry.dispose();
@@ -166,6 +173,7 @@ export class TrailLayerRenderer {
       currentIndex,
       update,
       updateArcTrail,
+      updateStyle,
       dispose
     };
   }

@@ -1,6 +1,25 @@
 import * as THREE from 'three';
-import { VFXPreset } from '../../../models/VFX';
+import { VFXPreset, SlashGeometryInput } from '../../../models/VFX';
 import { defaultVfxRng } from '../VFXRng';
+
+/**
+ * 🏔️ 地裂與地刺幾何 11 項完整參數介面 (SSOT & Universal Data Flow)
+ */
+export interface EarthShatterOptions {
+  spikeShape?: 'CONE_SPIKE' | 'CRYSTAL_PRISM' | 'JAGGED_ROCK' | 'PILLAR_COLUMN';
+  spikeArrayBehavior?: 'PERSIST_FADE' | 'SURGE_RECEDE';
+  spikeArrayCount?: number;
+  spikeAngle?: number;
+  spikes?: number;
+  spikeWidth?: number;
+  spikeHeight?: number;
+  spikeRadius?: number;
+  spikeStagger?: number;
+  spikeMaterialMode?: 'PHONG' | 'BASIC';
+  spikeEruptFire?: boolean;
+  colorRim?: string;
+  colorCore?: string;
+}
 
 /**
  * 🗡️ MeshLayerRenderer
@@ -261,12 +280,106 @@ export class MeshLayerRenderer {
     });
   }
 
-  public static createRockCragShaderMaterial(color: string = '#78716c'): THREE.ShaderMaterial {
+  public static createRockCragShaderMaterial(
+    colorRim: string = '#44403c',
+    colorCore: string = '#f97316',
+    materialMode: 'PHONG' | 'BASIC' = 'PHONG'
+  ): THREE.ShaderMaterial {
+    const rimColor = new THREE.Color(colorRim);
+    const coreColor = new THREE.Color(colorCore);
     return new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new THREE.Color(color) }, uTime: { value: 0 }, uOpacity: { value: 1 } },
-      vertexShader: `${this.noiseGLSL} varying vec3 vNormal; varying vec3 vPos; void main(){ vPos=position; vNormal=normalize(normalMatrix*normal); vec3 p=position+normal*(fbm(position*0.1)-0.5)*2.5; gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0); }`,
-      fragmentShader: `${this.noiseGLSL} uniform vec3 uColor; uniform float uOpacity; varying vec3 vNormal; varying vec3 vPos; void main(){ float grain=fbm(vPos*0.18); float light=max(dot(normalize(vNormal),normalize(vec3(-0.3,0.8,0.6))),0.0); float crack=smoothstep(0.46,0.5,abs(noise3(vPos*0.12)-0.5)); vec3 col=uColor*(0.32+light*0.72)*(0.72+grain*0.4)+vec3(1.0,0.32,0.06)*crack*0.35; gl_FragColor=vec4(col,uOpacity); }`,
-      transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide
+      uniforms: {
+        uColor: { value: rimColor },
+        uColorRim: { value: rimColor },
+        uColorCore: { value: coreColor },
+        uTime: { value: 0 },
+        uOpacity: { value: 1 },
+        uMaterialMode: { value: materialMode === 'BASIC' ? 1.0 : 0.0 }
+      },
+      vertexShader: `
+        ${this.noiseGLSL}
+        varying vec3 vNormal;
+        varying vec3 vWorldPos;
+        varying vec3 vLocalPos;
+        varying float vCrag;
+
+        void main() {
+          vLocalPos = position;
+          vNormal = normalize(normalMatrix * normal);
+          // 表面岩石多面體微擾
+          float crag = fbm(position * 0.14);
+          vCrag = crag;
+          vec3 displaced = position + normal * (crag - 0.5) * 2.8;
+          vec4 worldPos4 = modelMatrix * vec4(displaced, 1.0);
+          vWorldPos = worldPos4.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPos4;
+        }
+      `,
+      fragmentShader: `
+        ${this.noiseGLSL}
+        uniform vec3 uColor;
+        uniform vec3 uColorRim;
+        uniform vec3 uColorCore;
+        uniform float uTime;
+        uniform float uOpacity;
+        uniform float uMaterialMode;
+
+        varying vec3 vNormal;
+        varying vec3 vWorldPos;
+        varying vec3 vLocalPos;
+        varying float vCrag;
+
+        void main() {
+          // ✨ 0. 發光晶芒模式 (BASIC)：半透明發光水晶形態
+          if (uMaterialMode > 0.5) {
+            float heightP = clamp((vLocalPos.y + 10.0) / 90.0, 0.0, 1.0);
+            vec3 crystalCol = mix(uColorCore * 1.5, uColorRim * 1.8, heightP);
+            float fresnel = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 2.2);
+            vec3 finalCrystal = mix(crystalCol, vec3(1.0, 1.0, 1.0), fresnel * 0.75);
+            gl_FragColor = vec4(finalCrystal * 1.6, uOpacity * (0.65 + 0.35 * fresnel));
+            return;
+          }
+
+          // 1. 強烈三向主光源 (Sunlight Directional & Flat Facet Contrast)
+          vec3 sunDir = normalize(vec3(-0.4, 0.9, 0.45));
+          float NdotL = max(dot(vNormal, sunDir), 0.0);
+          float skyAmbient = 0.3 + 0.7 * max(vNormal.y * 0.5 + 0.5, 0.0);
+
+          // 2. 真正厚重的冷硬深黑玄武岩基底 (Dark Basalt Rock Base - 杜絕橘色胡蘿蔔)
+          // 固定暗石灰色原色：深沉硬朗
+          vec3 darkBasalt = vec3(0.12, 0.11, 0.10);
+          vec3 lightBasalt = vec3(0.32, 0.30, 0.28);
+          float rockGrain = fbm(vLocalPos * 0.25);
+          vec3 rockSurface = mix(darkBasalt, lightBasalt, NdotL * 0.75 + rockGrain * 0.25);
+          // 微調吸收少許 Rim 色調作為環境反射，但絕不喧賓奪主
+          rockSurface += uColorRim * 0.15 * skyAmbient;
+
+          // 3. 極細深層石縫高溫熔岩裂紋 (Micro Crevice Seams - 僅佔表面積 < 8%)
+          float nA = noise3(vLocalPos * 0.25);
+          float nB = noise3(vLocalPos * 0.52 + vec3(0.0, uTime * 0.25, 0.0));
+          float seam = abs(nA + nB * 0.45);
+          // 嚴格閥值：只有深隙 seam < 0.05 處才滲透微光！
+          float creviceMask = smoothstep(0.06, 0.015, seam);
+
+          // 地脈熔岩呼吸脈衝
+          float heightP = clamp((vLocalPos.y + 10.0) / 90.0, 0.0, 1.0);
+          float pulse = 0.85 + 0.35 * sin(uTime * 6.0 - heightP * 4.5);
+          vec3 lavaGlow = uColorCore * 2.2 * pulse;
+
+          // 4. 最終合成：92% 以上是冷硬黑玄武岩，石縫深處暗紅金芒微現
+          vec3 finalColor = mix(rockSurface, lavaGlow, creviceMask * 0.92);
+
+          // 5. 石稜刀削切面微弱天光高光
+          float glint = pow(max(dot(vNormal, normalize(vec3(0.2, 0.8, 0.5))), 0.0), 18.0);
+          finalColor += vec3(0.25, 0.24, 0.22) * glint * 0.4;
+
+          gl_FragColor = vec4(finalColor, uOpacity);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      side: THREE.DoubleSide
     });
   }
 
@@ -307,7 +420,7 @@ export class MeshLayerRenderer {
    * 同時供定格求值 (Scrubbing) 與動態播放 (Playing) 呼叫，保證 100% 姿態與方向一致
    */
   public static calculateSlashGeometryParams(
-    preset: Partial<VFXPreset>,
+    preset: SlashGeometryInput,
     progress: number,
     reverseFallback: boolean = false
   ): {
@@ -326,26 +439,26 @@ export class MeshLayerRenderer {
     colorCore: string;
     colorRim: string;
   } {
-    const shapeVal = (preset as any).shape ?? preset.slashShape ?? 'CRESCENT';
+    const shapeVal = preset.shape ?? preset.slashShape ?? 'CRESCENT';
     const isWhirlwind = Boolean(shapeVal === 'WHIRLWIND');
     const isCross = Boolean(shapeVal === 'CROSS');
-    const isAlternating = Boolean(preset.slashAlternating);
+    const isAlternating = Boolean(preset.isAlternating ?? preset.slashAlternating);
     const sc = preset.scale || 1.0;
 
-    const radiusVal = (preset as any).radius ?? preset.slashRadius ?? (isWhirlwind ? 85 : 65);
+    const radiusVal = preset.radius ?? preset.slashRadius ?? (isWhirlwind ? 85 : 65);
     const bladeRadius = radiusVal * sc;
-    const widthVal = (preset as any).bladeWidth ?? preset.slashBladeWidth ?? (isWhirlwind ? 18 : 10);
+    const widthVal = preset.bladeWidth ?? preset.slashBladeWidth ?? (isWhirlwind ? 18 : 10);
     const bladeWidth = widthVal * sc;
-    const arcSpanVal = (preset as any).arcSpan ?? preset.slashArcSpan ?? (isWhirlwind ? 360 : 135);
+    const arcSpanVal = preset.arcSpan ?? preset.slashArcSpan ?? (isWhirlwind ? 360 : 135);
     const maxArcSpan = arcSpanVal * (Math.PI / 180);
 
     // ⚔️ 支援 rotX, rotY, rotZ (歐拉角)，相容 slashRotX / slashAngle / slashTrajectory
-    const rotXDeg = (preset as any).rotX ?? preset.slashRotX ?? 0;
+    const rotXDeg = preset.rotX ?? preset.slashRotX ?? 0;
     const rotX = (rotXDeg * Math.PI) / 180;
-    const rotYDeg = (preset as any).rotY ?? preset.slashRotY ?? 0;
+    const rotYDeg = preset.rotY ?? preset.slashRotY ?? 0;
     const rotY = (rotYDeg * Math.PI) / 180;
 
-    let baseAngleDeg = (preset as any).rotZ ?? preset.slashRotZ ?? preset.slashAngle ?? (preset as any).angle;
+    let baseAngleDeg = preset.rotZ ?? preset.slashRotZ ?? preset.angle ?? preset.slashAngle;
     if (baseAngleDeg === undefined && preset.slashTrajectory) {
       if (preset.slashTrajectory === 'CLEAVE_DOWN') baseAngleDeg = -45;
       else if (preset.slashTrajectory === 'UPPER_CUT') baseAngleDeg = 135;
@@ -355,15 +468,16 @@ export class MeshLayerRenderer {
     const startAngleBase = (baseAngleDeg !== undefined ? baseAngleDeg : -45) * (Math.PI / 180);
 
     // ⚔️ 連斬角度擾動 (slashAngleJitter)：在出刀與連續播放時疊加動態擾動角
+    const jitterDeg = preset.angleJitter ?? preset.slashAngleJitter;
     let jitterOffset = 0;
-    if (preset.slashAngleJitter && preset.slashAngleJitter > 0) {
-      const jitterRad = (preset.slashAngleJitter * Math.PI) / 180;
+    if (jitterDeg && jitterDeg > 0) {
+      const jitterRad = (jitterDeg * Math.PI) / 180;
       jitterOffset = Math.sin(progress * Math.PI * 4.0) * jitterRad;
     }
     const startAngle = startAngleBase + jitterOffset;
 
-    let isReverse = (preset as any).reverse !== undefined
-      ? (preset as any).reverse
+    let isReverse = preset.reverse !== undefined
+      ? preset.reverse
       : (preset.slashReverse !== undefined ? preset.slashReverse : reverseFallback);
 
     // ⚔️ 左右交錯出刀 (slashAlternating)：在交錯模式下翻轉方向
@@ -376,7 +490,7 @@ export class MeshLayerRenderer {
 
     const dirSign = isReverse ? -1 : 1;
     const centerAngle = startAngle + dirSign * (maxArcSpan * 0.5);
-    const aspect = (preset as any).aspect ?? preset.slashAspect ?? 1.0;
+    const aspect = preset.aspect ?? preset.slashAspect ?? 1.0;
 
     const p = Math.max(0, Math.min(1.0, progress));
     let headT: number;
@@ -622,9 +736,11 @@ export class MeshLayerRenderer {
     colorRim: string,
     colorCore: string,
     fadeAlpha: number,
-    cache: any
+    cache: any,
+    spinAngle?: number
   ): void {
     trackGroup.position.set(0, 0, 0);
+    trackGroup.rotation.set(0, 0, 0);
     if (!cache.lightningGroup) {
       cache.lightningGroup = new THREE.Group();
       trackGroup.add(cache.lightningGroup);
@@ -639,18 +755,41 @@ export class MeshLayerRenderer {
     }
 
     const currentEnd = new THREE.Vector3().lerpVectors(startPos, endPos, Math.min(1.0, progress * 4.0));
-    const segments = 10;
-    const pts: THREE.Vector3[] = [startPos];
+    const segments = 12;
+    const pts: THREE.Vector3[] = [startPos.clone()];
+
+    // 計算連線向量與正交基底 (Perpendicular Basis)，確保橫向、縱向或斜向均有強烈電弧擾動
+    const dir = new THREE.Vector3().subVectors(endPos, startPos);
+    const len = dir.length() || 1;
+    dir.normalize();
+
+    const up = Math.abs(dir.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+    const perp1 = new THREE.Vector3().crossVectors(dir, up).normalize();
+    const perp2 = new THREE.Vector3().crossVectors(dir, perp1).normalize();
+
+    // 🌪️ 沿著貫穿方向軸進行軸向自旋 (Axial Spin)
+    // 起終點牢固鎖定在施術者與受擊者，擾動與電弧繞著兩點中軸自轉，絕不偏離軌道
+    if (spinAngle) {
+      perp1.applyAxisAngle(dir, spinAngle);
+      perp2.applyAxisAngle(dir, spinAngle);
+    }
+
     for (let s = 1; s < segments; s++) {
       const alpha = s / segments;
       const base = new THREE.Vector3().lerpVectors(startPos, currentEnd, alpha);
-      const jitter = (Math.sin(s * 7.5 + progress * 20) * 22) * scale;
-      pts.push(new THREE.Vector3(base.x + jitter, base.y, base.z + (Math.cos(s * 5) * 12)));
+      const envelope = Math.sin(alpha * Math.PI); // 兩端牢固貼合目標與起點，中段最大電弧擾動
+      const jitter1 = (Math.sin(s * 7.5 + progress * 24) * 24) * scale * envelope;
+      const jitter2 = (Math.cos(s * 5.3 + progress * 18) * 16) * scale * envelope;
+      pts.push(
+        base.clone()
+          .addScaledVector(perp1, jitter1)
+          .addScaledVector(perp2, jitter2)
+      );
     }
-    pts.push(currentEnd);
+    pts.push(currentEnd.clone());
 
     const curve = new THREE.CatmullRomCurve3(pts);
-    const tubeGeo = new THREE.TubeGeometry(curve, 20, 4.5 * scale, 6, false);
+    const tubeGeo = new THREE.TubeGeometry(curve, 24, 4.5 * scale, 6, false);
     const tubeMat = MeshLayerRenderer.createProceduralLightningShader(colorCore, colorRim);
     tubeMat.uniforms.uTime.value = progress * 4.0;
     tubeMat.uniforms.uOpacity.value = Math.max(0.3, fadeAlpha);
@@ -680,8 +819,14 @@ export class MeshLayerRenderer {
       const origin = curve.getPoint(Math.min(0.88, forkAt));
       const direction = branch % 2 === 0 ? -1 : 1;
       const length = (42 + branch * 11) * scale;
-      const forkEnd = origin.clone().add(new THREE.Vector3(direction * length, -length * 0.42, (branch - 1) * 12));
-      const forkMid = origin.clone().lerp(forkEnd, 0.5).add(new THREE.Vector3(direction * 9, 8, -6));
+      let forkEndOffset = new THREE.Vector3(direction * length, -length * 0.42, (branch - 1) * 12);
+      let forkMidOffset = new THREE.Vector3(direction * 9, 8, -6);
+      if (spinAngle) {
+        forkEndOffset.applyAxisAngle(dir, spinAngle);
+        forkMidOffset.applyAxisAngle(dir, spinAngle);
+      }
+      const forkEnd = origin.clone().add(forkEndOffset);
+      const forkMid = origin.clone().lerp(forkEnd, 0.5).add(forkMidOffset);
       const forkCurve = new THREE.CatmullRomCurve3([origin, forkMid, forkEnd]);
       const forkGeo = new THREE.TubeGeometry(forkCurve, 8, 1.35 * scale, 5, false);
       const forkMat = MeshLayerRenderer.createProceduralLightningShader(colorCore, colorRim);
@@ -692,7 +837,8 @@ export class MeshLayerRenderer {
   }
 
   /**
-   * 🪨 建立/更新破土錐狀地刺尖岩陣列 (EARTH_SHATTER)
+   * ⛰️ 建立/更新破土尖岩地刺陣列與接地衝擊波 (EARTH_SHATTER)
+   * 告別單調 Y 軸等比縮放，實裝時間差階梯式破土 (Staggered Eruption) 與彈簧過衝回彈 (Overshoot Spring)
    */
   public static updateEarthShatter(
     trackGroup: THREE.Group,
@@ -701,44 +847,354 @@ export class MeshLayerRenderer {
     scale: number,
     colorRim: string,
     fadeAlpha: number,
-    cache: any
+    cache: {
+      spikesGroup?: THREE.Group;
+      lastConfigSig?: string;
+      spikeUnits?: Array<{
+        mesh: THREE.Mesh;
+        mat: THREE.ShaderMaterial;
+        baseWidth: number;
+        baseHeight: number;
+        posX: number;
+        posZ: number;
+        rotX: number;
+        rotZ: number;
+        staggerDelay: number;
+        riseDuration: number;
+        isMainSpike?: boolean;
+        isGroundSlab?: boolean;
+      }>;
+      shockwaveMesh?: THREE.Mesh;
+      shockwaveMat?: THREE.ShaderMaterial;
+      [key: string]: unknown;
+    },
+    colorCore: string = '#f97316',
+    options?: EarthShatterOptions
   ): void {
-    trackGroup.position.copy(targetPos);
+    // ⛰️ 1. 地面錨點修正：強制錨定至受擊卡牌腳底地面 (Y 軸下沉 72px)，由地底向上貫穿！
+    const groundPos = targetPos.clone();
+    groundPos.y -= 72 * Math.max(0.7, scale);
+    trackGroup.position.copy(groundPos);
+
+    // ── 2. 參數正規化（11 項完整對齊 UI 控制面板）──
+    const spikeShape = options?.spikeShape || 'JAGGED_ROCK';
+    const spikeArrayBehavior = options?.spikeArrayBehavior || 'PERSIST_FADE';
+    const spikeArrayCount = Math.max(2, Math.min(12, options?.spikeArrayCount ?? 5));
+    const spikeAngle = options?.spikeAngle ?? 0;
+    const extraSpikesCount = Math.max(0, Math.min(16, options?.spikes ?? 0));
+    const spikeWidth = Math.max(2, Math.min(30, options?.spikeWidth ?? 12));
+    const spikeHeight = Math.max(15, Math.min(120, options?.spikeHeight ?? 65));
+    const spikeRadius = Math.max(20, Math.min(280, options?.spikeRadius ?? 80));
+    const spikeStaggerMs = Math.max(0, Math.min(80, options?.spikeStagger ?? 25));
+    const spikeMaterialMode = options?.spikeMaterialMode || 'PHONG';
+    const spikeEruptFire = !!options?.spikeEruptFire;
+
+    const configSig = `${spikeShape}_${spikeArrayBehavior}_${spikeArrayCount}_${spikeAngle}_${extraSpikesCount}_${spikeWidth}_${spikeHeight}_${spikeRadius}_${spikeStaggerMs}_${spikeMaterialMode}_${spikeEruptFire}_${scale.toFixed(2)}`;
+
+    // ── 3. 熱響應重構 (Hot-Reactivity)：使用者在工坊一動滑桿，立刻安全釋放舊 Mesh 並重新生成 ──
+    if (cache.spikesGroup && cache.lastConfigSig !== configSig) {
+      trackGroup.remove(cache.spikesGroup);
+      cache.spikesGroup.traverse((obj) => {
+        const m = obj as THREE.Mesh;
+        if (m.geometry) m.geometry.dispose();
+        if (m.material) {
+          if (Array.isArray(m.material)) m.material.forEach((mat) => mat.dispose());
+          else m.material.dispose();
+        }
+      });
+      cache.spikesGroup = undefined;
+      cache.spikeUnits = undefined;
+      cache.shockwaveMesh = undefined;
+      cache.shockwaveMat = undefined;
+    }
+
     if (!cache.spikesGroup) {
       cache.spikesGroup = new THREE.Group();
-      const offsets = [
-        { x: 0, y: 0, scale: 1.0, rot: 0 },
-        { x: -28, y: -8, scale: 0.75, rot: 0.25 },
-        { x: 26, y: -6, scale: 0.8, rot: -0.22 },
-        { x: -14, y: 14, scale: 0.65, rot: 0.12 },
-        { x: 18, y: 16, scale: 0.7, rot: -0.15 }
-      ];
+      cache.spikeUnits = [];
+      cache.lastConfigSig = configSig;
 
-      offsets.forEach(off => {
-        const coneGeo = new THREE.ConeGeometry(9 * scale * off.scale, 58 * scale * off.scale, 6);
-        coneGeo.translate(0, 29 * scale * off.scale, 0);
-        const coneMat = MeshLayerRenderer.createRockCragShaderMaterial(colorRim);
-        const cone = new THREE.Mesh(coneGeo, coneMat);
-        cone.position.set(off.x * scale, off.y * scale, 0);
-        cone.rotation.z = off.rot;
-        cache.spikesGroup.add(cone);
+      // 旋轉整組尖刺陣列的 Y 軸方位角
+      cache.spikesGroup.rotation.y = (spikeAngle * Math.PI) / 180;
+
+      const spikeConfigs: Array<{
+        x: number;
+        z: number;
+        w: number;
+        h: number;
+        rotX: number;
+        rotZ: number;
+        stagger: number;
+        riseDur: number;
+        isMainSpike?: boolean;
+        isGroundSlab?: boolean;
+        shape?: 'CONE_SPIKE' | 'CRYSTAL_PRISM' | 'JAGGED_ROCK' | 'PILLAR_COLUMN';
+      }> = [];
+
+      // ── [A. 中央狂暴穿刺主峰] 巍峨粗壯、微傾貫穿目標身軀
+      const mainW = spikeWidth * 1.35 * scale;
+      const mainH = spikeHeight * 1.62 * scale;
+      spikeConfigs.push({
+        x: 0,
+        z: 0,
+        w: mainW,
+        h: mainH,
+        rotX: 0.12,
+        rotZ: 0.04,
+        stagger: 0.03,
+        riseDur: 0.14,
+        isMainSpike: true,
+        shape: spikeShape
       });
+
+      // ── [B. 動態伴生狼牙副刺] 數量 = spikeArrayCount - 1 (共 1 ~ 11 根，放射交錯分佈)
+      const subSpikeCount = Math.max(1, spikeArrayCount - 1);
+      const angleStep = (Math.PI * 2) / subSpikeCount;
+      const baseR = spikeRadius * 0.42 * scale;
+      // 依據 spikeStaggerMs (0~80ms) 映射為每根刺清晰有感的進度差 (0.0 ~ 0.055)
+      const staggerPerSpike = (spikeStaggerMs / 80) * 0.055;
+
+      for (let i = 0; i < subSpikeCount; i++) {
+        // 角度微擾，避免死板正多邊形
+        const jitter = ((i * 1.618) % 0.4) - 0.2;
+        const theta = i * angleStep + jitter;
+        // 交錯半徑距離
+        const rRatio = i % 2 === 0 ? 1.0 : 0.74;
+        const r = baseR * rRatio;
+        const px = Math.cos(theta) * r;
+        const pz = Math.sin(theta) * r;
+
+        const subW = spikeWidth * (0.8 + (i % 3) * 0.1) * scale;
+        const subH = spikeHeight * (0.95 + ((i + 1) % 3) * 0.18) * scale;
+        // 放射朝外微傾
+        const tiltMagnitude = 0.22 + (i % 2) * 0.08;
+        const rotX = Math.sin(theta) * tiltMagnitude;
+        const rotZ = -Math.cos(theta) * tiltMagnitude;
+
+        // 每根刺相隔肉眼清晰的 staggerPerSpike
+        const staggerDelay = 0.03 + i * staggerPerSpike;
+
+        spikeConfigs.push({
+          x: px,
+          z: pz,
+          w: subW,
+          h: subH,
+          rotX,
+          rotZ,
+          stagger: staggerDelay,
+          riseDur: 0.13,
+          shape: spikeShape
+        });
+      }
+
+      // ── [C. 次生小冰刺/細碎尖稜 (spikesExtra)]
+      if (extraSpikesCount > 0) {
+        const extraCount = Math.min(extraSpikesCount, 8);
+        const extraStep = (Math.PI * 2) / extraCount;
+        const extraR = baseR * 1.35;
+        for (let j = 0; j < extraCount; j++) {
+          const theta = j * extraStep + 0.3;
+          const px = Math.cos(theta) * extraR;
+          const pz = Math.sin(theta) * extraR;
+          const subW = spikeWidth * 0.5 * scale;
+          const subH = spikeHeight * 0.45 * scale;
+          spikeConfigs.push({
+            x: px,
+            z: pz,
+            w: subW,
+            h: subH,
+            rotX: Math.sin(theta) * 0.45,
+            rotZ: -Math.cos(theta) * 0.45,
+            stagger: 0.06 + j * (staggerPerSpike * 0.6),
+            riseDur: 0.11,
+            shape: spikeShape
+          });
+        }
+      }
+
+      // ── [D. 地表崩裂掀起的扁平多面體碎石板 (Ground Slabs - 4 塊)] 維持接地破土撕裂感
+      const slabDist = baseR * 0.85;
+      const slabConfigs = [
+        { x: -slabDist * 0.9, z: slabDist * 0.25, rotX: 0.22, rotZ: 0.72, stagger: 0.04 },
+        { x: slabDist * 0.95, z: -slabDist * 0.2, rotX: -0.18, rotZ: -0.68, stagger: 0.06 },
+        { x: slabDist * 0.15, z: -slabDist * 0.85, rotX: -0.65, rotZ: 0.15, stagger: 0.07 },
+        { x: -slabDist * 0.2, z: slabDist * 0.82, rotX: 0.62, rotZ: -0.12, stagger: 0.09 }
+      ];
+      slabConfigs.forEach(scfg => {
+        spikeConfigs.push({
+          x: scfg.x,
+          z: scfg.z,
+          w: spikeWidth * 1.15 * scale,
+          h: spikeHeight * 0.38 * scale,
+          rotX: scfg.rotX,
+          rotZ: scfg.rotZ,
+          stagger: scfg.stagger,
+          riseDur: 0.10,
+          isGroundSlab: true,
+          shape: 'JAGGED_ROCK'
+        });
+      });
+
+      spikeConfigs.forEach(cfg => {
+        const spikeGeo = MeshLayerRenderer.createSpikeGeometry(cfg.shape || 'JAGGED_ROCK', cfg.w, cfg.h);
+        const spikeMat = MeshLayerRenderer.createRockCragShaderMaterial(colorRim, colorCore, spikeMaterialMode);
+        const mesh = new THREE.Mesh(spikeGeo, spikeMat);
+        mesh.position.set(cfg.x, -cfg.h, cfg.z);
+        mesh.rotation.x = cfg.rotX;
+        mesh.rotation.z = cfg.rotZ;
+        mesh.scale.set(0.001, 0.001, 0.001);
+
+        cache.spikesGroup!.add(mesh);
+        cache.spikeUnits!.push({
+          mesh,
+          mat: spikeMat,
+          baseWidth: cfg.w,
+          baseHeight: cfg.h,
+          posX: cfg.x,
+          posZ: cfg.z,
+          rotX: cfg.rotX,
+          rotZ: cfg.rotZ,
+          staggerDelay: cfg.stagger,
+          riseDuration: cfg.riseDur,
+          isMainSpike: cfg.isMainSpike,
+          isGroundSlab: cfg.isGroundSlab
+        });
+      });
+
+      // 貼地水平裂痕衝擊波光圈 (Ground Shockwave Ring)
+      const ringGeo = new THREE.RingGeometry(12 * scale, 48 * scale, 32);
+      ringGeo.rotateX(-Math.PI / 2);
+      const ringMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uColor: { value: new THREE.Color(colorCore) },
+          uOpacity: { value: 0.0 }
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 uColor;
+          uniform float uOpacity;
+          varying vec2 vUv;
+          void main() {
+            float dist = length(vUv - vec2(0.5));
+            float ring = smoothstep(0.5, 0.38, dist) * smoothstep(0.12, 0.28, dist);
+            gl_FragColor = vec4(uColor * 2.2, ring * uOpacity);
+          }
+        `,
+        transparent: true,
+        depthWrite: false,
+        depthTest: true,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+      const shockwaveMesh = new THREE.Mesh(ringGeo, ringMat);
+      shockwaveMesh.position.set(0, 1.2, 0);
+      shockwaveMesh.scale.set(0.001, 0.001, 0.001);
+      cache.spikesGroup.add(shockwaveMesh);
+      cache.shockwaveMesh = shockwaveMesh;
+      cache.shockwaveMat = ringMat;
+
       trackGroup.add(cache.spikesGroup);
     }
+
     cache.spikesGroup.visible = true;
 
-    const hScale = progress < 0.35
-      ? (() => { const t = progress / 0.35; return 1 + 2.70158 * Math.pow(t - 1, 3) + 1.70158 * Math.pow(t - 1, 2); })()
-      : (progress > 0.75 ? Math.max(0.1, 1 - (progress - 0.75) / 0.25) : 1.0);
-    cache.spikesGroup.scale.set(1.0, Math.max(0.05, hScale), 1.0);
+    // 彈簧過衝曲線（頂峰動態過衝回彈，尾部維持 1.0 交由各模式全權掌管）
+    const groupOvershoot = progress < 0.35
+      ? (() => { const t = progress / 0.35; return 1.0 + 2.70158 * Math.pow(t - 1.0, 3) + 1.70158 * Math.pow(t - 1.0, 2); })()
+      : 1.0;
+    cache.spikesGroup.scale.set(1.0, Math.max(0.05, groupOvershoot), 1.0);
 
-    cache.spikesGroup.children.forEach((mesh: any) => {
-      if (mesh.material) {
-        if (mesh.material.uniforms?.uColor) mesh.material.uniforms.uColor.value.set(colorRim);
-        if (mesh.material.uniforms?.uOpacity) mesh.material.uniforms.uOpacity.value = fadeAlpha;
-        if (mesh.material.uniforms?.uTime) mesh.material.uniforms.uTime.value = progress;
+    // 錯落破土與兩種生長模式（PERSIST_FADE / SURGE_RECEDE）力學計算
+    if (cache.spikeUnits) {
+      cache.spikeUnits.forEach(unit => {
+        if (progress < unit.staggerDelay) {
+          // 尚未到達此刺破土時刻：完全隱藏，深埋地底不可見
+          unit.mesh.visible = false;
+          unit.mesh.scale.set(0.001, 0.001, 0.001);
+          unit.mesh.position.y = -unit.baseHeight * 1.1;
+          return;
+        }
+
+        const deltaP = progress - unit.staggerDelay;
+        if (deltaP <= unit.riseDuration) {
+          // 🚀 破土上升階段：極速狂暴竄出地面 + 過衝彈簧回彈 (Overshoot Spring)
+          unit.mesh.visible = true;
+          const u = Math.min(1.0, deltaP / unit.riseDuration);
+          const overshoot = 1.0 + 2.70158 * Math.pow(u - 1.0, 3) + 1.70158 * Math.pow(u - 1.0, 2);
+          
+          const curHScale = Math.max(0.01, overshoot);
+          const curXZScale = Math.min(1.0, Math.max(0.05, u * 1.3));
+          unit.mesh.scale.set(curXZScale, curHScale, curXZScale);
+          unit.mesh.position.y = (overshoot - 1.0) * (unit.baseHeight * 0.12);
+        } else if (spikeArrayBehavior === 'SURGE_RECEDE') {
+          // 🌊 浪湧竄出縮回模式 (Surge & Recede)：粗細 100% 保持不變形，垂直抽回地表插槽 (Vertical Slot Plunge)
+          const recedeStart = unit.riseDuration + 0.045; // 頂峰定格凝結 45ms
+          if (deltaP <= recedeStart) {
+            unit.mesh.visible = true;
+            unit.mesh.scale.set(1.0, 1.0, 1.0);
+            unit.mesh.position.y = 0;
+          } else {
+            const recedeProg = (deltaP - recedeStart) / 0.14;
+            if (recedeProg >= 1.0) {
+              // 已經完全抽回地底：徹底隱藏，絕不露在畫面下方
+              unit.mesh.visible = false;
+              unit.mesh.scale.set(0.001, 0.001, 0.001);
+              unit.mesh.position.y = 0;
+            } else {
+              unit.mesh.visible = true;
+              // X, Z 粗細 100% 鎖定 1.0（絕不捏細！）
+              // 高度 Y 軸垂直收回地面插槽：從 1.0x 降至 0，底座釘在地面 Y=0，絕不掉到地面下方懸空！
+              const plunge = Math.pow(recedeProg, 1.5);
+              const curH = Math.max(0.001, 1.0 - plunge);
+              unit.mesh.scale.set(1.0, curH, 1.0);
+              unit.mesh.position.y = 0;
+            }
+          }
+        } else {
+          // ⛰️ 破土停留後淡出模式 (PERSIST_FADE)：破土後巍峨屹立不變形，尾部透明度平滑淡出
+          unit.mesh.visible = true;
+          unit.mesh.scale.set(1.0, 1.0, 1.0);
+          unit.mesh.position.y = 0;
+        }
+
+        // 計算材質 Uniforms（在 PERSIST_FADE 下尾段平滑淡出）
+        let currentOpacity = fadeAlpha;
+        if (spikeArrayBehavior === 'PERSIST_FADE' && progress > 0.65) {
+          const fadeRatio = Math.max(0.0, (1.0 - progress) / 0.35);
+          currentOpacity = fadeAlpha * fadeRatio;
+        }
+
+        if (unit.mat.uniforms?.uColorRim) unit.mat.uniforms.uColorRim.value.set(colorRim);
+        if (unit.mat.uniforms?.uColorCore) unit.mat.uniforms.uColorCore.value.set(colorCore);
+        if (unit.mat.uniforms?.uColor) unit.mat.uniforms.uColor.value.set(colorRim);
+        if (unit.mat.uniforms?.uOpacity) unit.mat.uniforms.uOpacity.value = currentOpacity;
+        if (unit.mat.uniforms?.uTime) unit.mat.uniforms.uTime.value = progress;
+        if (unit.mat.uniforms?.uMaterialMode) {
+          unit.mat.uniforms.uMaterialMode.value = spikeMaterialMode === 'BASIC' ? 1.0 : 0.0;
+        }
+      });
+    }
+
+    // 貼地裂痕衝擊波擴散動畫（若伴生地火噴發 spikeEruptFire，光環半徑擴大且白熾度加成）
+    if (cache.shockwaveMesh && cache.shockwaveMat) {
+      if (progress >= 0.03 && progress <= (spikeEruptFire ? 0.55 : 0.45)) {
+        cache.shockwaveMesh.visible = true;
+        const ringProg = (progress - 0.03) / (spikeEruptFire ? 0.52 : 0.42);
+        const radiusMultiplier = spikeEruptFire ? 4.2 : 3.2;
+        const ringScale = 0.5 + radiusMultiplier * ringProg * scale;
+        cache.shockwaveMesh.scale.set(ringScale, ringScale, ringScale);
+        const ringAlpha = (1.0 - ringProg) * fadeAlpha * (spikeEruptFire ? 1.0 : 0.85);
+        cache.shockwaveMat.uniforms.uOpacity.value = ringAlpha;
+        cache.shockwaveMat.uniforms.uColor.value.set(colorCore);
+      } else {
+        cache.shockwaveMesh.visible = false;
       }
-    });
+    }
   }
 
   /**
@@ -755,12 +1211,14 @@ export class MeshLayerRenderer {
     cache: any
   ): void {
     trackGroup.position.copy(curPos);
-    trackGroup.lookAt(endPos);
+    if (curPos.distanceTo(endPos) > 0.01) {
+      trackGroup.lookAt(endPos);
+    }
 
     if (!cache.frostGroup) {
       cache.frostGroup = new THREE.Group();
       const coneGeo = new THREE.ConeGeometry(9 * scale, 60 * scale, 16, 2);
-      coneGeo.rotateX(Math.PI / 2);
+      coneGeo.rotateX(-Math.PI / 2);
       const coneMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
       const cone = new THREE.Mesh(coneGeo, coneMat);
       cache.frostGroup.add(cone);
@@ -816,16 +1274,23 @@ export class MeshLayerRenderer {
     colorCore: string,
     colorRim: string,
     fadeAlpha: number,
-    cache: any
+    cache: any,
+    spinAngle?: number
   ): void {
     trackGroup.position.set(0, 0, 0);
+    trackGroup.rotation.set(0, 0, 0);
+
+    const mid = new THREE.Vector3().addVectors(startPos, endPos).multiplyScalar(0.5);
+    const dir = new THREE.Vector3().subVectors(endPos, startPos).normalize();
+    const beamRot = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    if (spinAngle) {
+      beamRot.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), spinAngle));
+    }
 
     if (!cache.beamMesh) {
       cache.beamGroup = new THREE.Group();
       const dist = startPos.distanceTo(endPos) || 100;
-      const cylGeo = new THREE.CylinderGeometry(7 * scale, 7 * scale, dist, 12);
-      cylGeo.translate(0, dist / 2, 0);
-      cylGeo.rotateX(Math.PI / 2);
+      const cylGeo = new THREE.CylinderGeometry(7 * scale, 7 * scale, dist, 16);
       const cylMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(colorRim),
         transparent: true,
@@ -833,8 +1298,9 @@ export class MeshLayerRenderer {
         blending: THREE.AdditiveBlending
       });
       const cyl = new THREE.Mesh(cylGeo, cylMat);
-      cyl.position.copy(startPos);
-      cyl.lookAt(endPos);
+      
+      cyl.position.copy(mid);
+      cyl.quaternion.copy(beamRot);
       cache.beamGroup.add(cyl);
 
       const ringMat = new THREE.MeshBasicMaterial({
@@ -846,14 +1312,30 @@ export class MeshLayerRenderer {
       });
       const ring1 = new THREE.Mesh(new THREE.RingGeometry(8 * scale, 16 * scale, 16), ringMat);
       ring1.position.copy(startPos);
+      ring1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
       cache.beamGroup.add(ring1);
 
       const ring2 = new THREE.Mesh(new THREE.RingGeometry(12 * scale, 22 * scale, 16), ringMat);
       ring2.position.copy(endPos);
+      ring2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
       cache.beamGroup.add(ring2);
 
       cache.beamMesh = cyl;
+      cache.beamRing1 = ring1;
+      cache.beamRing2 = ring2;
       trackGroup.add(cache.beamGroup);
+    } else {
+      // 動態更新幾何中點與姿態四元數
+      cache.beamMesh.position.copy(mid);
+      cache.beamMesh.quaternion.copy(beamRot);
+      if (cache.beamRing1) {
+        cache.beamRing1.position.copy(startPos);
+        cache.beamRing1.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+      }
+      if (cache.beamRing2) {
+        cache.beamRing2.position.copy(endPos);
+        cache.beamRing2.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+      }
     }
     cache.beamGroup.visible = true;
     if (cache.beamMesh?.material) {
@@ -921,7 +1403,8 @@ export class MeshLayerRenderer {
   }
 
   /**
-   * 🌋 建立/更新大地裂地波推進 (GROUND_FISSURE)
+   * 🌋 建立/更新大地裂地波推進 (GROUND_FISSURE / STAGGERED_ARRAY)
+   * 支援自訂尖刺形狀 (spikeShape)、數量 (spikeArrayCount) 與兩種生長模式 (PERSIST_FADE / SURGE_RECEDE)
    */
   public static updateGroundFissure(
     trackGroup: THREE.Group,
@@ -940,10 +1423,14 @@ export class MeshLayerRenderer {
       const groundStart = new THREE.Vector3(casterPos.x, casterPos.y + groundYOffset, 0);
       const groundEnd = new THREE.Vector3(targetPos.x, targetPos.y + groundYOffset, 0);
       const totalDist = groundStart.distanceTo(groundEnd);
-      const nodeCount = Math.max(4, Math.min(12, Math.floor(totalDist / 48)));
+      const configuredCount = preset?.spikeArrayCount;
+      const nodeCount = typeof configuredCount === 'number' && configuredCount >= 2
+        ? Math.min(12, Math.max(2, configuredCount))
+        : Math.max(4, Math.min(12, Math.floor(totalDist / 48)));
       const nodes: any[] = [];
       const spikeWidth = Math.max(4, (preset?.spikeWidth || 10) * scale);
       const baseHeight = Math.max(30, (preset?.spikeHeight || 55) * scale);
+      const spikeShape = preset?.spikeShape || 'JAGGED_ROCK';
 
       for (let i = 0; i < nodeCount; i++) {
         const ratio = nodeCount > 1 ? i / (nodeCount - 1) : 1;
@@ -954,7 +1441,7 @@ export class MeshLayerRenderer {
         const scaleFactor = 0.65 + ratio * 0.75;
         const curH = baseHeight * scaleFactor;
         const curW = spikeWidth * scaleFactor;
-        const rockGeo = MeshLayerRenderer.createSpikeGeometry('JAGGED_ROCK', curW, curH);
+        const rockGeo = MeshLayerRenderer.createSpikeGeometry(spikeShape, curW, curH);
         const rockMat = new THREE.MeshBasicMaterial({
           color: new THREE.Color(colorRim || '#94a3b8'),
           transparent: true,
@@ -973,6 +1460,8 @@ export class MeshLayerRenderer {
     }
     cache.fissureGroup.visible = true;
 
+    const behavior = preset?.spikeArrayBehavior || 'PERSIST_FADE';
+
     cache.fissureNodes.forEach((item: any) => {
       const triggerP = item.ratio * 0.72;
       if (progress < triggerP) {
@@ -980,14 +1469,32 @@ export class MeshLayerRenderer {
       } else {
         item.nodeGroup.visible = true;
         const localP = Math.min(1.0, (progress - triggerP) / 0.28);
-        if (localP < 0.25) {
-          const sp = localP / 0.25;
-          item.rockMesh.scale.set(1, sp, 1);
-          item.rockMat.opacity = 0.9;
+
+        if (behavior === 'SURGE_RECEDE') {
+          // 🌊 浪湧縮回模式：破土竄出 ➔ 尖峰 ➔ 縮回地底
+          if (localP < 0.35) {
+            const sp = localP / 0.35;
+            item.rockMesh.scale.set(1, sp, 1);
+            item.rockMat.opacity = 0.9;
+          } else if (localP < 0.60) {
+            item.rockMesh.scale.set(1, 1, 1);
+            item.rockMat.opacity = 0.9;
+          } else {
+            const recede = Math.max(0.01, 1.0 - (localP - 0.60) / 0.40);
+            item.rockMesh.scale.set(1, recede, 1);
+            item.rockMat.opacity = recede * 0.9;
+          }
         } else {
-          const fade = Math.max(0, 1.0 - (localP - 0.25) / 0.75);
-          item.rockMesh.scale.set(1, 1, 1);
-          item.rockMat.opacity = fade * 0.9;
+          // ⏳ 停留淡出模式：竄出保持 ➔ 漸隱衰減
+          if (localP < 0.25) {
+            const sp = localP / 0.25;
+            item.rockMesh.scale.set(1, sp, 1);
+            item.rockMat.opacity = 0.9;
+          } else {
+            const fade = Math.max(0, 1.0 - (localP - 0.25) / 0.75);
+            item.rockMesh.scale.set(1, 1, 1);
+            item.rockMat.opacity = fade * 0.9;
+          }
         }
       }
     });
@@ -1014,7 +1521,7 @@ export class MeshLayerRenderer {
     colorCore: string = '#ffffff'
   ): void {
     const actualCount = Math.max(1, salvoCount);
-    const signature = `${actualCount}_${salvoSpreadAngle}_${salvoSpreadRadius}_${arcHeight}_${shaderMode}_${scale}_${colorRim}_${colorCore}`;
+    const signature = `${actualCount}_${salvoSpreadAngle}_${salvoSpreadRadius}_${arcHeight}_${shaderMode}_${scale}_${colorRim}_${colorCore}_${startPos.x.toFixed(1)}_${startPos.y.toFixed(1)}_${endPos.x.toFixed(1)}_${endPos.y.toFixed(1)}`;
 
     // ⚡ 參數變更或切換形態時動態釋放舊快取幾何，確保所見即所得即時響應
     if (cache.multiArcGroup && cache.salvoSignature !== signature) {

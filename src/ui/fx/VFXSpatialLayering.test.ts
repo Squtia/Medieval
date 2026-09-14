@@ -99,4 +99,43 @@ describe('VFX spatial and layering policy', () => {
       expect((spike.material as THREE.ShaderMaterial).depthWrite).toBe(false);
     });
   });
+
+  it('🏔️ 動態連動驗證：spikeArrayCount 動態生成對應數量副刺，且熱響應 (Hot-Reactivity) 重構正確', () => {
+    const root = new THREE.Group();
+    const cache: any = {};
+    // 預設 5 根：1 主峰 + 4 狼牙副刺 + 4 碎石板 = 9 個 units
+    MeshLayerRenderer.updateEarthShatter(root, new THREE.Vector3(), 0.3, 1, '#78716c', 1, cache, '#f97316', {
+      spikeArrayCount: 5,
+      spikeShape: 'JAGGED_ROCK'
+    });
+    expect(cache.spikeUnits.length).toBe(9);
+
+    // 調整至 9 根：1 主峰 + 8 狼牙副刺 + 4 碎石板 = 13 個 units
+    MeshLayerRenderer.updateEarthShatter(root, new THREE.Vector3(), 0.3, 1, '#78716c', 1, cache, '#f97316', {
+      spikeArrayCount: 9,
+      spikeShape: 'CRYSTAL_PRISM'
+    });
+    expect(cache.spikeUnits.length).toBe(13);
+
+    // 驗證幾何切換為 CRYSTAL_PRISM 六角稜柱水晶
+    const mainSpike = cache.spikeUnits.find((u: any) => u.isMainSpike);
+    expect(mainSpike).toBeDefined();
+    expect(mainSpike.mesh.geometry).toBeInstanceOf(THREE.CylinderGeometry);
+  });
+
+  it('🌊 生長模式驗證：SURGE_RECEDE 在刺出後迅速縮回地底', () => {
+    const root = new THREE.Group();
+    const cache: any = {};
+    // 在 p = 0.65 時，SURGE_RECEDE 應已開始回縮且 Y 軸高度縮回
+    MeshLayerRenderer.updateEarthShatter(root, new THREE.Vector3(), 0.65, 1, '#78716c', 1, cache, '#f97316', {
+      spikeArrayBehavior: 'SURGE_RECEDE',
+      spikeArrayCount: 5
+    });
+
+    const mainSpike = cache.spikeUnits.find((u: any) => u.isMainSpike);
+    // 在 p=0.65 時，尖刺已抽回地底插槽：高度縮回且絕不露在地面下方
+    expect(mainSpike.mesh.scale.y).toBeLessThan(0.8);
+    expect(mainSpike.mesh.position.y).toBe(0); // 底座釘在地面，不向下懸空掉出！
+  });
 });
+

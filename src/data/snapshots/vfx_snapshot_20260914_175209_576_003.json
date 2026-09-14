@@ -4159,7 +4159,7 @@
               "data": {
                 "rendererType": "SLASH",
                 "shaderMode": "FRESNEL_ICE",
-                "trajectory": "A_TO_B",
+                "trajectory": "MELEE_SWEEP",
                 "colorCore": "#ffffff",
                 "colorRim": "#f59e0b",
                 "scale": 1.3,
@@ -4171,7 +4171,7 @@
                 "aspect": 0.8,
                 "bladeWidth": 21,
                 "radius": 90,
-                "reverse": false,
+                "reverse": true,
                 "shape": "CRESCENT",
                 "spin": 0,
                 "mainDelay": 0.04,
@@ -4187,8 +4187,7 @@
                 "slashBladeWidth": 21,
                 "slashAngleJitter": 5,
                 "angleJitter": 5,
-                "mainDuration": 0.27,
-                "spatialTopology": "POINT_TRANSPORT"
+                "mainDuration": 0.27
               }
             }
           }
@@ -4264,7 +4263,7 @@
       "allowBloom": true
     },
     "metadata": {},
-    "trajectory": "A_TO_B",
+    "trajectory": "MELEE_SWEEP",
     "shaderMode": "FRESNEL_ICE",
     "colorCore": "#ffffff",
     "colorRim": "#f59e0b",
@@ -4317,7 +4316,7 @@
     "rotZ": 85,
     "angle": 85,
     "slashAlignToPath": false,
-    "reverse": false,
+    "reverse": true,
     "aspect": 0.8,
     "arcSpan": 195,
     "radius": 90,
@@ -4333,7 +4332,7 @@
     "mainDuration": 0.27,
     "rendererType": "SLASH",
     "shape": "CRESCENT",
-    "spatialTopology": "POINT_TRANSPORT",
+    "spatialTopology": "LOCAL_MORPH",
     "trajectoryPath": "A_TO_B",
     "slashShape": "CRESCENT",
     "slashAlternating": false,
