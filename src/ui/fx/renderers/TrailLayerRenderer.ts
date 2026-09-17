@@ -11,7 +11,18 @@ export interface TrailInstance {
   currentIndex: number;
   update: (currentPos: THREE.Vector3) => void;
   updateArcTrail?: (tipSampler: (prog: number) => THREE.Vector3, currentProgress: number) => void;
+  updateTrajectoryTrail?: (startPos: THREE.Vector3, curPos: THREE.Vector3, progress: number, arcHeight?: number) => void;
   updateStyle?: (colorHex: string, size: number, currentScale?: number) => void;
+  dispose: () => void;
+}
+
+export interface BurstCloudInstance {
+  points: THREE.Points;
+  geometry: THREE.BufferGeometry;
+  material: THREE.PointsMaterial;
+  count: number;
+  update: (centerPos: THREE.Vector3, progress: number) => void;
+  hide: () => void;
   dispose: () => void;
 }
 
@@ -51,6 +62,7 @@ export class TrailLayerRenderer {
     tex.generateMipmaps = false;
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
     this.softParticleTexture = tex;
     return tex;
   }
@@ -80,16 +92,17 @@ export class TrailLayerRenderer {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const material = new THREE.PointsMaterial({
       color: new THREE.Color(colorRim),
-      size: trailSize * scale,
+      size: Math.max(12, trailSize * scale * 1.5),
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.95,
       map: this.getSoftParticleTexture(),
       blending: THREE.AdditiveBlending,
+      depthTest: false,
       depthWrite: false
     });
 
     const points = new THREE.Points(geometry, material);
-    points.renderOrder = VFX_RENDER_ORDER.TRAIL;
+    points.renderOrder = 999;
     scene.add(points);
 
     let currentIndex = 0;
@@ -152,9 +165,97 @@ export class TrailLayerRenderer {
       posAttr.needsUpdate = true;
     };
 
+    /**
+     * 🏹 確定性彈道軌跡拖尾 (Deterministic Trajectory Trail)
+     * 沿著 (startPos -> curPos) 歷史軌跡動態分佈：
+     * - 頭部彗核：高度聚集、高能量亮光
+     * - 尾部流光：非線性拉長、自然波動擾動擴散 (Turbulence Wave)，打破機械等距死線
+     * - 尾端漸隱：子彈接近目標時平滑消散 (Lifetime Fade)，徹底杜絕動畫結束暫留
+     */
+    const updateTrajectoryTrail = (
+      startPos: THREE.Vector3,
+      curPos: THREE.Vector3,
+      progress: number,
+      arcHeight: number = 0,
+      spreadWidth: number = 0,
+      strands: number = 1
+    ) => {
+      const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
+      if (!posAttr) return;
+
+      if (progress <= 0.001 || progress >= 0.99) {
+        points.visible = false;
+        material.opacity = 0;
+        return;
+      }
+
+      points.visible = true;
+
+      // 🌟 尾端平滑消散：進度超過 0.75 時平滑衰減，命中時自然散盡，絕不硬定在空中
+      let trailFade = 1.0;
+      if (progress > 0.75) {
+        trailFade = Math.max(0, (0.99 - progress) / 0.24);
+      }
+      material.opacity = Math.min(0.95, 0.95 * trailFade);
+
+      const dist = startPos.distanceTo(curPos);
+      if (dist < 2) {
+        // 原地/駐留型特效：在主體周圍形成自然流動星塵雲
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2 + progress * Math.PI * 4;
+          const radius = (12 + Math.sin(progress * 8.0 + i) * 6 + (i % 5) * 6) * scale + spreadWidth * 0.5;
+          posAttr.setXYZ(
+            i,
+            curPos.x + Math.cos(angle) * radius + (rng() - 0.5) * 5 * scale,
+            curPos.y + Math.sin(angle) * radius + (rng() - 0.5) * 5 * scale,
+            curPos.z + (rng() - 0.5) * 10 * scale
+          );
+        }
+        posAttr.needsUpdate = true;
+        return;
+      }
+
+      // 彗尾跨度：依飛行速度動態延展
+      const trailSpan = Math.min(0.45, progress * 0.85);
+      const strandCount = Math.max(1, Math.min(3, strands));
+
+      for (let i = 0; i < count; i++) {
+        // 🌟 非線性彗核聚集：i 靠近 0 時緊貼彈頭，越往後越拉開
+        const uNorm = i / Math.max(1, count - 1);
+        const u = Math.pow(uNorm, 1.6);
+        const sampleProg = Math.max(0, progress - u * trailSpan);
+        const ratio = sampleProg / Math.max(0.001, progress);
+
+        const x = THREE.MathUtils.lerp(startPos.x, curPos.x, ratio);
+        let y = THREE.MathUtils.lerp(startPos.y, curPos.y, ratio);
+        const z = THREE.MathUtils.lerp(startPos.z, curPos.z, ratio);
+
+        if (arcHeight > 0) {
+          y += Math.sin(sampleProg * Math.PI) * arcHeight;
+        }
+
+        // 🌟 多股微相位交織羽流與散開寬度 (Strands & Flowing Plumes)
+        const strandIdx = i % strandCount;
+        const strandPhaseOffset = (strandIdx * Math.PI * 2) / strandCount;
+        const flowPhase = progress * 24.0 - uNorm * 12.0 + i * 0.45 + strandPhaseOffset;
+        const extraSpread = spreadWidth * uNorm;
+        const waveY = (Math.sin(flowPhase) * (2.0 + uNorm * 8.0) * scale) + (Math.sin(flowPhase) * extraSpread);
+        const waveZ = (Math.cos(flowPhase * 1.2) * (2.0 + uNorm * 8.0) * scale) + (Math.cos(flowPhase) * extraSpread);
+        const spreadJitter = (1.5 + Math.pow(uNorm, 1.4) * 14.0) * scale;
+
+        posAttr.setXYZ(
+          i,
+          x + (rng() - 0.5) * spreadJitter * 0.4,
+          y + waveY + (rng() - 0.5) * spreadJitter,
+          z + waveZ + (rng() - 0.5) * spreadJitter
+        );
+      }
+      posAttr.needsUpdate = true;
+    };
+
     const updateStyle = (colorHex: string, size: number, currentScale: number = 1.0) => {
       material.color.set(colorHex);
-      material.size = size * currentScale;
+      material.size = Math.max(12, size * currentScale * 1.5);
       material.needsUpdate = true;
     };
 
@@ -173,7 +274,101 @@ export class TrailLayerRenderer {
       currentIndex,
       update,
       updateArcTrail,
+      updateTrajectoryTrail,
       updateStyle,
+      dispose
+    };
+  }
+
+  /**
+   * 💥 建立/管理確定性命中爆散粒子群 (Deterministic Impact Burst Cloud)
+   * 隨進度向四周爆散擴散並淡出，100% 響應面板 param-burst-count
+   */
+  public static createBurstCloud(
+    scene: THREE.Scene,
+    centerPos: THREE.Vector3,
+    colorHex: string = '#38bdf8',
+    burstCount: number = 60,
+    particleSize: number = 10,
+    rng: () => number = defaultVfxRng
+  ): BurstCloudInstance {
+    const count = Math.max(8, burstCount);
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count * 3);
+
+    for (let i = 0; i < count; i++) {
+      positions[i * 3] = centerPos.x;
+      positions[i * 3 + 1] = centerPos.y;
+      positions[i * 3 + 2] = centerPos.z;
+
+      // 預先求值隨機球面散射向量
+      const theta = rng() * Math.PI * 2;
+      const phi = (rng() - 0.5) * Math.PI;
+      const speed = 40 + rng() * 80;
+      velocities[i * 3] = Math.cos(phi) * Math.cos(theta) * speed;
+      velocities[i * 3 + 1] = Math.sin(phi) * speed;
+      velocities[i * 3 + 2] = Math.cos(phi) * Math.sin(theta) * speed;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({
+      color: new THREE.Color(colorHex),
+      size: Math.max(12, particleSize * 1.2),
+      transparent: true,
+      opacity: 0.95,
+      map: this.getSoftParticleTexture(),
+      blending: THREE.AdditiveBlending,
+      depthTest: false,
+      depthWrite: false
+    });
+
+    const points = new THREE.Points(geometry, material);
+    points.renderOrder = 999;
+    scene.add(points);
+
+    const update = (currentCenter: THREE.Vector3, burstProgress: number) => {
+      const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
+      if (!posAttr) return;
+
+      if (burstProgress <= 0.001 || burstProgress >= 1.0) {
+        points.visible = false;
+        material.opacity = 0;
+        return;
+      }
+
+      points.visible = true;
+      material.opacity = Math.max(0, 0.9 * (1.0 - burstProgress));
+
+      for (let i = 0; i < count; i++) {
+        posAttr.setXYZ(
+          i,
+          currentCenter.x + velocities[i * 3] * burstProgress,
+          currentCenter.y + velocities[i * 3 + 1] * burstProgress - (burstProgress * burstProgress * 25), // 微重力下墜
+          currentCenter.z + velocities[i * 3 + 2] * burstProgress
+        );
+      }
+      posAttr.needsUpdate = true;
+    };
+
+    const hide = () => {
+      points.visible = false;
+      material.opacity = 0;
+    };
+
+    const dispose = () => {
+      scene.remove(points);
+      geometry.dispose();
+      material.dispose();
+    };
+
+    return {
+      points,
+      geometry,
+      material,
+      count,
+      update,
+      hide,
       dispose
     };
   }

@@ -497,6 +497,12 @@ export function mapImpactsToCues(
         });
       }
 
+      // 🎯 Per-Target 演出模式仲裁：
+      // 只要該目標僅 1 筆傷害事件，且時間軸配置多個有效打擊幀 (damageableItems > 1)，且非明確指定 PRIMARY_ONLY：
+      // 自動進入 SPLIT_SINGLE_IMPACT（Per-Target Temporal Slicing），徹底解除 JSON 遺留 EXACT_IMPACTS 導致空砍的問題
+      const hasMultipleWeightedCues = damageableItems.length > 1 && damageableItems.some(i => (i.cue.weight ?? 1.0) > 0);
+      const isSplitTarget = mode === 'SPLIT_SINGLE_IMPACT' || (mode === 'EXACT_IMPACTS' && hasMultipleWeightedCues);
+
       if (mode === 'PRIMARY_ONLY') {
         const primaryItem = damageableItems.find(item => item.cue.isPrimary) || damageableItems[damageableItems.length - 1];
 
@@ -523,7 +529,7 @@ export function mapImpactsToCues(
             skillName: singleEv.skillName
           });
         });
-      } else if (mode === 'SPLIT_SINGLE_IMPACT' && damageableItems.length > 1 && totalAmount > 0) {
+      } else if (isSplitTarget && damageableItems.length > 1 && totalAmount > 0) {
         // 🎯 依各 weight 權重進行整數安全切分，weight <= 0 視為不可承載數值
         const validWeightItems = damageableItems.filter(item => (item.cue.weight ?? 1.0) > 0);
         const totalWeight = validWeightItems.reduce((sum, item) => sum + (item.cue.weight ?? 1.0), 0);
@@ -793,11 +799,13 @@ export class CombatActionPlayer {
     });
 
     const binding = action.skillId ? SkillVfxBindingRegistry.getInstance().getBinding(action.skillId) : undefined;
+    const explicitMode = binding?.impactPresentationMode || action.presentationMode || sequence?.impactPresentationMode;
+    // 🎯 智慧仲裁：若未顯式指定模式，且「1 筆傷害結算 + 時間軸配有多個帶權重 Cue」，自動協商為 SPLIT_SINGLE_IMPACT 消除空砍
+    const hasMultipleWeightedCues = (sequence?.impactCues?.length ?? 0) > 1 && (sequence?.impactCues?.some(c => (c.weight ?? 0) > 0) ?? false);
+    const isSingleImpactAction = action.events.filter(e => (e.damage ?? 0) > 0).length === 1;
     const resolvedMode: ImpactPresentationMode =
-      binding?.impactPresentationMode ||
-      action.presentationMode ||
-      sequence?.impactPresentationMode ||
-      'EXACT_IMPACTS';
+      explicitMode ||
+      (isSingleImpactAction && hasMultipleWeightedCues ? 'SPLIT_SINGLE_IMPACT' : 'EXACT_IMPACTS');
     const resolvedCueMap = binding?.cueMap || action.cueMap;
 
     let isDegradedAction = false;

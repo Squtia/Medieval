@@ -43,7 +43,7 @@ export function resolvePresetSpatialTopology(preset: Partial<SpatialPreset>): VF
 
 /** Keep legacy trajectory-only presets on the same spatial policy as authored presets. */
 export function resolvePresetSpatialMode(preset: Partial<SpatialPreset>): VFXSpatialMode {
-  if (preset.spatialMode) return preset.spatialMode;
+  if (preset.spatialMode && preset.spatialMode !== 'TRAJECTORY') return preset.spatialMode;
   if (preset.trajectoryPath) return preset.trajectoryPath;
 
   switch (preset.trajectory) {

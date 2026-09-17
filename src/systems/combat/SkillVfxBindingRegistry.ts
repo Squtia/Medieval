@@ -1,5 +1,6 @@
 import { SkillVfxBinding, ImpactPresentationMode } from '../../models/VFX';
 import rawBindings from '../../data/skill_vfx_bindings.json';
+import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 
 export interface SkillVfxBindingStorageV2 {
   version: 2;
@@ -156,6 +157,16 @@ export class SkillVfxBindingRegistry {
    * 註冊或更新一筆技能特效綁定
    */
   public registerBinding(binding: SkillVfxBinding): void {
+    // 🛡️ 規範防線：[素材] 特效嚴禁綁定技能
+    try {
+      const vfx = VFXPresetRepository.getInstance().getSequence(binding.vfxId);
+      if (vfx && vfx.usageType === 'MATERIAL') {
+        throw new Error(`[Security Violation] 素材特效 [${binding.vfxId}] 不可直接綁定給技能 [${binding.skillId}]！僅允許 [技能專用] 特效。`);
+      }
+    } catch (e: any) {
+      if (e.message?.includes('[Security Violation]')) throw e;
+    }
+
     this.bindingsMap.set(binding.skillId, { ...binding });
     this.rebuildVfxToSkillsIndex();
     this.saveCustomBindingsToStorage();

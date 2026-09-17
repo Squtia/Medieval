@@ -296,8 +296,10 @@ function developmentStudioPlugin(): Plugin {
 
         // ==========================================
         // 特效工坊 SSOT 資料庫 (VFX Sequences SSOT API)
+        // 官方 30 款 (vfx_sequences.json) 唯讀保護，自訂創作與素材獨立儲存於 (vfx_custom_sequences.json)
         // ==========================================
         const vfxFile = path.resolve(__dirname, 'src/data/vfx_sequences.json');
+        const vfxCustomFile = path.resolve(__dirname, 'src/data/vfx_custom_sequences.json');
         const vfxSnapshotsDir = path.resolve(__dirname, 'src/data/snapshots');
 
         // 🛡️ 伺服器端最終防線驗證器 (委派共用 VFXPresetValidator，確保前後端 100% 規則對齊)
@@ -328,7 +330,7 @@ function developmentStudioPlugin(): Plugin {
           return;
         }
 
-        // 🚀 1. 發布至專案 SSOT (嚴格校驗防線 + 原子寫入 + 時間戳快照)
+        // 🚀 1. 發布至專案 SSOT (嚴格校驗防線 + 官方 30 款防篡改 + 自訂檔案獨立分離 + 時間戳快照)
         if ((url === '/__vfx_api/save_ssot' || url === '/api/save-vfx-presets') && req.method === 'POST') {
           let body = '';
           req.on('data', (chunk: any) => { body += chunk; });
@@ -349,19 +351,27 @@ function developmentStudioPlugin(): Plugin {
                 }));
               }
 
+              // 讀取官方 30 款出廠名單
+              const officialContent = fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]';
+              const officialList = JSON.parse(officialContent);
+              const officialIdSet = new Set(officialList.map((s: any) => s.id));
+
+              // 🌟 分離：將自訂創作與素材篩選出來，寫入 vfx_custom_sequences.json
+              const customPresets = presets.filter((p: any) => !officialIdSet.has(p.id));
+
               if (!fs.existsSync(vfxSnapshotsDir)) {
                 fs.mkdirSync(vfxSnapshotsDir, { recursive: true });
               }
 
-              // 1. 自動產生備份快照
+              // 1. 自動產生備份快照 (備份當前自訂檔案)
               const now = new Date();
               const stamp = createSnapshotStamp(now);
               const snapshotFilename = `vfx_snapshot_${stamp}.json`;
-              const currentContent = fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]';
-              atomicWriteFileSync(path.resolve(vfxSnapshotsDir, snapshotFilename), currentContent);
+              const currentCustomContent = fs.existsSync(vfxCustomFile) ? fs.readFileSync(vfxCustomFile, 'utf-8') : '[]';
+              atomicWriteFileSync(path.resolve(vfxSnapshotsDir, snapshotFilename), currentCustomContent);
 
-              // 2. 原子性寫入 SSOT 主檔案
-              atomicWriteFileSync(vfxFile, JSON.stringify(presets, null, 2));
+              // 2. 原子性寫入獨立自訂檔案 (絕不破壞官方 30 款主檔案)
+              atomicWriteFileSync(vfxCustomFile, JSON.stringify(customPresets, null, 2));
 
               // 3. 限制保留最近 20 份快照
               const allSnapshots = fs.readdirSync(vfxSnapshotsDir).filter((f: string) => f.startsWith('vfx_snapshot_')).sort().reverse();
@@ -374,7 +384,7 @@ function developmentStudioPlugin(): Plugin {
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({
                 success: true,
-                message: '已成功通過伺服器驗證並發布至專案 SSOT (src/data/vfx_sequences.json)！',
+                message: `已成功通過伺服器驗證並發布！官方 30 款安全唯讀，${customPresets.length} 款自訂特效/素材已獨立存至 vfx_custom_sequences.json！`,
                 snapshot: snapshotFilename,
                 count: presets.length
               }));
@@ -398,7 +408,7 @@ function developmentStudioPlugin(): Plugin {
               const now = new Date();
               const stamp = createSnapshotStamp(now);
               const snapshotFilename = `vfx_snapshot_${stamp}.json`;
-              const currentContent = fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]';
+              const currentContent = fs.existsSync(vfxCustomFile) ? fs.readFileSync(vfxCustomFile, 'utf-8') : '[]';
               atomicWriteFileSync(path.resolve(vfxSnapshotsDir, snapshotFilename), currentContent);
               res.setHeader('Content-Type', 'application/json');
               return res.end(JSON.stringify({ success: true, snapshot: snapshotFilename }));
@@ -421,10 +431,14 @@ function developmentStudioPlugin(): Plugin {
           return res.end(JSON.stringify({ success: true, snapshots: files, backups: files }));
         }
 
+        // 🌟 讀取端點：同時讀取官方 30 款與獨立自訂檔案，無縫聚合回傳
         if ((url.startsWith('/api/get-vfx-presets') || url.startsWith('/__vfx_api/get_presets')) && req.method === 'GET') {
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
-          return res.end(fs.existsSync(vfxFile) ? fs.readFileSync(vfxFile, 'utf-8') : '[]');
+          const officialArr = fs.existsSync(vfxFile) ? JSON.parse(fs.readFileSync(vfxFile, 'utf-8')) : [];
+          const customArr = fs.existsSync(vfxCustomFile) ? JSON.parse(fs.readFileSync(vfxCustomFile, 'utf-8')) : [];
+          const merged = [...officialArr, ...customArr];
+          return res.end(JSON.stringify(merged));
         }
 
         // 🔄 2. 快照復原端點 (路徑防逃逸 + 快照內容驗證 + 還原前快照保護)

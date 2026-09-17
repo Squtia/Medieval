@@ -83,15 +83,17 @@ export function getSelectionCapabilities(
   // Shield 幾何能力
   if (
     rendererType === 'SHIELD' ||
-    (preset.trajectory as string) === 'SHIELD_BARRIER'
+    (preset.trajectory as string) === 'SHIELD_BARRIER' ||
+    shaderMode === 'ENERGY_SHIELD'
   ) {
     caps.add('SHIELD_GEOMETRY');
   }
 
-  // Shout 幾何能力
+  // Shout / Shockwave 幾何能力
   if (
     rendererType === 'SHOUT_WAVE' ||
-    (preset.trajectory as string) === 'SHOUT_WAVE'
+    (preset.trajectory as string) === 'SHOUT_WAVE' ||
+    shaderMode === 'SHOCKWAVE'
   ) {
     caps.add('SHOUT_GEOMETRY');
   }
@@ -133,6 +135,7 @@ export class VFXInspector {
       this.syncUI(preset);
     });
     this.store.subscribeSelection(() => {
+      this.syncUI(this.store.getPreset());
       this.updateContextualVisibility(this.store.getPreset());
     });
   }
@@ -163,8 +166,15 @@ export class VFXInspector {
         input.addEventListener('input', (e) => {
           const val = parseFloat((e.target as HTMLInputElement).value);
           if (label) {
-            const prefix = (c.id === 'param-slash-jitter' && val > 0) ? '±' : '';
-            label.textContent = `${prefix}${val}${c.unit || ''}`;
+            if (c.id === 'param-burst-time') {
+              label.textContent = val <= 0 ? '自動 (隨Cue)' : `${val.toFixed(2)}s`;
+            } else if (c.id.includes('offset')) {
+              const prefix = val > 0 ? '+' : '';
+              label.textContent = `${prefix}${val}${c.unit || ''}`;
+            } else {
+              const prefix = (c.id === 'param-slash-jitter' && val > 0) ? '±' : '';
+              label.textContent = `${prefix}${val}${c.unit || ''}`;
+            }
           }
           if (c.isImpact) {
             const cur = this.store.getPreset();
@@ -202,11 +212,7 @@ export class VFXInspector {
         sel.addEventListener('change', (e) => {
           this.store.recordSnapshot();
           const val = (e.target as HTMLSelectElement).value;
-          if (c.id === 'param-wave-plane') {
-            const cur = this.store.getPreset();
-            const impact = { ...(cur.impact || {}), wavePlane: val };
-            this.store.updateConfig({ wavePlane: val as any, impact }, false);
-          } else if (c.id === 'param-slash-shape') {
+          if (c.id === 'param-slash-shape') {
             this.store.updateConfig({ slashShape: val as any, shape: val as any }, false);
           } else if (c.id === 'param-slash-traj') {
             const updates: any = { slashTrajectory: val as any };
@@ -274,7 +280,13 @@ export class VFXInspector {
             const cur = this.store.getPreset();
             const updates: Partial<VFXPreset> = { shaderMode: shaderVal };
 
-            if (shaderVal !== 'SLASH_BLADE') {
+            if (shaderVal === 'SHOCKWAVE') {
+              updates.rendererType = 'PROJECTILE';
+              updates.trajectory = 'SHOUT_WAVE';
+              if (cur.spatialMode !== 'AT_TARGET' && cur.spatialMode !== 'AT_CASTER') {
+                updates.spatialMode = 'AT_CASTER';
+              }
+            } else if (shaderVal !== 'SLASH_BLADE') {
               if (cur.rendererType === 'SLASH') {
                 updates.rendererType = shaderVal === 'EARTH_SHATTER' ? 'GROUND_FISSURE' : 'PROJECTILE';
               }
@@ -378,18 +390,29 @@ export class VFXInspector {
       const label = c.labelId ? document.getElementById(c.labelId) : null;
       if (!el) continue;
 
+      const sel = this.store.getSelection();
+      const currentLayer = sel.type === 'LAYER' ? p.layers?.find(l => l.id === sel.layerId) : undefined;
       const rawVal = c.isImpact
         ? p.impact?.[c.key as keyof typeof p.impact]
         : (c.isCasterMotion
           ? (p.casterMotion as any)?.[c.key]
-          : ((p as any)[c.key] !== undefined ? (p as any)[c.key] : (c.key === 'flameTurbulenceSpeed' ? (p as any).flameSpeed : undefined)));
+          : (currentLayer && (currentLayer as any)[c.key] !== undefined
+            ? (currentLayer as any)[c.key]
+            : ((p as any)[c.key] !== undefined ? (p as any)[c.key] : (c.key === 'flameTurbulenceSpeed' ? (p as any).flameSpeed : undefined))));
       const val = (rawVal !== undefined && rawVal !== null && !Number.isNaN(rawVal)) ? rawVal : c.defaultVal;
 
       if (c.type === 'range') {
         el.value = val.toString();
         if (label) {
-          const prefix = (c.id === 'param-slash-jitter' && Number(val) > 0) ? '±' : '';
-          label.textContent = `${prefix}${val}${c.unit || ''}`;
+          if (c.id === 'param-burst-time') {
+            label.textContent = Number(val) <= 0 ? '自動 (隨Cue)' : `${Number(val).toFixed(2)}s`;
+          } else if (c.id.includes('offset')) {
+            const prefix = Number(val) > 0 ? '+' : '';
+            label.textContent = `${prefix}${val}${c.unit || ''}`;
+          } else {
+            const prefix = (c.id === 'param-slash-jitter' && Number(val) > 0) ? '±' : '';
+            label.textContent = `${prefix}${val}${c.unit || ''}`;
+          }
         }
       } else if (c.type === 'select') {
         el.value = val.toString();
@@ -472,6 +495,12 @@ export class VFXInspector {
     const shieldCard = document.querySelector('.card-shield-section') as HTMLElement;
     if (shieldCard) {
       shieldCard.style.display = (!isBindingSelected && caps.has('SHIELD_GEOMETRY')) ? 'block' : 'none';
+    }
+
+    // 🌊 衝擊震波專屬幾何與姿態控制區顯隱
+    const sectionShockwave = document.getElementById('section-shockwave-controls');
+    if (sectionShockwave) {
+      sectionShockwave.style.display = (!isBindingSelected && caps.has('SHOUT_GEOMETRY')) ? 'block' : 'none';
     }
 
     // 🔥 依 §5.8 規則：Fire turbulence 只有 fire renderer 顯示

@@ -102,19 +102,6 @@
             <option value="WHIRLWIND">🌪️ 360° 雙刃旋風 (Whirlwind Dual Moon)</option>
           </select>
         </div>
-        <div class="param-row-2col" style="margin-top: 6px; border-top: 1px solid rgba(245, 158, 11, 0.2); padding-top: 6px;">
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label" style="color: #fbbf24;">✨ 啟用刀尖拖尾</span></div>
-            <select id="param-enable-trail" class="param-select"><option value="false">關閉 (無拖尾)</option><option value="true">✨ 開啟刀尖動態拖尾</option></select>
-          </div>
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label" style="color: #fbbf24;">拖尾粒子顏色</span></div>
-            <div class="param-control" style="display: flex; gap: 8px; align-items: center;">
-              <input type="color" id="param-trail-color" class="param-color" value="#f59e0b" style="width: 42px; height: 26px; padding: 0; border: 1px solid #30363d; background: transparent; cursor: pointer; border-radius: 4px;">
-              <span style="font-size: 0.72rem; color: #8b949e;">(光芒色彩)</span>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -124,24 +111,19 @@
         <span>🚀 彈幕發射與節奏曲線 (Salvo & Rhythm)</span>
       </div>
       <div class="inspector-card-body">
-        <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label">發射彈數</span><span id="val-salvo-count" class="param-value">1 發</span></div>
-            <div class="param-control"><input type="range" id="param-salvo-count" class="param-slider" min="1" max="12" step="1" value="1"></div>
-          </div>
-          <div class="param-col">
-            <div class="param-label-row"><span class="param-label">連射總時長</span><span id="val-salvo-dur" class="param-value">0.35s</span></div>
-            <div class="param-control"><input type="range" id="param-salvo-dur" class="param-slider" min="0.1" max="2.0" step="0.05" value="0.35"></div>
-          </div>
+        <div class="param-row">
+          <div class="param-label-row"><span class="param-label">發射彈數</span><span id="val-salvo-count" class="param-value">1 發</span></div>
+          <div class="param-control"><input type="range" id="param-salvo-count" class="param-slider" min="1" max="12" step="1" value="1"></div>
         </div>
         <div class="param-row">
           <div class="param-label-row"><span class="param-label">發射節奏曲線 (Rhythm Easing)</span></div>
           <select id="param-salvo-curve" class="param-select">
-            <option value="LINEAR">🟢 等距均勻 (Steady Linear)</option>
-            <option value="ACCELERATE">🚀 先慢後快急速 (Accelerate Exponential)</option>
-            <option value="DECELERATE">💥 爆發後衰減 (Decelerate Logarithmic)</option>
+            <option value="LINEAR">🟢 等距均勻 (Linear)</option>
+            <option value="ACCELERATE">🚀 先慢後快急速 (Accelerate)</option>
+            <option value="DECELERATE">💥 爆發後衰減 (Decelerate)</option>
             <option value="BURST_PAIRS">⚡ 雙發點射成對 (Burst Pairs)</option>
-            <option value="STAGGERED">🎲 隨機錯落散佈 (Staggered Scatter)</option>
+            <option value="VOLLEY_SYNC">🎯 同步齊射 (Volley Sync)</option>
+            <option value="CHAOTIC">🎲 錯落混沌 (Chaotic)</option>
           </select>
         </div>
         <div class="param-row-2col">
@@ -183,27 +165,16 @@
             <option value="RUNE_RING">🔮 古老符文光環 (Runic Circle)</option>
           </select>
         </div>
-        <div class="param-row-2col">
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">戰吼音波圈數</span>
-              <span id="val-wave-count" class="param-value">3 圈</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-wave-count" class="param-slider" min="1" max="5" step="1" value="3">
-            </div>
+        <div class="param-row">
+          <div class="param-label-row">
+            <span class="param-label">粒子光學紋理</span>
           </div>
-          <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">粒子光學紋理</span>
-            </div>
-            <select id="param-texture-sprite" class="param-select">
-              <option value="GLOW">✨ 柔和光暈</option>
-              <option value="SPARK">💥 爆裂星芒</option>
-              <option value="RUNE">🪬 神聖符文</option>
-              <option value="FIRE">🔥 烈焰黑體</option>
-            </select>
-          </div>
+          <select id="param-texture-sprite" class="param-select">
+            <option value="GLOW">✨ 柔和光暈</option>
+            <option value="SPARK">💥 爆裂星芒</option>
+            <option value="RUNE">🪬 神聖符文</option>
+            <option value="FIRE">🔥 烈焰黑體</option>
+          </select>
         </div>
       </div>
     </div>
@@ -245,6 +216,7 @@
         </select>
         <button id="btn-bg-toggle" class="btn-tool" title="切換背景模式 (純黑 / 棋盤格 / 實戰背景)">🎨 背景: 純黑</button>
         <button id="btn-toggle-guides" class="btn-tool" style="border-color: #a855f7; color: #c084fc;" title="切換中心十字、彈道軌跡與安全區輔助線">📐 輔助線: 關</button>
+        <button id="btn-toggle-scale" class="btn-tool" style="border-color: #facc15; color: #fef08a;" title="切換卡片比例：實戰 1:1 (84px) vs 特寫檢視 (125px)">🎮 實戰 1:1</button>
         <button id="btn-return-stash" class="btn-tool" style="display: none; background: linear-gradient(135deg, #be185d, #e11d48); color: #fff; border: 1px solid #fda4af; font-weight: bold; font-size: 0.74rem;" title="返回先前暫存的複合技能草稿">🔙 返回技能草稿</button>
       </div>
     </div>
@@ -353,22 +325,35 @@
         </select>
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">自轉角速度</span>
-              <span id="val-spin" class="param-value">22 rad/s</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-spin" class="param-slider" min="0" max="60" step="2" value="22">
-            </div>
+            <div class="param-label-row"><span class="param-label">自轉角速度</span><span id="val-spin" class="param-value">22 rad/s</span></div>
+            <div class="param-control"><input type="range" id="param-spin" class="param-slider" min="0" max="60" step="2" value="22"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">本體尺寸縮放</span>
-              <span id="val-scale" class="param-value">1.0x</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-scale" class="param-slider" min="0.3" max="3.0" step="0.1" value="1.0">
-            </div>
+            <div class="param-label-row"><span class="param-label">本體尺寸縮放</span><span id="val-scale" class="param-value">1.0x</span></div>
+            <div class="param-control"><input type="range" id="param-scale" class="param-slider" min="0.3" max="3.0" step="0.1" value="1.0"></div>
+          </div>
+        </div>
+
+        <div class="param-row-divider" style="margin: 10px 0 6px; border-top: 1px dashed #334155;"></div>
+        <div style="font-size: 0.75rem; font-weight: bold; color: #38bdf8; margin-bottom: 6px;" title="主導受擊著彈點與刀光/彈道軌跡之立體空間偏移">🎯 空間座標偏移 (Spatial Offsets)</div>
+        <div class="param-row-2col">
+          <div class="param-col" title="🎯 受擊著彈點 X 軸微調 (主導受擊部位、火花爆散點與命中跳字基準)">
+            <div class="param-label-row"><span class="param-label">落點微調 X <span style="font-size: 0.65rem; color: #94a3b8;">(受擊點)</span></span><span id="val-target-offset-x" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-target-offset-x" class="param-slider" min="-150" max="150" step="2" value="0"></div>
+          </div>
+          <div class="param-col" title="🎯 受擊著彈點 Y 軸微調 (主導受擊部位、火花爆散點與命中跳字基準)">
+            <div class="param-label-row"><span class="param-label">落點微調 Y <span style="font-size: 0.65rem; color: #94a3b8;">(受擊點)</span></span><span id="val-target-offset-y" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-target-offset-y" class="param-slider" min="-150" max="150" step="2" value="0"></div>
+          </div>
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col" title="🛤️ 攻擊軌道路徑/刀光身位 X 軸平行挪移 (支援多圖層錯位交叉斬/雙刀斬拼裝)">
+            <div class="param-label-row"><span class="param-label">軌道平移 X <span style="font-size: 0.65rem; color: #94a3b8;">(刀光身位)</span></span><span id="val-track-offset-x" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-track-offset-x" class="param-slider" min="-200" max="200" step="5" value="0"></div>
+          </div>
+          <div class="param-col" title="🛤️ 攻擊軌道路徑/刀光身位 Y 軸平行挪移 (支援多圖層錯位交叉斬/雙刀斬拼裝)">
+            <div class="param-label-row"><span class="param-label">軌道平移 Y <span style="font-size: 0.65rem; color: #94a3b8;">(刀光身位)</span></span><span id="val-track-offset-y" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-track-offset-y" class="param-slider" min="-200" max="200" step="5" value="0"></div>
           </div>
         </div>
       </div>
@@ -392,6 +377,8 @@
               <option value="HOLY_LIGHT">☀️ 天罰神聖純白光柱</option>
               <option value="DARK_VOID">🌑 暗影虛空侵蝕</option>
               <option value="EARTH_SHATTER">⛰️ 地刺 (Earth Spike)</option>
+              <option value="SHOCKWAVE">🌊 衝擊震波 (Shockwave)</option>
+              <option value="ENERGY_SHIELD">🛡️ 能量防護壁壘 (Energy Shield)</option>
             </select>
           </div>
           <div class="param-col">
@@ -425,43 +412,40 @@
 
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">泛光半徑 (Glow)</span>
-              <span id="val-glow-radius" class="param-value">75px</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-glow-radius" class="param-slider" min="10" max="220" step="5" value="75">
-            </div>
+            <div class="param-label-row"><span class="param-label">泛光半徑 (Glow)</span><span id="val-glow-radius" class="param-value">75px</span></div>
+            <div class="param-control"><input type="range" id="param-glow-radius" class="param-slider" min="10" max="220" step="5" value="75"></div>
           </div>
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">光暈透明度</span>
-              <span id="val-glow-opacity" class="param-value">0.85</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-glow-opacity" class="param-slider" min="0.0" max="1.0" step="0.05" value="0.85">
-            </div>
+            <div class="param-label-row"><span class="param-label">光暈透明度</span><span id="val-glow-opacity" class="param-value">0.85</span></div>
+            <div class="param-control"><input type="range" id="param-glow-opacity" class="param-slider" min="0.0" max="1.0" step="0.05" value="0.85"></div>
           </div>
         </div>
 
         <div class="param-row-2col">
           <div class="param-col">
-            <div class="param-label-row">
-              <span class="param-label">核心白熾度</span>
-              <span id="val-core-brightness" class="param-value">1.0x</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-core-brightness" class="param-slider" min="0.2" max="2.0" step="0.1" value="1.0">
-            </div>
+            <div class="param-label-row"><span class="param-label">核心白熾度</span><span id="val-core-brightness" class="param-value">1.0x</span></div>
+            <div class="param-control"><input type="range" id="param-core-brightness" class="param-slider" min="0.2" max="2.0" step="0.1" value="1.0"></div>
           </div>
           <div class="param-col" id="col-fresnel">
-            <div class="param-label-row">
-              <span class="param-label">菲涅爾指數</span>
-              <span id="val-fresnel" class="param-value">1.8</span>
-            </div>
-            <div class="param-control">
-              <input type="range" id="param-fresnel" class="param-slider" min="0.5" max="4.0" step="0.1" value="1.8">
-            </div>
+            <div class="param-label-row"><span class="param-label">菲涅爾指數</span><span id="val-fresnel" class="param-value">1.8</span></div>
+            <div class="param-control"><input type="range" id="param-fresnel" class="param-slider" min="0.5" max="4.0" step="0.1" value="1.8"></div>
+          </div>
+        </div>
+
+        <!-- 🌊 衝擊震波 (SHOCKWAVE) 專屬幾何與姿態控制區 -->
+        <div class="card-shout-section" id="section-shockwave-controls" style="display: none; margin-top: 8px; padding: 6px 8px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 6px;">
+          <div style="font-size: 0.74rem; color: #7dd3fc; font-weight: bold; margin-bottom: 6px;">🌊 衝擊震波幾何與姿態 (Shockwave Wave Ring)</div>
+          <div class="param-row-2col">
+            <div class="param-col"><div class="param-label-row"><span class="param-label">波環圈數</span><span id="val-wave-count" class="param-value">3 圈</span></div><div class="param-control"><input type="range" id="param-wave-count" class="param-slider" min="1" max="6" step="1" value="3"></div></div>
+            <div class="param-col"><div class="param-label-row"><span class="param-label">波環半徑</span><span id="val-wave-radius" class="param-value">65px</span></div><div class="param-control"><input type="range" id="param-wave-radius" class="param-slider" min="20" max="200" step="5" value="65"></div></div>
+          </div>
+          <div class="param-row-2col" style="margin-top: 4px;">
+            <div class="param-col"><div class="param-label-row"><span class="param-label">波環線寬</span><span id="val-wave-thickness" class="param-value">4px</span></div><div class="param-control"><input type="range" id="param-wave-thickness" class="param-slider" min="1" max="30" step="1" value="4"></div></div>
+            <div class="param-col"><div class="param-label-row"><span class="param-label">邊緣羽化 (Blur)</span><span id="val-wave-blur" class="param-value">30%</span></div><div class="param-control"><input type="range" id="param-wave-blur" class="param-slider" min="0" max="100" step="5" value="30"></div></div>
+          </div>
+          <div class="param-row-2col" style="margin-top: 4px;">
+            <div class="param-col"><div class="param-label-row"><span class="param-label">X 軸俯仰 (0°豎/90°地)</span><span id="val-wave-rot-x" class="param-value">0°</span></div><div class="param-control"><input type="range" id="param-wave-rot-x" class="param-slider" min="-90" max="90" step="5" value="0"></div></div>
+            <div class="param-col"><div class="param-label-row"><span class="param-label">Y 軸偏航 (0°正/90°側)</span><span id="val-wave-rot-y" class="param-value">0°</span></div><div class="param-control"><input type="range" id="param-wave-rot-y" class="param-slider" min="-90" max="90" step="5" value="0"></div></div>
           </div>
         </div>
 
@@ -504,10 +488,36 @@
             <div class="param-control"><input type="range" id="param-trail-size" class="param-slider" min="2" max="30" step="1" value="10"></div>
           </div>
         </div>
-        <div class="param-row">
-          <div class="param-label-row"><span class="param-label">爆裂碎屑數量 (Burst Sparks)</span><span id="val-burst-count" class="param-value">60 顆</span></div>
-          <div class="param-control"><input type="range" id="param-burst-count" class="param-slider" min="0" max="120" step="10" value="60"></div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">拖尾粒子顏色</span></div>
+            <div class="param-control" style="display: flex; gap: 8px; align-items: center;">
+              <input type="color" id="param-trail-color" class="param-color" value="#f59e0b" style="width: 42px; height: 26px; padding: 0; border: 1px solid #30363d; background: transparent; cursor: pointer; border-radius: 4px;">
+              <span style="font-size: 0.72rem; color: #8b949e;">(光芒色彩)</span>
+            </div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">爆裂碎屑數量 (Burst)</span><span id="val-burst-count" class="param-value">60 顆</span></div>
+            <div class="param-control"><input type="range" id="param-burst-count" class="param-slider" min="0" max="120" step="10" value="60"></div>
+          </div>
         </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">碎屑爆發時間 (Burst Time)</span><span id="val-burst-time" class="param-value">自動 (隨Cue)</span></div>
+            <div class="param-control"><input type="range" id="param-burst-time" class="param-slider" min="0" max="2.5" step="0.05" value="0"></div>
+          </div>
+        </div>
+        <div class="param-row-2col">
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">羽流散開寬度</span><span id="val-trail-spread" class="param-value">0px</span></div>
+            <div class="param-control"><input type="range" id="param-trail-spread" class="param-slider" min="0" max="35" step="1" value="0"></div>
+          </div>
+          <div class="param-col">
+            <div class="param-label-row"><span class="param-label">微相位交織股數</span><span id="val-trail-strands" class="param-value">1 股</span></div>
+            <div class="param-control"><input type="range" id="param-trail-strands" class="param-slider" min="1" max="3" step="1" value="1"></div>
+          </div>
+        </div>
+        <select id="param-enable-trail" class="param-select" style="display: none;"><option value="true" selected>開啟</option></select>
       </div>
     </div>
 
@@ -702,51 +712,9 @@
           <div class="param-col"><div class="param-label-row"><span class="param-label">受擊擊退</span><span id="val-knockback" class="param-value">18px</span></div><div class="param-control"><input type="range" id="param-knockback" class="param-slider" min="0" max="60" step="2" value="18"></div></div>
           <div class="param-col"><div class="param-color-row"><span class="param-label">受擊閃光色</span><input type="color" id="param-flash-color" class="param-color-input" value="#ffffff"></div></div>
         </div>
-
-        <!-- 💥 受擊擴散光圈 (Impact Ring) 全可調設定 -->
-        <div style="margin-top: 6px; padding: 6px 8px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px;">
-          <div style="font-size: 0.74rem; color: #fca5a5; font-weight: bold; margin-bottom: 4px;">💥 受擊擴散光圈 (Impact Wave)</div>
-          <div class="param-row-2col">
-            <div class="param-col">
-              <div class="param-label-row">
-                <span class="param-label">光圈半徑</span>
-                <span id="val-wave-radius" class="param-value">65px</span>
-              </div>
-              <div class="param-control">
-                <input type="range" id="param-wave-radius" class="param-slider" min="20" max="180" step="5" value="65">
-              </div>
-            </div>
-            <div class="param-col">
-              <div class="param-label-row">
-                <span class="param-label">光圈線寬</span>
-                <span id="val-wave-thickness" class="param-value">4px</span>
-              </div>
-              <div class="param-control">
-                <input type="range" id="param-wave-thickness" class="param-slider" min="1" max="25" step="1" value="4">
-              </div>
-            </div>
-          </div>
-
-          <div class="param-row-2col" style="margin-top: 4px;">
-            <div class="param-col">
-              <div class="param-label-row">
-                <span class="param-label">邊緣羽化柔焦 (Blur)</span>
-                <span id="val-wave-blur" class="param-value">30%</span>
-              </div>
-              <div class="param-control">
-                <input type="range" id="param-wave-blur" class="param-slider" min="0" max="100" step="5" value="30">
-              </div>
-            </div>
-            <div class="param-col">
-              <div class="param-label-row">
-                <span class="param-label">擴散平面</span>
-              </div>
-              <select id="param-wave-plane" class="param-select" style="padding: 2px 4px; font-size: 0.72rem;">
-                <option value="CAMERA">🎯 面向鏡頭</option>
-                <option value="GROUND">🌍 水平地面</option>
-              </select>
-            </div>
-          </div>
+        <div class="param-row" style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="param-screen-shake" style="cursor: pointer;">
+          <label for="param-screen-shake" style="font-size: 0.78rem; color: #f87171; cursor: pointer; font-weight: bold;">📳 全螢幕鏡頭震動 (Screen Shake)</label>
         </div>
       </div>
     </div>
@@ -782,6 +750,6 @@
 
   </div>
 
-  <script type="module" src="../src/tools/vfx-studio/index.ts?v=20260914_ssot_fix"></script>
+  <script type="module" src="../src/tools/vfx-studio/index.ts"></script>
 </body>
 </html>

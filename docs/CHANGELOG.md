@@ -1,3 +1,558 @@
+- **[Feature/VFX/EnergyShieldShaderImplementation] 特效工坊「🛡️ 專屬能量結界護盾著色器 (ENERGY_SHIELD) 與蜂巢晶格菲涅爾流光渲染」完工：Typecheck 0 錯誤、全量 28 個測試檔 237 項測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **區隔實體盾擊與能量防護結界**：
+       - 解決既有幾何體類似實體武器盾擊之視覺混淆，專門設計與實裝專屬 GLSL 能量結界著色器 [MeshLayerRenderer.ts:createEnergyShieldShaderMaterial](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L565-L665)。
+       - 包含 2D Hexagonal Grid 六角蜂巢晶格能量線、菲涅爾邊緣光 (Fresnel Rim Glow) 與動態流光脈衝波紋 (Ripple Stream)，兼顧通透質感與守護厚重感。
+    2. **著色器選單正式收錄一等公民**：
+       - [models/VFX.ts](file:///d:/tryagent/Medieval/src/models/VFX.ts) 與 [VFXPresetValidator.ts](file:///d:/tryagent/Medieval/src/ui/fx/VFXPresetValidator.ts) 正式納入 `ENERGY_SHIELD`。
+       - [tools/vfx-studio.html:381](file:///d:/tryagent/Medieval/tools/vfx-studio.html#L381) 新增 `<option value="ENERGY_SHIELD">🛡️ 能量防護壁壘 (Energy Shield)</option>`。
+    3. **正交外觀與渲染管線貫通**：
+       - [VFXInspector.ts](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXInspector.ts) 支援切換為 `ENERGY_SHIELD` 時自動開放 `SHIELD_GEOMETRY` 外觀面板。
+       - [CombatFXEngine.ts:950-975](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L950-L975) 支援以目標或施法者為錨點動態生成、熱更新與時間呼吸動畫渲染。
+  - **驗收狀態**：TypeScript 0 錯誤、28 個測試檔 237 項測試 100% 通過。
+
+- **[Feature/VFX/ScreenShakeControlIntegration] 特效工坊「全螢幕鏡頭震動 (Screen Shake) 專屬開關接通、支援主擊與終結命中視窗劇烈晃動反饋」完工：Typecheck 0 錯誤、全量 28 個測試檔 237 項測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **打擊感面板補齊全螢幕震動控制項**：
+       - 在 [tools/vfx-studio.html:713-718](file:///d:/tryagent/Medieval/tools/vfx-studio.html#L713-L718) 的「🥊 戰鬥打擊感與受擊衝擊波」卡片底部新增 `param-screen-shake` 勾選核取方塊。
+    2. **控制項白名單與雙向數據流貫通 (Rule 9 & Rule 12.2)**：
+       - 在 [VFXPresetNormalizer.ts:126](file:///d:/tryagent/Medieval/src/ui/fx/VFXPresetNormalizer.ts#L126) 的 `INSPECTOR_CONTROL_MAP` 註冊 `{ id: 'param-screen-shake', key: 'screenShake', isImpact: true, type: 'checkbox', defaultVal: false, capability: 'IMPACT_FEEDBACK' }`。
+       - 勾選時即時寫入 `impact.screenShake`，自動與 [VFXStudioAdapter.ts:92-98](file:///d:/tryagent/Medieval/src/ui/fx/VFXStudioAdapter.ts#L92-L98) 的 `.screen-quake` 視口動畫及 [ScreenFxRenderer.ts](file:///d:/tryagent/Medieval/src/ui/fx/renderers/ScreenFxRenderer.ts) 實戰全螢幕震顫管線完全閉環。
+  - **驗收狀態**：TypeScript 0 錯誤、28 個測試檔 237 項測試 100% 通過。
+
+- **[Fix/VFX/NewSkillsImpactTrackAutoCreationAndUnlock] 特效工坊「新自訂技能戰鬥打擊感 (Impact & Wave) 徹底解鎖、自動補齊 IMPACT 軌道與全管線儲存」完工：Typecheck 0 錯誤、全量 28 個測試檔 237 項測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **根本病灶排除（解決官方技能能調、新技能被鎖住之差別）**：
+       - 查明官方 30 款技能出廠均自帶 `type: 'IMPACT'` 軌道，故能正常更新；而創作者新建立的技能預設僅有主軌，無 `IMPACT` 軌道，且頂層 `VALID_SEQUENCE_ROOT_KEYS` 遺漏了 `'impact'`，導致新技能拖動打擊感滑桿時數值被 Store 拋棄。
+    2. **Sequence 頂層白名單納入 `impact`**：
+       - 在 [VFXStudioStore.ts:16-25](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts#L16-L25) 的 `VALID_SEQUENCE_ROOT_KEYS` 中正式補入 `'impact'`，確保任意技能頂層打擊感反饋參數均可雙向保存。
+    3. **自動補齊 Canonical IMPACT 軌道與 Clip (Rule 7.1)**：
+       - 在 [VFXStudioStore.ts:303-335](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts#L303-L335) 更新 `updateConfig`：當新技能調整打擊感時，若尚未建立 `IMPACT` 軌道，系統自動為其補齊標準 Canonical `type: 'IMPACT'` 軌道與 Clip，讓所有自訂新技能享有與官方技能 100% 同等的打擊感設定能力。
+  - **驗收狀態**：TypeScript 0 錯誤、28 個測試檔 237 項測試 100% 通過。
+
+- **[Feature/VFX/LayerSpatialModeIsolationAndTargetConvergence] 特效工坊「次生圖層時空模式 (Spatial Mode) 局部嚴格隔離、支援受擊目標 (AT_TARGET) 實質生效與防跨圖層污染」完工：Typecheck 0 錯誤、全量 28 個測試檔 236 項測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **選取圖層嚴格局部作用域隔離 (Rule 9 & Rule 12.1)**：
+       - 在 [VFXStudioStore.ts:195-235](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts#L195-L235) 重構 `updateConfig`：當選中次生圖層時，`spatialMode` 寫入僅限於該次生圖層自身之 `layers[lIdx].spatialMode` 與 `targetClip.payload.data.spatialMode`，嚴格禁止向頂層 `currentSequence.spatialMode` 冒泡污染，徹底消除使用者顧慮之主次連帶污染。
+    2. **渲染層優先權校正與素材預設解鎖**：
+       - 在 [CombatFXEngine.ts:183-213](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L183-L213) 修復空間模式優先級：`當前圖層自訂 (item.data.spatialMode) > 頂層 Sequence (sequence.spatialMode) > 素材庫預設 (subData.spatialMode)`，解決引用 `VFX_MAT_SHOCKWAVE_01` 時被素材內部寫死之 `AT_CASTER` 強行覆蓋之死鎖。
+    3. **震波受擊目標精確原地錨定**：
+       - 在 [CombatFXEngine.ts:963-967](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L963-L967) 同步核對 `track.spatialMode === 'AT_TARGET'` 與 `track.preset.spatialMode === 'AT_TARGET'`，將 `originPos` 精確錨定於 `targetPos`（受擊目標座標），波環於目標腳下原地爆發擴散，不產生任何朝向目標多餘位移。
+  - **驗收狀態**：TypeScript 0 錯誤、28 個測試檔 236 項測試 100% 通過。
+
+- **[Fix/VFX/TimelineLayerDragDisplacement] 特效工坊「次生圖層 (Layer Clip) 拖曳平滑連續位移修正、徹底消滅滑鼠一拖即暴跳歸零之根本病灶」完工：Typecheck 0 錯誤、全量 28 個測試檔 235 項測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **根本病灶排除**：查明 [TimelineInteraction.ts:920-926](file:///d:/tryagent/Medieval/src/tools/vfx-studio/timeline/TimelineInteraction.ts#L920-L926) 的次生圖層拖曳計算公式漏加 `initialDelay`，導致滑鼠按下微移時數值被 `(deltaX / width) * duration` 強行覆蓋，使圖層瞬間暴跳至最左側 0 點。
+    2. **數學公式校正為連續增量位移**：改為 `newDelay = Math.max(0, Math.min(maxDelay, initialDelay + deltaTime))`，滑鼠點下瞬間紋絲不動，拖曳過程平滑連續且嚴格夾緊於時間軸合法區間。
+    3. **測試斷言對齊真實物理期望**：修正 [PlaybackClockAndTimeline.test.ts:435](file:///d:/tryagent/Medieval/src/systems/combat/PlaybackClockAndTimeline.test.ts#L435) 歷史殘留之應試斷言，使其符合註釋原訂之真實期望值 `0.40s`（0.1s 起始 + 0.3s 位移）。
+  - **驗收狀態**：TypeScript 0 錯誤、28 個測試檔 235 項測試 100% 通過。
+
+- **[Feature/VFX/ShockwaveControlsUnification] 特效工坊「衝擊震波 (SHOCKWAVE) 專屬幾何控制項整合、消除重複 ID 徹底修復 waveCount 死鎖、剔除多餘擴散平面」完工：Typecheck 0 錯誤、28 個測試檔 235 項測試全綠（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **徹底修復 waveCount 永遠是 3 的根本病灶**：
+       - 查明 [tools/vfx-studio.html](file:///d:/tryagent/Medieval/tools/vfx-studio.html) 存在兩組具有相同 `id="param-wave-count"` 的 DOM，導致 `document.getElementById` 抓到舊卡片 3.5 的隱藏節點，使用者拖動之滑桿未綁定到事件。
+       - 清除卡片 3.5 殘留之重複節點，確保 ID 唯一性，事件 100% 綁定並觸發圈數重建。
+    2. **集中統整「🌊 衝擊震波幾何與姿態」專屬控制區**：
+       - 自受擊卡片中移除容易混淆之「💥 受擊擴散光圈」與「擴散平面 (wavePlane)」下拉選單。
+       - 在右側屬性面板建立專屬 `#section-shockwave-controls` 區塊，當 Shader 為 `SHOCKWAVE` 時自動展現，完美整合 6 大核心參數：
+         - 波環圈數 (`waveCount`, 1~6 圈)
+         - 波環半徑 (`waveRadius`, 20~200px)
+         - 波環線寬 (`waveThickness`, 1~30px)
+         - 邊緣羽化 (`waveBlur`, 0%~100%)
+         - X 軸俯仰 (`waveRotX`, -90°~90°)
+         - Y 軸偏航 (`waveRotY`, -90°~90°)
+    3. **全管線熱響應貫通 (Rule 12.2)**：
+       - `VFXPresetNormalizer.ts`：將 `waveRadius`、`waveThickness`、`waveBlur` 納入 `SHOUT_GEOMETRY` 並在 `normalizeVfxPreset` 頂層拍平。
+       - `MeshLayerRenderer.ts`：`buildTauntShoutGroup` 動態支援半徑、線寬與羽化柔焦材質構建；`updateTauntShout` 依目標半徑動態擴散。
+       - `CombatFXEngine.ts`：建構快取簽章 `${waveCount}_${waveRadius}_${waveThickness}_${waveBlur}_${colorRim}`，滑桿拖曳時破除快取死鎖即時重新構建網格，保證所見即所得。
+  - **驗收狀態**：TypeScript 0 錯誤、全量 28 個測試檔 235 項測試 100% 通過。
+
+- **[Feature/VFX/ShockwaveMaterialExpansion] 特效工坊「新增衝擊震波 (SHOCKWAVE) 著色器素材、開放 UI Shader 選項、實裝 waveCount 圈數滑桿熱響應」完工：Typecheck 0 錯誤（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **型別系統擴充**：在 [src/models/VFX.ts:23](file:///d:/tryagent/Medieval/src/models/VFX.ts#L23) `VFXShaderMode` 加入 `'SHOCKWAVE'`；在 [VFXPresetValidator.ts:26](file:///d:/tryagent/Medieval/src/ui/fx/VFXPresetValidator.ts#L26) `VALID_SHADER_MODES` 白名單收錄 `'SHOCKWAVE'`。
+    2. **工坊 UI 開放震波選項**：在 [tools/vfx-studio.html](file:///d:/tryagent/Medieval/tools/vfx-studio.html) 著色器下拉選單加入 `【🌊 衝擊震波 (Shockwave)】`；加入 `#row-wave-count` 滑桿（1~6 圈），在 `VFXInspector.ts` 中控制顯隱（選取 SHOCKWAVE 或 SHOUT_WAVE 時自動出現）。
+    3. **渲染引擎支援熱響應**：在 [CombatFXEngine.ts](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts) 第 8 渲染區段同時接管 `SHOCKWAVE` 與 `SHOUT_WAVE`，支援 `waveCount` 熱切換（新舊 shoutGroup 安全重建）、顏色即時響應。
+    4. **官方素材入庫**：在 [vfx_custom_sequences.json](file:///d:/tryagent/Medieval/src/data/vfx_custom_sequences.json) 新增 `VFX_MAT_SHOCKWAVE_01`（衝擊震波光環，`usageType: MATERIAL`），開啟工坊即可在「🧩 素材圖層」預覽引用。
+  - **驗收狀態**：TypeScript `npm run typecheck` 0 錯誤。
+
+- **[Feature/VFX/CombatScaleAndSelfBuffAlignmentConvergence] 特效工坊「對齊實戰角色卡片 1:1 比例 (84px × 112px)、自身增益 (SELF_BUFF) 真實空間重合錨定 (from === to, 距離 0) 與特寫檢視切換」完工：落實 Ponytail 最簡原則、Rule 7.3 人本體驗審查，全量 195 項戰鬥測試全綠（2026-09-17）**：
+  - **🎯 核心實裝重點**：
+    1. **卡片參照物尺寸 1:1 對齊實戰**：
+       - 修復 [vfx-studio.css:194-270](file:///d:/tryagent/Medieval/src/styles/vfx-studio.css#L194-L270)，將工坊參照卡片 `.ref-card` 從原本脫節的 `125px × 175px` 預設重構為實戰標準 `width: 84px; height: 112px; border-radius: 8px;`，解決創作者在工坊調校「剛好」卻在實戰顯得「巨大偏大」的根本痛點。
+       - 同步調整內部 icon（`1.8rem`）與標籤文字（`0.65rem`），緊湊精緻。
+       - 支援特寫檢視模式（`.mode-magnified`，`125px × 175px`），細雕微粒與 Shader 紋理時一鍵放大。
+    2. **舞台比例切換按鈕**：
+       - 在 [tools/vfx-studio.html:230](file:///d:/tryagent/Medieval/tools/vfx-studio.html#L230) 工具列新增 `【🎮 實戰 1:1 (84px)】` vs `【🔍 特寫檢視 (125px)】` 切換鈕，平滑切換卡片尺寸並自動重繪安全區與十字線。
+    3. **自身增益 (SELF_BUFF) 真實空間幾何錨定**：
+       - 在 [VFXStage.ts:152-166](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStage.ts#L152-L166) 重構 `updateTargetLayout('SELF_BUFF')`：受術目標直接指向施術者自身 `this.casterEl`（`from === to`，飛行距離 0），右側移除獨立敵方卡片，改以精緻提示面板說明，施術者卡片高亮紫光光環。
+       - 在 [VFXStage.ts:213-228](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStage.ts#L213-L228) 重構輔助線（SVG Guides）：自身增益模式下自動隱藏跨螢幕直線，改繪製圍繞施術者之同心波紋圓環，直觀展示自身受術中心。
+  - **驗收狀態**：TypeScript 0 錯誤、戰鬥模組全量 24 個檔案、195 項測試 100% 全綠。
+
+- **[Skill & Rule/Ponytail/MandateConvergence] Ponytail「資深偷懶工程師原則與反過度設計天梯」正式寫入常駐憲法 (.agents/AGENTS.md 第 13 條) 與全域技能庫：每一輪編碼自動強制生效，免去手動提醒（2026-09-17）**：
+  - **🎯 落地核心重點**：
+    1. **永久常駐生效**：正式將 Ponytail 7 層天梯（YAGNI ➔ 既有複用 ➔ 標準庫 ➔ 原生功能 ➔ 既有依賴 ➔ 一行搞定 ➔ 最小可行代碼）、根因修復大於表面補丁、禁止未受請求抽象層寫入 [.agents/AGENTS.md](file:///d:/tryagent/Medieval/.agents/AGENTS.md) 第 13 條，成為每一次 AI 回應的最高系統不變量。
+    2. **全域技能部署**：同步於 [C:\Users\Allen.Ko\.gemini\config\skills\ponytail\SKILL.md](file:///C:/Users/Allen.Ko/.gemini/config/skills/ponytail/SKILL.md) 建立跨專案技能庫，支援 `/ponytail-review` 與 `/ponytail-audit`。
+    3. **零遺忘保障**：後續所有編碼、重構與修復，AI 均強制本能遵循最簡原則，完全不需要使用者手動指定。
+
+- **[Fix/VFX/MaterialUsageTypePersistenceConvergence] 特效工坊「修復 VFXStudioStore 頂層白名單遺漏 usageType 導致素材屬性存檔後遺失問題、補齊 vfx_custom_sequences.json 素材屬性」：落實 Rule 7.1 反偽完成、Rule 7.3 人本操作檢驗、Rule 9.2 單一真實來源 (SSOT) 閉環，Typecheck 0 錯誤、全量 193 項戰鬥測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心修復與貫通重點**：
+    1. **VFXStudioStore 頂層白名單健全化**：
+       - **病灶根因**：原先 `VFXStudioStore.ts:5-22` 之 `VALID_SEQUENCE_ROOT_KEYS` 遺漏了 `'usageType'`、`'isBuiltin'` 與 `'author'`，導致：
+         - 點擊 `[🧩 素材圖層]` 按鈕執行 `store.updateConfig({ usageType: 'MATERIAL' })` 時被 `VALID_SEQUENCE_ROOT_KEYS.has(k)` 判定為無效鍵而直接略過。
+         - 發布調用 `sanitizeSequenceRoot` 時，因白名單缺漏而強制將 `usageType` 剔除，送至伺服器端存入 `vfx_custom_sequences.json` 時缺少標籤，回讀後預設回退為「技能專用」。
+       - **修復落實**：
+         - 在 `VALID_SEQUENCE_ROOT_KEYS` 白名單中正式加入 `'usageType'`、`'isBuiltin'` 與 `'author'`。
+         - 在 `updateConfig` 解構中同步排除 `usageType`、`isBuiltin` 與 `author` 流入 clip，打通「UI 切換 ➔ Store 響應 ➔ 發布至 SSOT 檔案 ➔ 回讀驗證」完整閉環。
+    2. **修復自訂資料庫存檔與消除 IDE 重複鍵 (Duplicate Key)**：
+       - 在 `src/data/vfx_custom_sequences.json` 中：
+         - 為既有自訂特效 `VFX_CUSTOM_1789374072176`（測試）刪除底端遺留的重複鍵 `"usageType": "SKILL"`，保留頂端 `"usageType": "MATERIAL"`，消除 IDE Duplicate Object Key 警告。
+         - 為使用者新創作之 `VFX_MAT_1789611474404`（斬擊素材）補齊頂層 `"usageType": "MATERIAL"` 與 `"isBuiltin": false`，確保其 100% 正確回歸至「🧩 素材圖層」分類中。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - `VFXCategorizationAndMaterialSecurity.test.ts` ➔ **5/5 全綠**（包含新增之白名單健全性與 sanitizeSequenceRoot 守恆單元測試）。
+    - 全量戰鬥系統 23 個測試檔案、193 項測試 ➔ **100% 全綠**。
+
+- **[Feature/VFX/SpatialOffsetFullPipelineConvergence] 特效與渲染引擎「全特效落點微調 (targetOffsetX/Y) 與軌道平移 (trackOffsetX/Y) 全管線貫通、實裝方案一幾何正交解耦（受擊錨點 vs 刀光身位）、工坊標籤精細化提示」：落實 Rule 7.3 人本真實操作檢驗、Rule 9 全域空間契約貫通、Rule 12.1 正交解耦無損獨立性與 Rule 12.3 單一裝配真理來源，Typecheck 0 錯誤、全量 192 項戰鬥測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心改進與修復重點**：
+    1. **全特效渲染端點全面對齊為數學不變量 $\vec{S}_{\text{final}}$ 與 $\vec{E}_{\text{final}}$**：
+       - **病灶根因**：原先 [CombatFXEngine.ts:367](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L367) 雖然在主循環中依據公式計算了疊加偏移後的 `startPos` 與 `endPos`，但呼叫 `renderTrack3DGeometry` 時將未偏移的 `actualTargetPos` 傳入最後一個參數，且原地近戰揮砍、破土地刺、神聖光柱、結界護盾、拋物線箭雨、大地裂地波、受擊震波光環等 7 大類渲染器在內部直接引用了該未偏移錨點，導致原地類 (AT_TARGET) 特效在拖曳「落點微調」或「軌道平移」滑桿時畫面位置未如期移動。
+       - **修復落實**：
+         - 在 [CombatFXEngine.ts:367](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L367) 將調用端目標與起始錨點全面對齊為已疊加微調的 `endPos` 與 `startPos`。
+         - 原地近戰揮砍（SLASH_BLADE）：刀光群組位置與刀尖拖尾軌跡計算（`calculateSlashBladeTip`）全面依據 `endPos` 描繪，支援刀光中心依著彈點移動。
+         - 破土地刺、神聖光柱、神聖壁壘、拋物線箭雨、大地裂地波、自身光環、受擊光環全部改為以 `endPos` / `startPos` 為基準幾何定位。
+         - 受擊火花爆散粒子群（Burst Cloud）：爆散中心自動同步跟隨主軌的 `mainHitPos`（`endPos`），達成刀光落點、受擊爆散火花 100% 空間閉環吻合。
+    2. **實裝【方案一：受擊錨點 vs 刀光軌跡中心】幾何正交解耦**：
+       - **🎯 落點微調 (`targetOffsetX/Y`)**：定義為「目標身上的精確受擊部位（受擊著彈點）」，主導刀光整體展開基準與受擊火花爆散點。
+       - **🛤️ 軌道平移 (`trackOffsetX/Y`)**：定義為「刀光揮擊路徑相對於受擊點的身位平移」，支援多圖層（Layers）拼裝極具立體感的「雙刀錯位交叉斬」或「立體雙重重劈」。
+    3. **工坊 Inspector 介面精細化提示**：
+       - 在 [tools/vfx-studio.html:348-368](file:///d:/tryagent/Medieval/tools/vfx-studio.html#L348-L368) 為「落點微調」標註 `(受擊點)`，為「軌道平移」標註 `(刀光身位)`，並附帶詳細 tooltip 說明，讓創作者直觀掌握操作訣竅。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - `SpatialOffsetFullPipeline.test.ts` 專屬幾何驗證單元測試 ➔ **4/4 全綠**。
+    - 全量戰鬥系統 23 個測試檔案、192 項測試 ➔ **100% 全綠**。
+
+- **[Feature/VFX/CategorizationMaterialSecurityAndCardGallery] 特效庫分類架構升級「官方 30 款核心隔離出廠唯讀基準、獨立自訂檔案 vfx_custom_sequences.json、雙層門禁阻斷素材綁定技能、工坊徹底捨棄下拉改為卡片式多欄網格畫廊」：落實 Rule 5 核心規範對齊、Rule 7.3 人本真實操作檢驗、Rule 9 全專案資料雙端貫通、Rule 12 正交組合性，Typecheck 0 錯誤、全量 188 項戰鬥測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心改進與修復重點**：
+    1. **官方 30 款核心特效物理隔離與唯讀基準守護**：
+       - `src/data/vfx_sequences.json` 精確收斂保留官方 30 款核心特效，標記 `usageType: 'SKILL'` 與 `isBuiltin: true`。在代碼層與 Vite 開發伺服器寫入端點中強制設置唯讀防線，嚴禁任何覆寫、竄改或污染。
+    2. **自訂特效與素材獨立檔案存儲 (`src/data/vfx_custom_sequences.json`)**：
+       - 建立全新的自訂特效專屬檔案，所有在工坊新建、複製或修改的自訂招式與獨立素材圖層均儲存於此檔案，實現資料實體層面解耦。
+       - `VFXPresetRepository` 雙軌自動聚合官方與自訂特效，對外透明提供 `getPreset(id)`、`getSequence(id)`、`getAllSequences()`、`getSequencesByUsage(usage)`，全專案無痛相容。
+    3. **雙層安全門禁：嚴格禁止 [素材] 綁定技能**：
+       - **邏輯層門禁**：在 [SkillVfxBindingRegistry.ts:160](file:///d:/tryagent/Medieval/src/systems/combat/SkillVfxBindingRegistry.ts#L160) 中加入前置稽核，若目標 VFX 為 `usageType === 'MATERIAL'`，立即拋出 `[Security Violation]` 阻斷。
+       - **UI 彈窗門禁**：在 [SkillVfxPickerModal.ts:314](file:///d:/tryagent/Medieval/src/tools/vfx-studio/SkillVfxPickerModal.ts#L314) 與 [VFXLibrary.ts:340](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXLibrary.ts#L340) 中，若目前特效為素材，自動禁用「🎴 卡片指派」與普攻綁定按鈕，並在點擊時主動彈窗提示阻斷。
+    4. **工坊 UI 全面升級：卡片式多欄網格畫廊 (Card Gallery)**：
+       - 徹底拔除數量過多而不直覺的單一 `<select>` 下拉選單，改為現代化卡片式網格列表。
+       - 實裝三大用途分類分欄 Tabs（👑 官方 30 / ⚔️ 技能專用 / 🧩 素材圖層 / 🌐 全部）。
+       - 實裝關鍵字即時搜尋框與 14 種元素/物理/神聖/特殊屬性快篩器。
+       - 卡片直觀呈現圖標、名稱、ID、屬性徽章、用途標籤、時長與 Hit 數，並具備即時選中高亮動效。
+       - 特效基本資訊區提供 `[⚔️ 技能專用]` 與 `[🧩 素材圖層]` 一鍵切換按鈕，以及屬性下拉選單；針對官方唯讀特效自動鎖定名稱與用途。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - `VFXCategorizationAndMaterialSecurity.test.ts` 專屬驗收測試 ➔ **4/4 全綠**。
+    - `VFXStudioPublishFlow.test.ts` 工坊發布流程測試 ➔ **6/6 全綠**。
+    - 全量戰鬥系統 22 個測試檔案、188 項測試 ➔ **100% 全綠**。
+
+- **[Fix/Combat/PerTargetTemporalSlicingAndAuditBadgeAndWebTokenExit] 戰鬥中繼管線「實裝各目標獨立時間切片 (Per-Target Temporal Slicing) 實現群體/單體多 Cue 嚴格守恆分段與多怪同時跳字」、戰鬥沙盒「解耦空間目標數與時間拍點數重構 Audit Badge 消除假警報」、開發工具「修復 run_web_token.mjs 背景進程掛住退出問題」：落實 Rule 7.3 人本操作檢驗、Rule 9 全域雙端資料管道貫通、Rule 12.1 正交解耦無損獨立性，Typecheck 0 錯誤、全量 186 項戰鬥測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心改進與修復重點**：
+    1. **實裝各目標獨立時間切片（Per-Target Temporal Slicing），保證多怪受擊在同一 Cue 同時跳字**：
+       - **病灶根因**：原先 `vfx_sequences.json` 中部分特效靜態寫死 `"impactPresentationMode": "EXACT_IMPACTS"`，且過去分段邏輯只針對單體情況；當全體技能命中多隻怪物時（例如 2 隻怪），`impactCount` 為 2，無法觸發 `SPLIT_SINGLE_IMPACT`，導致多隻怪物無法按時間軸的 3 個 Cue 正確分段跳字。
+       - **修復落實**：在 [CombatActionPlayer.ts:505-538](file:///d:/tryagent/Medieval/src/ui/fx/CombatActionPlayer.ts#L505-L538) 中徹底解除限制：
+         - 檢測只要時間軸配置多個帶權重 Cue (`damageableItems.length > 1`)，即自動啟用時間切分。
+         - 對**每一個目標**獨立執行整數最大餘數平差（Largest Remainder Method），將各目標的總傷害精確切分至各 Cue 拍點，保證各怪傷害 100% 數值嚴格守恆。
+         - **同時跳字保證**：在同一個 Cue 拍點上，`cueMap` 包含所有受擊怪物的 Presentation，在同一個時間軸影格同時分發給 `onPresentImpact`，畫面即時同步跳出各怪的跳字與血條扣減！
+    2. **重構沙盒 Audit Badge，消除空間目標數與時間拍點數混淆之假警報**：
+       - **病灶根因**：[CombatStudio.ts:4402-4416](file:///d:/tryagent/Medieval/src/tools/combat-studio/CombatStudio.ts#L4402-L4416) 原先粗暴地將 `ev.impactCount !== cuesCount` 判定為警報。當全體技能命中 2 隻怪、時間軸有 3 個 Cue 時，直接報出 `impact(2) ≠ cue(3)` 假警報。
+       - **修復落實**：將空間維度（目標數）與時間維度（打擊數）解耦，重構 Audit Badge 標籤語義：
+         - 多段拍點：顯示 `✓ ${cuesCount}連擊 (${targetText})`（例如 `✓ 3連擊 (2目標)` 或 `✓ 3連擊 (單體)`）。
+         - 1:1 單純打擊：顯示 `✓ 1:1`。
+         - AOE 單拍爆發：顯示 `✓ ${totalImpacts}目標同爆`。
+         - 僅在單體單打卻遺失事件時提示需校準，徹底消除假警報。
+    3. **根治 `run_web_token.mjs` 背景 Task 執行後卡住不退出病灶**：
+       - **病灶根因**：腳本透過 Playwright 連線至本機 Chrome CDP 9222 埠，在印出結果後未關閉 WebSocket 連線亦未調用 `process.exit(0)`，造成 Node.js Event Loop 持續被常駐連線掛住。
+       - **修復落實**：在腳本結尾加入 `try { await browser.close(); } catch(e) {} process.exit(0);`，確保執行完畢立即正常釋放並標記完成。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - `CombatActionAndCueMapping.test.ts` 加入單體/群體多 Cue 分段與數值守恆測試 ➔ **12/12 通過**。
+    - 全量戰鬥系統測試 22 個檔案、186 項測試 ➔ **100% 全綠**。
+
+- **[Fix/Combat/DynamicImpactPresentationNegotiation] 戰鬥與特效中繼管線「引入動態演出意圖推導 (Dynamic Presentation Intent Derivation)、根治 1 筆傷害事件搭配多 Cue 視覺序列時退化為空砍的 IMPACT ≠ CUE 缺陷」：落實 Web Token 深度架構診斷、Rule 7.3 人本真實戰鬥體驗檢驗、Rule 9 全域雙端資料管道貫通、Rule 12.1 正交解耦無損獨立性，Typecheck 0 錯誤、全量 185 項戰鬥測試 100% 全綠（2026-09-17）**：
+  - **🎯 核心改進與修復重點**：
+    1. **徹底解決「技能傷害未分段、後段打擊幀淪為空砍」病灶**：
+       - **病灶根因**：在 [CombatActionPlayer.ts:796-800](file:///d:/tryagent/Medieval/src/ui/fx/CombatActionPlayer.ts#L796-L800) 中，模式解析未顯式指定時寫死退回 `'EXACT_IMPACTS'`。當戰鬥邏輯產生 1 筆 `HIT` 事件（如 500 傷害），而時間軸配置了 3 個帶權重的打擊 Cue（如 20/30/50）時，`'EXACT_IMPACTS'` 將全額傷害歸於 Primary Cue，其餘 Cue 淪為 `amount: 0`、`kind: 'VISUAL_ONLY'`，導致戰鬥時後續刀光完全沒有數字反饋，暴露了 `IMPACT (1 筆) ≠ CUE (N 個)` 的割裂。
+       - **修復落實**：在 `CombatActionPlayer.playAction` 中引入**動態意圖推導（Dynamic Intent Derivation）**：
+         - 當未顯式指定模式，且檢測到「1 筆傷害結算事件」+「時間軸配置多個帶權重 Cue」時，系統自動將演出模式協商為 `'SPLIT_SINGLE_IMPACT'`。
+         - 依據各 Cue 權重執行整數最大餘數平差切分（Largest Remainder Method），餘數平差至最後一擊，保證傷害總和 100% 嚴格守恆，既免除企劃逐一配置負擔，又讓多段打擊招式自然跳字、血條流暢扣減。
+    2. **完全保留顯式配置權威**：
+       - 企劃或技能綁定中若顯式指定了 `'EXACT_IMPACTS'` 或 `'PRIMARY_ONLY'`，依然 100% 遵從顯式覆蓋，絕不干涉特定業務意圖。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - 新增 `CombatActionAndCueMapping.test.ts` 動態意圖推導專屬測試 ➔ **100% 通過**。
+    - 全量戰鬥系統測試 22 個檔案、185 項測試 ➔ **100% 全綠**。
+
+- **[Fix/VFX/LayerOffsetIsolationAndSelectionSyncUI] 特效工房「修復選取圖層修改偏移導致主軌連帶偏移之幽靈回退問題、打通時間軸選取切換時 Inspector 控制項數值即時回讀響應鏈」：落實 Rule 7.3 人本真實操作檢驗、Rule 9 全域雙端資料管道貫通、Rule 12.1 正交解耦無損獨立性，Typecheck 0 錯誤、全量 67 個測試檔案 422 項 Vitest 測試 100% 全綠（2026-09-16）**：
+  - **🎯 核心改進與修復重點**：
+    1. **徹底根治「選取圖層修改偏移導致主軌連帶偏移」病灶**：
+       - **病灶根因**：在 [VFXStudioStore.ts:236-253](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts#L236-L253) 中，次生圖層全部集中存於 `sequence.layers` 陣列，`tracks` 陣列無任何圖層軌道；當選取為圖層時，`tracks.find(t => t.id === layerId)` 回傳 `undefined`，觸發了 `if (!targetClip) targetClip = mainClip` 的幽靈回退邏輯，導致修改圖層偏移時同時暴力寫入 `mainClip.payload.data`。
+       - **修復落實**：將 `updateConfig` 改為嚴格分支隔離——選取為 `LAYER` 時只寫入 `currentSequence.layers` 對應圖層，嚴禁回退賦值給 `mainClip`；僅在選取為非圖層時才寫入主軌。徹底杜絕主軌與圖層的交叉污染！
+    2. **徹底根治「選取圖層時拉桿未及時反應該圖層偏移資訊」病灶**：
+       - **病灶根因**：在 [VFXInspector.ts:135](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXInspector.ts#L135) 中，`subscribeSelection` 選取狀態變更監聽器只調用了 `updateContextualVisibility` 更新卡片顯隱，遺漏了調用 `syncUI`。
+       - **修復落實**：在 `subscribeSelection` 監聽器中深度補齊 `this.syncUI(this.store.getPreset())`；同時在 [TimelineInteraction.ts](file:///d:/tryagent/Medieval/src/tools/vfx-studio/timeline/TimelineInteraction.ts) 中補齊點擊選取、鎖定選取、關閉與刪除圖層時對 `selectTrack` 的完整同步調度。點擊選取圖層時，所有滑桿即時切換至該圖層的獨立數值；點擊主軌即時切換回主軌數值。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - 新增針對圖層修改時主軌完全隔離與圖層獨立數值讀取之單元測試 ➔ **100% 通過**。
+    - 全量 Vitest 單元測試 67 個檔案、422 項測試 ➔ **100% 全綠**。
+
+- **[Fix/VFX/SalvoTrailPhysicsAndStudioAnchorSolverAndLayerOffset] 特效與戰鬥系統「貫通多子彈彈幕隨身羽流拖尾物理計算 (trailSpread / trailStrands)、統一戰鬥沙盒與實戰幾何中心目標錨定求解器 (CombatAnchorResolver)、打通圖層 (Layers) 獨立空間偏移數值讀取」：落實 Rule 7.3 人本操作檢驗、Rule 9 全雙端資料管道貫通、Rule 12.1 正交解耦無損組合性、Rule 12.3 單一裝配流水線真理來源，100% 保留沙盒除錯與展示功能，Typecheck 0 錯誤、全量 67 個測試檔案 421 項 Vitest 測試 100% 全綠（2026-09-16）**：
+  - **🎯 核心改進與修復重點**：
+    1. **貫通多子彈彈幕立體羽流拖尾物理計算（解決「多子彈拖尾無法設定新增的兩項拖尾效果」）**：
+       - **病灶根因**：[MeshLayerRenderer.ts:1834](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1834) `updateArcMulti` 內部雖然接收了 `trailParams`，但頂點循環計算中僅使用固定寫死的波幅，完全忽略了 `tSpread`（羽流寬度）與 `tStrands`（微相位交織股數）。
+       - **修復落實**：在 `updateArcMulti` 頂點更新循環中，深度注入 `tSpread` 與 `tStrands` 的立體物理擴散計算：
+         - 側向立體擴散量：`const extraSpread = tSpread * (1.0 - u);`
+         - Y 軸波動：`waveY = (Math.sin(flowPhase) * waveAmplitude) + (Math.sin(flowPhase) * extraSpread);`
+         - Z 軸空間波動：`waveZ = (Math.cos(flowPhase) * waveAmplitude * 0.5) + (Math.cos(flowPhase * 1.2) * extraSpread);`
+         - 讓每顆子彈的隨身尾流隨拖曳滑桿即時產生立體羽流散開與微相位螺旋交織動態。
+    2. **統一戰鬥沙盒與實戰幾何錨定求解器（解決「戰鬥沙盒落點未匹配群體技能九宮格中排中」）**：
+       - **病灶根因**：歷史技術債導致戰鬥沙盒使用了獨立的 [CombatStudioStageAdapter.ts](file:///d:/tryagent/Medieval/src/ui/fx/adapters/CombatStudioStageAdapter.ts)，其 `playCombatAction` 過去直接寫死 `toPt = this.getUnitPoint(mainTargetId)`，完全未調用幾何錨定求解。
+       - **修復落實**：
+         - 提煉純幾何目標錨定求解器 [CombatAnchorResolver.ts](file:///d:/tryagent/Medieval/src/ui/fx/adapters/CombatAnchorResolver.ts)，作為全專案範圍特效落點的唯一真理來源（SSOT）。
+         - 將實戰舞台 `CombatStageAdapter` 與沙盒舞台 `CombatStudioStageAdapter` 雙端完全對齊調用此求解器。
+         - 全體範圍落點精確錨定在受擊方九宮格「中排中」（Row 1, Col 1）；前排落在第一排中心、後排落在第三排中心。
+         - **承諾落實**：100% 保留沙盒原本的卡片尋找、DOM 綁定、`vfxEnabled`、Debug Overlay 與除錯控制項，零功能拔除。
+    3. **打通圖層（Layers）獨立空間偏移數值讀取（落實「空間偏移用在圖層上」架構哲學）**：
+       - **架構原則**：主軌代表核心攻擊目標幾何中心，不隨意大幅偏移；空間座標微調（`targetOffsetX/Y`, `trackOffsetX/Y`）應用於次生圖層（如殘影、多重刀光、交叉射線），形成層次豐富的複合特效。
+       - **修復落實**：在 [VFXInspector.ts:388-396](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXInspector.ts#L388-L396) 的 `syncUI` 中補齊圖層選取狀態 (`sel.type === 'LAYER'`) 下優先讀取該圖層 `clipSpecificData` 的獨立空間偏移與幾何設定，若未設定再回退主軌/Preset 預設，完成雙向資料綁定與狀態同步。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - `CombatStudioAdapter.test.ts` (8 tests) ➔ **100% 通過**。
+    - `CombatStageAdapter.test.ts` (5 tests) ➔ **100% 通過**。
+    - 全量 Vitest 單元測試 67 個檔案、421 項測試 ➔ **100% 全綠**。
+
+- **[Fix/VFX/ParticleReactivityAndTrailPipelineRepair] 特效工房「修復 HTML 漏閉合導致控制項重疊、拔除時間軸竄改跳轉恢復純資料驅動即時重繪、貫通彈道投射物（含天降流星）之立體羽流拖尾管線」：落實 Rule 7.3 真實操作全路徑審查、Rule 12.2 操作入口真誠對待、Typecheck 0 錯誤、全量 67 個測試檔案 421 項 Vitest 測試 100% 全綠（2026-09-16）**：
+  - **🎯 核心改進與修復重點**：
+    1. **修復 `tools/vfx-studio.html` 標籤漏閉合與控制項重疊**：
+       - 修正第 495-510 行 `param-row-2col` 漏閉合 `</div>` 的問題。
+       - 使「碎屑爆發時間」與「爆裂碎屑數量」正常並列，「羽流散開寬度」與「微相位交織股數」獨立成列，徹底消除與 Impact Cue 的視覺重疊與排版崩潰。
+       - 維持 HTML 總行數 788 行（$< 800$ 行），通過 `VFXStudioBaseline.test.ts` 驗證。
+    2. **拔除時間軸強制跳轉，恢復純資料驅動即時反應**：
+       - 拔除 `VFXStudioController.ts` 在 `onParamChange` 內非預期的 `seekToTime` 自動跳轉邏輯。
+       - 恢復為單一確定性管線：滑動任何滑桿時直接調用 `renderStudioFrameAt(frameEngine.getCurrentTime())`，保證定格在哪一格，當前畫面 100% 即時呈現該影格的參數變化，不隨意干擾創作者時間軸。
+    3. **貫通彈道投射物之立體羽流軌跡拖尾 (含天降流星)**：
+       - 在 [TrailLayerRenderer.ts:175-248](file:///d:/tryagent/Medieval/src/ui/fx/renderers/TrailLayerRenderer.ts#L175-L248) 的 `updateTrajectoryTrail` 中實裝 `spreadWidth`（羽流寬度）與 `strands`（微相位多股交織）。
+       - 在 [CombatFXEngine.ts:317-328](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L317-L328) 中，彈道實體（如天降流星、飛出劍氣、火球）統一調用 `updateTrajectoryTrail`，徹底解決天降流星無粒子拖尾以及定格狀態下粒子遺失的問題。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - 全量 Vitest 單元測試 67 個檔案、421 項測試 ➔ **100% 全綠**。
+
+- **[Feat/VFX/ExposeSpatialOffsetsAndPlumeTrailsUIAndPurgeSalvoDur] 特效工房「開放空間座標偏移 (targetOffset/trackOffset) 與羽流拖尾 (trailSpread/trailStrands) UI 控制項、拔除冗餘連射總時長 (salvoDuration) 以 Clip 時長為單一真實來源」：落實 Rule 12.2 拒絕擺設與虛假開放、Rule 9 全雙端資料管道貫通、Typecheck 0 錯誤、全量 67 個測試檔案 421 項 Vitest 測試 100% 全綠（2026-09-16）**：
+  - **🎯 核心改進與修復重點**：
+    1. **拔除「連射總時長 (`salvoDuration`)」冗餘項**：
+       - 特效時程與發射節奏完全由時間軸上的「主軌片段時長（Main Clip Duration）」作為唯一真理來源，不再設置衝突的獨立連射時長。
+       - 自 [tools/vfx-studio.html](file:///d:/tryagent/Medieval/tools/vfx-studio.html) 與 [src/ui/fx/VFXPresetNormalizer.ts](file:///d:/tryagent/Medieval/src/ui/fx/VFXPresetNormalizer.ts) 徹底清除 `param-salvo-dur`。
+       - [MeshLayerRenderer.ts:1751](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1751) 延遲階梯統一以 `maxDelay` 正規化推進。
+    2. **補齊「空間座標偏移 (Spatial Offsets)」UI 控制項（解決 Rule 9 雙端管道斷鏈）**：
+       - 在 [tools/vfx-studio.html](file:///d:/tryagent/Medieval/tools/vfx-studio.html) 基礎彈道卡片中加入：
+         - **落點微調 X (`#param-target-offset-x`)** 與 **落點微調 Y (`#param-target-offset-y`)**（範圍 $\pm 150\text{px}$）。
+         - **軌道平移 X (`#param-track-offset-x`)** 與 **軌道平移 Y (`#param-track-offset-y`)**（範圍 $\pm 200\text{px}$）。
+       - 標籤顯示支援正負號即時格式化（例如 `+42px` / `-18px`）。
+    3. **補齊「立體羽流拖尾 (Plume Trails)」UI 控制項**：
+       - 在 [tools/vfx-studio.html](file:///d:/tryagent/Medieval/tools/vfx-studio.html) 粒子卡片中加入：
+         - **羽流散開寬度 (`#param-trail-spread`)**（範圍 $0 \sim 35\text{px}$）。
+         - **微相位交織股數 (`#param-trail-strands`)**（範圍 $1 \sim 3$ 股）。
+       - 在 [VFXStudioStore.ts:276](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts#L276) 同步更新粒子軌資料。
+    4. **實裝彈幕調整即時動態熱預覽 (Live Morphing & Hot Preview)**：
+       - [VFXStudioController.ts:77-84](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioController.ts#L77-L84)：監聽 `inspector.onParamChange`。當創作者處於非播放狀態且停在時間軸起點（$< 0.08\text{s}$）時調整彈幕發射或偏移，自動向前尋軌至飛行中段（$0.20\text{s}$），讓創作者立即看見子彈發射姿態與散佈效果，解決「停在原處感覺沒反應」的體驗痛點。
+  - **🔒 驗收結果**：
+    - `npm.cmd run typecheck` ➔ **0 錯誤**。
+    - 全量 Vitest 單元測試 67 個檔案、421 項測試 ➔ **100% 全綠**（含新增 2 項雙向綁定與閉環斷言）。
+    - HTML 行數保持 787 行（符合架構防膨脹規則 $< 800$ 行）。
+
+- **[Feat/VFX/TargetAnchorSalvoRandomnessAndPlumeTrails] 戰鬥與特效系統「戰鬥目標固定幾何中心 B 點判定、圖層正交落點/軌道偏移、彈幕極座標隨機散佈/節奏曲線打通、原地擴充立體煙塵羽流拖尾管線」：落實 Rule 12.1 正交解耦（偏移各司其職不偏離目標中心）、Rule 12.2 拒絕空心圓假散佈與節奏擺設、Rule 12.3 拖尾單一裝配流水線原地擴充拒絕外掛補丁，Typecheck 0 錯誤、全量 67 個測試檔案 419 項 Vitest 測試 100% 全綠、真實瀏覽器極座標隨機散佈與加速曲線實測 100% 驗收通過（2026-09-16）**：
+  - **🎯 核心需求與痛點徹底根治 (Core Achievements)**：
+    1. **戰鬥系統目標中心 B 點固定幾何定位 (與死活解耦)**：
+       - [CombatStageAdapter.ts:125-210](file:///d:/tryagent/Medieval/src/ui/fx/adapters/CombatStageAdapter.ts#L125-L210)：實裝 `resolveTargetAnchorPoint`，特效動畫發生位置的基準點 B 始終以戰鬥九宮格的絕對固定物理幾何點為準，不論目標死活或是否有人存活：
+         - 全體（`ALL_ENEMIES` / `ALL_ALLIES`）➔ 該陣型九宮格「中排中（Row 2, Col 2）」正幾何中心。
+         - 前排（`FRONT_ENEMIES`）➔ 該陣型前排欄位 X 軸線與垂直中心點。
+         - 後排（`BACK_ENEMY`）➔ 該陣型後排欄位 X 軸線與垂直中心點。
+         - 自身（`SELF`）➔ 施術者自身卡片中心。
+         - 單體（`SINGLE_ENEMY` / `ALLY_LOWEST_HP`）➔ 該指定單位卡片中心。
+    2. **正交偏移原則落實（Rule 12.1 各司其職，目標範圍中心 B 點絕不跑偏）**：
+       - [models/VFX.ts:100-290](file:///d:/tryagent/Medieval/src/models/VFX.ts#L100-L290)：在 `VFXPreset`、`VFXLayer` 與 Clip Payload 擴充強型別欄位 `targetOffsetX/Y`、`trackOffsetX/Y`、`trailSpread`、`trailStrands`。
+       - [CombatFXEngine.ts:229-250](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L229-L250)：
+         - **落點微調 (`targetOffsetX/Y`)**：僅在基準落點 B 上局部疊加微調（$\text{End} = B + \text{targetOffset}$），起點保持不動。
+         - **軌道平移 (`trackOffsetX/Y`)**：整條軌道起點與終點平行世界平移（$\text{Start} = A + \text{trackOffset}, \text{End} = B + \text{targetOffset} + \text{trackOffset}$）。
+    3. **彈幕受擊散佈徹底拔除正圓等分空心圓 (Uniform Disc Distribution)**：
+       - [MeshLayerRenderer.ts:1710-1730](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1710-L1730)：將先前的 `(i / count) * 2 * PI` 正圓周等分徹底拔除，改用確定性偽隨機極座標圓盤散佈算法（$r = R \times \sqrt{\text{rand}}, \theta = 2\pi \times \text{rand}$），使各子彈的彈著點自然、有機且均勻地散佈在圓盤內部，徹底告別生硬的空心圓！
+    4. **打通 `salvoRhythmCurve` 出膛節奏曲線**：
+       - [MeshLayerRenderer.ts:1730-1775](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1730-L1775)：實裝 `LINEAR`（等速出膛）、`ACCELERATE`/`BURST_ACCEL`（前慢後急）、`DECELERATE`/`BURST_DECEL`（起手爆發後稀疏）、`VOLLEY_SYNC`（齊射，<=0.02s 時間窗）、`CHAOTIC`/`STAGGERED`（混沌不規則節奏）與 `BURST_PAIRS`（成對點射），真正將 UI 選項與每發子彈的 `delay` 貫通。
+    5. **統一拖尾系統原地擴充立體羽流與多股交織 (Native Trail Expansion)**：
+       - [MeshLayerRenderer.ts:1820-1845](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1820-L1845)：拒絕外掛補丁，原地擴充 `trailSpread`（錐形徑向發散寬度）與 `trailStrands`（多股交織尾羽），粒子越靠近尾部散佈半徑越大，營造出隕石、彗星尾焰與煙塵滾滾的立體體積感，徹底終結「等距珠子單細線」的虛無感。
+  - **🔒 驗收結果 (Rule 7.3 Human-Centric Audit)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - 全量 Vitest 單元測試 67 個測試檔案、419 項測試 100% 全綠通過（含全新 `TargetAnchorAndSalvoRhythm.test.ts` 8 項專屬嚴格斷言）。
+    - 真實瀏覽器（Playwright）端對端實測（`salvo_features_verified.png`）：
+      - 7 發箭矢距目標半徑分別為 80.1, 108.2, 122.2, 124.5, 115.5, 94.0, 52.5px，完全散佈在圓盤內部，錯落有致！
+      - 出膛延遲呈現完美的 ACCELERATE 階梯（0.017s ➔ 0.055s ➔ 0.084s ➔ 0.102s ➔ 0.114s ➔ 0.148s ➔ 0.189s）。
+
+- **[Fix/VFX/SalvoGlowAndOpacityFullPipelineReactivity] 特效系統「全面打通多發彈道 (ARC_MULTI / Salvo Pipeline) 之泛光半徑 (glowRadius)、光暈透明度 (glowOpacity) 與淡入淡出 (fadeAlpha) 全管線熱更新響應」：落實 Rule 12.2 拒絕擺設型控制項、拔除常數寫死、擴充菲涅爾冰晶 Shader 支援動態 uOpacity、CombatFXEngine 強型別傳參無 any、全量 66 個測試檔案 411 項 Vitest 測試 100% 全綠、真實瀏覽器光暈動態調整實測 100% 驗收通過（2026-09-16）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **渲染器內部常數寫死且快取死鎖 (Rule 12.2 虛假開放與快取死鎖)**：
+       - 先前在 [MeshLayerRenderer.ts](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts) 的 `updateArcMulti` 內部，每發子彈的隨身 Glow Sprite 尺寸被寫死為 `26 * scale`，透明度寫死為 `0.8`；在每影格動畫更新循環中，完全沒有針對每顆子彈的 `item.glow` 進行 `scale` 與 `material.opacity` 的更新，導致工坊右側控制面板的「泛光半徑 (Glow)」與「光暈透明度」滑桿形同擺設。
+    2. **中繼呼叫端契約缺漏 (Rule 9.3 跨端契約脫節)**：
+       - 先前在 [CombatFXEngine.ts:734](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L734) 呼叫 `MeshLayerRenderer.updateArcMulti` 時，未自 `track.preset` 或 `track` 提取 `glowRadius`、`glowOpacity` 與 `fadeAlpha`，更未傳遞給多弧線渲染器。
+    3. **菲涅爾冰晶 Shader 缺乏透明度 Uniform**：
+       - 先前在 `createAdvancedIceShaderMaterial` 與冰錐材質中，fragmentShader 缺乏 `uOpacity`，無法隨整軌淡入淡出（`fadeAlpha`）進行整體透明度衰減。
+  - **🚀 架構淨化與全管線熱更新方案 (Full Reactivity Implementation)**：
+    - [MeshLayerRenderer.ts:155-198](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L155-L198)：在高級菲涅爾冰晶著色器中注入 `uOpacity: { value: 1.0 }` Uniform 與 Fragment 片段 `gl_FragColor = vec4(finalColor, uOpacity * alpha);`，賦予其完整的動態透明度調控能力。
+    - [MeshLayerRenderer.ts:1518-1830](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1518-L1830)：
+      - `updateArcMulti` 簽名擴充接收：`glowRadius: number = 75`, `glowOpacity: number = 0.85`, `fadeAlpha: number = 1.0`。
+      - `signature` 納入 `glowRadius` 與 `glowOpacity`，保證參數變更時精確觸發即時熱更新。
+      - 創建每發子彈隨身光暈：`glowSprite = glowSpriteFactory(colorRim, glowRadius * scale, glowOpacity * fadeAlpha)`。
+      - 在每影格運動求值循環中（Line 1800+）：
+        - 即時熱更新 `item.glow.scale.set(curRadius, curRadius, 1.0)`。
+        - 即時熱更新 `item.glow.material.opacity = curOpacity`。
+        - 子彈外環材質、圓球材質、冰錐 `coneMat.uniforms.uOpacity` 以及拖尾粒子材質全部同步乘上 `fadeAlpha`，達成完美的視覺淡入淡出效果。
+    - [CombatFXEngine.ts:728-755](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L728-L755)：落實 Rule 10 強型別防護，安全提取 `glowRadius`、`glowOpacity` 與 `fadeAlpha` 並傳遞至 `MeshLayerRenderer.updateArcMulti`，0 `any`。
+  - **🔒 驗收結果 (Rule 7.3 Human-Centric Audit)**：
+    - `npm run typecheck` 0 錯誤。
+    - 全量 Vitest 單元測試 66 個測試檔案、411 項測試 100% 全綠通過。
+    - 真實瀏覽器（Playwright）在 VFX Studio 動態調試實測（`scripts/verify_spirit_dance_glow.mjs`）：
+      - 預設狀態（75px / 0.85）：`glowScale: 52.5`（75 * 0.7）, `glowOpacity: 0.85`。
+      - 動態調整（150px / 0.35）：`glowScale: 105`（150 * 0.7）, `glowOpacity: 0.35`，100% 即時放大變淡。
+      - 動態調整（40px / 0.95）：`glowScale: 28`（40 * 0.7）, `glowOpacity: 0.95`，100% 即時縮小增亮。
+      - 成功截取驗收真理畫面 `spirit_dance_glow_verified.png`。
+
+- **[Fix/VFX/RestoreSalvoIndividualTrailsAndPurgeSpatialContamination] 特效系統「恢復精靈矢雨每發箭矢獨立拖尾系統、徹底消滅跨特效切換空間殘留污染」：補齊 updateArcMulti 遺漏之第 15 個參數 trailParams、renderTrackObj.preset 深度注入粒子軌參數、renderTrack3DGeometry 入口強制重設 trackGroup 姿態 (0,0,0) 終結自由落體、多發彈幕 (isSalvo) 自動釋放外層中央單軌拖尾快取，Typecheck 0 錯誤、全量 66 個測試檔案 411 項 Vitest 測試 100% 全綠、真實瀏覽器 7 箭矢+7 拖尾實測 100% 驗收通過（2026-09-16）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **每箭獨立拖尾消失病灶 (Rule 9.3 跨端契約脫節)**：
+       - [CombatFXEngine.ts:740](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L740)：呼叫 `MeshLayerRenderer.updateArcMulti(...)` 時僅傳遞了 14 個參數，遺漏了第 15 個參數 `trailParams: { trailCount, trailSize, trailColor }`。導致 `MeshLayerRenderer.ts:1578` 讀取的 `tCount` 永遠為 0，每支箭專屬的 3D 貝茲曲線隨行拖尾系統被跳過未建立。
+       - [CombatFXEngine.ts:321](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L321)：建立 `renderTrackObj.preset` 時未合併 `trk_particle` 軌道中的 `trailCount: 30`, `trailSize: 10`, `trailColor`，導致渲染器無法獲取粒子軌參數。
+    2. **切換其他特效後精靈矢雨只在中間自由落體病灶 (Rule 12.1 正交解耦 & 空間不變量)**：
+       - [CombatFXEngine.ts:548](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L548)：`renderTrack3DGeometry` 函式入口未重設 `trackGroup` 的位置、旋轉與縮放。
+       - 前一個特效（如巨力重劈 `trackGroup.position.copy(targetPos)`，或旋風斬旋轉了 `trackGroup.rotation.z`）在 `trackGroup` 上殘留了空間偏移。切換到精靈矢雨（多發散佈彈幕）時，世界座標計算出的 7 發箭矢直接在帶有目標偏移的 `trackGroup` 內生成，整組箭矢直接從受擊目標中央下落，產生「在中間自由落體」的空間污染現象。
+    3. **外層中央單軌拖尾干擾多發彈幕**：
+       - 外層附著型單軌粒子拖尾未判斷多發彈幕，若殘留舊快取會嘗試在中央位置連出虛擬直線。
+  - **🚀 架構淨化與落地修復方案 (Architectural Purification)**：
+    - [CombatFXEngine.ts:240-270](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L240-L270)：提早提取 `particleTrack` 與 `pClip` 資料；在 `isSalvo` 時主動釋放外層單軌拖尾快取 `cachedRoot.__trailCache.dispose()`，杜絕中央虛擬線污染，將拖尾工作 100% 委派給 `updateArcMulti` 內部每發箭矢專屬拖尾系統。
+    - [CombatFXEngine.ts:321](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L321)：在 `renderTrackObj.preset` 中完整注入 `trailCount`、`trailSize`、`trailColor`。
+    - [CombatFXEngine.ts:548](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L548)：`renderTrack3DGeometry` 入口強制執行 `trackGroup.position.set(0, 0, 0); trackGroup.rotation.set(0, 0, 0); trackGroup.scale.set(1, 1, 1);`，消滅所有前置特效遺留的空間污染。
+    - [CombatFXEngine.ts:740](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L740)：完整傳遞第 15 個參數 `trailParams` 至 `MeshLayerRenderer.updateArcMulti`。
+  - **🔒 驗收結果 (Rule 7.3 Human-Centric Audit)**：
+    - `npm run typecheck` 0 錯誤。
+    - 全量 Vitest 單元測試 66 個測試檔案、411 項測試 100% 全綠通過。
+    - 真實瀏覽器（Playwright）端對端切換實測（從巨力重劈 x=177.5 切換至精靈矢雨）：
+      - `trackGroup.position` 成功重設為 `(0, 0, 0)`。
+      - 精靈矢雨 7 支箭矢呈現優美壯觀的散佈拋物弧線（`arrowCount: 7`），徹底告別自由落體！
+      - 7 支箭矢各自擁有獨立的點狀綠色拖尾粒子群（`trailCount: 7`，每條 23 點軌跡），拖尾系統完全滿血復原！
+
+- **[Fix/VFX/PurgeAnyAndEliminateDualStoreSplitAndPresetDeadlock] 特效工坊「徹底拔除 any / as any、解決 Vite Query 導致之雙重 Store 實例分裂、根治切換特效巨力重劈死鎖」：落實 Rule 10/11 型別防護、VFXStudioStore 單例全域 SSOT 唯一實例保證、拔除 tools/vfx-studio.html 查詢字串分裂、時間軸多軌動態無損切換，Typecheck 0 錯誤、全量 66 個測試檔案 411 項測試 100% 全綠、真實瀏覽器端對端驗收完全通過（2026-09-16）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **Vite 模組重複載入分裂雙重 Store 實例 (Rule 9.2 SSOT & Rule 12.3)**：`tools/vfx-studio.html` 的 `<script>` 標籤先前帶有 `?v=20260914_ssot_fix`，導致 Vite 將 `VFXStudioStore.ts?v=...` 與其他模組引用的乾淨 `VFXStudioStore.ts` 視為兩個完全不同的模組，在瀏覽器記憶體中分裂出兩個各自獨立的 `VFXStudioStore` 單例實例。全域 `window.__VFX_STORE__` 讀取到的是孤立實例，而 UI 控制器使用的是另一實例，造成狀態脫節。
+    2. **初始化 setSequence 硬編碼 isDirty = true 觸發假陽性攔截**：[src/tools/vfx-studio/VFXStudioStore.ts](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts) 先前在載入新序列時將 `this.isDirty = true`，使創作者一進入工坊即處於 Dirty 狀態，下拉選單切換時被 `confirm(...)` 攔截，使用者或無頭環境取消即強行退回重劈 ID 並中斷切換。
+    3. **型別逃逸與 as any 殘留 (Rule 10 & 11)**：在 [src/ui/fx/CombatFXEngine.ts](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts) 展開 `...(sequence as any)` 造成根物件污染 Clip 專屬資料，以及各處 `as any` 破壞靜態型別防線。
+  - **🚀 架構淨化與落地修復方案 (Architectural Purification)**：
+    - [tools/vfx-studio.html:788](file:///d:/tryagent/Medieval/tools/vfx-studio.html#L788)：拔除 script 標籤的查詢字串，引用乾淨的 `../src/tools/vfx-studio/index.ts`，消除模組圖分裂。
+    - [src/tools/vfx-studio/VFXStudioStore.ts:100-110](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts#L100-L110)：在 `getInstance()` 實裝 `globalThis` 防重護衛，跨模組 100% 共享唯一 SSOT 實例；`setSequence` 載入初始化嚴格設置 `this.isDirty = false`；補回時空傳播 MELEE_SWEEP 糾偏保護；拔除所有 `any`。
+    - [src/tools/vfx-studio/VFXLibrary.ts:330-350](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXLibrary.ts#L330-L350)：在切換時使用 `sequence.id` 與合法 Sequence 物件，拔除對舊 Preset 的依賴與假陽性退回阻斷，0 any 清零。
+    - [src/tools/vfx-studio/VFXStudioController.ts:88](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioController.ts#L88)：在 `store.subscribe` 中補齊 `this.inspector.syncUI(preset)`，達成控制項即時連動；拔除所有 `any`。
+    - [src/ui/fx/CombatFXEngine.ts:180-290](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L180-L290)：拔除 `(sequence as any)` 逃逸後門，建立強型別 `RenderableTrackItem` 與 `TrailCacheInstance`，型別安全傳遞空間契約與圖層資料。
+    - [src/data/unique_heroes.json](file:///d:/tryagent/Medieval/src/data/unique_heroes.json)：為 `test_guardian_hero` 補上 `isTestOnly: true` 標記。
+  - **🔒 驗收結果 (Rule 7.3 Human-Centric Audit)**：
+    - `npm run typecheck` 0 錯誤。
+    - 全量 Vitest 單元測試 66 個測試檔案、411 項測試 100% 全綠通過。
+    - 真實瀏覽器（Playwright）端對端切換實測：切換「菲涅爾冰晶槍」、「精靈矢雨」與「風暴狂雷」時，Store ID、名稱、時間軸主軌圖層與 3D 舞台空間彈道 100% 即時刷新，巨力重劈死鎖徹底根除！
+
+- **[Fix/VFX/RestoreDecoupledStateBeforeSyntaxAccident] 特效系統「還原大括號語法失衡抹回前之四大正交解耦與動態縮放巔峰狀態」：全面補齊 CombatFXEngine.ts 被沖掉之 FRESNEL_ICE 正交解耦傳參、VOLUMETRIC_FIRE 動態 scale.set 與光暈熱更新、通用 3D 投射物委派統一幾何工廠並拔除 -Math.PI/2 倒飛代碼、拖尾預設 0 去污染，型別檢查 0 錯誤與 260 項測試 100% 全綠（2026-09-16）**：
+  - **🐛 病灶根因徹底追查與還原 (Root Cause & Complete Restoration)**：
+    1. **1001 語法報錯引發之 git checkout 誤抹 (Rule 6 & Rule 8)**：昨天 17:39 因重構爆散邏輯大括號失衡引發 IDE 1001 個 TypeScript 語法報錯，隨後在 17:48 執行了 `git checkout src/ui/fx/CombatFXEngine.ts`。由於工作區此前未 commit，此動作將昨天 9/15 一整天修好的四大正交解耦代碼衝回 9/14 舊版，導致「箭矢反向（-Math.PI/2 殘留）、模型變回預設、大小無法動態縮放」等回歸缺陷。
+    2. **精準還原四大正交解耦代碼 (Rule 12.1, 12.2, 12.3)**：
+       - [CombatFXEngine.ts:770-800](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L770-L800)：`FRESNEL_ICE` 徹底拔除逃逸短路，正交傳遞 `shape`, `glowRadius`, `glowOpacity`, `fadeAlpha` 與 Glow Sprite 面片。
+       - [CombatFXEngine.ts:835-855](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L835-L855)：`VOLUMETRIC_FIRE` 加入動態 `scale.set(sc, sc, sc)` 與光暈每影格即時熱更新。
+       - [CombatFXEngine.ts:1040-1095](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L1040-L1095)：通用 3D 投射物徹底拔除私自 new ConeGeometry 與 `-Math.PI / 2` 倒飛代碼，委派單一真理來源 `MeshLayerRenderer.createProjectileGeometry(shape)`，支援形狀熱切換、動態 `scale.set` 與光暈熱更新。
+       - [CombatFXEngine.ts:240](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L240)：拖尾數量預設歸零 `(resolvedData.trailCount ?? pData.trailCount ?? 0)`，以 `trailCount > 0` 作為唯一真理來源，徹底消滅強制注入 35 顆黃色粒子污染。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - 戰鬥、特效與工坊全量測試 33 個測試檔案、260 項測試 100% 全綠。
+
+- **[Refactor/VFX/BurstDebrisDecouplingFromMainTrackClip] 特效系統「爆裂碎屑徹底脫離主軌 CLIP 生命週期綁架與全域絕對時間獨立求值重構」：終結主軌 CLIP 結束即跳過/銷毀導致碎屑失效病灶、拔除局部進度與全域 CUE 座標系錯位、建立序列級 (Sequence Level) 獨立碎屑求值與擴散生命週期（2026-09-16）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **主軌 CLIP 生命週期綁架 (Rule 7 & Rule 12.1)**：先前在 [src/ui/fx/CombatFXEngine.ts](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts) 中，爆裂碎屑（`burstCount`）的求值邏輯被寫在 `activeInstances` 逐軌遍歷的 `if (item.isMain)` 區塊內。當主軌幾何體 CLIP 播放結束時（`timeSeconds > trackEnd`，例如重擊主軌長度僅 0.3s），迴圈直接 `continue` 跳過該軌道，導致晚於 0.3s 的 CUE 點或自訂爆發時間根本無法觸發碎屑；且即使碎屑在結束前一刻生成，也因主軌結束而隨之蒸發或被銷毀，產生使用者回報的「完全沒效果」現象。
+    2. **局部時間與全域時間座標系錯位**：舊邏輯使用主軌幾何體的局部進度 `p = (timeSeconds - trackStart) / trackDur` 去比對全域進度 `cue.time / sequence.duration`，若主軌存在起手延遲（`mainDelay > 0`），計算基準必然跑調。
+  - **🚀 序列級全域解耦方案落地 (Global Decoupled Burst Pipeline)**：
+    - [src/ui/fx/CombatFXEngine.ts:315-370](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L315-L370)：
+      - 將爆散碎屑的更新與渲染徹底移出逐軌 `activeInstances` 迴圈之外，提升至序列級（Sequence Level）求值。
+      - 依據全域絕對時間直接確定爆發時刻 $T_{\text{burst}}$：若有自訂 `burstTime > 0` 則採用該秒數，否則自動吸附主 CUE 點秒數 `primaryCue.time`。
+      - 碎屑具備專屬且獨立的生命週期（$0.38\text{s}$），完全不受主軌幾何體是否已播放完畢（`trackEnd`）之影響。
+      - 碎屑自 $T_{\text{burst}}$ 瞬間爆發，在 $[T_{\text{burst}}, T_{\text{burst}} + 0.38]$ 區間內呈現向外球面向散開、旋轉與平滑淡出，生命週期結束後徹底隱藏，杜絕暫留。
+    - [src/ui/fx/CombatFXEngine.ts:1075-1090](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L1075-L1090)：
+      - 在 `clearStudioPreview` 補充 `__burstCache` 的材質與頂點緩衝釋放，避免記憶體洩漏。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck, Vitest & Headless Browser)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - 專屬測試 `VFXPlaybackAndNamingVerification.test.ts` 9 項測試 100% 全綠。
+    - 戰鬥、特效與工坊全量測試 33 個測試檔案、260 項測試 100% 全綠。
+    - 瀏覽器端自動化測試於 `http://localhost:5173/Medieval/tools/vfx-studio.html` 操作驗收：時間軸推進至 0.28s (Frame 17) 時碰撞打擊、震動與碎屑粒子實質爆發無誤。
+
+- **[Feature/VFX/BurstDebrisCueAttachmentAndCustomBurstTime] 特效系統「命中爆散碎屑 (burstCount) 自動吸附主 CUE 點與工坊自訂爆發時間 (burstTime) 全管線貫通」：拔除 CombatFXEngine 硬編碼進度 p >= 0.72、預設自動動態吸附主 CUE 點觸發時間、特效工坊新增專屬 burstTime 控制滑桿、打通模型/Normalizer/UI/渲染層 0 as any 完整資料閉環（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **碎屑爆散進度硬編碼 (Rule 7 & Rule 12.2)**：先前在 [src/ui/fx/CombatFXEngine.ts:328](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L328)，爆裂碎屑觸發條件被死死寫死在 `if (burstCount > 0 && p >= 0.72)`，完全無視時間軸上真實的 `impactCues` 觸發時間點。若創作者設定 CUE 點在 0.35s（進度 50%），受擊震動已觸發，碎屑卻延遲到 72% 才爆開，產生嚴重的視覺脫節與時間錯位。
+  - **🚀 方案 B 雙層時間軸架構落地 (Dynamic Cue Snapping & burstTime Control)**：
+    - [src/models/VFX.ts](file:///d:/tryagent/Medieval/src/models/VFX.ts)：
+      - `VFXPreset`、`VFXParticleClipPayload`、`VFXMeshClipPayload` 與 `VFXProjectileClipPayload` 均嚴格加入型別定義 `burstTime?: number; // 碎屑爆發時間點 (s，0 為自動吸附主 CUE 點)`。
+    - [src/ui/fx/CombatFXEngine.ts:326-348](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L326-L348)：
+      - 拔除死板的 `p >= 0.72`。
+      - 若創作者設定 `burstTime > 0`，以 `burstTime / duration` 動態求出爆散起始進度 $p_{\text{burst}}$。
+      - 若未指定或設為 0，則自動動態吸附序列中的主 CUE 點時間：`primaryCue.time / duration`！在 CUE 點觸發的同一瞬間，碎屑精確爆開！
+      - 擴散進度平滑歸一化：$(p - p_{\text{burst}}) / (1.0 - p_{\text{burst}})$，碎屑自命中點向四周球面向外擴散並淡出消散。
+    - [src/ui/fx/VFXPresetNormalizer.ts](file:///d:/tryagent/Medieval/src/ui/fx/VFXPresetNormalizer.ts)：
+      - 在 `INSPECTOR_CONTROL_MAP` 註冊 `{ id: 'param-burst-time', labelId: 'val-burst-time', key: 'burstTime', type: 'range', unit: 's', defaultVal: 0, capability: 'PARTICLES' }`。
+      - 在 `normalizeVfxPreset` 中納入 `burstTime` 拍平與解析。
+    - [src/tools/vfx-studio/VFXStudioStore.ts:268](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts#L268)：
+      - 粒子軌屬性同步增加 `burstTime`，確保草稿修改即時反應至粒子 Clip。
+    - [tools/vfx-studio.html:505-512](file:///d:/tryagent/Medieval/tools/vfx-studio.html#L505-L512)：
+      - 在「✨ 粒子流、拖尾與爆散」卡片中新增「碎屑爆發時間 (Burst Time)」控制項滑桿與數值標籤（0.00s ~ 2.50s）。
+    - [src/tools/vfx-studio/VFXInspector.ts](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXInspector.ts)：
+      - 人性化標籤處理：數值為 0 時顯示「自動 (隨Cue)」，大於 0 時精準顯示秒數（如 `0.35s`）。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - 專屬測試 `VFXPlaybackAndNamingVerification.test.ts` 新增「爆散碎屑自動吸附主 CUE 點未到隱藏、抵達瞬間爆散」與「自訂 burstTime 提早精準爆散」兩大測試，9 項測試 100% 全綠。
+    - 戰鬥、特效與工坊全量測試 33 個測試檔案、260 項測試 100% 全綠。
+
+- **[Fix/VFX/PlaybackClockAbsoluteTimeScheduling] 特效系統「全域邏輯時鐘累積排程 Bug 徹底根除」：修正 playSequenceWorld 中 Cue 與複合圖層排程之絕對時間基準、終結連續戰鬥時鐘推進後技能一放即瞬間引爆震動與傷害的早發嚴重瑕疵（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **相對時間與絕對時間混淆 (Rule 7 & Rule 8)**：在 [src/ui/fx/CombatFXEngine.ts:1316, 1340](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L1316)，排程 Impact Cue 與次生圖層時直接傳入了相對時間 `cue.time`（如 0.28s）與 `delay`。在特效工坊每次單獨播放時時鐘重置為 0 故未暴露；但在戰鬥工坊連續戰鬥進行數秒後，全域時鐘已累計至 5.0 秒，新任務排程在 0.28s，下一影格（0.016s）排程器檢查 `0.28 <= 5.0` 判定已逾期，導致一施放技能第一影格所有 Cue 點與次生圖層瞬間全部引爆，受擊震動與傷害提前觸發。
+  - **🚀 時間基準重構落地 (Absolute Baseline Pipeline)**：
+    - [src/ui/fx/CombatFXEngine.ts:1274-1350](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L1274-L1350)：
+      - 記錄特效發起時刻 `const effectStartTime = this.playbackClock.getCurrentTime();`。
+      - 將時鐘總時長動態延伸至 `effectStartTime + sequence.duration`。
+      - 將複合圖層排程修正為 `this.playbackClock.schedule(effectStartTime + delay, ...)`。
+      - 將具名 Impact Cue 排程修正為 `this.playbackClock.schedule(effectStartTime + Math.max(0, cue.time), ...)`。
+      - Cue 點不再秒引爆，精確等待子彈/刀刃飛行至該 Cue 秒數（`effectStartTime + cue.time`）時才準確爆發受擊抖動與跳字！
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - 專屬測試 `VFXPlaybackAndNamingVerification.test.ts` 新增「時鐘推進 5.0 秒後施放技能，第 1 影格絕不提前觸發、精確於 5.0 + cue.time 到達時觸發」斷言，7 項測試 100% 全綠。
+    - 戰鬥、特效與工坊全量測試 33 個測試檔案、258 項測試 100% 全綠。
+
+- **[Refactor/VFX/SalvoBulletTrailAttachmentAndFlowingFade] 特效系統「彈幕子彈專屬隨身拖尾與流動性消散重構」：終結多重彈幕中央虛擬直線脫節、實裝每顆散射子彈自帶專屬貝茲軌跡拖尾 (Salvo Bullet Trail)、引入彗核非線性聚集 (u^1.6) 與流動波浪擾動 (Flowing Waves)、子彈命中終點徹底消散零暫留（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause & Spatial Truth Mandate)**：
+    1. **多重彈幕空間脫節 (Rule 7 & Rule 12.1)**：先前在 [src/ui/fx/CombatFXEngine.ts:287](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L287)，拖尾管線在外部僅傳入了全域主線的單一未散射中央點 `curPos`，導致多重彈幕（如「精靈矢雨」7 發箭雨）向右散開飛時，粒子卻在左側中央孤零零地排成一條點陣虛線。
+    2. **機械等距直線死板缺乏流動性**：舊版粒子以機械線性等距插值，既無彈頭處的高能量聚集，亦無真實氣流與魔法流動波浪。
+    3. **動畫結束畫面定格暫留**：生命週期未在終點衰減，導致子彈抵達目標後拖尾殘留定格在半空中。
+  - **🚀 隨身附著與流動消散全管線落地 (Salvo Attachment & Fluid Physics Pipeline)**：
+    - [src/ui/fx/renderers/MeshLayerRenderer.ts:1555-1740](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1555-L1740)：
+      - `updateArcMulti` 擴充 `trailParams` 接收拖尾參數。
+      - 為彈幕中的**每一發子彈**建立專屬的拖尾頂點系統（`item.trailPoints` 與 `item.trailGeo`）。
+      - 拖尾頂點實質取樣該發子彈專屬的二階貝茲空間曲線 $(p_0, p_1, p_2)$，子彈飛到哪，拖尾就黏在該子彈屁股後面，物理空間 100% 正確！
+      - 實裝非線性彗核聚集指數（$u^{1.6}$）與動態波浪擾動（`flowPhase`、`waveAmplitude`、`spreadJitter`），營造生動如星芒流羽的動態流動感。
+      - 實裝命中平滑淡出：進度 $> 0.75$ 開始線性衰減，在 $\text{localP} \ge 0.99$ 時子彈與拖尾 `visible = false` 徹底隱藏，消滅畫面暫留。
+    - [src/ui/fx/renderers/TrailLayerRenderer.ts:168-235](file:///d:/tryagent/Medieval/src/ui/fx/renderers/TrailLayerRenderer.ts#L168-L235)：
+      - 重構單軌彈道軌跡拖尾 `updateTrajectoryTrail`，同步引進非線性彗核聚集、流動性波浪與 $p \ge 0.99$ 徹底消散。
+    - [src/ui/fx/CombatFXEngine.ts:245-365, 715-725](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L245-L365)：
+      - 判定 `isSalvo`：若為多發彈幕，外層銷毀單一中央虛擬軌道的 `__trailCache`，將拖尾工作委派給 `MeshLayerRenderer.updateArcMulti` 內部驅動，徹底消滅中央脫節虛線。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - 專屬測試 `VFXPlaybackAndNamingVerification.test.ts` 新增多彈幕空間分離斷言與終點消散斷言，6 項測試 100% 全綠。
+    - 戰鬥、特效與工坊全量測試 33 個測試檔案、257 項測試 100% 全綠。
+
+- **[Fix/VFX/PurgePlaybackPollutionAndSequenceNameEditor] 特效系統「播放端去污染、資料庫實質洗淨與特效名稱編輯接口實裝」：拔除 CombatFXEngine 硬編碼 trailCount 35 預設值、修復 3D 渲染快取殘留、洗淨 vfx_sequences.json 確保 0 dirty keys 與 30 款純淨 Sequence、於特效工坊實裝即時名稱與描述編輯接口並保障新特效創作管線 100% 暢通（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause & Real Purge)**：
+    1. **播放端強制注入拖尾粒子 (Rule 7 & Rule 12.2)**：在 [src/ui/fx/CombatFXEngine.ts:244](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L244)，先前代碼在無拖尾配置時 fallback 預設了 `35`，導致所有未配置拖尾的純物理技能在播放時無端被強制噴出 35 顆黃色拖尾粒子。本次將其改為 `(resolvedData.trailCount ?? pData.trailCount ?? 0)`，無配置嚴格歸零，徹底終結播放污染。
+    2. **資料庫實質洗淨與 30 款官方資產守恆**：實質清理 [src/data/vfx_sequences.json](file:///d:/tryagent/Medieval/src/data/vfx_sequences.json)，將 619 個根層扁平雜質全部移除，資產庫回歸純淨 30 款，同時確保 `VFX_EARTH_SPIKE` 等 4 款旗艦多圖層完整保留 `COMPOSITE_LAYER`。
+    3. **工坊特效名稱與描述編輯接口實裝**：在 [src/tools/vfx-studio/VFXLibrary.ts](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXLibrary.ts)，在預設下拉選單下方實裝專屬「特效基本資訊」卡片（提供 `<input id="lib-input-seq-name">` 與 `<input id="lib-input-seq-desc">`），支援即時雙向連動，並在 [src/tools/vfx-studio/VFXStudioStore.ts](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts) 的解構排除清單中隔離根層屬性，確保使用者可隨心所欲改名、新建新特效、二創並成功發布至專案！
+    4. **預覽快取安全釋放**：完善 [src/ui/fx/CombatFXEngine.ts:1083](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L1083) 之 `clearStudioPreview()`，對所有 `studioTrackGroups` 內部掛載的 geometry 與 material 執行遞迴 dispose，杜絕跨特效切換與重播時的殘留。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - `VFXStudioBaseline.test.ts` 12 項驗收測試 100% 全綠。
+    - 專屬測試 `VFXPlaybackAndNamingVerification.test.ts` 4 項測試 100% 通過（包含 updateMetaCard 預設切換即時連動驗證）。
+    - 戰鬥與特效系統 28 個測試檔案、217 項測試 100% 全綠。
+
+- **[Refactor/VFX/PurifySequencePipelineAndStripLegacyEscapeHatches] 特效系統「深層架構去污染與前朝技術債徹底根治」：拔除 CombatFXEngine 核心後門 `...(sequence as any)`、終結 VFXStudioStore 根物件倒垃圾 `Object.assign`、淨化 `vfx_sequences.json` 還原 30 款純淨 Sequence 與還原 VFX_EARTH_SPIKE 火焰圖層（2026-09-15）**：
+  - **🐛 深刻檢討與病灶根除 (Root Cause & Legacy Eradication)**：
+    1. **拔除 Engine 逃逸後門 (Rule 7 & Rule 11)**：在 [src/ui/fx/CombatFXEngine.ts:184](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L184)，先前為了解決發布未同步問題，偷渡寫下了 `{ ...(sequence as any), ...item.data }`，用 `as any` 壓制 TypeScript 報錯，強行將 Sequence 根物件壓扁解構。這導致根物件殘留的舊欄位（如 `"enableTrail": false`）逆向污染運算管線。本次徹底拔除該行，`resolvedData` 僅繼承空間模式契約，所有表現參數 100% 只由該軌 Clip 的 `payload.data` 決定！
+    2. **終結 Store 根物件無差別平鋪 (Rule 9 & Rule 12)**：在 [src/tools/vfx-studio/VFXStudioStore.ts](file:///d:/tryagent/Medieval/src/tools/vfx-studio/VFXStudioStore.ts)，拔除 `Object.assign(this.currentSequence, partial)`。建立 `VALID_SEQUENCE_ROOT_KEYS` 合法根欄位白名單與 `sanitizeSequenceRoot`，任何幾何、粒子、受擊反饋控制項只精準寫入被選取 Clip 的內部，Sequence 根部絕不再被冒泡污染！
+    3. **淨化資料庫與補回圖層 (Data SSOT Restoration)**：徹底清理 [src/data/vfx_sequences.json](file:///d:/tryagent/Medieval/src/data/vfx_sequences.json)，將所有 30 款序列根物件上的 40+ 個扁平雜質全數剝除，移出自訂測試特效 `VFX_CUSTOM_*`，並還原 `VFX_EARTH_SPIKE` 遺失的 `trk_layers` 次生火焰圖層（`LAYER_FISSURE_FIRE`）。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - `VFXStudioBaseline.test.ts` 12 項驗收測試 100% 全綠（30 款官方序列、100% 具名 Cues、4 款旗艦多圖層全部守恆）。
+    - `src/ui/fx/` 與 `src/tools/vfx-studio/` 14 個測試檔案 89 項測試 100% 全綠。
+    - 戰鬥系統完整測試套件 19 個檔案 165 項測試 100% 全綠。
+
+- **[Fix/VFX/UniversalTrailParticleVisibilityAndReactivity] 特效工坊「拖尾粒子全特效無條件可用 (Universal Trail Reactivity)」與「視覺可見度徹底強化 (Top-Level Visibility)」：以 trailCount > 0 作為唯一啟用真理來源、拔除 enableTrail === false 隱形短路阻斷、拖尾色彩控制項移入粒子卡片統一管理、depthTest=false 與 renderOrder=999 置頂渲染保證粒子清晰可見（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **enableTrail 隱形短路扼殺 (違背 Rule 12.2 虛假開放)**：`vfx_sequences.json` 資料庫多數條目殘留 `"enableTrail": false`。在 `CombatFXEngine.ts:241`，原判定式只要 `resolvedData.enableTrail === false` 便強制將 `isTrailEnabled` 判為 `false` 並銷毀 `__trailCache`，導致使用者在面板即便拉高「拖尾數量」與「粒子尺寸」仍然看不到任何粒子。
+    2. **控制項位置錯置與割裂 (違背 Rule 12.1 正交解耦)**：拖尾色彩控制項 `param-trail-color` 原本被鎖死在斬擊專用卡片（`.card-slash-section`），當非斬擊（如投射物、法術）被選取時卡片被隱藏，創作者根本無法調整粒子顏色。
+    3. **深度測試裁剪與尺寸微弱**：`PointsMaterial` 原本開啟了 `depthTest: true` 且 `renderOrder = 8`，被前方 3D 核心主體幾何與 Glow 面片遮擋裁剪，且粒子初始尺寸在相機距離下過小。
+  - **🚀 全特效粒子可見度與熱響應落地 (Universal Particle Reactivity Implementation)**：
+    - [src/ui/fx/CombatFXEngine.ts:241-244](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L241-L244)：
+      - 徹底拔除 `resolvedData.enableTrail === false` 的隱形短路阻斷。將啟用判定簡化為 `const isTrailEnabled = trailCount > 0;`。只要創作者在面板設定拖尾數量 $> 0$，任何特效（斬擊、投射物、冰槍、駐留法陣等）無條件渲染拖尾粒子！
+    - [src/ui/fx/renderers/TrailLayerRenderer.ts](file:///d:/tryagent/Medieval/src/ui/fx/renderers/TrailLayerRenderer.ts)：
+      - 拖尾點雲與爆散點雲一律配置 `depthTest: false`, `depthWrite: false`, `renderOrder: 999`，保證粒子永遠浮在最前層清晰可見，不被任何 3D Mesh 或面片遮擋。
+      - 基礎尺寸優化：確保高斯羽化後的發光核心尺寸充足（`Math.max(12, trailSize * scale * 1.5)`）。
+      - `updateTrajectoryTrail`：同時支援「運動型（投射物歷史軌跡向後逆向分佈衰減）」與「原地駐留型（主體周圍形成流光星塵雲）」，任何特效型態皆保證定格與拖曳時間軸所見即所得。
+    - [tools/vfx-studio.html](file:///d:/tryagent/Medieval/tools/vfx-studio.html)：
+      - 將拖尾色彩控制項 `param-trail-color` 自斬擊卡片移至「✨ 粒子流、拖尾與爆散」卡片統一管理，並保留隱藏相容元素維持測試契約。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - `src/ui/fx/` 與 `src/tools/vfx-studio/` 14 個測試檔案 89 項測試 100% 全綠。
+    - `VFXStudioBaseline.test.ts` (Fix 1 契約測試) 100% 通過。
+
+- **[Refactor/VFX/ParticleAndTrailReactivityPipeline] 特效系統「粒子流與拖尾全管線即時熱響應重構」：全域解鎖 PARTICLES 控制項權限、實裝確定性彈道軌跡拖尾 (updateTrajectoryTrail)、打通確定性命中爆散粒子群 (createBurstCloud)（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **控制項權限硬編碼閹割 (違背 Rule 12.2 虛假開放)**：`VFXPresetNormalizer.ts:60-61` 將 `param-enable-trail`（啟用拖尾）與 `param-trail-color` 鎖死在 `SLASH_GEOMETRY`。非斬擊特效（投射物、光束等）時，UI 依權限將拖尾控制項隱藏，`enableTrail` 預設為 `false`，導致拖尾管線直接被短路扼殺。
+    2. **投射物拖尾算法腐朽與定格錯亂 (違背 Rule 7.2)**：`TrailLayerRenderer.ts:101-109` 每次求值僅更新循環緩衝區的 2 個點，在工坊拖曳時間軸或單影格定格時，其餘 30~50 個頂點全部死鎖在起點，無法呈現動態拖曳的彗尾效果。
+    3. **爆散粒子 (burstCount) 缺乏確定性影格求值**：`burstCount` 原本僅在實戰命中瞬間以一次性動畫炸一下（播完自毀），工坊影格求值時完全沒有任何代碼繪製它，控制項形同擺設。
+  - **🚀 粒子與拖尾全管線重構落地 (Deterministic Pipeline Implementation)**：
+    - [src/ui/fx/VFXPresetNormalizer.ts:60-61](file:///d:/tryagent/Medieval/src/ui/fx/VFXPresetNormalizer.ts#L60-L61)：
+      - 將 `param-enable-trail` 與 `param-trail-color` 之 `capability` 自 `SLASH_GEOMETRY` 釋放至 `PARTICLES` 通用權限，所有技能類型均可自由開啟拖尾並自訂色彩。
+    - [src/ui/fx/renderers/TrailLayerRenderer.ts](file:///d:/tryagent/Medieval/src/ui/fx/renderers/TrailLayerRenderer.ts)：
+      - 實作確定性彈道軌跡拖尾 `updateTrajectoryTrail`：依據進度 $p$ 沿著歷史飛行路徑向後逆向分佈衰減，越靠近頭部越密越亮，尾部平滑淡出與微幅擾動，100% 確定性支援單影格定格與時間軸拖曳。
+      - 實作確定性命中爆散粒子群 `createBurstCloud`：生成 $N$ 顆球面向外擴散的星芒爆散點雲，半徑隨命中後進度擴散並淡出，100% 響應 `param-burst-count`。
+    - [src/ui/fx/CombatFXEngine.ts](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts)：
+      - 在 `renderFrameAt` 串接 `updateTrajectoryTrail`，支援所有投射物與飛行質點的連綿彗尾。
+      - 串接 `__burstCache`，當進度進入命中區間（$p \ge 0.72$）且 `burstCount > 0` 時，渲染向外爆散的星芒碎屑群；並在 `clearStudioPreview` 補充快取清理。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - `src/ui/fx/` 48 項測試 100% 全綠。
+    - `src/tools/vfx-studio/` 38 項測試 100% 全綠。
+
+- **[Refactor/VFX/ProjectileOrthogonalDecouplingAndGlowReactivity] 特效系統「投射物四大維度正交解耦 (幾何 x 材質 x 拖尾 x 光暈)」與「泛光光暈 (Glow) 全管線即時熱更新」：全面實踐 Rule 12 架構倫理、建立統一幾何形狀工廠、剝離寫死碎冰碎片至粒子系統、破除光暈快取死鎖（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **維度耦合與惡意降級 (違背 Rule 12.1)**：先前只要在 UI 選擇了核心形狀（如 ARROW / SPHERE / DIAMOND / STAR / RING），代碼便在 `CombatFXEngine.ts:721` 粗暴短路踢出至通用 3D 投射物管線。通用管線使用的是 `MeshBasicMaterial`，導致菲涅爾冰霜長矛在形狀為 `SPHERE` 時退化為廉價白球、致命狙擊退化為單薄三角形，材質與幾何嚴重耦合綁架。
+    2. **拖尾管理概念割裂 (違背 Rule 12.1 & 12.3)**：`MeshLayerRenderer.ts:1240` 內部硬寫死 7 顆八面體 Mesh（`cache.iceTrail`）充當假拖尾，既不受 UI 面板「✨ 粒子流、拖尾與爆散」控制項（`trailCount`、`trailSize`、`trailColor`）調節，又霸佔了拖尾管理概念。
+    3. **光暈控制項虛假開放與快取死鎖 (違背 Rule 12.2)**：`updateFresnelIce` 完全漏接 `glowRadius` 與 `glowOpacity`；通用 3D 投射物與體積火焰雖然在初次初始化時建立了光暈 Sprite，但每影格求值完全未更新 `scale` 與 `material.opacity`，造成拉動「泛光半徑」與「光暈透明度」滑桿毫無畫面反饋。
+  - **🚀 四大正交解耦架構落地 (Universal Orthogonal Architecture)**：
+    - [src/ui/fx/renderers/MeshLayerRenderer.ts](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts)：
+      - 建立統一的幾何形狀工廠 `createProjectileGeometry(shape)`，規範化 5 大幾何形態（ARROW, SPHERE, DIAMOND, STAR, RING），錐體統一指向飛行向量 (+Z)。
+      - 重構 `updateFresnelIce`：幾何外形與菲涅爾透光 Shader 完全正交解耦，任何形狀皆享有無損的菲涅爾折射與動態旋轉冰晶環。
+      - 徹底移除內部寫死的 7 顆八面體 `cache.iceTrail`，還原 Mesh 職責單一性；碎冰拖尾歸建粒子拖尾系統（`TrailLayerRenderer`）。
+      - 整合動態光暈面片（Glow Sprite），每影格動態熱更新 `scale`、`opacity` 與 `color`。
+    - [src/ui/fx/CombatFXEngine.ts](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts)：
+      - 撤除 `hasCustomCoreMesh` 導致的逃逸短路，確保 `FRESNEL_ICE` 始終享有頂級著色器。
+      - 通用 3D 投射物管線統一委派 `MeshLayerRenderer.createProjectileGeometry(shape)` 生成。
+      - 破除快取死鎖：在 `updateFresnelIce`、`VOLUMETRIC_FIRE` 與通用 3D 投射物每影格渲染中，打通 `glowRadius` 與 `glowOpacity` 動態熱更新，拉動滑桿即時呈現直觀縮放與明暗變化。
+    - [src/data/vfx_sequences.json](file:///d:/tryagent/Medieval/src/data/vfx_sequences.json)：
+      - 校準 `VFX_ICE_LANCE`（單發冰晶長矛）主圖層形狀為 `"ARROW"`，補齊 `glowRadius: 75, glowOpacity: 0.85`。
+  - **🔒 型別與測試全覆蓋 (Rule 10, Typecheck & Vitest)**：
+    - `npm.cmd run typecheck` 0 錯誤。
+    - `src/ui/fx/` 48 項測試 100% 全綠通過。
+    - `src/tools/vfx-studio/` 38 項測試 100% 全綠通過。
+
+- **[Fix/VFX/ProjectileScaleReactivityAndTipOrientation] 特效工坊「單發冰晶長矛與通用 3D 投射物動態尺寸縮放 (Scale) 響應」全面解鎖與「全域錐體尖端朝向正向校準 (Math.PI/2)」：解除接收端快取尺寸死鎖、重構基準幾何與每影格 scale 動態變換、校準 Three.js LookAt 前進向量與碎冰拖尾座標（2026-09-15）**：
+  - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
+    1. **本體尺寸縮放無法調整 (Cache Lockout)**：發送端（UI `param-scale` ➔ Store ➔ Normalizer ➔ Engine）數值傳遞完全正常，但接收端 [MeshLayerRenderer.ts:1218](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1218)（`updateFresnelIce`）與 [CombatFXEngine.ts:979](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L979)（`projectileGroup`）只在初次加載 `!cache` 時將 scale 乘進幾何頂點中；後續影格因快取已存在，完全沒有每影格更新 `scale`，導致 3D 尺寸死鎖在初次建立數值，使用者在面板拉動滑桿毫無反應。
+    2. **子彈倒著飛 (Tip Inversion)**：Three.js 中一般 `Object3D.lookAt(target)` 的前進方向為 `+Z`；`ConeGeometry` 尖端原生在 `+Y`，必須以 `rotateX(Math.PI / 2)` 轉向 `+Z` 方為正向朝前；前一輪誤改為 `-Math.PI / 2` 使得尖端朝向 `-Z`（後方），導致 `VFX_ICE_LANCE`、`VFX_SNIPER_SHOT` 與「測試」3 款單發冰矛特效全部倒著飛；且碎冰拖尾 `iceTrail` 先前放置在 `+Z`，導致拖尾跑到尖端前方。
+  - **🚀 動態縮放響應與幾何標準化 (Live Scale Reactivity & Base Geometry)**：
+    - [src/ui/fx/renderers/MeshLayerRenderer.ts:1218-1262](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1218-L1262)：
+      - `updateFresnelIce`：錐體與環採用基準 1.0 標準尺度生成，每影格動態套用 `cache.frostGroup.scale.set(scale, scale, scale)`，徹底解鎖即時縮放響應。
+      - 錐體旋轉糾正回 `coneGeo.rotateX(Math.PI / 2)`，尖端精確指向目標。
+      - 碎冰拖尾座標修正為負 Z 軸 `-(11 + i * 8)`，真實拖在冰矛尾部。
+      - 加入材質色彩 uniforms 動態響應（`colorCore` / `colorEdge` / `iceRing.color`）。
+    - [src/ui/fx/CombatFXEngine.ts:786 & 979-1025](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L786)：
+      - 火焰管線套用 `cache.volumetricGroup.scale.set(sc, sc, sc)`。
+      - 通用 3D 投射物管線採用標準尺寸，錐體旋轉修正為 `geo.rotateX(Math.PI / 2)`，每影格動態套用 `cache.projectileGroup.scale.set(sc, sc, sc)`。
+  - **🔒 型別與測試驗證 (Rule 10, Typecheck & Vitest)**：
+    - `npm run typecheck`（`tsc`）0 錯誤。
+    - `npx vitest run` 26 項核心單元測試全綠通過。
+
 - **[Fix/VFX/DualStoreDesyncAndProjectilePipeline] 特效工坊「發布至專案 SSOT spatialMode 不一致」根治與「質點運動 (POINT_TRANSPORT) 3D 子彈管線貫通」：防堵 LocalStorage 舊快照幽靈逆向覆寫、拔除舊近戰 MELEE_SWEEP 歷史殘留塌縮、修復 ConeGeometry 朝向與 lookAt NaN 蒸發保護（2026-09-14）**：
   - **🐛 病灶根因徹底拔除 (Root Cause Analysis)**：
     1. **Dual-Store Desync (幽靈覆寫引發發布失敗)**：使用者瀏覽器的 `localStorage` 中殘留著早期自訂時期的舊快照（記載 `spatialMode: AT_TARGET`）。在 `VFXPresetRepository.ts` 中，`rebuildResolvedMap()` 在遍歷入庫特效後，無條件讀取 `customSequences` 覆寫了最新草稿；且 `VFXPresetNormalizer.ts:161` 未優先尊重明確宣告的 `POINT_TRANSPORT`，被舊 clip payload 中的 `trajectory: 'MELEE_SWEEP'` 逆向洗回 `AT_TARGET`，導致回讀深層比對拋出 `草稿: TRAJECTORY, 回讀: AT_TARGET` 不一致。

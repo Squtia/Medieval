@@ -694,6 +694,7 @@ export class TimelineInteraction {
     this.container.querySelector('#tl-btn-close-clip-bar')?.addEventListener('click', (e) => {
       e.stopPropagation();
       this.selection.selectClip(null);
+      this.selection.selectTrack(null);
       this.callbacks.requestRender();
     });
 
@@ -764,6 +765,7 @@ export class TimelineInteraction {
           layers.splice(layerIdx, 1);
           if (this.selection.getSelectedClipIndex() === layerIdx) {
             this.selection.selectClip(null);
+            this.selection.selectTrack(null);
           }
           this.store.updateConfig({ layers }, true);
           this.callbacks.requestRender();
@@ -779,6 +781,7 @@ export class TimelineInteraction {
         if (layers[layerIdx]) {
           layers.splice(layerIdx, 1);
           this.selection.selectClip(null);
+          this.selection.selectTrack(null);
           this.store.updateConfig({ layers }, true);
           this.callbacks.requestRender();
         }
@@ -872,7 +875,9 @@ export class TimelineInteraction {
 
         if (this.store.isTrackLocked(`layer_${layerIdx}`)) {
           const curSel = this.selection.getSelectedClipIndex();
-          this.selection.selectClip(curSel === layerIdx ? null : layerIdx);
+          const newSel = curSel === layerIdx ? null : layerIdx;
+          this.selection.selectClip(newSel);
+          this.selection.selectTrack(newSel !== null ? { type: 'LAYER', index: layerIdx } : null);
           this.callbacks.requestRender();
           return;
         }
@@ -885,6 +890,7 @@ export class TimelineInteraction {
             layers.splice(layerIdx, 1);
             if (this.selection.getSelectedClipIndex() === layerIdx) {
               this.selection.selectClip(null);
+              this.selection.selectTrack(null);
             }
             this.store.updateConfig({ layers }, true);
             this.callbacks.requestRender();
@@ -914,8 +920,9 @@ export class TimelineInteraction {
         const onClipMove = (moveEvt: PointerEvent) => {
           hasMoved = true;
           const deltaX = moveEvt.clientX - startClientX;
+          const deltaTime = (deltaX / trackRect.width) * duration;
           const maxDelay = Math.max(0, duration - clipDuration);
-          const newDelay = Math.max(0, Math.min(maxDelay, (deltaX / trackRect.width) * duration));
+          const newDelay = Math.max(0, Math.min(maxDelay, initialDelay + deltaTime));
           lastDelay = Number(newDelay.toFixed(2));
 
           const startPct = Math.min(95, Math.max(0, (lastDelay / duration) * 100));

@@ -385,5 +385,22 @@
         "multiplier": 1.2
       }
     ]
+  },
+  {
+    "id": "SKILL_single_test",
+    "name": "(單體測試)",
+    "icon": "🌋",
+    "description": "自訂積木技能描述",
+    "category": "MONSTER",
+    "mpCost": 1,
+    "cooldown": 0,
+    "blocks": [
+      {
+        "trigger": "ACTIVE",
+        "effectType": "DAMAGE_PHYSICAL",
+        "targetType": "SINGLE_ENEMY",
+        "multiplier": 1.2
+      }
+    ]
   }
 ]

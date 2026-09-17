@@ -4,6 +4,9 @@ import { VFXImpactConfig, VFXImpactCue, getSequenceImpactConfig } from '../../..
 import { VFXPresetRepository } from '../VFXPresetRepository';
 import { mapImpactsToCues, CombatImpactPresentation, CombatAction, CombatActionPlayer, resolveActionMainTargetId } from '../CombatActionPlayer';
 import { ScreenFxRenderer } from '../renderers/ScreenFxRenderer';
+import { TargetType } from '../../../models/Skill';
+import { SkillRegistry } from '../../../systems/combat/SkillRegistry';
+import { CombatAnchorResolver } from './CombatAnchorResolver';
 
 
 /**
@@ -145,6 +148,42 @@ export class CombatStudioStageAdapter {
   }
 
   /**
+   * 🎯 戰鬥沙盒目標範圍物理幾何錨定解析
+   * 透過共用 CombatAnchorResolver 與主遊戲保持 100% 相同之幾何規則
+   */
+  public resolveTargetAnchorPoint(
+    targetType: TargetType | string | undefined,
+    isAttackerPlayer: boolean,
+    mainTargetId?: string,
+    actorId?: string
+  ): ScreenPoint {
+    const isTargetingAllies =
+      targetType === TargetType.ALL_ALLIES ||
+      targetType === TargetType.ALLY_LOWEST_HP ||
+      targetType === TargetType.ALLY_DEAD;
+
+    const targetSide: 'player' | 'enemy' = isTargetingAllies
+      ? (isAttackerPlayer ? 'player' : 'enemy')
+      : (isAttackerPlayer ? 'enemy' : 'player');
+
+    // 支援沙盒專屬隊伍容器選擇器 (#cs-player-3x3-grid / #cs-enemy-3x3-grid 或 .cs-col)
+    const teamGridId = targetSide === 'player' ? '#cs-player-3x3-grid' : '#cs-enemy-3x3-grid';
+    const teamEl = this.container?.querySelector(teamGridId) as HTMLElement | null
+      || (this.container?.querySelector(targetSide === 'player' ? '.player-grid' : '.enemy-grid') as HTMLElement | null)
+      || this.container;
+
+    return CombatAnchorResolver.resolveAnchor(
+      targetType,
+      isAttackerPlayer,
+      this.container,
+      teamEl,
+      (unitId, side) => this.getUnitPoint(unitId, side),
+      mainTargetId,
+      actorId
+    );
+  }
+
+  /**
    * 🎬 播放完整的 CombatAction (Single Action SSOT Pipeline)
    * 保證一個 Action 僅調用一次 3D VFX，多段打擊依 Cue 精確呈現
    */
@@ -168,8 +207,17 @@ export class CombatStudioStageAdapter {
     const mainTargetId = options?.targetId || resolveActionMainTargetId(action) || action.actorId;
     const defaultTargetEl = this.findCardElement(mainTargetId);
 
+    // 解析技能目標範圍 TargetType
+    let skillTargetType: TargetType | undefined;
+    if (action.skillId) {
+      const skillDef = SkillRegistry.getSkill(action.skillId);
+      if (skillDef) {
+        skillTargetType = skillDef.targetType;
+      }
+    }
+
     const fromPt = options?.fromPoint || this.getUnitPoint(action.actorId, isAttackerPlayer ? 'player' : 'enemy');
-    const toPt = options?.toPoint || this.getUnitPoint(mainTargetId, isAttackerPlayer ? 'enemy' : 'player');
+    const toPt = options?.toPoint || this.resolveTargetAnchorPoint(skillTargetType, isAttackerPlayer, mainTargetId, action.actorId);
 
     // 攻擊者微幅突進動畫 (非略過模式)
     if (!skip && attackerEl) {

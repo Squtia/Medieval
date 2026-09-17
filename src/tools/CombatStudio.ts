@@ -4398,20 +4398,30 @@ class CombatStudioController {
         ? `Seg ${ev.impactIndex + 1}/${ev.impactCount}`
         : '';
       const vfxInfo = ev.vfxId ? `VFX: ${ev.vfxId}` : '';
-      let warningTag = '';
-      if (ev.vfxId && ev.impactCount !== undefined) {
+      let cadenceTag = '';
+      if (ev.vfxId) {
         const repo = VFXPresetRepository.getInstance();
         const p = repo.getPreset(ev.vfxId);
         const cuesCount = p ? (p.impactCues?.length || (p as any).hitCount || (p as any).salvoCount || 1) : 1;
-        if (ev.impactCount !== cuesCount) {
-          warningTag = `<span class="cs-badge" style="background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 0.65rem;" title="戰鬥數值段數與視覺段數不一致">⚠️ impact(${ev.impactCount}) ≠ cue(${cuesCount})</span>`;
+        const totalImpacts = ev.impactCount ?? 1;
+
+        if (cuesCount > 1) {
+          // 🎯 多段視覺打擊序列 (Temporal Slicing / Multi-Hit)
+          const targetText = totalImpacts > 1 ? `${totalImpacts}目標` : '單體';
+          cadenceTag = `<span class="cs-badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; font-size: 0.65rem;" title="時間軸具備 ${cuesCount} 個打擊 Cue，各目標自動依權重同步分段跳字">✓ ${cuesCount}連擊 (${targetText})</span>`;
+        } else if (totalImpacts === cuesCount) {
+          // 1:1 單純打擊
+          cadenceTag = `<span class="cs-badge" style="background: rgba(100, 116, 139, 0.15); color: #94a3b8; font-size: 0.65rem;">✓ 1:1</span>`;
+        } else if (totalImpacts > 1 && cuesCount === 1) {
+          // AOE 單拍爆發
+          cadenceTag = `<span class="cs-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 0.65rem;" title="單次爆發衝擊波同時命中 ${totalImpacts} 個目標">✓ ${totalImpacts}目標同爆</span>`;
         }
       }
       debugTag = `<div class="cs-log-debug-meta" style="font-size: 0.65rem; color: #64748b; font-family: monospace; margin-top: 2px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
         <span>🆔 ${ev.actionId}</span>
         ${segInfo ? `<span>| 🥊 ${segInfo}</span>` : ''}
         ${vfxInfo ? `<span>| ✨ ${vfxInfo}</span>` : ''}
-        ${warningTag}
+        ${cadenceTag}
       </div>`;
     }
 

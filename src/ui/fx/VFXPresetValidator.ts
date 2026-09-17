@@ -23,7 +23,9 @@ export const VALID_SHADER_MODES: ReadonlySet<string> = new Set<VFXShaderMode>([
   'HOLY_LIGHT',
   'DARK_VOID',
   'SLASH_BLADE',
-  'EARTH_SHATTER'
+  'EARTH_SHATTER',
+  'SHOCKWAVE',
+  'ENERGY_SHIELD'
 ]);
 
 export interface ValidationResult {

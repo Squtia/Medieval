@@ -22,7 +22,7 @@ export class VFXStudioController {
   private stage: VFXStage;
   private studioAdapter: VFXStudioAdapter;
 
-  private hudBudgetTimer: any = null;
+  private hudBudgetTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.store = VFXStudioStore.getInstance();
@@ -73,6 +73,12 @@ export class VFXStudioController {
     this.inspector = new VFXInspector(leftSidebar, rightSidebar);
     this.inspector.bindAll();
 
+    // 🌟 串接 Inspector 參數即時變更：純資料驅動即時重繪當前影格，絕不干擾或篡改創作者時間軸位置
+    this.inspector.onParamChange(() => {
+      this.renderStudioFrameAt(frameEngine.getCurrentTime());
+      this.updateBenchmarkMarkerAt(frameEngine.getCurrentTime(), frameEngine.getCurrentFrame(), frameEngine.getTotalFrames());
+    });
+
     // 🌟 串接時間軸 Cue 選取與情境式 Inspector 編輯卡片 (#card-cue-inspector)
     // 遵循 docs/VFX_STUDIO_REBUILD_GEMINI_3_8_FLASH.md 第 4 節與第 11 節規範
     this.timeline.onSelectCue((cueIndex) => {
@@ -90,6 +96,7 @@ export class VFXStudioController {
       if (effectiveDur && effectiveDur !== frameEngine.getDuration()) {
         frameEngine.setDuration(effectiveDur);
       }
+      this.inspector.syncUI(preset);
       this.renderStudioFrameAt(frameEngine.getCurrentTime());
       this.updateBenchmarkMarkerAt(frameEngine.getCurrentTime(), frameEngine.getCurrentFrame(), frameEngine.getTotalFrames());
       this.syncStashButtonUI();
@@ -120,8 +127,9 @@ export class VFXStudioController {
     });
 
     if (typeof window !== 'undefined') {
-      (window as any).__FX_ENGINE__ = CombatFXEngine.getInstance();
-      (window as any).CombatFXEngine = CombatFXEngine;
+      const w = window as unknown as { __FX_ENGINE__?: CombatFXEngine; CombatFXEngine?: typeof CombatFXEngine };
+      w.__FX_ENGINE__ = CombatFXEngine.getInstance();
+      w.CombatFXEngine = CombatFXEngine;
     }
   }
 
@@ -193,13 +201,14 @@ export class VFXStudioController {
 
     const preset = this.store.getSequence();
     const mainClip = getSequenceMainClip(preset);
-    const mainData = (mainClip?.payload?.data as any) || {};
-    const mode = preset.spatialMode || mainData.spatialMode || mainData.trajectoryPath || mainData.trajectory || 'A_TO_B';
+    const mainData = (mainClip?.payload?.data as Record<string, unknown> | undefined) || {};
+    const mode = preset.spatialMode || (mainData.spatialMode as string) || (mainData.trajectoryPath as string) || (mainData.trajectory as string) || 'A_TO_B';
     const isReverse = !!mainData.reverse;
     const anchor = getTrajectorySpatialAnchor(mode);
-    const mainDelay = Math.max(0, mainClip?.startTime ?? (preset as any).mainDelay ?? 0);
+    const legacyPreset = preset as unknown as { mainDelay?: number; mainDuration?: number };
+    const mainDelay = Math.max(0, mainClip?.startTime ?? legacyPreset.mainDelay ?? 0);
     const totalDuration = this.timeline.getFrameEngine().getDuration();
-    const mainDuration = Math.max(0.05, mainClip?.duration ?? (preset as any).mainDuration ?? (totalDuration - mainDelay));
+    const mainDuration = Math.max(0.05, mainClip?.duration ?? legacyPreset.mainDuration ?? (totalDuration - mainDelay));
     const mainEnd = mainDelay + mainDuration;
 
     // 計算主軌有效播放進度 (0 ~ 1)
@@ -447,7 +456,7 @@ export class VFXStudioController {
     this.hudBudgetTimer = setInterval(() => {
       const fxEngine = CombatFXEngine.getInstance();
       const currentPreset = this.store.getPreset();
-      const hasCompositeTracks = (currentPreset.tracks && currentPreset.tracks.some((t: any) => t.type === 'COMPOSITE_LAYER')) || ((currentPreset as any).layers && (currentPreset as any).layers.length > 0);
+      const hasCompositeTracks = Boolean((currentPreset.tracks && currentPreset.tracks.some(t => t.type === 'COMPOSITE_LAYER')) || (currentPreset.layers && currentPreset.layers.length > 0));
       const isCompositeOrAOE = hasCompositeTracks || this.stage.isAOE();
       const budgetMaxCalls = isCompositeOrAOE ? 70 : 35;
       const budgetMaxParticles = isCompositeOrAOE ? 600 : 250;
@@ -458,15 +467,13 @@ export class VFXStudioController {
 
       hud.className = isOverBudget ? 'budget-alert' : '';
       hud.innerHTML = `
-        <span style="color: ${isOverBudget ? '#ef4444' : '#10b981'}; font-weight: bold;">
-          ${isOverBudget ? '⚠️ 預算超標' : '🟢 預算健康'}
-        </span>
-        <span>DC: <b style="color: ${drawCalls > budgetMaxCalls ? '#ef4444' : '#fbbf24'};">${drawCalls}</b>/${budgetMaxCalls}</span>
-        <span>粒子: <b style="color: ${activeParticles > budgetMaxParticles ? '#ef4444' : '#38bdf8'};">${activeParticles}</b>/${budgetMaxParticles}</span>
-        <span>面數: <b style="color: #cbd5e1;">${triangles}</b></span>
-        <span>物件: <b style="color: #cbd5e1;">${activeChildCount}</b></span>
+        <div style="font-weight: 700; color: ${isOverBudget ? '#ef4444' : '#38bdf8'};">📊 畫質與效能預算 HUD</div>
+        <div>Draw Calls: <b>${drawCalls}</b> / ${budgetMaxCalls} ${drawCalls > budgetMaxCalls ? '⚠️' : '✅'}</div>
+        <div>Triangles: <b>${triangles}</b></div>
+        <div>Active Particles: <b>${activeParticles}</b> / ${budgetMaxParticles} ${activeParticles > budgetMaxParticles ? '⚠️' : '✅'}</div>
+        <div>Active 3D Meshes: <b>${activeChildCount}</b></div>
       `;
-    }, 250);
+    }, 500);
   }
 
   /**
@@ -491,22 +498,22 @@ export class VFXStudioController {
     // 🌟 嚴格套用 Solo 與 Mute 狀態，直接作用於底層 3D 渲染與幾何繪製
     const isMainActive = this.store.isMainTrackActive();
     const isImpactActive = !this.store.getTrackMuteStates().impact;
-    const filteredPreset: any = {
+    const filteredPreset: VFXPreset & VFXSequence & { _mainTrackMuted?: boolean } = {
       ...preset,
-      layers: (preset.layers || []).map((l: any, idx: number) => ({
+      layers: (preset.layers || []).map((l, idx: number) => ({
         ...l,
         enabled: this.store.isLayerTrackActive(idx, l.enabled !== false)
       }))
     };
     if (preset.tracks && Array.isArray(preset.tracks)) {
-      filteredPreset.tracks = preset.tracks.map((t: any) => {
+      filteredPreset.tracks = preset.tracks.map(t => {
         if (t.id === 'trk_main') return { ...t, isMuted: !isMainActive };
         if (t.type === 'IMPACT') return { ...t, isMuted: !isImpactActive };
         return t;
       });
     }
     if (!isMainActive) {
-      (filteredPreset as any)._mainTrackMuted = true;
+      filteredPreset._mainTrackMuted = true;
     }
 
     fxEngine.renderFrameAt(filteredPreset, targetTime, from, to);
@@ -543,7 +550,8 @@ export class VFXStudioController {
    */
   private updateTargetImpactFeedbackAt(preset: VFXSequence, currentTime: number, targetEl: HTMLElement | null): void {
     if (!targetEl) return;
-    const impact = getSequenceImpactConfig(preset) || (preset as any).impact;
+    const legacyImpact = (preset as unknown as { impact?: import('../../models/VFX').VFXImpactConfig }).impact;
+    const impact = getSequenceImpactConfig(preset) || legacyImpact;
     if (!impact) {
       targetEl.style.transform = '';
       targetEl.style.filter = '';
@@ -572,7 +580,8 @@ export class VFXStudioController {
         const targetPt = this.studioAdapter.getElementCenter(targetEl);
         const worldPos = CombatFXEngine.getInstance().screenToWorld(targetPt);
         const mainClip = getSequenceMainClip(preset);
-        const colorCore = (mainClip?.payload.data as any)?.colorCore || '#f59e0b';
+        const mainData = (mainClip?.payload.data as Record<string, unknown> | undefined) || {};
+        const colorCore = (mainData.colorCore as string) || '#f59e0b';
         CombatFXEngine.getInstance().playCueSparks(worldPos, colorCore, 14);
       }
 

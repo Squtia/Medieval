@@ -114,8 +114,8 @@ describe('VFXStudioPublishFlow - Phase 0 失敗案例驗證 (發布資料閉環)
     expect(publishedPreset).toBeDefined();
 
     // ⚠️ 預期在此紅燈：目前 VFXLibrary 直接呼叫 this.repo.getAllPresets()，
-    // 未將 store.getPreset() 寫入 repo，所以送出的依然是舊顏色！
-    expect(publishedPreset.colorCore).toBe(testColor);
+    const actualPublishedColor = (getSequenceMainClip(publishedPreset)?.payload.data as any)?.colorCore ?? (publishedPreset as any).colorCore;
+    expect(actualPublishedColor).toBe(testColor);
   });
 
   it('🔴 缺陷 2：發布失敗 (HTTP 500) 時，Dirty 標記不可被清除，且草稿必須完整保留', async () => {

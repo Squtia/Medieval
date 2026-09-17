@@ -192,27 +192,31 @@
       padding: 0 90px;
     }
     .ref-card {
-      width: 125px;
-      height: 175px;
+      width: 84px;
+      height: 112px;
       border: 2px solid #334155;
-      border-radius: 12px;
+      border-radius: 8px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       background: #1e293b;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
-      transition: transform 0.1s ease;
+      box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.7);
+      transition: width 0.25s ease, height 0.25s ease, transform 0.1s ease, border-color 0.2s ease;
       position: relative;
       will-change: transform, filter;
     }
     .ref-card.caster {
       border-color: #38bdf8;
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
     }
     .ref-card.target {
       border-color: #ef4444;
-      box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+    }
+    .ref-card.self-buff-active {
+      border-color: #c084fc !important;
+      box-shadow: 0 0 20px rgba(192, 132, 252, 0.45) !important;
     }
     .target-group-container {
       display: flex;
@@ -223,7 +227,7 @@
     }
     .target-group-container.grid-layout {
       display: grid;
-      grid-template-columns: repeat(2, 90px);
+      grid-template-columns: repeat(2, 84px);
       gap: 8px;
     }
     .target-group-container.column-layout {
@@ -232,20 +236,20 @@
       gap: 8px;
     }
     .ref-card.compact {
-      width: 90px;
-      height: 115px;
+      width: 74px;
+      height: 98px;
     }
     .ref-card.compact .ref-card-icon {
-      font-size: 1.8rem;
+      font-size: 1.5rem;
       margin-bottom: 2px;
     }
     .ref-card.compact .ref-card-label {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       padding: 0 2px;
     }
     .ref-siege-gate {
-      width: 220px;
-      height: 180px;
+      width: 180px;
+      height: 150px;
       border: 3px solid #f97316;
       border-radius: 12px;
       background: #1c1917;
@@ -258,15 +262,51 @@
       will-change: transform, filter;
     }
     .ref-card-icon {
-      font-size: 2.8rem;
-      margin-bottom: 6px;
+      font-size: 1.8rem;
+      margin-bottom: 3px;
     }
     .ref-card-label {
-      font-size: 0.76rem;
+      font-size: 0.65rem;
       color: #94a3b8;
       font-weight: bold;
       text-align: center;
+      padding: 0 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+
+    /* 🔍 特寫檢視模式 (Magnified 125px) */
+    .mode-magnified .ref-card {
+      width: 125px;
+      height: 175px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+    }
+    .mode-magnified .ref-card .ref-card-icon {
+      font-size: 2.8rem;
+      margin-bottom: 6px;
+    }
+    .mode-magnified .ref-card .ref-card-label {
+      font-size: 0.76rem;
       padding: 0 6px;
+    }
+    .mode-magnified .ref-card.compact {
+      width: 90px;
+      height: 115px;
+    }
+    .mode-magnified .ref-card.compact .ref-card-icon {
+      font-size: 1.8rem;
+    }
+    .mode-magnified .ref-siege-gate {
+      width: 220px;
+      height: 180px;
+    }
+
+    /* 🛡️ 自身增益舞台佈局：右側退隱、施術者聚焦 */
+    .layout-self-buff #ref-caster {
+      transition: all 0.3s ease;
     }
 
     /* 🥊 專業戰鬥打擊感受擊動畫 */

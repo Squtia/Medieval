@@ -11,15 +11,11 @@ import { SkillVfxPickerModal } from './SkillVfxPickerModal';
  * 🛡️ 規範 §9.2、§9.3、§10 與 §11 強制：純淨強型別 VFXSequence 規格比對器
  * 0 any、0 as any，嚴格比對 Canonical Sequence 核心屬性、軌道、片段、Cues
  */
-export interface SequenceDiffResult {
+export type SequenceDiffResult = {
   isMatch: boolean;
   reason?: string;
-}
+};
 
-/**
- * 🛡️ 規範 §9.2、§9.3、§10 與 §11 強制：純淨強型別 VFXSequence 規格比對器
- * 0 any、0 as any，嚴格比對 Canonical Sequence 核心屬性、軌道、片段、Cues
- */
 export function checkSequenceDeepEqual(a: VFXSequence, b: VFXSequence): SequenceDiffResult {
   if (!a || !b) return { isMatch: false, reason: 'Sequence 物件為空 (Null/Undefined)' };
   if (a.id !== b.id) return { isMatch: false, reason: `ID 不一致 (草稿: ${a.id}, 回讀: ${b.id})` };
@@ -111,17 +107,22 @@ export function isSequenceDeepEqual(a: VFXSequence, b: VFXSequence): boolean {
 }
 
 export type VFXLibraryTab = 'ALL' | 'CASTER' | 'TRAJECTORY' | 'TARGET' | 'COMPOSITE';
+export type VFXScopeTab = 'ALL' | 'BUILTIN' | 'CUSTOM_SKILL' | 'MATERIAL';
+export type VFXCategoryFilter = 'ALL' | 'PHYSICAL' | 'ELEMENTAL' | 'HOLY_DARK' | 'SPECIAL';
 
 /**
  * 📚 VFXLibrary
  * 特效預設庫管理、發布與技能整合面板
- * 負責預設切換、CRUD、三大分類篩選 (A自身 / ATOB位移 / B爆發 / 複合技能)、SSOT 原子發布與快照
+ * 負責預設切換、CRUD、三大分欄篩選 (官方 30 款 / 技能專用 / 素材圖層)、卡片畫廊、SSOT 原子發布與快照
  */
 export class VFXLibrary {
   private container: HTMLElement;
   private store: VFXStudioStore;
   private repo: VFXPresetRepository;
   private currentTab: VFXLibraryTab = 'ALL';
+  private currentScope: VFXScopeTab = 'ALL';
+  private currentCategory: VFXCategoryFilter = 'ALL';
+  private searchQuery: string = '';
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -130,6 +131,82 @@ export class VFXLibrary {
     this.repo.addChangeListener(() => {
       this.render();
     });
+    this.store.subscribe((preset) => {
+      this.updateMetaCard(preset);
+    });
+    this.render();
+  }
+
+  public updateMetaCard(preset: VFXSequence): void {
+    const idLabel = this.container.querySelector('#lib-display-seq-id') as HTMLElement | null;
+    const inputName = this.container.querySelector('#lib-input-seq-name') as HTMLInputElement | null;
+    const inputDesc = this.container.querySelector('#lib-input-seq-desc') as HTMLInputElement | null;
+    const select = this.container.querySelector('#lib-preset-select') as HTMLSelectElement | null;
+    const selectCategory = this.container.querySelector('#lib-select-category') as HTMLSelectElement | null;
+    const btnSkill = this.container.querySelector('#lib-btn-set-skill') as HTMLButtonElement | null;
+    const btnMat = this.container.querySelector('#lib-btn-set-material') as HTMLButtonElement | null;
+
+    const isInputActive = typeof document !== 'undefined' && inputName === document.activeElement;
+    const isDescActive = typeof document !== 'undefined' && inputDesc === document.activeElement;
+
+    const isBuiltin = Boolean(preset.isBuiltin);
+    if (idLabel) {
+      idLabel.textContent = preset.id;
+      if (idLabel.style) {
+        idLabel.style.color = isBuiltin ? '#fbbf24' : '#64748b';
+      }
+      idLabel.title = `系統唯一識別碼 (ID)${isBuiltin ? ' [🔒 官方唯讀基準]' : ''}`;
+    }
+    if (inputName && !isInputActive) {
+      inputName.value = preset.name || '';
+      inputName.disabled = isBuiltin;
+    }
+    if (inputDesc && !isDescActive) {
+      inputDesc.value = preset.description || '';
+      inputDesc.disabled = isBuiltin;
+    }
+    if (select && select.value !== preset.id) {
+      select.value = preset.id;
+    }
+    if (selectCategory && selectCategory.value !== preset.category) {
+      selectCategory.value = preset.category || 'SPECIAL';
+      selectCategory.disabled = isBuiltin;
+    }
+
+    // 狀態切換更新
+    const isMat = preset.usageType === 'MATERIAL';
+    if (btnSkill) {
+      btnSkill.style.background = !isMat ? '#0284c7' : '#1e293b';
+      btnSkill.style.color = !isMat ? '#fff' : '#94a3b8';
+      btnSkill.disabled = isBuiltin;
+    }
+    if (btnMat) {
+      btnMat.style.background = isMat ? '#d97706' : '#1e293b';
+      btnMat.style.color = isMat ? '#fff' : '#94a3b8';
+      btnMat.disabled = isBuiltin;
+    }
+
+    // 高亮卡片網格
+    this.container.querySelectorAll('.vfx-card').forEach(card => {
+      if ((card as HTMLElement).dataset.id === preset.id) {
+        card.classList.add('active');
+        (card as HTMLElement).style.borderColor = '#38bdf8';
+        (card as HTMLElement).style.boxShadow = '0 0 8px rgba(56, 189, 248, 0.4)';
+      } else {
+        card.classList.remove('active');
+        (card as HTMLElement).style.borderColor = '#334155';
+        (card as HTMLElement).style.boxShadow = 'none';
+      }
+    });
+  }
+
+  public setScope(scope: VFXScopeTab): void {
+    this.currentScope = scope;
+    this.render();
+  }
+
+  public setCategoryFilter(cat: VFXCategoryFilter): void {
+    this.currentCategory = cat;
     this.render();
   }
 
@@ -143,68 +220,173 @@ export class VFXLibrary {
     const current = this.store.getPreset();
     const boundSkills = SkillVfxBindingRegistry.getInstance().getSkillsForVfx(current.id);
 
-    // 依據四大分類進行動態歸類
+    // 統計各欄位數量
+    const builtinCount = allPresets.filter(p => p.isBuiltin).length;
+    const skillCount = allPresets.filter(p => !p.isBuiltin && p.usageType !== 'MATERIAL').length;
+    const materialCount = allPresets.filter(p => p.usageType === 'MATERIAL').length;
+
+    // 依據三大分欄 (Scope)、屬性過濾與關鍵字搜尋動態篩選
     const filteredPresets = allPresets.filter(p => {
-      if (this.currentTab === 'ALL') return true;
-      const isComposite = (p.tracks && p.tracks.some(t => t.type === 'COMPOSITE_LAYER')) || Boolean(p.layers && p.layers.length > 0);
-      if (this.currentTab === 'COMPOSITE') return isComposite;
-      const mainClip = getSequenceMainClip(p);
-      const mainData = (mainClip?.payload?.data as Record<string, unknown> | undefined) || {};
-      const anchor = getTrajectorySpatialAnchor(p.spatialMode || (mainData.spatialMode as string) || (mainData.trajectoryPath as string) || (mainData.trajectory as string));
-      if (this.currentTab === 'CASTER') return anchor === 'AT_CASTER';
-      if (this.currentTab === 'TRAJECTORY') return anchor === 'TRAJECTORY';
-      if (this.currentTab === 'TARGET') return anchor === 'AT_TARGET';
+      const isBuiltin = Boolean(p.isBuiltin);
+      const isMaterial = p.usageType === 'MATERIAL';
+
+      // 1. 範疇分欄篩選
+      if (this.currentScope === 'BUILTIN' && !isBuiltin) return false;
+      if (this.currentScope === 'CUSTOM_SKILL' && (isBuiltin || isMaterial)) return false;
+      if (this.currentScope === 'MATERIAL' && !isMaterial) return false;
+
+      // 2. 屬性篩選
+      if (this.currentCategory !== 'ALL' && p.category !== this.currentCategory) return false;
+
+      // 3. 關鍵字搜尋
+      if (this.searchQuery) {
+        const q = this.searchQuery.toLowerCase();
+        const nameMatch = (p.name || '').toLowerCase().includes(q);
+        const idMatch = p.id.toLowerCase().includes(q);
+        const descMatch = (p.description || '').toLowerCase().includes(q);
+        if (!nameMatch && !idMatch && !descMatch) return false;
+      }
+
       return true;
     });
 
+    const isCurrentMaterial = current.usageType === 'MATERIAL';
+    const isCurrentBuiltin = Boolean(current.isBuiltin);
+
     this.container.innerHTML = `
       <div class="vfx-library-panel" style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- 頂部標題與操作按鈕 -->
         <div style="display: flex; align-items: center; justify-content: space-between;">
           <label style="font-weight: bold; color: #38bdf8; font-size: 0.85rem;">📚 素材庫與預設 (${filteredPresets.length}/${allPresets.length})</label>
           <div style="display: flex; gap: 4px;">
-            <button id="lib-btn-new" class="btn-tool" style="padding: 2px 6px; font-size: 0.72rem;">➕ 新增</button>
-            <button id="lib-btn-clone" class="btn-tool" style="padding: 2px 6px; font-size: 0.72rem;">📋 複製</button>
+            <button id="lib-btn-new" class="btn-tool" style="padding: 2px 6px; font-size: 0.72rem; background: #0284c7; color: #fff; border: 1px solid #38bdf8; border-radius: 3px; cursor: pointer;">➕ 新增</button>
+            <button id="lib-btn-clone" class="btn-tool" style="padding: 2px 6px; font-size: 0.72rem; background: #334155; color: #e2e8f0; border: 1px solid #475569; border-radius: 3px; cursor: pointer;">📋 複製</button>
           </div>
         </div>
 
-        <!-- 🏷️ 素材庫四大分類 Tabs -->
+        <!-- 🏷️ 三大欄位切換 Tabs (分開欄位) -->
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; background: #0f172a; padding: 3px; border-radius: 4px; border: 1px solid #1e293b;">
-          <button class="lib-tab-btn ${this.currentTab === 'CASTER' ? 'active' : ''}" data-tab="CASTER" style="background: ${this.currentTab === 'CASTER' ? '#0284c7' : '#1e293b'}; color: #fff; border: none; padding: 3px 2px; border-radius: 3px; font-size: 0.64rem; cursor: pointer;" title="A 點自身起手/揮刀/蓄力素材">🏠 自身</button>
-          <button class="lib-tab-btn ${this.currentTab === 'TRAJECTORY' ? 'active' : ''}" data-tab="TRAJECTORY" style="background: ${this.currentTab === 'TRAJECTORY' ? '#7c3aed' : '#1e293b'}; color: #fff; border: none; padding: 3px 2px; border-radius: 3px; font-size: 0.64rem; cursor: pointer;" title="ATOB 位移/飛行/天降彈道素材">🚀 彈道</button>
-          <button class="lib-tab-btn ${this.currentTab === 'TARGET' ? 'active' : ''}" data-tab="TARGET" style="background: ${this.currentTab === 'TARGET' ? '#be123c' : '#1e293b'}; color: #fff; border: none; padding: 3px 2px; border-radius: 3px; font-size: 0.64rem; cursor: pointer;" title="B 點目標受擊/斬裂/爆破素材">💥 目標</button>
-          <button class="lib-tab-btn ${this.currentTab === 'ALL' ? 'active' : ''}" data-tab="ALL" style="background: ${this.currentTab === 'ALL' ? '#334155' : '#1e293b'}; color: #cbd5e1; border: none; padding: 3px 2px; border-radius: 3px; font-size: 0.64rem; cursor: pointer;" title="查看全部素材">🌐 全部</button>
+          <button class="lib-scope-btn ${this.currentScope === 'BUILTIN' ? 'active' : ''}" data-scope="BUILTIN" style="background: ${this.currentScope === 'BUILTIN' ? '#0369a1' : '#1e293b'}; color: #fff; border: none; padding: 4px 2px; border-radius: 3px; font-size: 0.65rem; cursor: pointer; font-weight: bold;" title="官方出廠 30 款基準招式 (唯讀保護)">👑 官方 (${builtinCount})</button>
+          <button class="lib-scope-btn ${this.currentScope === 'CUSTOM_SKILL' ? 'active' : ''}" data-scope="CUSTOM_SKILL" style="background: ${this.currentScope === 'CUSTOM_SKILL' ? '#059669' : '#1e293b'}; color: #fff; border: none; padding: 4px 2px; border-radius: 3px; font-size: 0.65rem; cursor: pointer; font-weight: bold;" title="自訂創作技能特效 (可綁定技能)">⚔️ 技能 (${skillCount})</button>
+          <button class="lib-scope-btn ${this.currentScope === 'MATERIAL' ? 'active' : ''}" data-scope="MATERIAL" style="background: ${this.currentScope === 'MATERIAL' ? '#d97706' : '#1e293b'}; color: #fff; border: none; padding: 4px 2px; border-radius: 3px; font-size: 0.65rem; cursor: pointer; font-weight: bold;" title="獨立素材/組件/圖層 (禁綁技能)">🧩 素材 (${materialCount})</button>
+          <button class="lib-scope-btn ${this.currentScope === 'ALL' ? 'active' : ''}" data-scope="ALL" style="background: ${this.currentScope === 'ALL' ? '#334155' : '#1e293b'}; color: #cbd5e1; border: none; padding: 4px 2px; border-radius: 3px; font-size: 0.65rem; cursor: pointer;" title="查看全部特效">🌐 全部 (${allPresets.length})</button>
         </div>
 
-        <select id="lib-preset-select" class="preset-select" style="width: 100%; background: #1f2937; border: 1px solid #374151; color: #e5e7eb; border-radius: 4px; padding: 4px 8px; font-size: 0.8rem;">
-          ${filteredPresets.map(p => {
-            const mainClip = getSequenceMainClip(p);
-            const mainData = (mainClip?.payload?.data as any) || {};
-            const anchor = getTrajectorySpatialAnchor(p.spatialMode || mainData.spatialMode || mainData.trajectoryPath || mainData.trajectory);
-            const tag = anchor === 'AT_CASTER' ? '[自身]' : anchor === 'TRAJECTORY' ? '[彈道]' : '[目標]';
+        <!-- 🔍 關鍵字搜尋框與屬性快篩列 -->
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <input id="lib-search-input" type="text" placeholder="🔍 搜尋名稱或 ID..." value="${this.searchQuery}" style="flex: 1; background: #0f172a; border: 1px solid #334155; color: #f8fafc; padding: 3px 6px; border-radius: 3px; font-size: 0.72rem;">
+          <select id="lib-filter-category" style="background: #1e293b; border: 1px solid #334155; color: #cbd5e1; padding: 3px 4px; border-radius: 3px; font-size: 0.68rem; cursor: pointer;">
+            <option value="ALL" ${this.currentCategory === 'ALL' ? 'selected' : ''}>全部屬性</option>
+            <option value="PHYSICAL" ${this.currentCategory === 'PHYSICAL' ? 'selected' : ''}>🛡️ 物理</option>
+            <option value="ELEMENTAL" ${this.currentCategory === 'ELEMENTAL' ? 'selected' : ''}>🔥 元素</option>
+            <option value="HOLY_DARK" ${this.currentCategory === 'HOLY_DARK' ? 'selected' : ''}>✨ 神聖暗影</option>
+            <option value="SPECIAL" ${this.currentCategory === 'SPECIAL' ? 'selected' : ''}>⚙️ 特殊</option>
+          </select>
+        </div>
+
+        <!-- 🎴 卡片式畫廊列表 (取代死板下拉選單) -->
+        <div id="lib-cards-grid" style="display: flex; flex-direction: column; gap: 4px; max-height: 230px; overflow-y: auto; padding: 2px; border: 1px solid #1e293b; border-radius: 4px; background: #0b0f19;">
+          ${filteredPresets.length === 0 ? `
+            <div style="text-align: center; color: #64748b; padding: 20px 0; font-size: 0.72rem;">無符合條件的特效或素材</div>
+          ` : filteredPresets.map(p => {
+            const isSelected = p.id === current.id;
+            const isMat = p.usageType === 'MATERIAL';
+            const isBuilt = Boolean(p.isBuiltin);
+            const cueCount = p.impactCues?.length || 0;
+            const categoryLabel = p.category === 'PHYSICAL' ? '🛡️物理' : p.category === 'ELEMENTAL' ? '🔥元素' : p.category === 'HOLY_DARK' ? '✨神聖暗影' : '⚙️特殊';
             return `
-              <option value="${p.id}" ${p.id === current.id ? 'selected' : ''}>
-                ${tag} ${p.name || p.id}
-              </option>
+              <div class="vfx-card ${isSelected ? 'active' : ''}" data-id="${p.id}" style="display: flex; flex-direction: column; gap: 2px; padding: 5px 8px; border-radius: 4px; background: ${isSelected ? '#172554' : '#1e293b'}; border: 1px solid ${isSelected ? '#38bdf8' : '#334155'}; cursor: pointer; transition: all 0.15s ease; ${isSelected ? 'box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);' : ''}">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 0.62rem; padding: 1px 4px; border-radius: 2px; font-weight: bold; ${isBuilt ? 'background: #334155; color: #f8fafc;' : isMat ? 'background: #b45309; color: #fef3c7;' : 'background: #047857; color: #d1fae5;'}">
+                      ${isBuilt ? '👑官方' : isMat ? '🧩素材' : '⚔️技能'}
+                    </span>
+                    <span style="font-size: 0.62rem; color: #94a3b8;">${categoryLabel}</span>
+                  </div>
+                  <span style="font-size: 0.62rem; color: #64748b; font-family: monospace;">⏱️ ${p.duration.toFixed(2)}s · 🎯 ${cueCount > 0 ? cueCount + '連擊' : '純視覺'}</span>
+                </div>
+                <div style="display: flex; align-items: baseline; justify-content: space-between; margin-top: 1px;">
+                  <span style="font-size: 0.78rem; font-weight: bold; color: ${isSelected ? '#38bdf8' : '#f1f5f9'};">${p.name || p.id}</span>
+                  <span style="font-size: 0.64rem; color: #64748b; font-family: monospace;">${p.id}</span>
+                </div>
+              </div>
             `;
           }).join('')}
+        </div>
+
+        <!-- 🛡️ 底層同步維護的 select (保留供相容與測試，隱藏呈現) -->
+        <select id="lib-preset-select" class="preset-select" style="display: none;">
+          ${allPresets.map(p => `
+            <option value="${p.id}" ${p.id === current.id ? 'selected' : ''}>
+              ${p.name || p.id}
+            </option>
+          `).join('')}
         </select>
 
-        <!-- ➕ 將當前選中素材加入時間軸作為新圖層 -->
-        <div style="display: flex; gap: 4px; margin-top: 4px;">
-          <button id="lib-btn-add-to-timeline" style="flex: 1; background: #065f46; border: 1px solid #10b981; color: #6ee7b7; border-radius: 4px; padding: 4px 8px; font-size: 0.72rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;" title="將目前素材庫選中的預製件，作為新圖層追加到目前特效時間軸">
-            ➕ 加入時間軸圖層
+        <!-- 🏷️ 特效基本資訊編輯卡片 (用途切換、屬性切換、名稱與描述) -->
+        <div class="lib-seq-meta-card" style="background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="color: #94a3b8; font-weight: bold;">🏷️ 特效規格與屬性</span>
+            <span id="lib-display-seq-id" style="font-family: monospace; color: ${isCurrentBuiltin ? '#fbbf24' : '#64748b'}; font-size: 0.65rem;" title="系統唯一識別碼 (ID)${isCurrentBuiltin ? ' [🔒 官方唯讀基準]' : ''}">${current.id}</span>
+          </div>
+
+          <!-- 用途標籤選擇 (技能專用 vs 素材圖層) -->
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <label style="color: #94a3b8; width: 38px; flex-shrink: 0;">用途:</label>
+            <div style="display: flex; gap: 4px; flex: 1;">
+              <button id="lib-btn-set-skill" style="flex: 1; background: ${!isCurrentMaterial ? '#0284c7' : '#0f172a'}; color: ${!isCurrentMaterial ? '#fff' : '#94a3b8'}; border: 1px solid ${!isCurrentMaterial ? '#38bdf8' : '#334155'}; border-radius: 3px; padding: 2px 4px; font-size: 0.68rem; cursor: pointer; font-weight: bold;" ${isCurrentBuiltin ? 'disabled title="官方預設不可變更用途"' : ''}>
+                ⚔️ 技能專用
+              </button>
+              <button id="lib-btn-set-material" style="flex: 1; background: ${isCurrentMaterial ? '#d97706' : '#0f172a'}; color: ${isCurrentMaterial ? '#fff' : '#94a3b8'}; border: 1px solid ${isCurrentMaterial ? '#fbbf24' : '#334155'}; border-radius: 3px; padding: 2px 4px; font-size: 0.68rem; cursor: pointer; font-weight: bold;" ${isCurrentBuiltin ? 'disabled title="官方預設不可變更用途"' : ''}>
+                🧩 素材圖層 (禁綁技能)
+              </button>
+            </div>
+          </div>
+
+          <!-- 屬性類別選擇 -->
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <label style="color: #94a3b8; width: 38px; flex-shrink: 0;">屬性:</label>
+            <select id="lib-select-category" style="flex: 1; background: #0f172a; border: 1px solid #334155; color: #f8fafc; padding: 3px 6px; border-radius: 3px; font-size: 0.72rem; cursor: pointer;" ${isCurrentBuiltin ? 'disabled title="官方預設不可變更屬性"' : ''}>
+              <option value="PHYSICAL" ${current.category === 'PHYSICAL' ? 'selected' : ''}>🛡️ 物理系 (PHYSICAL)</option>
+              <option value="ELEMENTAL" ${current.category === 'ELEMENTAL' ? 'selected' : ''}>🔥 元素魔法 (ELEMENTAL)</option>
+              <option value="HOLY_DARK" ${current.category === 'HOLY_DARK' ? 'selected' : ''}>✨ 神聖 / 暗影 (HOLY_DARK)</option>
+              <option value="SPECIAL" ${current.category === 'SPECIAL' ? 'selected' : ''}>⚙️ 特殊 / 混合 (SPECIAL)</option>
+            </select>
+          </div>
+
+          <!-- 名稱編輯 -->
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <label style="color: #94a3b8; width: 38px; flex-shrink: 0;">名稱:</label>
+            <input id="lib-input-seq-name" type="text" value="${current.name || ''}" placeholder="請輸入特效名稱" style="flex: 1; background: #0f172a; border: 1px solid #334155; color: #f8fafc; padding: 3px 6px; border-radius: 3px; font-size: 0.75rem;" ${isCurrentBuiltin ? 'disabled title="官方出廠預設為唯讀保護，請點擊「📋 複製」進行客製化創作"' : ''}>
+          </div>
+
+          <!-- 描述編輯 -->
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <label style="color: #94a3b8; width: 38px; flex-shrink: 0;">描述:</label>
+            <input id="lib-input-seq-desc" type="text" value="${current.description || ''}" placeholder="請輸入特效用途或備註" style="flex: 1; background: #0f172a; border: 1px solid #334155; color: #cbd5e1; padding: 2px 6px; border-radius: 3px; font-size: 0.70rem;" ${isCurrentBuiltin ? 'disabled' : ''}>
+          </div>
+        </div>
+
+        <!-- ➕ 將當前選中特效/素材加入時間軸作為新圖層 -->
+        <div style="display: flex; gap: 4px; margin-top: 2px;">
+          <button id="lib-btn-add-to-timeline" style="flex: 1; background: #065f46; border: 1px solid #10b981; color: #6ee7b7; border-radius: 4px; padding: 5px 8px; font-size: 0.74rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;" title="將目前素材庫選中的預製件/素材，作為新圖層追加到目前特效時間軸">
+            ➕ 加入時間軸圖層 (次生圖層/素材)
           </button>
         </div>
 
-        <!-- 🔗 獨立技能綁定表關聯資訊 (SkillVfxBinding SSOT) -->
-        <div class="lib-bound-skills-card" style="background: #1e293b; border: 1px solid #334155; border-radius: 4px; padding: 6px; font-size: 0.72rem;">
+        <!-- 🔗 技能綁定表關聯資訊 (防護防線：素材嚴格禁止綁定技能) -->
+        <div class="lib-bound-skills-card" style="background: #1e293b; border: 1px solid ${isCurrentMaterial ? '#b45309' : '#334155'}; border-radius: 4px; padding: 6px; font-size: 0.72rem;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
             <span style="color: #94a3b8; font-weight: bold;">🔗 綁定技能 (${boundSkills.length})</span>
-            <button id="lib-btn-open-picker-quick" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; border-radius: 3px; padding: 1px 6px; font-size: 0.65rem; cursor: pointer; display: flex; align-items: center; gap: 3px;" title="開啟全領域技能卡片選取中心">
+            <button id="lib-btn-open-picker-quick" style="background: ${isCurrentMaterial ? '#334155' : 'rgba(56, 189, 248, 0.15)'}; border: 1px solid ${isCurrentMaterial ? '#475569' : '#0284c7'}; color: ${isCurrentMaterial ? '#64748b' : '#38bdf8'}; border-radius: 3px; padding: 1px 6px; font-size: 0.65rem; cursor: ${isCurrentMaterial ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; gap: 3px;" ${isCurrentMaterial ? 'disabled title="素材不可綁定技能"' : 'title="開啟全領域技能卡片選取中心"'}>
               🎴 卡片指派
             </button>
           </div>
-          ${boundSkills.length > 0 ? `
+          ${isCurrentMaterial ? `
+            <div style="background: rgba(217, 119, 6, 0.15); border: 1px dashed #d97706; padding: 4px 6px; border-radius: 3px; color: #fde68a; font-size: 0.66rem; display: flex; align-items: center; gap: 4px;">
+              <span>⚠️ <strong>[素材圖層]</strong> 專供時間軸「➕ 加一層」引用，不可直接綁定給技能！</span>
+            </div>
+          ` : boundSkills.length > 0 ? `
             <div style="display: flex; flex-wrap: wrap; gap: 4px;">
               ${boundSkills.map(b => `
                 <span class="lib-skill-badge" data-skill-id="${b.skillId}" style="background: rgba(56, 189, 248, 0.15); border: 1px solid #0284c7; color: #38bdf8; padding: 1px 5px; border-radius: 3px; font-size: 0.66rem; cursor: pointer;" title="點擊檢視/更換技能綁定">
@@ -215,7 +397,7 @@ export class VFXLibrary {
           ` : '<span style="color: #64748b; font-size: 0.68rem;">(尚未被任何技能直接引用，點擊上方指派)</span>'}
         </div>
 
-        <!-- 🚀 發布至專案核心 SSOT -->
+        <!-- 🚀 發布至專案核心 SSOT (官方 30 款安全唯讀，自訂特效寫入獨立檔案) -->
         <div style="display: flex; gap: 6px; margin-top: 4px;">
           <button id="lib-btn-publish" style="flex: 2; background: linear-gradient(135deg, #7c3aed, #9333ea); color: #fff; border: 1px solid #a855f7; border-radius: 4px; padding: 6px; font-size: 0.78rem; font-weight: bold; cursor: pointer;">
             🚀 發布至專案 SSOT
@@ -232,14 +414,14 @@ export class VFXLibrary {
           </summary>
           <div style="margin-top: 6px; display: flex; flex-direction: column; gap: 6px; font-size: 0.72rem;">
             <!-- 🎴 技能卡片綁定核心按鈕 -->
-            <button id="lib-btn-open-skill-picker" style="background: linear-gradient(135deg, #d97706, #f59e0b); color: #000; font-weight: 700; border: 1px solid #fbbf24; border-radius: 4px; padding: 6px 8px; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);">
-              🎴 開啟技能卡片綁定中心
+            <button id="lib-btn-open-skill-picker" style="background: ${isCurrentMaterial ? '#334155' : 'linear-gradient(135deg, #d97706, #f59e0b)'}; color: ${isCurrentMaterial ? '#64748b' : '#000'}; font-weight: 700; border: 1px solid ${isCurrentMaterial ? '#475569' : '#fbbf24'}; border-radius: 4px; padding: 6px 8px; font-size: 0.76rem; cursor: ${isCurrentMaterial ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: ${isCurrentMaterial ? 'none' : '0 2px 8px rgba(245, 158, 11, 0.25)'};" ${isCurrentMaterial ? 'disabled' : ''}>
+              🎴 開啟技能卡片綁定中心 ${isCurrentMaterial ? '(素材禁用)' : ''}
             </button>
 
             <div style="height: 1px; background: #1f2937; margin: 2px 0;"></div>
 
             <label style="color: #9ca3af;">綁定當前特效至武器普攻：</label>
-            <select id="lib-attack-target-select" style="background: #1f2937; border: 1px solid #374151; color: #e5e7eb; padding: 3px 6px; border-radius: 4px; font-size: 0.72rem;">
+            <select id="lib-attack-target-select" style="background: #1f2937; border: 1px solid #374151; color: #e5e7eb; padding: 3px 6px; border-radius: 4px; font-size: 0.72rem;" ${isCurrentMaterial ? 'disabled' : ''}>
               <option value="GREATSWORD">⚔️ 巨劍 (GREATSWORD / 戰士)</option>
               <option value="BOW">🏹 戰弓 (BOW / 弓箭手)</option>
               <option value="STAFF">🔮 法杖 (STAFF / 法師)</option>
@@ -248,7 +430,7 @@ export class VFXLibrary {
               <option value="HOLY_BOOK">📖 聖典 (HOLY_BOOK / 祈禱者)</option>
             </select>
             <div style="display: flex; gap: 4px;">
-              <button id="lib-btn-bind-attack" style="flex: 1; background: #0284c7; color: #fff; border: 1px solid #38bdf8; border-radius: 3px; padding: 3px; cursor: pointer;">
+              <button id="lib-btn-bind-attack" style="flex: 1; background: ${isCurrentMaterial ? '#1e293b' : '#0284c7'}; color: ${isCurrentMaterial ? '#64748b' : '#fff'}; border: 1px solid ${isCurrentMaterial ? '#334155' : '#38bdf8'}; border-radius: 3px; padding: 3px; cursor: ${isCurrentMaterial ? 'not-allowed' : 'pointer'};" ${isCurrentMaterial ? 'disabled' : ''}>
                 🔗 綁定當前特效
               </button>
               <button id="lib-btn-reset-attack" style="flex: 1; background: #374151; color: #9ca3af; border: 1px solid #4b5563; border-radius: 3px; padding: 3px; cursor: pointer;">
@@ -284,51 +466,127 @@ export class VFXLibrary {
     this.bindEvents();
   }
 
+  private selectPreset(id: string): void {
+    if (this.store.getIsDirty()) {
+      const ok = typeof confirm === 'function' ? confirm('⚠️ 您有尚未發布的修改，切換預設將捨棄當前變更，確定要切換嗎？') : true;
+      if (!ok) {
+        return;
+      }
+    }
+    const seq = this.repo.getSequence(id) || this.repo.getPreset(id);
+    if (seq) {
+      this.store.setSequence(seq, false);
+      this.store.setDirty(false);
+      this.render();
+    }
+  }
+
   private bindEvents(): void {
-    // 0. 分類 Tabs 點擊切換
-    this.container.querySelectorAll('.lib-tab-btn').forEach(btn => {
+    // 0. 範疇分欄 Tabs 點擊切換
+    this.container.querySelectorAll('.lib-scope-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const tab = (e.currentTarget as HTMLElement).dataset.tab as VFXLibraryTab;
-        if (tab) this.setTab(tab);
+        const scope = (e.currentTarget as HTMLElement).dataset.scope as VFXScopeTab;
+        if (scope) this.setScope(scope);
       });
     });
 
-    // 1. 預設選單切換 (防呆攔截未保存草稿)
+    // 0.1 關鍵字搜尋過濾
+    const searchInput = this.container.querySelector('#lib-search-input') as HTMLInputElement | null;
+    searchInput?.addEventListener('input', () => {
+      this.searchQuery = searchInput.value.trim();
+      this.render();
+      // 保持搜尋框聚焦
+      const newInput = this.container.querySelector('#lib-search-input') as HTMLInputElement | null;
+      if (newInput) {
+        newInput.focus();
+        newInput.setSelectionRange(newInput.value.length, newInput.value.length);
+      }
+    });
+
+    // 0.2 屬性類別篩選
+    const filterCat = this.container.querySelector('#lib-filter-category') as HTMLSelectElement | null;
+    filterCat?.addEventListener('change', () => {
+      if (filterCat) this.setCategoryFilter(filterCat.value as VFXCategoryFilter);
+    });
+
+    // 0.3 點擊特效卡片切換預設
+    this.container.querySelectorAll('.vfx-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).dataset.id;
+        if (id) this.selectPreset(id);
+      });
+    });
+
+    // 1. 底層預設選單切換 (支援測試與相容性事件)
     const select = this.container.querySelector('#lib-preset-select') as HTMLSelectElement;
     if (select) {
       select.addEventListener('change', (e) => {
         const id = (e.target as HTMLSelectElement).value;
         if (this.store.getIsDirty()) {
-          const ok = confirm('⚠️ 您有尚未發布的修改，切換預設將捨棄當前變更，確定要切換嗎？');
+          const ok = typeof confirm === 'function' ? confirm('⚠️ 您有尚未發布的修改，切換預設將捨棄當前變更，確定要切換嗎？') : true;
           if (!ok) {
-            select.value = this.store.getPreset().id;
+            select.value = this.store.getSequence().id;
             return;
           }
         }
-        const p = this.repo.getPreset(id);
-        if (p) {
-          this.store.setPreset(p, false);
+        const seq = this.repo.getSequence(id) || this.repo.getPreset(id);
+        if (seq) {
+          this.store.setSequence(seq, false);
           this.store.setDirty(false);
+          this.render();
         }
       });
     }
 
-    // 1.2 ➕ 加入時間軸圖層按鈕
-    this.container.querySelector('#lib-btn-add-to-timeline')?.addEventListener('click', () => {
-      const targetId = select?.value;
-      if (!targetId) return;
-      const targetPreset = this.repo.getPreset(targetId);
-      if (!targetPreset) return;
+    // 1.05 用途切換按鈕事件 (⚔️ 技能專用 vs 🧩 素材圖層)
+    this.container.querySelector('#lib-btn-set-skill')?.addEventListener('click', () => {
+      const current = this.store.getSequence();
+      if (current.isBuiltin) return;
+      this.store.updateConfig({ usageType: 'SKILL' }, true);
+      this.render();
+    });
 
+    this.container.querySelector('#lib-btn-set-material')?.addEventListener('click', () => {
+      const current = this.store.getSequence();
+      if (current.isBuiltin) return;
+      this.store.updateConfig({ usageType: 'MATERIAL' }, true);
+      this.render();
+    });
+
+    // 1.06 屬性分類切換事件
+    const selectCategory = this.container.querySelector('#lib-select-category') as HTMLSelectElement | null;
+    selectCategory?.addEventListener('change', () => {
+      const current = this.store.getSequence();
+      if (current.isBuiltin) return;
+      const category = selectCategory.value as 'PHYSICAL' | 'ELEMENTAL' | 'HOLY_DARK' | 'SPECIAL';
+      this.store.updateConfig({ category }, true);
+      this.render();
+    });
+
+    // 1.1 特效名稱與描述即時編輯
+    const inputName = this.container.querySelector('#lib-input-seq-name') as HTMLInputElement | null;
+    inputName?.addEventListener('input', () => {
+      const name = inputName.value;
+      this.store.updateConfig({ name }, false);
+    });
+
+    const inputDesc = this.container.querySelector('#lib-input-seq-desc') as HTMLInputElement | null;
+    inputDesc?.addEventListener('input', () => {
+      const description = inputDesc.value;
+      this.store.updateConfig({ description }, false);
+    });
+
+    // 1.2 ➕ 加入時間軸圖層按鈕 (可將目前選中的技能或素材加入為次生圖層)
+    this.container.querySelector('#lib-btn-add-to-timeline')?.addEventListener('click', () => {
       const current = this.store.getSequence();
       const curLayers = current.layers || [];
-      const targetMainClip = getSequenceMainClip(targetPreset);
-      const targetData = (targetMainClip?.payload?.data as Record<string, unknown> | undefined) || {};
+      const mainClip = getSequenceMainClip(current);
+      const targetData = (mainClip?.payload?.data as Record<string, unknown> | undefined) || {};
       const newLayer = {
         id: `layer_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-        presetId: targetPreset.id,
-        name: targetPreset.name || targetPreset.id,
-        spatialMode: targetPreset.spatialMode || targetData.spatialMode || 'A_TO_B',
+        presetId: current.id,
+        name: current.name || current.id,
+        spatialMode: current.spatialMode || targetData.spatialMode || 'A_TO_B',
         reverse: !!targetData.reverse,
         shaderMode: targetData.shaderMode || 'ENERGY_BEAM',
         delay: Number(Math.min((current.duration || 1.2) * 0.8, (current.duration || 1.2) * 0.15 * curLayers.length).toFixed(2)),
@@ -342,17 +600,20 @@ export class VFXLibrary {
       this.store.updateConfig({ layers: [...curLayers, newLayer] }, true);
     });
 
-    // 2. 新增預設：建立乾淨標準的通用空白骨架，徹底解耦斬擊舊屬性
+    // 2. 新增預設：可自選用途 (技能專用 or 素材) 與初始屬性
     this.container.querySelector('#lib-btn-new')?.addEventListener('click', () => {
       const name = prompt('請輸入新特效名稱：', '新自訂特效');
       if (!name) return;
-      const id = 'VFX_CUSTOM_' + Date.now();
+      const isMaterial = confirm('點擊【確定】建立為 [🧩 素材圖層] (僅供時間軸引用，不可綁定技能)\n點擊【取消】建立為 [⚔️ 技能專用] (完整戰鬥招式，可綁定技能)');
+      const id = (isMaterial ? 'VFX_MAT_' : 'VFX_CUSTOM_') + Date.now();
       const newSeq: VFXSequence = {
         schemaVersion: 2,
         id,
         name,
         category: 'SPECIAL',
-        description: '全新自訂特效',
+        usageType: isMaterial ? 'MATERIAL' : 'SKILL',
+        isBuiltin: false,
+        description: isMaterial ? '獨立素材圖層組件' : '全新技能特效',
         duration: 0.5,
         spatialMode: 'TRAJECTORY',
         impactPresentationMode: 'EXACT_IMPACTS',
@@ -387,7 +648,7 @@ export class VFXLibrary {
             ]
           }
         ],
-        impactCues: [
+        impactCues: isMaterial ? [] : [
           {
             cueId: 'cue_impact',
             time: 0.42,
@@ -408,11 +669,14 @@ export class VFXLibrary {
       const current = this.store.getSequence();
       const name = prompt('請輸入複製之新特效名稱：', (current.name || current.id) + ' (副本)');
       if (!name) return;
-      const id = 'VFX_CLONE_' + Date.now();
+      const isMat = current.usageType === 'MATERIAL';
+      const id = (isMat ? 'VFX_MAT_' : 'VFX_CUSTOM_') + Date.now();
       const cloneSeq: VFXSequence = {
         ...current,
         id,
         name,
+        usageType: current.usageType || 'SKILL',
+        isBuiltin: false,
         description: `複製自 ${current.name || current.id}`
       };
       const res = this.repo.saveCustomPreset(cloneSeq);
@@ -604,8 +868,9 @@ export class VFXLibrary {
         } else {
           throw new Error(data.error || '還原失敗');
         }
-      } catch (err: any) {
-        alert(`❌ 快照還原失敗：${err.message}`);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        alert(`❌ 快照還原失敗：${msg}`);
       } finally {
         if (btn) btn.textContent = '⚠️ 從此快照還原 SSOT';
       }

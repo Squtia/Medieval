@@ -5,7 +5,7 @@
     "name": "巨力重劈 (Heavy Strike)",
     "category": "PHYSICAL",
     "description": "沉重的近戰大威力劈砍，伴隨耀眼刃芒與金屬碎屑。",
-    "duration": 0.5,
+    "duration": 0.9,
     "spatialMode": "AT_TARGET",
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
@@ -52,7 +52,12 @@
                 "slashBladeWidth": 21,
                 "slashAngleJitter": 5,
                 "angleJitter": 5,
-                "mainDuration": 0.27
+                "mainDuration": 0.27,
+                "targetOffsetY": -10,
+                "trackOffsetY": 0,
+                "trackOffsetX": 0,
+                "targetOffsetX": 0,
+                "trailCount": 0
               }
             }
           }
@@ -72,7 +77,7 @@
               "type": "PARTICLE",
               "data": {
                 "burstCount": 40,
-                "trailCount": 35,
+                "trailCount": 0,
                 "trailSize": 14,
                 "colorCore": "#ffffff",
                 "colorRim": "#f59e0b",
@@ -221,7 +226,9 @@
     "slashTrajectory": "CLEAVE_DOWN",
     "shieldShape": "HEX",
     "waveCount": 3,
-    "textureSprite": "GLOW"
+    "textureSprite": "GLOW",
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -270,7 +277,7 @@
                 "slashAngleJitter": 5,
                 "angleJitter": 5,
                 "enableTrail": true,
-                "trailCount": 95,
+                "trailCount": 0,
                 "trailSize": 30,
                 "burstCount": 80,
                 "slashBladeWidth": 45,
@@ -295,7 +302,7 @@
               "type": "PARTICLE",
               "data": {
                 "burstCount": 80,
-                "trailCount": 95,
+                "trailCount": 0,
                 "trailSize": 30,
                 "colorCore": "#fed7aa",
                 "colorRim": "#ea580c",
@@ -441,7 +448,9 @@
     "spatialTopology": "LOCAL_MORPH",
     "slashAlignToPath": true,
     "spikeArrayBehavior": "PERSIST_FADE",
-    "spikeArrayCount": 5
+    "spikeArrayCount": 5,
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -671,7 +680,9 @@
     "slashTrajectory": "CLEAVE_DOWN",
     "shieldShape": "HEX",
     "waveCount": 3,
-    "textureSprite": "GLOW"
+    "textureSprite": "GLOW",
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -786,7 +797,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -898,7 +911,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1123,7 +1138,9 @@
     "slashTrajectory": "CLEAVE_DOWN",
     "shieldShape": "HEX",
     "waveCount": 3,
-    "textureSprite": "GLOW"
+    "textureSprite": "GLOW",
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1316,7 +1333,9 @@
     "slashTrajectory": "CLEAVE_DOWN",
     "shieldShape": "HEX",
     "waveCount": 3,
-    "textureSprite": "GLOW"
+    "textureSprite": "GLOW",
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1342,7 +1361,7 @@
               "type": "SLASH",
               "data": {
                 "rendererType": "SLASH",
-                "shaderMode": "DARK_VOID",
+                "shaderMode": "SLASH_BLADE",
                 "trajectory": "MELEE_SWEEP",
                 "colorCore": "#dc2626",
                 "colorRim": "#7f1d1d",
@@ -1431,7 +1450,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1543,7 +1564,9 @@
     },
     "metadata": {
       "coreBrightness": 1
-    }
+    },
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1551,7 +1574,7 @@
     "name": "毀滅隕石 (Volumetric Meteor)",
     "category": "ELEMENTAL",
     "description": "天降巨型黑體輻射隕石轟碎大地，烈焰碎屑四散與全場劇震。",
-    "duration": 0.55,
+    "duration": 1.2,
     "impactPresentationMode": "EXACT_IMPACTS",
     "tracks": [
       {
@@ -1562,19 +1585,36 @@
         "clips": [
           {
             "id": "clip_main_VFX_VOLUMETRIC_METEOR",
-            "startTime": 0,
+            "startTime": 0.19,
             "duration": 0.55,
             "payload": {
               "type": "MESH",
               "data": {
                 "trajectory": "DIAGONAL_DROP",
                 "shaderMode": "VOLUMETRIC_FIRE",
-                "colorCore": "#fef08a",
-                "colorRim": "#ef4444",
-                "scale": 2,
+                "colorCore": "#c77e00",
+                "colorRim": "#ff7300",
+                "scale": 1.2,
                 "spikeHeight": 0,
                 "spikes": 0,
-                "spikeMaterialMode": "PHONG"
+                "spikeMaterialMode": "PHONG",
+                "flameTurbulence": 10,
+                "flameTurbulenceSpeed": 4.3,
+                "flameSpeed": 4.3,
+                "trailCount": 70,
+                "trailSize": 24,
+                "coreBrightness": 1.1,
+                "glowRadius": 160,
+                "glowOpacity": 0.85,
+                "salvoCount": 4,
+                "salvoSpreadRadius": 70,
+                "arcHeight": 60,
+                "salvoSpreadAngle": 0,
+                "trailStrands": 3,
+                "burstCount": 120,
+                "trailColor": "#ffa200",
+                "mainDelay": 0.19,
+                "mainDuration": 0.55
               }
             }
           }
@@ -1593,15 +1633,17 @@
             "payload": {
               "type": "PARTICLE",
               "data": {
-                "burstCount": 80,
-                "trailCount": 60,
-                "trailSize": 20,
+                "burstCount": 120,
+                "trailCount": 70,
+                "trailSize": 24,
                 "colorCore": "#fef08a",
                 "colorRim": "#ef4444",
                 "scale": 2,
                 "bloomStr": 2.2,
                 "bloomRad": 0.5,
-                "bloomThresh": 0.08
+                "bloomThresh": 0.08,
+                "trailStrands": 3,
+                "trailColor": "#ffa200"
               }
             }
           }
@@ -1637,7 +1679,7 @@
     "impactCues": [
       {
         "cueId": "METEOR_CRASH_APEX",
-        "time": 0.4,
+        "time": 0.77,
         "weight": 1,
         "isPrimary": true
       }
@@ -1655,7 +1697,7 @@
         "id": "LAYER_METEOR_SHOCKWAVE",
         "name": "LAYER_METEOR_SHOCKWAVE",
         "enabled": true,
-        "delay": 0.36,
+        "delay": 0.74,
         "duration": 0.38,
         "fadeIn": 0.05,
         "fadeOut": 0.08,
@@ -1666,7 +1708,19 @@
         "emitsImpactCue": true,
         "generatesHit": false
       }
-    ]
+    ],
+    "scale": 1.2,
+    "flameTurbulence": 10,
+    "flameTurbulenceSpeed": 4.3,
+    "flameSpeed": 4.3,
+    "trailCount": 20,
+    "trailSize": 12,
+    "coreBrightness": 1.1,
+    "glowRadius": 160,
+    "glowOpacity": 0.85,
+    "colorCore": "#c77e00",
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1772,7 +1826,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1884,7 +1940,9 @@
     },
     "metadata": {
       "coreBrightness": 1
-    }
+    },
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -1990,7 +2048,9 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2016,11 +2076,13 @@
               "type": "PROJECTILE",
               "data": {
                 "rendererType": "PROJECTILE",
-                "shape": "SPHERE",
+                "shape": "ARROW",
                 "shaderMode": "FRESNEL_ICE",
                 "colorCore": "#ffffff",
                 "colorRim": "#38bdf8",
                 "coreBrightness": 1,
+                "glowRadius": 75,
+                "glowOpacity": 0.85,
                 "scale": 1.15,
                 "spin": 22,
                 "path": "A_TO_B",
@@ -2105,7 +2167,9 @@
     },
     "spin": 0,
     "trajectoryPath": "A_TO_B",
-    "shaderMode": "FRESNEL_ICE"
+    "shaderMode": "FRESNEL_ICE",
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2297,7 +2361,9 @@
     "slashTrajectory": "CLEAVE_DOWN",
     "shieldShape": "HEX",
     "waveCount": 3,
-    "textureSprite": "GLOW"
+    "textureSprite": "GLOW",
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2403,7 +2469,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2509,7 +2577,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2624,7 +2694,9 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2730,7 +2802,9 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2845,7 +2919,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -2960,7 +3036,9 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3066,7 +3144,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3217,7 +3297,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3340,7 +3422,9 @@
         "emitsImpactCue": true,
         "generatesHit": false
       }
-    ]
+    ],
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3455,7 +3539,9 @@
       "allowScreenShake": true,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3594,7 +3680,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3709,7 +3797,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3815,7 +3905,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3921,7 +4013,9 @@
       "allowScreenShake": false,
       "allowBloom": true
     },
-    "metadata": {}
+    "metadata": {},
+    "usageType": "SKILL",
+    "isBuiltin": true
   },
   {
     "schemaVersion": 2,
@@ -3965,7 +4059,8 @@
                 "glowOpacity": 0.45,
                 "glowRadius": 90,
                 "mainDelay": 0.13,
-                "mainDuration": 0.95
+                "mainDuration": 0.95,
+                "trailCount": 0
               }
             }
           }
@@ -3985,7 +4080,7 @@
               "type": "PARTICLE",
               "data": {
                 "burstCount": 70,
-                "trailCount": 40,
+                "trailCount": 0,
                 "trailSize": 12,
                 "colorCore": "#ff7700",
                 "colorRim": "#78350f",
@@ -4132,231 +4227,8 @@
     "slashTrajectory": "CLEAVE_DOWN",
     "shieldShape": "HEX",
     "waveCount": 3,
-    "textureSprite": "GLOW"
-  },
-  {
-    "schemaVersion": 2,
-    "id": "VFX_CUSTOM_1789374072176",
-    "name": "測試",
-    "category": "SPECIAL",
-    "description": "使用者自訂特效",
-    "duration": 0.5,
-    "spatialMode": "AT_TARGET",
-    "impactPresentationMode": "EXACT_IMPACTS",
-    "tracks": [
-      {
-        "id": "trk_main",
-        "name": "主特效軌 (Main Track)",
-        "type": "MESH",
-        "enabled": true,
-        "clips": [
-          {
-            "id": "clip_main_VFX_HEAVY_STRIKE",
-            "startTime": 0.04,
-            "duration": 0.27,
-            "payload": {
-              "type": "SLASH",
-              "data": {
-                "rendererType": "SLASH",
-                "shaderMode": "FRESNEL_ICE",
-                "trajectory": "A_TO_B",
-                "colorCore": "#ffffff",
-                "colorRim": "#f59e0b",
-                "scale": 1.3,
-                "angle": 85,
-                "rotX": -15,
-                "rotY": -25,
-                "rotZ": 85,
-                "arcSpan": 195,
-                "aspect": 0.8,
-                "bladeWidth": 21,
-                "radius": 90,
-                "reverse": false,
-                "shape": "CRESCENT",
-                "spin": 0,
-                "mainDelay": 0.04,
-                "slashRotX": -15,
-                "slashRotY": -25,
-                "slashRotZ": 85,
-                "slashAngle": 85,
-                "slashAlignToPath": false,
-                "slashReverse": true,
-                "slashAspect": 0.8,
-                "slashArcSpan": 195,
-                "slashRadius": 90,
-                "slashBladeWidth": 21,
-                "slashAngleJitter": 5,
-                "angleJitter": 5,
-                "mainDuration": 0.27,
-                "spatialTopology": "POINT_TRANSPORT"
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "trk_particle",
-        "name": "粒子爆散軌 (Particle Track)",
-        "type": "PARTICLE",
-        "enabled": true,
-        "clips": [
-          {
-            "id": "clip_part_VFX_HEAVY_STRIKE",
-            "startTime": 0,
-            "duration": 0.28,
-            "payload": {
-              "type": "PARTICLE",
-              "data": {
-                "burstCount": 40,
-                "trailCount": 35,
-                "trailSize": 14,
-                "colorCore": "#ffffff",
-                "colorRim": "#f59e0b",
-                "scale": 1.3,
-                "bloomStr": 1.6,
-                "bloomRad": 0.4,
-                "bloomThresh": 0.1
-              }
-            }
-          }
-        ]
-      },
-      {
-        "id": "trk_impact",
-        "name": "打擊反饋軌 (Impact Track)",
-        "type": "IMPACT",
-        "enabled": true,
-        "clips": [
-          {
-            "id": "clip_impact_VFX_HEAVY_STRIKE",
-            "startTime": 0.22,
-            "duration": 0.28,
-            "payload": {
-              "type": "IMPACT",
-              "data": {
-                "hitStopTime": 55,
-                "targetPunchScale": 0.88,
-                "shakeIntensity": 12,
-                "shakeDuration": 0.28,
-                "penetrationDistance": 0,
-                "knockbackDistance": 18,
-                "hitFlashColor": "#ffffff",
-                "screenShake": false
-              }
-            }
-          }
-        ]
-      }
-    ],
-    "impactCues": [
-      {
-        "cueId": "CLEAVE_HEAVY_HIT",
-        "time": 0.28,
-        "weight": 1,
-        "isPrimary": true
-      }
-    ],
-    "quality": {
-      "maxParticles": 40,
-      "maxDrawCalls": 12,
-      "maxConcurrentObjects": 30,
-      "allowScreenShake": false,
-      "allowBloom": true
-    },
-    "metadata": {},
-    "trajectory": "A_TO_B",
-    "shaderMode": "FRESNEL_ICE",
-    "colorCore": "#ffffff",
-    "colorRim": "#f59e0b",
-    "scale": 1.3,
-    "spin": 0,
-    "fresnel": 2.2,
-    "trailCount": 35,
-    "trailSize": 14,
-    "spikes": 0,
-    "spikeHeight": 0,
-    "burstCount": 40,
-    "bloomStr": 1.6,
-    "bloomRad": 0.4,
-    "bloomThresh": 0.1,
-    "impact": {
-      "hitStopTime": 55,
-      "targetPunchScale": 0.88,
-      "shakeIntensity": 12,
-      "shakeDuration": 0.28,
-      "penetrationDistance": 0,
-      "knockbackDistance": 18,
-      "hitFlashColor": "#ffffff",
-      "screenShake": false,
-      "waveRadius": 65,
-      "waveThickness": 4,
-      "waveBlur": 30,
-      "wavePlane": "CAMERA"
-    },
-    "salvoCount": 1,
-    "salvoDuration": 0.31,
-    "salvoRhythmCurve": "LINEAR",
-    "salvoSpreadAngle": 0,
-    "arcHeight": 0,
-    "multiHitImpact": true,
-    "spikeMaterialMode": "PHONG",
-    "layers": [],
-    "hitCount": 1,
-    "slashReverse": true,
-    "slashAngle": 85,
-    "slashArcSpan": 195,
-    "slashAspect": 0.8,
-    "slashBladeWidth": 21,
-    "slashRadius": 90,
-    "mainDelay": 0.04,
-    "slashRotX": -15,
-    "rotX": -15,
-    "slashRotY": -25,
-    "rotY": -25,
-    "slashRotZ": 85,
-    "rotZ": 85,
-    "angle": 85,
-    "slashAlignToPath": false,
-    "reverse": false,
-    "aspect": 0.8,
-    "arcSpan": 195,
-    "radius": 90,
-    "bladeWidth": 21,
-    "slashAngleJitter": 5,
-    "angleJitter": 5,
-    "casterMotion": {
-      "stepForward": 0,
-      "recoil": 0,
-      "tiltAngle": 0,
-      "motionDuration": 0.3
-    },
-    "mainDuration": 0.27,
-    "rendererType": "SLASH",
-    "shape": "CRESCENT",
-    "spatialTopology": "POINT_TRANSPORT",
-    "trajectoryPath": "A_TO_B",
-    "slashShape": "CRESCENT",
-    "slashAlternating": false,
-    "spikeArrayBehavior": "PERSIST_FADE",
-    "spikeArrayCount": 5,
-    "spikeShape": "CONE_SPIKE",
-    "spikeWidth": 7,
-    "spikeRadius": 80,
-    "spikeStagger": 25,
-    "spikeAngle": 0,
-    "spikeEruptFire": false,
-    "salvoSpreadRadius": 0,
-    "glowRadius": 75,
-    "glowOpacity": 0.85,
-    "coreBrightness": 1.5,
-    "flameTurbulence": 5,
-    "flameTurbulenceSpeed": 2,
-    "coreMeshShape": "CRESCENT",
-    "enableTrail": false,
-    "trailColor": "#f59e0b",
-    "slashTrajectory": "CLEAVE_DOWN",
-    "shieldShape": "HEX",
-    "waveCount": 3,
-    "textureSprite": "GLOW"
+    "textureSprite": "GLOW",
+    "usageType": "SKILL",
+    "isBuiltin": true
   }
 ]

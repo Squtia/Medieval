@@ -1,6 +1,7 @@
 import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingRegistry';
 import customSkillDataJson from '../../data/CustomSkillData.json';
 import { renderUniversalIcon } from '../../ui/IconSpriteHelper';
+import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 
 export type SkillPickerCategory = 'ALL' | 'HERO' | 'MONSTER' | 'SIEGE' | 'CUSTOM';
 
@@ -308,9 +309,16 @@ export class SkillVfxPickerModal {
   }
 
   /**
-   * 開啟彈窗
+   * 開啟彈窗 (素材嚴禁開啟綁定)
    */
   public open(currentVfxId: string, currentVfxName: string, onBindingChanged?: () => void): void {
+    // 🛡️ 規範防線：素材圖層禁止綁定技能
+    const vfx = VFXPresetRepository.getInstance().getSequence(currentVfxId) || VFXPresetRepository.getInstance().getPreset(currentVfxId);
+    if (vfx && vfx.usageType === 'MATERIAL') {
+      alert(`⚠️ 特效【${currentVfxName || currentVfxId}】已被標記為 [🧩 素材圖層]！\n素材僅供時間軸引用，禁止綁定給任何技能。`);
+      return;
+    }
+
     this.ensureModalDom();
     this.currentVfxId = currentVfxId;
     this.currentVfxName = currentVfxName || currentVfxId;

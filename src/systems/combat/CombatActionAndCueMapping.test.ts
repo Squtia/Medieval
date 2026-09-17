@@ -334,5 +334,91 @@ describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () =>
       expect(items[0].kind).toBe('STATUS');
       expect(items[0].amount).toBe(0);
     });
+
+    it('動態意圖推導: 未指定 presentationMode 時，單一傷害事件搭配多個帶權重 Cue 自動協商為 SPLIT_SINGLE_IMPACT', async () => {
+      const mockSequence: VFXSequence = {
+        schemaVersion: 2,
+        id: 'TEST_AUTO_SPLIT_VFX',
+        name: 'Auto Split VFX',
+        category: 'PHYSICAL',
+        description: '',
+        duration: 0.45,
+        spatialMode: 'A_TO_B',
+        tracks: [],
+        impactCues: [
+          { cueId: 'CUE_1', time: 0.1, weight: 0.2, isPrimary: false },
+          { cueId: 'CUE_2', time: 0.25, weight: 0.3, isPrimary: false },
+          { cueId: 'CUE_3', time: 0.4, weight: 0.5, isPrimary: true }
+        ]
+      };
+      const playSequenceSpy = vi.fn(async (...args: Parameters<CombatFXEngine['playSequence']>) => {
+        const [runtimeSequence, , , onImpact] = args;
+        if (typeof onImpact === 'function') {
+          runtimeSequence.impactCues.forEach((cue, index) => onImpact({} as any, index, runtimeSequence.impactCues.length, cue));
+        }
+      });
+      const actionPlayer = new CombatActionPlayer(
+        { playSequence: playSequenceSpy },
+        { getSequence: () => mockSequence }
+      );
+
+      // 單一 500 傷害事件，未設定 presentationMode
+      const action: CombatAction = {
+        actionId: 'act_auto_split',
+        actorId: 'hero',
+        vfxId: 'TEST_AUTO_SPLIT_VFX',
+        events: [
+          { type: CombatEventType.HIT, actionId: 'act_auto_split', actorId: 'hero', targetId: 'monster', damage: 500, text: '重砍命中' }
+        ]
+      };
+
+      const presented: any[] = [];
+      await actionPlayer.playAction(action, {
+        fromPoint: { x: 0, y: 0 },
+        toPoint: { x: 100, y: 100 },
+        onPresentImpact: (item) => presented.push(item)
+      });
+
+      // 驗證自動啟動分段打擊：3 個打擊幀皆有實質數值且不出現空砍 (amount > 0)
+      expect(presented.length).toBe(3);
+      expect(presented.map(p => p.amount)).toEqual([100, 150, 250]);
+      expect(presented.reduce((sum, p) => sum + p.amount, 0)).toBe(500);
+      expect(presented[2].isPrimary).toBe(true);
+    });
+
+    it('全體技能 (AOE): 2 隻怪物搭配 3 個帶權重 Cue，雙目標皆自動啟動 Per-Target 分段，各自分為 3 段且同 Cue 觸發', () => {
+      const aoeEvents: CombatEvent[] = [
+        { type: CombatEventType.HIT, actionId: 'act_aoe_multicue', targetId: 'enemy_a', damage: 300, text: '怪A受擊' },
+        { type: CombatEventType.HIT, actionId: 'act_aoe_multicue', targetId: 'enemy_b', damage: 150, text: '怪B受擊' }
+      ];
+      const cues: VFXImpactCue[] = [
+        { cueId: 'CUE_1', time: 0.1, weight: 0.2, isPrimary: false },
+        { cueId: 'CUE_2', time: 0.25, weight: 0.3, isPrimary: false },
+        { cueId: 'CUE_3', time: 0.4, weight: 0.5, isPrimary: true }
+      ];
+
+      // 即便傳入 EXACT_IMPACTS，但單一目標僅 1 筆事件且時間軸有多個帶權重 Cue，系統自動為每隻怪執行分段
+      const items = mapImpactsToCues(aoeEvents, cues, 'EXACT_IMPACTS');
+
+      // 總呈現項目數應為 2 目標 x 3 Cue = 6 個
+      expect(items.length).toBe(6);
+
+      // 目標 A 3 段：300 * [0.2, 0.3, 0.5] = [60, 90, 150]
+      const itemsA = items.filter(i => i.targetId === 'enemy_a');
+      expect(itemsA.length).toBe(3);
+      expect(itemsA.map(i => i.amount)).toEqual([60, 90, 150]);
+      expect(itemsA.reduce((sum, i) => sum + i.amount, 0)).toBe(300);
+
+      // 目標 B 3 段：150 * [0.2, 0.3, 0.5] = [30, 45, 75]
+      const itemsB = items.filter(i => i.targetId === 'enemy_b');
+      expect(itemsB.length).toBe(3);
+      expect(itemsB.map(i => i.amount)).toEqual([30, 45, 75]);
+      expect(itemsB.reduce((sum, i) => sum + i.amount, 0)).toBe(150);
+
+      // 同一 Cue 拍點上同時存在怪 A 與 怪 B 的跳字
+      const cue0Items = items.filter(i => i.cueIndex === 0);
+      expect(cue0Items.length).toBe(2);
+      expect(cue0Items.map(i => i.targetId).sort()).toEqual(['enemy_a', 'enemy_b']);
+    });
   });
 });

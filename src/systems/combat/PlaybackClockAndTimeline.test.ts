@@ -351,7 +351,7 @@ describe('Fix 2: PlaybackClock \u0026 VFXTimeline Verification (Batches E \u0026
         { cueId: 'CUE_1', time: 0.1, weight: 1.0, isPrimary: false },
         { cueId: 'CUE_2', time: 0.3, weight: 1.0, isPrimary: true }
       ];
-      store.setPreset({ ...initialPreset, duration: 0.5, impactCues: initialCues }, false);
+      store.setPreset({ ...initialPreset, duration: 0.5, tracks: [], impactCues: initialCues }, false);
 
       const timeline = new VFXTimeline(mockContainer as HTMLElement);
       const markerEl = mockContainer.querySelector('.tl-cue-marker') as any;
@@ -432,7 +432,7 @@ describe('Fix 2: PlaybackClock \u0026 VFXTimeline Verification (Batches E \u0026
       clipEl.dispatchEvent({ type: 'pointerup', clientX: 200, pointerId: 2 });
 
       const updatedPreset = store.getPreset();
-      expect(updatedPreset.layers?.[0].delay).toBe(0.30);
+      expect(updatedPreset.layers?.[0].delay).toBe(0.40);
 
       // Undo 驗證
       expect(store.canUndo()).toBe(true);

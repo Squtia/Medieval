@@ -149,6 +149,97 @@ describe('Phase 3 驗收: Inspector 與欄位收斂 (Capability-Driven & SSOT Du
       expect(waves5.length).toBe(5);
     });
 
+    it('waveRadius / waveThickness / waveBlur: 傳入幾何參數必須實質寫入網格屬性與材質不透明度', () => {
+      const g1 = MeshLayerRenderer.buildTauntShoutGroup(2, '#ef4444', 120, 8, 80);
+      expect((g1 as any).__waveRadius).toBe(120);
+      const waves = (g1 as any).__waves;
+      expect(waves.length).toBe(2);
+      expect(waves[0].baseOpacity).toBeLessThan(0.95);
+      expect(waves[0].mesh.geometry.parameters.outerRadius).toBe(15 + 8);
+    });
+
+    it('次生圖層 spatialMode 隔離：更新次生圖層為 AT_TARGET 時不污染 Sequence 頂層且寫入圖層物件', () => {
+      const store = VFXStudioStore.getInstance();
+      store.setSequence({
+        id: 'SEQ_TEST_ISOLATION',
+        name: '測試隔離序列',
+        duration: 1.0,
+        spatialMode: 'A_TO_B',
+        tracks: [
+          { id: 'trk_main', name: '主軌', type: 'MESH', enabled: true, clips: [{ id: 'c1', startTime: 0, duration: 1, payload: { type: 'MESH', data: { spatialMode: 'A_TO_B' } } }] },
+          { id: 'layer_shock_1', name: '震波圖層', type: 'MESH', enabled: true, clips: [{ id: 'c2', startTime: 0.2, duration: 0.4, payload: { type: 'MESH', data: { spatialMode: 'AT_CASTER' } } }] }
+        ],
+        layers: [
+          { id: 'layer_shock_1', name: '震波圖層', delay: 0.2, duration: 0.4, spatialMode: 'AT_CASTER' as any }
+        ]
+      } as any, false);
+
+      // 選取次生圖層
+      store.setSelection({ type: 'LAYER', layerId: 'layer_shock_1' });
+      // 更新空間模式為受擊目標
+      store.updateConfig({ spatialMode: 'AT_TARGET' as any }, false);
+
+      const seq = store.getSequence();
+      // 1. 頂層 Sequence 嚴格維持原樣，絕不被污染
+      expect(seq.spatialMode).toBe('A_TO_B');
+      // 2. 次生圖層 layer 物件已正確更新為 AT_TARGET
+      expect(seq.layers?.[0].spatialMode).toBe('AT_TARGET');
+      // 3. 次生圖層 Clip 也已正確更新為 AT_TARGET
+      const layerClip = seq.tracks.find(t => t.id === 'layer_shock_1')?.clips[0];
+      expect((layerClip?.payload.data as any)?.spatialMode).toBe('AT_TARGET');
+    });
+
+    it('新技能打擊感解鎖：新建技能無 IMPACT 軌道時，調整 impact 必須自動建立 IMPACT 軌道且正確寫入頂層與 Clip', () => {
+      const store = VFXStudioStore.getInstance();
+      // 模擬全新技能（只有主軌，完全沒有 IMPACT 軌道，就像使用者新建立的「連續地刺」）
+      store.setSequence({
+        id: 'VFX_CUSTOM_NEW_SKILL',
+        name: '全新技能測試',
+        duration: 2.0,
+        spatialMode: 'TRAJECTORY',
+        tracks: [
+          {
+            id: 'trk_main',
+            name: '主軌',
+            type: 'MESH',
+            enabled: true,
+            clips: [{ id: 'c1', startTime: 0, duration: 1, payload: { type: 'MESH', data: {} } }]
+          }
+        ],
+        impactCues: []
+      } as any, false);
+
+      // 使用者拖動打擊感滑桿：定格 80ms、擠壓 0.75x、震動 20px、擊退 25px
+      store.updateConfig({
+        impact: {
+          hitStopTime: 80,
+          targetPunchScale: 0.75,
+          shakeIntensity: 20,
+          shakeDuration: 0.35,
+          knockbackDistance: 25,
+          hitFlashColor: '#ff0000'
+        } as any
+      }, false);
+
+      const seq = store.getSequence();
+      // 1. 頂層 Sequence 必須正確保存 impact
+      expect((seq as any).impact?.hitStopTime).toBe(80);
+      expect((seq as any).impact?.shakeIntensity).toBe(20);
+
+      // 2. 必須自動補齊標準 Canonical IMPACT 軌道
+      const impactTrack = seq.tracks.find(t => t.type === 'IMPACT');
+      expect(impactTrack).toBeDefined();
+      expect(impactTrack?.clips.length).toBe(1);
+      expect((impactTrack?.clips[0].payload.data as any)?.hitStopTime).toBe(80);
+      expect((impactTrack?.clips[0].payload.data as any)?.knockbackDistance).toBe(25);
+
+      // 3. 回讀 getPreset() / normalizeVfxPreset 必須 100% 讀出新數值，不再死鎖在 55ms
+      const preset = store.getPreset();
+      expect(preset.impact?.hitStopTime).toBe(80);
+      expect(preset.impact?.targetPunchScale).toBe(0.75);
+      expect(preset.impact?.shakeIntensity).toBe(20);
+    });
+
     it('shieldShape: 傳入 HEX、CROSS_SHIELD、RUNE_RING 必須產生結構與形態差異', () => {
       const hexGroup = MeshLayerRenderer.buildHolyShieldGroup(1.0, '#fde047', '#eab308', 'HEX');
       const crossGroup = MeshLayerRenderer.buildHolyShieldGroup(1.0, '#fde047', '#eab308', 'CROSS_SHIELD');

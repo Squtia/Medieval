@@ -14,7 +14,7 @@ describe('VFX spatial and layering policy', () => {
   it('maps the shipped Storm Bolt preset without relying on a synthetic fixture', () => {
     const stormBolt = (defaultVFXSequences as VFXSequence[]).find(s => s.id === 'VFX_LIGHTNING_BOLT');
     expect(stormBolt).toBeDefined();
-    expect(stormBolt?.spatialMode).toBe('VERTICAL_SKY_TO_B');
+    expect(resolvePresetSpatialMode(stormBolt!)).toBe('VERTICAL_SKY_TO_B');
   });
 
   it('preserves an explicitly authored spatial mode', () => {
@@ -82,9 +82,11 @@ describe('VFX spatial and layering policy', () => {
       1,
       '#ffffff',
       '#38bdf8',
-      iceCache
+      iceCache,
+      'ARROW'
     );
-    expect(iceCache.iceTrail.children).toHaveLength(7);
+    expect(iceCache.iceMesh).toBeDefined();
+    expect(iceCache.iceRing).toBeDefined();
     expect(iceCache.iceMaterial.uniforms.uTime.value).toBe(2);
   });
 

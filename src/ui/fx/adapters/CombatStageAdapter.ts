@@ -4,6 +4,9 @@ import { VFXImpactConfig, VFXImpactCue, getSequenceImpactConfig } from '../../..
 import { VFXPresetRepository } from '../VFXPresetRepository';
 import { CombatAction, CombatActionPlayer, CombatImpactPresentation, resolveActionMainTargetId } from '../CombatActionPlayer';
 import { ScreenFxRenderer } from '../renderers/ScreenFxRenderer';
+import { TargetType } from '../../../models/Skill';
+import { SkillRegistry } from '../../../systems/combat/SkillRegistry';
+import { CombatAnchorResolver } from './CombatAnchorResolver';
 
 /**
  * ⚔️ CombatStageAdapter
@@ -123,6 +126,45 @@ export class CombatStageAdapter {
     };
   }
 
+  /**
+   * 🎯 依據技能目標範圍 (TargetType) 求解特效目標基準中心點 B (Fixed Geometric Target B)
+   * 遵循使用者絕對準則：
+   * 1. 目標中心 B 點是戰鬥棋盤 3x3 陣型上的絕對固定物理幾何點，與死活狀態 100% 解耦。
+   * 2. 全體 (ALL_ENEMIES / ALL_ALLIES) ➔ 該陣型九宮格「中排中 (Row 2, Col 2)」正中心。
+   * 3. 前排 (FRONT_ENEMIES) ➔ 該陣型「前排中 (Front Row Center)」正中心。
+   * 4. 後排 (BACK_ENEMY) ➔ 該陣型「後排中 (Back Row Center)」正中心。
+   * 5. 自身 (SELF) ➔ 施術者自身卡片中心。
+   * 6. 單體 (SINGLE_ENEMY / ALLY_LOWEST_HP / 預設) ➔ 該指定目標卡片中心。
+   */
+  public resolveTargetAnchorPoint(
+    targetType: TargetType | string | undefined,
+    isAttackerPlayer: boolean,
+    mainTargetId?: string,
+    actorId?: string
+  ): ScreenPoint {
+    const isTargetingAllies =
+      targetType === TargetType.ALL_ALLIES ||
+      targetType === TargetType.ALLY_LOWEST_HP ||
+      targetType === TargetType.ALLY_DEAD;
+
+    const targetSide: 'player' | 'enemy' = isTargetingAllies
+      ? (isAttackerPlayer ? 'player' : 'enemy')
+      : (isAttackerPlayer ? 'enemy' : 'player');
+
+    const teamContainerId = targetSide === 'player' ? '#combat-player-team' : '#combat-enemy-team';
+    const teamEl = this.modalContainer?.querySelector(teamContainerId) as HTMLElement | null;
+
+    return CombatAnchorResolver.resolveAnchor(
+      targetType,
+      isAttackerPlayer,
+      this.modalContainer,
+      teamEl,
+      (unitId, side) => this.getUnitPoint(unitId, side),
+      mainTargetId,
+      actorId
+    );
+  }
+
   // 供外部調用或單元測試引用
   public static resolveMainTargetId = resolveActionMainTargetId;
 
@@ -149,8 +191,17 @@ export class CombatStageAdapter {
     const mainTargetId = options?.targetId || resolveActionMainTargetId(action);
     const defaultTargetEl = this.findCardElement(mainTargetId);
 
+    // 解析技能目標範圍 TargetType
+    let skillTargetType: TargetType | undefined;
+    if (action.skillId) {
+      const skillDef = SkillRegistry.getSkill(action.skillId);
+      if (skillDef) {
+        skillTargetType = skillDef.targetType;
+      }
+    }
+
     const fromPt = options?.fromPoint || this.getUnitPoint(action.actorId, isAttackerPlayer ? 'player' : 'enemy');
-    const toPt = options?.toPoint || this.getUnitPoint(mainTargetId, isAttackerPlayer ? 'enemy' : 'player');
+    const toPt = options?.toPoint || this.resolveTargetAnchorPoint(skillTargetType, isAttackerPlayer, mainTargetId, action.actorId);
 
     // 施術者卡片微幅突進動畫 (僅在非 skip 模式)
     if (!skip && attackerEl) {

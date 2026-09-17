@@ -1,5 +1,6 @@
-import { VFXPreset, VFXSequence, presetToSequence } from '../../models/VFX';
+import { VFXPreset, VFXSequence, VFXUsageType, presetToSequence } from '../../models/VFX';
 import defaultVFXSequences from '../../data/vfx_sequences.json';
+import customVFXSequences from '../../data/vfx_custom_sequences.json';
 import { VFXPresetValidator } from './VFXPresetValidator';
 
 export interface VFXStorageSchema {
@@ -17,9 +18,9 @@ export const CURRENT_SCHEMA_VERSION = 2;
 export class VFXPresetRepository {
   private static instance: VFXPresetRepository | null = null;
 
-  // 1. 官方內建 Canonical Sequence 庫 (Resolved SSOT 基準)
+  // 1. 官方內建 Canonical Sequence 庫 (Resolved SSOT 基準，30款唯讀)
   private builtInSequences: Map<string, VFXSequence> = new Map();
-  // 2. 使用者自訂 Canonical Sequence 庫
+  // 2. 使用者自訂 Canonical Sequence 庫 (包含新技能特效與獨立素材)
   private customSequences: Map<string, VFXSequence> = new Map();
   // 3. 官方預設微調覆寫 (Overrides)
   private overrideSequences: Map<string, Partial<VFXSequence>> = new Map();
@@ -42,21 +43,41 @@ export class VFXPresetRepository {
   }
 
   /**
-   * 載入官方內建標準 Canonical Sequence
+   * 載入官方內建標準 30 款 Canonical Sequence (唯讀保護)
    */
   private loadBuiltIn(): void {
     this.builtInSequences.clear();
     (defaultVFXSequences as unknown as VFXSequence[]).forEach(seq => {
-      this.builtInSequences.set(seq.id, seq);
+      const normalized: VFXSequence = {
+        ...seq,
+        usageType: seq.usageType || 'SKILL',
+        isBuiltin: true
+      };
+      Object.freeze(normalized);
+      this.builtInSequences.set(normalized.id, normalized);
     });
   }
 
   /**
-   * 自 LocalStorage 載入並進行 schema migration 至 Canonical Sequence
+   * 自磁碟與 LocalStorage 載入自訂與素材 Sequence
    */
   public loadFromStorage(): void {
     this.customSequences.clear();
     this.overrideSequences.clear();
+
+    // 1. 載入磁碟獨立自訂檔案庫 (vfx_custom_sequences.json)
+    if (Array.isArray(customVFXSequences)) {
+      (customVFXSequences as unknown as VFXSequence[]).forEach(seq => {
+        if (!this.builtInSequences.has(seq.id)) {
+          const normalized: VFXSequence = {
+            ...seq,
+            usageType: seq.usageType || 'SKILL',
+            isBuiltin: false
+          };
+          this.customSequences.set(normalized.id, normalized);
+        }
+      });
+    }
 
     if (typeof localStorage === 'undefined') return;
 
@@ -166,6 +187,27 @@ export class VFXPresetRepository {
 
   public getAllSequences(): VFXSequence[] {
     return Array.from(this.resolvedSequenceMap.values());
+  }
+
+  /**
+   * 🌟 取得官方 30 款出廠基準特效 (唯讀保護)
+   */
+  public getBuiltInSequences(): VFXSequence[] {
+    return Array.from(this.builtInSequences.values());
+  }
+
+  /**
+   * 🌟 取得所有自訂創作與獨立素材特效
+   */
+  public getCustomSequences(): VFXSequence[] {
+    return Array.from(this.customSequences.values());
+  }
+
+  /**
+   * 🌟 依據用途標籤篩選特效 ('SKILL' 技能專用 | 'MATERIAL' 獨立素材)
+   */
+  public getSequencesByUsage(usage: VFXUsageType): VFXSequence[] {
+    return this.getAllSequences().filter(s => (s.usageType || 'SKILL') === usage);
   }
 
   public hasSequence(id: string): boolean {

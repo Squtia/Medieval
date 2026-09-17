@@ -286,4 +286,75 @@ describe('⚡ VFX Studio 實質互動與全參數連通測試 (Fix 1 + Fix 2 核
       expect(cardEl.style.display).toBe('block');
     });
   });
+
+  describe('6. 空間座標偏移 (targetOffset/trackOffset) 與羽流拖尾 (trailSpread/trailStrands) 契約驗收', () => {
+    it('應驗證 INSPECTOR_CONTROL_MAP 包含空間偏移與羽流拖尾，且已淘汰 salvoDuration', () => {
+      const keys = INSPECTOR_CONTROL_MAP.map(c => c.key);
+      expect(keys).toContain('targetOffsetX');
+      expect(keys).toContain('targetOffsetY');
+      expect(keys).toContain('trackOffsetX');
+      expect(keys).toContain('trackOffsetY');
+      expect(keys).toContain('trailSpread');
+      expect(keys).toContain('trailStrands');
+      expect(keys).not.toContain('salvoDuration');
+    });
+
+    it('應驗證在 Store updateConfig 中修改空間偏移與羽流拖尾後可由 getPreset 完整回讀', () => {
+      const store = VFXStudioStore.getInstance();
+      store.updateConfig({
+        targetOffsetX: 42,
+        targetOffsetY: -18,
+        trackOffsetX: 100,
+        trackOffsetY: -50,
+        trailSpread: 15,
+        trailStrands: 3
+      }, false);
+
+      const preset = store.getPreset();
+      expect(preset.targetOffsetX).toBe(42);
+      expect(preset.targetOffsetY).toBe(-18);
+      expect(preset.trackOffsetX).toBe(100);
+      expect(preset.trackOffsetY).toBe(-50);
+      expect(preset.trailSpread).toBe(15);
+      expect(preset.trailStrands).toBe(3);
+    });
+
+    it('應驗證選取次生圖層 (LAYER) 修改偏移時，主軌資料完全隔離不受污染，且圖層數值正確獨立儲存', () => {
+      const store = VFXStudioStore.getInstance();
+      // 1. 初始化並設定主軌偏移為 (0, 0)
+      store.setSelection({ type: 'MAIN_TRACK' });
+      store.updateConfig({
+        targetOffsetX: 0,
+        targetOffsetY: 0,
+        layers: [
+          { id: 'layer_test_1', name: '測試圖層1', targetOffsetX: 0, targetOffsetY: 0 }
+        ]
+      }, false);
+
+      expect(store.getPreset().targetOffsetX).toBe(0);
+      expect(store.getPreset().targetOffsetY).toBe(0);
+
+      // 2. 切換選取為次生圖層 layer_test_1
+      store.setSelection({ type: 'LAYER', layerId: 'layer_test_1' });
+
+      // 3. 修改圖層偏移
+      store.updateConfig({
+        targetOffsetX: 88,
+        targetOffsetY: -45,
+        trailSpread: 25
+      }, false);
+
+      const updated = store.getPreset();
+      // 🛡️ 核心斷言：主軌偏移必須依然為 0，絕對不被圖層的 88 / -45 污染！
+      expect(updated.targetOffsetX).toBe(0);
+      expect(updated.targetOffsetY).toBe(0);
+
+      // 🛡️ 次生圖層必須精確記錄其獨立的 88 / -45 與 trailSpread 25
+      const layer = updated.layers?.find(l => l.id === 'layer_test_1');
+      expect(layer).toBeDefined();
+      expect(layer?.targetOffsetX).toBe(88);
+      expect(layer?.targetOffsetY).toBe(-45);
+      expect(layer?.trailSpread).toBe(25);
+    });
+  });
 });

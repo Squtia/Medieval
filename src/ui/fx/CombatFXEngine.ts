@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXSequence, VFXSpatialTopology } from '../../models/VFX';
+import { VFXPreset, VFXImpactConfig, VFXImpactCue, VFXSequence, VFXSpatialTopology, VFXShaderMode } from '../../models/VFX';
 import { VFXPresetRepository } from './VFXPresetRepository';
 import { PlaybackClock } from './PlaybackClock';
 
@@ -78,7 +78,7 @@ export class CombatFXEngine extends VFXPlayer {
     const penDist = impactData?.penetrationDistance;
     const mainTrack = sequence.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH' || t.type === 'SLASH') || sequence.tracks[0];
     const mainClip = mainTrack?.clips[0];
-    const mainPayload = mainClip?.payload.data as any;
+    const mainPayload = (mainClip?.payload.data as Record<string, unknown> | undefined);
     if (mainPayload?.trajectory === 'COLUMN_PIERCE' && penDist) {
       const dir = new THREE.Vector3().subVectors(actualTargetPos, casterPos).normalize();
       actualTargetPos.addScaledVector(dir, penDist);
@@ -94,7 +94,7 @@ export class CombatFXEngine extends VFXPlayer {
       duration: number;
       fadeIn: number;
       fadeOut: number;
-      data: Record<string, any>;
+      data: Record<string, unknown>;
       presetId?: string;
     }
 
@@ -107,7 +107,7 @@ export class CombatFXEngine extends VFXPlayer {
     );
     activeTracks.forEach((t, idx) => {
       const clip = t.clips[0];
-      const clipData = (clip?.payload?.data || {}) as Record<string, any>;
+      const clipData = (clip?.payload?.data || {}) as Record<string, unknown>;
       renderableItems.push({
         id: t.id,
         name: t.name,
@@ -118,7 +118,7 @@ export class CombatFXEngine extends VFXPlayer {
         fadeIn: clip?.fadeIn ?? 0.05,
         fadeOut: clip?.fadeOut ?? 0.08,
         data: clipData,
-        presetId: clipData.presetId
+        presetId: typeof clipData.presetId === 'string' ? clipData.presetId : undefined
       });
     });
 
@@ -153,6 +153,7 @@ export class CombatFXEngine extends VFXPlayer {
     }
 
     // 逐軌進行確定性影格求值與 3D 幾何繪製
+    let mainHitPos = actualTargetPos.clone();
     for (let i = 0; i < renderableItems.length; i++) {
       const item = renderableItems[i];
       const trackGroup = trackGroups[i];
@@ -180,14 +181,17 @@ export class CombatFXEngine extends VFXPlayer {
       }
 
       // 次生引用圖層 COMPOSITE_LAYER 遞迴解析素材（若未自定義空間模式，強制繼承主軌空間契約）
-      let resolvedData: Record<string, any> = item.isMain
-        ? { ...(sequence as any), ...item.data }
+      let resolvedData: Record<string, unknown> = item.isMain
+        ? {
+            ...item.data,
+            spatialMode: (item.data?.spatialMode as string | undefined) || sequence.spatialMode
+          }
         : {
-            spatialMode: sequence.spatialMode || mainPayload?.spatialMode,
-            trajectoryPath: mainPayload?.trajectoryPath,
-            trajectory: mainPayload?.trajectory,
-            spatialTopology: mainPayload?.spatialTopology,
-            ...item.data
+            trajectoryPath: mainPayload?.trajectoryPath as string | undefined,
+            trajectory: mainPayload?.trajectory as string | undefined,
+            spatialTopology: mainPayload?.spatialTopology as VFXSpatialTopology | undefined,
+            ...item.data,
+            spatialMode: (item.data?.spatialMode as string | undefined) || sequence.spatialMode || (mainPayload?.spatialMode as string | undefined)
           };
       const subPresetId = item.presetId;
       if (subPresetId) {
@@ -196,52 +200,97 @@ export class CombatFXEngine extends VFXPlayer {
           const subMainTrack = subSeq.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH' || t.type === 'SLASH') || subSeq.tracks[0];
           const subMainClip = subMainTrack?.clips[0];
           if (subMainClip?.payload.data) {
+            const subData = (subMainClip.payload.data as Record<string, unknown>) || {};
+            const itemScale = typeof item.data.scale === 'number' ? item.data.scale : 1.0;
+            const subScale = typeof subData.scale === 'number' ? subData.scale : 1.0;
+            // 🌟 空間模式優先權：當前圖層自訂 (item.data.spatialMode) > 頂層 Sequence (sequence.spatialMode) > 素材庫預設 (subData.spatialMode)
+            const explicitSpatialMode = (item.data?.spatialMode as string | undefined) || (resolvedData.spatialMode as string | undefined);
             resolvedData = {
-              ...(subMainClip.payload.data as any),
+              ...subData,
               ...item.data,
-              scale: (item.data.scale || 1.0) * ((subMainClip.payload.data as any).scale || 1.0)
+              spatialMode: explicitSpatialMode || (subData.spatialMode as string | undefined) || 'A_TO_B',
+              scale: itemScale * subScale
             };
           }
         }
       }
 
       // 🎯 基礎彈道、空間傳播形態與時空路徑精準解析 (遵從 Rule 9 全域空間契約)
-      const spatialTopology: VFXSpatialTopology = resolvedData.spatialTopology || resolvePresetSpatialTopology(resolvedData);
+      const spatialTopology: VFXSpatialTopology = (resolvedData.spatialTopology as VFXSpatialTopology) || resolvePresetSpatialTopology(resolvedData as unknown as VFXPreset);
       const reverse = !!resolvedData.reverse;
       const inferredShader = resolvedData.shaderMode || (item.trackType === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP' ? 'SLASH_BLADE' : (item.trackType === 'MESH' ? 'PROJECTILE' : undefined));
 
       const endpoints = resolveVFXEndpoints(
-        resolvedData.spatialMode,
-        resolvedData.trajectoryPath,
-        resolvedData.trajectory,
+        resolvedData.spatialMode as string | undefined,
+        resolvedData.trajectoryPath as string | undefined,
+        resolvedData.trajectory as string | undefined,
         reverse,
         casterPos,
         actualTargetPos,
         0,
         {
-          shaderMode: inferredShader,
+          shaderMode: inferredShader as VFXShaderMode | undefined,
           spatialTopology
         }
       );
-      const startPos = endpoints.startPos;
-      const endPos = endpoints.endPos;
+      const startPos = endpoints.startPos.clone();
+      const endPos = endpoints.endPos.clone();
+
+      // 🎯 空間時空路徑正交偏移 (Rule 12.1 正交解耦：偏移各司其職，目標範圍中心 B 點永不跑偏)
+      // 1. 落點微調 (targetOffsetX / targetOffsetY)：僅在目標基準點 B 上疊加視覺偏移，起點不變
+      if (typeof resolvedData.targetOffsetX === 'number') endPos.x += resolvedData.targetOffsetX;
+      if (typeof resolvedData.targetOffsetY === 'number') endPos.y += resolvedData.targetOffsetY;
+
+      // 2. 軌道平移 (trackOffsetX / trackOffsetY)：整條軌道起點與終點的平行平移
+      if (typeof resolvedData.trackOffsetX === 'number') {
+        startPos.x += resolvedData.trackOffsetX;
+        endPos.x += resolvedData.trackOffsetX;
+      }
+      if (typeof resolvedData.trackOffsetY === 'number') {
+        startPos.y += resolvedData.trackOffsetY;
+        endPos.y += resolvedData.trackOffsetY;
+      }
+
+      if (item.isMain) {
+        mainHitPos = endPos.clone();
+      }
+
       const curPos = new THREE.Vector3().lerpVectors(startPos, endPos, p);
-      if (resolvedData.arcHeight && resolvedData.arcHeight > 0) {
+      if (typeof resolvedData.arcHeight === 'number' && resolvedData.arcHeight > 0) {
         curPos.y += Math.sin(p * Math.PI) * resolvedData.arcHeight;
       }
-      const spatialMode = resolvedData.spatialMode || (resolvedData.trajectory === 'MELEE_SWEEP' ? 'MELEE_SWEEP' : 'A_TO_B');
+      const spatialMode = (resolvedData.spatialMode as string | undefined) || (resolvedData.trajectory === 'MELEE_SWEEP' ? 'MELEE_SWEEP' : 'A_TO_B');
+
+      const particleTrack = sequence.tracks.find(t => !t.isMuted && t.type === 'PARTICLE');
+      const pClip = particleTrack?.clips[0];
+      const pData = (pClip?.payload.data || {}) as Record<string, unknown>;
 
       // 🌟 附著型粒子拖尾處理 (支援斬擊刀尖、飛出劍氣與彈道附著，且支援即時熱更新)
       if (item.isMain) {
-        const particleTrack = sequence.tracks.find(t => !t.isMuted && t.type === 'PARTICLE');
-        const pClip = particleTrack?.clips[0];
-        const pData = (pClip?.payload.data || {}) as Record<string, any>;
         const isSlash = item.trackType === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP';
-        const trailCount = resolvedData.trailCount || pData.trailCount || 35;
-        const isTrailEnabled = resolvedData.enableTrail === true || pData.enableTrail === true ||
-          (resolvedData.enableTrail !== false && pData.enableTrail !== false && trailCount > 0);
+        const trailCount = Number(resolvedData.trailCount ?? pData.trailCount ?? 0);
+        const isTrailEnabled = trailCount > 0;
 
-        if (isTrailEnabled && trailCount > 0 && timeSeconds >= trackStart && timeSeconds < trackEnd && p < 0.999) {
+        interface TrailCacheInstance {
+          updateStyle?: (color: string, size: number, scale: number) => void;
+          updateArcTrail?: (tipFn: (prog: number) => THREE.Vector3, p: number) => void;
+          updateTrajectoryTrail?: (startPos: THREE.Vector3, curPos: THREE.Vector3, progress: number, arcHeight?: number, spreadWidth?: number, strands?: number) => void;
+          update: (pos: THREE.Vector3) => void;
+          dispose: () => void;
+        }
+        type CachedGroup = THREE.Group & { __trailCache?: TrailCacheInstance | null };
+        const cachedRoot = rootGroup as CachedGroup;
+
+        const isSalvo =
+          resolvedData.trajectory === 'ARC_MULTI' ||
+          resolvedData.spatialMode === 'ARC_MULTI' ||
+          (typeof resolvedData.salvoCount === 'number' && resolvedData.salvoCount > 1);
+        if (isSalvo && cachedRoot.__trailCache) {
+          cachedRoot.__trailCache.dispose();
+          cachedRoot.__trailCache = null;
+        }
+
+        if (!isSalvo && isTrailEnabled && trailCount > 0 && timeSeconds >= trackStart && timeSeconds < trackEnd && p < 0.999) {
           const slashPreset = resolvedData;
           let emissionPos = curPos;
           if (isSlash) {
@@ -249,18 +298,21 @@ export class CombatFXEngine extends VFXPlayer {
             if (spatialTopology === 'POINT_TRANSPORT') {
               emissionPos = curPos;
             } else {
-              emissionPos = MeshLayerRenderer.calculateSlashBladeTip(slashPreset, p, actualTargetPos, reverse);
+              emissionPos = MeshLayerRenderer.calculateSlashBladeTip(slashPreset, p, endPos, reverse);
             }
           }
 
-          const currentTrailColor = resolvedData.trailColor || pData.trailColor || resolvedData.colorRim || pData.colorRim || '#f59e0b';
-          const currentTrailSize = resolvedData.trailSize || pData.trailSize || 8;
-          const currentScale = resolvedData.scale || pData.scale || 1.0;
+          const currentTrailColor = (resolvedData.trailColor || pData.trailColor || resolvedData.colorRim || pData.colorRim || '#f59e0b') as string;
+          const currentTrailSize = Number(resolvedData.trailSize || pData.trailSize || 8);
+          const currentScale = Number(resolvedData.scale || pData.scale || 1.0);
+          const currentTrailSpread = Number(resolvedData.trailSpread ?? pData.trailSpread ?? 0);
+          const currentTrailStrands = Number(resolvedData.trailStrands ?? pData.trailStrands ?? 1);
+          const currentArcHeight = Number(resolvedData.arcHeight ?? 0);
 
-          let trailCache = (rootGroup as any).__trailCache;
+          let trailCache = cachedRoot.__trailCache;
           if (!trailCache) {
             trailCache = TrailLayerRenderer.createTrail(
-              rootGroup as any,
+              this.scene,
               emissionPos,
               currentTrailColor,
               trailCount,
@@ -268,7 +320,7 @@ export class CombatFXEngine extends VFXPlayer {
               currentScale,
               () => this.getRandom()
             );
-            (rootGroup as any).__trailCache = trailCache;
+            cachedRoot.__trailCache = trailCache;
           } else if (typeof trailCache.updateStyle === 'function') {
             // 🌟 即時熱更新色彩與粒子尺寸，解決控制項改了沒反應的病灶
             trailCache.updateStyle(currentTrailColor, currentTrailSize, currentScale);
@@ -276,15 +328,18 @@ export class CombatFXEngine extends VFXPlayer {
 
           if (isSlash && spatialTopology !== 'POINT_TRANSPORT' && typeof trailCache.updateArcTrail === 'function') {
             trailCache.updateArcTrail(
-              (prog: number) => MeshLayerRenderer.calculateSlashBladeTip(slashPreset, prog, actualTargetPos, reverse),
+              (prog: number) => MeshLayerRenderer.calculateSlashBladeTip(slashPreset, prog, endPos, reverse),
               p
             );
+          } else if (typeof trailCache.updateTrajectoryTrail === 'function') {
+            // 🚀 彈道投射物（含天降流星、飛出劍氣、火球等）統一走確定性彈道軌跡拖尾
+            trailCache.updateTrajectoryTrail(startPos, curPos, p, currentArcHeight, currentTrailSpread, currentTrailStrands);
           } else {
             trailCache.update(emissionPos);
           }
-        } else if ((rootGroup as any).__trailCache) {
-          (rootGroup as any).__trailCache.dispose();
-          (rootGroup as any).__trailCache = null;
+        } else if (cachedRoot.__trailCache) {
+          cachedRoot.__trailCache.dispose();
+          cachedRoot.__trailCache = null;
         }
       }
 
@@ -304,15 +359,73 @@ export class CombatFXEngine extends VFXPlayer {
         reverse,
         colorCore: resolvedData.colorCore || '#ffffff',
         colorRim: resolvedData.colorRim || '#38bdf8',
-        preset: resolvedData,
+        preset: {
+          ...resolvedData,
+          trailCount: resolvedData.trailCount !== undefined ? resolvedData.trailCount : pData.trailCount,
+          trailSize: resolvedData.trailSize !== undefined ? resolvedData.trailSize : pData.trailSize,
+          trailColor: resolvedData.trailColor || pData.trailColor,
+          trailSpread: resolvedData.trailSpread !== undefined ? resolvedData.trailSpread : pData.trailSpread,
+          trailStrands: resolvedData.trailStrands !== undefined ? resolvedData.trailStrands : pData.trailStrands,
+          salvoRhythmCurve: resolvedData.salvoRhythmCurve || (sequence as unknown as Record<string, unknown>).salvoRhythmCurve || 'LINEAR'
+        },
         enabled: true
       };
 
       if (inferredShader) {
-        this.renderTrack3DGeometry(trackGroup, renderTrackObj, p, fadeAlpha, curPos, startPos, endPos, casterPos, actualTargetPos);
+        this.renderTrack3DGeometry(trackGroup, renderTrackObj, p, fadeAlpha, curPos, startPos, endPos, startPos, endPos);
       } else {
         trackGroup.visible = false;
       }
+    }
+
+    // 💥 獨立命中爆散粒子群 (Deterministic Impact Burst Cloud)
+    // 徹底解耦：不再受任何主軌 CLIP 時間長度或延遲限制，生命週期由 CUE 點或自訂 burstTime 獨立驅動！
+    const particleTrack = sequence.tracks.find(t => !t.isMuted && t.type === 'PARTICLE');
+    const pClip = particleTrack?.clips[0];
+    const pData = (pClip?.payload?.data || {}) as Record<string, any>;
+
+    const burstMainTrack = sequence.tracks.find(t => t.id === 'trk_main' || t.type === 'MESH' || t.type === 'SLASH') || sequence.tracks[0];
+    const burstMainClip = burstMainTrack?.clips[0];
+    const mData = (burstMainClip?.payload?.data || {}) as Record<string, any>;
+
+    const burstCount = mData.burstCount || pData.burstCount || (sequence as any).burstCount || 0;
+    const customBurstTime = (mData.burstTime !== undefined && mData.burstTime > 0)
+      ? mData.burstTime
+      : (pData.burstTime !== undefined && pData.burstTime > 0 ? pData.burstTime : undefined);
+
+    let burstStartTime = 0;
+    if (customBurstTime !== undefined && customBurstTime > 0) {
+      burstStartTime = customBurstTime;
+    } else if (sequence.impactCues && sequence.impactCues.length > 0) {
+      const primaryCue = sequence.impactCues.find(c => c.isPrimary) || sequence.impactCues[0];
+      burstStartTime = primaryCue.time;
+    } else {
+      burstStartTime = sequence.duration * 0.7;
+    }
+
+    const burstLifespan = 0.38; // 380ms 確定性擴散淡出
+    const burstColor = mData.colorRim || pData.colorRim || (sequence as any).colorRim || '#38bdf8';
+    const burstScale = mData.scale || pData.scale || (sequence as any).scale || 1.0;
+    const burstParticleSize = (mData.trailSize || pData.trailSize || (sequence as any).trailSize || 8) * burstScale;
+
+    if (burstCount > 0 && timeSeconds >= burstStartTime && timeSeconds < (burstStartTime + burstLifespan)) {
+      const burstProg = Math.min(1.0, (timeSeconds - burstStartTime) / burstLifespan);
+      let burstCache = (rootGroup as any).__burstCache;
+      if (!burstCache || burstCache.count !== burstCount) {
+        if (burstCache) burstCache.dispose();
+        burstCache = TrailLayerRenderer.createBurstCloud(
+          rootGroup as any,
+          mainHitPos,
+          burstColor,
+          burstCount,
+          burstParticleSize,
+          () => this.getRandom()
+        );
+        (rootGroup as any).__burstCache = burstCache;
+      }
+      burstCache.update(mainHitPos, burstProg);
+    } else if ((rootGroup as any).__burstCache) {
+      (rootGroup as any).__burstCache.hide();
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -468,6 +581,11 @@ export class CombatFXEngine extends VFXPlayer {
     casterPos: THREE.Vector3,
     targetPos: THREE.Vector3
   ): void {
+    // 🛡️ 重設姿態，杜絕跨特效切換時殘留的空間偏移、旋轉與縮放污染
+    trackGroup.position.set(0, 0, 0);
+    trackGroup.rotation.set(0, 0, 0);
+    trackGroup.scale.set(1, 1, 1);
+
     const sc = track.scale || 1.0;
     const shader = track.shaderMode || track.preset?.shaderMode;
     if (!shader) {
@@ -610,6 +728,8 @@ export class CombatFXEngine extends VFXPlayer {
       isSlash ||
       shader === 'DIELECTRIC_LIGHTNING' ||
       shader === 'EARTH_SHATTER' ||
+      shader === 'SHOCKWAVE' ||
+      shader === 'ENERGY_SHIELD' ||
       shader === 'SHIELD_BARRIER' ||
       shader === 'SHOUT_WAVE' ||
       shader === 'HOLY_LIGHT' ||
@@ -642,6 +762,11 @@ export class CombatFXEngine extends VFXPlayer {
       if (cache.holyPillarMesh) cache.holyPillarMesh.visible = false;
       if (cache.auraRing) cache.auraRing.visible = false;
 
+      const presetData = (track.preset || {}) as Record<string, unknown>;
+      const trackData = track as Record<string, unknown>;
+      const glowR = typeof presetData.glowRadius === 'number' ? presetData.glowRadius : (typeof trackData.glowRadius === 'number' ? trackData.glowRadius : 75);
+      const glowO = typeof presetData.glowOpacity === 'number' ? presetData.glowOpacity : (typeof trackData.glowOpacity === 'number' ? trackData.glowOpacity : 0.85);
+
       MeshLayerRenderer.updateArcMulti(
         trackGroup,
         startPos,
@@ -656,7 +781,18 @@ export class CombatFXEngine extends VFXPlayer {
         track.preset?.salvoSpreadRadius || 0,
         track.preset?.arcHeight || 0,
         shader,
-        track.colorCore || '#ffffff'
+        track.colorCore || '#ffffff',
+        {
+          trailCount: Number(track.preset?.trailCount ?? 0),
+          trailSize: Number(track.preset?.trailSize ?? 8),
+          trailColor: (track.preset?.trailColor || track.colorRim || '#38bdf8') as string,
+          trailSpread: Number(track.preset?.trailSpread ?? 0),
+          trailStrands: Number(track.preset?.trailStrands ?? 1)
+        },
+        glowR,
+        glowO,
+        fadeAlpha,
+        (track.preset?.salvoRhythmCurve || 'LINEAR') as string
       );
       return;
     } else if (cache.multiArcGroup) {
@@ -718,24 +854,31 @@ export class CombatFXEngine extends VFXPlayer {
     // ─────────────────────────────────────────────────────────────
     // ❄️ 5. 冰晶之矛與旋轉冰環 (FRESNEL_ICE / FROST_LANCE / FROST_NOVA - 單發模式)
     // ─────────────────────────────────────────────────────────────
+    // ❄️ 5. 冰晶之矛與旋轉冰環 (FRESNEL_ICE / FROST_LANCE / FROST_NOVA - 單發模式)
+    // 遵從 Rule 12.1 正交解耦：無論何種核心幾何形狀，均享有無損的頂級菲涅爾 Shader 質感與旋轉冰環
+    // ─────────────────────────────────────────────────────────────
     if (shader === 'FRESNEL_ICE' || shader === 'FROST_LANCE' || shader === 'FROST_NOVA') {
-      const isPointTransport = topology === 'POINT_TRANSPORT' || track.spatialMode === 'POINT_TRANSPORT' || track.preset?.topology === 'POINT_TRANSPORT';
-      const hasCustomCoreMesh = !!(track.coreMeshShape || track.preset?.coreMeshShape);
-      // 若為質點運動且自訂了核心幾何形狀（如 ARROW / SPHERE / DIAMOND 等），放行至下方通用 3D 投射物實體管線
-      if (!isPointTransport || !hasCustomCoreMesh) {
-        if (cache.multiArcGroup) cache.multiArcGroup.visible = false;
-        MeshLayerRenderer.updateFresnelIce(
-          trackGroup,
-          curPos,
-          endPos,
-          p,
-          sc,
-          track.colorCore,
-          track.colorRim,
-          cache
-        );
-        return;
-      }
+      if (cache.multiArcGroup) cache.multiArcGroup.visible = false;
+      const shape = track.coreMeshShape || (track.preset as any)?.coreMeshShape || (track.shape !== 'CRESCENT' ? track.shape : undefined) || (track.preset as any)?.shape || 'ARROW';
+      const glowR = (track.preset as any)?.glowRadius ?? (track as any).glowRadius ?? 75;
+      const glowO = (track.preset as any)?.glowOpacity ?? (track as any).glowOpacity ?? 0.85;
+
+      MeshLayerRenderer.updateFresnelIce(
+        trackGroup,
+        curPos,
+        endPos,
+        p,
+        sc,
+        track.colorCore,
+        track.colorRim,
+        cache,
+        shape,
+        glowR,
+        glowO,
+        fadeAlpha,
+        (col, sz, op) => this.createGlowSprite(col, sz, op)
+      );
+      return;
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -786,20 +929,44 @@ export class CombatFXEngine extends VFXPlayer {
         trackGroup.add(cache.volumetricGroup);
       }
       cache.volumetricGroup.visible = true;
+      cache.volumetricGroup.scale.set(sc, sc, sc);
       if (cache.flameMat?.uniforms?.uTime) {
         cache.flameMat.uniforms.uTime.value = p * 5.0;
+      }
+      // 🌟 核心：打通體積火焰光暈即時熱更新 (破除快取死鎖，符合 Rule 12.2)
+      if (cache.volumetricGlow) {
+        const glowR = ((track.preset as any)?.glowRadius ?? (track as any).glowRadius ?? 75) * sc;
+        const glowO = Math.min(1.0, ((track.preset as any)?.glowOpacity ?? (track as any).glowOpacity ?? 0.8) * fadeAlpha);
+        cache.volumetricGlow.scale.set(glowR, glowR, 1.0);
+        cache.volumetricGlow.material.opacity = glowO;
+        if (cache.volumetricGlow.material.color) {
+          cache.volumetricGlow.material.color.set(track.colorRim || '#ef4444');
+        }
       }
       return;
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 🛡️ 7. 神聖壁壘護盾 (SHIELD_BARRIER)
+    // 🛡️ 7. 能量防護壁壘與神聖護盾 (ENERGY_SHIELD / SHIELD_BARRIER)
     // ─────────────────────────────────────────────────────────────
-    if (track.preset?.trajectory === 'SHIELD_BARRIER' || track.spatialMode === 'SHIELD_BARRIER' || track.preset?.id === 'VFX_HOLY_SHIELD') {
-      trackGroup.position.copy(targetPos);
+    if (shader === 'ENERGY_SHIELD' || track.shaderMode === 'ENERGY_SHIELD' || track.preset?.trajectory === 'SHIELD_BARRIER' || track.spatialMode === 'SHIELD_BARRIER' || track.preset?.id === 'VFX_HOLY_SHIELD') {
+      const isAtCaster = track.spatialMode === 'AT_CASTER' || track.preset?.spatialMode === 'AT_CASTER';
+      const shieldAnchor = isAtCaster ? startPos : targetPos;
+      trackGroup.position.copy(shieldAnchor);
+
+      const shieldShape = track.preset?.shieldShape || 'HEX';
+      const colorCore = track.colorCore || '#38bdf8';
+      const colorRim = track.colorRim || '#60a5fa';
+      const shieldSig = `${shieldShape}_${colorCore}_${colorRim}`;
+
+      if (cache.shieldGroup && (cache.shieldGroup as any).__shieldSig !== shieldSig) {
+        trackGroup.remove(cache.shieldGroup);
+        cache.shieldGroup = undefined;
+      }
+
       if (!cache.shieldGroup) {
-        const shieldShape = track.preset?.shieldShape || 'HEX';
-        cache.shieldGroup = MeshLayerRenderer.buildHolyShieldGroup(sc, track.colorCore || '#fde047', track.colorRim || '#eab308', shieldShape as any);
+        cache.shieldGroup = MeshLayerRenderer.buildHolyShieldGroup(sc, colorCore, colorRim, shieldShape as any);
+        (cache.shieldGroup as any).__shieldSig = shieldSig;
         trackGroup.add(cache.shieldGroup);
       }
       cache.shieldGroup.visible = true;
@@ -808,19 +975,43 @@ export class CombatFXEngine extends VFXPlayer {
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 📢 8. 戰吼威懾音波 (SHOUT_WAVE)
+    // 📢 8. 衝擊震波與戰吼威懾音波 (SHOCKWAVE / SHOUT_WAVE)
     // ─────────────────────────────────────────────────────────────
-    if (track.preset?.trajectory === 'SHOUT_WAVE' || track.spatialMode === 'SHOUT_WAVE' || track.preset?.id === 'VFX_TAUNT_SHOUT') {
-      trackGroup.position.copy(casterPos);
-      if (!cache.shoutGroup) {
-        const waveCount = Math.max(1, Math.min(8, track.preset?.waveCount || 3));
-        cache.shoutGroup = MeshLayerRenderer.buildTauntShoutGroup(waveCount, track.colorRim || '#ef4444');
+    if (shader === 'SHOCKWAVE' || track.shaderMode === 'SHOCKWAVE' || track.preset?.trajectory === 'SHOUT_WAVE' || track.spatialMode === 'SHOUT_WAVE' || track.preset?.id === 'VFX_TAUNT_SHOUT') {
+      const isAtTarget = track.spatialMode === 'AT_TARGET' || track.preset?.spatialMode === 'AT_TARGET';
+      const isTrajectory = track.spatialMode === 'TRAJECTORY' || track.preset?.spatialMode === 'TRAJECTORY';
+      const originPos = isAtTarget ? targetPos : (isTrajectory ? curPos : casterPos);
+      trackGroup.position.copy(originPos);
+      const waveCount = Math.max(1, Math.min(8, (track.preset?.waveCount ?? (track as any).waveCount ?? 3)));
+      const waveRadius = Number(track.preset?.waveRadius ?? (track as any).waveRadius ?? 65);
+      const waveThickness = Number(track.preset?.waveThickness ?? (track as any).waveThickness ?? 4);
+      const waveBlur = Number(track.preset?.waveBlur ?? (track as any).waveBlur ?? 30);
+      const colorRim = track.colorRim || '#ef4444';
+      // 🌟 全面防快取死鎖 (Rule 12.2)：圈數、半徑、線寬、羽化與色彩變更時強制重建幾何
+      const waveConfigSig = `${waveCount}_${waveRadius}_${waveThickness}_${waveBlur}_${colorRim}`;
+      if (!cache.shoutGroup || (cache.shoutGroup as any).__configSig !== waveConfigSig) {
+        if (cache.shoutGroup) trackGroup.remove(cache.shoutGroup);
+        cache.shoutGroup = MeshLayerRenderer.buildTauntShoutGroup(waveCount, colorRim, waveRadius, waveThickness, waveBlur);
+        (cache.shoutGroup as any).__configSig = waveConfigSig;
         trackGroup.add(cache.shoutGroup);
       }
+      // 即時熱響應顏色
+      const waves = (cache.shoutGroup as any).__waves;
+      if (waves) {
+        waves.forEach((w: any) => {
+          if (w.mat) w.mat.color.set(colorRim);
+        });
+      }
+      // 🔄 XY 軸旋轉即時套用（Z 軸對圓環無效故移除）
+      const DEG2RAD = Math.PI / 180;
+      const rotX = ((track.preset?.waveRotX ?? (track as any).waveRotX) ?? 0) * DEG2RAD;
+      const rotY = ((track.preset?.waveRotY ?? (track as any).waveRotY) ?? 0) * DEG2RAD;
+      cache.shoutGroup.rotation.set(rotX, rotY, 0);
       cache.shoutGroup.visible = true;
-      MeshLayerRenderer.updateTauntShout(cache.shoutGroup, p, casterPos, targetPos, sc);
+      MeshLayerRenderer.updateTauntShout(cache.shoutGroup, p, originPos, targetPos, sc);
       return;
     }
+
 
     // ─────────────────────────────────────────────────────────────
     // ☀️ 9. 神聖天降光柱 (HOLY_LIGHT)
@@ -976,25 +1167,23 @@ export class CombatFXEngine extends VFXPlayer {
       trackGroup.lookAt(endPos);
     }
 
+    const shape = track.coreMeshShape || (track.shape !== 'CRESCENT' ? track.shape : undefined) || (track.preset as any)?.coreMeshShape || (track.preset as any)?.shape || 'ARROW';
+
+    // 🌟 若動態切換了幾何外形，安全清理舊投射物以支援即時熱切換
+    if (cache.projectileGroup && cache.currentProjShape !== shape) {
+      trackGroup.remove(cache.projectileGroup);
+      if (cache.projectileMesh?.geometry) cache.projectileMesh.geometry.dispose();
+      cache.projectileGroup = null;
+    }
+
     if (!cache.projectileGroup) {
       cache.projectileGroup = new THREE.Group();
-      const shape = track.coreMeshShape || (track.shape !== 'CRESCENT' ? track.shape : undefined) || track.preset?.coreMeshShape || track.preset?.shape || 'ARROW';
-      let geo: THREE.BufferGeometry;
-      if (shape === 'SPHERE') {
-        geo = new THREE.SphereGeometry(10 * sc, 16, 16);
-      } else if (shape === 'DIAMOND') {
-        geo = new THREE.OctahedronGeometry(11 * sc, 0);
-      } else if (shape === 'STAR') {
-        geo = new THREE.DodecahedronGeometry(9 * sc, 0);
-      } else if (shape === 'RING') {
-        geo = new THREE.TorusGeometry(10 * sc, 3 * sc, 8, 16);
-      } else {
-        // 預設 ARROW：錐形穿甲箭尖/破空矢身，精準指向飛行向量 (-Z)
-        geo = new THREE.ConeGeometry(5.5 * sc, 36 * sc, 8);
-        geo.rotateX(-Math.PI / 2);
-      }
+      cache.currentProjShape = shape;
 
-      const brightness = Math.max(0.2, track.preset?.coreBrightness ?? 1.2);
+      // 遵從 Rule 12.3 唯一真理來源：委派統一幾何工廠生成幾何體
+      const geo = MeshLayerRenderer.createProjectileGeometry(shape);
+
+      const brightness = Math.max(0.2, (track.preset as any)?.coreBrightness ?? 1.2);
       const baseColor = new THREE.Color(track.colorCore || '#ffffff');
       baseColor.multiplyScalar(brightness);
 
@@ -1005,10 +1194,12 @@ export class CombatFXEngine extends VFXPlayer {
         blending: THREE.AdditiveBlending
       });
       const mesh = new THREE.Mesh(geo, mat);
+      const glowR = ((track.preset as any)?.glowRadius ?? (track as any).glowRadius ?? 50) * sc;
+      const glowO = Math.min(1.0, ((track.preset as any)?.glowOpacity ?? (track as any).glowOpacity ?? 0.85) * fadeAlpha);
       const glow = this.createGlowSprite(
         track.colorRim || '#38bdf8',
-        (track.preset?.glowRadius || 50) * sc,
-        Math.min(0.85, (track.preset?.glowOpacity ?? 0.85) * fadeAlpha)
+        glowR,
+        glowO
       );
 
       cache.projectileGroup.add(mesh);
@@ -1018,13 +1209,33 @@ export class CombatFXEngine extends VFXPlayer {
       trackGroup.add(cache.projectileGroup);
     }
     cache.projectileGroup.visible = true;
+    cache.projectileGroup.scale.set(sc, sc, sc);
     if (cache.projectileMesh?.material) {
       (cache.projectileMesh.material as THREE.MeshBasicMaterial).opacity = Math.min(1.0, 0.95 * fadeAlpha);
+    }
+
+    // 🌟 核心：打通通用投射物光暈即時熱更新 (破除快取死鎖，符合 Rule 12.2)
+    if (cache.projectileGlow) {
+      const glowR = ((track.preset as any)?.glowRadius ?? (track as any).glowRadius ?? 50) * sc;
+      const glowO = Math.min(1.0, ((track.preset as any)?.glowOpacity ?? (track as any).glowOpacity ?? 0.85) * fadeAlpha);
+      cache.projectileGlow.scale.set(glowR, glowR, 1.0);
+      cache.projectileGlow.material.opacity = glowO;
+      if (cache.projectileGlow.material.color) {
+        cache.projectileGlow.material.color.set(track.colorRim || '#38bdf8');
+      }
     }
   }
 
   public clearStudioPreview(): void {
     if (this.studioPreviewGroup) {
+      if ((this.studioPreviewGroup as any).__trailCache) {
+        (this.studioPreviewGroup as any).__trailCache.dispose();
+        (this.studioPreviewGroup as any).__trailCache = null;
+      }
+      if ((this.studioPreviewGroup as any).__burstCache) {
+        (this.studioPreviewGroup as any).__burstCache.dispose();
+        (this.studioPreviewGroup as any).__burstCache = null;
+      }
       this.scene.remove(this.studioPreviewGroup);
       if (this.studioPreviewSlashGeo) this.studioPreviewSlashGeo.dispose();
       if (this.studioPreviewCrossGeo) this.studioPreviewCrossGeo.dispose();
@@ -1166,7 +1377,8 @@ export class CombatFXEngine extends VFXPlayer {
       };
 
       const curGen = this.playbackGeneration;
-      this.playbackClock.extendDuration(sequence.duration);
+      const effectStartTime = this.playbackClock.getCurrentTime();
+      this.playbackClock.extendDuration(effectStartTime + sequence.duration);
       this.playbackClock.setSpeed(this.playbackSpeed);
 
       const safeResolve = () => {
@@ -1205,7 +1417,7 @@ export class CombatFXEngine extends VFXPlayer {
           if (clip.payload.type === 'COMPOSITE_LAYER') {
             const layerData = clip.payload.data;
             const delay = clip.startTime || 0;
-            this.playbackClock.schedule(delay, () => {
+            this.playbackClock.schedule(effectStartTime + delay, () => {
               if (this.isRunning && this.playbackGeneration === curGen && layerData.presetId) {
                 const subSeq = VFXPresetRepository.getInstance().getSequence(layerData.presetId);
                 if (subSeq) {
@@ -1229,7 +1441,7 @@ export class CombatFXEngine extends VFXPlayer {
 
       // 🎯 具名 Impact Cue 與連擊節奏排程
       resolvedCues.forEach((cue, cueIdx) => {
-        this.playbackClock.schedule(Math.max(0, cue.time), () => {
+        this.playbackClock.schedule(effectStartTime + Math.max(0, cue.time), () => {
           if (this.isRunning && this.playbackGeneration === curGen) {
             fireImpact(cueIdx, cue);
             const sparkCount = cue.isPrimary || cueIdx === totalHits - 1 ? 12 : 6;

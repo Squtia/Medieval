@@ -562,7 +562,107 @@ export class MeshLayerRenderer {
   }
 
   /**
-   * 🛡️ 建立神聖護盾複合幾何網格群組 (支援 HEX / CROSS_SHIELD / RUNE_RING)
+   * 🛡️ 專屬能量結界護盾著色器 (Energy Shield Shader)
+   * 包含：六角蜂巢晶格能量線 (Hex Wireframe) + 菲涅爾邊緣光 (Fresnel Glow) + 能量流光波紋脈衝
+   */
+  public static createEnergyShieldShaderMaterial(
+    colorCore: string = '#38bdf8',
+    colorRim: string = '#60a5fa',
+    scale: number = 1.0
+  ): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        colorCore: { value: new THREE.Color(colorCore) },
+        colorRim: { value: new THREE.Color(colorRim) },
+        uTime: { value: 0.0 },
+        uOpacity: { value: 0.95 },
+        uScale: { value: scale }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        varying vec3 vWorldPos;
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 worldPos = modelViewMatrix * vec4(position, 1.0);
+          vWorldPos = position;
+          vViewDir = normalize(-worldPos.xyz);
+          gl_Position = projectionMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 colorCore;
+        uniform vec3 colorRim;
+        uniform float uTime;
+        uniform float uOpacity;
+        varying vec3 vNormal;
+        varying vec3 vViewDir;
+        varying vec3 vWorldPos;
+        varying vec2 vUv;
+
+        // 幾何六角蜂巢距離求值演算法 (2D Hexagonal Grid Distance)
+        float hexDist(vec2 p) {
+          p = abs(p);
+          float c = dot(p, normalize(vec2(1.0, 1.7320508)));
+          c = max(c, p.x);
+          return c;
+        }
+
+        vec4 getHexGrid(vec2 uv, float scale) {
+          vec2 r = vec2(1.0, 1.7320508);
+          vec2 h = r * 0.5;
+          vec2 a = mod(uv * scale, r) - h;
+          vec2 b = mod(uv * scale - h, r) - h;
+          vec2 gv = dot(a, a) < dot(b, b) ? a : b;
+          float x = 0.5 - hexDist(gv);
+          return vec4(gv, x, length(gv));
+        }
+
+        void main() {
+          // 1. 菲涅爾邊緣強光 (Fresnel Rim Glow)
+          float NdotV = max(dot(vNormal, vViewDir), 0.0);
+          float fresnel = pow(1.0 - NdotV, 2.5);
+          float coreIntensity = pow(NdotV, 1.5) * 0.4;
+
+          // 2. 六角能量蜂巢網格 (Hexagonal Energy Mesh)
+          vec2 gridUv = vUv * 2.0;
+          if (abs(vNormal.z) > 0.8) {
+            gridUv = vWorldPos.xy * 0.08;
+          } else {
+            gridUv = vec2(atan(vWorldPos.z, vWorldPos.x) * 2.0, vWorldPos.y * 0.06);
+          }
+          vec4 hex = getHexGrid(gridUv, 2.5);
+          float edgeDist = hex.z;
+          float hexWire = smoothstep(0.08, 0.02, edgeDist);
+          float hexCenter = smoothstep(0.0, 0.35, edgeDist) * 0.25;
+
+          // 3. 能量流光與呼吸脈衝 (Energy Pulse & Wave Stream)
+          float wavePulse = sin(vWorldPos.y * 0.12 - uTime * 3.5) * 0.5 + 0.5;
+          float pulseLight = wavePulse * hexWire * 1.5;
+          float energyFlow = sin(hex.w * 8.0 - uTime * 4.0) * 0.5 + 0.5;
+
+          // 4. 色彩融合 (核心深湛、外緣與晶格白熾)
+          vec3 finalColor = mix(colorCore * 0.6, colorRim * 1.3, fresnel);
+          finalColor += colorRim * (hexWire * 1.4 + pulseLight * 0.8);
+          finalColor += vec3(1.0, 1.0, 1.0) * (hexWire * energyFlow * 0.45 + pow(fresnel, 3.5) * 0.8);
+          finalColor += colorCore * hexCenter;
+
+          float alpha = clamp((fresnel * 0.75 + hexWire * 0.85 + hexCenter * 0.35 + coreIntensity) * uOpacity, 0.0, 1.0);
+          gl_FragColor = vec4(finalColor * 1.2, alpha);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
+    });
+  }
+
+  /**
+   * 🛡️ 建立神聖護盾複合幾何網格群組 (支援 HEX / CROSS_SHIELD / RUNE_RING / DOME_SPHERE)
    */
   public static buildHolyShieldGroup(scale: number = 1.0, colorCore: string = '#fde047', colorRim: string = '#eab308', shape: string = 'HEX'): THREE.Group {
     const group = new THREE.Group();
@@ -578,18 +678,14 @@ export class MeshLayerRenderer {
       hexGeo = new THREE.BoxGeometry(shieldR * 1.1, shieldR * 1.4, 6 * scale);
       ringGeo = new THREE.TorusGeometry(shieldR * 1.1, 8 * scale, 8, 4);
     } else {
-      // 預設 HEX
+      // 預設 HEX / 穹頂弧面能量護盾
       hexGeo = new THREE.CylinderGeometry(shieldR, shieldR, 8, 6);
       hexGeo.rotateX(Math.PI / 2);
       ringGeo = new THREE.TorusGeometry(shieldR * 1.05, 5, 8, 6);
     }
 
-    const hexMat = new THREE.MeshBasicMaterial({
-      color: new THREE.Color(colorCore),
-      transparent: true,
-      opacity: 0.88,
-      blending: THREE.AdditiveBlending
-    });
+    // 🌟 採用專屬能量結界 Shader 材質 (動態六角蜂巢與菲涅爾呼吸)
+    const hexMat = this.createEnergyShieldShaderMaterial(colorCore, colorRim, scale);
     const hexMesh = new THREE.Mesh(hexGeo, hexMat);
     group.add(hexMesh);
 
@@ -604,7 +700,7 @@ export class MeshLayerRenderer {
 
     const crossVGeo = new THREE.BoxGeometry(10 * scale, shieldR * 1.2, 4);
     const crossHGeo = new THREE.BoxGeometry(shieldR * 0.9, 10 * scale, 4);
-    const crossMat = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending });
+    const crossMat = new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.85 });
     const crossVMesh = new THREE.Mesh(crossVGeo, crossMat);
     const crossHMesh = new THREE.Mesh(crossHGeo, crossMat);
 
@@ -625,42 +721,66 @@ export class MeshLayerRenderer {
     if (!parts) return;
     const prog = Math.max(0, Math.min(1.0, progress));
 
+    // 更新 Shader 時間 uniform (流光呼吸)
+    if (parts.hexMat?.uniforms?.uTime) {
+      parts.hexMat.uniforms.uTime.value = prog * 6.0;
+    }
+
     if (prog < 0.25) {
       const sc = (prog / 0.25) * 1.15;
       group.scale.set(sc, sc, sc);
+      if (parts.hexMat?.uniforms?.uOpacity) {
+        parts.hexMat.uniforms.uOpacity.value = 0.95;
+      }
       parts.hexMat.opacity = 0.88;
       parts.ringMat.opacity = 0.95;
-      parts.crossMat.opacity = 1.0;
+      parts.crossMat.opacity = 0.85;
     } else {
       group.scale.set(1.0, 1.0, 1.0);
       const fade = 1.0 - (prog - 0.25) / 0.75;
+      if (parts.hexMat?.uniforms?.uOpacity) {
+        parts.hexMat.uniforms.uOpacity.value = Math.max(0, fade * 0.95);
+      }
       parts.hexMat.opacity = Math.max(0, fade * 0.88);
       parts.ringMat.opacity = Math.max(0, fade * 0.95);
-      parts.crossMat.opacity = Math.max(0, fade);
+      parts.crossMat.opacity = Math.max(0, fade * 0.85);
     }
   }
 
   /**
    * 📢 建立戰吼音波環組
    */
-  public static buildTauntShoutGroup(count: number = 3, colorRim: string = '#ef4444'): THREE.Group {
+  public static buildTauntShoutGroup(
+    count: number = 3,
+    colorRim: string = '#ef4444',
+    radius: number = 65,
+    thickness: number = 4,
+    blur: number = 30
+  ): THREE.Group {
     const group = new THREE.Group();
-    const waves: { mesh: THREE.Mesh; delay: number; mat: THREE.MeshBasicMaterial }[] = [];
+    const waves: { mesh: THREE.Mesh; delay: number; mat: THREE.MeshBasicMaterial; baseOpacity: number }[] = [];
+
+    const effectiveThickness = Math.max(1, thickness);
+    const innerR = 15;
+    const outerR = innerR + effectiveThickness;
+    const blurPct = Math.min(100, Math.max(0, blur)) / 100;
+    const baseOpacity = Math.max(0.15, 0.95 * (1.0 - blurPct * 0.45));
 
     for (let i = 0; i < count; i++) {
-      const geo = new THREE.RingGeometry(20, 32, 32);
+      const geo = new THREE.RingGeometry(innerR, outerR, 48);
       const mat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(colorRim),
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.95,
+        opacity: baseOpacity,
         blending: THREE.AdditiveBlending
       });
       const mesh = new THREE.Mesh(geo, mat);
       group.add(mesh);
-      waves.push({ mesh, delay: i * 0.08, mat });
+      waves.push({ mesh, delay: i * 0.08, mat, baseOpacity });
     }
     (group as any).__waves = waves;
+    (group as any).__waveRadius = radius;
     return group;
   }
 
@@ -677,6 +797,8 @@ export class MeshLayerRenderer {
     const waves = (group as any).__waves;
     if (!waves) return;
     const prog = Math.max(0, Math.min(1.0, progress));
+    const targetRadius = ((group as any).__waveRadius || 65) * scale;
+    const maxScaleMultiplier = Math.max(1.5, targetRadius / 15);
 
     waves.forEach((w: any) => {
       const tLocal = (prog - w.delay) / 0.85;
@@ -685,14 +807,14 @@ export class MeshLayerRenderer {
         return;
       }
       w.mesh.visible = true;
-      const sc = 1 + tLocal * 5.5 * scale;
+      const sc = 1 + tLocal * maxScaleMultiplier;
       w.mesh.scale.set(sc, sc, 1);
       w.mesh.position.lerpVectors(
         new THREE.Vector3(0, 0, 0),
         new THREE.Vector3(targetPos.x - casterPos.x, targetPos.y - casterPos.y, 0),
         tLocal * 0.85
       );
-      w.mat.opacity = Math.max(0, (1 - tLocal) * 0.95);
+      w.mat.opacity = Math.max(0, (1 - tLocal) * (w.baseOpacity ?? 0.95));
     });
   }
 
@@ -1200,6 +1322,34 @@ export class MeshLayerRenderer {
   /**
    * ❄️ 建立/更新冰晶長矛與旋轉外圍冰晶環 (FRESNEL_ICE / FROST_LANCE)
    */
+  /**
+   * 📐 統一投射物核心幾何形狀工廠 (遵從 Rule 12.1 正交解耦 & 12.3 唯一真理來源)
+   * 支援 5 大標準幾何形態，且所有朝向與縮放規範化統一
+   */
+  public static createProjectileGeometry(shape: string): THREE.BufferGeometry {
+    const s = (shape || 'ARROW').toUpperCase();
+    if (s === 'SPHERE') {
+      return new THREE.SphereGeometry(10, 24, 24);
+    } else if (s === 'DIAMOND') {
+      return new THREE.OctahedronGeometry(11, 0);
+    } else if (s === 'STAR') {
+      return new THREE.DodecahedronGeometry(9, 0);
+    } else if (s === 'RING') {
+      return new THREE.TorusGeometry(10, 3, 12, 24);
+    } else {
+      // 預設 ARROW：破空矢身 / 錐體箭尖，統一指向飛行向量 (+Z)
+      const geo = new THREE.ConeGeometry(5.5, 36, 16);
+      geo.rotateX(Math.PI / 2);
+      return geo;
+    }
+  }
+
+  /**
+   * ❄️ 建立/更新冰晶長矛與旋轉外圍冰晶環 (FRESNEL_ICE / FROST_LANCE)
+   * 遵從 Rule 12.1 正交解耦：幾何外形 (shape) 與菲涅爾透光 Shader 完全正交無損組合
+   * 遵從 Rule 12.2 拒絕快取死鎖：光暈 (Glow) 支援每影格即時熱更新
+   * 遵從 Rule 12.3 唯一真理來源：碎冰拖尾歸建粒子系統，主體 Mesh 不再塞硬寫死的死物件
+   */
   public static updateFresnelIce(
     trackGroup: THREE.Group,
     curPos: THREE.Vector3,
@@ -1208,23 +1358,41 @@ export class MeshLayerRenderer {
     scale: number,
     colorCore: string,
     colorRim: string,
-    cache: any
+    cache: any,
+    shape: string = 'ARROW',
+    glowRadius: number = 75,
+    glowOpacity: number = 0.85,
+    fadeAlpha: number = 1.0,
+    createGlowFn?: (colorHex: string, size: number, opacity: number) => THREE.Sprite
   ): void {
     trackGroup.position.copy(curPos);
     if (curPos.distanceTo(endPos) > 0.01) {
       trackGroup.lookAt(endPos);
     }
 
+    const normShape = (shape || 'ARROW').toUpperCase();
+
+    // 🌟 若動態切換了幾何外形，安全清理舊群組以支援即時熱切換
+    if (cache.frostGroup && cache.currentShape !== normShape) {
+      trackGroup.remove(cache.frostGroup);
+      if (cache.iceMesh?.geometry) cache.iceMesh.geometry.dispose();
+      cache.frostGroup = null;
+    }
+
     if (!cache.frostGroup) {
       cache.frostGroup = new THREE.Group();
-      const coneGeo = new THREE.ConeGeometry(9 * scale, 60 * scale, 16, 2);
-      coneGeo.rotateX(-Math.PI / 2);
-      const coneMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
-      const cone = new THREE.Mesh(coneGeo, coneMat);
-      cache.frostGroup.add(cone);
-      cache.iceMaterial = coneMat;
+      cache.currentShape = normShape;
 
-      const ringGeo = new THREE.TorusGeometry(18 * scale, 2.5 * scale, 8, 20);
+      // 1. 核心幾何體：由幾何工廠生成，並穿戴頂級菲涅爾 Shader 材質
+      const coreGeo = MeshLayerRenderer.createProjectileGeometry(normShape);
+      const coreMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      cache.frostGroup.add(coreMesh);
+      cache.iceMesh = coreMesh;
+      cache.iceMaterial = coreMat;
+
+      // 2. 環繞動態旋轉冰晶環
+      const ringGeo = new THREE.TorusGeometry(18, 2.5, 8, 20);
       const ringMat = new THREE.MeshBasicMaterial({
         color: new THREE.Color(colorRim),
         transparent: true,
@@ -1237,34 +1405,36 @@ export class MeshLayerRenderer {
       cache.frostGroup.add(ring);
       cache.iceRing = ring;
 
-      const crystalGeo = new THREE.OctahedronGeometry(2.4 * scale, 0);
-      const crystalMat = MeshLayerRenderer.createAdvancedIceShaderMaterial(colorCore, colorRim, 1.5);
-      cache.iceTrail = new THREE.Group();
-      for (let i = 0; i < 7; i++) {
-        const shard = new THREE.Mesh(crystalGeo, crystalMat);
-        shard.position.set(0, 0, 11 + i * 8 * scale);
-        shard.scale.setScalar(1 - i * 0.1);
-        cache.iceTrail.add(shard);
+      // 3. 泛光光暈面片 (Glow Sprite)
+      if (createGlowFn) {
+        const glow = createGlowFn(colorRim, glowRadius * scale, glowOpacity * fadeAlpha);
+        cache.frostGroup.add(glow);
+        cache.iceGlow = glow;
       }
-      cache.frostGroup.add(cache.iceTrail);
 
       trackGroup.add(cache.frostGroup);
     }
     cache.frostGroup.visible = true;
+    cache.frostGroup.scale.set(scale, scale, scale);
     cache.frostGroup.rotation.z = progress * Math.PI * 4;
+
+    if (cache.iceMaterial?.uniforms?.colorCore) cache.iceMaterial.uniforms.colorCore.value.set(colorCore);
+    if (cache.iceMaterial?.uniforms?.colorEdge) cache.iceMaterial.uniforms.colorEdge.value.set(colorRim);
+    if (cache.iceRing?.material) cache.iceRing.material.color.set(colorRim);
     if (cache.iceMaterial?.uniforms?.uTime) cache.iceMaterial.uniforms.uTime.value = progress * 4.0;
-    if (cache.iceTrail) {
-      cache.iceTrail.rotation.z = -progress * Math.PI * 7;
-      cache.iceTrail.children.forEach((shard: THREE.Object3D, i: number) => {
-        shard.position.x = Math.sin(progress * 18 + i * 1.7) * (3 + i * 0.6) * scale;
-        shard.position.y = Math.cos(progress * 15 + i * 1.3) * (3 + i * 0.45) * scale;
-      });
+
+    // 🌟 核心：打通泛光半徑與光暈透明度的每幀熱更新 (破除快取死鎖，符合 Rule 12.2)
+    if (cache.iceGlow) {
+      const curRadius = glowRadius * scale;
+      const curOpacity = Math.min(1.0, glowOpacity * fadeAlpha);
+      cache.iceGlow.scale.set(curRadius, curRadius, 1.0);
+      cache.iceGlow.material.opacity = curOpacity;
+      if (cache.iceGlow.material.color) {
+        cache.iceGlow.material.color.set(colorRim);
+      }
     }
   }
 
-  /**
-   * 🔮 建立/更新貫穿圓柱能量光束與兩端聚能環 (ENERGY_BEAM)
-   */
   public static updateEnergyBeam(
     trackGroup: THREE.Group,
     startPos: THREE.Vector3,
@@ -1518,15 +1688,27 @@ export class MeshLayerRenderer {
     salvoSpreadRadius: number = 0,
     arcHeight: number = 0,
     shaderMode: string = 'ARC_MULTI',
-    colorCore: string = '#ffffff'
+    colorCore: string = '#ffffff',
+    trailParams?: { trailCount?: number; trailSize?: number; trailColor?: string; trailSpread?: number; trailStrands?: number },
+    glowRadius: number = 75,
+    glowOpacity: number = 0.85,
+    fadeAlpha: number = 1.0,
+    salvoRhythmCurve: string = 'LINEAR'
   ): void {
     const actualCount = Math.max(1, salvoCount);
-    const signature = `${actualCount}_${salvoSpreadAngle}_${salvoSpreadRadius}_${arcHeight}_${shaderMode}_${scale}_${colorRim}_${colorCore}_${startPos.x.toFixed(1)}_${startPos.y.toFixed(1)}_${endPos.x.toFixed(1)}_${endPos.y.toFixed(1)}`;
+    const tCount = trailParams?.trailCount ?? 0;
+    const tSize = trailParams?.trailSize ?? 8;
+    const tCol = trailParams?.trailColor ?? colorRim;
+    const tSpread = trailParams?.trailSpread ?? 0;
+    const tStrands = Math.max(1, Math.min(3, trailParams?.trailStrands ?? 1));
+    const signature = `${actualCount}_\${salvoSpreadAngle}_\${salvoSpreadRadius}_\${arcHeight}_\${shaderMode}_\${scale}_\${colorRim}_\${colorCore}_\${tCount}_\${tSize}_\${tCol}_\${tSpread}_\${tStrands}_\${glowRadius}_\${glowOpacity}_\${salvoRhythmCurve}_\${startPos.x.toFixed(1)}_\${startPos.y.toFixed(1)}_\${endPos.x.toFixed(1)}_\${endPos.y.toFixed(1)}`;
 
     // ⚡ 參數變更或切換形態時動態釋放舊快取幾何，確保所見即所得即時響應
     if (cache.multiArcGroup && cache.salvoSignature !== signature) {
       trackGroup.remove(cache.multiArcGroup);
       cache.multiArcs?.forEach((it: any) => {
+        if (it.trailGeo) it.trailGeo.dispose();
+        if (it.trailMat) it.trailMat.dispose();
         it.group.traverse((obj: any) => {
           if (obj.geometry) obj.geometry.dispose();
           if (obj.material) {
@@ -1557,48 +1739,82 @@ export class MeshLayerRenderer {
 
       for (let i = 0; i < actualCount; i++) {
         const itemGroup = new THREE.Group();
+        let coneMesh: THREE.Mesh | null = null;
+        let ringMesh: THREE.Mesh | null = null;
+        let sphereMesh: THREE.Mesh | null = null;
+        let coneMat: THREE.ShaderMaterial | null = null;
 
         // 🌟 依據 Shader 形態建立子彈幾何主體 (冰錐 / 火球 / 晶矢 / 奧術球)
         if (shaderMode === 'FRESNEL_ICE' || shaderMode === 'FROST_LANCE' || shaderMode === 'FROST_NOVA') {
           const coneGeo = new THREE.ConeGeometry(7 * scale, 48 * scale, 8);
           coneGeo.rotateX(Math.PI / 2);
-          const coneMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
-          const cone = new THREE.Mesh(coneGeo, coneMat);
-          itemGroup.add(cone);
+          coneMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
+          coneMesh = new THREE.Mesh(coneGeo, coneMat);
+          itemGroup.add(coneMesh);
 
           const ringGeo = new THREE.TorusGeometry(14 * scale, 2.0 * scale, 8, 16);
           const ringMat = new THREE.MeshBasicMaterial({
             color: new THREE.Color(colorRim),
             transparent: true,
-            opacity: 0.85,
+            opacity: 0.85 * fadeAlpha,
             blending: THREE.AdditiveBlending
           });
-          const ring = new THREE.Mesh(ringGeo, ringMat);
-          itemGroup.add(ring);
-          (itemGroup as any).__ring = ring;
+          ringMesh = new THREE.Mesh(ringGeo, ringMat);
+          itemGroup.add(ringMesh);
+          (itemGroup as any).__ring = ringMesh;
         } else if (shaderMode === 'VOLUMETRIC_FIRE' || shaderMode === 'DARK_VOID') {
           const sphereGeo = new THREE.SphereGeometry(12 * scale, 24, 24);
           const flameMat = MeshLayerRenderer.createVolumetricFlameMaterial(colorCore, colorRim, 4.0, 2.5);
-          const sphere = new THREE.Mesh(sphereGeo, flameMat);
-          itemGroup.add(sphere);
+          sphereMesh = new THREE.Mesh(sphereGeo, flameMat);
+          itemGroup.add(sphereMesh);
           (itemGroup as any).__flameMat = flameMat;
         } else {
           const sphereGeo = new THREE.SphereGeometry(6 * scale, 16, 16);
           const sphereMat = new THREE.MeshBasicMaterial({
             color: new THREE.Color(colorRim || '#38bdf8'),
             transparent: true,
-            opacity: 0.9,
+            opacity: 0.9 * fadeAlpha,
             blending: THREE.AdditiveBlending
           });
-          const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-          itemGroup.add(sphere);
+          sphereMesh = new THREE.Mesh(sphereGeo, sphereMat);
+          itemGroup.add(sphereMesh);
         }
 
+        let glowSprite: THREE.Sprite | null = null;
         if (glowSpriteFactory) {
-          const glow = glowSpriteFactory(colorRim || '#38bdf8', 26 * scale, 0.8);
-          itemGroup.add(glow);
+          const initGlowR = glowRadius * scale;
+          const initGlowO = Math.min(1.0, glowOpacity * fadeAlpha);
+          glowSprite = glowSpriteFactory(colorRim || '#38bdf8', initGlowR, initGlowO);
+          itemGroup.add(glowSprite);
         }
         cache.multiArcGroup.add(itemGroup);
+
+        // 🌟 專屬子彈隨身拖尾粒子群 (Trail Points)
+        let trailPoints: THREE.Points | null = null;
+        let trailGeo: THREE.BufferGeometry | null = null;
+        let trailMat: THREE.PointsMaterial | null = null;
+        const perBulletTrailCount = tCount > 0 ? Math.min(30, Math.max(8, Math.round(tCount * 0.75))) : 0;
+
+        if (perBulletTrailCount > 0) {
+          trailGeo = new THREE.BufferGeometry();
+          const posArr = new Float32Array(perBulletTrailCount * 3);
+          const colArr = new Float32Array(perBulletTrailCount * 3);
+          trailGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+          trailGeo.setAttribute('color', new THREE.BufferAttribute(colArr, 3));
+
+          trailMat = new THREE.PointsMaterial({
+            size: Math.max(2, tSize * scale * 0.65),
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.9 * fadeAlpha,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+          });
+
+          trailPoints = new THREE.Points(trailGeo, trailMat);
+          trailPoints.frustumCulled = false;
+          cache.multiArcGroup.add(trailPoints);
+        }
 
         // 🚀 法向量扇形散射計算 (salvoSpreadAngle)：以中央為軸展開
         const normIndex = actualCount > 1 ? (i / (actualCount - 1)) - 0.5 : 0;
@@ -1615,18 +1831,65 @@ export class MeshLayerRenderer {
         let targetOffsetX = 0;
         let targetOffsetY = 0;
         if (salvoSpreadRadius > 0 && actualCount > 1) {
-          const targetAngle = (i / actualCount) * Math.PI * 2;
-          targetOffsetX = Math.cos(targetAngle) * salvoSpreadRadius;
-          targetOffsetY = Math.sin(targetAngle) * salvoSpreadRadius;
+          // 🌟 徹底拔除正圓等分空心圓！改為基於偽隨機極座標圓盤散佈 (Uniform Disc Distribution)
+          // 半徑 r = R * sqrt(rand), 角度 theta = 2 * PI * rand
+          const pseudoRandR = Math.abs(Math.sin((i + 1) * 12.9898));
+          const pseudoRandTheta = Math.abs(Math.cos((i + 1) * 78.233));
+          const r = Math.sqrt(pseudoRandR) * salvoSpreadRadius;
+          const theta = pseudoRandTheta * Math.PI * 2;
+          targetOffsetX = Math.cos(theta) * r;
+          targetOffsetY = Math.sin(theta) * r;
+        }
+
+        // 🚀 依據 salvoRhythmCurve 精準計算每發子彈出膛時間差
+        let itemDelay = 0;
+        if (actualCount > 1) {
+          const normIdx = i / (actualCount - 1);
+          const maxDelay = 0.25;
+          switch (salvoRhythmCurve) {
+            case 'BURST_ACCEL':
+            case 'ACCELERATE':
+              itemDelay = Math.pow(normIdx, 2.2) * maxDelay;
+              break;
+            case 'BURST_DECEL':
+            case 'DECELERATE':
+              itemDelay = (1.0 - Math.pow(1.0 - normIdx, 2.2)) * maxDelay;
+              break;
+            case 'VOLLEY_SYNC':
+              itemDelay = (Math.abs(Math.sin((i + 1) * 37.1)) % 1) * 0.02;
+              break;
+            case 'CHAOTIC':
+            case 'STAGGERED':
+              const jitter = (Math.abs(Math.sin((i + 1) * 91.7)) % 1) * 0.35;
+              itemDelay = Math.min(maxDelay, (normIdx * 0.65 + jitter * 0.35) * maxDelay);
+              break;
+            case 'BURST_PAIRS':
+              const pairIndex = Math.floor(i / 2);
+              const inPair = i % 2;
+              itemDelay = pairIndex * (maxDelay / Math.max(1, Math.ceil(actualCount / 2))) + inPair * 0.04;
+              break;
+            case 'LINEAR':
+            default:
+              itemDelay = normIdx * maxDelay;
+              break;
+          }
         }
 
         arcs.push({
           group: itemGroup,
+          coneMat,
+          ringMesh,
+          sphereMesh,
+          glow: glowSprite,
+          trailPoints,
+          trailGeo,
+          trailMat,
+          trailCount: perBulletTrailCount,
           spreadY,
           totalNormalOffset,
           targetOffsetX,
           targetOffsetY,
-          delay: actualCount > 1 ? (i / (actualCount - 1)) * 0.22 : 0
+          delay: itemDelay
         });
       }
       cache.multiArcs = arcs;
@@ -1639,8 +1902,9 @@ export class MeshLayerRenderer {
       // 計算局部生命週期進度 localP (0 ~ 1)
       const durationP = Math.max(0.12, 1.0 - item.delay);
       const localP = Math.min(1.0, Math.max(0, (progress - item.delay) / durationP));
-      if (progress < item.delay || localP >= 1.0) {
+      if (progress < item.delay || localP >= 0.99) {
         item.group.visible = false;
+        if (item.trailPoints) item.trailPoints.visible = false;
         return;
       }
       item.group.visible = true;
@@ -1667,6 +1931,60 @@ export class MeshLayerRenderer {
       const posZ = oneMinusT * oneMinusT * p0.z + 2 * oneMinusT * localP * p1.z + localP * localP * p2.z;
       item.group.position.set(posX, posY, posZ);
 
+      // 🌟 專屬子彈隨身拖尾更新 (取樣該子彈專屬貝茲軌跡，加入非線性彗核聚集與物理波動)
+      if (item.trailPoints && item.trailCount > 0 && item.trailGeo) {
+        item.trailPoints.visible = true;
+        const ptsCount = item.trailCount;
+        const posAttr = item.trailGeo.attributes.position;
+        const colAttr = item.trailGeo.attributes.color;
+        const posArr = posAttr.array as Float32Array;
+        const colArr = colAttr.array as Float32Array;
+        const baseColor = new THREE.Color(tCol);
+
+        const trailLengthRatio = Math.min(0.28, localP * 0.9);
+
+        for (let k = 0; k < ptsCount; k++) {
+          const u = (ptsCount - 1 - k) / Math.max(1, ptsCount - 1);
+          const nonlinearU = Math.pow(u, 1.6);
+          const sampleP = Math.max(0, localP - nonlinearU * trailLengthRatio);
+
+          const omt = 1.0 - sampleP;
+          const bx = omt * omt * p0.x + 2 * omt * sampleP * p1.x + sampleP * sampleP * p2.x;
+          const by = omt * omt * p0.y + 2 * omt * sampleP * p1.y + sampleP * sampleP * p2.y;
+          const bz = omt * omt * p0.z + 2 * omt * sampleP * p1.z + sampleP * sampleP * p2.z;
+
+          // 🌊 多股微相位交織羽流與側向立體擴散 (融入 tSpread 與 tStrands)
+          const strandCount = Math.max(1, Math.min(3, tStrands));
+          const strandIdx = k % strandCount;
+          const strandPhaseOffset = (strandIdx * Math.PI * 2) / strandCount;
+          const flowPhase = sampleP * 20.0 + k * 0.45 + item.delay * 8.0 + strandPhaseOffset;
+          const extraSpread = tSpread * (1.0 - u);
+          const waveAmplitude = (1.0 - u) * 4.0 * scale;
+          const waveY = (Math.sin(flowPhase) * waveAmplitude) + (Math.sin(flowPhase) * extraSpread);
+          const waveZ = (Math.cos(flowPhase) * waveAmplitude * 0.5) + (Math.cos(flowPhase * 1.2) * extraSpread);
+          const spreadJitter = (1.0 - u) * (Math.sin(k * 7.9) * 2.0) * scale;
+
+          posArr[k * 3] = bx + spreadJitter;
+          posArr[k * 3 + 1] = by + waveY;
+          posArr[k * 3 + 2] = bz + waveZ;
+
+          // 🌟 距離衰減與生命週期終點平滑淡出（命中前 0.75 開始衰減，徹底杜絕畫面殘留）
+          const distFade = Math.pow(u, 0.7);
+          let lifeFade = 1.0;
+          if (localP > 0.75) {
+            lifeFade = Math.max(0, 1.0 - (localP - 0.75) / 0.24);
+          }
+          const alpha = distFade * lifeFade * fadeAlpha;
+
+          colArr[k * 3] = baseColor.r * alpha;
+          colArr[k * 3 + 1] = baseColor.g * alpha;
+          colArr[k * 3 + 2] = baseColor.b * alpha;
+        }
+
+        posAttr.needsUpdate = true;
+        colAttr.needsUpdate = true;
+      }
+
       // 🚀 動態朝向飛行切線方向 (lookAt)
       const nextP = Math.min(1.0, localP + 0.02);
       const oMtNext = 1.0 - nextP;
@@ -1682,6 +2000,33 @@ export class MeshLayerRenderer {
       }
       if (item.group.__flameMat?.uniforms?.uTime) {
         item.group.__flameMat.uniforms.uTime.value = localP * 6.0;
+      }
+
+      // 🌟 即時熱更新泛光半徑與光暈透明度 (Rule 12.2 全管線穿透)
+      if (item.glow) {
+        const curRadius = glowRadius * scale;
+        const curOpacity = Math.min(1.0, glowOpacity * fadeAlpha);
+        item.glow.scale.set(curRadius, curRadius, 1.0);
+        if (item.glow.material) {
+          item.glow.material.opacity = curOpacity;
+          if (item.glow.material.color) {
+            item.glow.material.color.set(colorRim);
+          }
+        }
+      }
+
+      // 🌟 子彈本體與拖尾材質即時透明度熱響應 (fadeAlpha)
+      if (item.ringMesh?.material) {
+        item.ringMesh.material.opacity = 0.85 * fadeAlpha;
+      }
+      if (item.sphereMesh?.material) {
+        item.sphereMesh.material.opacity = 0.9 * fadeAlpha;
+      }
+      if (item.coneMat?.uniforms?.uOpacity) {
+        item.coneMat.uniforms.uOpacity.value = fadeAlpha;
+      }
+      if (item.trailMat) {
+        item.trailMat.opacity = 0.9 * fadeAlpha;
       }
     });
   }

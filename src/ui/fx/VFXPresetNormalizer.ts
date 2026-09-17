@@ -40,6 +40,10 @@ export const INSPECTOR_CONTROL_MAP: ControlConfig[] = [
   { id: 'param-spatial-mode', key: 'spatialMode', type: 'select', defaultVal: 'TRAJECTORY', capability: 'TRAJECTORY' },
   { id: 'param-trajectory-path', key: 'trajectoryPath', type: 'select', defaultVal: 'A_TO_B', capability: 'TRAJECTORY' },
   { id: 'param-reverse', key: 'reverse', type: 'select-boolean', defaultVal: false, capability: 'TRAJECTORY' },
+  { id: 'param-target-offset-x', labelId: 'val-target-offset-x', key: 'targetOffsetX', type: 'range', unit: 'px', defaultVal: 0, capability: 'TRAJECTORY' },
+  { id: 'param-target-offset-y', labelId: 'val-target-offset-y', key: 'targetOffsetY', type: 'range', unit: 'px', defaultVal: 0, capability: 'TRAJECTORY' },
+  { id: 'param-track-offset-x', labelId: 'val-track-offset-x', key: 'trackOffsetX', type: 'range', unit: 'px', defaultVal: 0, capability: 'TRAJECTORY' },
+  { id: 'param-track-offset-y', labelId: 'val-track-offset-y', key: 'trackOffsetY', type: 'range', unit: 'px', defaultVal: 0, capability: 'TRAJECTORY' },
   { id: 'param-trajectory', key: 'trajectory', type: 'select', defaultVal: 'HORIZONTAL', isLegacy: true, isHidden: true },
   { id: 'param-scale', labelId: 'val-scale', key: 'scale', type: 'range', unit: 'x', defaultVal: 1.0, capability: 'TRANSFORM' },
   { id: 'param-spin', labelId: 'val-spin', key: 'spin', type: 'range', unit: ' rad/s', defaultVal: 0, capability: 'TRANSFORM' },
@@ -57,11 +61,14 @@ export const INSPECTOR_CONTROL_MAP: ControlConfig[] = [
   { id: 'param-flame-speed', labelId: 'val-flame-speed', key: 'flameTurbulenceSpeed', type: 'range', unit: 'x', defaultVal: 2.0, capability: 'FIRE_SHADER' },
 
   // 3. ✨ 粒子流、拖尾與爆散
-  { id: 'param-enable-trail', key: 'enableTrail', type: 'select-boolean', defaultVal: false, capability: 'SLASH_GEOMETRY' },
-  { id: 'param-trail-color', key: 'trailColor', type: 'color', defaultVal: '#f59e0b', capability: 'SLASH_GEOMETRY' },
+  { id: 'param-enable-trail', key: 'enableTrail', type: 'select-boolean', defaultVal: false, capability: 'PARTICLES' },
+  { id: 'param-trail-color', key: 'trailColor', type: 'color', defaultVal: '#f59e0b', capability: 'PARTICLES' },
   { id: 'param-trail-count', labelId: 'val-trail-count', key: 'trailCount', type: 'range', unit: '', defaultVal: 40, capability: 'PARTICLES' },
   { id: 'param-trail-size', labelId: 'val-trail-size', key: 'trailSize', type: 'range', unit: 'px', defaultVal: 10, capability: 'PARTICLES' },
   { id: 'param-burst-count', labelId: 'val-burst-count', key: 'burstCount', type: 'range', unit: ' 顆', defaultVal: 60, capability: 'PARTICLES' },
+  { id: 'param-burst-time', labelId: 'val-burst-time', key: 'burstTime', type: 'range', unit: 's', defaultVal: 0, capability: 'PARTICLES' },
+  { id: 'param-trail-spread', labelId: 'val-trail-spread', key: 'trailSpread', type: 'range', unit: 'px', defaultVal: 0, capability: 'PARTICLES' },
+  { id: 'param-trail-strands', labelId: 'val-trail-strands', key: 'trailStrands', type: 'range', unit: ' 股', defaultVal: 1, capability: 'PARTICLES' },
 
   // 4. ⚔️ 斬擊走向與形態 (Slash Section)
   { id: 'param-slash-align-to-path', key: 'slashAlignToPath', type: 'select-boolean', defaultVal: true, capability: 'SLASH_GEOMETRY' },
@@ -81,7 +88,6 @@ export const INSPECTOR_CONTROL_MAP: ControlConfig[] = [
 
   // 5. 🚀 彈幕發射與節奏曲線 (Salvo Section)
   { id: 'param-salvo-count', labelId: 'val-salvo-count', key: 'salvoCount', type: 'range', unit: ' 發', defaultVal: 1, capability: 'PROJECTILE_GEOMETRY' },
-  { id: 'param-salvo-dur', labelId: 'val-salvo-dur', key: 'salvoDuration', type: 'range', unit: 's', defaultVal: 0.35, capability: 'PROJECTILE_GEOMETRY' },
   { id: 'param-salvo-curve', key: 'salvoRhythmCurve', type: 'select', defaultVal: 'LINEAR', capability: 'PROJECTILE_GEOMETRY' },
   { id: 'param-salvo-spread', labelId: 'val-salvo-spread', key: 'salvoSpreadAngle', type: 'range', unit: '°', defaultVal: 0, capability: 'PROJECTILE_GEOMETRY' },
   { id: 'param-salvo-scatter', labelId: 'val-salvo-scatter', key: 'salvoSpreadRadius', type: 'range', unit: 'px', defaultVal: 0, capability: 'PROJECTILE_GEOMETRY' },
@@ -101,22 +107,24 @@ export const INSPECTOR_CONTROL_MAP: ControlConfig[] = [
   { id: 'param-spike-material-mode', key: 'spikeMaterialMode', type: 'select', defaultVal: 'PHONG', capability: 'SPIKE_GEOMETRY' },
   { id: 'param-spike-erupt-fire', key: 'spikeEruptFire', type: 'select-boolean', defaultVal: false, capability: 'SPIKE_GEOMETRY' },
 
-  // 7. 🛡️ 護盾與戰吼
+  // 7. 🛡️ 護盾與衝擊震波 (Shield & Shockwave)
   { id: 'param-shield-shape', key: 'shieldShape', type: 'select', defaultVal: 'HEX', capability: 'SHIELD_GEOMETRY' },
   { id: 'param-wave-count', labelId: 'val-wave-count', key: 'waveCount', type: 'range', unit: ' 圈', defaultVal: 3, capability: 'SHOUT_GEOMETRY' },
+  { id: 'param-wave-radius', labelId: 'val-wave-radius', key: 'waveRadius', type: 'range', unit: 'px', defaultVal: 65, capability: 'SHOUT_GEOMETRY' },
+  { id: 'param-wave-thickness', labelId: 'val-wave-thickness', key: 'waveThickness', type: 'range', unit: 'px', defaultVal: 4, capability: 'SHOUT_GEOMETRY' },
+  { id: 'param-wave-blur', labelId: 'val-wave-blur', key: 'waveBlur', type: 'range', unit: '%', defaultVal: 30, capability: 'SHOUT_GEOMETRY' },
+  { id: 'param-wave-rot-x', labelId: 'val-wave-rot-x', key: 'waveRotX', type: 'range', unit: '°', defaultVal: 0, capability: 'SHOUT_GEOMETRY' },
+  { id: 'param-wave-rot-y', labelId: 'val-wave-rot-y', key: 'waveRotY', type: 'range', unit: '°', defaultVal: 0, capability: 'SHOUT_GEOMETRY' },
   { id: 'param-texture-sprite', key: 'textureSprite', type: 'select', defaultVal: 'GLOW', isHidden: true },
 
-  // 8. 🥊 戰鬥受擊物理反饋 (Impact & Wave)
+  // 8. 🥊 戰鬥受擊物理反饋 (Impact Feedback)
   { id: 'param-hit-stop', labelId: 'val-hit-stop', key: 'hitStopTime', isImpact: true, type: 'range', unit: 'ms', defaultVal: 55, capability: 'IMPACT_FEEDBACK' },
   { id: 'param-punch-scale', labelId: 'val-punch-scale', key: 'targetPunchScale', isImpact: true, type: 'range', unit: 'x', defaultVal: 0.88, capability: 'IMPACT_FEEDBACK' },
   { id: 'param-shake-intensity', labelId: 'val-shake-intensity', key: 'shakeIntensity', isImpact: true, type: 'range', unit: 'px', defaultVal: 12, capability: 'IMPACT_FEEDBACK' },
   { id: 'param-shake-dur', labelId: 'val-shake-dur', key: 'shakeDuration', isImpact: true, type: 'range', unit: 's', defaultVal: 0.28, capability: 'IMPACT_FEEDBACK' },
   { id: 'param-knockback', labelId: 'val-knockback', key: 'knockbackDistance', isImpact: true, type: 'range', unit: 'px', defaultVal: 18, capability: 'IMPACT_FEEDBACK' },
   { id: 'param-flash-color', key: 'hitFlashColor', isImpact: true, type: 'color', defaultVal: '#ffffff', capability: 'IMPACT_FEEDBACK' },
-  { id: 'param-wave-radius', labelId: 'val-wave-radius', key: 'waveRadius', isImpact: true, type: 'range', unit: 'px', defaultVal: 65, capability: 'IMPACT_FEEDBACK' },
-  { id: 'param-wave-thickness', labelId: 'val-wave-thickness', key: 'waveThickness', isImpact: true, type: 'range', unit: 'px', defaultVal: 4, capability: 'IMPACT_FEEDBACK' },
-  { id: 'param-wave-blur', labelId: 'val-wave-blur', key: 'waveBlur', isImpact: true, type: 'range', unit: '%', defaultVal: 30, capability: 'IMPACT_FEEDBACK' },
-  { id: 'param-wave-plane', key: 'wavePlane', isImpact: true, type: 'select', defaultVal: 'CAMERA', capability: 'IMPACT_FEEDBACK' },
+  { id: 'param-screen-shake', key: 'screenShake', isImpact: true, type: 'checkbox', defaultVal: false, capability: 'IMPACT_FEEDBACK' },
 
   // 9. 🏃 施術者發力動作力學反饋 (Caster Motion)
   { id: 'param-caster-step', labelId: 'val-caster-step', key: 'stepForward', isCasterMotion: true, type: 'range', unit: 'px', defaultVal: 0, capability: 'CASTER_MOTION' },
@@ -243,18 +251,31 @@ export function normalizeVfxPreset(preset: VFXPreset | VFXSequence): VFXPreset &
       // 粒子軌跡對齊
       trailCount: mainData.trailCount ?? partData.trailCount ?? normalized.trailCount,
       trailSize: mainData.trailSize ?? partData.trailSize ?? normalized.trailSize,
+      trailSpread: mainData.trailSpread ?? partData.trailSpread ?? (preset as any).trailSpread ?? normalized.trailSpread ?? 0,
+      trailStrands: mainData.trailStrands ?? partData.trailStrands ?? (preset as any).trailStrands ?? normalized.trailStrands ?? 1,
       burstCount: mainData.burstCount ?? partData.burstCount ?? normalized.burstCount,
+      burstTime: mainData.burstTime ?? partData.burstTime ?? normalized.burstTime,
       enableTrail: mainData.enableTrail ?? partData.enableTrail ?? normalized.enableTrail,
-      trailColor: mainData.trailColor ?? partData.trailColor ?? normalized.trailColor
+      trailColor: mainData.trailColor ?? partData.trailColor ?? normalized.trailColor,
+      // 空間座標偏移對齊
+      targetOffsetX: mainData.targetOffsetX ?? (preset as any).targetOffsetX ?? normalized.targetOffsetX ?? 0,
+      targetOffsetY: mainData.targetOffsetY ?? (preset as any).targetOffsetY ?? normalized.targetOffsetY ?? 0,
+      trackOffsetX: mainData.trackOffsetX ?? (preset as any).trackOffsetX ?? normalized.trackOffsetX ?? 0,
+      trackOffsetY: mainData.trackOffsetY ?? (preset as any).trackOffsetY ?? normalized.trackOffsetY ?? 0,
+      // 🌊 震波幾何對齊
+      waveCount: mainData.waveCount ?? (preset as any).waveCount ?? normalized.waveCount,
+      waveRadius: mainData.waveRadius ?? (preset as any).waveRadius ?? normalized.waveRadius,
+      waveThickness: mainData.waveThickness ?? (preset as any).waveThickness ?? normalized.waveThickness,
+      waveBlur: mainData.waveBlur ?? (preset as any).waveBlur ?? normalized.waveBlur,
+      waveRotX: mainData.waveRotX ?? (preset as any).waveRotX ?? normalized.waveRotX,
+      waveRotY: mainData.waveRotY ?? (preset as any).waveRotY ?? normalized.waveRotY,
+      // 🛡️ 護盾外觀對齊
+      shieldShape: mainData.shieldShape ?? (preset as any).shieldShape ?? normalized.shieldShape ?? 'HEX'
     });
 
     normalized.impact = {
       ...impactData,
-      ...normalized.impact,
-      waveRadius: impactData.waveRadius ?? normalized.impact?.waveRadius ?? normalized.waveRadius,
-      waveThickness: impactData.waveThickness ?? normalized.impact?.waveThickness ?? normalized.waveThickness,
-      waveBlur: impactData.waveBlur ?? normalized.impact?.waveBlur ?? normalized.waveBlur,
-      wavePlane: impactData.wavePlane ?? normalized.impact?.wavePlane ?? normalized.wavePlane
+      ...normalized.impact
     };
   }
 

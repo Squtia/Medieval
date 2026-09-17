@@ -2,6 +2,39 @@ import { VFXPreset, VFXSequence, getSequenceMainTrack, getSequenceMainClip } fro
 import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
 import { normalizeVfxPreset } from '../../ui/fx/VFXPresetNormalizer';
 
+export const VALID_SEQUENCE_ROOT_KEYS = new Set([
+  'schemaVersion',
+  'id',
+  'name',
+  'category',
+  'description',
+  'duration',
+  'spatialMode',
+  'casterMotion',
+  'randomSeed',
+  'tags',
+  'tracks',
+  'impact',
+  'impactCues',
+  'impactPresentationMode',
+  'quality',
+  'metadata',
+  'layers',
+  'usageType',
+  'isBuiltin',
+  'author'
+]);
+
+export function sanitizeSequenceRoot(seq: Record<string, unknown>): VFXSequence {
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(seq)) {
+    if (VALID_SEQUENCE_ROOT_KEYS.has(k)) {
+      clean[k] = v;
+    }
+  }
+  return clean as unknown as VFXSequence;
+}
+
 export interface TrackMuteStates {
   main: boolean;
   layers: boolean;
@@ -15,7 +48,7 @@ export type VFXEditorSelection =
   | { type: 'CUE'; cueId: string }
   | { type: 'BINDING'; skillId: string };
 
-export type StoreChangeListener = (preset: any, isDirty: boolean, sequence?: VFXSequence) => void;
+export type StoreChangeListener = (preset: VFXPreset & VFXSequence, isDirty: boolean, sequence?: VFXSequence) => void;
 export type SelectionChangeListener = (selection: VFXEditorSelection) => void;
 
 /**
@@ -70,8 +103,14 @@ export class VFXStudioStore {
   }
 
   public static getInstance(): VFXStudioStore {
+    const g = globalThis as unknown as { __VFX_STUDIO_STORE_INSTANCE__?: VFXStudioStore };
     if (!VFXStudioStore.instance) {
-      VFXStudioStore.instance = new VFXStudioStore();
+      if (g.__VFX_STUDIO_STORE_INSTANCE__) {
+        VFXStudioStore.instance = g.__VFX_STUDIO_STORE_INSTANCE__;
+      } else {
+        VFXStudioStore.instance = new VFXStudioStore();
+        g.__VFX_STUDIO_STORE_INSTANCE__ = VFXStudioStore.instance;
+      }
     }
     return VFXStudioStore.instance;
   }
@@ -113,8 +152,8 @@ export class VFXStudioStore {
     if (recordHistory && !this.isSnapshotPaused) {
       this.recordSnapshot();
     }
-    this.currentSequence = JSON.parse(JSON.stringify(newSequence));
-    this.isDirty = true;
+    this.currentSequence = sanitizeSequenceRoot(JSON.parse(JSON.stringify(newSequence)) as Record<string, unknown>);
+    this.isDirty = false;
     this.notify();
   }
 
@@ -122,18 +161,24 @@ export class VFXStudioStore {
     if (recordHistory && !this.isSnapshotPaused) {
       this.recordSnapshot();
     }
-    Object.assign(this.currentSequence, partial);
+    const currentMap = this.currentSequence as unknown as Record<string, unknown>;
+    for (const [k, v] of Object.entries(partial)) {
+      if (VALID_SEQUENCE_ROOT_KEYS.has(k)) {
+        currentMap[k] = v;
+      }
+    }
     this.isDirty = true;
     this.notify();
   }
 
-  public updateMainClipData(partialData: Record<string, any>, recordHistory: boolean = false): void {
+  public updateMainClipData(partialData: Record<string, unknown>, recordHistory: boolean = false): void {
     if (recordHistory && !this.isSnapshotPaused) {
       this.recordSnapshot();
     }
     const mainClip = getSequenceMainClip(this.currentSequence);
     if (mainClip && mainClip.payload) {
-      mainClip.payload.data = { ...(mainClip.payload.data as any), ...partialData };
+      const existing = (mainClip.payload.data as Record<string, unknown>) || {};
+      mainClip.payload.data = { ...existing, ...partialData };
       this.isDirty = true;
       this.notify();
     }
@@ -147,30 +192,53 @@ export class VFXStudioStore {
     this.setSequence(newSequence, recordHistory);
   }
 
-  public updateConfig(partial: Record<string, any>, recordHistory: boolean = false): void {
+  public updateConfig(partial: Record<string, unknown>, recordHistory: boolean = false): void {
     if (recordHistory && !this.isSnapshotPaused) {
       this.recordSnapshot();
     }
-    // 1. 同步根物件
-    Object.assign(this.currentSequence, partial);
+    const isLayerSelected = this.selection.type === 'LAYER';
+
+    // 1. 僅同步 Sequence 頂層合法架構欄位 (若選中次生圖層，spatialMode 嚴禁冒泡污染頂層)
+    const currentMap = this.currentSequence as unknown as Record<string, unknown>;
+    for (const [k, v] of Object.entries(partial)) {
+      if (VALID_SEQUENCE_ROOT_KEYS.has(k)) {
+        if (k === 'spatialMode' && isLayerSelected) {
+          continue; // 次生圖層時空模式局部隔離，絕不覆寫全域 Sequence
+        }
+        currentMap[k] = v;
+      }
+    }
 
     // 2. 自動判斷目標 Clip (選取次生圖層 vs 主軌)
     const {
+      schemaVersion: _sv,
+      id: _id,
+      name: _n,
+      category: _cat,
+      description: _desc,
+      duration: _d,
+      casterMotion: _cm,
+      randomSeed: _rs,
+      tags: _tags,
+      quality: _q,
+      metadata: _meta,
       layers: _l,
       tracks: _t,
-      duration: _d,
       impactCues: _c,
       impactPresentationMode: _m,
       impact: _imp,
+      usageType: _ut,
+      isBuiltin: _ib,
+      author: _auth,
       ...clipSpecificData
     } = partial;
 
     const mainClip = getSequenceMainClip(this.currentSequence);
     if (mainClip) {
-      if (partial.mainDelay !== undefined) {
+      if (typeof partial.mainDelay === 'number') {
         mainClip.startTime = partial.mainDelay;
       }
-      if (partial.mainDuration !== undefined) {
+      if (typeof partial.mainDuration === 'number') {
         mainClip.duration = partial.mainDuration;
       }
     }
@@ -190,24 +258,22 @@ export class VFXStudioStore {
           };
         }
       }
-    }
-    if (!targetClip) {
+    } else {
+      // 只有在非次生圖層選取時，才作用於主軌 mainClip
       targetClip = mainClip;
     }
 
     if (targetClip && targetClip.payload && Object.keys(clipSpecificData).length > 0) {
+      const existingData = (targetClip.payload.data as Record<string, unknown>) || {};
       targetClip.payload.data = {
-        ...(targetClip.payload.data as any),
+        ...existingData,
         ...clipSpecificData
       };
       // 🛡️ 時空傳播形態轉換保護：若切換為質點運動或 TRAJECTORY，同步糾偏 targetClip 殘留的 MELEE_SWEEP
       if (partial.spatialMode === 'TRAJECTORY' || partial.spatialTopology === 'POINT_TRANSPORT') {
-        const data = targetClip.payload.data as any;
+        const data = targetClip.payload.data as Record<string, unknown>;
         if (data.trajectory === 'MELEE_SWEEP' || data.trajectory === 'AT_TARGET') {
-          data.trajectory = partial.trajectoryPath || 'A_TO_B';
-        }
-        if ((this.currentSequence as any).trajectory === 'MELEE_SWEEP' || (this.currentSequence as any).trajectory === 'AT_TARGET') {
-          (this.currentSequence as any).trajectory = partial.trajectoryPath || 'A_TO_B';
+          data.trajectory = (partial.trajectoryPath as string) || 'A_TO_B';
         }
       }
     }
@@ -216,28 +282,57 @@ export class VFXStudioStore {
     const partTrack = this.currentSequence.tracks.find(t => t.type === 'PARTICLE');
     const partClip = partTrack?.clips[0];
     if (partClip && partClip.payload) {
-      const particleProps: Record<string, any> = {};
+      const particleProps: Record<string, unknown> = {};
       if (partial.trailCount !== undefined) particleProps.trailCount = partial.trailCount;
       if (partial.trailSize !== undefined) particleProps.trailSize = partial.trailSize;
+      if (partial.trailSpread !== undefined) particleProps.trailSpread = partial.trailSpread;
+      if (partial.trailStrands !== undefined) particleProps.trailStrands = partial.trailStrands;
       if (partial.burstCount !== undefined) particleProps.burstCount = partial.burstCount;
+      if (partial.burstTime !== undefined) particleProps.burstTime = partial.burstTime;
       if (partial.enableTrail !== undefined) particleProps.enableTrail = partial.enableTrail;
       if (partial.trailColor !== undefined) particleProps.trailColor = partial.trailColor;
       if (partial.bloomStr !== undefined) particleProps.bloomStr = partial.bloomStr;
       if (partial.bloomRad !== undefined) particleProps.bloomRad = partial.bloomRad;
       if (partial.bloomThresh !== undefined) particleProps.bloomThresh = partial.bloomThresh;
       if (Object.keys(particleProps).length > 0) {
-        partClip.payload.data = { ...(partClip.payload.data as any), ...particleProps };
+        const existingPart = (partClip.payload.data as Record<string, unknown>) || {};
+        partClip.payload.data = { ...existingPart, ...particleProps };
       }
     }
 
-    // 4. 受擊反饋軌同步
-    const impactTrack = this.currentSequence.tracks.find(t => t.type === 'IMPACT');
-    const impactClip = impactTrack?.clips[0];
-    if (impactClip && impactClip.payload && partial.impact) {
-      impactClip.payload.data = {
-        ...(impactClip.payload.data as any),
-        ...partial.impact
-      };
+    // 4. 受擊反饋軌同步 (若尚未建立 IMPACT 軌道，自動為新技能補齊 Canonical 軌道與 Clip)
+    if (partial.impact) {
+      let impactTrack = this.currentSequence.tracks.find(t => t.type === 'IMPACT');
+      if (!impactTrack) {
+        impactTrack = {
+          id: 'trk_impact',
+          name: '受擊反饋軌 (Impact Track)',
+          type: 'IMPACT',
+          enabled: true,
+          clips: [
+            {
+              id: 'clip_impact_0',
+              name: '受擊反饋片段',
+              startTime: 0,
+              duration: this.currentSequence.duration || 1.0,
+              payload: {
+                type: 'IMPACT',
+                data: { ...(partial.impact as Record<string, unknown>) } as any
+              }
+            }
+          ]
+        };
+        this.currentSequence.tracks.push(impactTrack);
+      } else {
+        const impactClip = impactTrack.clips[0];
+        if (impactClip && impactClip.payload) {
+          const existingImpact = (impactClip.payload.data as Record<string, unknown>) || {};
+          impactClip.payload.data = {
+            ...existingImpact,
+            ...(partial.impact as Record<string, unknown>)
+          };
+        }
+      }
     }
 
     this.isDirty = true;

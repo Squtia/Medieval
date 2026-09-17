@@ -22,6 +22,7 @@ export class VFXStage {
   private currentTargetMode: StageTargetMode = 'SINGLE';
   private currentBgMode: StageBackgroundMode = 'pure-black';
   private guidesEnabled: boolean = false;
+  private isMagnified: boolean = false;
   private casterTimer: any = null;
 
   constructor(studioAdapter: VFXStudioAdapter) {
@@ -48,7 +49,13 @@ export class VFXStage {
       btnGuides.addEventListener('click', () => this.toggleGuides());
     }
 
-    // 3. 受擊目標陣型切換
+    // 3. 🎮 卡片比例切換 (實戰 1:1 84px vs 特寫檢視 125px)
+    const btnScale = document.getElementById('btn-toggle-scale');
+    if (btnScale) {
+      btnScale.addEventListener('click', () => this.toggleScaleMode());
+    }
+
+    // 4. 受擊目標陣型切換
     const targetModeSel = document.getElementById('stage-target-mode') as HTMLSelectElement;
     if (targetModeSel) {
       targetModeSel.addEventListener('change', (e) => {
@@ -107,9 +114,35 @@ export class VFXStage {
     return this.guidesEnabled;
   }
 
+  public toggleScaleMode(): boolean {
+    this.isMagnified = !this.isMagnified;
+    const btnScale = document.getElementById('btn-toggle-scale');
+    if (this.isMagnified) {
+      this.viewportEl.classList.add('mode-magnified');
+      if (btnScale) {
+        btnScale.textContent = '🔍 特寫檢視 (125px)';
+        btnScale.style.borderColor = '#fbbf24';
+        btnScale.style.color = '#fef08a';
+      }
+    } else {
+      this.viewportEl.classList.remove('mode-magnified');
+      if (btnScale) {
+        btnScale.textContent = '🎮 實戰 1:1 (84px)';
+        btnScale.style.borderColor = '#facc15';
+        btnScale.style.color = '#fef08a';
+      }
+    }
+    this.renderGuides();
+    return this.isMagnified;
+  }
+
   public updateTargetLayout(mode: StageTargetMode): void {
     this.currentTargetMode = mode;
     if (!this.wrapperEl) return;
+
+    // 清理自身增益特殊樣式
+    this.viewportEl.classList.remove('layout-self-buff');
+    this.casterEl.classList.remove('self-buff-active');
 
     if (mode === 'SINGLE') {
       this.wrapperEl.innerHTML = `
@@ -145,12 +178,20 @@ export class VFXStage {
         </div>
       `;
     } else if (mode === 'SELF_BUFF') {
+      // 🛡️ 自身增益模式：目標即施術者自身 (from === to, 距離 0)
+      this.viewportEl.classList.add('layout-self-buff');
+      this.casterEl.classList.add('self-buff-active');
       this.wrapperEl.innerHTML = `
-        <div class="ref-card target self" id="ref-target" style="border-color: #a855f7; background: rgba(168, 85, 247, 0.18);">
-          <div class="ref-card-icon">✨</div>
-          <div class="ref-card-label" style="color: #e9d5ff;">自身增益/護盾 (Self)</div>
+        <div class="ref-self-buff-notice" style="color: #c084fc; font-size: 0.78rem; border: 1.5px dashed rgba(168, 85, 247, 0.45); padding: 10px 16px; border-radius: 10px; background: rgba(168, 85, 247, 0.08); text-align: center; max-width: 170px; box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15);">
+          <div style="font-size: 1.6rem; margin-bottom: 2px;">✨</div>
+          <div style="font-weight: bold; color: #e9d5ff; margin-bottom: 2px;">自身增益/護盾</div>
+          <div style="font-size: 0.65rem; color: #cbd5e1;">目標即施術者自身<br>(from === to, 距離 0)</div>
         </div>
       `;
+      // 受術目標直接指向施術者自身
+      this.studioAdapter.setTargets([this.casterEl]);
+      this.renderGuides();
+      return;
     } else if (mode === 'SIEGE_GATE') {
       this.wrapperEl.innerHTML = `
         <div class="ref-card target" id="ref-target" style="width: 140px; height: 160px; border-color: #f59e0b; background: rgba(180, 83, 9, 0.2);">
@@ -191,7 +232,20 @@ export class VFXStage {
     const vpRect = this.viewportEl.getBoundingClientRect();
 
     let lineSvg = '';
-    if (casterEl && targetEl) {
+    if (this.currentTargetMode === 'SELF_BUFF' && casterEl) {
+      // 🛡️ 自身增益模式：起終點重合，繪製圍繞施術者之同心波紋
+      const cRect = casterEl.getBoundingClientRect();
+      const cX = (cRect.left + cRect.right) / 2 - vpRect.left;
+      const cY = (cRect.top + cRect.bottom) / 2 - vpRect.top;
+      lineSvg = `
+        <circle cx="${cX}" cy="${cY}" r="52" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.8">
+          <animate attributeName="r" values="44;58;44" dur="2.4s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.4;0.9;0.4" dur="2.4s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="${cX}" cy="${cY}" r="5" fill="#c084fc" stroke="#ffffff" stroke-width="1.5" />
+        <text x="${cX}" y="${cY + 70}" fill="#c084fc" font-size="10" text-anchor="middle" font-weight="bold" opacity="0.9">自身受術中心 (from === to)</text>
+      `;
+    } else if (casterEl && targetEl) {
       const cRect = casterEl.getBoundingClientRect();
       const tRect = targetEl.getBoundingClientRect();
       const cX = (cRect.left + cRect.right) / 2 - vpRect.left;
@@ -213,7 +267,7 @@ export class VFXStage {
       <line x1="${cx}" y1="0" x2="${cx}" y2="${h}" stroke="#a855f7" stroke-width="1" stroke-dasharray="2 4" opacity="0.35" />
       <line x1="0" y1="${cy}" x2="${w}" y2="${cy}" stroke="#a855f7" stroke-width="1" stroke-dasharray="2 4" opacity="0.35" />
       <circle cx="${cx}" cy="${cy}" r="3" fill="#a855f7" opacity="0.6" />
-      <!-- 彈道瞄準直線 -->
+      <!-- 彈道瞄準直線或自身波紋 -->
       ${lineSvg}
     `;
   }

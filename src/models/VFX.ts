@@ -20,7 +20,9 @@ export type VFXShaderMode =
   | 'HOLY_LIGHT'           // 神聖光耀天罰柱
   | 'DARK_VOID'            // 暗影虛空侵蝕
   | 'SLASH_BLADE'          // 刀刃弧芒與殘影斬光
-  | 'EARTH_SHATTER';       // ⛰️ 地刺與重擊震波 (Earth Spike & Ground Shatter)
+  | 'EARTH_SHATTER'        // ⛰️ 地刺與重擊震波 (Earth Spike & Ground Shatter)
+  | 'SHOCKWAVE'            // 🌊 衝擊波與音波震盪環 (Shockwave Ring & Sonic Blast)
+  | 'ENERGY_SHIELD';       // 🛡️ 能量防護壁壘與神聖護盾 (Energy Shield & Holy Aegis)
 
 export interface VFXImpactConfig {
   hitStopTime: number;          // 命中瞬間定格時間 (ms，例如 30~80ms，營造砍入肉裡的重量感)
@@ -38,7 +40,9 @@ export type SalvoRhythmCurve =
   | 'ACCELERATE'   // 指數急速連射
   | 'DECELERATE'   // 爆發後衰減
   | 'BURST_PAIRS'  // 雙發點射成對
-  | 'STAGGERED';   // 隨機微擾散佈
+  | 'STAGGERED'    // 隨機微擾散佈
+  | 'VOLLEY_SYNC'  // 同步齊射
+  | 'CHAOTIC';     // 混沌不規則節奏
 
 export type VFXRendererType =
   | 'SLASH'
@@ -54,6 +58,8 @@ export interface VFXPreset {
   id: string;
   name: string;
   category: 'PHYSICAL' | 'ELEMENTAL' | 'HOLY_DARK' | 'SPECIAL';
+  usageType?: VFXUsageType;
+  isBuiltin?: boolean;
   description: string;
   
   // 視覺渲染與渲染器形態
@@ -82,6 +88,7 @@ export interface VFXPreset {
   spikes?: number;              // 次生尖刺/碎屑數量
   spikeHeight?: number;         // 尖刺高度
   burstCount?: number;          // 命中爆散粒子數
+  burstTime?: number;           // 碎屑爆發時間點 (s，0 為自動吸附主 CUE 點)
   bloomStr?: number;            // 發光光學強度
   bloomRad?: number;            // 輝光模糊半徑
   bloomThresh?: number;         // 輝光閾值
@@ -102,6 +109,16 @@ export interface VFXPreset {
   salvoSpreadRadius?: number;   // 受擊散佈半徑 (px，多發時落點隨機擾動)
   arcHeight?: number;           // 拋物線高度 (px)
   multiHitImpact?: boolean;     // 是否前段輕顫 + 終結重震
+
+  // 🎯 空間時空路徑與落點正交偏移 (Rule 12.1 正交解耦)
+  targetOffsetX?: number;       // 以目標基準中心為基準的落點微調 X (px)
+  targetOffsetY?: number;       // 以目標基準中心為基準的落點微調 Y (px)
+  trackOffsetX?: number;        // 整條軌道起點與終點的平行平移 X (px)
+  trackOffsetY?: number;        // 整條軌道起點與終點的平行平移 Y (px)
+
+  // 🌟 立體拖尾表現力原地擴充 (Native Trail Pipeline)
+  trailSpread?: number;         // 拖尾粒子錐形擴散寬度 (px，0=細線，>0=厚重煙塵羽流)
+  trailStrands?: number;        // 拖尾股數 (1~3 股微相位交織)
 
   // 🛡️ 專屬幾何與模型紋理形態
   slashShape?: 'CRESCENT' | 'CROSS' | 'WHIRLWIND';
@@ -186,6 +203,12 @@ export interface VFXLayer {
   fadeIn?: number;             // 影格基礎淡入時長 (秒，預設 0.05s)
   fadeOut?: number;            // 影格基礎淡出時長 (秒，預設 0.08s)
   fadeMode?: 'OPACITY' | 'SCALE' | 'BOTH'; // 邊緣衰減模式 (透明度 / 尺寸 / 兩者兼具)
+  targetOffsetX?: number;      // 次生圖層專屬落點微調 X (px)
+  targetOffsetY?: number;      // 次生圖層專屬落點微調 Y (px)
+  trackOffsetX?: number;       // 次生圖層專屬軌道平移 X (px)
+  trackOffsetY?: number;       // 次生圖層專屬軌道平移 Y (px)
+  trailSpread?: number;        // 次生圖層拖尾錐形擴散寬度 (px)
+  trailStrands?: number;       // 次生圖層拖尾股數 (1~3)
   generatesHit?: boolean;      // 舊版相容：是否產生真實戰鬥 HIT 判定
   emitsImpactCue?: boolean;    // 是否產生演出命中 cue (受擊閃光、抖動與跳字)
 }
@@ -237,6 +260,8 @@ export interface VFXMeshClipPayload {
   scale?: number;
   spikeWidth?: number;
   spikeHeight?: number;
+  burstCount?: number;
+  burstTime?: number;
   spikeAngle?: number;
   spikes?: number;
   spikeRadius?: number;
@@ -261,14 +286,23 @@ export interface VFXMeshClipPayload {
   slashAlignToPath?: boolean;
   spikeArrayBehavior?: SpikeArrayBehavior;
   spikeArrayCount?: number;
+  targetOffsetX?: number;
+  targetOffsetY?: number;
+  trackOffsetX?: number;
+  trackOffsetY?: number;
+  trailSpread?: number;
+  trailStrands?: number;
 }
 
 export interface VFXParticleClipPayload {
   burstCount?: number;
+  burstTime?: number;
   trailCount?: number;
   trailSize?: number;
   enableTrail?: boolean;
   trailColor?: string;
+  trailSpread?: number;
+  trailStrands?: number;
   colorCore?: string;
   colorRim?: string;
   scale?: number;
@@ -369,6 +403,8 @@ export interface VFXProjectileClipPayload {
   colorCore?: string;
   colorRim?: string;
   coreBrightness?: number;
+  burstCount?: number;
+  burstTime?: number;
   scale?: number;
   spin?: number;
   path?: VFXTrajectoryPath;
@@ -419,11 +455,15 @@ export interface VFXTrack {
   clips: VFXClip[];
 }
 
+export type VFXUsageType = 'SKILL' | 'MATERIAL';
+
 export interface VFXSequence {
   schemaVersion: number;
   id: string;
   name: string;
   category: 'PHYSICAL' | 'ELEMENTAL' | 'HOLY_DARK' | 'SPECIAL';
+  usageType?: VFXUsageType; // 🌟 核心用途：'SKILL' (技能專用) | 'MATERIAL' (素材圖層，禁綁技能)
+  isBuiltin?: boolean;      // 🌟 官方出廠標記 (官方 30 款 Baseline 唯讀保護)
   description: string;
   duration: number;
   spatialMode?: VFXSpatialMode;
@@ -525,6 +565,7 @@ export function presetToSequence(preset: VFXPreset): VFXSequence {
             type: 'PARTICLE',
             data: {
               burstCount: preset.burstCount,
+              burstTime: preset.burstTime,
               trailCount: preset.trailCount,
               trailSize: preset.trailSize,
               enableTrail: preset.enableTrail,

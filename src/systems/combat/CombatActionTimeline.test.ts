@@ -84,7 +84,8 @@ describe('CombatActionTimeline & Contract Verification', () => {
         'ARC_MULTI',
         'PARABOLA_ARC',
         'SHIELD_BARRIER',
-        'SHOUT_WAVE'
+        'SHOUT_WAVE',
+        'A_TO_B'
       ]);
 
       defaultVFXSequences.forEach((s: any) => {
