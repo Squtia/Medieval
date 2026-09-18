@@ -1,0 +1,1 @@
+{"name":"gemini_web_job_status","description":"查詢指定 request_id 的生圖工作狀態與日誌事件。","parameters":{"properties":{"request_id":{"description":"任務 ID","type":"string"}},"required":["request_id"],"type":"object"}}

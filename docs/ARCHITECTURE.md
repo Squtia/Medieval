@@ -8,7 +8,7 @@
 /
 ├── .agents/                 # AI 行為準則與客製化設定
 ├── docs/                    # 開發日誌、交接、未來擴充藍圖與架構手冊
-│   ├── ARCHITECTURE.md      # [架構總綱] 系統架構、資料流與設計模式
+│   ├── ARCHITECTURE.md      # [架構總綱] 系統架構、資料流與設計模式 (本文件)
 │   ├── CHANGELOG.md         # [開發日誌] 專案演進與功能更動履歷
 │   ├── HANDOVER.md          # [交接文件] 開發進度、已知問題與後續建議
 │   ├── CLASS_SYSTEM.md      # [核心手冊] 12大滿等進階/變異職業、武器綁定與技能池
@@ -17,7 +17,9 @@
 │   ├── MONSTERS_AND_ELEMENTS.md # [核心手冊] 64+隻魔物母庫、種族前綴、元素相剋與動態副將接替規範
 │   ├── MATERIALS_AND_ITEMS.md   # [核心手冊] 全道具、特產、鍛造素材與五大元素附魔石手冊
 │   ├── SKILL_WORKSHOP_SPEC.md   # [核心手冊] 全自訂積木技能工坊規範與效果編譯器設計
-│   ├── VFX_COMBAT_PIPELINE_HANDOVER.md # [P0 接手計畫] 特效工房、戰鬥 HIT、共用播放器與技能管線重構
+│   ├── STORY_STUDIO_UPGRADE_SPEC.md # [核心手冊] 故事工坊多選條件、懸賞連動與規格升級手冊
+│   ├── VFX_ARCHITECTURE_EXECUTION_PLAN.md # [架構手冊] 3D VFX Sequence 規範、時鐘與渲染架構
+│   ├── VFX_COMBAT_PIPELINE_HANDOVER.md # [交接計畫] 特效工房、戰鬥 HIT、共用播放器與技能管線重構
 │   ├── FUTURE_DESIGN.md     # [核心藍圖] 未來系統擴充規範與程式碼引用總覽
 │   ├── game_system_guide.md # [玩法手冊] 全系統玩法指南與工坊架構概覽
 │   ├── STORY_STUDIO_GUIDE.md# 故事條件、英雄連動、討伐據點與測試操作指南
@@ -216,6 +218,81 @@
 
 ---
 
+## 🏛️ 全域架構拓撲圖 (Global Architecture Topology)
+
+透過 `codebase-memory` 靜態圖譜掃描（25,976 節點 / 46,631 條關係邊），本專案維持嚴密的分層單向依賴與資料閉環：
+
+```mermaid
+graph TD
+    subgraph Client ["🎮 使用者互動端 (Client / UI / Views)"]
+        HTML["Templates / index.html (~38行骨架)"]
+        UI_MGR["UIManager / SceneController"]
+        MODALS["ModalController (16+ 獨立彈窗)"]
+        CANVAS["MapScene (Phaser 3 Canvas)"]
+    end
+
+    subgraph CoreEngine ["⚙️ 核心驅動引擎 (Core Engine)"]
+        LOOP["GameLoop (advanceDay)"]
+        BUS["EventBus (全局事件單例)"]
+        STATE["GameState (全局唯一狀態容器 SSOT)"]
+        MGR["SaveManager (自動洗鍊同步)"]
+    end
+
+    subgraph Systems ["🧠 業務邏輯系統 (Systems)"]
+        TOWN["TownManagement / TerritoryDefense"]
+        COMBAT_SYS["CombatSystem / InteractiveCombat"]
+        CHURCH["ChurchSystem (生命持久化)"]
+        NARRATIVE["NarrativeSystem (故事與日常懸賞)"]
+        ROAD_SYS["RoadSystem / ExplorationSystem"]
+        DISPATCH["DispatchSystem / MarketSystem"]
+    end
+
+    subgraph CombatVFX ["✨ 戰鬥與 3D 特效管線 (Zero-Translation Pipeline)"]
+        CAP["CombatActionPlayer"]
+        CLK["PlaybackClock (單一演出時鐘)"]
+        EVAL["VFXTimelineEvaluator (純邏輯求值)"]
+        FX_ENG["CombatFXEngine / VFXPlayer"]
+        RENDERERS["LayerRenderers (Mesh, Particle, ScreenFx)"]
+    end
+
+    subgraph DevStudios ["🛠️ 六大獨立開發工坊 (Developer Studios)"]
+        STUDIO_STORY["📖 Story Studio"]
+        STUDIO_COMBAT["⚔️ Combat Studio"]
+        STUDIO_SKILL["⚡ Skill Workshop"]
+        STUDIO_EQUIP["🔨 Equipment Studio"]
+        STUDIO_VFX["✨ VFX Studio"]
+        STUDIO_ICON["🎨 Icon Studio"]
+    end
+
+    subgraph Storage ["💾 資料庫真理來源 (Data SSOT)"]
+        JSON_DATA[("JSON Data: monsters, skills, vfx_sequences, stories, items")]
+        VITE_API["Vite Dev API (/__vfx_api, /api/save-*)"]
+    end
+
+    %% 資料流連線
+    HTML --> UI_MGR
+    UI_MGR --> MODALS
+    UI_MGR --> CANVAS
+    MODALS --> BUS
+    LOOP -->|DAY_PASSED| BUS
+
+    BUS --> Systems
+    Systems --> STATE
+    STATE --> UI_MGR
+
+    COMBAT_SYS --> CAP
+    CAP --> CLK
+    CLK --> EVAL
+    EVAL --> FX_ENG
+    FX_ENG --> RENDERERS
+
+    DevStudios -->|HTTP POST| VITE_API
+    VITE_API -->|原子寫入| JSON_DATA
+    JSON_DATA -->|冷啟動載入 / 重載| Systems
+```
+
+---
+
 ## 核心設計理念：事件驅動 (Event-Driven)
 所有系統之間**互不知道對方存在**，所有跨系統的溝通都必須透過 `EventBus` 進行。
 
@@ -226,10 +303,11 @@
    - `ThreatSystem` 聽到 `DAY_PASSED` 後推進災難倒數。
    - `TownManagementSystem` 聽到 `DAY_PASSED` 後進行資源生產結算。
    - `NarrativeSystem` 聽到 `DAY_PASSED` 後檢查排程事件並推進故事線。
+   - `ChurchSystem` 聽到 `DAY_PASSED` 後結算教會病房床位治療與傷病休養天數。
 4. **UI 更新**：`main.ts` 定期呼叫 `UIManager.updateUI()` 或監聽特定狀態改變事件重繪畫面。
 
 ### 核心事件列表 (GameEvents)
-- `DAY_PASSED`：天數流逝，驅動所有隨時間變化的邏輯 (內政、災難、冷卻結算)。
+- `DAY_PASSED`：天數流逝，驅動所有隨時間變化的邏輯 (內政、災難、冷卻結算、教會傷病)。
 - `HERO_DIED`：英雄死亡，觸發士氣下降或任務失敗。
 - `COMBAT_REQUESTED` & `COMBAT_FINISHED`：非同步戰鬥結算。
 - `THREAT_ARRIVED`：災難降臨，由 `ThreatSystem` 判定發出，各系統承受相應後果。
@@ -237,9 +315,9 @@
 
 ---
 
-## 🛠️ 五大獨立開發工坊架構 (The 5 Developer Studios Ecosystem)
+## 🛠️ 六大獨立開發工坊生態 (The 6 Developer Studios Ecosystem)
 
-專案提供五套專業的視覺化設計工坊，作為遊戲數據的「單一真相來源產出中樞」：
+專案提供六套專業的視覺化設計工坊，作為遊戲數據的「單一真相來源產出中樞」：
 1. **📖 故事工坊 (`tools/story-studio.html` & `src/tools/StoryStudio.ts`)**：
    * 視覺化編排多線分支劇情、條件引擎、獎勵效果（支援加入英雄 `GRANT_HERO`）與日常懸賞任務。
    * 模組化架構包含 `StoryStudioHeroPicker`、`StoryStudioItemPicker`、`StoryStudioSubjugationPicker` 等全視覺化挑選器。
@@ -254,7 +332,11 @@
 4. **🔨 裝備、素材與配方工坊 (`tools/equipment-studio.html` & `src/tools/EquipmentStudio.ts`)**：
    * 視覺化配置武器、防具、飾品、加工素材、消耗道具與鍛造/改造配方。
    * 支援資產上鎖保護、詞條池挑選、浮動區間配置，並寫入 `equipment_weapons.json` 等資料庫。
-5. **🎨 全圖集圖標工坊 (`tools/icon-studio.html`)**：
+5. **✨ 3D 特效與時間軸工坊 (`tools/vfx-studio.html` & `src/tools/vfx-studio/`)**：
+   * DAW 級多軌時間軸編輯器（`VFXTimeline.ts` Facade 架構：View, Interaction, Commands, Selection）。
+   * 支援 30 款官方技能與全自訂技能之 Canonical Sequence 編輯、熱求值實戰預覽、結界 Shader、`screenShake` 鏡頭震顫與打擊感全管線閉環。
+   * 透過 Vite 本地原生 API（`/__vfx_api/save_ssot`）進行雙向原子讀寫與快照回滾。
+6. **🎨 全圖集圖標工坊 (`tools/icon-studio.html`)**：
    * 管理所有 Sprite 精靈切片、圖集命名空間與 Universal Icon 索引對應。
    * 支援全域 `?flip` 水平鏡像語法糖，在不增加素材體積下達成英雄與怪物朝向精確分離。
 

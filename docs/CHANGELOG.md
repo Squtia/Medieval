@@ -1,3 +1,54 @@
+- **[Docs/EnvironmentSetup] 新增全環境遷移與家用配置手冊 ENVIRONMENT_SETUP.md（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **完整彙整 4 大 Skills**：專案層級 `memory_copilot`、全域使用者層級 `web_token`、IDE 內建 `agy-customizations` 與 `antigravity-guide`。
+    2. **整理 3 大 MCP 伺服器**：`codebase-memory` (靜態圖譜/AST)、`headroom` (動態CCR上下文壓縮)、`gemini-web-bridge` (CDP 網頁版額度橋接)。
+    3. **專案本體相依環境還原指南**：Node.js、Three.js、Phaser、Vite、Vitest 等套件一鍵安裝與常用開發/定向測試指令。
+    4. **提供外帶打包檢查清單 (Migration Checklist)**，方便在個人家用電腦上快速復原完全一致的開發環境。
+  - **文檔路徑**：[docs/ENVIRONMENT_SETUP.md](file:///d:/tryagent/Medieval/docs/ENVIRONMENT_SETUP.md)。
+
+- **[Fix/VFX/VerticalSliceControlReactivityAndCacheUnlocking] 特效工坊「垂直切片控制項實質接通與快取死鎖全面破除（菲涅爾指數、體積火焰光暈、能量光束顏色、神聖天柱熱響應）」完工：Typecheck 0 錯誤、定向測試 5 項 100% 全綠（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **菲涅爾冰晶指數實質接通 (`param-fresnel` $\to$ `uFresnel`)**：
+       - 在 [MeshLayerRenderer.ts:1357-1430](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1357-L1430) 為 `updateFresnelIce` 擴充 `fresnel: number = 2.0` 參數。
+       - 破除寫死常數 `2.0`，在初次建立與每影格求值時實質更新 `cache.iceMaterial.uniforms.uFresnel.value = fresnel`。
+       - 在 [CombatFXEngine.ts:870](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L870) 將面板解析之 `fresnel` 數值精確傳遞。
+    2. **體積火焰光暈快取變數名修正 (`param-glow-radius`, `param-glow-opacity`)**：
+       - 在 [CombatFXEngine.ts:930](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L930) 補齊 `cache.volumetricGlow = glow;`，使火焰光暈即時熱更新區塊不再被永遠略過，半徑、透明度與顏色熱響應 100% 恢復正常。
+    3. **能量貫穿光束命中快取色彩更新 (`param-color-core`, `param-color-rim`)**：
+       - 在 [MeshLayerRenderer.ts:1515-1525](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L1515-L1525) 命中快取的分支中，補齊柱體 `beamMesh.material.color.set(colorRim)` 與端點光環 `beamRing1/2.material.color.set(colorCore)`，徹底破除光束顏色死鎖。
+    4. **神聖天柱色彩與縮放熱更新 (`param-color-core`, `param-scale`)**：
+       - 在 [MeshLayerRenderer.ts:824-845](file:///d:/tryagent/Medieval/src/ui/fx/renderers/MeshLayerRenderer.ts#L824-L845) 為 `updateHolyPillar` 補齊 `colorCore` 參數，更新柱體材質色彩；並將幾何高度動態化為 `450 * scale`。
+       - 在 [CombatFXEngine.ts:1030](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L1030) 傳入當前色彩 `track.colorCore`。
+    5. **單元測試完整性**：
+       - 在 [VFXDeterministicPlayback.test.ts:137-210](file:///d:/tryagent/Medieval/src/ui/fx/VFXDeterministicPlayback.test.ts#L137-L210) 新增實質斷言，驗證菲涅爾指數變化、能量光束跨幀換色與天柱顏色實質響應。
+  - **驗收狀態**：TypeScript 0 錯誤、定向測試 5/5 100% 通過。
+
+- **[Feature/VFX/LayerParticleTrailAndSlashWaveIntegration] 特效工坊「次生圖層獨立粒子拖尾支援」與「斬擊弧光拖尾羽尾流散開 (Spread Width) 及多股相位交織 (Strands Wave)」完工：Typecheck 0 錯誤、定向與全域單元測試 100% 全綠（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **解除主軌鎖死，各次生圖層（`COMPOSITE_LAYER` / `sequence.layers`）獨立支援粒子拖尾**：
+       - 在 [CombatFXEngine.ts:265-345](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L265-L345) 拔除 `if (item.isMain)` 限制。
+       - 拖尾快取改為掛載在各軌道專屬的 `trackGroup.__trailCache` 上，實現多軌/多圖層並存時的粒子實例隔離、樣式熱更新與獨立生命週期管理。
+       - 在 `disposeTrackGroup` 與 `clearStudioPreview` 中補齊 `__trailCache` 的安全釋放循環，徹底杜絕 BufferGeometry 與顯存洩漏。
+    2. **斬擊弧光拖尾支援羽尾流散開與多股微相位動態交織**：
+       - 升級 [TrailLayerRenderer.ts:updateArcTrail](file:///d:/tryagent/Medieval/src/ui/fx/renderers/TrailLayerRenderer.ts#L127-L170)，介面擴充為 `(tipSampler, currentProgress, spreadWidth, strands)`。
+       - 實作刀光非線性聚集與羽尾擴散算法：越靠近刀尖越集中，越遠離刀尖越呈羽流發散；分配至 1~3 股微相位正弦波動，使弧光流動具備與彈道投射物同等的有機動態。
+       - [CombatFXEngine.ts:330](file:///d:/tryagent/Medieval/src/ui/fx/CombatFXEngine.ts#L330) 貫通傳入 `currentTrailSpread` 與 `currentTrailStrands`。
+    3. **單元測試驗證完整**：
+       - 在 [VFXDeterministicPlayback.test.ts:115-135](file:///d:/tryagent/Medieval/src/ui/fx/VFXDeterministicPlayback.test.ts#L115-L135) 實裝斷言，驗證 `spreadWidth` 與 `strands` 對斬擊拖尾頂點產生實質動態位移，且尾端散逸程度顯著大於刀尖聚集點。
+  - **驗收狀態**：TypeScript 0 錯誤、定向測試 100% 通過。
+
+- **[Docs/Architecture/SyncAndTopologyEnhancement] 依據代碼知識圖譜全面重整 ARCHITECTURE.md 總綱、目錄樹與全域架構拓撲（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **全域代碼圖譜校準 (codebase-memory)**：
+       - 透過 `codebase-memory` 針對全專案 25,976 節點與 46,631 條邊關係進行模組邊界與呼叫熱點掃描。
+    2. **補齊目錄樹與模組索引**：
+       - 補齊核心系統：`ChurchSystem` (教會生命持久化)、`TerritoryDefenseSystem` (領地遭遇與圍城防禦)、`FormationDB`、`MapGenerator`。
+       - 補齊完整開發工具：將舊五大工坊更正為「六大獨立開發工坊與預覽工具生態」（加入 `vfx-studio.html`、`three-fx-studio.html`、`battler-preview.html`、`LiveLayoutEditor`、`UIThemeStudio`）。
+       - 補齊新規格手冊與目錄：`STORY_STUDIO_UPGRADE_SPEC.md`、`VFX_ARCHITECTURE_EXECUTION_PLAN.md`、`src/styles/`、`src/utils/`。
+    3. **繪製全域架構拓撲圖 (Mermaid Topology)**：
+       - 加入 Client (Templates/DOM/Phaser) $\to$ Core Engine (GameLoop/EventBus/GameState) $\to$ Systems $\to$ Combat/3D VFX Pipeline $\to$ Dev Studios & SSOT 完整資料閉環圖。
+  - **驗收狀態**：文檔已 100% 同步專案真實架構與規範。
+
 - **[Feature/VFX/EnergyShieldShaderImplementation] 特效工坊「🛡️ 專屬能量結界護盾著色器 (ENERGY_SHIELD) 與蜂巢晶格菲涅爾流光渲染」完工：Typecheck 0 錯誤、全量 28 個測試檔 237 項測試 100% 全綠（2026-09-17）**：
   - **🎯 核心實裝重點**：
     1. **區隔實體盾擊與能量防護結界**：

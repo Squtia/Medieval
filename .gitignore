@@ -6,3 +6,6 @@ dist/
 /.tmp.driveupload
 *.log
 *.tsbuildinfo
+.codebase-memory/
+src/data/hero_backups/
+src/data/snapshots/

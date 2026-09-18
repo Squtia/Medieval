@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { TrailLayerRenderer } from './renderers/TrailLayerRenderer';
 import { ParticleLayerRenderer } from './renderers/ParticleLayerRenderer';
+import { MeshLayerRenderer } from './renderers/MeshLayerRenderer';
 import * as THREE from 'three';
 
 describe('VFXDeterministicPlayback - Phase 0 失敗案例驗證 (確定性隨機與 Math.random 根除)', () => {
@@ -113,7 +114,102 @@ describe('VFXDeterministicPlayback - Phase 0 失敗案例驗證 (確定性隨機
     expect(trail.points.visible).toBe(false);
     expect(trail.material.opacity).toBe(0);
 
+    // 3. 驗證羽尾散開 (spreadWidth) 與相位交織 (strands) 對斬擊頂點位置產生實質動態影響
+    trail.updateArcTrail!(bladeTipSampler, 0.5, 0, 1);
+    const posWithoutSpread = Array.from(trail.points.geometry.attributes.position.array);
+
+    trail.updateArcTrail!(bladeTipSampler, 0.5, 30, 2);
+    const posWithSpreadAndStrands = Array.from(trail.points.geometry.attributes.position.array);
+
+    // 斷言：啟用 spreadWidth 與 strands 後，頂點陣列數值必須產生實質位移
+    expect(posWithoutSpread).not.toEqual(posWithSpreadAndStrands);
+
+    // 斷言：尾端頂點（i = 0，遠離刀尖）位移差值大於刀尖頂點（i = count - 1，靠近刀尖）
+    const tailDiffX = Math.abs(posWithSpreadAndStrands[0] - posWithoutSpread[0]);
+    const tailDiffY = Math.abs(posWithSpreadAndStrands[1] - posWithoutSpread[1]);
+    const tipDiffX = Math.abs(posWithSpreadAndStrands[(trail.count - 1) * 3] - posWithoutSpread[(trail.count - 1) * 3]);
+    const tipDiffY = Math.abs(posWithSpreadAndStrands[(trail.count - 1) * 3 + 1] - posWithoutSpread[(trail.count - 1) * 3 + 1]);
+
+    expect(tailDiffX + tailDiffY).toBeGreaterThan(tipDiffX + tipDiffY);
+
     trail.dispose();
+  });
+
+  it('✅ 驗證垂直切片熱更新：fresnel 指數、能量光束顏色與神聖天柱色彩熱響應', () => {
+    // 1. 驗證 updateFresnelIce 實質更新 uFresnel uniform
+    const frostGroup = new THREE.Group();
+    const cacheFrost: any = {};
+    MeshLayerRenderer.updateFresnelIce(
+      frostGroup,
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(100, 0, 0),
+      0.5,
+      1.0,
+      '#ffffff',
+      '#38bdf8',
+      cacheFrost,
+      'ARROW',
+      75,
+      0.85,
+      1.0,
+      undefined,
+      1.2
+    );
+    expect(cacheFrost.iceMaterial.uniforms.uFresnel.value).toBe(1.2);
+
+    MeshLayerRenderer.updateFresnelIce(
+      frostGroup,
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(100, 0, 0),
+      0.5,
+      1.0,
+      '#ffffff',
+      '#38bdf8',
+      cacheFrost,
+      'ARROW',
+      75,
+      0.85,
+      1.0,
+      undefined,
+      3.5
+    );
+    expect(cacheFrost.iceMaterial.uniforms.uFresnel.value).toBe(3.5);
+
+    // 2. 驗證 updateEnergyBeam 實質熱更新光柱與光環材質色彩
+    const beamGroup = new THREE.Group();
+    const cacheBeam: any = {};
+    MeshLayerRenderer.updateEnergyBeam(
+      beamGroup,
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(100, 0, 0),
+      0.5,
+      1.0,
+      '#ffffff',
+      '#ff0000',
+      1.0,
+      cacheBeam
+    );
+    expect(cacheBeam.beamMesh.material.color.getHexString()).toBe('ff0000');
+
+    // 命中快取時切換色彩：
+    MeshLayerRenderer.updateEnergyBeam(
+      beamGroup,
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(100, 0, 0),
+      0.6,
+      1.0,
+      '#ffff00',
+      '#00ff00',
+      1.0,
+      cacheBeam
+    );
+    expect(cacheBeam.beamMesh.material.color.getHexString()).toBe('00ff00');
+    expect(cacheBeam.beamRing1.material.color.getHexString()).toBe('ffff00');
+
+    // 3. 驗證 updateHolyPillar 實質熱更新柱體顏色
+    const pillarMesh = MeshLayerRenderer.buildHolyPillarMesh(1.0, '#fde047');
+    MeshLayerRenderer.updateHolyPillar(pillarMesh, 0.2, '#00ffff');
+    expect((pillarMesh.material as THREE.MeshBasicMaterial).color.getHexString()).toBe('00ffff');
   });
 });
 

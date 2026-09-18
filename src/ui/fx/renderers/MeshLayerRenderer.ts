@@ -822,7 +822,7 @@ export class MeshLayerRenderer {
    * ☀️ 建立神聖天降光柱 Mesh
    */
   public static buildHolyPillarMesh(scale: number = 1.0, colorCore: string = '#fde047'): THREE.Mesh {
-    const h = 450;
+    const h = 450 * scale;
     const geo = new THREE.CylinderGeometry(20 * scale, 30 * scale, h, 24);
     geo.translate(0, h / 2, 0);
     const mat = new THREE.MeshBasicMaterial({
@@ -835,14 +835,18 @@ export class MeshLayerRenderer {
   }
 
   /**
-   * ☀️ 依進度 p (0~1) 動態求值神聖光柱收縮消散
+   * ☀️ 依進度 p (0~1) 動態求值神聖光柱收縮消散與色彩熱更新
    */
-  public static updateHolyPillar(mesh: THREE.Mesh, progress: number): void {
+  public static updateHolyPillar(mesh: THREE.Mesh, progress: number, colorCore?: string): void {
     const prog = Math.max(0, Math.min(1.0, progress));
     const sc = Math.max(0, 1.0 - prog);
     mesh.scale.set(sc, 1, sc);
     if (mesh.material) {
-      (mesh.material as THREE.MeshBasicMaterial).opacity = sc * 0.9;
+      const mat = mesh.material as THREE.MeshBasicMaterial;
+      mat.opacity = sc * 0.9;
+      if (colorCore) {
+        mat.color.set(colorCore);
+      }
     }
   }
 
@@ -1363,7 +1367,8 @@ export class MeshLayerRenderer {
     glowRadius: number = 75,
     glowOpacity: number = 0.85,
     fadeAlpha: number = 1.0,
-    createGlowFn?: (colorHex: string, size: number, opacity: number) => THREE.Sprite
+    createGlowFn?: (colorHex: string, size: number, opacity: number) => THREE.Sprite,
+    fresnel: number = 2.0
   ): void {
     trackGroup.position.copy(curPos);
     if (curPos.distanceTo(endPos) > 0.01) {
@@ -1385,7 +1390,7 @@ export class MeshLayerRenderer {
 
       // 1. 核心幾何體：由幾何工廠生成，並穿戴頂級菲涅爾 Shader 材質
       const coreGeo = MeshLayerRenderer.createProjectileGeometry(normShape);
-      const coreMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, 2.0);
+      const coreMat = MeshLayerRenderer.createFresnelShaderMaterial(colorCore, colorRim, fresnel);
       const coreMesh = new THREE.Mesh(coreGeo, coreMat);
       cache.frostGroup.add(coreMesh);
       cache.iceMesh = coreMesh;
@@ -1420,6 +1425,7 @@ export class MeshLayerRenderer {
 
     if (cache.iceMaterial?.uniforms?.colorCore) cache.iceMaterial.uniforms.colorCore.value.set(colorCore);
     if (cache.iceMaterial?.uniforms?.colorEdge) cache.iceMaterial.uniforms.colorEdge.value.set(colorRim);
+    if (cache.iceMaterial?.uniforms?.uFresnel) cache.iceMaterial.uniforms.uFresnel.value = fresnel;
     if (cache.iceRing?.material) cache.iceRing.material.color.set(colorRim);
     if (cache.iceMaterial?.uniforms?.uTime) cache.iceMaterial.uniforms.uTime.value = progress * 4.0;
 
@@ -1509,8 +1515,12 @@ export class MeshLayerRenderer {
     }
     cache.beamGroup.visible = true;
     if (cache.beamMesh?.material) {
-      (cache.beamMesh.material as THREE.MeshBasicMaterial).opacity = Math.max(0.2, fadeAlpha * (0.6 + Math.sin(progress * 25) * 0.4));
+      const bMat = cache.beamMesh.material as THREE.MeshBasicMaterial;
+      bMat.opacity = Math.max(0.2, fadeAlpha * (0.6 + Math.sin(progress * 25) * 0.4));
+      bMat.color.set(colorRim);
     }
+    if (cache.beamRing1?.material) (cache.beamRing1.material as THREE.MeshBasicMaterial).color.set(colorCore);
+    if (cache.beamRing2?.material) (cache.beamRing2.material as THREE.MeshBasicMaterial).color.set(colorCore);
   }
 
   /**

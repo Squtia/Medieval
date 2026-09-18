@@ -265,82 +265,82 @@ export class CombatFXEngine extends VFXPlayer {
       const pClip = particleTrack?.clips[0];
       const pData = (pClip?.payload.data || {}) as Record<string, unknown>;
 
-      // 🌟 附著型粒子拖尾處理 (支援斬擊刀尖、飛出劍氣與彈道附著，且支援即時熱更新)
-      if (item.isMain) {
-        const isSlash = item.trackType === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP';
-        const trailCount = Number(resolvedData.trailCount ?? pData.trailCount ?? 0);
-        const isTrailEnabled = trailCount > 0;
+      // 🌟 附著型粒子拖尾處理 (支援主軌與各圖層的斬擊刀尖、飛出劍氣與彈道附著，各圖層獨立快取與熱更新)
+      const isSlash = item.trackType === 'SLASH' || resolvedData.trajectory === 'MELEE_SWEEP';
+      const trailCount = Number(resolvedData.trailCount ?? pData.trailCount ?? 0);
+      const isTrailEnabled = trailCount > 0;
 
-        interface TrailCacheInstance {
-          updateStyle?: (color: string, size: number, scale: number) => void;
-          updateArcTrail?: (tipFn: (prog: number) => THREE.Vector3, p: number) => void;
-          updateTrajectoryTrail?: (startPos: THREE.Vector3, curPos: THREE.Vector3, progress: number, arcHeight?: number, spreadWidth?: number, strands?: number) => void;
-          update: (pos: THREE.Vector3) => void;
-          dispose: () => void;
-        }
-        type CachedGroup = THREE.Group & { __trailCache?: TrailCacheInstance | null };
-        const cachedRoot = rootGroup as CachedGroup;
+      interface TrailCacheInstance {
+        updateStyle?: (color: string, size: number, scale: number) => void;
+        updateArcTrail?: (tipFn: (prog: number) => THREE.Vector3, p: number, spreadWidth?: number, strands?: number) => void;
+        updateTrajectoryTrail?: (startPos: THREE.Vector3, curPos: THREE.Vector3, progress: number, arcHeight?: number, spreadWidth?: number, strands?: number) => void;
+        update: (pos: THREE.Vector3) => void;
+        dispose: () => void;
+      }
+      type CachedTrackGroup = THREE.Group & { __trailCache?: TrailCacheInstance | null };
+      const cachedTrack = trackGroup as CachedTrackGroup;
 
-        const isSalvo =
-          resolvedData.trajectory === 'ARC_MULTI' ||
-          resolvedData.spatialMode === 'ARC_MULTI' ||
-          (typeof resolvedData.salvoCount === 'number' && resolvedData.salvoCount > 1);
-        if (isSalvo && cachedRoot.__trailCache) {
-          cachedRoot.__trailCache.dispose();
-          cachedRoot.__trailCache = null;
-        }
+      const isSalvo =
+        resolvedData.trajectory === 'ARC_MULTI' ||
+        resolvedData.spatialMode === 'ARC_MULTI' ||
+        (typeof resolvedData.salvoCount === 'number' && resolvedData.salvoCount > 1);
+      if (isSalvo && cachedTrack.__trailCache) {
+        cachedTrack.__trailCache.dispose();
+        cachedTrack.__trailCache = null;
+      }
 
-        if (!isSalvo && isTrailEnabled && trailCount > 0 && timeSeconds >= trackStart && timeSeconds < trackEnd && p < 0.999) {
-          const slashPreset = resolvedData;
-          let emissionPos = curPos;
-          if (isSlash) {
-            // 若為飛出劍氣 (POINT_TRANSPORT)，拖尾附著於飛行中的質點；若為原地揮砍，則附著於刀尖弧光
-            if (spatialTopology === 'POINT_TRANSPORT') {
-              emissionPos = curPos;
-            } else {
-              emissionPos = MeshLayerRenderer.calculateSlashBladeTip(slashPreset, p, endPos, reverse);
-            }
-          }
-
-          const currentTrailColor = (resolvedData.trailColor || pData.trailColor || resolvedData.colorRim || pData.colorRim || '#f59e0b') as string;
-          const currentTrailSize = Number(resolvedData.trailSize || pData.trailSize || 8);
-          const currentScale = Number(resolvedData.scale || pData.scale || 1.0);
-          const currentTrailSpread = Number(resolvedData.trailSpread ?? pData.trailSpread ?? 0);
-          const currentTrailStrands = Number(resolvedData.trailStrands ?? pData.trailStrands ?? 1);
-          const currentArcHeight = Number(resolvedData.arcHeight ?? 0);
-
-          let trailCache = cachedRoot.__trailCache;
-          if (!trailCache) {
-            trailCache = TrailLayerRenderer.createTrail(
-              this.scene,
-              emissionPos,
-              currentTrailColor,
-              trailCount,
-              currentTrailSize,
-              currentScale,
-              () => this.getRandom()
-            );
-            cachedRoot.__trailCache = trailCache;
-          } else if (typeof trailCache.updateStyle === 'function') {
-            // 🌟 即時熱更新色彩與粒子尺寸，解決控制項改了沒反應的病灶
-            trailCache.updateStyle(currentTrailColor, currentTrailSize, currentScale);
-          }
-
-          if (isSlash && spatialTopology !== 'POINT_TRANSPORT' && typeof trailCache.updateArcTrail === 'function') {
-            trailCache.updateArcTrail(
-              (prog: number) => MeshLayerRenderer.calculateSlashBladeTip(slashPreset, prog, endPos, reverse),
-              p
-            );
-          } else if (typeof trailCache.updateTrajectoryTrail === 'function') {
-            // 🚀 彈道投射物（含天降流星、飛出劍氣、火球等）統一走確定性彈道軌跡拖尾
-            trailCache.updateTrajectoryTrail(startPos, curPos, p, currentArcHeight, currentTrailSpread, currentTrailStrands);
+      if (!isSalvo && isTrailEnabled && trailCount > 0 && timeSeconds >= trackStart && timeSeconds < trackEnd && p < 0.999) {
+        const slashPreset = resolvedData;
+        let emissionPos = curPos;
+        if (isSlash) {
+          // 若為飛出劍氣 (POINT_TRANSPORT)，拖尾附著於飛行中的質點；若為原地揮砍，則附著於刀尖弧光
+          if (spatialTopology === 'POINT_TRANSPORT') {
+            emissionPos = curPos;
           } else {
-            trailCache.update(emissionPos);
+            emissionPos = MeshLayerRenderer.calculateSlashBladeTip(slashPreset, p, endPos, reverse);
           }
-        } else if (cachedRoot.__trailCache) {
-          cachedRoot.__trailCache.dispose();
-          cachedRoot.__trailCache = null;
         }
+
+        const currentTrailColor = (resolvedData.trailColor || pData.trailColor || resolvedData.colorRim || pData.colorRim || '#f59e0b') as string;
+        const currentTrailSize = Number(resolvedData.trailSize || pData.trailSize || 8);
+        const currentScale = Number(resolvedData.scale || pData.scale || 1.0);
+        const currentTrailSpread = Number(resolvedData.trailSpread ?? pData.trailSpread ?? 0);
+        const currentTrailStrands = Number(resolvedData.trailStrands ?? pData.trailStrands ?? 1);
+        const currentArcHeight = Number(resolvedData.arcHeight ?? 0);
+
+        let trailCache = cachedTrack.__trailCache;
+        if (!trailCache) {
+          trailCache = TrailLayerRenderer.createTrail(
+            this.scene,
+            emissionPos,
+            currentTrailColor,
+            trailCount,
+            currentTrailSize,
+            currentScale,
+            () => this.getRandom()
+          );
+          cachedTrack.__trailCache = trailCache;
+        } else if (typeof trailCache.updateStyle === 'function') {
+          // 🌟 即時熱更新色彩與粒子尺寸，解決控制項改了沒反應的病灶
+          trailCache.updateStyle(currentTrailColor, currentTrailSize, currentScale);
+        }
+
+        if (isSlash && spatialTopology !== 'POINT_TRANSPORT' && typeof trailCache.updateArcTrail === 'function') {
+          trailCache.updateArcTrail(
+            (prog: number) => MeshLayerRenderer.calculateSlashBladeTip(slashPreset, prog, endPos, reverse),
+            p,
+            currentTrailSpread,
+            currentTrailStrands
+          );
+        } else if (typeof trailCache.updateTrajectoryTrail === 'function') {
+          // 🚀 彈道投射物（含天降流星、飛出劍氣、火球等）統一走確定性彈道軌跡拖尾
+          trailCache.updateTrajectoryTrail(startPos, curPos, p, currentArcHeight, currentTrailSpread, currentTrailStrands);
+        } else {
+          trailCache.update(emissionPos);
+        }
+      } else if (cachedTrack.__trailCache) {
+        cachedTrack.__trailCache.dispose();
+        cachedTrack.__trailCache = null;
       }
 
       const renderTrackObj = {
@@ -480,6 +480,10 @@ export class CombatFXEngine extends VFXPlayer {
    * 🧹 安全釋放單一 TrackGroup 及其內部快取幾何與材質
    */
   public static disposeTrackGroup(trackGroup: THREE.Group): void {
+    if ((trackGroup as any).__trailCache) {
+      (trackGroup as any).__trailCache.dispose();
+      (trackGroup as any).__trailCache = null;
+    }
     const cache = (trackGroup as any).__cache;
     if (cache) {
       if (cache.slashGeo) cache.slashGeo.dispose();
@@ -863,6 +867,8 @@ export class CombatFXEngine extends VFXPlayer {
       const glowR = (track.preset as any)?.glowRadius ?? (track as any).glowRadius ?? 75;
       const glowO = (track.preset as any)?.glowOpacity ?? (track as any).glowOpacity ?? 0.85;
 
+      const fresnelExp = Number((track.preset as any)?.fresnel ?? (track as any).fresnel ?? 2.0);
+
       MeshLayerRenderer.updateFresnelIce(
         trackGroup,
         curPos,
@@ -876,7 +882,8 @@ export class CombatFXEngine extends VFXPlayer {
         glowR,
         glowO,
         fadeAlpha,
-        (col, sz, op) => this.createGlowSprite(col, sz, op)
+        (col, sz, op) => this.createGlowSprite(col, sz, op),
+        fresnelExp
       );
       return;
     }
@@ -925,6 +932,7 @@ export class CombatFXEngine extends VFXPlayer {
         );
         cache.volumetricGroup.add(sphere);
         cache.volumetricGroup.add(glow);
+        cache.volumetricGlow = glow;
         cache.flameMat = flameMat;
         trackGroup.add(cache.volumetricGroup);
       }
@@ -1018,12 +1026,13 @@ export class CombatFXEngine extends VFXPlayer {
     // ─────────────────────────────────────────────────────────────
     if (track.shaderMode === 'HOLY_LIGHT' || (track.preset?.trajectory === 'VERTICAL_DROP' && track.preset?.shaderMode === 'HOLY_LIGHT')) {
       trackGroup.position.copy(targetPos);
+      const currentCoreColor = track.colorCore || '#fde047';
       if (!cache.holyPillarMesh) {
-        cache.holyPillarMesh = MeshLayerRenderer.buildHolyPillarMesh(sc, track.colorCore || '#fde047');
+        cache.holyPillarMesh = MeshLayerRenderer.buildHolyPillarMesh(sc, currentCoreColor);
         trackGroup.add(cache.holyPillarMesh);
       }
       cache.holyPillarMesh.visible = true;
-      MeshLayerRenderer.updateHolyPillar(cache.holyPillarMesh, p);
+      MeshLayerRenderer.updateHolyPillar(cache.holyPillarMesh, p, currentCoreColor);
       return;
     }
 
@@ -1240,6 +1249,7 @@ export class CombatFXEngine extends VFXPlayer {
       if (this.studioPreviewSlashGeo) this.studioPreviewSlashGeo.dispose();
       if (this.studioPreviewCrossGeo) this.studioPreviewCrossGeo.dispose();
       if (this.studioPreviewSlashMat) this.studioPreviewSlashMat.dispose();
+      this.studioTrackGroups.forEach(g => CombatFXEngine.disposeTrackGroup(g));
       this.studioPreviewGroup = null;
       this.studioTrackGroups = [];
     }

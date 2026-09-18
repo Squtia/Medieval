@@ -1,0 +1,1 @@
+{"name":"gemini_web_status","description":"檢查 Chrome CDP 9222 偵錯埠連線狀態與 Gemini/ChatGPT Web 是否已就緒。","parameters":{"properties":{},"type":"object"}}

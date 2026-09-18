@@ -10,8 +10,8 @@ export interface TrailInstance {
   count: number;
   currentIndex: number;
   update: (currentPos: THREE.Vector3) => void;
-  updateArcTrail?: (tipSampler: (prog: number) => THREE.Vector3, currentProgress: number) => void;
-  updateTrajectoryTrail?: (startPos: THREE.Vector3, curPos: THREE.Vector3, progress: number, arcHeight?: number) => void;
+  updateArcTrail?: (tipSampler: (prog: number) => THREE.Vector3, currentProgress: number, spreadWidth?: number, strands?: number) => void;
+  updateTrajectoryTrail?: (startPos: THREE.Vector3, curPos: THREE.Vector3, progress: number, arcHeight?: number, spreadWidth?: number, strands?: number) => void;
   updateStyle?: (colorHex: string, size: number, currentScale?: number) => void;
   dispose: () => void;
 }
@@ -128,7 +128,12 @@ export class TrailLayerRenderer {
      * ⚔️ 確定性圓弧刀尖流光取樣 (Deterministic Arc Blade Trail)
      * 沿著過去進度弧線分散取樣，越靠近刀尖越集中，出刀尾聲平滑消散，出刀完畢徹底隱藏零殘留
      */
-    const updateArcTrail = (tipSampler: (prog: number) => THREE.Vector3, currentProgress: number) => {
+    const updateArcTrail = (
+      tipSampler: (prog: number) => THREE.Vector3,
+      currentProgress: number,
+      spreadWidth: number = 0,
+      strands: number = 1
+    ) => {
       const posAttr = geometry.getAttribute('position') as THREE.BufferAttribute;
       if (!posAttr) return;
 
@@ -149,17 +154,30 @@ export class TrailLayerRenderer {
       }
 
       const trailSpan = Math.min(0.35, currentProgress);
+      const strandCount = Math.max(1, Math.min(3, strands));
+
       for (let i = 0; i < count; i++) {
-        const u = i / Math.max(1, count - 1); // 1 = 刀尖, 0 = 尾端
+        const uNorm = i / Math.max(1, count - 1); // 1 = 刀尖, 0 = 尾端
+        const u = Math.pow(uNorm, 1.4); // 非線性聚集於刀尖
         const sampleProg = Math.max(0, currentProgress - (1 - u) * trailSpan);
         const basePos = tipSampler(sampleProg);
-        const jitter = (1 - u * 0.6) * 7 * scale;
+
+        // 🌟 多股微相位交織羽流與散開寬度 (Strands & Flowing Plumes for Slash Trail)
+        const strandIdx = i % strandCount;
+        const strandPhaseOffset = (strandIdx * Math.PI * 2) / strandCount;
+        const flowPhase = currentProgress * 24.0 - (1 - uNorm) * 12.0 + i * 0.45 + strandPhaseOffset;
+        const tailDispersion = 1 - uNorm; // 越往尾部散得越開
+        const extraSpread = spreadWidth * tailDispersion;
+        const waveX = Math.cos(flowPhase * 0.9) * extraSpread;
+        const waveY = Math.sin(flowPhase) * extraSpread;
+        const waveZ = Math.sin(flowPhase * 1.3) * (extraSpread * 0.6);
+        const jitter = (1 - uNorm * 0.7) * 6 * scale;
 
         posAttr.setXYZ(
           i,
-          basePos.x + (rng() - 0.5) * jitter,
-          basePos.y + (rng() - 0.5) * jitter,
-          basePos.z + (rng() - 0.5) * jitter
+          basePos.x + waveX + (rng() - 0.5) * jitter,
+          basePos.y + waveY + (rng() - 0.5) * jitter,
+          basePos.z + waveZ + (rng() - 0.5) * jitter
         );
       }
       posAttr.needsUpdate = true;

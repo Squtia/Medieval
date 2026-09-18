@@ -123,9 +123,9 @@
     "level": 1,
     "isAdvanced": false,
     "customSkills": [
-      "MAGE_ARCANE_MISSILES",
-      "MAGE_ARCANE_MISSILES",
-      "MAGE_ARCANE_MISSILES"
+      "GREATSWORD_WHIRLWIND",
+      "GREATSWORD_WHIRLWIND",
+      "GREATSWORD_WHIRLWIND"
     ],
     "biography": "僅供自動化測試驗證守護傭兵死亡繼承機制的專用英雄。",
     "customAttributes": {
