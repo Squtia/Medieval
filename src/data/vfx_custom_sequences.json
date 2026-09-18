@@ -609,6 +609,26 @@
         "trackOffsetY": -50,
         "mainDelay": 0.23,
         "mainDuration": 0.38
+      },
+      {
+        "id": "layer_1789693614878_369",
+        "name": "衝擊震波光環",
+        "spatialMode": "AT_TARGET",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 1.13,
+        "duration": 0.4,
+        "scale": 1,
+        "enabled": true,
+        "presetId": "VFX_MAT_SHOCKWAVE_01",
+        "trajectory": "SHOUT_WAVE",
+        "waveRotX": 75,
+        "waveRotY": -10,
+        "waveCount": 3,
+        "waveThickness": 18,
+        "waveBlur": 85,
+        "waveRadius": 115,
+        "colorRim": "#ff772e"
       }
     ]
   },
@@ -1132,7 +1152,8 @@
         "targetOffsetY": -20,
         "waveCount": 3,
         "waveThickness": 24,
-        "waveRadius": 100
+        "waveRadius": 125,
+        "colorRim": "#ff700a"
       }
     ],
     "impact": {
@@ -1383,5 +1404,400 @@
     },
     "usageType": "SKILL",
     "isBuiltin": false
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789693938768",
+    "name": "嘲諷",
+    "category": "SPECIAL",
+    "usageType": "MATERIAL",
+    "isBuiltin": false,
+    "description": "全新技能特效",
+    "duration": 0.5,
+    "spatialMode": "AT_CASTER",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_0",
+            "name": "主特效片段",
+            "startTime": 0.14,
+            "duration": 0.19,
+            "payload": {
+              "type": "MESH",
+              "data": {
+                "shaderMode": "SHOCKWAVE",
+                "spatialMode": "AT_CASTER",
+                "colorCore": "#ffffff",
+                "colorRim": "#f97316",
+                "scale": 1.3,
+                "glowRadius": 75,
+                "glowOpacity": 0.85,
+                "coreBrightness": 1.5,
+                "salvoCount": 1,
+                "salvoDuration": 0.35,
+                "rendererType": "PROJECTILE",
+                "trajectory": "SHOUT_WAVE",
+                "waveRotX": 0,
+                "waveRotY": 90,
+                "spatialTopology": "LOCAL_MORPH",
+                "trajectoryPath": "A_TO_B",
+                "spin": 0,
+                "targetOffsetX": 150,
+                "targetOffsetY": 0,
+                "trackOffsetX": 50,
+                "waveCount": 6,
+                "waveRadius": 135,
+                "waveThickness": 5,
+                "waveBlur": 100,
+                "mainDuration": 0.19,
+                "mainDelay": 0.14
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [],
+    "layers": []
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789694182695",
+    "name": "嘲諷技能",
+    "category": "SPECIAL",
+    "usageType": "SKILL",
+    "isBuiltin": false,
+    "description": "全新技能特效",
+    "duration": 0.5,
+    "spatialMode": "AT_CASTER",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_0",
+            "name": "主特效片段",
+            "startTime": 0.03,
+            "duration": 0.23,
+            "payload": {
+              "type": "MESH",
+              "data": {
+                "shaderMode": "SHOCKWAVE",
+                "spatialMode": "AT_CASTER",
+                "colorCore": "#ffffff",
+                "colorRim": "#f97316",
+                "scale": 1,
+                "glowRadius": 75,
+                "glowOpacity": 0.85,
+                "coreBrightness": 1.5,
+                "salvoCount": 1,
+                "salvoDuration": 0.35,
+                "mainDelay": 0.03,
+                "rendererType": "PROJECTILE",
+                "trajectory": "SHOUT_WAVE",
+                "waveCount": 4,
+                "waveRotY": 90,
+                "trackOffsetX": 15,
+                "targetOffsetX": 44,
+                "mainDuration": 0.23
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [],
+    "layers": [
+      {
+        "id": "layer_1789694205741_772",
+        "name": "嘲諷",
+        "spatialMode": "AT_CASTER",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 0.15,
+        "duration": 0.19,
+        "scale": 1,
+        "enabled": true,
+        "presetId": "VFX_CUSTOM_1789693938768",
+        "trajectory": "SHOUT_WAVE",
+        "trajectoryPath": "A_TO_B",
+        "targetOffsetX": 150,
+        "trackOffsetX": 70
+      },
+      {
+        "id": "layer_1789694302605_332",
+        "name": "嘲諷",
+        "spatialMode": "AT_CASTER",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 0.21,
+        "duration": 0.17,
+        "scale": 1.4,
+        "enabled": true,
+        "presetId": "VFX_CUSTOM_1789693938768",
+        "trajectory": "SHOUT_WAVE",
+        "trajectoryPath": "A_TO_B",
+        "trackOffsetX": 160,
+        "targetOffsetX": 150
+      }
+    ]
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789694444327",
+    "name": "致命狙擊",
+    "category": "PHYSICAL",
+    "usageType": "SKILL",
+    "isBuiltin": false,
+    "description": "全新技能特效",
+    "duration": 0.7,
+    "spatialMode": "TRAJECTORY",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_0",
+            "name": "主特效片段",
+            "startTime": 0.31,
+            "duration": 0.13,
+            "payload": {
+              "type": "MESH",
+              "data": {
+                "shaderMode": "FRESNEL_ICE",
+                "spatialMode": "TRAJECTORY",
+                "colorCore": "#ffffff",
+                "colorRim": "#f97316",
+                "scale": 1,
+                "glowRadius": 75,
+                "glowOpacity": 0.85,
+                "coreBrightness": 1.5,
+                "salvoCount": 1,
+                "salvoDuration": 0.35,
+                "mainDuration": 0.13,
+                "mainDelay": 0.31,
+                "trackOffsetY": 0,
+                "trackOffsetX": 0,
+                "targetOffsetX": 122,
+                "trailCount": 85
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [
+      {
+        "cueId": "cue_impact",
+        "time": 0.45,
+        "kind": "IMPACT",
+        "isPrimary": true
+      }
+    ],
+    "layers": [
+      {
+        "id": "layer_1789694473213_313",
+        "name": "嘲諷",
+        "spatialMode": "AT_CASTER",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 0.28,
+        "duration": 0.36,
+        "scale": 1,
+        "enabled": true,
+        "presetId": "VFX_CUSTOM_1789693938768",
+        "trajectory": "SHOUT_WAVE",
+        "trajectoryPath": "A_TO_B",
+        "targetOffsetX": -150,
+        "trackOffsetX": 115,
+        "trackOffsetY": 0,
+        "colorRim": "#ffffff",
+        "waveCount": 4,
+        "waveThickness": 30,
+        "waveRadius": 45
+      },
+      {
+        "id": "layer_1789694525837_591",
+        "name": "符文反制 (Runic Barrier)",
+        "spatialMode": "AT_TARGET",
+        "reverse": false,
+        "shaderMode": "ENERGY_BEAM",
+        "delay": 0.41,
+        "duration": 0.08,
+        "scale": 0.5,
+        "enabled": true,
+        "presetId": "VFX_RUNE_BARRIER",
+        "trajectory": "MELEE_SWEEP",
+        "colorRim": "#ffffff",
+        "colorCore": "#ffffff",
+        "glowRadius": 180,
+        "coreBrightness": 1.3,
+        "glowOpacity": 0.8,
+        "burstTime": 1.35,
+        "targetOffsetX": 150,
+        "trailColor": "#ffffff",
+        "rendererType": "SLASH"
+      }
+    ]
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789695541287",
+    "name": "風精靈之舞",
+    "category": "PHYSICAL",
+    "usageType": "SKILL",
+    "isBuiltin": false,
+    "description": "複製自 致命狙擊",
+    "duration": 0.9,
+    "spatialMode": "TRAJECTORY",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_0",
+            "name": "主特效片段",
+            "startTime": 0.31,
+            "duration": 0.13,
+            "payload": {
+              "type": "MESH",
+              "data": {
+                "shaderMode": "FRESNEL_ICE",
+                "spatialMode": "TRAJECTORY",
+                "colorCore": "#0099ad",
+                "colorRim": "#1a9322",
+                "scale": 1,
+                "glowRadius": 75,
+                "glowOpacity": 0.85,
+                "coreBrightness": 1.5,
+                "salvoCount": 1,
+                "salvoDuration": 0.35,
+                "mainDuration": 0.13,
+                "mainDelay": 0.31,
+                "trackOffsetY": 0,
+                "trackOffsetX": 0,
+                "targetOffsetX": 122,
+                "trailCount": 65,
+                "burstCount": 80,
+                "trailSize": 14,
+                "burstTime": 0,
+                "trailSpread": 16,
+                "trailStrands": 2
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "trk_impact",
+        "name": "受擊反饋軌 (Impact Track)",
+        "type": "IMPACT",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_impact_0",
+            "name": "受擊反饋片段",
+            "startTime": 0,
+            "duration": 0.7,
+            "payload": {
+              "type": "IMPACT",
+              "data": {
+                "hitStopTime": 105,
+                "targetPunchScale": 0.88,
+                "shakeIntensity": 12,
+                "shakeDuration": 0.28,
+                "knockbackDistance": 18,
+                "hitFlashColor": "#ffffff",
+                "screenShake": true
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [
+      {
+        "cueId": "cue_impact",
+        "time": 0.45,
+        "kind": "IMPACT",
+        "isPrimary": true
+      }
+    ],
+    "layers": [
+      {
+        "id": "layer_1789694473213_313",
+        "name": "嘲諷",
+        "spatialMode": "AT_CASTER",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 0.28,
+        "duration": 0.33,
+        "scale": 0.7,
+        "enabled": true,
+        "presetId": "VFX_CUSTOM_1789693938768",
+        "trajectory": "SHOUT_WAVE",
+        "trajectoryPath": "A_TO_B",
+        "targetOffsetX": -150,
+        "trackOffsetX": 115,
+        "trackOffsetY": 0,
+        "colorRim": "#37da34",
+        "waveCount": 2,
+        "waveThickness": 12,
+        "waveRadius": 45,
+        "colorCore": "#ca4444"
+      },
+      {
+        "id": "layer_1789694525837_591",
+        "name": "符文反制 (Runic Barrier)",
+        "spatialMode": "AT_TARGET",
+        "reverse": false,
+        "shaderMode": "DIELECTRIC_LIGHTNING",
+        "delay": 0.39,
+        "duration": 0.14,
+        "scale": 0.3,
+        "enabled": true,
+        "presetId": "VFX_RUNE_BARRIER",
+        "trajectory": "MELEE_SWEEP",
+        "colorRim": "#8affa1",
+        "colorCore": "#ffffff",
+        "glowRadius": 180,
+        "coreBrightness": 1.3,
+        "glowOpacity": 0.8,
+        "burstTime": 1.35,
+        "targetOffsetX": 150,
+        "trailColor": "#ffffff",
+        "rendererType": "SLASH",
+        "fadeOut": 0.43,
+        "fadeIn": 0.39,
+        "spin": 44
+      }
+    ],
+    "impact": {
+      "hitStopTime": 105,
+      "targetPunchScale": 0.88,
+      "shakeIntensity": 12,
+      "shakeDuration": 0.28,
+      "knockbackDistance": 18,
+      "hitFlashColor": "#ffffff",
+      "screenShake": true
+    }
   }
 ]

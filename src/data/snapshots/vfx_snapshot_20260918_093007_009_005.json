@@ -609,6 +609,26 @@
         "trackOffsetY": -50,
         "mainDelay": 0.23,
         "mainDuration": 0.38
+      },
+      {
+        "id": "layer_1789693614878_369",
+        "name": "衝擊震波光環",
+        "spatialMode": "AT_TARGET",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 1.13,
+        "duration": 0.4,
+        "scale": 1,
+        "enabled": true,
+        "presetId": "VFX_MAT_SHOCKWAVE_01",
+        "trajectory": "SHOUT_WAVE",
+        "waveRotX": 75,
+        "waveRotY": -10,
+        "waveCount": 3,
+        "waveThickness": 18,
+        "waveBlur": 85,
+        "waveRadius": 115,
+        "colorRim": "#ff772e"
       }
     ]
   },
@@ -1132,7 +1152,8 @@
         "targetOffsetY": -20,
         "waveCount": 3,
         "waveThickness": 24,
-        "waveRadius": 100
+        "waveRadius": 125,
+        "colorRim": "#ff700a"
       }
     ],
     "impact": {
@@ -1163,8 +1184,8 @@
         "clips": [
           {
             "id": "clip_main_VFX_PHANTOM_SLASH",
-            "startTime": 0.86,
-            "duration": 0.5,
+            "startTime": 0.91,
+            "duration": 0.25,
             "payload": {
               "type": "SLASH",
               "data": {
@@ -1174,14 +1195,14 @@
                 "colorCore": "#e0f2fe",
                 "colorRim": "#0284c7",
                 "scale": 3,
-                "angle": 20,
+                "angle": -60,
                 "rotX": 90,
                 "rotY": 90,
-                "rotZ": 20,
+                "rotZ": -60,
                 "arcSpan": 115,
                 "aspect": 1.1,
-                "bladeWidth": 18,
-                "radius": 45,
+                "bladeWidth": 14,
+                "radius": 80,
                 "reverse": true,
                 "shape": "CROSS",
                 "salvo": {
@@ -1190,21 +1211,22 @@
                   "angleJitter": 0,
                   "alternating": false
                 },
-                "mainDelay": 0.94,
-                "mainDuration": 0.5,
+                "mainDelay": 0.91,
+                "mainDuration": 0.25,
                 "slashRotX": 90,
-                "slashRotZ": 20,
-                "slashAngle": 20,
+                "slashRotZ": -60,
+                "slashAngle": -60,
                 "slashRotY": 90,
                 "slashArcSpan": 115,
                 "slashReverse": true,
-                "slashBladeWidth": 18,
+                "slashBladeWidth": 14,
                 "slashAspect": 1.1,
-                "slashRadius": 45,
+                "slashRadius": 80,
                 "slashAngleJitter": 5,
                 "angleJitter": 5,
                 "slashAlternating": false,
-                "alternating": false
+                "alternating": false,
+                "targetOffsetY": 52
               }
             }
           }
@@ -1304,11 +1326,29 @@
         "reverse": false,
         "shaderMode": "SLASH_BLADE",
         "delay": 0.21,
-        "duration": 0.28,
+        "duration": 0.23,
         "scale": 1,
         "enabled": true,
         "presetId": "VFX_MAT_1789611474404",
-        "trajectory": "MELEE_SWEEP"
+        "trajectory": "MELEE_SWEEP",
+        "slashRotZ": -30,
+        "rotZ": -30,
+        "slashAngle": -30,
+        "angle": -30,
+        "slashRotY": -5,
+        "rotY": -5,
+        "slashRotX": -20,
+        "rotX": -20,
+        "targetOffsetY": 0,
+        "targetOffsetX": -36,
+        "slashArcSpan": 190,
+        "arcSpan": 190,
+        "slashAspect": 1.1,
+        "aspect": 1.1,
+        "slashRadius": 45,
+        "radius": 45,
+        "slashAngleJitter": 0,
+        "angleJitter": 0
       },
       {
         "id": "layer_1789634856297_920",
@@ -1317,7 +1357,7 @@
         "reverse": true,
         "shaderMode": "SLASH_BLADE",
         "delay": 0.41,
-        "duration": 0.27,
+        "duration": 0.23,
         "scale": 1,
         "enabled": true,
         "presetId": "VFX_HEAVY_STRIKE",
@@ -1364,5 +1404,152 @@
     },
     "usageType": "SKILL",
     "isBuiltin": false
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789693938768",
+    "name": "嘲諷",
+    "category": "SPECIAL",
+    "usageType": "MATERIAL",
+    "isBuiltin": false,
+    "description": "全新技能特效",
+    "duration": 0.5,
+    "spatialMode": "AT_CASTER",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_0",
+            "name": "主特效片段",
+            "startTime": 0.14,
+            "duration": 0.19,
+            "payload": {
+              "type": "MESH",
+              "data": {
+                "shaderMode": "SHOCKWAVE",
+                "spatialMode": "AT_CASTER",
+                "colorCore": "#ffffff",
+                "colorRim": "#f97316",
+                "scale": 1.3,
+                "glowRadius": 75,
+                "glowOpacity": 0.85,
+                "coreBrightness": 1.5,
+                "salvoCount": 1,
+                "salvoDuration": 0.35,
+                "rendererType": "PROJECTILE",
+                "trajectory": "SHOUT_WAVE",
+                "waveRotX": 0,
+                "waveRotY": 90,
+                "spatialTopology": "LOCAL_MORPH",
+                "trajectoryPath": "A_TO_B",
+                "spin": 0,
+                "targetOffsetX": 150,
+                "targetOffsetY": 0,
+                "trackOffsetX": 50,
+                "waveCount": 6,
+                "waveRadius": 135,
+                "waveThickness": 5,
+                "waveBlur": 100,
+                "mainDuration": 0.19,
+                "mainDelay": 0.14
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [],
+    "layers": []
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789694182695",
+    "name": "嘲諷技能",
+    "category": "SPECIAL",
+    "usageType": "SKILL",
+    "isBuiltin": false,
+    "description": "全新技能特效",
+    "duration": 0.5,
+    "spatialMode": "AT_CASTER",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_0",
+            "name": "主特效片段",
+            "startTime": 0.03,
+            "duration": 0.23,
+            "payload": {
+              "type": "MESH",
+              "data": {
+                "shaderMode": "SHOCKWAVE",
+                "spatialMode": "AT_CASTER",
+                "colorCore": "#ffffff",
+                "colorRim": "#f97316",
+                "scale": 1,
+                "glowRadius": 75,
+                "glowOpacity": 0.85,
+                "coreBrightness": 1.5,
+                "salvoCount": 1,
+                "salvoDuration": 0.35,
+                "mainDelay": 0.03,
+                "rendererType": "PROJECTILE",
+                "trajectory": "SHOUT_WAVE",
+                "waveCount": 4,
+                "waveRotY": 90,
+                "trackOffsetX": 15,
+                "targetOffsetX": 44,
+                "mainDuration": 0.23
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [],
+    "layers": [
+      {
+        "id": "layer_1789694205741_772",
+        "name": "嘲諷",
+        "spatialMode": "AT_CASTER",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 0.15,
+        "duration": 0.19,
+        "scale": 1,
+        "enabled": true,
+        "presetId": "VFX_CUSTOM_1789693938768",
+        "trajectory": "SHOUT_WAVE",
+        "trajectoryPath": "A_TO_B",
+        "targetOffsetX": 150,
+        "trackOffsetX": 70
+      },
+      {
+        "id": "layer_1789694302605_332",
+        "name": "嘲諷",
+        "spatialMode": "AT_CASTER",
+        "reverse": false,
+        "shaderMode": "SHOCKWAVE",
+        "delay": 0.21,
+        "duration": 0.17,
+        "scale": 1.4,
+        "enabled": true,
+        "presetId": "VFX_CUSTOM_1789693938768",
+        "trajectory": "SHOUT_WAVE",
+        "trajectoryPath": "A_TO_B",
+        "trackOffsetX": 160,
+        "targetOffsetX": 150
+      }
+    ]
   }
 ]

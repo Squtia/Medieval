@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-08-30T08:57:50.454Z",
+  "timestamp": "2026-09-18T01:43:40.798Z",
   "note": "使用者在英雄工坊儲存英雄資料庫",
   "heroes": [
     {
@@ -24,12 +24,12 @@
       ],
       "biography": "昔日瓦倫泰王國的護國大將軍，曾於北方焦土隻身斬殺炎魔，巨劍揮舞之處化為熔岩火海。",
       "customAttributes": {
-        "str": 45,
-        "agi": 15,
-        "con": 30,
-        "int": 3,
-        "spr": 10,
-        "luk": 2,
+        "str": 60,
+        "agi": 25,
+        "con": 60,
+        "int": 8,
+        "spr": 8,
+        "luk": 20,
         "charm": 10,
         "command": 10
       },
@@ -53,7 +53,8 @@
       "isGuardian": false,
       "avatarIndex": 0,
       "avatarIcon": "heroes_female:heroes_female_16",
-      "level": 10,
+      "level": 5,
+      "isAdvanced": false,
       "customSkills": [
         "MAGE_ARCANE_MISSILES",
         "MAGE_STATIC_FIELD",
@@ -61,21 +62,21 @@
       ],
       "biography": "星界方尖碑的首席守護者，掌握著精確引導極寒魔力的新星魔法，被譽為冰封萬物的霜語者。",
       "customAttributes": {
-        "str": 2,
-        "agi": 6,
-        "con": 12,
-        "int": 42,
-        "spr": 26,
-        "luk": 2,
+        "str": 6,
+        "agi": 17,
+        "con": 17,
+        "int": 45,
+        "spr": 27,
+        "luk": 10,
         "charm": 10,
         "command": 10
       },
       "equipment": {
         "weaponTemplateId": "wpn_archmage_staff",
-        "weaponEnhance": 5,
+        "weaponEnhance": 0,
         "weaponElement": "ICE",
         "armorTemplateId": "arm_cloth_robe_t4",
-        "armorEnhance": 4,
+        "armorEnhance": 0,
         "accessoryId": "acc_scholar_pendant"
       }
     },
@@ -117,24 +118,34 @@
       "title": "【測試用騎士】",
       "quality": "R",
       "jobKey": "KNIGHT",
-      "traitKey": "GUARDIAN",
+      "traitKey": "BRAVE",
       "gender": "MALE",
-      "isGuardian": true,
-      "isTestOnly": true,
+      "isGuardian": false,
       "avatarIndex": 0,
+      "avatarIcon": "avatars_male:male_0",
       "level": 1,
+      "isAdvanced": false,
+      "customSkills": [
+        "SPIRIT_ARCHER_SPIRIT_CHAIN",
+        "SPIRIT_ARCHER_SPIRIT_CHAIN",
+        "SPIRIT_ARCHER_SPIRIT_CHAIN"
+      ],
       "biography": "僅供自動化測試驗證守護傭兵死亡繼承機制的專用英雄。",
       "customAttributes": {
         "str": 10,
-        "con": 10,
         "agi": 10,
-        "spr": 10,
+        "con": 10,
         "int": 10,
+        "spr": 10,
         "luk": 10,
-        "charm": 5,
-        "command": 5
+        "charm": 10,
+        "command": 10
       },
-      "equipment": {}
+      "equipment": {
+        "weaponEnhance": 0,
+        "weaponElement": "NONE",
+        "armorEnhance": 0
+      }
     },
     {
       "id": "custom_hero_1788078225739",
@@ -148,7 +159,7 @@
       "avatarIndex": 0,
       "avatarIcon": "npc_common:npc_dragon_f",
       "characterKey": "char_eitsk",
-      "level": 7,
+      "level": 5,
       "isAdvanced": false,
       "customSkills": [
         "eitsk_SKILL_Claw_Strike",
@@ -173,6 +184,44 @@
         "armorTemplateId": "arm_cloth_robe_t3",
         "armorEnhance": 0,
         "accessoryId": "acc_scholar_pendant"
+      }
+    },
+    {
+      "id": "custom_hero_1788240895824",
+      "name": "瓦爾坎",
+      "title": "【龍裔之末】",
+      "quality": "UR",
+      "jobKey": "PRAYER",
+      "traitKey": "STURDY",
+      "gender": "MALE",
+      "isGuardian": false,
+      "avatarIndex": 0,
+      "avatarIcon": "npc_common:npc_dragon_m",
+      "characterKey": "char_Vulkan",
+      "level": 5,
+      "isAdvanced": false,
+      "customSkills": [
+        "Vulkan_SKILL_blood_01",
+        "SKILL_FLAME_BURST",
+        "PRAYER_ARCHBISHOP_MASS_HEAL"
+      ],
+      "biography": "",
+      "customAttributes": {
+        "str": 16,
+        "agi": 8,
+        "con": 35,
+        "int": 25,
+        "spr": 60,
+        "luk": 20,
+        "charm": 10,
+        "command": 10
+      },
+      "equipment": {
+        "weaponTemplateId": "wpn_T1_holy_book_0001",
+        "weaponEnhance": 7,
+        "weaponElement": "NONE",
+        "armorTemplateId": "arm_cloth_t1",
+        "armorEnhance": 7
       }
     }
   ]

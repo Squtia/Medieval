@@ -114,7 +114,7 @@
     "name": "測試用守護騎士",
     "title": "【測試用騎士】",
     "quality": "R",
-    "jobKey": "KNIGHT",
+    "jobKey": "MAGE",
     "traitKey": "BRAVE",
     "gender": "MALE",
     "isGuardian": false,
@@ -123,9 +123,9 @@
     "level": 1,
     "isAdvanced": false,
     "customSkills": [
-      "SKILL_single_test",
-      "SKILL_single_test",
-      "SKILL_single_test"
+      "MAGE_ARCANE_MISSILES",
+      "MAGE_ARCANE_MISSILES",
+      "MAGE_ARCANE_MISSILES"
     ],
     "biography": "僅供自動化測試驗證守護傭兵死亡繼承機制的專用英雄。",
     "customAttributes": {
@@ -134,7 +134,7 @@
       "con": 10,
       "int": 10,
       "spr": 10,
-      "luk": 10,
+      "luk": 50,
       "charm": 10,
       "command": 10
     },

@@ -1144,5 +1144,244 @@
       "hitFlashColor": "#ff0000",
       "screenShake": true
     }
+  },
+  {
+    "schemaVersion": 2,
+    "id": "VFX_CUSTOM_1789635630051",
+    "name": "新幻影連斬",
+    "category": "PHYSICAL",
+    "description": "複製自 幻影連斬 (Phantom Slash)",
+    "duration": 1.5,
+    "spatialMode": "AT_TARGET",
+    "impactPresentationMode": "EXACT_IMPACTS",
+    "tracks": [
+      {
+        "id": "trk_main",
+        "name": "主特效軌 (Main Track)",
+        "type": "MESH",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_main_VFX_PHANTOM_SLASH",
+            "startTime": 0.91,
+            "duration": 0.25,
+            "payload": {
+              "type": "SLASH",
+              "data": {
+                "rendererType": "SLASH",
+                "shaderMode": "SLASH_BLADE",
+                "trajectory": "MELEE_SWEEP",
+                "colorCore": "#e0f2fe",
+                "colorRim": "#0284c7",
+                "scale": 3,
+                "angle": -60,
+                "rotX": 90,
+                "rotY": 90,
+                "rotZ": -60,
+                "arcSpan": 115,
+                "aspect": 1.1,
+                "bladeWidth": 14,
+                "radius": 80,
+                "reverse": true,
+                "shape": "CROSS",
+                "salvo": {
+                  "count": 4,
+                  "rhythm": "ACCELERATE",
+                  "angleJitter": 0,
+                  "alternating": false
+                },
+                "mainDelay": 0.91,
+                "mainDuration": 0.25,
+                "slashRotX": 90,
+                "slashRotZ": -60,
+                "slashAngle": -60,
+                "slashRotY": 90,
+                "slashArcSpan": 115,
+                "slashReverse": true,
+                "slashBladeWidth": 14,
+                "slashAspect": 1.1,
+                "slashRadius": 80,
+                "slashAngleJitter": 5,
+                "angleJitter": 5,
+                "slashAlternating": false,
+                "alternating": false,
+                "targetOffsetY": 52
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "trk_particle",
+        "name": "粒子爆散軌 (Particle Track)",
+        "type": "PARTICLE",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_part_VFX_PHANTOM_SLASH",
+            "startTime": 0,
+            "duration": 1.1,
+            "payload": {
+              "type": "PARTICLE",
+              "data": {
+                "burstCount": 25,
+                "trailCount": 0,
+                "trailSize": 10,
+                "colorCore": "#e0f2fe",
+                "colorRim": "#0284c7",
+                "scale": 0.9,
+                "bloomStr": 1.5,
+                "bloomRad": 0.35,
+                "bloomThresh": 0.15
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "trk_impact",
+        "name": "打擊反饋軌 (Impact Track)",
+        "type": "IMPACT",
+        "enabled": true,
+        "clips": [
+          {
+            "id": "clip_impact_VFX_PHANTOM_SLASH",
+            "startTime": 0.45,
+            "duration": 0.18,
+            "payload": {
+              "type": "IMPACT",
+              "data": {
+                "hitStopTime": 25,
+                "targetPunchScale": 0.97,
+                "shakeIntensity": 13,
+                "shakeDuration": 0.18,
+                "penetrationDistance": 0,
+                "knockbackDistance": 8,
+                "hitFlashColor": "#38bdf8",
+                "screenShake": true,
+                "waveRadius": 65,
+                "waveThickness": 4,
+                "waveBlur": 30,
+                "wavePlane": "CAMERA"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "impactCues": [
+      {
+        "cueId": "PHANTOM_SLASH_1",
+        "time": 0.33,
+        "weight": 0.3,
+        "isPrimary": false
+      },
+      {
+        "cueId": "PHANTOM_SLASH_2",
+        "time": 0.56,
+        "weight": 0.3,
+        "isPrimary": false
+      },
+      {
+        "cueId": "PHANTOM_SLASH_3",
+        "time": 1.03,
+        "weight": 0.4,
+        "isPrimary": true
+      }
+    ],
+    "quality": {
+      "maxParticles": 25,
+      "maxDrawCalls": 12,
+      "maxConcurrentObjects": 30,
+      "allowScreenShake": false,
+      "allowBloom": true
+    },
+    "metadata": {},
+    "layers": [
+      {
+        "id": "layer_1789634500753_339",
+        "name": "斬擊素材",
+        "spatialMode": "AT_TARGET",
+        "reverse": false,
+        "shaderMode": "SLASH_BLADE",
+        "delay": 0.21,
+        "duration": 0.23,
+        "scale": 1,
+        "enabled": true,
+        "presetId": "VFX_MAT_1789611474404",
+        "trajectory": "MELEE_SWEEP",
+        "slashRotZ": -30,
+        "rotZ": -30,
+        "slashAngle": -30,
+        "angle": -30,
+        "slashRotY": -5,
+        "rotY": -5,
+        "slashRotX": -20,
+        "rotX": -20,
+        "targetOffsetY": 0,
+        "targetOffsetX": -36,
+        "slashArcSpan": 190,
+        "arcSpan": 190,
+        "slashAspect": 1.1,
+        "aspect": 1.1,
+        "slashRadius": 45,
+        "radius": 45,
+        "slashAngleJitter": 0,
+        "angleJitter": 0
+      },
+      {
+        "id": "layer_1789634856297_920",
+        "name": "巨力重劈 (Heavy Strike)",
+        "spatialMode": "AT_TARGET",
+        "reverse": true,
+        "shaderMode": "SLASH_BLADE",
+        "delay": 0.41,
+        "duration": 0.23,
+        "scale": 1,
+        "enabled": true,
+        "presetId": "VFX_HEAVY_STRIKE",
+        "trajectory": "MELEE_SWEEP",
+        "slashRotX": -65,
+        "rotX": -65,
+        "slashRotY": 90,
+        "rotY": 90,
+        "slashRotZ": -180,
+        "rotZ": -180,
+        "slashAngle": -180,
+        "angle": -180,
+        "slashArcSpan": 205,
+        "arcSpan": 205,
+        "slashAspect": 0.95,
+        "aspect": 0.95,
+        "slashAngleJitter": 10,
+        "angleJitter": 10,
+        "slashBladeWidth": 19,
+        "bladeWidth": 19,
+        "mainDelay": 0.86,
+        "trailCount": 0
+      }
+    ],
+    "impact": {
+      "hitStopTime": 25,
+      "targetPunchScale": 0.97,
+      "shakeIntensity": 13,
+      "shakeDuration": 0.18,
+      "penetrationDistance": 0,
+      "knockbackDistance": 8,
+      "hitFlashColor": "#38bdf8",
+      "screenShake": true,
+      "waveRadius": 65,
+      "waveThickness": 4,
+      "waveBlur": 30,
+      "wavePlane": "CAMERA"
+    },
+    "casterMotion": {
+      "stepForward": 0,
+      "recoil": 0,
+      "tiltAngle": 0,
+      "motionDuration": 0.3
+    },
+    "usageType": "SKILL",
+    "isBuiltin": false
   }
 ]
