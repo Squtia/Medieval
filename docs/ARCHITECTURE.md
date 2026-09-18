@@ -370,6 +370,7 @@
      - `TimelineCommands.ts`：Cue/Layer 增刪修改與軌道 Solo/Mute/Lock 業務命令。
      - `TimelineSelection.ts`：選取狀態管理與 Inspector 連動。
 4. **渲染與實例隔離管線 (Layer Renderers & Instance Registry)**：
-   - **專職 Layer Renderers**：`MeshLayerRenderer`（刀光網格/晶刺）、`ParticleLayerRenderer`（爆散火花）、`TrailLayerRenderer`（拖尾/電弧）、`ImpactLayerRenderer`（光環波）、`ScreenFxRenderer`（震屏閃光）。
-   - **`VFXEffectInstance.ts` & `VFXInstanceRegistry`**：每次播放具備獨立 3D Root 與 Track Groups，並設有 32 實例上限自動淘汰降級防線，實戰 AOE 多目標打擊完全隔離。
-   - **公開品質預算指標**：`VFXPlayer.getPerformanceMetrics()` 公開 Draw Calls、Triangles 與粒子數，杜絕外部私有反射存取。
+    - **專職 Layer Renderers**：`MeshLayerRenderer`（刀光網格/晶刺/六角蜂巢能量結界護盾 `createEnergyShieldShaderMaterial`）、`ParticleLayerRenderer`（爆散火花）、`TrailLayerRenderer`（拖尾/電弧）、`ImpactLayerRenderer`（光環波）、`ScreenFxRenderer`（震屏閃光與 `screenShake` 全景地動晃動）。
+    - **`VFXEffectInstance.ts` & `VFXInstanceRegistry`**：每次播放具備獨立 3D Root 與 Track Groups，並設有 32 實例上限自動淘汰降級防線，實戰 AOE 多目標打擊完全隔離。
+    - **公開品質預算指標**：`VFXPlayer.getPerformanceMetrics()` 公開 Draw Calls、Triangles 與粒子數，杜絕外部私有反射存取。
+    - **結界著色器與打擊閉環**：`ENERGY_SHIELD` 著色器具備動態 Hexagonal Grid 與 Fresnel 菲涅爾邊緣發光，徹底區隔肉身盾擊；打擊感面板全面打通 `screenShake` 與新技能 Canonical `type: 'IMPACT'` 軌道自動補齊，達成全路徑資料閉環。
