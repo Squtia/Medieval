@@ -1049,6 +1049,7 @@ export class EquipmentStudioController {
     (byId('ee-mp') as HTMLInputElement).value = this.formatStatInput(eff.mp, ranges.mp);
     (byId('ee-hit') as HTMLInputElement).value = this.formatStatInput(eff.hit, ranges.hit);
     (byId('ee-crit') as HTMLInputElement).value = this.formatStatInput(eff.crit ?? (eq?.slot === EquipmentSlot.WEAPON ? 5 : 0), ranges.crit);
+    (byId('ee-block') as HTMLInputElement).value = this.formatStatInput((eff as any).blockRate, ranges.blockRate);
 
     const pool = eq?.affixPool || [];
     (byId('affix-sharp') as HTMLInputElement).checked = pool.includes('鋒利');
@@ -1243,6 +1244,7 @@ export class EquipmentStudioController {
       const mpParsed = this.parseStatInput((byId('ee-mp') as HTMLInputElement).value);
       const hitParsed = this.parseStatInput((byId('ee-hit') as HTMLInputElement).value);
       const critParsed = this.parseStatInput((byId('ee-crit') as HTMLInputElement).value);
+      const blockParsed = this.parseStatInput((byId('ee-block') as HTMLInputElement).value);
 
       const combatStatRanges: Partial<Record<string, [number, number]>> = {};
       if (patkParsed.range) combatStatRanges.patk = patkParsed.range;
@@ -1253,6 +1255,7 @@ export class EquipmentStudioController {
       if (mpParsed.range) combatStatRanges.mp = mpParsed.range;
       if (hitParsed.range) combatStatRanges.hit = hitParsed.range;
       if (critParsed.range) combatStatRanges.crit = critParsed.range;
+      if (blockParsed.range) combatStatRanges.blockRate = blockParsed.range;
 
       const fixedSkill = ((byId('ee-fixed-skill') as HTMLInputElement)?.value || '').trim();
       const skillPool = [...this.currentSkillPool];
@@ -1294,8 +1297,9 @@ export class EquipmentStudioController {
           hp: hpParsed.base,
           mp: mpParsed.base,
           hit: hitParsed.base,
-          crit: critParsed.base
-        },
+          crit: critParsed.base,
+          blockRate: blockParsed.base > 0 ? blockParsed.base : undefined
+        } as any,
         combatStatRanges,
         randomPool: {
           attributes: rndAttrs,

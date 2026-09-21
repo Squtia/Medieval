@@ -391,14 +391,11 @@ export class InteractiveCombatSession {
       const infCount = this.assignedTroops.infantry;
       if (infCount > 0 && this.tacticCds.SHIELD_WALL <= 0) {
         this.tacticCds.SHIELD_WALL = 3;
-        const { shieldHp, blockChanceBonus } = LordCommanderSystem.calculateShieldWall(infCount);
-        this.playerTeam.filter(p => p.currentHp > 0 && (p.row === FormationRow.FRONT || p.gridR === 0)).forEach(frontP => {
-          frontP.statusEffects.push({ type: StatusEffectType.BUFF_DEF, duration: 1, value: blockChanceBonus });
-        });
+        const { shieldHp } = LordCommanderSystem.calculateShieldWall(infCount);
         turnEvents.push({
           type: CombatEventType.COMMANDER_SHIELD_WALL,
           shieldRemaining: shieldHp,
-          text: `🛡️ 【👑 領主軍令·鋼鐵盾牆】步兵軍團（${infCount}人）立起重盾方陣！前排獲得 +${blockChanceBonus}% 格擋增益！`
+          text: `🛡️ 【👑 領主軍令·鋼鐵盾牆】步兵軍團（${infCount}人）立起鋼鐵護盾防線！獲得 ${shieldHp} 點軍團護盾保護！`
         });
       }
     } else if (order === 'VOLLEY_FIRE') {
@@ -806,7 +803,24 @@ export class InteractiveCombatSession {
       baseDmg = Math.max(1, Math.floor(baseDmg * 0.75)); // 🏰 城垛掩體減傷 25%
     }
     const isCrit = Random.next() < (actor.stats.critChance || 5) / 100;
-    const finalDmg = Math.floor(isCrit ? baseDmg * ((actor.stats.critDmgPct || 150) / 100) : baseDmg);
+    let finalDmg = Math.floor(isCrit ? baseDmg * ((actor.stats.critDmgPct || 150) / 100) : baseDmg);
+
+    // 🛡️ 第一層：騎士系盾牌格擋判定 (持劍盾/符文盾生效，減傷 50%)
+    const targetBlockRate = target.stats?.blockRate || 0;
+    let isBlocked = false;
+    if (targetBlockRate > 0 && Random.next() * 100 < targetBlockRate) {
+      isBlocked = true;
+      finalDmg = Math.max(1, Math.floor(finalDmg * 0.5));
+      events.push({
+        type: CombatEventType.BLOCK,
+        actorId: actor.id,
+        actorName: actor.name,
+        targetId: target.id,
+        targetName: target.name,
+        damage: finalDmg,
+        text: `🛡️ ${target.name} 舉盾精準格擋了 ${actor.name} 的攻擊！傷害降低 50%！`
+      });
+    }
 
     target.currentHp = Math.max(0, target.currentHp - finalDmg);
 
@@ -816,7 +830,7 @@ export class InteractiveCombatSession {
     }
 
     events.push({
-      type: isCrit ? CombatEventType.CRIT : CombatEventType.HIT,
+      type: isBlocked ? CombatEventType.BLOCK : (isCrit ? CombatEventType.CRIT : CombatEventType.HIT),
       actorId: actor.id,
       actorName: actor.name,
       targetId: target.id,
@@ -824,7 +838,7 @@ export class InteractiveCombatSession {
       damage: finalDmg,
       targetHp: target.currentHp,
       targetMaxHp: target.maxHp,
-      text: `${actor.name} 對 ${target.name} 發動攻擊，造成 ${finalDmg} 點傷害！${isCrit ? '💥 暴擊！' : ''}${isTargetDefender && isSiege ? ' 🛡️(城垛掩體減傷)' : ''}`
+      text: `${actor.name} 對 ${target.name} 發動攻擊，造成 ${finalDmg} 點傷害！${isBlocked ? '🛡️(格擋減傷 50%) ' : (isCrit ? '💥 暴擊！' : '')}${isTargetDefender && isSiege ? ' 🛡️(城垛掩體減傷)' : ''}`
     });
   }
 

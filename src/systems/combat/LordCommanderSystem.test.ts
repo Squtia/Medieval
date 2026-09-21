@@ -38,8 +38,8 @@ describe('領主親征與軍令指揮中樞系統測試 (LordCommanderSystem Tes
     expect(emptyWall.blockChanceBonus).toBe(0);
 
     const activeWall = LordCommanderSystem.calculateShieldWall(50);
-    expect(activeWall.shieldHp).toBe(3000); // 50 * 60
-    expect(activeWall.blockChanceBonus).toBe(30);
+    expect(activeWall.shieldHp).toBe(848); // Math.floor(Math.sqrt(50) * 120) = 848
+    expect(activeWall.blockChanceBonus).toBe(0); // 原生拔除假格擋率，維持純護盾池
   });
 
   it('3. 弓兵【漫天箭雨】與騎兵【破陣衝鋒】計算傷害與控制機率', () => {
@@ -124,4 +124,29 @@ describe('領主親征與軍令指揮中樞系統測試 (LordCommanderSystem Tes
     expect(shieldWallEvent).toBeDefined();
     expect(shieldWallEvent?.text).toContain('鋼鐵盾牆');
   });
+
+  it('5. 驗證傭兵統帥 (Command) 軍團帶兵容量計算 (calculateTeamTroopCap)', () => {
+    // 空隊伍
+    expect(LordCommanderSystem.calculateTeamTroopCap([])).toBe(0);
+
+    // 模擬 1 位統帥 5 的普通傭兵 (基礎 20 + 5 * 10 = 70 人)
+    const adv1 = {
+      id: 'adv_1',
+      name: '一般傭兵',
+      getEffectiveAttributes: () => ({ command: 5 })
+    } as any;
+    expect(LordCommanderSystem.calculateTeamTroopCap([adv1])).toBe(70);
+
+    // 模擬 1 位統帥 20 的名將 (基礎 20 + 20 * 10 = 220 人)
+    const advGeneral = {
+      id: 'adv_gen',
+      name: '大將軍',
+      getEffectiveAttributes: () => ({ command: 20 })
+    } as any;
+    expect(LordCommanderSystem.calculateTeamTroopCap([advGeneral])).toBe(220);
+
+    // 兩人組隊：70 + 220 = 290 人
+    expect(LordCommanderSystem.calculateTeamTroopCap([adv1, advGeneral])).toBe(290);
+  });
 });
+

@@ -483,6 +483,7 @@ export interface CombatStats {
   speed: number;     // 速度 (決定出手順序)
   critRate: number;  // 爆擊率 (%)
   critDmg: number;   // 爆擊傷害 (%)
+  blockRate?: number;// 格擋率 (%)，僅騎士系或持盾武器生效
   atk: number;       // 攻擊力 (為 patk 或 matk 較高者)
   def: number;       // 防禦力 (為 pdef)
 }

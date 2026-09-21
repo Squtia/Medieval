@@ -436,10 +436,19 @@ export class Adventurer {
         stats.evade += equip.combatEffects.evade || 0;
         stats.speed += equip.combatEffects.speed || 0;
         stats.critRate += equip.combatEffects.critRate || 0;
+        if (equip.combatEffects.blockRate) {
+          stats.blockRate = (stats.blockRate || 0) + equip.combatEffects.blockRate;
+        }
       }
     }
 
     stats.critRate = Math.min(90, stats.critRate);
+    if (stats.blockRate) {
+      // 格擋率上限 70%
+      stats.blockRate = Math.min(70, stats.blockRate);
+    } else {
+      stats.blockRate = 0;
+    }
     stats.atk = Math.max(stats.patk, stats.matk);
     stats.def = stats.pdef;
 

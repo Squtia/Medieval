@@ -1,3 +1,56 @@
+- **[Docs/Design/TavernTrophyAndRecruitmentAffinity] 酒館戰利品陳列架系統機制與爵位天賦規格納入靈感庫（2026-09-21）**：
+  - **🎯 核心規劃重點**：
+    1. **酒館榮譽之壁 / 戰利品陳列架 (Trophy Stand System)**：
+       - 酒館介面規劃「榮譽之壁」展示台，提供 1~3 個展示槽位，可自由鑲嵌魔物戰利品（素材或 Boss 首級紀念物），無損自由更換。
+    2. **三層招募引力模型 (Three-Tier Attraction Model)**：
+       - **品質引力 (Quality Bait)**：高階戰利品名望氣場改寫靜態機率，SR 提升至 20%~30%、SSR 提升至 10%~15%。
+       - **職業引力 (Class Affinity)**：依據戰利品種族與魔力屬性，定向提高特定流派到訪權重（如狼王爪引狂戰士/騎士，巫妖骨引死靈法師/學者，融煉魔鋼引魔劍士/符文騎士等）。
+       - **UR 傳奇信標 (Legendary UR Beacon)**：陳列世界級超稀有戰利品（如深淵龍王逆鱗）時，每日換日判定觸發專屬奇遇，召喚唯一 UR 傳奇英靈。
+    3. **爵位天賦面設計**：
+       - 規劃「傳奇聚賢樓（槽位+1/引力+50%）」、「千金買骨（2件T3保底SR/聘金-25%）」、「王者信標（UR事件率2倍/忠誠滿格）」與「戰功懸賞令（老爹高額收購）」。
+    4. **權威手冊同步**：記載於 [docs/NOBLE_TALENTS_BRAINSTORMING.md](file:///d:/tryagent/Medieval/docs/NOBLE_TALENTS_BRAINSTORMING.md)。
+
+- **[Feature/Combat/ShieldWallSqrtAndCommandTroopCap] 步兵軍團護盾開根號重構 (支援 100~500 人軍團) 與傭兵統帥 (Command) 帶兵上限全管線實裝（2026-09-21）**：
+  - **🎯 核心實裝重點**：
+    1. **三大兵種全數值開根號對齊 (消滅破萬失衡隱患)**：
+       - 在 [src/systems/combat/LordCommanderSystem.ts](file:///d:/tryagent/Medieval/src/systems/combat/LordCommanderSystem.ts) 將步兵【鋼鐵盾牆】護盾公式由線性 `validCount * 60` 重構為非線性開根號邊際模型：`shieldHp = Math.floor(Math.sqrt(validCount) * 120)`。
+       - 弓兵（$\sqrt{N} \times 32$）、騎兵（$\sqrt{N} \times 45$）與步兵（$\sqrt{N} \times 120$）數值架構 100% 對齊，全面支援 100 ~ 500 人中世紀宏大軍團出征。
+    2. **盤活閒置八維屬性：統帥 (Command) 帶兵上限全管線貫通**：
+       - 在 [src/systems/combat/LordCommanderSystem.ts](file:///d:/tryagent/Medieval/src/systems/combat/LordCommanderSystem.ts) 實裝 `calculateTeamTroopCap(adventurers)`。
+       - 換算公式：每位參戰傭兵提供「基礎 20 人 + 自身統帥 (Command) × 10 人」。
+       - 5 人平民隊伍（平均統帥 5）帶兵上限約 350 人；方旗騎士名將率領的精銳軍團可達 500 人上限。
+    3. **攻城遠征與防禦戰介面動態連動與約束**：
+       - 重構 [src/templates/modals-combat-trade.html](file:///d:/tryagent/Medieval/src/templates/modals-combat-trade.html) 攻城遠征軍團兵力標題，新增統帥容量徽章 `#off-troop-cap-badge`。
+       - 在 [src/ui/modals/OffensiveSiegeModalController.ts](file:///d:/tryagent/Medieval/src/ui/modals/OffensiveSiegeModalController.ts) 實裝即時容量求值、超標標紅警告、出征防護攔截與「全出戰」按統帥容量上限智能優先填補（步 > 弓 > 騎）。
+       - 同步修正 [src/ui/modals/TerritoryDefenseModalController.ts](file:///d:/tryagent/Medieval/src/ui/modals/TerritoryDefenseModalController.ts) 護盾預覽為 SSOT `calculateShieldWall`。
+    4. **權威手冊與單元測試同步**：
+       - [docs/ATTRIBUTE_SYSTEM.md](file:///d:/tryagent/Medieval/docs/ATTRIBUTE_SYSTEM.md) 更新統帥 CMD 屬性定位與軍團兵種開根號公式。
+       - [docs/NOBLE_TALENTS_BRAINSTORMING.md](file:///d:/tryagent/Medieval/docs/NOBLE_TALENTS_BRAINSTORMING.md) 規格同步。
+       - [src/systems/combat/LordCommanderSystem.test.ts](file:///d:/tryagent/Medieval/src/systems/combat/LordCommanderSystem.test.ts) 與 [src/systems/combat/KnightShieldBlock.test.ts](file:///d:/tryagent/Medieval/src/systems/combat/KnightShieldBlock.test.ts) 9/9 測試全數通過。
+  - **驗收狀態**：TypeScript 0 報錯、單元測試 100% 通過。
+
+- **[Feature/Combat/KnightShieldBlockRateAndDamageMitigation] 騎士系盾牌武器格擋率 (Block Rate) 全管線實裝、戰鬥減傷 50% 結算、工坊編輯器貫通與步兵虛假格擋清理（2026-09-21）**：
+  - **🎯 核心實裝重點**：
+    1. **騎士系持盾武器格擋率全管線貫通**：
+       - 在 [src/models/types.ts](file:///d:/tryagent/Medieval/src/models/types.ts) 的 `CombatStats` 擴充 `blockRate?: number;`。
+       - 規則嚴格限定：格擋率**僅來自騎士系持盾武器**（`SWORD_AND_SHIELD` 劍盾、`RUNE_SHIELD` 符文盾）。非持盾武器角色格擋率始終為 0。
+       - 階級基礎格擋率（Base Block Rate）：T1/T2 = 30%、T3/T4 = 35%、T5 = 40%。
+       - 裝備生成與隨機詞條：在 [src/systems/EquipmentGenerator.ts](file:///d:/tryagent/Medieval/src/systems/EquipmentGenerator.ts) 實裝騎士盾牌生成時自動賦予對應階級基礎格擋率；並將鍛造/掉落詞條池中的「格擋」實質貫通，抽中時額外浮動 `+0% ~ 30%`。T5 極品最高可疊加至 70%（由 [src/models/Adventurer.ts](file:///d:/tryagent/Medieval/src/models/Adventurer.ts) 實施 70% 硬上限鉗制守護）。
+    2. **裝備工坊 (EquipmentStudio) 屬性配置與詞條貫通**：
+       - 在 [src/templates/equipment-studio.html](file:///d:/tryagent/Medieval/src/templates/equipment-studio.html) 戰鬥數值編輯區新增「🛡️ 格擋率 (Block Rate %)」輸入框 `#ee-block`，並在說明文案標註階級基礎值與浮動區間。
+       - 在 [src/tools/EquipmentStudio.ts](file:///d:/tryagent/Medieval/src/tools/EquipmentStudio.ts) 貫通資料流，支援 `#ee-block` 雙向回填與儲存至 `combatEffects.blockRate` 及 `combatStatRanges.blockRate`。
+    3. **戰鬥核心受擊格擋檢定與全傷害實質減免 50%**：
+       - 在 [src/models/Combat.ts](file:///d:/tryagent/Medieval/src/models/Combat.ts) 的 `CombatEventType` 擴充 `BLOCK = 'BLOCK'`。
+       - 在 [src/systems/CombatSystem.ts](file:///d:/tryagent/Medieval/src/systems/CombatSystem.ts) 與 [src/systems/combat/InteractiveCombatSession.ts](file:///d:/tryagent/Medieval/src/systems/combat/InteractiveCombatSession.ts) 的受擊結算管線中實裝：當受擊角色擁有 `stats.blockRate` 時，發動獨立隨機檢定。
+       - 檢定成功時：**全傷害直接扣減 50%**（`damage = Math.floor(damage * 0.5)`），不分物理與魔法，優先保護護盾池與血量。
+       - 戰鬥日誌如實記載：`🛡️ 亞瑟 舉起盾牌成功格擋！傷害減半 (-120 ➔ 60)`，並派發 `CombatEventType.BLOCK`。
+    4. **視覺層藍光防護跳字支援**：
+       - 在 [src/ui/fx/adapters/CombatStageAdapter.ts](file:///d:/tryagent/Medieval/src/ui/fx/adapters/CombatStageAdapter.ts) 與 [src/ui/fx/adapters/CombatStudioStageAdapter.ts](file:///d:/tryagent/Medieval/src/ui/fx/adapters/CombatStudioStageAdapter.ts) 新增 `BLOCK` 事件適配，當觸發格擋時，於角色卡片上方彈出堅韌藍光描邊跳字 `🛡️ BLOCK! -[dmg]`。
+    5. **步兵偽格擋清理與權威規範手冊同步**：
+       - 清理 [src/systems/combat/LordCommanderSystem.ts](file:///d:/tryagent/Medieval/src/systems/combat/LordCommanderSystem.ts) 的虛假 `blockChanceBonus: 30` 與假 `BUFF_DEF` 文字，步兵回歸純護盾池。天賦獨立設計記載於 `docs/NOBLE_TALENTS_BRAINSTORMING.md`。
+       - 同步更新權威設定手冊 [docs/ATTRIBUTE_SYSTEM.md](file:///d:/tryagent/Medieval/docs/ATTRIBUTE_SYSTEM.md) 與 [docs/CLASS_SYSTEM.md](file:///d:/tryagent/Medieval/docs/CLASS_SYSTEM.md)。
+  - **驗收狀態**：TypeScript 0 報錯、`KnightShieldBlock.test.ts` (4/4)、`LordCommanderSystem.test.ts` (4/4)、`InteractiveCombatSession.test.ts` (3/3)、`CombatSystem.test.ts` (2/2) 全部通過。
+
 - **[Enhance/Combat/FloatingDamageVisualAndDurationUpgrade] 戰鬥傷害跳字尺寸放大、打擊凝滯動畫重構與卡片溢出裁切根因修復（2026-09-18）**：
   - **🎯 核心實裝重點**：
     1. **父容器溢出裁切根因修復（解決「完全沒數字」問題）**：查明卡片容器 `.combat-participant` 因固定尺寸被賦予 `overflow: hidden;`，導致上方彈出之負座標跳字 (`top: -18px` / `top: -24px`) 100% 處在卡片外側而被硬性裁切隱形。在 [style.css](file:///i:/gameproject/Medieval/style.css) Line 1028 將 `.combat-participant` 改為 `overflow: visible;`，並將 `.floating-dmg` 初始幀設為可見 (`opacity: 1`)，同時提昇其定位座標與圖層權重 (`top: -14px`、`z-index: 999`)，徹底解決數字不顯示的問題。

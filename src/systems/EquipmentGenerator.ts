@@ -290,6 +290,18 @@ export class EquipmentGenerator {
       eq.extraSkills = finalSkills;
     }
 
+    // 🌟 騎士系武器（劍盾 SWORD_AND_SHIELD、符文盾 RUNE_SHIELD）專屬階級基礎格擋率
+    const isKnightShield = template.weaponType === 'SWORD_AND_SHIELD' || template.weaponType === 'RUNE_SHIELD';
+    if (isKnightShield) {
+      if (!eq.combatEffects) eq.combatEffects = {};
+      const t = template.tier || 1;
+      let baseBlock = 30;
+      if (t >= 5) baseBlock = 40;
+      else if (t >= 3) baseBlock = 35;
+      else baseBlock = 30; // T1, T2: 30%
+      eq.combatEffects.blockRate = (eq.combatEffects.blockRate || 0) + baseBlock;
+    }
+
     // 🌟 若模板定義了浮動戰鬥數值區間 (combatStatRanges)，在此區間內隨機 Roll 點
     if (template.combatStatRanges) {
       if (!eq.combatEffects) eq.combatEffects = {};
@@ -297,6 +309,23 @@ export class EquipmentGenerator {
         if (range && range.length === 2 && range[0] <= range[1]) {
           const rolled = Random.int(range[0], range[1]);
           eq.combatEffects[stat as keyof CombatStats] = rolled;
+        }
+      }
+    }
+
+    // 🌟 鍛造/掉落隨機詞條抽取 (Affix Pool 實裝貫通)
+    // 若裝備具備 affixPool，掉落抽取 0~2 條，鍛造抽取 1~2 條
+    if (template.affixPool && template.affixPool.length > 0) {
+      if (!eq.combatEffects) eq.combatEffects = {};
+      const pool = [...template.affixPool];
+      const rollCount = Random.int(0, Math.min(2, pool.length));
+      for (let i = 0; i < rollCount; i++) {
+        const pickedIdx = Random.int(0, pool.length - 1);
+        const affix = pool.splice(pickedIdx, 1)[0];
+        if (affix === '格擋') {
+          // 格擋詞條浮動：0 ~ 30%
+          const extraBlock = Random.int(0, 30);
+          eq.combatEffects.blockRate = (eq.combatEffects.blockRate || 0) + extraBlock;
         }
       }
     }

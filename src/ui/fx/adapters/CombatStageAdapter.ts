@@ -403,14 +403,21 @@ export class CombatStageAdapter {
       return;
     }
 
-    // 6. 普通 HP DAMAGE
+    // 6. 普通 HP DAMAGE (支援 BLOCK 格擋跳字)
     const finalDamage = presentationItem ? presentationItem.amount : ev.damage;
     if (finalDamage !== undefined && finalDamage > 0) {
-      const isCrit = presentationItem ? presentationItem.isCrit : (ev.type === CombatEventType.CRIT);
+      const isBlock = ev.type === CombatEventType.BLOCK;
+      const isCrit = !isBlock && (presentationItem ? presentationItem.isCrit : (ev.type === CombatEventType.CRIT));
 
       const dmgEl = document.createElement('div');
-      dmgEl.className = `floating-dmg ${isCrit ? 'crit' : ''}`;
-      dmgEl.textContent = `${isCrit ? '💥 ' : ''}-${finalDamage}`;
+      dmgEl.className = `floating-dmg ${isBlock ? 'floating-block' : (isCrit ? 'crit' : '')}`;
+      if (isBlock) {
+        dmgEl.style.color = '#38bdf8';
+        dmgEl.style.textShadow = '0 0 10px rgba(56,189,248,0.8), 0 0 20px rgba(56,189,248,0.4)';
+        dmgEl.textContent = `🛡️ BLOCK! -${finalDamage}`;
+      } else {
+        dmgEl.textContent = `${isCrit ? '💥 ' : ''}-${finalDamage}`;
+      }
 
       targetEl.appendChild(dmgEl);
       const timer = setTimeout(() => {

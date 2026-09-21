@@ -650,17 +650,13 @@ export class CombatSystem {
 
       // 👑 步兵【鋼鐵盾牆】（第 1 回合與每 3 回合展開）
       if (infCount > 0 && turn % 3 === 1 && playerTeam.some(p => p.currentHp > 0)) {
-        const { shieldHp, blockChanceBonus } = LordCommanderSystem.calculateShieldWall(infCount);
-        // 為所有存活玩家前排成員施加格擋增益
-        playerTeam.filter(p => p.currentHp > 0 && (p.row === FormationRow.FRONT || p.gridR === 0)).forEach(frontP => {
-          frontP.statusEffects.push({ type: StatusEffectType.BUFF_DEF, duration: 1, value: blockChanceBonus });
-        });
+        const { shieldHp } = LordCommanderSystem.calculateShieldWall(infCount);
         const label = isLordCampaign ? '【👑 領主軍令·鋼鐵盾牆】' : '【🛡️ 隨行軍團·步兵護盾】';
         const subject = isLordCampaign ? `步兵軍團（${infCount}人）` : `隨行步兵（${infCount}人）`;
         events.push({
           type: CombatEventType.COMMANDER_SHIELD_WALL,
           shieldRemaining: shieldHp,
-          text: `🛡️ ${label}${subject}立起重盾方陣！前排獲得 +${blockChanceBonus}% 格擋增益！`
+          text: `🛡️ ${label}${subject}立起鋼鐵護盾防線！獲得 ${shieldHp} 點軍團護盾保護！`
         });
       }
 
@@ -1168,6 +1164,23 @@ export class CombatSystem {
         // 守城戰城垛掩體減傷
         if (target.isPlayer && isDefenseSiege) {
           hpDamage = Math.floor(hpDamage * 0.75);
+        }
+
+        // 🛡️ 第一層：騎士系盾牌格擋判定 (持劍盾/符文盾生效，減傷 50%)
+        const targetBlockRate = target.stats?.blockRate || 0;
+        let isBlocked = false;
+        if (targetBlockRate > 0 && Random.next() * 100 < targetBlockRate) {
+          isBlocked = true;
+          hpDamage = Math.max(1, Math.floor(hpDamage * 0.5));
+          events.push({
+            type: CombatEventType.BLOCK,
+            actorId: actor.id,
+            actorName: actor.name,
+            targetId: target.id,
+            targetName: target.name,
+            damage: hpDamage,
+            text: `🛡️ ${target.name} 舉盾精準格擋了 ${actor.name} 的攻擊！傷害降低 50%！`
+          });
         }
 
         const attackActionId = nextActionId('atk', actor.id, turn);

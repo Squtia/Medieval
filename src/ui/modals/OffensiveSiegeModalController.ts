@@ -132,9 +132,19 @@ export class OffensiveSiegeModalController {
       const maxInf = territory.workers?.['INFANTRY'] || 0;
       const maxArc = territory.workers?.['ARCHER'] || 0;
       const maxCav = territory.workers?.['CAVALRY'] || 0;
-      if (infInput) infInput.value = maxInf.toString();
-      if (arcInput) arcInput.value = maxArc.toString();
-      if (cavInput) cavInput.value = maxCav.toString();
+      const cap = this.getTeamTroopCap();
+
+      // 依步兵 > 弓兵 > 騎兵優先級分配，上限為軍團統帥容量
+      let remaining = cap;
+      const inf = Math.min(maxInf, remaining);
+      remaining -= inf;
+      const arc = Math.min(maxArc, remaining);
+      remaining -= arc;
+      const cav = Math.min(maxCav, remaining);
+
+      if (infInput) infInput.value = inf.toString();
+      if (arcInput) arcInput.value = arc.toString();
+      if (cavInput) cavInput.value = cav.toString();
       onTroopChange();
     });
 
@@ -306,12 +316,42 @@ export class OffensiveSiegeModalController {
     this.renderGrid();
   }
 
+  public static getTeamTroopCap(): number {
+    const allSelectedAdvIds = new Set<string>();
+    this.squads.forEach(s => s.selectedIds.forEach(id => allSelectedAdvIds.add(id)));
+    const selectedAdvs = Array.from(allSelectedAdvIds)
+      .map(id => GameState.adventurers.find(a => a.id === id))
+      .filter(Boolean) as import('../../models/Adventurer').Adventurer[];
+    return LordCommanderSystem.calculateTeamTroopCap(selectedAdvs);
+  }
+
   private static updateTroopPreviews(): void {
     const infShieldEl = document.getElementById('off-infantry-shield-preview');
     const arcDmgEl = document.getElementById('off-archer-dmg-preview');
 
-    if (infShieldEl) infShieldEl.textContent = (this.assignedTroops.infantry * 50).toLocaleString();
-    if (arcDmgEl) arcDmgEl.textContent = Math.floor(Math.sqrt(this.assignedTroops.archer) * 32).toLocaleString();
+    if (infShieldEl) {
+      infShieldEl.textContent = LordCommanderSystem.calculateShieldWall(this.assignedTroops.infantry).shieldHp.toLocaleString();
+    }
+    if (arcDmgEl) {
+      arcDmgEl.textContent = Math.floor(Math.sqrt(this.assignedTroops.archer) * 32).toLocaleString();
+    }
+
+    // 🎖️ 統帥帶兵容量徽章更新
+    const cap = this.getTeamTroopCap();
+    const currentTotal = this.assignedTroops.infantry + this.assignedTroops.archer + this.assignedTroops.cavalry;
+    const badge = document.getElementById('off-troop-cap-badge');
+    if (badge) {
+      badge.textContent = `🎖️ 統帥容量: ${currentTotal} / ${cap}`;
+      if (currentTotal > cap) {
+        badge.style.color = '#ef4444';
+        badge.style.borderColor = 'rgba(239, 68, 68, 0.6)';
+        badge.style.background = 'rgba(239, 68, 68, 0.2)';
+      } else {
+        badge.style.color = '#60a5fa';
+        badge.style.borderColor = 'rgba(96, 165, 250, 0.3)';
+        badge.style.background = 'rgba(96, 165, 250, 0.15)';
+      }
+    }
   }
 
   /**
@@ -394,6 +434,13 @@ export class OffensiveSiegeModalController {
       errors.push('第 1 梯隊未配置先鋒傭兵');
     }
 
+    // 4. 統帥容量檢查
+    const totalTroops = this.assignedTroops.infantry + this.assignedTroops.archer + this.assignedTroops.cavalry;
+    const cap = this.getTeamTroopCap();
+    if (totalTroops > cap) {
+      errors.push(`兵力超過統帥容量 (${totalTroops} / ${cap})`);
+    }
+
     if (errors.length > 0) {
       statusMsgEl.style.color = '#f87171';
       statusMsgEl.style.borderColor = '#ef4444';
@@ -405,6 +452,8 @@ export class OffensiveSiegeModalController {
       statusMsgEl.style.background = 'rgba(74,222,128,0.1)';
       statusMsgEl.innerHTML = `✅ 遠征物資與軍備就緒 (預計單程行軍 ${marchDays} 天)，隨時可出征`;
     }
+
+    this.updateTroopPreviews();
   }
 
   private static renderAdvList(): void {
@@ -693,6 +742,13 @@ export class OffensiveSiegeModalController {
 
     if (territory.food < reqFood) {
       ToastManager.show(`⚠️ 領地存糧不足！遠征行軍需 ${reqFood} 糧食 (現有 ${territory.food})！`);
+      return;
+    }
+
+    // 1.5 統帥帶兵容量防禦檢查
+    const troopCap = this.getTeamTroopCap();
+    if (totalTroops > troopCap) {
+      ToastManager.show(`⚠️ 派出的總兵力 (${totalTroops} 人) 超過了當前軍團的統帥容量 (${troopCap} 人)！請調整兵力。`);
       return;
     }
 

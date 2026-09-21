@@ -448,7 +448,10 @@
           <!-- 兵種軍團調派區 (攻城遠征出戰兵力) -->
           <div style="margin-top: 10px; padding: 10px; background: rgba(0,0,0,0.45); border: 1px solid rgba(234,88,12,0.25); border-radius: 6px; flex-shrink: 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-              <span style="font-weight: bold; color: #fbbf24; font-size: 0.88rem;">🪖 遠征軍團兵力 (隨軍步/弓/騎)</span>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span style="font-weight: bold; color: #fbbf24; font-size: 0.88rem;">🪖 遠征軍團兵力 (隨軍步/弓/騎)</span>
+                <span id="off-troop-cap-badge" style="font-size: 0.76rem; color: #60a5fa; background: rgba(96,165,250,0.15); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(96,165,250,0.3);">🎖️ 統帥容量: 0 / 0</span>
+              </div>
               <div style="display: flex; gap: 4px;">
                 <button type="button" id="btn-off-troops-max" class="action-btn" style="padding: 2px 6px; font-size: 0.72rem; background: #059669; color: #fff; border-radius: 3px; border: none; cursor: pointer;">全出戰</button>
                 <button type="button" id="btn-off-troops-zero" class="action-btn" style="padding: 2px 6px; font-size: 0.72rem; background: #475569; color: #e2e8f0; border-radius: 3px; border: none; cursor: pointer;">歸零</button>

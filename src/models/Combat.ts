@@ -74,6 +74,7 @@ export enum CombatEventType {
   WAVE_START = 'WAVE_START',
   HIT = 'HIT',
   MISS = 'MISS',
+  BLOCK = 'BLOCK', // 盾牌或軍團格擋成功 (減傷 50% / 30%)
   CRIT = 'CRIT',
   SKILL_CAST = 'SKILL_CAST', // 施放技能
   STATUS_APPLY = 'STATUS_APPLY',

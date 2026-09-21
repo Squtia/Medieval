@@ -7,6 +7,7 @@ import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/Ad
 import { HeroPicker } from '../components/HeroPicker';
 import { positionFloatingElement } from '../FloatingPosition';
 import { ToastManager } from '../ToastManager';
+import { LordCommanderSystem } from '../../systems/combat/LordCommanderSystem';
 
 export interface SiegeSquadConfig {
   formationId: string;
@@ -267,7 +268,9 @@ export class TerritoryDefenseModalController {
     const arcDmgEl = document.getElementById('siege-archer-dmg-preview');
     const cavSlowEl = document.getElementById('siege-cavalry-slow-preview');
 
-    if (infShieldEl) infShieldEl.textContent = (this.assignedTroops.infantry * 50).toLocaleString();
+    if (infShieldEl) {
+      infShieldEl.textContent = LordCommanderSystem.calculateShieldWall(this.assignedTroops.infantry).shieldHp.toLocaleString();
+    }
     if (arcDmgEl) arcDmgEl.textContent = Math.floor(Math.sqrt(this.assignedTroops.archer) * 35).toLocaleString();
     if (cavSlowEl) cavSlowEl.textContent = Math.floor(Math.sqrt(this.assignedTroops.cavalry) * 28).toLocaleString();
   }

@@ -1,5 +1,6 @@
 import { NobleTitle } from '../../models/types';
 import { CombatParticipant, StatusEffectType, StatusEffect } from '../../models/Combat';
+import { Adventurer } from '../../models/Adventurer';
 
 export interface LordAuraConfig {
   name: string;
@@ -76,14 +77,31 @@ export class LordCommanderSystem {
   }
 
   /**
-   * 計算【鋼鐵盾牆】步兵護盾值與格擋加成
-   * 1 名步兵提供 60 點全隊防禦護盾池
+   * 計算【鋼鐵盾牆】步兵護盾值
+   * 開根號非線性邊際模型：支援 100 ~ 500 人中世紀宏大軍團，消除數值失衡
+   * 基礎公式：floor(sqrt(count) * 120)
    */
   public static calculateShieldWall(infantryCount: number): { shieldHp: number; blockChanceBonus: number } {
     const validCount = Math.max(0, infantryCount || 0);
-    const shieldHp = Math.floor(validCount * 60);
-    const blockChanceBonus = validCount > 0 ? 30 : 0;
+    const shieldHp = Math.floor(Math.sqrt(validCount) * 120);
+    const blockChanceBonus = 0; // 原生格擋率已拔除，後續由步兵天賦提供 50% 獨立格擋
     return { shieldHp, blockChanceBonus };
+  }
+
+  /**
+   * 計算出征隊伍的「統帥 (Command) 帶兵上限」
+   * 每個參戰傭兵提供：基礎 20 人 + 自身統帥值 (Command) × 10 人
+   * 例如：5人隊伍若平均統帥為 5 點，全隊容量為 5 * (20 + 50) = 350 人
+   */
+  public static calculateTeamTroopCap(adventurers: Adventurer[]): number {
+    if (!adventurers || adventurers.length === 0) return 0;
+    return adventurers.reduce((sum, adv) => {
+      if (!adv) return sum;
+      const cmd = (typeof adv.getEffectiveAttributes === 'function')
+        ? (adv.getEffectiveAttributes().command || 0)
+        : (adv.baseAttributes?.command || 0);
+      return sum + 20 + (cmd * 10);
+    }, 0);
   }
 
   /**
