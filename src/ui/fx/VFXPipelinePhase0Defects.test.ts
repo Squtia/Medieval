@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
-import { mapImpactsToCues, CombatActionPlayer, CombatAction, collectCombatActions, isCombatAction } from '../../ui/fx/CombatActionPlayer';
-import { SkillVfxBindingRegistry } from './SkillVfxBindingRegistry';
+import { mapImpactsToCues, CombatActionPlayer, CombatAction, collectCombatActions, isCombatAction } from './CombatActionPlayer';
+import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingRegistry';
 import { VFXImpactCue, VFXSequence } from '../../models/VFX';
-import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
-import { CombatUIManager } from '../../ui/CombatUIManager';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
+import { VFXPresetRepository } from './VFXPresetRepository';
+import { CombatUIManager } from '../CombatUIManager';
+import { CombatFXEngine } from './CombatFXEngine';
 
 /**
  * 🚨 Phase 0：固定現有缺陷測試案例 (Pin Down Existing Defects)

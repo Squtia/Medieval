@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { VFXPreset } from '../../models/VFX';
-import { VFXStudioStore, VFXEditorSelection } from '../../tools/vfx-studio/VFXStudioStore';
-import { getSelectionCapabilities, INSPECTOR_CONTROL_MAP } from '../../tools/vfx-studio/VFXInspector';
+import { VFXStudioStore, VFXEditorSelection } from './VFXStudioStore';
+import { getSelectionCapabilities, INSPECTOR_CONTROL_MAP } from './VFXInspector';
 import { MeshLayerRenderer } from '../../ui/fx/renderers/MeshLayerRenderer';
 
 describe('Phase 3 驗收: Inspector 與欄位收斂 (Capability-Driven & SSOT Duration)', () => {

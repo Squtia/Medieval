@@ -4,6 +4,7 @@ import { Adventurer } from '../../models/Adventurer';
 import { MapNode, NodeLevel, AdventurerState } from '../../models/types';
 import { GameState } from '../../core/GameState';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
+import { HeroPicker } from '../components/HeroPicker';
 import { DispatchTask, EnemyFeature, TaskType, SubjugationMode } from '../../models/DispatchTask';
 import { monsterSystem } from '../../systems/MonsterSystem';
 import { getCombatPrestigeReward, getDifficultyModifiers } from '../../data/BalanceData';
@@ -360,101 +361,66 @@ export class DispatchModalController {
 }
 
   private renderDispatchAdvList() {
-  const container = document.getElementById('dispatch-adv-list');
-  if (!container) return;
-  container.innerHTML = '';
-  
-  const idleAdvs = GameState.adventurers.filter(a => a.currentState === AdventurerState.IDLE);
-  
-  if (idleAdvs.length === 0) {
-    container.innerHTML = '<p style="text-align:center; color:#94a3b8; grid-column: 1 / -1;">目前沒有閒置的冒險者可以派遣。</p>';
-    return;
-  }
+    const container = document.getElementById('dispatch-adv-list');
+    if (!container) return;
 
-  idleAdvs.forEach(adv => {
-    const isSelected = this.selectedAdventurersForDispatch.has(adv.id);
-    const card = document.createElement('div');
-    card.className = 'adventurer-card';
-    if (isSelected) {
-      card.style.borderColor = '#3b82f6';
-      card.style.boxShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
-      card.style.opacity = '0.5';
-    } else {
-      card.draggable = true;
-      card.addEventListener('dragstart', (e) => {
+    HeroPicker.render({
+      container,
+      adventurers: GameState.adventurers,
+      selectedIds: this.selectedAdventurersForDispatch,
+      columns: 3,
+      cardHeight: 100,
+      filter: (a) => a.currentState === AdventurerState.IDLE,
+      emptyMessage: '目前沒有閒置的冒險者可以派遣。',
+      draggable: true,
+      onDragStart: (adv) => {
         this.dragDraggedAdvId = adv.id;
         this.dragSourceSlot = 'pool';
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) tEl.style.opacity = '0';
-      });
-    }
-    
-    card.innerHTML = renderAdventurerCard(adv);
-    
-    const displayClass = (adv as any).currentClass || adv.job.name;
-    const tooltipHtml = getAdventurerTooltipHtml(adv);
-    
-    card.addEventListener('mouseenter', () => {
-      const tEl = document.getElementById('adv-tooltip');
-      if (tEl) { tEl.innerHTML = tooltipHtml; tEl.style.opacity = '1'; }
-    });
-    card.addEventListener('mousemove', (e) => {
-      const tEl = document.getElementById('adv-tooltip');
-      if (tEl) positionFloatingElement(tEl, e.clientX, e.clientY);
-    });
-    card.addEventListener('mouseleave', () => {
-      const tEl = document.getElementById('adv-tooltip');
-      if (tEl) tEl.style.opacity = '0';
-    });
-
-    card.addEventListener('click', () => {
-      const tEl = document.getElementById('adv-tooltip');
-      if (tEl) tEl.style.opacity = '0';
-      
-      if (isSelected) {
-        for (const [key, val] of Object.entries(this.currentGridMap)) {
-          if (val === adv.id) delete this.currentGridMap[key];
-        }
-        this.selectedAdventurersForDispatch.delete(adv.id);
-      } else {
-        if (this.selectedAdventurersForDispatch.size >= 5) {
-          ToastManager.show('隊伍最多只能派出 5 名傭兵！');
-          return;
-        }
-
-        // 戰鬥規則防線：每場戰鬥隊伍最多只能編入 1 位 UR 品質傭兵
-        if (adv.quality === 'UR') {
-          const hasUR = Array.from(this.selectedAdventurersForDispatch).some(id => {
-            const member = GameState.adventurers.find(a => a.id === id);
-            return member?.quality === 'UR';
-          });
-          if (hasUR) {
-            ToastManager.show('⚠️ 戰鬥隊伍限制：每場戰鬥最多只能編入 1 位 UR 品質傭兵！');
+      },
+      onSelect: (adv) => {
+        const isSelected = this.selectedAdventurersForDispatch.has(adv.id);
+        if (isSelected) {
+          for (const [key, val] of Object.entries(this.currentGridMap)) {
+            if (val === adv.id) delete this.currentGridMap[key];
+          }
+          this.selectedAdventurersForDispatch.delete(adv.id);
+        } else {
+          if (this.selectedAdventurersForDispatch.size >= 5) {
+            ToastManager.show('隊伍最多只能派出 5 名傭兵！');
             return;
           }
-        }
 
-        let found = false;
-        for (let r=0; r<3; r++) {
-          for (let c=0; c<3; c++) {
-            const key = `${r}_${c}`;
-            if (!this.currentGridMap[key]) {
-              this.currentGridMap[key] = adv.id;
-              this.selectedAdventurersForDispatch.add(adv.id);
-              found = true;
-              break;
+          // 戰鬥規則防線：每場戰鬥隊伍最多只能編入 1 位 UR 品質傭兵
+          if (adv.quality === 'UR') {
+            const hasUR = Array.from(this.selectedAdventurersForDispatch).some(id => {
+              const member = GameState.adventurers.find(a => a.id === id);
+              return member?.quality === 'UR';
+            });
+            if (hasUR) {
+              ToastManager.show('⚠️ 戰鬥隊伍限制：每場戰鬥最多只能編入 1 位 UR 品質傭兵！');
+              return;
             }
           }
-          if (found) break;
-        }
-      }
-      this.renderDispatchAdvList();
-      this.renderDispatchTeamRoster();
-    });
 
-    container.appendChild(card);
-  });
-}
+          let found = false;
+          for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+              const key = `${r}_${c}`;
+              if (!this.currentGridMap[key]) {
+                this.currentGridMap[key] = adv.id;
+                this.selectedAdventurersForDispatch.add(adv.id);
+                found = true;
+                break;
+              }
+            }
+            if (found) break;
+          }
+        }
+        this.renderDispatchAdvList();
+        this.renderDispatchTeamRoster();
+      }
+    });
+  }
 
   private updateDispatchPowerPreview() {
   let totalPower = 0;

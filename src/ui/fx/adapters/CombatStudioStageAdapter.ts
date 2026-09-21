@@ -379,7 +379,7 @@ export class CombatStudioStageAdapter {
       const timer = setTimeout(() => {
         if (missEl.parentNode) missEl.remove();
         this.activeTimers.delete(timer);
-      }, 800);
+      }, 1300);
       this.activeTimers.add(timer);
       return;
     }
@@ -396,7 +396,7 @@ export class CombatStudioStageAdapter {
         const timer = setTimeout(() => {
           if (healEl.parentNode) healEl.remove();
           this.activeTimers.delete(timer);
-        }, 800);
+        }, 1300);
         this.activeTimers.add(timer);
       }
       return;
@@ -413,7 +413,7 @@ export class CombatStudioStageAdapter {
       const timer = setTimeout(() => {
         if (breakEl.parentNode) breakEl.remove();
         this.activeTimers.delete(timer);
-      }, 900);
+      }, 1300);
       this.activeTimers.add(timer);
       return;
     }
@@ -430,7 +430,7 @@ export class CombatStudioStageAdapter {
         const timer = setTimeout(() => {
           if (shieldEl.parentNode) shieldEl.remove();
           this.activeTimers.delete(timer);
-        }, 800);
+        }, 1300);
         this.activeTimers.add(timer);
       }
       return;
@@ -446,7 +446,7 @@ export class CombatStudioStageAdapter {
       const timer = setTimeout(() => {
         if (statusEl.parentNode) statusEl.remove();
         this.activeTimers.delete(timer);
-      }, 800);
+      }, 1300);
       this.activeTimers.add(timer);
       return;
     }
@@ -464,7 +464,7 @@ export class CombatStudioStageAdapter {
       const timer = setTimeout(() => {
         if (dmgEl.parentNode) dmgEl.remove();
         this.activeTimers.delete(timer);
-      }, 800);
+      }, 1300);
       this.activeTimers.add(timer);
     }
   }

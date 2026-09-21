@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import { TargetType } from '../../models/Skill';
-import { CombatStageAdapter } from '../../ui/fx/adapters/CombatStageAdapter';
-import { MeshLayerRenderer } from '../../ui/fx/renderers/MeshLayerRenderer';
+import { CombatStageAdapter } from './adapters/CombatStageAdapter';
+import { MeshLayerRenderer } from './renderers/MeshLayerRenderer';
 
 // 輕量 Mock DOM 元素
 class MockElement {

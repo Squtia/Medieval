@@ -1,100 +1,103 @@
     <!-- 其他獨立視圖 -->
-    <!-- 設施視圖：自宅 -->
+    <!-- 設施視圖：領主書房 -->
     <div id="view-base" class="facility-view">
-      <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">⬅ 返回街道</button>
-      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🏰 領主書房 (Base)</h2>
-      <div style="display: flex; gap: 20px; flex: 1; align-items: stretch; min-height: 550px;">
+      <div class="facility-header">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em;">← 街道視圖</button>
+        <h2 class="facility-title">領主書房 <span class="facility-sub-lvl">(政務規劃與建築擴建)</span></h2>
+        <div style="width: 100px;"></div>
+      </div>
+      <div style="display: flex; gap: 20px; flex: 1; align-items: stretch; min-height: 0; overflow: hidden;">
         <!-- 勞動力分配面板 -->
-        <div class="glass-panel" style="flex: 1.4; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.6); overflow: hidden;">
+        <div class="glass-panel" style="flex: 1.4; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; background: rgba(24, 18, 13, 0.72); border: 1px solid rgba(217, 119, 6, 0.35); overflow-y: auto;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 6px;">
-            <h3 style="color: #eab308; margin: 0; font-size: 1.15em;">📜 領地工作分配</h3>
-            <div style="font-size: 0.95em; color: #cbd5e1;">
-              閒置人力: <span id="ui-unassigned-workers" style="font-size: 1.2em; font-weight: bold; color: #fff;">0</span>
+            <h3 style="color: #eab308; margin: 0; font-size: 1.15em; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">✦ 領地勞動調度</h3>
+            <div style="font-size: 0.9em; color: #cbd5e1;">
+              閒置人力: <span id="ui-unassigned-workers" style="font-size: 1.15em; font-weight: bold; color: #fff;">0</span>
             </div>
           </div>
           
           <!-- 農夫 / 農田 -->
-          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 0.95em; font-weight: bold; color: #fef08a;">
-                🌾 農田 <span id="ui-facility-lvl-farmland" style="color: #6ee7b7; font-size: 0.9em;">Lv.1</span>
+              <div style="font-size: 0.92em; font-weight: bold; color: #fef08a;">
+                ▪ 農田 <span id="ui-facility-lvl-farmland" style="color: #6ee7b7; font-size: 0.88em; font-weight: normal;">Lv.1</span>
               </div>
-              <button id="btn-upgrade-farmland" class="action-btn btn-upgrade-facility" data-facility="farmland" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">🔨 升級</button>
+              <button id="btn-upgrade-farmland" class="action-btn btn-upgrade-facility" data-facility="farmland" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">擴建升級</button>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="FARMER" data-amount="-1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">-</button>
               <input type="range" class="worker-slider" data-job="FARMER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
               <button class="action-btn btn-assign" data-job="FARMER" data-amount="1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">+</button>
-              <span style="font-size: 0.95em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="FARMER">0</span> 人</span>
+              <span style="font-size: 0.9em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="FARMER">0</span> 人</span>
             </div>
-            <div style="font-size: 0.78em; color: #94a3b8;">每人產出 3 糧/天 (有機率產棉麻)</div>
+            <div style="font-size: 0.76em; color: #94a3b8;">每人產出 3 糧食/天 (有機率產出棉麻)</div>
           </div>
           
           <!-- 獵人 / 獵場 -->
-          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 0.95em; font-weight: bold; color: #fef08a;">
-                🏹 獵場 <span id="ui-facility-lvl-huntingGround" style="color: #6ee7b7; font-size: 0.9em;">Lv.1</span>
+              <div style="font-size: 0.92em; font-weight: bold; color: #fef08a;">
+                ▪ 獵場 <span id="ui-facility-lvl-huntingGround" style="color: #6ee7b7; font-size: 0.88em; font-weight: normal;">Lv.1</span>
               </div>
-              <button id="btn-upgrade-huntingGround" class="action-btn btn-upgrade-facility" data-facility="huntingGround" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">🔨 升級</button>
+              <button id="btn-upgrade-huntingGround" class="action-btn btn-upgrade-facility" data-facility="huntingGround" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">擴建升級</button>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="HUNTER" data-amount="-1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">-</button>
               <input type="range" class="worker-slider" data-job="HUNTER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
               <button class="action-btn btn-assign" data-job="HUNTER" data-amount="1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">+</button>
-              <span style="font-size: 0.95em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="HUNTER">0</span> 人</span>
+              <span style="font-size: 0.9em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="HUNTER">0</span> 人</span>
             </div>
-            <div style="font-size: 0.78em; color: #94a3b8;">每人產出 1 生皮、1 獸肉/天</div>
+            <div style="font-size: 0.76em; color: #94a3b8;">每人產出 1 生皮、1 獸肉/天</div>
           </div>
  
           <!-- 伐木工 / 伐木場 -->
-          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 0.95em; font-weight: bold; color: #fef08a;">
-                🪓 伐木場 <span id="ui-facility-lvl-lumberMill" style="color: #6ee7b7; font-size: 0.9em;">Lv.1</span>
+              <div style="font-size: 0.92em; font-weight: bold; color: #fef08a;">
+                ▪ 伐木場 <span id="ui-facility-lvl-lumberMill" style="color: #6ee7b7; font-size: 0.88em; font-weight: normal;">Lv.1</span>
               </div>
-              <button id="btn-upgrade-lumberMill" class="action-btn btn-upgrade-facility" data-facility="lumberMill" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">🔨 升級</button>
+              <button id="btn-upgrade-lumberMill" class="action-btn btn-upgrade-facility" data-facility="lumberMill" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">擴建升級</button>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="-1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">-</button>
               <input type="range" class="worker-slider" data-job="WOODCUTTER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
               <button class="action-btn btn-assign" data-job="WOODCUTTER" data-amount="1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">+</button>
-              <span style="font-size: 0.95em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="WOODCUTTER">0</span> 人</span>
+              <span style="font-size: 0.9em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="WOODCUTTER">0</span> 人</span>
             </div>
-            <div style="font-size: 0.78em; color: #94a3b8;">每人產出 2 木材/天</div>
+            <div style="font-size: 0.76em; color: #94a3b8;">每人產出 2 木材/天</div>
           </div>
  
           <!-- 礦工 / 採石場 -->
-          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="font-size: 0.95em; font-weight: bold; color: #fef08a;">
-                ⛏️ 採石場 <span id="ui-facility-lvl-quarry" style="color: #6ee7b7; font-size: 0.9em;">Lv.1</span>
+              <div style="font-size: 0.92em; font-weight: bold; color: #fef08a;">
+                ▪ 採石場 <span id="ui-facility-lvl-quarry" style="color: #6ee7b7; font-size: 0.88em; font-weight: normal;">Lv.1</span>
               </div>
-              <button id="btn-upgrade-quarry" class="action-btn btn-upgrade-facility" data-facility="quarry" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">🔨 升級</button>
+              <button id="btn-upgrade-quarry" class="action-btn btn-upgrade-facility" data-facility="quarry" style="padding: 2px 10px; font-size: 0.78em; white-space: nowrap; background: linear-gradient(135deg, #059669, #047857);">擴建升級</button>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="MINER" data-amount="-1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">-</button>
               <input type="range" class="worker-slider" data-job="MINER" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
               <button class="action-btn btn-assign" data-job="MINER" data-amount="1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">+</button>
-              <span style="font-size: 0.95em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="MINER">0</span> 人</span>
+              <span style="font-size: 0.9em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="MINER">0</span> 人</span>
             </div>
-            <div style="font-size: 0.78em; color: #94a3b8;">每人產出 1 石材/天 (機率產鐵)</div>
+            <div style="font-size: 0.76em; color: #94a3b8;">每人產出 1 石材/天 (機率產出鐵礦)</div>
           </div>
           
-          <!-- 哨所 / 衛兵 (依據點等級動態切換) -->
-          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);">
+          <!-- 哨所 / 衛兵 -->
+          <div style="display: flex; flex-direction: column; gap: 4px; background: rgba(0,0,0,0.4); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div id="ui-worker-job-label-INFANTRY" style="font-size: 0.95em; font-weight: bold; white-space: nowrap; color: #fef08a;">
-                🏰 哨所
+              <div id="ui-worker-job-label-INFANTRY" style="font-size: 0.92em; font-weight: bold; white-space: nowrap; color: #fef08a;">
+                ▪ 警戒哨所
               </div>
             </div>
             <div style="display: flex; align-items: center; gap: 8px;">
               <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">-</button>
               <input type="range" class="worker-slider" data-job="INFANTRY" min="0" max="0" value="0" style="flex: 1; accent-color: #eab308; cursor: pointer;">
               <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="1" style="padding: 1px 8px; font-size: 0.9em; height: 24px; min-width: 24px;">+</button>
-              <span style="font-size: 0.95em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="INFANTRY">0</span> 人</span>
+              <span style="font-size: 0.9em; font-weight: bold; color: #eab308; min-width: 48px; text-align: right;"><span class="ui-worker-count" data-job="INFANTRY">0</span> 人</span>
             </div>
-            <div id="ui-worker-job-desc-INFANTRY" style="font-size: 0.78em; color: #94a3b8;">維持治安與防禦，提升敵意掠奪抵禦成功率</div>
+            <div id="ui-worker-job-desc-INFANTRY" style="font-size: 0.76em; color: #94a3b8;">維持領地治安與防禦，提升敵意掠奪抵禦率</div>
           </div>
           
           <div id="ui-net-production" style="margin-top: auto; font-size: 0.88em; text-align: center; background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
@@ -102,21 +105,21 @@
           </div>
         </div>
 
-        <!-- 建築建造與升級面板 (新) -->
-        <div class="glass-panel" style="flex: 1.5; padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.6);">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">🏛️ 領地建築升級</h3>
-          <div id="base-upgrade-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; padding-right: 5px;">
+        <!-- 建築建造與升級面板 -->
+        <div class="glass-panel" style="flex: 1.5; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(24, 18, 13, 0.72); border: 1px solid rgba(217, 119, 6, 0.35); min-height: 0;">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin: 0; font-family: 'Cinzel', serif; letter-spacing: 0.05em; flex-shrink: 0;">◈ 領地建築擴建</h3>
+          <div id="base-upgrade-list" style="display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; padding-right: 5px; min-height: 0;">
             <!-- JS 動態生成建築升級項 -->
           </div>
         </div>
  
         <!-- 其他指令 -->
-        <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 20px; background: rgba(0,0,0,0.6);">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; width: 100%; text-align: center; margin: 0;">其他指令</h3>
-          <button id="btn-explore" class="action-btn" style="font-size: 1.1em; padding: 15px; width: 100%;">🗺️ 探索周邊</button>
-          <button id="btn-base-warehouse" class="action-btn" style="font-size: 1.1em; padding: 15px; width: 100%;">📦 檢視倉庫</button>
-          <button id="btn-todo-list" class="action-btn" style="font-size: 1.1em; padding: 15px; width: 100%; position: relative;">
-            📝 待辦事項
+        <div class="glass-panel" style="flex: 1; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 16px; background: rgba(24, 18, 13, 0.72); border: 1px solid rgba(217, 119, 6, 0.35);">
+          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; width: 100%; text-align: center; margin: 0; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">◈ 政務指令</h3>
+          <button id="btn-explore" class="action-btn" style="font-size: 1em; padding: 12px; width: 100%;">探索周邊區域</button>
+          <button id="btn-base-warehouse" class="action-btn" style="font-size: 1em; padding: 12px; width: 100%;">檢視城堡倉庫</button>
+          <button id="btn-todo-list" class="action-btn" style="font-size: 1em; padding: 12px; width: 100%; position: relative;">
+            待辦政務事項
             <span id="todo-badge" style="position: absolute; top: -10px; right: -10px; background: #ef4444; color: white; border-radius: 50%; width: 24px; height: 24px; font-size: 14px; font-weight: bold; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.5); display: none;">0</span>
           </button>
         </div>
@@ -125,102 +128,105 @@
 
     <!-- 獨立建築：謁見廳 -->
     <div id="view-hall" class="facility-view">
-      <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
-      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">👑 謁見廳 (Hall)</h2>
-      <div style="display: flex; gap: 20px; flex: 1; padding: 0 40px 40px 40px; height: calc(100% - 100px);">
+      <div class="facility-header">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em;">← 街道視圖</button>
+        <h2 class="facility-title">謁見大廳 <span class="facility-sub-lvl">(政務冊封與軍備編制)</span></h2>
+        <div style="width: 100px;"></div>
+      </div>
+      <div style="display: flex; gap: 20px; flex: 1; min-height: 0; overflow: hidden;">
         
         <!-- 左側：官職總覽與管理 -->
-        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.7); overflow-x: hidden; overflow-y: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-bottom: 15px; flex-shrink: 0;">
-            <h3 style="color: #eab308; margin: 0;">🛡️ 據點官職總覽</h3>
-            <button id="btn-make-capital" class="action-btn" style="display: none; padding: 5px 15px; width: auto; font-size: 0.9em; background: #c2410c;">👑 冊封為首都</button>
+        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; background: rgba(24, 18, 13, 0.72); border: 1px solid rgba(217, 119, 6, 0.35); min-height: 0; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin-bottom: 12px; flex-shrink: 0;">
+            <h3 style="color: #eab308; margin: 0; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">✦ 據點官職席位</h3>
+            <button id="btn-make-capital" class="action-btn" style="display: none; padding: 5px 15px; width: auto; font-size: 0.9em; background: #c2410c;">冊封為首都</button>
           </div>
           
-          <!-- 上方：官職槽位 -->
-          <div id="ui-office-slots" style="flex-shrink: 0; min-height: 130px; display: flex; gap: 10px; overflow-x: auto; overflow-y: visible; padding-bottom: 18px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px;">
+          <!-- 上方：官職槽位 (固定 95x110 卡片高度槽位) -->
+          <div id="ui-office-slots" style="flex-shrink: 0; min-height: 120px; display: flex; gap: 10px; overflow-x: auto; overflow-y: visible; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px;">
             <!-- JS 動態生成空位或已就任的卡片 -->
           </div>
           
-          <!-- 下方：本據點閒置傭兵 -->
-          <div style="flex-shrink: 0; margin-bottom: 10px;">
-            <h4 style="color: #94a3b8; margin: 0;">本據點待命人員 (點擊指派至選取的空位)</h4>
+          <!-- 下方：本據點待命傭兵清單 -->
+          <div style="flex-shrink: 0; margin-bottom: 8px;">
+            <h4 style="color: #94a3b8; margin: 0; font-size: 0.9em; letter-spacing: 0.05em;">▪ 待命人員 (點選可就任上方席位)</h4>
           </div>
-          <div id="ui-office-candidates" style="flex: 1; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; padding-right: 5px;">
-            <!-- JS 動態生成傭兵卡片 -->
+          <div id="ui-office-candidates" style="flex: 1; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; padding-right: 5px; min-height: 0;">
+            <!-- JS 動態生成傭兵卡片 (95x110px) -->
           </div>
         </div>
 
         <!-- 右側：兵力調度與外交 -->
-        <div style="flex: 1; display: flex; flex-direction: column; gap: 20px;">
+        <div style="flex: 1; min-width: 320px; max-width: 380px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto;">
           
-          <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.7);">
-            <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">⚔️ 兵力調度</h3>
+          <div class="glass-panel" style="padding: 18px; display: flex; flex-direction: column; gap: 10px; background: rgba(24, 18, 13, 0.72); border: 1px solid rgba(217, 119, 6, 0.35);">
+            <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin-top: 0; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">◈ 軍備兵員調度</h3>
             <!-- 步兵 -->
-            <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.3);">
+            <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(239, 68, 68, 0.3);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #fca5a5;">🛡️ 步兵部隊</div>
-                <span style="font-size: 1.1em; font-weight: bold; color: #fca5a5;"><span class="ui-worker-count" data-job="INFANTRY">0</span> 人</span>
+                <div style="font-size: 0.95em; font-weight: bold; white-space: nowrap; color: #fca5a5;">▪ 重裝步兵隊</div>
+                <span style="font-size: 1em; font-weight: bold; color: #fca5a5;"><span class="ui-worker-count" data-job="INFANTRY">0</span> 人</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+                <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="-1" style="padding: 2px 10px; font-size: 1em;">-</button>
                 <input type="range" class="worker-slider" data-job="INFANTRY" min="0" max="0" value="0" style="flex: 1; accent-color: #ef4444; cursor: pointer;">
-                <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+                <button class="action-btn btn-assign" data-job="INFANTRY" data-amount="1" style="padding: 2px 10px; font-size: 1em;">+</button>
               </div>
-              <div style="font-size: 0.85em; color: #fca5a5;">每人額外消耗 1 糧食/天，用於戰鬥護盾</div>
+              <div style="font-size: 0.78em; color: #fca5a5;">每人每日消耗 1 糧食，提供前排陣列護盾</div>
             </div>
             
             <!-- 弓兵 -->
-            <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
+            <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #6ee7b7;">🏹 弓兵部隊</div>
-                <span style="font-size: 1.1em; font-weight: bold; color: #6ee7b7;"><span class="ui-worker-count" data-job="ARCHER">0</span> 人</span>
+                <div style="font-size: 0.95em; font-weight: bold; white-space: nowrap; color: #6ee7b7;">▪ 巡林長弓隊</div>
+                <span style="font-size: 1em; font-weight: bold; color: #6ee7b7;"><span class="ui-worker-count" data-job="ARCHER">0</span> 人</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="action-btn btn-assign" data-job="ARCHER" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+                <button class="action-btn btn-assign" data-job="ARCHER" data-amount="-1" style="padding: 2px 10px; font-size: 1em;">-</button>
                 <input type="range" class="worker-slider" data-job="ARCHER" min="0" max="0" value="0" style="flex: 1; accent-color: #10b981; cursor: pointer;">
-                <button class="action-btn btn-assign" data-job="ARCHER" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+                <button class="action-btn btn-assign" data-job="ARCHER" data-amount="1" style="padding: 2px 10px; font-size: 1em;">+</button>
               </div>
-              <div style="font-size: 0.85em; color: #6ee7b7;">每人額外消耗 1 糧食/天，用於遠程支援</div>
+              <div style="font-size: 0.78em; color: #6ee7b7;">每人每日消耗 1 糧食，提供後排精準遠程支援</div>
             </div>
             
             <!-- 騎兵 -->
-            <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.3);">
+            <div style="display: flex; flex-direction: column; gap: 6px; background: rgba(0,0,0,0.4); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(168, 85, 247, 0.3);">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="font-size: 1.1em; font-weight: bold; white-space: nowrap; color: #c084fc;">🐎 騎兵部隊</div>
-                <span style="font-size: 1.1em; font-weight: bold; color: #c084fc;"><span class="ui-worker-count" data-job="CAVALRY">0</span> 人</span>
+                <div style="font-size: 0.95em; font-weight: bold; white-space: nowrap; color: #c084fc;">▪ 鐵甲重騎隊</div>
+                <span style="font-size: 1em; font-weight: bold; color: #c084fc;"><span class="ui-worker-count" data-job="CAVALRY">0</span> 人</span>
               </div>
               <div style="display: flex; align-items: center; gap: 8px;">
-                <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="-1" style="padding: 2px 10px; font-size: 1.1em;">-</button>
+                <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="-1" style="padding: 2px 10px; font-size: 1em;">-</button>
                 <input type="range" class="worker-slider" data-job="CAVALRY" min="0" max="0" value="0" style="flex: 1; accent-color: #a855f7; cursor: pointer;">
-                <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="1" style="padding: 2px 10px; font-size: 1.1em;">+</button>
+                <button class="action-btn btn-assign" data-job="CAVALRY" data-amount="1" style="padding: 2px 10px; font-size: 1em;">+</button>
               </div>
-              <div style="font-size: 0.85em; color: #c084fc;">每人額外消耗 2 糧食/天 (含馬)，提供最高品質護盾</div>
+              <div style="font-size: 0.78em; color: #c084fc;">每人每日消耗 2 糧食 (含戰馬)，提供最高階衝擊護盾</div>
             </div>
 
-            <div class="glass-panel" style="padding: 16px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.7); border: 1px solid rgba(234,179,8,0.3);">
-            <h3 style="color: #fbbf24; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px; margin: 0; font-size: 1.1em; display: flex; justify-content: space-between;">
-              <span>🏰 攻城重型軍備庫存</span>
-              <span style="font-size: 0.75em; color: #94a3b8;">上限各 10 台</span>
-            </h3>
-            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.9em; margin-top: 4px;">
-              <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(234,88,12,0.2);">
-                <span style="color: #fdba74;">🪵 撞木衝車 (Battering Ram)</span>
-                <span style="color: #4ade80; font-weight: bold;"><span id="hall-siege-ram-count">0</span> / 10 台</span>
+            <div class="glass-panel" style="padding: 14px; display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.5); border: 1px solid rgba(234,179,8,0.25);">
+              <h4 style="color: #fbbf24; border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 6px; margin: 0; font-size: 1em; display: flex; justify-content: space-between; font-family: 'Cinzel', serif;">
+                <span>◈ 攻城重械儲備</span>
+                <span style="font-size: 0.75em; color: #94a3b8; font-family: 'Inter', sans-serif;">上限各 10 具</span>
+              </h4>
+              <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.88em; margin-top: 2px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.35); padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(234,88,12,0.2);">
+                  <span style="color: #fdba74;">撞木衝車 (Battering Ram)</span>
+                  <span style="color: #4ade80; font-weight: bold;"><span id="hall-siege-ram-count">0</span> / 10</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.35); padding: 5px 10px; border-radius: 4px; border: 1px solid rgba(234,88,12,0.2);">
+                  <span style="color: #fdba74;">重型投石機 (Trebuchet)</span>
+                  <span style="color: #4ade80; font-weight: bold;"><span id="hall-siege-treb-count">0</span> / 10</span>
+                </div>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 4px; border: 1px solid rgba(234,88,12,0.2);">
-                <span style="color: #fdba74;">🪨 重型投石機 (Trebuchet)</span>
-                <span style="color: #4ade80; font-weight: bold;"><span id="hall-siege-treb-count">0</span> / 10 台</span>
+              <div style="font-size: 0.74em; color: #94a3b8; margin-top: 2px;">
+                ※ 可前往【鍛造所】消耗木板、鐵錠、石材進行器械打造。
               </div>
             </div>
-            <div style="font-size: 0.75em; color: #94a3b8; margin-top: 2px;">
-              ※ 可前往【⚒️ 鍛造屋】使用木板、鐵錠、石磚打造補充軍備。
-            </div>
-          </div>
           </div>
 
-          <div class="glass-panel" style="padding: 20px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.7);">
-            <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin-top: 0;">🤝 外交與內政</h3>
-            <button id="btn-feast" class="action-btn" style="font-size: 1.1em; padding: 10px;">🍷 舉辦宴會 (花費 300 金幣)</button>
+          <div class="glass-panel" style="padding: 18px; display: flex; flex-direction: column; gap: 10px; background: rgba(15, 23, 42, 0.85);">
+            <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin-top: 0; font-family: 'Cinzel', serif; letter-spacing: 0.05em;">✦ 外交盛典</h3>
+            <button id="btn-feast" class="action-btn" style="font-size: 1em; padding: 12px;">舉辦貴族宴會 (花費 300 金幣)</button>
           </div>
         </div>
       </div>
@@ -228,64 +234,67 @@
 
     <!-- 獨立建築：傭兵酒館 -->
     <div id="view-camp" class="facility-view">
-      <button class="action-btn btn-exit-facility" style="position: absolute; top: 20px; left: 20px; width: auto;">🔙 返回街道</button>
-      <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 20px; text-shadow: 0 4px 8px rgba(0,0,0,0.8);">🍻 傭兵酒館 (Tavern)</h2>
-      <div style="display: flex; gap: 20px; flex: 1; width: 90%; margin: 0 auto; min-height: 500px;">
+      <div class="facility-header">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">← 返回街道</button>
+        <h2 class="facility-title">傭兵酒館 <span class="facility-sub-lvl">(Tavern & Bounty)</span></h2>
+        <div style="width: 100px;"></div>
+      </div>
+      <div class="facility-main-layout">
         
         <!-- Left Panel (Flavor text + Boss Rumors) -->
-        <div class="glass-panel" style="flex: 1; max-width: 350px; padding: 25px; display: flex; flex-direction: column; background: rgba(0,0,0,0.6);">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0;">酒館風聞</h3>
-          <p id="tavern-flavor-text" style="color: #cbd5e1; font-size: 1.1em; line-height: 1.6; margin-top: 15px;">
-            這裡是傭兵齊聚的酒館。隨著酒館等級的提升，將有機會吸引更具名氣與實力的英雄加入您的傭兵團！
+        <div class="facility-sidebar-left">
+          <div style="font-size: 1.1em; color: #fbbf24; font-family: 'Cinzel', serif; letter-spacing: 0.05em; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 6px;">酒館風聞</div>
+          <p id="tavern-flavor-text" style="color: #94a3b8; font-size: 0.92em; line-height: 1.6; margin: 0;">
+            各方流浪傭兵在此歇息與接洽任務。提升酒館等級可吸引更高資質的傳奇英雄加入麾下。
           </p>
           
           <div style="flex: 1;"></div> <!-- Spacer -->
 
-          <button id="btn-bounty-board" class="action-btn" style="background: linear-gradient(135deg, #1e3a8a, #1e40af); width: 100%; margin-bottom: 15px; font-size: 1.1em; padding: 12px 0;">📜 懸賞欄</button>
+          <button id="btn-bounty-board" class="action-btn" style="background: linear-gradient(135deg, #1e3a8a, #1e40af); width: 100%; margin-bottom: 10px; font-size: 1em; padding: 10px 0; border: 1px solid #3b82f6;">懸賞任務板</button>
           
-          <div id="tavern-rumor-section" style="background: rgba(0,0,0,0.4); border-radius: 8px; padding: 15px; border: 1px solid #334155; display: none;">
-            <button id="btn-ask-rumor" class="action-btn" style="background: linear-gradient(135deg, #b45309, #78350f); width: 100%; margin-bottom: 15px;">🗣️ 向老闆打聽情報 (50G)</button>
-            <div id="tavern-rumor-dialogue" style="font-style: italic; color: #cbd5e1; line-height: 1.5; font-size: 0.95em; min-height: 60px;">
+          <div id="tavern-rumor-section" style="background: rgba(0,0,0,0.45); border-radius: 6px; padding: 12px; border: 1px solid rgba(217,119,6,0.3); display: none;">
+            <button id="btn-ask-rumor" class="action-btn" style="background: linear-gradient(135deg, #b45309, #78350f); width: 100%; margin-bottom: 10px; font-size: 0.9em; padding: 8px 0; border: 1px solid rgba(245,158,11,0.5);">打聽各地情報 (50 金幣)</button>
+            <div id="tavern-rumor-dialogue" style="font-style: italic; color: #cbd5e1; line-height: 1.5; font-size: 0.9em; min-height: 50px;">
               「想打聽點什麼嗎？」
             </div>
           </div>
         </div>
         
         <!-- Right Panel (Mercenary List + Details) -->
-        <div class="glass-panel" style="flex: 2; padding: 25px; display: flex; flex-direction: column; background: rgba(0,0,0,0.6); min-height: 0;">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 10px; margin: 0; flex-shrink: 0;">傭兵酒客</h3>
+        <div class="facility-content-right">
+          <div style="font-size: 1.1em; color: #fbbf24; font-family: 'Cinzel', serif; letter-spacing: 0.05em; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 6px; flex-shrink: 0;">駐留傭兵名單</div>
 
-          <!-- 傭兵卡片列表：可捲動 -->
-          <div id="recruit-cards-container" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 2px; overflow-y: auto; align-content: flex-start; margin-top: 12px; flex: 1; min-height: 0;">
+          <!-- 傭兵卡片列表：自適應卡片網格 (95px x 110px 規格) -->
+          <div id="recruit-cards-container" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 2px; overflow-y: auto; align-content: flex-start; margin-top: 8px; flex: 1; min-height: 0;">
             <!-- JS 動態生成 AdventurerCard -->
           </div>
 
           <!-- 選中傭兵詳細資訊：固定在下方不捲動 -->
-          <div id="tavern-selected-detail" style="display: none; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; margin-top: 10px;">
+          <div id="tavern-selected-detail" style="display: none; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(217,119,6,0.3); flex-shrink: 0; margin-top: 8px;">
 
             <!-- 第一列：對話泡泡 + 綜合戰力/性格 + 招募按鈕 -->
             <div style="display: flex; gap: 14px; align-items: stretch;">
               <!-- 對話泡泡 -->
               <div style="flex: 2;">
-                <div id="recruit-dialogue" style="background: rgba(255,255,255,0.08); padding: 10px 14px; border-radius: 8px; font-style: italic; color: #e2e8f0; font-size: 0.9em; line-height: 1.5; border: 1px solid rgba(255,255,255,0.12); min-height: 56px;">
-                  💬 「沒人能跟得上我的腳步！」
+                <div id="recruit-dialogue" style="background: rgba(0,0,0,0.45); padding: 10px 14px; border-radius: 6px; font-style: italic; color: #e2e8f0; font-size: 0.9em; line-height: 1.5; border: 1px solid rgba(255,255,255,0.1); min-height: 56px;">
+                  「沒人能跟得上我的腳步！」
                 </div>
               </div>
               <!-- 綜合戰力 + 性格 + 招募按鈕 -->
               <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
                 <div style="color: #cbd5e1; font-size: 0.85em; line-height: 1.7;">
-                  <div>⚔️ 戰力： <span id="recruit-stat-power" style="color: #eab308; font-weight: bold;">0</span></div>
-                  <div>💠 性格： <span id="recruit-stat-trait" style="color: #6ee7b7;">無</span></div>
+                  <div>戰力評定： <span id="recruit-stat-power" style="color: #eab308; font-weight: bold;">0</span></div>
+                  <div>性格特質： <span id="recruit-stat-trait" style="color: #6ee7b7;">無</span></div>
                 </div>
-                <button id="btn-recruit-confirm" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857); width: 100%; font-size: 0.95em; padding: 8px 6px;">
-                  ✅ 招募 (500金)
+                <button id="btn-recruit-confirm" class="action-btn" style="background: linear-gradient(135deg, #059669, #047857); width: 100%; font-size: 0.92em; padding: 8px 6px; border: 1px solid #10b981;">
+                  招募英雄 (500 金幣)
                 </button>
               </div>
             </div>
 
             <!-- 第二列：八維屬性 -->
-            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 12px;">
-              <div style="color: #94a3b8; font-size: 0.75em; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">📊 基礎屬性</div>
+            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 12px;">
+              <div style="color: #94a3b8; font-size: 0.75em; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">基礎屬性指標</div>
               <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 10px; font-size: 0.8em;">
                 <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">力量</span><span id="adv-attr-str" style="color:#f87171; font-weight:bold;">—</span></div>
                 <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">敏捷</span><span id="adv-attr-agi" style="color:#34d399; font-weight:bold;">—</span></div>
@@ -299,19 +308,19 @@
             </div>
 
             <!-- 第三列：衍生戰鬥數值 -->
-            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 8px 12px;">
-              <div style="color: #94a3b8; font-size: 0.75em; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">⚔️ 戰鬥數值</div>
+            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 8px 12px;">
+              <div style="color: #94a3b8; font-size: 0.75em; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 6px;">衍生戰鬥指標</div>
               <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; font-size: 0.8em;">
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">HP</span><span id="adv-cs-hp" style="color:#4ade80; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">MP</span><span id="adv-cs-mp" style="color:#60a5fa; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">爆擊</span><span id="adv-cs-crit" style="color:#fbbf24; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">物攻</span><span id="adv-cs-patk" style="color:#f87171; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">魔攻</span><span id="adv-cs-matk" style="color:#c084fc; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">生命</span><span id="adv-cs-hp" style="color:#4ade80; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">法力</span><span id="adv-cs-mp" style="color:#60a5fa; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">爆擊率</span><span id="adv-cs-crit" style="color:#fbbf24; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">物理攻擊</span><span id="adv-cs-patk" style="color:#f87171; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">魔法攻擊</span><span id="adv-cs-matk" style="color:#c084fc; font-weight:bold;">—</span></div>
                 <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">命中</span><span id="adv-cs-hit" style="color:#34d399; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">物防</span><span id="adv-cs-pdef" style="color:#fb923c; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">魔防</span><span id="adv-cs-mdef" style="color:#818cf8; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">閃避</span><span id="adv-cs-evade" style="color:#38bdf8; font-weight:bold;">—</span></div>
-                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">速度</span><span id="adv-cs-speed" style="color:#fcd34d; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">物理防禦</span><span id="adv-cs-pdef" style="color:#fb923c; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">魔法防禦</span><span id="adv-cs-mdef" style="color:#818cf8; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">迴避</span><span id="adv-cs-evade" style="color:#38bdf8; font-weight:bold;">—</span></div>
+                <div style="display:flex; justify-content:space-between;"><span style="color:#94a3b8;">行動速度</span><span id="adv-cs-speed" style="color:#fcd34d; font-weight:bold;">—</span></div>
               </div>
             </div>
 
@@ -322,9 +331,9 @@
 
     <!-- 獨立建築：裝備改造所 -->
     <div id="view-modification-workshop" class="facility-view">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 8px;">
-        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">🔙 返回街道</button>
-        <h2 style="margin: 0; font-size: 2.2em; color: #eab308; text-shadow: 0 3px 6px rgba(0,0,0,0.9); font-family: Georgia, serif;">🔧 裝備改造所</h2>
+      <div class="facility-header">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">← 返回街道</button>
+        <h2 class="facility-title">裝備改造所 <span class="facility-sub-lvl">(Modification Workshop)</span></h2>
         <div style="width: 100px;"></div>
       </div>
       <div id="mod-workshop-workspace" style="display: flex; gap: 15px; flex: 1; min-height: 0; overflow: hidden;">
@@ -334,38 +343,38 @@
 
     <!-- 獨立建築：裝備二手商 -->
     <div id="view-secondhand-shop" class="facility-view">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 8px;">
-        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">🔙 返回街道</button>
-        <h2 style="margin: 0; font-size: 2.2em; color: #eab308; text-shadow: 0 3px 6px rgba(0,0,0,0.9); font-family: Georgia, serif;">⚖️ 裝備二手商 <span style="font-size:0.5em; color:#cbd5e1; font-weight:normal;">(典當與珍寶閣)</span></h2>
+      <div class="facility-header">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">← 返回街道</button>
+        <h2 class="facility-title">裝備二手商 <span class="facility-sub-lvl">(典當與珍寶閣)</span></h2>
         <div style="width: 100px;"></div>
       </div>
       <div id="secondhand-tabs-bar" style="display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 4px;">
-        <button id="btn-secondhand-tab-buy" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.95em; background: rgba(234,179,8,0.25); border: 1px solid rgba(234,179,8,0.5); color: #fbbf24;">💍 稀有飾品貨架</button>
-        <button id="btn-secondhand-tab-sell" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.95em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">💰 二手裝備典當 (回收變現)</button>
+        <button id="btn-secondhand-tab-buy" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.92em; background: rgba(234,179,8,0.25); border: 1px solid rgba(234,179,8,0.5); color: #fbbf24;">稀有飾品珍寶閣</button>
+        <button id="btn-secondhand-tab-sell" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.92em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">二手裝備典當 (回收變現)</button>
       </div>
       <div id="secondhand-shop-workspace" style="display: flex; gap: 15px; flex: 1; min-height: 0; overflow: hidden;">
         <!-- JS 動態渲染卡片式商品貨架或典當背包 -->
       </div>
     </div>
 
-    <!-- 獨立建築：鍛造屋 (100% 滿版全螢幕 Layout，完全對齊領主書房與截圖二，無對話框包裹) -->
+    <!-- 獨立建築：鍛造屋 (滿版 Layout，無對話框包裹) -->
     <div id="view-forge" class="facility-view">
       
       <!-- 頂部列：返回按鈕與標題 -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 8px;">
-        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">🔙 返回街道</button>
-        <h2 style="margin: 0; font-size: 2.2em; color: #eab308; text-shadow: 0 3px 6px rgba(0,0,0,0.9); font-family: Georgia, serif;">⚒️ 領地鍛造屋 <span style="font-size:0.5em; color:#cbd5e1; font-weight:normal;">(當前等級: <span id="ui-forge-lvl">1</span>)</span></h2>
+      <div class="facility-header">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">← 返回街道</button>
+        <h2 class="facility-title">領地鍛造屋 <span class="facility-sub-lvl">(當前等級: <span id="ui-forge-lvl">1</span>)</span></h2>
         <div style="width: 100px;"></div> <!-- 佔位對齊 -->
       </div>
 
-      <!-- 5 大頁籤列 -->
-      <div id="forge-tabs-bar" style="display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 4px;">
-        <button id="btn-forge-tab-enhance" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(234,179,8,0.25); border: 1px solid rgba(234,179,8,0.5); color: #fbbf24;">🔨 裝備強化</button>
-        <button id="btn-forge-tab-craft" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">⚒️ 裝備鍛造/重鑄</button>
-        <button id="btn-forge-tab-enchant" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">💎 元素加工附魔</button>
-        <button id="btn-forge-tab-smelt" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">♨️ 素材冶煉</button>
-        <button id="btn-forge-tab-disassemble" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">♻️ 裝備拆解</button>
-        <button id="btn-forge-tab-siege" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">🪵 攻城器械工坊</button>
+      <!-- 6 大頁籤列 -->
+      <div id="forge-tabs-bar" style="display: flex; gap: 8px; margin-bottom: 12px; padding-bottom: 4px; flex-shrink: 0;">
+        <button id="btn-forge-tab-enhance" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(234,179,8,0.25); border: 1px solid rgba(234,179,8,0.5); color: #fbbf24;">裝備強化</button>
+        <button id="btn-forge-tab-craft" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">裝備鍛造 / 重鑄</button>
+        <button id="btn-forge-tab-enchant" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">元素加工附魔</button>
+        <button id="btn-forge-tab-smelt" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">素材冶煉</button>
+        <button id="btn-forge-tab-disassemble" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">裝備拆解</button>
+        <button id="btn-forge-tab-siege" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.9em; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;">攻城器械工坊</button>
       </div>
 
       <div id="forge-workspace" style="display: flex; gap: 15px; flex: 1; min-height: 0; overflow: hidden;">
@@ -373,60 +382,60 @@
       </div>
     </div>
 
-    <!-- 獨立建築：教會與醫療所 (Church & Infirmary) - 酒館同款雙欄佈局 -->
+    <!-- 獨立建築：教會與醫療所 (Church & Infirmary) -->
     <div id="view-church" class="facility-view">
       <!-- 頂部列：返回按鈕與標題 -->
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 8px;">
-        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">🔙 返回街道</button>
-        <h2 id="church-view-title" style="margin: 0; font-size: 2.2em; color: #eab308; text-shadow: 0 3px 6px rgba(0,0,0,0.9); font-family: Georgia, serif;">⛪ 領地教會與醫療所 <span style="font-size:0.5em; color:#cbd5e1; font-weight:normal;">(當前等級: <span id="ui-church-lvl">Lv.1 祈禱處</span>)</span></h2>
+      <div class="facility-header">
+        <button class="action-btn btn-exit-facility" style="width: auto; padding: 6px 16px; font-size: 0.9em; background: rgba(0,0,0,0.6); border: 1px solid rgba(217,119,6,0.4);">← 返回街道</button>
+        <h2 id="church-view-title" class="facility-title">教會與醫療所 <span class="facility-sub-lvl">(當前等級: <span id="ui-church-lvl">Lv.1 祈禱處</span>)</span></h2>
         <div style="width: 100px;"></div>
       </div>
 
       <!-- 核心雙欄工作區 (零標籤切換，全功能同屏) -->
-      <div style="display: flex; gap: 20px; flex: 1; min-height: 0; overflow: hidden;">
+      <div class="facility-main-layout">
         
-        <!-- 左欄：設施運作、聖光藥坊與病房擴建 (flex: 1.2) -->
-        <div class="glass-panel" style="flex: 1.2; padding: 20px; display: flex; flex-direction: column; gap: 14px; background: rgba(0,0,0,0.6); overflow-y: auto;">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin: 0;">📜 領地醫療運作</h3>
+        <!-- 左欄：設施運作、聖光藥坊與病房擴建 (固定 340px 寬度，零卷軸) -->
+        <div class="facility-sidebar-left">
+          <div style="font-size: 1.1em; color: #fbbf24; font-family: 'Cinzel', serif; letter-spacing: 0.05em; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 6px;">醫療體系運作</div>
           
           <!-- 每日自然恢復率與神職被動提示 -->
-          <div style="background: rgba(0,0,0,0.4); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); font-size: 0.88em; line-height: 1.6;">
-            <div>✨ <span style="color: #94a3b8;">全領地過夜自然恢復：</span><span id="church-daily-recovery-text" style="color: #4ade80; font-weight: bold;">+15% MaxHP/MP</span></div>
-            <div>🛏️ <span style="color: #94a3b8;">病房休養額外加成：</span><span style="color: #facc15; font-weight: bold;">+10% MaxHP/MP</span></div>
-            <div id="church-clergy-bonus-text" style="color: #60a5fa; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 4px;">📜 聖光庇護：暫無退休神職人員</div>
+          <div style="background: rgba(0,0,0,0.45); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); font-size: 0.86em; line-height: 1.6;">
+            <div><span style="color: #94a3b8;">全領地過夜自然恢復：</span><span id="church-daily-recovery-text" style="color: #4ade80; font-weight: bold;">+15% MaxHP/MP</span></div>
+            <div><span style="color: #94a3b8;">病房休養額外加成：</span><span style="color: #facc15; font-weight: bold;">+10% MaxHP/MP</span></div>
+            <div id="church-clergy-bonus-text" style="color: #60a5fa; margin-top: 4px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 4px;">聖光庇護：暫無退休神職人員</div>
           </div>
 
-          <!-- 🧪 聖光藥坊熬藥區 -->
-          <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid rgba(217,119,6,0.3); display: flex; flex-direction: column; gap: 8px;">
-            <div style="font-weight: bold; color: #fbbf24; font-size: 1.05em; display: flex; justify-content: space-between;">
-              <span>🧪 聖光藥坊</span>
-              <span style="font-size: 0.85em; color: #cbd5e1;">配方: 50 藥草 ➔ 1 生命藥水</span>
+          <!-- 聖光藥坊熬藥區 -->
+          <div style="background: rgba(0,0,0,0.45); padding: 12px; border-radius: 6px; border: 1px solid rgba(217,119,6,0.3); display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-weight: bold; color: #fbbf24; font-size: 0.95em; display: flex; justify-content: space-between; align-items: baseline;">
+              <span>聖光藥坊</span>
+              <span style="font-size: 0.8em; color: #cbd5e1;">配方: 50 藥草 ➔ 1 生命藥水</span>
             </div>
             
-            <div style="display: flex; justify-content: space-around; background: rgba(0,0,0,0.3); padding: 6px; border-radius: 4px; font-size: 0.9em;">
-              <div>🌿 倉庫野生藥草: <span id="church-herbs-count" style="color: #4ade80; font-weight: bold;">0</span> 株</div>
-              <div>🧪 庫存生命藥水: <span id="church-potion-count" style="color: #60a5fa; font-weight: bold;">0</span> 瓶</div>
+            <div style="display: flex; justify-content: space-around; background: rgba(0,0,0,0.35); padding: 6px; border-radius: 4px; font-size: 0.86em;">
+              <div>倉庫藥草: <span id="church-herbs-count" style="color: #4ade80; font-weight: bold;">0</span> 株</div>
+              <div>生命藥水: <span id="church-potion-count" style="color: #60a5fa; font-weight: bold;">0</span> 瓶</div>
             </div>
 
             <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-              <button id="btn-brew-single" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.88em; background: linear-gradient(135deg, #059669, #047857);">🔥 熬製 1 瓶 (50草)</button>
-              <button id="btn-brew-max" class="action-btn" style="flex: 1; padding: 8px; font-size: 0.88em; background: linear-gradient(135deg, #d97706, #b45309);">🔥 全部熬製</button>
+              <button id="btn-brew-single" class="action-btn" style="flex: 1; padding: 7px; font-size: 0.86em; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #10b981;">熬製 1 瓶 (50草)</button>
+              <button id="btn-brew-max" class="action-btn" style="flex: 1; padding: 7px; font-size: 0.86em; background: linear-gradient(135deg, #d97706, #b45309); border: 1px solid #f59e0b;">全部熬製</button>
             </div>
           </div>
 
-          <!-- 🔨 打造病床區 -->
-          <div style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
+          <!-- 打造病床區 -->
+          <div style="background: rgba(0,0,0,0.45); padding: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08); display: flex; flex-direction: column; gap: 8px; margin-top: auto;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; color: #cbd5e1;">🛏️ 病房容量：<span id="church-bed-capacity" style="color: #facc15;">1 / 4 床</span></span>
-              <span id="church-bed-cost-text" style="font-size: 0.8em; color: #94a3b8;">消耗: 20木材 5生皮</span>
+              <span style="font-weight: bold; color: #cbd5e1; font-size: 0.9em;">病房容量：<span id="church-bed-capacity" style="color: #facc15;">1 / 4 床</span></span>
+              <span id="church-bed-cost-text" style="font-size: 0.78em; color: #94a3b8;">消耗: 20木材 5生皮</span>
             </div>
-            <button id="btn-build-infirmary-bed" class="action-btn" style="padding: 8px; font-size: 0.9em; background: linear-gradient(135deg, #2563eb, #1d4ed8);">🔨 打造新病床</button>
+            <button id="btn-build-infirmary-bed" class="action-btn" style="padding: 8px; font-size: 0.88em; background: linear-gradient(135deg, #2563eb, #1d4ed8); border: 1px solid #3b82f6;">擴建打造新病床</button>
           </div>
         </div>
 
-        <!-- 右欄：病床卡片清單與選中操作區 (flex: 2) -->
-        <div class="glass-panel" style="flex: 2; padding: 20px; display: flex; flex-direction: column; background: rgba(0,0,0,0.6); min-height: 0;">
-          <h3 style="color: #eab308; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 8px; margin: 0; flex-shrink: 0;">🛏️ 傷病病房 (點擊病床指派或急救)</h3>
+        <!-- 右欄：病床卡片清單與選中操作區 (自適應寬度) -->
+        <div class="facility-content-right">
+          <div style="font-size: 1.1em; color: #fbbf24; font-family: 'Cinzel', serif; letter-spacing: 0.05em; border-bottom: 1px solid rgba(217,119,6,0.3); padding-bottom: 6px; flex-shrink: 0;">傷病療養床位 (點選床位以指派或治療)</div>
 
           <!-- 上半部：病床卡片列表 (可捲動) -->
           <div id="church-beds-container" style="display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 4px; overflow-y: auto; align-content: flex-start; margin-top: 8px; flex: 1; min-height: 0;">
@@ -434,7 +443,7 @@
           </div>
 
           <!-- 下半部：選中病床操作區或選中空床時的待選傷員列表 (固定在下方) -->
-          <div id="church-selected-detail" style="display: none; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); flex-shrink: 0; margin-top: 8px;">
+          <div id="church-selected-detail" style="display: none; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid rgba(217,119,6,0.3); flex-shrink: 0; margin-top: 8px;">
             <!-- JS 動態渲染選中病患的急救/出院面板，或待選傷員卡片列表 -->
           </div>
         </div>

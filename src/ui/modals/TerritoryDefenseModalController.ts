@@ -4,6 +4,7 @@ import { TerritoryDefenseSystem } from '../../systems/TerritoryDefenseSystem';
 import { NarrativeSystem } from '../../systems/NarrativeSystem';
 import { FormationDB } from '../../systems/FormationDB';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
+import { HeroPicker } from '../components/HeroPicker';
 import { positionFloatingElement } from '../FloatingPosition';
 import { ToastManager } from '../ToastManager';
 
@@ -487,7 +488,6 @@ export class TerritoryDefenseModalController {
   private static renderAdvList(): void {
     const container = document.getElementById('siege-adv-list');
     if (!container) return;
-    container.innerHTML = '';
 
     const availableAdv = GameState.adventurers || [];
     const currentSquad = this.squads[this.currentTabIndex];
@@ -500,56 +500,24 @@ export class TerritoryDefenseModalController {
       }
     });
 
-    availableAdv.forEach(adv => {
-      const isSelectedInCurrent = currentSquad.selectedIds.has(adv.id);
-      const isUsedElsewhere = usedInOtherSquads.has(adv.id);
-
-      const card = document.createElement('div');
-      card.className = 'adventurer-card';
-      card.style.transform = 'scale(0.88)';
-      card.style.transformOrigin = 'center';
-      card.style.margin = '-4px';
-      card.style.cursor = isUsedElsewhere ? 'not-allowed' : 'pointer';
-      card.style.opacity = isUsedElsewhere ? '0.35' : (isSelectedInCurrent ? '0.5' : '1');
-      card.style.border = isSelectedInCurrent ? '2px solid #3b82f6' : '';
-      card.style.boxShadow = isSelectedInCurrent ? '0 0 10px rgba(59, 130, 246, 0.5)' : '';
-
-      if (!isUsedElsewhere && !isSelectedInCurrent) {
-        card.draggable = true;
-        card.addEventListener('dragstart', (e) => {
-          this.dragAdvId = adv.id;
-          this.dragSourceSlot = 'pool';
-          e.dataTransfer?.setData('text/plain', adv.id);
-          const tEl = document.getElementById('adv-tooltip');
-          if (tEl) tEl.style.opacity = '0';
-        });
-      }
-
-      card.innerHTML = renderAdventurerCard(adv);
-
-      const tooltipHtml = getAdventurerTooltipHtml(adv);
-      card.addEventListener('mouseenter', () => {
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) { tEl.innerHTML = tooltipHtml; tEl.style.opacity = '1'; }
-      });
-      card.addEventListener('mousemove', (e) => {
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) positionFloatingElement(tEl, e.clientX, e.clientY);
-      });
-      card.addEventListener('mouseleave', () => {
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) tEl.style.opacity = '0';
-      });
-
-      card.addEventListener('click', () => {
-        const tEl = document.getElementById('adv-tooltip');
-        if (tEl) tEl.style.opacity = '0';
-
-        if (isUsedElsewhere) {
-          ToastManager.show('該傭兵已被指派至其他梯隊！');
-          return;
-        }
-
+    HeroPicker.render({
+      container,
+      adventurers: availableAdv,
+      selectedIds: currentSquad.selectedIds,
+      disabledIds: usedInOtherSquads,
+      columns: 3,
+      cardHeight: 100,
+      draggable: true,
+      onDragStart: (adv, e) => {
+        this.dragAdvId = adv.id;
+        this.dragSourceSlot = 'pool';
+        e.dataTransfer?.setData('text/plain', adv.id);
+      },
+      onDisabledClick: () => {
+        ToastManager.show('該傭兵已被指派至其他梯隊！');
+      },
+      onSelect: (adv) => {
+        const isSelectedInCurrent = currentSquad.selectedIds.has(adv.id);
         if (isSelectedInCurrent) {
           // 從九宮格中移除
           for (const [k, v] of Object.entries(currentSquad.gridMap)) {
@@ -580,9 +548,7 @@ export class TerritoryDefenseModalController {
 
         this.renderAdvList();
         this.renderGrid();
-      });
-
-      container.appendChild(card);
+      }
     });
   }
 

@@ -1,7 +1,7 @@
   <!-- 戰鬥紀錄 左側抽屜面板 -->
   <div class="side-panel-left glass-panel" id="combat-history-panel" style="border: 2px solid rgba(239,68,68,0.4); box-shadow: 0 0 20px rgba(239,68,68,0.1);">
     <button class="close-btn" id="btn-close-combat-history">×</button>
-    <h2 style="text-align: left; color: #fca5a5; margin: 0 0 4px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">⚔️ 戰鬥紀錄</h2>
+    <h2 style="text-align: left; color: #fca5a5; margin: 0 0 4px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">戰鬥紀錄</h2>
     <p style="color: #94a3b8; font-size: 0.8em; margin: 0 0 10px 0;">(僅保留最近三天的戰報)</p>
     <div id="combat-history-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">
       <!-- JS 動態產生紀錄卡片 -->
@@ -11,7 +11,7 @@
   <!-- 外交與派系 左側抽屜面板 -->
   <div class="side-panel-left glass-panel" id="diplomacy-panel" style="border: 2px solid rgba(234,179,8,0.5); box-shadow: 0 0 20px rgba(234,179,8,0.15);">
     <button class="close-btn" id="btn-close-diplomacy">×</button>
-    <h2 style="text-align: left; color: #fef08a; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">📜 外交與派系</h2>
+    <h2 style="text-align: left; color: #fef08a; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">外交與派系</h2>
     <div id="diplomacy-list" style="flex: 1; overflow-y: auto; padding-right: 6px;">
       <!-- JS 動態渲染派系列表 -->
     </div>
@@ -20,7 +20,7 @@
   <!-- 全域倉庫 左側抽屜面板 -->
   <div class="side-panel-left glass-panel" id="inventory-panel" style="width: 440px; border: 2px solid rgba(139,92,246,0.5); box-shadow: 0 0 20px rgba(139,92,246,0.15); display: flex; flex-direction: column;">
     <button class="close-btn" id="btn-close-inventory">×</button>
-    <h2 style="text-align: left; color: #c4b5fd; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">📦 全域倉庫</h2>
+    <h2 style="text-align: left; color: #c4b5fd; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">全域倉庫</h2>
     
     <!-- 分類標籤 -->
     <div style="display: flex; gap: 4px; margin-bottom: 12px; border-bottom: 1px solid rgba(139,92,246,0.3); padding-bottom: 8px;">
@@ -38,7 +38,7 @@
   <!-- 領地地牢 左側抽屜面板 -->
   <div class="side-panel-left glass-panel" id="dungeon-panel" style="width: 440px; border: 2px solid rgba(239, 68, 68, 0.5); box-shadow: 0 0 20px rgba(239, 68, 68, 0.15); display: flex; flex-direction: column;">
     <button class="close-btn" id="btn-close-dungeon-list">×</button>
-    <h2 style="text-align: left; color: #fca5a5; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">⛓️ 領地地牢</h2>
+    <h2 style="text-align: left; color: #fca5a5; margin: 0 0 12px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">領地地牢</h2>
     <p style="color: #cbd5e1; font-size: 0.85em; text-align: left; margin-bottom: 12px;">關押被俘虜的敵國將領。隨時提審並決定命運。</p>
     <div id="dungeon-list-container" style="flex: 1; overflow-y: auto; padding-right: 6px; display: flex; flex-direction: column; gap: 8px;">
       <!-- JS 動態生成戰俘列表 -->
@@ -51,7 +51,7 @@
     <!-- 左半部：傭兵列表 (常駐顯示) -->
     <div id="party-roster-pane" style="width: 440px; padding: 12px 14px; display: flex; flex-direction: column; flex-shrink: 0; max-height: 625px; position: relative;">
       <button class="close-btn" id="btn-close-party-list">×</button>
-      <h2 style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">👥 傭兵小隊</h2>
+      <h2 style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; padding-right: 35px;">傭兵小隊</h2>
       
       <div style="font-size: 0.8em; color: #94a3b8; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
         <span>選擇成員以查看詳細資訊：</span>
@@ -66,7 +66,7 @@
     <!-- 右半部：詳細資訊 (點擊後展開) -->
     <div id="party-details-pane" style="width: 440px; padding: 12px 14px; border-left: 1px solid rgba(234,179,8,0.3); display: none; flex-direction: column; flex-shrink: 0; position: relative; background: rgba(0,0,0,0.4); max-height: 625px;">
       <button class="close-btn" id="btn-close-party-details" style="right: 14px; top: 12px;">×</button>
-      <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">🛡️ 名字</h2>
+      <h2 id="party-panel-title" style="text-align: left; color: #eab308; margin: 0 0 10px 0; font-size: 1.15em; font-family: 'Cinzel', serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 35px;">角色資訊</h2>
       
       <!-- 詳細資訊內容：包含頭像、屬性與裝備 -->
       <div id="party-upper-section" style="display: flex; flex-direction: column; flex: 1; gap: 8px; position: relative;">
@@ -82,10 +82,10 @@
                 <div id="party-job-trait" style="font-size: 0.88em; color: #f1f5f9; font-weight: bold; line-height: 1.2;">Lv.1 戰士</div>
                 <div style="display: flex; align-items: center; gap: 6px; margin-top: 1px;">
                   <div id="party-trait-name" style="font-size: 0.78em; color: #94a3b8;">勇敢</div>
-                  <button id="btn-advance-class" style="display: none; font-size: 0.7em; padding: 1px 6px; background: linear-gradient(135deg, #eab308, #d97706); border: 1px solid #fef08a; border-radius: 4px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 0 5px rgba(234,179,8,0.5);">✨ 轉職</button>
+                  <button id="btn-advance-class" style="display: none; font-size: 0.7em; padding: 1px 6px; background: linear-gradient(135deg, #eab308, #d97706); border: 1px solid #fef08a; border-radius: 4px; color: #fff; cursor: pointer; font-weight: bold; box-shadow: 0 0 5px rgba(234,179,8,0.5);">轉職進階</button>
                 </div>
               </div>
-              <div id="party-status-badge" style="font-size: 0.72em; padding: 1px 5px; border-radius: 4px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); flex-shrink: 0;">🟢 閒置</div>
+              <div id="party-status-badge" style="font-size: 0.72em; padding: 1px 5px; border-radius: 4px; background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); flex-shrink: 0;">閒置待命</div>
             </div>
             
             <div id="party-portrait-bars" style="width: 100%; display: flex; flex-direction: column; gap: 3px; margin-top: 3px;">
@@ -117,13 +117,13 @@
         <!-- 頁籤切換 -->
         <div class="party-tab-bar" style="display: flex; gap: 6px; margin-top: 2px; flex-shrink: 0;">
           <button id="tab-btn-stats" class="party-tab-btn active" data-tab="stats" style="flex: 1; padding: 4px 0; border: 1px solid rgba(234,179,8,0.4); background: rgba(234,179,8,0.2); color: #eab308; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
-            <span>📊</span><span>屬性配置</span>
+            <span>屬性配置</span>
           </button>
           <button id="tab-btn-equip" class="party-tab-btn" data-tab="equip" style="flex: 1; padding: 4px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
-            <span>⚔️</span><span>武裝配備</span>
+            <span>武裝配備</span>
           </button>
           <button id="tab-btn-skills" class="party-tab-btn" data-tab="skills" style="flex: 1; padding: 4px 0; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #94a3b8; border-radius: 5px; cursor: pointer; font-size: 0.8em; display: flex; justify-content: center; align-items: center; gap: 3px; transition: all 0.2s;">
-            <span>✨</span><span>技能戰術</span>
+            <span>技能戰術</span>
           </button>
         </div>
 
@@ -137,7 +137,7 @@
     <!-- 裝備選擇 第三欄 (點擊裝備槽後向右展開) -->
     <div id="party-equip-select-pane" style="width: 320px; padding: 12px 14px; border-left: 1px solid rgba(234,179,8,0.3); display: none; flex-direction: column; flex-shrink: 0; position: relative; background: rgba(0,0,0,0.5); max-height: 625px;">
       <button class="close-btn" id="btn-close-equip-select-pane" style="right: 14px; top: 12px;">×</button>
-      <h2 style="text-align: center; color: #eab308; margin: 0 0 8px 0; font-size: 1.05em; font-family: 'Cinzel', serif;">🛡️ 選擇裝備</h2>
+      <h2 style="text-align: center; color: #eab308; margin: 0 0 8px 0; font-size: 1.05em; font-family: 'Cinzel', serif;">選擇更換裝備</h2>
       <div id="equip-select-list" style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px; flex: 1; overflow-y: auto; padding-right: 4px;">
         <!-- JS 渲染可選裝備 -->
       </div>
@@ -150,15 +150,15 @@
     <div id="floating-quick-dock" style="align-items: flex-end;">
       <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-start;">
         <div style="position: relative;">
-          <button id="btn-dock-inventory" class="dock-btn" data-tip="全域倉庫">📦</button>
-          <button id="btn-dock-dungeon" class="dock-btn" data-tip="領地地牢" style="position: absolute; left: 60px; top: 0; border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); color: #ef4444;">⛓️</button>
+          <button id="btn-dock-inventory" class="dock-btn" data-tip="全域倉庫" style="font-family: 'Cinzel', serif; font-size: 0.85em; font-weight: bold;">倉</button>
+          <button id="btn-dock-dungeon" class="dock-btn" data-tip="領地地牢" style="position: absolute; left: 60px; top: 0; border-color: rgba(239, 68, 68, 0.5); box-shadow: 0 0 10px rgba(239, 68, 68, 0.2); color: #ef4444; font-family: 'Cinzel', serif; font-size: 0.85em; font-weight: bold;">牢</button>
         </div>
-        <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍">👥</button>
+        <button id="btn-dock-party" class="dock-btn" data-tip="傭兵隊伍" style="font-family: 'Cinzel', serif; font-size: 0.85em; font-weight: bold;">軍</button>
       </div>
 
-      <button id="btn-dock-diplomacy" class="dock-btn" data-tip="外交與派系">🤝</button>
-      <button id="btn-adventure-log" class="dock-btn" data-tip="探險日誌">📜</button>
-      <button id="btn-system-menu" class="dock-btn" data-tip="系統選單">⚙️</button>
+      <button id="btn-dock-diplomacy" class="dock-btn" data-tip="外交與派系" style="font-family: 'Cinzel', serif; font-size: 0.85em; font-weight: bold;">邦</button>
+      <button id="btn-adventure-log" class="dock-btn" data-tip="探險日誌" style="font-family: 'Cinzel', serif; font-size: 0.85em; font-weight: bold;">誌</button>
+      <button id="btn-system-menu" class="dock-btn" data-tip="系統選單" style="font-family: 'Cinzel', serif; font-size: 0.85em; font-weight: bold;">設</button>
     </div>
 
     <!-- 切換據點/世界地圖圓鈕 (相鄰在上方) -->
@@ -172,12 +172,10 @@
     </div>
   </div>
 
-
-
   <!-- 每日結算與預測面板 -->
   <div id="modal-daily-summary" class="modal-overlay">
-    <div class="modal-content glass-panel" style="width: 500px; padding: 40px; border: 2px solid #eab308; box-shadow: 0 0 30px rgba(234, 179, 8, 0.3);">
-      <h2 style="text-align: center; color: #fef08a; border-bottom: 1px solid rgba(234,179,8,0.5); padding-bottom: 15px; margin-bottom: 20px;">📜 本日結算</h2>
+    <div class="modal-content glass-panel" style="width: 500px; padding: 35px; border: 2px solid #eab308; box-shadow: 0 0 30px rgba(234, 179, 8, 0.3);">
+      <h2 style="text-align: center; color: #fef08a; border-bottom: 1px solid rgba(234,179,8,0.5); padding-bottom: 15px; margin-bottom: 20px; font-family: 'Cinzel', serif;">本日結算報告</h2>
       
       <div id="daily-summary-content" style="margin-bottom: 20px; line-height: 1.6;">
         <!-- JS 動態寫入本日結算 -->

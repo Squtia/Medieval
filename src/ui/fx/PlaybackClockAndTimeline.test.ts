@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { PlaybackClock } from '../../ui/fx/PlaybackClock';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
+import { PlaybackClock } from './PlaybackClock';
+import { CombatFXEngine } from './CombatFXEngine';
 import { VFXTimeline } from '../../tools/vfx-studio/VFXTimeline';
 import { VFXStudioStore } from '../../tools/vfx-studio/VFXStudioStore';
 import { VFXPreset } from '../../models/VFX';

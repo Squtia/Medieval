@@ -3,6 +3,7 @@ import { UIManager } from './UIManager';
 import { getTitleConfig, OfficeType, getOfficeConfig, NobleTitle } from '../models/types';
 import { ToastManager } from './ToastManager';
 import { renderAdventurerCard } from './components/AdventurerCard';
+import { HeroPicker } from './components/HeroPicker';
 
 
 let selectedSlotType: OfficeType | null = null;
@@ -151,51 +152,22 @@ export function renderOfficeBoard(): void {
     slotsContainer.appendChild(slotEl);
   });
 
-  // 2. Render Bottom Grid: Candidates from THIS node
-  candidatesContainer.innerHTML = '';
-  
+  // 2. Render Bottom Grid: Candidates from THIS node using HeroPicker (SSOT)
   if (selectedSlotType === null) {
-    candidatesContainer.innerHTML = `<div style="grid-column: 1 / -1; color: #94a3b8; text-align: center; padding: 20px;">請先點擊上方要任命的「空位」，然後選擇下方的傭兵。</div>`;
+    candidatesContainer.innerHTML = `<div style="grid-column: 1 / -1; width: 100%; color: #94a3b8; text-align: center; padding: 20px;">請先點擊上方要任命的「空位」，然後選擇下方的傭兵。</div>`;
     return;
   }
 
-  // Filter idle mercenaries AT THIS NODE
-  const idleAdvsAtNode = GameState.adventurers.filter(a => a.office === null && a.locationNodeId === currentNode.id);
-
-  if (idleAdvsAtNode.length === 0) {
-    candidatesContainer.innerHTML = `<div style="grid-column: 1 / -1; color: #f87171; text-align: center; padding: 20px;">本據點目前沒有閒置的傭兵可供調遣。<br><span style="font-size: 0.8em; color: #94a3b8;">(必須是身處在該據點且無官職的傭兵)</span></div>`;
-    return;
-  }
-
-  // We reuse the styling from ModalController's adventurer-card
-  idleAdvsAtNode.forEach(adv => {
-    const displayClass = (adv as any).currentClass || adv.job.name;
-    const card = document.createElement('div');
-    card.className = 'adventurer-card';
-    card.style.width = '100px';
-    card.style.height = '110px';
-    card.style.flexShrink = '0';
-    card.style.background = 'rgba(255,255,255,0.05)';
-    card.style.border = '1px solid rgba(255,255,255,0.1)';
-    card.style.borderRadius = '6px';
-    card.style.padding = '8px';
-    card.style.display = 'flex';
-    card.style.flexDirection = 'column';
-    card.style.alignItems = 'center';
-    card.style.cursor = 'pointer';
-    card.style.transition = 'all 0.2s';
-    
-    card.onmouseover = () => { card.style.background = 'rgba(255,255,255,0.1)'; card.style.borderColor = '#eab308'; };
-    card.onmouseout = () => { card.style.background = 'rgba(255,255,255,0.05)'; card.style.borderColor = 'rgba(255,255,255,0.1)'; };
-
-    card.innerHTML = renderAdventurerCard(adv, {
+  HeroPicker.render({
+    container: candidatesContainer,
+    adventurers: GameState.adventurers,
+    filter: (adv) => adv.office === null && adv.locationNodeId === currentNode.id,
+    emptyMessage: '本據點目前沒有閒置的傭兵可供調遣。<br><span style="font-size: 0.8em; color: #94a3b8;">(必須是身處在該據點且無官職的傭兵)</span>',
+    cardExtraOptions: (adv) => ({
       extraStats: `統帥: ${adv.baseAttributes.command}`
-    });
-
-    card.addEventListener('click', () => {
-      // Ensure the selected slot is empty before assigning
+    }),
+    onSelect: (adv) => {
       const existingHolders = GameState.adventurers.filter(a => a.office === selectedSlotType && a.stationedNodeId === currentNode.id);
-      
       const config = getTitleConfig(currentTitle);
       const maxCount = config.officeSlots[selectedSlotType!] || 0;
       
@@ -214,9 +186,7 @@ export function renderOfficeBoard(): void {
       selectedSlotIndex = -1;
       renderOfficeBoard();
       UIManager.updateUI();
-    });
-
-    candidatesContainer.appendChild(card);
+    }
   });
 
   // 更新攻城重型軍備庫存展示

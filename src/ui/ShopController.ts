@@ -559,5 +559,5 @@ export function openWarehouse(isForgeMode: boolean) {
   import('./components/ForgeUIController').then(m => m.ForgeUIController.getInstance().openWarehouse(isForgeMode));
 }
 export function openHomeWarehouse() {
-  import('./components/ForgeUIController').then(m => m.ForgeUIController.getInstance().openHomeWarehouse());
+  import('./modals/HomeWarehouseModalController').then(m => m.HomeWarehouseModalController.open());
 }

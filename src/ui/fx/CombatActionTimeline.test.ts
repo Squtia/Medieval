@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { CombatEventType, CombatEvent, CombatImpactKind } from '../../models/Combat';
 import defaultVFXSequences from '../../data/vfx_sequences.json';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
-import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
-import { VFXPresetValidator } from '../../ui/fx/VFXPresetValidator';
+import { CombatFXEngine } from './CombatFXEngine';
+import { VFXPresetRepository } from './VFXPresetRepository';
+import { VFXPresetValidator } from './VFXPresetValidator';
 import { SKILL_VFX_MAP } from '../../data/SkillData';
 
 describe('CombatActionTimeline & Contract Verification', () => {

@@ -3,14 +3,15 @@ import { UIManager } from '../UIManager';
 import { DataStore } from '../../systems/DataStore';
 import { EquipmentGenerator } from '../../systems/EquipmentGenerator';
 import { EnhancementSystem } from '../../systems/EnhancementSystem';
+import { CraftingSystem } from '../../systems/crafting/CraftingSystem';
 import { CombatStats, ElementType, Equipment, EquipmentSlot, EquipmentTemplate, NobleTitle, SIEGE_ENGINE_CONFIGS, SiegeEngineType } from '../../models/types';
 import { MarketSystem } from '../../systems/MarketSystem';
 import { positionFloatingElement } from '../FloatingPosition';
 import { renderEquipIcon, ICON_SIZE, formatStatsTags, getElementBadge, consumeMaterial, attachTooltip, getEquipTooltipHtml, getMaterialCount, getTradeGoodStock } from '../ShopController';
 import { renderUniversalIcon } from '../IconSpriteHelper';
 import { ToastManager } from '../ToastManager';
-import { TRADE_GOODS } from '../../systems/MarketSystem';
 import materialsJson from '../../data/materials.json';
+import { EquipSourcePicker } from './EquipSourcePicker';
 
 export class ForgeUIController {
   private static instance: ForgeUIController;
@@ -99,33 +100,40 @@ export class ForgeUIController {
     const workspace = document.getElementById('forge-workspace')!;
     workspace.innerHTML = '';
 
-    // 收集所有可強化的裝備（依據來源）
+    // 收集所有可強化的裝備（同時包含倉庫與全傭兵穿戴，並確保具備唯一 UUID）
     const getAvailableItems = (): { eq: Equipment; label?: string; advName?: string }[] => {
-      if (this.enhanceSource === 'WAREHOUSE') {
-        return (territory.warehouse || []).map(eq => ({ eq }));
-      } else {
-        const items: { eq: Equipment; label?: string; advName?: string }[] = [];
-        (GameState.adventurers || []).forEach(adv => {
-          if (!adv.equipment) return;
-          const slots: EquipmentSlot[] = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
-          slots.forEach(slot => {
-            const eq = adv.equipment[slot];
-            if (eq) {
-              const slotName = slot === EquipmentSlot.WEAPON ? '武器' : (slot === EquipmentSlot.ARMOR ? '防具' : '飾品');
-              items.push({
-                eq,
-                label: `${adv.name} (${slotName})`,
-                advName: adv.name
-              });
-            }
-          });
+      const ensureUuid = (eq: Equipment): string => {
+        if (!eq.uuid) {
+          eq.uuid = `eq_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        }
+        return eq.uuid;
+      };
+      const items: { eq: Equipment; label?: string; advName?: string }[] = [];
+      (territory.warehouse || []).forEach(eq => {
+        ensureUuid(eq);
+        items.push({ eq, label: '倉庫' });
+      });
+      (GameState.adventurers || []).forEach(adv => {
+        if (!adv.equipment) return;
+        const slots: EquipmentSlot[] = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
+        slots.forEach(slot => {
+          const eq = adv.equipment[slot];
+          if (eq) {
+            ensureUuid(eq);
+            const slotName = slot === EquipmentSlot.WEAPON ? '武器' : (slot === EquipmentSlot.ARMOR ? '防具' : '飾品');
+            items.push({
+              eq,
+              label: `${adv.name} (${slotName})`,
+              advName: adv.name
+            });
+          }
         });
-        return items;
-      }
+      });
+      return items;
     };
 
     let availableItems = getAvailableItems();
-    let selectedUuid = availableItems.length > 0 ? availableItems[0].eq.uuid : null;
+    let selectedUuid: string | null = availableItems.length > 0 ? (availableItems[0].eq.uuid || null) : null;
 
     // 雙欄 Container
     const splitContainer = document.createElement('div');
@@ -134,9 +142,9 @@ export class ForgeUIController {
     splitContainer.style.flex = '1';
     splitContainer.style.minHeight = '0';
 
-    // 左欄：420px 寬，半透明玻璃質感
+    // 左欄：360px 寬，半透明古典質感
     const leftPanel = document.createElement('div');
-    leftPanel.style.width = '420px';
+    leftPanel.style.width = '360px';
     leftPanel.style.display = 'flex';
     leftPanel.style.flexDirection = 'column';
     leftPanel.style.background = 'rgba(18, 14, 11, 0.68)';
@@ -144,66 +152,16 @@ export class ForgeUIController {
     leftPanel.style.borderRadius = '8px';
     leftPanel.style.padding = '12px';
 
-    // 頂部來源切換按鈕列
-    const sourceToggleRow = document.createElement('div');
-    sourceToggleRow.style.display = 'flex';
-    sourceToggleRow.style.gap = '8px';
-    sourceToggleRow.style.marginBottom = '10px';
-
-    const btnSourceWh = document.createElement('button');
-    btnSourceWh.style.flex = '1';
-    btnSourceWh.style.padding = '6px 0';
-    btnSourceWh.style.fontSize = '0.85em';
-    btnSourceWh.style.borderRadius = '4px';
-    btnSourceWh.style.cursor = 'pointer';
-    btnSourceWh.style.border = `1px solid ${this.enhanceSource === 'WAREHOUSE' ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`;
-    btnSourceWh.style.background = this.enhanceSource === 'WAREHOUSE' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(0,0,0,0.4)';
-    btnSourceWh.style.color = this.enhanceSource === 'WAREHOUSE' ? '#fbbf24' : '#94a3b8';
-    btnSourceWh.textContent = `📦 領地倉庫 (${territory.warehouse?.length || 0})`;
-    btnSourceWh.onclick = () => {
-      this.enhanceSource = 'WAREHOUSE';
-      this.renderForgeEnhanceMode();
+    const renderLeftGrid = () => {
+      EquipSourcePicker.render({
+        container: leftPanel,
+        selectedEquipUuid: selectedUuid,
+        onSelectEquip: (eq) => {
+          selectedUuid = eq.uuid || null;
+          renderRightPanel();
+        }
+      });
     };
-
-    let advEquipTotal = 0;
-    (GameState.adventurers || []).forEach(adv => {
-      if (adv.equipment) {
-        if (adv.equipment[EquipmentSlot.WEAPON]) advEquipTotal++;
-        if (adv.equipment[EquipmentSlot.ARMOR]) advEquipTotal++;
-        if (adv.equipment[EquipmentSlot.ACCESSORY]) advEquipTotal++;
-      }
-    });
-
-    const btnSourceAdv = document.createElement('button');
-    btnSourceAdv.style.flex = '1';
-    btnSourceAdv.style.padding = '6px 0';
-    btnSourceAdv.style.fontSize = '0.85em';
-    btnSourceAdv.style.borderRadius = '4px';
-    btnSourceAdv.style.cursor = 'pointer';
-    btnSourceAdv.style.border = `1px solid ${this.enhanceSource === 'ADVENTURER' ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`;
-    btnSourceAdv.style.background = this.enhanceSource === 'ADVENTURER' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(0,0,0,0.4)';
-    btnSourceAdv.style.color = this.enhanceSource === 'ADVENTURER' ? '#fbbf24' : '#94a3b8';
-    btnSourceAdv.textContent = `👤 傭兵穿戴 (${advEquipTotal})`;
-    btnSourceAdv.onclick = () => {
-      this.enhanceSource = 'ADVENTURER';
-      this.renderForgeEnhanceMode();
-    };
-
-    sourceToggleRow.appendChild(btnSourceWh);
-    sourceToggleRow.appendChild(btnSourceAdv);
-    leftPanel.appendChild(sourceToggleRow);
-
-    // 卡片網格
-    const leftGrid = document.createElement('div');
-    leftGrid.style.flex = '1';
-    leftGrid.style.overflowY = 'auto';
-    leftGrid.style.overflowX = 'hidden';
-    leftGrid.style.display = 'grid';
-    leftGrid.style.gridTemplateColumns = this.enhanceSource === 'ADVENTURER' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))';
-    leftGrid.style.gap = '6px';
-    leftGrid.style.paddingRight = '2px';
-    leftGrid.style.alignContent = 'flex-start';
-    leftPanel.appendChild(leftGrid);
 
     // 右欄：高溫強化火爐對比區
     const rightPanel = document.createElement('div');
@@ -211,99 +169,15 @@ export class ForgeUIController {
     rightPanel.style.display = 'flex';
     rightPanel.style.flexDirection = 'column';
     rightPanel.style.justifyContent = 'space-between';
-    rightPanel.style.background = 'rgba(18, 14, 11, 0.68)';
+    rightPanel.style.background = 'rgba(22, 17, 13, 0.72)';
     rightPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
     rightPanel.style.borderRadius = '8px';
     rightPanel.style.padding = '18px';
 
-    const renderLeftGrid = () => {
-      leftGrid.innerHTML = '';
-      availableItems = getAvailableItems();
-      if (!selectedUuid || !availableItems.some(item => item.eq.uuid === selectedUuid)) {
-        selectedUuid = availableItems.length > 0 ? availableItems[0].eq.uuid : null;
-      }
-
-      if (availableItems.length === 0) {
-        leftGrid.innerHTML = `<div style="grid-column: 1 / -1; color:#94a3b8; text-align:center; padding:40px 0; font-size:0.9em;">
-          ${this.enhanceSource === 'WAREHOUSE' ? '倉庫內目前沒有任何裝備。' : '目前所有傭兵身上皆未穿戴任何裝備。'}
-        </div>`;
-        return;
-      }
-
-      availableItems.forEach(item => {
-        const eq = item.eq;
-        const isSel = eq.uuid === selectedUuid;
-        const card = document.createElement('div');
-
-        if (this.enhanceSource === 'ADVENTURER') {
-          // 傭兵穿戴：2 欄卡片式排版，附帶傭兵名稱與部位標註
-          card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
-          card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
-          card.style.borderRadius = '6px';
-          card.style.padding = '6px 8px';
-          card.style.display = 'flex';
-          card.style.alignItems = 'center';
-          card.style.gap = '8px';
-          card.style.cursor = 'pointer';
-          card.style.boxSizing = 'border-box';
-          card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
-
-          card.innerHTML = `
-            <div style="flex-shrink:0;">${renderEquipIcon(eq, ICON_SIZE.SM)}</div>
-            <div style="flex:1; min-width:0; line-height:1.2;">
-              <div style="font-size:0.85em; font-weight:bold; color:${isSel ? '#fbbf24' : '#e2e8f0'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                ${eq.name} <span style="color:#38bdf8;">+${eq.enhancementLevel || 0}</span>
-              </div>
-              <div style="font-size:0.75em; color:#94a3b8; margin-top:2px;">
-                👤 ${item.label || '穿戴中'}
-              </div>
-            </div>
-          `;
-        } else {
-          // 倉庫：5 欄正方形網格
-          card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
-          card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
-          card.style.borderRadius = '6px';
-          card.style.padding = '4px 3px';
-          card.style.display = 'flex';
-          card.style.flexDirection = 'column';
-          card.style.alignItems = 'center';
-          card.style.textAlign = 'center';
-          card.style.justifyContent = 'space-between';
-          card.style.cursor = 'pointer';
-          card.style.height = '94px';
-          card.style.minWidth = '0';
-          card.style.boxSizing = 'border-box';
-          card.style.overflow = 'hidden';
-          card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
-
-          card.innerHTML = `
-            <div style="flex:1; display:flex; align-items:center; justify-content:center;">
-              ${renderEquipIcon(eq, ICON_SIZE.MD)}
-            </div>
-            <div style="display:flex; justify-content:space-between; width:100%; font-size:0.7em; border-top:1px solid rgba(255,255,255,0.12); padding:2px 3px 0; margin-top:2px;">
-              <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
-              <span style="color:#fbbf24; font-size:0.85em; padding:0 2px; background:rgba(217,119,6,0.25); border-radius:2px;">T${eq.tier || 1}</span>
-            </div>
-          `;
-        }
-
-        attachTooltip(card, () => getEquipTooltipHtml(eq));
-
-        card.onclick = () => {
-          selectedUuid = eq.uuid;
-          renderLeftGrid();
-          renderRightPanel();
-        };
-
-        leftGrid.appendChild(card);
-      });
-    };
-
     const renderRightPanel = () => {
       rightPanel.innerHTML = '';
       availableItems = getAvailableItems();
-      const targetItem = availableItems.find(x => x.eq.uuid === selectedUuid) || (availableItems.length > 0 ? availableItems[0] : null);
+      const targetItem = (selectedUuid ? availableItems.find(x => x.eq.uuid === selectedUuid) : null) || (availableItems.length > 0 && selectedUuid === null ? availableItems[0] : null);
 
       if (!targetItem) {
         rightPanel.innerHTML = `
@@ -826,44 +700,14 @@ export class ForgeUIController {
 
       rightPanel.querySelector('#btn-exec-recipe-craft-furnace')?.addEventListener('click', () => {
         if (!canCraft) return;
-
-        if (recipe.baseEquipmentId) {
-          const baseIndex = territory.warehouse.findIndex(eq => eq.id === recipe.baseEquipmentId);
-          if (baseIndex === -1) return;
-          territory.warehouse.splice(baseIndex, 1);
+        const res = CraftingSystem.executeRecipe(territory, recipe, craftAmount, mode);
+        ToastManager.show(res.message, res.success ? 'success' : 'error');
+        if (res.success) {
+          craftAmount = 1;
+          UIManager.updateUI();
+          renderLeftList();
+          renderRightPanel();
         }
-
-        // 消耗神兵重鑄圖紙/專屬書 (如果有的話)
-        if (recipe.requireTomeId) {
-          if (getMaterialCount(territory, recipe.requireTomeId) > 0) {
-            consumeMaterial(territory, recipe.requireTomeId, 1);
-          } else if (getMaterialCount(territory, 'mat_reforge_scroll') > 0) {
-            consumeMaterial(territory, 'mat_reforge_scroll', 1);
-          }
-        }
-
-        for (const [matId, reqAmount] of Object.entries(recipe.requiredMaterials || {})) {
-          consumeMaterial(territory, matId, (reqAmount as number) * craftAmount);
-        }
-        territory.gold -= recipe.goldCost * craftAmount;
-
-        if (mode === 'smelt') {
-          territory.materials[recipe.targetEquipmentId] = (territory.materials[recipe.targetEquipmentId] || 0) + craftAmount;
-          ToastManager.show(`✨ 冶煉成功！獲得【${targetMat?.name}】 x${craftAmount}！`, 'success');
-        } else {
-          for (let i = 0; i < craftAmount; i++) {
-            const newEq = EquipmentGenerator.generate(recipe.targetEquipmentId);
-            if (newEq) {
-              territory.warehouse.push(newEq);
-            }
-          }
-          ToastManager.show(`✨ ${recipe.baseEquipmentId ? '重鑄' : `鍛造 x${craftAmount}`}成功！獲得【${targetTemplate?.name || '裝備'}】！`, 'success');
-        }
-        
-        craftAmount = 1; // 製作完成後數量重置為 1，避免下次材料不夠
-        UIManager.updateUI();
-        renderLeftList();
-        renderRightPanel();
       });
     };
 
@@ -891,33 +735,40 @@ export class ForgeUIController {
 
     let selectedStoneMatId = elemStones[0].matId;
 
-    // 收集所有可附魔的裝備（依據來源）
+    // 收集所有可附魔的裝備（同時包含倉庫與全傭兵穿戴，並確保具備唯一 UUID）
     const getAvailableItems = (): { eq: Equipment; label?: string; advName?: string }[] => {
-      if (this.enchantSource === 'WAREHOUSE') {
-        return (territory.warehouse || []).map(eq => ({ eq }));
-      } else {
-        const items: { eq: Equipment; label?: string; advName?: string }[] = [];
-        (GameState.adventurers || []).forEach(adv => {
-          if (!adv.equipment) return;
-          const slots: EquipmentSlot[] = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
-          slots.forEach(slot => {
-            const eq = adv.equipment[slot];
-            if (eq) {
-              const slotName = slot === EquipmentSlot.WEAPON ? '武器' : (slot === EquipmentSlot.ARMOR ? '防具' : '飾品');
-              items.push({
-                eq,
-                label: `${adv.name} (${slotName})`,
-                advName: adv.name
-              });
-            }
-          });
+      const ensureUuid = (eq: Equipment): string => {
+        if (!eq.uuid) {
+          eq.uuid = `eq_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        }
+        return eq.uuid;
+      };
+      const items: { eq: Equipment; label?: string; advName?: string }[] = [];
+      (territory.warehouse || []).forEach(eq => {
+        ensureUuid(eq);
+        items.push({ eq, label: '倉庫' });
+      });
+      (GameState.adventurers || []).forEach(adv => {
+        if (!adv.equipment) return;
+        const slots: EquipmentSlot[] = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
+        slots.forEach(slot => {
+          const eq = adv.equipment[slot];
+          if (eq) {
+            ensureUuid(eq);
+            const slotName = slot === EquipmentSlot.WEAPON ? '武器' : (slot === EquipmentSlot.ARMOR ? '防具' : '飾品');
+            items.push({
+              eq,
+              label: `${adv.name} (${slotName})`,
+              advName: adv.name
+            });
+          }
         });
-        return items;
-      }
+      });
+      return items;
     };
 
     let availableItems = getAvailableItems();
-    let selectedUuid = availableItems.length > 0 ? availableItems[0].eq.uuid : null;
+    let selectedUuid: string | null = availableItems.length > 0 ? (availableItems[0].eq.uuid || null) : null;
 
     // 雙欄 Container
     const splitContainer = document.createElement('div');
@@ -926,75 +777,15 @@ export class ForgeUIController {
     splitContainer.style.flex = '1';
     splitContainer.style.minHeight = '0';
 
-    // 左欄：420px 寬，半透明玻璃質感
+    // 左欄：360px 寬，半透明古典質感
     const leftPanel = document.createElement('div');
-    leftPanel.style.width = '420px';
+    leftPanel.style.width = '360px';
     leftPanel.style.display = 'flex';
     leftPanel.style.flexDirection = 'column';
     leftPanel.style.background = 'rgba(18, 14, 11, 0.68)';
     leftPanel.style.border = '1px solid rgba(217, 119, 6, 0.35)';
     leftPanel.style.borderRadius = '8px';
     leftPanel.style.padding = '12px';
-
-    // 頂部來源切換按鈕列
-    const sourceToggleRow = document.createElement('div');
-    sourceToggleRow.style.display = 'flex';
-    sourceToggleRow.style.gap = '8px';
-    sourceToggleRow.style.marginBottom = '10px';
-
-    const btnSourceWh = document.createElement('button');
-    btnSourceWh.style.flex = '1';
-    btnSourceWh.style.padding = '6px 0';
-    btnSourceWh.style.fontSize = '0.85em';
-    btnSourceWh.style.borderRadius = '4px';
-    btnSourceWh.style.cursor = 'pointer';
-    btnSourceWh.style.border = `1px solid ${this.enchantSource === 'WAREHOUSE' ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`;
-    btnSourceWh.style.background = this.enchantSource === 'WAREHOUSE' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(0,0,0,0.4)';
-    btnSourceWh.style.color = this.enchantSource === 'WAREHOUSE' ? '#fbbf24' : '#94a3b8';
-    btnSourceWh.textContent = `📦 領地倉庫 (${territory.warehouse?.length || 0})`;
-    btnSourceWh.onclick = () => {
-      this.enchantSource = 'WAREHOUSE';
-      this.renderForgeEnchantMode();
-    };
-
-    let advEquipTotal = 0;
-    (GameState.adventurers || []).forEach(adv => {
-      if (adv.equipment) {
-        if (adv.equipment[EquipmentSlot.WEAPON]) advEquipTotal++;
-        if (adv.equipment[EquipmentSlot.ARMOR]) advEquipTotal++;
-        if (adv.equipment[EquipmentSlot.ACCESSORY]) advEquipTotal++;
-      }
-    });
-
-    const btnSourceAdv = document.createElement('button');
-    btnSourceAdv.style.flex = '1';
-    btnSourceAdv.style.padding = '6px 0';
-    btnSourceAdv.style.fontSize = '0.85em';
-    btnSourceAdv.style.borderRadius = '4px';
-    btnSourceAdv.style.cursor = 'pointer';
-    btnSourceAdv.style.border = `1px solid ${this.enchantSource === 'ADVENTURER' ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`;
-    btnSourceAdv.style.background = this.enchantSource === 'ADVENTURER' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(0,0,0,0.4)';
-    btnSourceAdv.style.color = this.enchantSource === 'ADVENTURER' ? '#fbbf24' : '#94a3b8';
-    btnSourceAdv.textContent = `👤 傭兵穿戴 (${advEquipTotal})`;
-    btnSourceAdv.onclick = () => {
-      this.enchantSource = 'ADVENTURER';
-      this.renderForgeEnchantMode();
-    };
-
-    sourceToggleRow.appendChild(btnSourceWh);
-    sourceToggleRow.appendChild(btnSourceAdv);
-    leftPanel.appendChild(sourceToggleRow);
-
-    const leftGrid = document.createElement('div');
-    leftGrid.style.flex = '1';
-    leftGrid.style.overflowY = 'auto';
-    leftGrid.style.overflowX = 'hidden';
-    leftGrid.style.display = 'grid';
-    leftGrid.style.gridTemplateColumns = this.enchantSource === 'ADVENTURER' ? 'repeat(2, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))';
-    leftGrid.style.gap = '6px';
-    leftGrid.style.paddingRight = '2px';
-    leftGrid.style.alignContent = 'flex-start';
-    leftPanel.appendChild(leftGrid);
 
     // 右欄：附魔台
     const rightPanel = document.createElement('div');
@@ -1008,93 +799,20 @@ export class ForgeUIController {
     rightPanel.style.padding = '18px';
 
     const renderLeftGrid = () => {
-      leftGrid.innerHTML = '';
-      availableItems = getAvailableItems();
-      if (!selectedUuid || !availableItems.some(item => item.eq.uuid === selectedUuid)) {
-        selectedUuid = availableItems.length > 0 ? availableItems[0].eq.uuid : null;
-      }
-
-      if (availableItems.length === 0) {
-        leftGrid.innerHTML = `<div style="grid-column: 1 / -1; color:#94a3b8; text-align:center; padding:40px 0; font-size:0.9em;">
-          ${this.enchantSource === 'WAREHOUSE' ? '倉庫內目前沒有任何可附魔的裝備。' : '目前所有傭兵身上皆未穿戴任何裝備。'}
-        </div>`;
-        return;
-      }
-
-      availableItems.forEach(item => {
-        const eq = item.eq;
-        const isSel = eq.uuid === selectedUuid;
-        const card = document.createElement('div');
-
-        if (this.enchantSource === 'ADVENTURER') {
-          // 傭兵穿戴：2 欄卡片式排版
-          card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
-          card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
-          card.style.borderRadius = '6px';
-          card.style.padding = '6px 8px';
-          card.style.display = 'flex';
-          card.style.alignItems = 'center';
-          card.style.gap = '8px';
-          card.style.cursor = 'pointer';
-          card.style.boxSizing = 'border-box';
-          card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
-
-          card.innerHTML = `
-            <div style="flex-shrink:0;">${renderEquipIcon(eq, ICON_SIZE.SM)}</div>
-            <div style="flex:1; min-width:0; line-height:1.2;">
-              <div style="font-size:0.85em; font-weight:bold; color:${isSel ? '#fbbf24' : '#e2e8f0'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                ${eq.name} ${getElementBadge(eq.element)}
-              </div>
-              <div style="font-size:0.75em; color:#94a3b8; margin-top:2px;">
-                👤 ${item.label || '穿戴中'}
-              </div>
-            </div>
-          `;
-        } else {
-          // 倉庫：5 欄正方形網格
-          card.style.background = isSel ? 'rgba(234, 179, 8, 0.25)' : 'rgba(30, 24, 20, 0.8)';
-          card.style.border = `1.5px solid ${isSel ? '#eab308' : 'rgba(217, 119, 6, 0.3)'}`;
-          card.style.borderRadius = '6px';
-          card.style.padding = '4px 3px';
-          card.style.display = 'flex';
-          card.style.flexDirection = 'column';
-          card.style.alignItems = 'center';
-          card.style.textAlign = 'center';
-          card.style.justifyContent = 'space-between';
-          card.style.cursor = 'pointer';
-          card.style.height = '94px';
-          card.style.minWidth = '0';
-          card.style.boxSizing = 'border-box';
-          card.style.overflow = 'hidden';
-          card.style.boxShadow = '0 2px 6px rgba(0,0,0,0.5)';
-
-          card.innerHTML = `
-            <div style="flex:1; display:flex; align-items:center; justify-content:center;">
-              ${renderEquipIcon(eq, ICON_SIZE.MD)}
-            </div>
-            <div style="display:flex; justify-content:space-between; width:100%; font-size:0.7em; border-top:1px solid rgba(255,255,255,0.12); padding:2px 3px 0; margin-top:2px;">
-              <span style="color:#38bdf8; font-weight:bold;">+${eq.enhancementLevel || 0}</span>
-              <span style="font-size:0.85em;">${getElementBadge(eq.element)}</span>
-            </div>
-          `;
-        }
-
-        attachTooltip(card, () => getEquipTooltipHtml(eq));
-
-        card.onclick = () => {
-          selectedUuid = eq.uuid;
-          renderLeftGrid();
+      EquipSourcePicker.render({
+        container: leftPanel,
+        selectedEquipUuid: selectedUuid,
+        onSelectEquip: (eq) => {
+          selectedUuid = eq.uuid || null;
           renderRightPanel();
-        };
-
-        leftGrid.appendChild(card);
+        }
       });
     };
 
     const renderRightPanel = () => {
       rightPanel.innerHTML = '';
       availableItems = getAvailableItems();
-      const targetItem = availableItems.find(x => x.eq.uuid === selectedUuid) || (availableItems.length > 0 ? availableItems[0] : null);
+      const targetItem = (selectedUuid ? availableItems.find(x => x.eq.uuid === selectedUuid) : null) || (availableItems.length > 0 && selectedUuid === null ? availableItems[0] : null);
 
       if (!targetItem) {
         rightPanel.innerHTML = `
@@ -1172,12 +890,13 @@ export class ForgeUIController {
 
       rightPanel.querySelector('#btn-exec-enchant-furnace')?.addEventListener('click', () => {
         if (stoneCount <= 0) return;
-        consumeMaterial(territory, selStone.matId, 1);
-        eq.element = selStone.element;
-        ToastManager.show(`✨ 附魔成功！【${eq.name}】已成功注入 ${selStone.name}！`, 'success');
-        UIManager.updateUI();
-        renderLeftGrid();
-        renderRightPanel();
+        const res = CraftingSystem.enchantEquipment(territory, eq, selStone.matId, selStone.element);
+        ToastManager.show(res.message, res.success ? 'success' : 'error');
+        if (res.success) {
+          UIManager.updateUI();
+          renderLeftGrid();
+          renderRightPanel();
+        }
       });
     };
 
@@ -1390,26 +1109,12 @@ export class ForgeUIController {
       attachTooltip(rightPanel.querySelector('#disassemble-source-icon') as HTMLElement, () => getEquipTooltipHtml(selectedEq));
   
       rightPanel.querySelector('#btn-exec-disassemble')?.addEventListener('click', () => {
-        if (selectedEq.id === 'wpn_heirloom_sword' || (selectedEq as any).isLocked) {
-          ToastManager.show('🛡️ 家族傳承的佩劍蘊含先祖榮光，無法被拆解摧毀！', 'warning');
-          return;
-        }
-
-        const idx = territory.warehouse.findIndex(e => e.uuid === selectedEq.uuid);
-        if (idx !== -1) {
-          territory.warehouse.splice(idx, 1);
-          
-          territory.materials[returnMatId] = (territory.materials[returnMatId] || 0) + returnCount;
-          if (enhanceRetCount > 0) {
-            territory.materials[enhanceRetMatId] = (territory.materials[enhanceRetMatId] || 0) + enhanceRetCount;
-          }
-          
-          ToastManager.show(`♻️ 拆解成功！獲得素材。`, 'success');
-          
+        const res = CraftingSystem.disassembleEquipment(territory, selectedEq.uuid);
+        ToastManager.show(res.message, res.success ? 'success' : 'error');
+        if (res.success) {
           if (territory.warehouse.length > 0) {
             selectedUuid = territory.warehouse[0].uuid;
           }
-          
           UIManager.updateUI();
           renderLeftGrid();
           if (territory.warehouse.length > 0) {
@@ -1429,229 +1134,10 @@ export class ForgeUIController {
     workspace.appendChild(splitContainer);
   }
   
-  public openHomeWarehouse() {
-    const modal = document.getElementById('modal-base-warehouse');
-    if (!modal) return;
-    modal.classList.add('active');
-  
-    const btnClose = document.getElementById('btn-close-base-warehouse');
-    if (btnClose) {
-      btnClose.onclick = () => modal.classList.remove('active');
-    }
-  
-    const tabEquip = document.getElementById('tab-base-warehouse-equip');
-    const tabMats = document.getElementById('tab-base-warehouse-mats');
-    const tabGoods = document.getElementById('tab-base-warehouse-goods');
-  
-    const panelEquip = document.getElementById('panel-base-warehouse-equip');
-    const panelMats = document.getElementById('panel-base-warehouse-mats');
-    const panelGoods = document.getElementById('panel-base-warehouse-goods');
-  
-    const setActiveTab = (activeTab: HTMLElement, activePanel: HTMLElement) => {
-      [tabEquip, tabMats, tabGoods].forEach(t => {
-        if (t) {
-          t.style.background = 'rgba(0,0,0,0.3)';
-          t.style.border = '1px solid rgba(255,255,255,0.1)';
-          t.style.color = '#94a3b8';
-        }
-      });
-      [panelEquip, panelMats, panelGoods].forEach(p => {
-        if (p) p.style.display = 'none';
-      });
-  
-      if (activeTab) {
-        activeTab.style.background = 'rgba(234,179,8,0.2)';
-        activeTab.style.border = '1px solid rgba(234,179,8,0.4)';
-        activeTab.style.color = '#fbbf24';
-      }
-      if (activePanel) {
-        activePanel.style.display = 'block';
-      }
-    };
-  
-    if (tabEquip) {
-      tabEquip.onclick = () => {
-        setActiveTab(tabEquip, panelEquip!);
-        this.renderHomeWarehouseEquip();
-      };
-    }
-    if (tabMats) {
-      tabMats.onclick = () => {
-        setActiveTab(tabMats, panelMats!);
-        this.renderHomeWarehouseMats();
-      };
-    }
-    if (tabGoods) {
-      tabGoods.onclick = () => {
-        setActiveTab(tabGoods, panelGoods!);
-        this.renderHomeWarehouseGoods();
-      };
-    }
-  
-    if (tabEquip && panelEquip) {
-      setActiveTab(tabEquip, panelEquip);
-      this.renderHomeWarehouseEquip();
-    }
+  public openHomeWarehouse(): void {
+    import('../modals/HomeWarehouseModalController').then(m => m.HomeWarehouseModalController.open());
   }
-  
-  private renderHomeWarehouseEquip() {
-    const grid = document.getElementById('grid-base-warehouse-equip');
-    if (!grid) return;
-    grid.innerHTML = '';
-  
-    const warehouse = GameState.myTerritory.warehouse;
-    if (warehouse.length === 0) {
-      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:30px;">倉庫內暫無儲備裝備</div>';
-      return;
-    }
-  
-    warehouse.forEach(eq => {
-      const card = document.createElement('div');
-      card.style.background = 'rgba(30, 24, 20, 0.8)';
-      card.style.border = '1.5px solid rgba(217, 119, 6, 0.3)';
-      card.style.borderRadius = '6px';
-      card.style.padding = '4px 3px';
-      card.style.display = 'flex';
-      card.style.flexDirection = 'column';
-      card.style.alignItems = 'center';
-      card.style.textAlign = 'center';
-      card.style.justifyContent = 'space-between';
-      card.style.cursor = 'pointer';
-      card.style.width = '85px';
-      card.style.height = '94px';
-      card.style.flexShrink = '0';
-      card.style.boxSizing = 'border-box';
-      card.style.overflow = 'hidden';
-  
-      const iconHtml = renderEquipIcon(eq, ICON_SIZE.MD);
-      const enhancementText = eq.enhancementLevel ? `+${eq.enhancementLevel}` : '+0';
-      const tierText = `T${eq.tier || 1}`;
-  
-      card.innerHTML = `
-        <div style="flex:1; display:flex; align-items:center; justify-content:center;">${iconHtml}</div>
-        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.7em; padding:2px 3px 0; border-top:1px solid rgba(255,255,255,0.12); margin-top:2px;">
-          <span style="color:#38bdf8; font-weight:bold;">${enhancementText}</span>
-          <span style="color:#fbbf24; background:rgba(0,0,0,0.5); padding:1px 4px; border-radius:3px; border:1px solid rgba(251,191,36,0.3);">${tierText}</span>
-        </div>
-      `;
-  
-      attachTooltip(card, () => getEquipTooltipHtml(eq));
-      grid.appendChild(card);
-    });
-  }
-  
-  private renderHomeWarehouseMats() {
-    const grid = document.getElementById('grid-base-warehouse-mats');
-    if (!grid) return;
-    grid.innerHTML = '';
-  
-    const materials = GameState.myTerritory.materials;
-    const matKeys = Object.keys(materials).filter(k => (materials[k] || 0) > 0);
-  
-    if (matKeys.length === 0) {
-      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:30px;">倉庫內暫無素材與附魔石</div>';
-      return;
-    }
-  
-    matKeys.forEach(matId => {
-      const count = materials[matId] || 0;
-      const matDef = DataStore.MaterialDB[matId] || { name: matId, icon: '🧲', description: '強化/附魔素材' };
-  
-      const card = document.createElement('div');
-      card.style.background = 'rgba(30, 24, 20, 0.8)';
-      card.style.border = '1.5px solid rgba(217, 119, 6, 0.3)';
-      card.style.borderRadius = '6px';
-      card.style.padding = '5px 4px';
-      card.style.display = 'flex';
-      card.style.flexDirection = 'column';
-      card.style.alignItems = 'center';
-      card.style.textAlign = 'center';
-      card.style.justifyContent = 'space-between';
-      card.style.cursor = 'pointer';
-      card.style.width = '85px';
-      card.style.height = '94px';
-      card.style.flexShrink = '0';
-      card.style.boxSizing = 'border-box';
-  
-      card.innerHTML = `
-        <div style="flex:1; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(matDef.icon || '🧲', 36)}</div>
-        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
-          <span style="color:#e2e8f0; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45px;">${matDef.name}</span>
-          <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
-        </div>
-      `;
-  
-      attachTooltip(card, () => `
-        <div style="padding:8px; max-width:200px;">
-          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-            ${renderUniversalIcon(matDef.icon || '🧲', 20)} <span>${matDef.name}</span>
-          </div>
-          <div style="font-size:0.8em; color:#cbd5e1;">${matDef.description || '鍛造與附魔必備物資'}</div>
-          <div style="font-size:0.8em; color:#e2e8f0; margin-top:4px;">擁有數量：${count}</div>
-        </div>
-      `);
-      grid.appendChild(card);
-    });
-  }
-  
-  private renderHomeWarehouseGoods() {
-    const grid = document.getElementById('grid-base-warehouse-goods');
-    if (!grid) return;
-    grid.innerHTML = '';
-  
-    const territory = GameState.myTerritory;
-    const goodsWithStock = TRADE_GOODS
-      .map(g => ({ g, count: getTradeGoodStock(territory, g.id) }))
-      .filter(item => item.count > 0);
-  
-    if (goodsWithStock.length === 0) {
-      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align:center; color:#94a3b8; padding:30px;">倉庫內暫無交易品物資</div>';
-      return;
-    }
-  
-    goodsWithStock.forEach(({ g, count }) => {
-      const goodId = g.id;
-      const matDef = materialsJson.find(m => m.id === goodId);
-      const name = matDef ? matDef.name : g.name;
-      const icon = matDef?.icon || g.icon || '📦';
-  
-      const card = document.createElement('div');
-      card.style.background = 'rgba(30, 24, 20, 0.8)';
-      card.style.border = '1.5px solid rgba(217, 119, 6, 0.3)';
-      card.style.borderRadius = '6px';
-      card.style.padding = '5px 4px';
-      card.style.display = 'flex';
-      card.style.flexDirection = 'column';
-      card.style.alignItems = 'center';
-      card.style.textAlign = 'center';
-      card.style.justifyContent = 'space-between';
-      card.style.cursor = 'pointer';
-      card.style.width = '85px';
-      card.style.height = '85px';
-      card.style.aspectRatio = '1 / 1';
-      card.style.flexShrink = '0';
-      card.style.boxSizing = 'border-box';
-  
-      card.innerHTML = `
-        <div style="flex:1; display:flex; align-items:center; justify-content:center;">${renderUniversalIcon(icon, 36)}</div>
-        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; padding:0 4px;">
-          <span style="color:#e2e8f0; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:45px;">${name}</span>
-          <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
-        </div>
-      `;
-  
-      attachTooltip(card, () => `
-        <div style="padding:8px; max-width:200px;">
-          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-            ${renderUniversalIcon(icon, 20)} <span>${name}</span>
-          </div>
-          <div style="font-size:0.8em; color:#cbd5e1;">用於城鎮商隊貿易與物資輸送</div>
-          <div style="font-size:0.8em; color:#e2e8f0; margin-top:4px;">庫存數量：${count} 單位</div>
-        </div>
-      `);
-      grid.appendChild(card);
-    });
-  }
+
 
   private renderForgeSiegeMode() {
     const territory = GameState.myTerritory;
@@ -1760,28 +1246,12 @@ export class ForgeUIController {
         ToastManager.show('🔒 需達到 🏕️ 營地規模或 ⚔️ 騎士爵位方可打造攻城軍備！');
         return;
       }
-      if (territory.siegeEngineStock.ram >= 10) {
-        ToastManager.show('⚠️ 衝車庫存已達上限 (10台)！');
-        return;
+      const res = CraftingSystem.buildSiegeEngine(territory, SiegeEngineType.BATTERING_RAM);
+      ToastManager.show(res.message, res.success ? 'success' : 'error');
+      if (res.success) {
+        UIManager.updateUI();
+        this.renderForgeSiegeMode();
       }
-      const cost = SIEGE_ENGINE_CONFIGS[SiegeEngineType.BATTERING_RAM];
-      const reqPlank = cost.materials['mat_wood_plank'] || 0;
-      const reqIron = cost.materials['mat_iron_ingot'] || 0;
-      const reqGold = cost.gold;
-
-      if ((materials['mat_wood_plank'] || 0) < reqPlank || (materials['mat_iron_ingot'] || 0) < reqIron || territory.gold < reqGold) {
-        ToastManager.show('⚠️ 打造衝車所需二階素材 (木板/鐵錠) 或金幣不足！');
-        return;
-      }
-
-      materials['mat_wood_plank'] -= reqPlank;
-      materials['mat_iron_ingot'] -= reqIron;
-      territory.gold -= reqGold;
-      territory.siegeEngineStock.ram++;
-
-      UIManager.updateUI();
-      ToastManager.show('🎉 成功打造 1 台【🪵 撞木衝車】！已存入領地軍備庫存！', 'success');
-      this.renderForgeSiegeMode();
     });
 
     // 綁定打造投石機事件
@@ -1790,30 +1260,12 @@ export class ForgeUIController {
         ToastManager.show('🔒 需達到 🏕️ 營地規模或 ⚔️ 騎士爵位方可打造攻城軍備！');
         return;
       }
-      if (territory.siegeEngineStock.trebuchet >= 10) {
-        ToastManager.show('⚠️ 投石機庫存已達上限 (10台)！');
-        return;
+      const res = CraftingSystem.buildSiegeEngine(territory, SiegeEngineType.TREBUCHET);
+      ToastManager.show(res.message, res.success ? 'success' : 'error');
+      if (res.success) {
+        UIManager.updateUI();
+        this.renderForgeSiegeMode();
       }
-      const cost = SIEGE_ENGINE_CONFIGS[SiegeEngineType.TREBUCHET];
-      const reqPlank = cost.materials['mat_wood_plank'] || 0;
-      const reqStone = cost.materials['mat_stone_brick'] || 0;
-      const reqIron = cost.materials['mat_iron_ingot'] || 0;
-      const reqGold = cost.gold;
-
-      if ((materials['mat_wood_plank'] || 0) < reqPlank || (materials['mat_stone_brick'] || 0) < reqStone || (materials['mat_iron_ingot'] || 0) < reqIron || territory.gold < reqGold) {
-        ToastManager.show('⚠️ 打造投石機所需二階素材 (木板/石磚/鐵錠) 或金幣不足！');
-        return;
-      }
-
-      materials['mat_wood_plank'] -= reqPlank;
-      materials['mat_stone_brick'] -= reqStone;
-      materials['mat_iron_ingot'] -= reqIron;
-      territory.gold -= reqGold;
-      territory.siegeEngineStock.trebuchet++;
-
-      UIManager.updateUI();
-      ToastManager.show('🎉 成功打造 1 台【🪨 重型投石機】！已存入領地軍備庫存！', 'success');
-      this.renderForgeSiegeMode();
     });
   }
 }

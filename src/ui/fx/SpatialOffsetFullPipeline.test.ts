@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
+import { CombatFXEngine } from './CombatFXEngine';
 import { VFXPreset } from '../../models/VFX';
 
 describe('SpatialOffsetFullPipeline - 全特效「落點微調」與「軌道平移」全管線幾何驗證', () => {

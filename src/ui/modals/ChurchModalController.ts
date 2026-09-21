@@ -3,8 +3,9 @@ import { ChurchSystem } from '../../systems/ChurchSystem';
 import { ToastManager } from '../ToastManager';
 import { EventBus } from '../../core/EventBus';
 import { GameEventType } from '../../core/GameEvents';
-import { Adventurer } from '../../models/Adventurer';
+import { AdventurerState } from '../../models/types';
 import { renderAdventurerCard } from '../components/AdventurerCard';
+import { HeroPicker } from '../components/HeroPicker';
 import { UIManager } from '../UIManager';
 
 export class ChurchModalController {
@@ -69,10 +70,14 @@ export class ChurchModalController {
     const churchView = document.getElementById('view-church');
     if (churchView) churchView.classList.add('active');
 
-    // 預設選中第一個病床（若有）
+    // 預設選中第一個有效病床（若有）
     const beds = GameState.myTerritory?.infirmaryBeds || [];
-    if (beds.length > 0 && !this.selectedBedId) {
-      this.selectedBedId = beds[0].id;
+    if (beds.length > 0) {
+      if (!this.selectedBedId || !beds.some(b => b.id === this.selectedBedId)) {
+        this.selectedBedId = beds[0].id;
+      }
+    } else {
+      this.selectedBedId = null;
     }
 
     this.render();
@@ -200,13 +205,13 @@ export class ChurchModalController {
         const hpPct = Math.min(100, Math.max(0, Math.round((curHp / stats.hp) * 100)));
 
         bedCard.innerHTML = `
-          <div style="font-size: 0.78em; font-weight: bold; color: #fbbf24; margin-bottom: 4px;">🛏️ 病床 #${idx + 1}</div>
-          <div class="adv-card-wrapper" style="width: 100%; height: 110px; position: relative; pointer-events: none;">
+          <div style="font-size: 0.78em; font-weight: bold; color: #fbbf24; margin-bottom: 4px;">床位 #${idx + 1}</div>
+          <div class="adventurer-card" style="width: 100px; height: 110px; position: relative; pointer-events: none; margin: 0 auto;">
             ${renderAdventurerCard(patient)}
           </div>
           <div style="width: 100%; margin-top: 6px; font-size: 0.75em; text-align: center;">
             <div style="color: ${patient.isWounded ? '#f87171' : '#4ade80'}; font-weight: bold;">
-              ${patient.isWounded ? '🩸 重傷瀕死' : '休養中'}
+              ${patient.isWounded ? '重傷瀕死' : '休養中'}
             </div>
             <div style="color: #cbd5e1; margin-top: 2px;">HP: ${curHp} / ${stats.hp} (${hpPct}%)</div>
           </div>
@@ -214,10 +219,10 @@ export class ChurchModalController {
       } else {
         // 空床位卡片
         bedCard.innerHTML = `
-          <div style="font-size: 0.78em; font-weight: bold; color: #94a3b8; margin-bottom: 8px;">🛏️ 病床 #${idx + 1}</div>
+          <div style="font-size: 0.78em; font-weight: bold; color: #94a3b8; margin-bottom: 8px;">床位 #${idx + 1}</div>
           <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; width: 100%;">
-            <div style="font-size: 2.2em; opacity: 0.7;">🛏️</div>
-            <div style="font-size: 0.85em; color: #4ade80; font-weight: bold;">➕ 空床位</div>
+            <div style="font-size: 1.8em; color: #4ade80; opacity: 0.8; font-family: 'Cinzel', serif;">◈</div>
+            <div style="font-size: 0.85em; color: #4ade80; font-weight: bold;">空置床位</div>
             <div style="font-size: 0.72em; color: #94a3b8;">點擊指派傷員</div>
           </div>
         `;
@@ -233,7 +238,7 @@ export class ChurchModalController {
   }
 
   /**
-   * 📋 渲染下半部選中病床操作區
+   * 渲染下半部選中病床操作區
    */
   private static renderSelectedDetail(beds: any[]): void {
     const detailEl = document.getElementById('church-selected-detail');
@@ -259,7 +264,12 @@ export class ChurchModalController {
     if (currentBed.isOccupied) {
       // ── 選中已入住傷員：展示急救與出院按鈕 ──
       const patient = (GameState.adventurers || []).find(a => a.id === currentBed.adventurerId);
-      if (!patient) return;
+      if (!patient) {
+        currentBed.isOccupied = false;
+        currentBed.adventurerId = undefined;
+        this.render();
+        return;
+      }
 
       const stats = patient.getCombatStats();
       const curHp = patient.getCurrentHp();
@@ -281,10 +291,10 @@ export class ChurchModalController {
       detailCard.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div style="font-size: 1em; font-weight: bold; color: #fbbf24;">
-            🛏️ 病床 #${bedIdx} 當前病患：<span style="color: #fff;">${patient.name} (Lv.${patient.level} ${patient.job.name})</span>
+            床位 #${bedIdx} 當前病患：<span style="color: #fff;">${patient.name} (Lv.${patient.level} ${patient.job.name})</span>
           </div>
           <span style="font-size: 0.85em; padding: 2px 8px; border-radius: 4px; background: ${patient.isWounded ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}; color: ${patient.isWounded ? '#f87171' : '#4ade80'}; border: 1px solid ${patient.isWounded ? '#ef4444' : '#22c55e'};">
-            ${patient.isWounded ? '🩸 重傷瀕死 (全屬性-20%)' : '🌿 休養中'}
+            ${patient.isWounded ? '重傷瀕死 (全屬性-20%)' : '休養中'}
           </span>
         </div>
 
@@ -311,10 +321,10 @@ export class ChurchModalController {
 
         <div style="display: flex; gap: 12px; align-items: center; margin-top: 2px;">
           <button id="btn-patient-potion-treat" class="action-btn" ${potionCount > 0 ? '' : 'disabled'} style="flex: 1; padding: 8px; font-size: 0.9em; background: ${potionCount > 0 ? 'linear-gradient(135deg, #059669, #047857)' : 'rgba(255,255,255,0.08)'}; color: #fff; font-weight: bold;">
-            💉 施用生命藥水急救 (立即補 25% HP，剩餘 ${potionCount} 瓶)
+            施用生命藥水急救 (立即補 25% HP，剩餘 ${potionCount} 瓶)
           </button>
           <button id="btn-patient-discharge" class="action-btn" style="width: 140px; padding: 8px; font-size: 0.9em; background: linear-gradient(135deg, #475569, #334155); color: #e2e8f0;">
-            🚪 離床出院
+            離床出院
           </button>
         </div>
       `;
@@ -356,70 +366,39 @@ export class ChurchModalController {
       `;
       detailEl.appendChild(headerDiv);
 
-      // 取得所有未在病床上且未出征的傭兵
-      const allAdvs = (GameState.adventurers || []).filter(a => {
-        const isDispatched = (a as any).isDispatched || (a as any).onExpedition;
-        return !a.inInfirmaryBed && !isDispatched;
-      });
-
-      // 排序：重傷 ➔ 受傷 ➔ 滿血
-      allAdvs.sort((a, b) => {
-        if (a.isWounded && !b.isWounded) return -1;
-        if (!a.isWounded && b.isWounded) return 1;
-        const aStats = a.getCombatStats();
-        const bStats = b.getCombatStats();
-        const aPct = a.getCurrentHp() / aStats.hp;
-        const bPct = b.getCurrentHp() / bStats.hp;
-        return aPct - bPct;
-      });
-
       const cardsScroll = document.createElement('div');
       cardsScroll.style.cssText = `
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
-        overflow-x: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
+        align-content: flex-start;
         padding: 4px 2px 8px 2px;
-        min-height: 140px;
-        align-items: center;
+        max-height: 180px;
       `;
 
-      if (allAdvs.length === 0) {
-        cardsScroll.innerHTML = `
-          <div style="color: #94a3b8; font-size: 0.9em; padding: 20px; width: 100%; text-align: center;">
-            暫無可指派的閒置傭兵（全體均已入住或外出執行任務中）。
-          </div>
-        `;
-      } else {
-        allAdvs.forEach(adv => {
-          const cardWrap = document.createElement('div');
-          cardWrap.className = 'candidate-card';
-          cardWrap.style.cssText = `
-            width: 105px;
-            height: 130px;
-            flex-shrink: 0;
-            cursor: pointer;
-            position: relative;
-            transition: transform 0.15s ease;
-          `;
-          cardWrap.innerHTML = renderAdventurerCard(adv);
-
-          cardWrap.addEventListener('mouseenter', () => {
-            cardWrap.style.transform = 'translateY(-4px) scale(1.04)';
-          });
-          cardWrap.addEventListener('mouseleave', () => {
-            cardWrap.style.transform = 'translateY(0) scale(1)';
-          });
-
-          cardWrap.addEventListener('click', () => {
-            const res = ChurchSystem.assignPatient(currentBed.id, adv.id, territory);
-            ToastManager.show(res.message, res.success ? 'success' : 'warning');
-            this.render();
-            UIManager.updateUI();
-          });
-
-          cardsScroll.appendChild(cardWrap);
-        });
-      }
+      HeroPicker.render({
+        container: cardsScroll,
+        adventurers: GameState.adventurers || [],
+        filter: (a) => !a.inInfirmaryBed && a.currentState !== AdventurerState.DISPATCHED,
+        sort: (a, b) => {
+          if (a.isWounded && !b.isWounded) return -1;
+          if (!a.isWounded && b.isWounded) return 1;
+          const aStats = a.getCombatStats();
+          const bStats = b.getCombatStats();
+          const aPct = a.getCurrentHp() / aStats.hp;
+          const bPct = b.getCurrentHp() / bStats.hp;
+          return aPct - bPct;
+        },
+        emptyMessage: '暫無可指派的閒置傭兵（全體均已入住或外出執行任務中）。',
+        onSelect: (adv) => {
+          const res = ChurchSystem.assignPatient(currentBed.id, adv.id, territory);
+          ToastManager.show(res.message, res.success ? 'success' : 'warning');
+          this.render();
+          UIManager.updateUI();
+        }
+      });
 
       detailEl.appendChild(cardsScroll);
     }

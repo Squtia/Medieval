@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as THREE from 'three';
 import { VFXStudioStore } from '../../tools/vfx-studio/VFXStudioStore';
-import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
+import { VFXPresetRepository } from './VFXPresetRepository';
 import { VFXLibrary } from '../../tools/vfx-studio/VFXLibrary';
 import { VFXSequence } from '../../models/VFX';
-import { MeshLayerRenderer } from '../../ui/fx/renderers/MeshLayerRenderer';
-import { TrailLayerRenderer } from '../../ui/fx/renderers/TrailLayerRenderer';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
+import { MeshLayerRenderer } from './renderers/MeshLayerRenderer';
+import { TrailLayerRenderer } from './renderers/TrailLayerRenderer';
+import { CombatFXEngine } from './CombatFXEngine';
 
 describe('🎯 播放無拖尾污染、名稱編輯防護與自訂特效管線驗收', () => {
   let store: VFXStudioStore;

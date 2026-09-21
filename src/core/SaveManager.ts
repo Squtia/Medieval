@@ -200,12 +200,27 @@ export class SaveManager {
       if (t.hasRecruitedFromFirstExplorations === undefined) t.hasRecruitedFromFirstExplorations = false;
       if (!t.adventureLogs) t.adventureLogs = [];
 
+      // 確保倉庫裝備具備 UUID
+      (t.warehouse || []).forEach((eq: any, idx: number) => {
+        if (!eq.uuid) {
+          eq.uuid = `eq_wh_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 7)}`;
+        }
+      });
+
       GameState.myTerritory = t;
 
-      // 2. 還原 Adventurers
-      GameState.adventurers = data.adventurers.map((advData: any) => {
+      // 2. 還原 Adventurers (確保穿戴裝備具備 UUID)
+      GameState.adventurers = data.adventurers.map((advData: any, advIdx: number) => {
         const adv = new Adventurer(advData.id, advData.name, advData.job, advData.trait);
         Object.assign(adv, advData);
+        if (adv.equipment) {
+          Object.keys(adv.equipment).forEach((slotKey, sIdx) => {
+            const eq = (adv.equipment as any)[slotKey];
+            if (eq && !eq.uuid) {
+              eq.uuid = `eq_adv_${advIdx}_${sIdx}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+            }
+          });
+        }
         return adv;
       });
 

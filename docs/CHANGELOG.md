@@ -1,3 +1,134 @@
+- **[Enhance/Combat/FloatingDamageVisualAndDurationUpgrade] 戰鬥傷害跳字尺寸放大、打擊凝滯動畫重構與卡片溢出裁切根因修復（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **父容器溢出裁切根因修復（解決「完全沒數字」問題）**：查明卡片容器 `.combat-participant` 因固定尺寸被賦予 `overflow: hidden;`，導致上方彈出之負座標跳字 (`top: -18px` / `top: -24px`) 100% 處在卡片外側而被硬性裁切隱形。在 [style.css](file:///i:/gameproject/Medieval/style.css) Line 1028 將 `.combat-participant` 改為 `overflow: visible;`，並將 `.floating-dmg` 初始幀設為可見 (`opacity: 1`)，同時提昇其定位座標與圖層權重 (`top: -14px`、`z-index: 999`)，徹底解決數字不顯示的問題。
+    2. **字級尺寸大幅提升與高對比黑邊描邊**：在 [style.css](file:///i:/gameproject/Medieval/style.css) 與 [src/styles/combat-studio.css](file:///i:/gameproject/Medieval/src/styles/combat-studio.css) 重構 `.floating-dmg`。普通傷害字級提升至 `1.45em`（約 21px，800 粗體），暴擊傷害 (CRIT) 放大至 `2.0em`（約 28px，900 特粗）搭配金色外發光；護盾扣除、治療、MISS、狀態亦同步放大至 `1.25em ~ 1.4em`，並注入四方像素級黑邊描邊與陰影，徹底杜絕被背景特效淹沒。
+    3. **打擊彈跳與凝滯定格動畫（Pop-in & Sustain）**：新增 `@keyframes floatUpPop` 與 `@keyframes floatUpCritPop` 動畫。前 12%（約 0.15s）以 `scale(1.3 ~ 1.5)` 帶彈跳爆發彈出，22% ~ 70%（長達約 0.65 秒）維持 100% 不透明度凝滯於半空供玩家清晰辨讀數值，最後 30% 才向上飄升並優雅淡出。
+    4. **顯示時長自 800ms 延長至 1300ms**：同步將 [src/ui/fx/adapters/CombatStageAdapter.ts](file:///i:/gameproject/Medieval/src/ui/fx/adapters/CombatStageAdapter.ts)、[src/ui/fx/adapters/CombatStudioStageAdapter.ts](file:///i:/gameproject/Medieval/src/ui/fx/adapters/CombatStudioStageAdapter.ts) 與 [src/ui/CombatUIManager.ts](file:///i:/gameproject/Medieval/src/ui/CombatUIManager.ts) 的清理定時器由 800ms 延長至 1300ms，徹底解決數字消失過快的問題。
+  - **驗收狀態**：TypeScript 0 報錯、`CombatStageAdapter.test.ts` 與 `CombatStudioAdapter.test.ts` 13/13 100% 通過。
+
+- **[Fix/Crafting/SmeltingResourcePipelineAndGuardianAvatar] 礦石冶煉基礎資源管線貫通與誓約騎士頭像讀取修正（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **冶煉素材基礎資源全管線貫通（修復缺少 `tg_iron` 報錯）**：在 [src/systems/crafting/CraftingSystem.ts](file:///i:/gameproject/Medieval/src/systems/crafting/CraftingSystem.ts) 實裝 `getMaterialCount` 與 `consumeMaterial`，打通四大基礎資源（`tg_iron`, `tg_timber`, `tg_stone`, `tg_wheat`）、城鎮交易特產庫存與一般加工素材。徹底解決前端畫面顯示鐵礦石充足、後端卻因只讀取 `territory.materials` 導致判定素材不足拋錯的資料斷層問題。
+    2. **誓約騎士專屬頭像讀取修復**：在 [src/ui/components/EquipSourcePicker.ts](file:///i:/gameproject/Medieval/src/ui/components/EquipSourcePicker.ts) 補全 `renderAvatarSpriteHtml` 之第 5 個參數 `adv.isGuardian`，使誓約騎士（如初森）能精準讀取 [`assets/avatars_guardians.jpg`](file:///i:/gameproject/Medieval/assets/avatars_guardians.jpg) 專屬立繪，消除降級誤讀普通女傭兵頭像的 Bug。
+  - **驗收狀態**：TypeScript 0 報錯、`CraftingSystem.test.ts` 9/9 100% 通過（含新增四大資源冶煉單元測試）。
+
+- **[Fix/UI/EquipSourcePickerSyncAndUuidSelfHealing] 鍛造與工坊裝備選擇器 (EquipSourcePicker) 同步連動修復與裝備 UUID 自動修復實裝（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **來源切換即時連動選取（解決操作斷點）**：重構 [src/ui/components/EquipSourcePicker.ts](file:///i:/gameproject/Medieval/src/ui/components/EquipSourcePicker.ts)，點擊【儲備倉庫】或【傭兵頭像卡片】時，新增 `selectFirstValidForCurrentOwner` 機制。切換至傭兵時自動預選其身上第一件有效裝備（武器 > 防具 > 飾品）並同步觸發 `onSelectEquip`；切換部位篩選（全部/武器/防具/飾品）時亦自動校驗並連動，右側火爐 100% 即時呈現所選對象。
+    2. **裝備 UUID 自動修復 (Self-Healing UUID)**：在 `EquipSourcePicker`、[src/ui/components/ForgeUIController.ts](file:///i:/gameproject/Medieval/src/ui/components/ForgeUIController.ts)（強化與附魔收集清單）及 [src/core/SaveManager.ts](file:///i:/gameproject/Medieval/src/core/SaveManager.ts)（存檔反序列化）全面注入 `ensureUuid`。徹底解決舊存檔或無 UUID 裝備因比對失敗而無條件回退至倉庫第一件裝備（傳家寶劍）的歷史技術債。
+    3. **選中裝備視覺回饋強化**：在 `EquipSourcePicker` 的 `renderEquipCard` 實裝金色高亮雙邊框與 `box-shadow: 0 0 12px rgba(234, 179, 8, 0.7)`，明確標示當前火爐鍛造的裝備。
+  - **驗收狀態**：TypeScript 0 報錯、`CraftingSystem.test.ts` 與 `SaveManager.test.ts` 8/8 100% 通過。
+
+- **[Fix/UI/NpcDialogueAccidentalClickProtection] NPC 對話彈窗「繼續」按鈕位置重構與防誤觸冷卻鎖實裝（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **按鈕物理分離（移至右下角）**：重構 [src/templates/modals-game.html](file:///i:/gameproject/Medieval/src/templates/modals-game.html)，將原本位於左下角的「繼續 ➔」按鈕移至右下角 (`justify-content: flex-end`)，完全符合自左至右、由上至下的自然閱讀視線動線，並與下方展開的選項清單物理座標徹底錯開。
+    2. **350ms 防連擊保護鎖 (Debounce)**：在 [src/ui/modals/NpcDialogueModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/NpcDialogueModalController.ts) 實裝 `choiceCooldownUntil`，當對話推進至最後一段展開選項時，自動施加 350ms 點擊保護，徹底解決玩家快速連點「繼續」時剛好誤觸第一項分支選擇的致命體驗問題。
+    3. **文本區點擊推進與平滑淡入**：對話文字區域支援點擊直接切換至下一段；並在 [style.css](file:///i:/gameproject/Medieval/style.css) 新增 `@keyframes dialogueFadeIn`，選項展開時具備細微平滑淡入動畫。
+  - **驗收狀態**：TypeScript 0 報錯、`NarrativeSystem.test.ts` 18/18 100% 通過。
+
+- **[Refactor/UI/DispatchModalAndMedievalScrollbarAesthetic] 討伐編制 Modal 美學重構與全域中世紀暗金細卷軸實裝（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **HeroPicker 支援 CSS Grid 自適應寬度 (`columns: 3`)**：在 [src/ui/components/HeroPicker.ts](file:///i:/gameproject/Medieval/src/ui/components/HeroPicker.ts) 擴充 `columns` 配置支援，派遣、防禦與攻城全面採用 `grid-template-columns: repeat(3, 1fr)` 與 `cardHeight: 100px`。徹底淘汰原先 `scale(0.88)` 產生的隱形多餘外距與右側空白斷層，使 3 欄卡片 100% 滿版對稱。
+    2. **全域中世紀古典暗金細卷軸**：在 [style.css](file:///i:/gameproject/Medieval/style.css) 統一實裝全域 `::-webkit-scrollbar` 樣式（寬度 6px，深半透明滑軌搭配 `rgba(234, 179, 8, 0.35)` 古典暗金色滑塊），徹底消滅刺眼的 Windows 原生大白卷軸，全遊戲沉浸感大幅提升。
+    3. **討伐編制 Modal 左右對稱雙金邊框**：重構 [src/templates/modals-game.html](file:///i:/gameproject/Medieval/src/templates/modals-game.html)，左欄升級為與右側完全對稱的暗金雙層微鑲邊（`border: 1px solid rgba(234,179,8,0.25); box-shadow: inset 0 0 30px rgba(0,0,0,0.8);`），並將「確認出發」按鈕升級為純粹暗金漸層古典徽章風格，消除生硬底圖。
+  - **驗收狀態**：TypeScript 0 報錯、定向測試全數通過。
+
+- **[Feature/UI/HeroPickerPhase2] 全域通用英雄選擇器 (HeroPicker) 階段 2：大地圖派遣出征、領地防禦戰備、進攻攻城戰候選池全面 SSOT 統一（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **大地圖派遣出征 (Dispatch)**：重構 [src/ui/modals/DispatchModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/DispatchModalController.ts)，下方候選傭兵池全面接入 `HeroPicker.render()`。支援選取上限守護（最多 5 名）、已被選取/非空閒傭兵灰階禁用、點選卡片自動入隊與出隊切換，並自動掛載「派遣中/休養中」狀態徽章。
+    2. **領地防禦戰備 (Territory Defense)**：重構 [src/ui/modals/TerritoryDefenseModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/TerritoryDefenseModalController.ts)，將多梯隊候選傭兵池全面改為 `HeroPicker.render()`。支援跨梯隊指派防護（`usedInOtherSquads` 自動標註並禁用）、HTML5 拖曳 (`draggable`, `onDragStart`) 放入戰術九宮格、點選自動填充空位，徹底消除原本重複手寫的卡片 DOM 與事件監聽。
+    3. **進攻圍城戰役 (Offensive Siege)**：重構 [src/ui/modals/OffensiveSiegeModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/OffensiveSiegeModalController.ts)，候選部隊清單全面改由 `HeroPicker` 驅動，過濾重傷與被俘人員，完美協同梯隊九宮格拖放與自動派駐，並以 `cornerLabel: '已指派'` 提供直覺視覺引導。
+    4. **全域規格一致性保障**：所有軍事候選池統一維持 `overflow-x: hidden;`、`align-content: flex-start;`、卡片 `scale: 0.88` 微縮尺寸，徹底消除所有橫向卷軸與中間排版空洞。
+  - **驗收狀態**：TypeScript 0 報錯、`CraftingSystem.test.ts` 與 `ChurchAndPersistentHealth.test.ts` 13/13 100% 通過。
+
+- **[Feature/UI/HeroPickerSSOT] 全域通用英雄選擇器 (HeroPicker) 實裝：SSOT 抽象、謁見廳與修道院雙端全面落地（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **SSOT 通用英雄選擇器建立**：新增 [src/ui/components/HeroPicker.ts](file:///i:/gameproject/Medieval/src/ui/components/HeroPicker.ts)，將全遊戲中散落各處的傭兵清單渲染、過濾、排序與點擊互動高度抽象為單一真理來源，徹底終結先前各介面複製黏貼數十行重複 DOM 操作代碼的技術債。
+    2. **規格與美學一致化**：統一採用 `adventurer-card` 滿版立繪頭像、品質框色、等級、職業與血條動態渲染，配置 `overflow-x: hidden;`、`align-content: flex-start;` 與微懸停懸浮反饋，徹底杜絕水平卷軸與排版斷層。
+    3. **雙核心獨立建築全面落地**：
+       - **謁見大廳（據點官職冊封）**：[src/ui/OfficeController.ts](file:///i:/gameproject/Medieval/src/ui/OfficeController.ts) 下方待命官員清單全面改為 `HeroPicker`，自動過濾本據點無官職傭兵並注入「統帥」屬性徽章。
+       - **修道院（傷員病床收治）**：[src/ui/modals/ChurchModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/ChurchModalController.ts) 下方空病床候選清單全面改為 `HeroPicker`，自動依「重傷 ➔ 受傷 ➔ 滿血」智能置頂排序，點選直接安排躺床。
+  - **驗收狀態**：TypeScript 0 報錯、`ChurchAndPersistentHealth.test.ts` 6/6 100% 通過。
+
+- **[Feature/UI/EquipSourcePickerSSOT] 全域通用裝備來源選擇器 (EquipSourcePicker) 實裝：4 欄頭像卡片網格、即時槽位連動與三模組 SSOT 統一（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **SSOT 通用組件建立**：新增 [src/ui/components/EquipSourcePicker.ts](file:///i:/gameproject/Medieval/src/ui/components/EquipSourcePicker.ts)，將「來源對象挑選（倉庫 + 傭兵）」與「裝備槽位展示」高度抽象為單一真理來源，徹底終結先前 40+ 位傭兵時產生數十個縱向文字條目難以操作的致命痛點。
+    2. **上下卡片規格 100% 統一（3 欄對齊 × 緊湊靠上）**：
+       - **上層（來源對象 3 欄網格）**：卡片尺寸調整為與下層完全一致之 88px 高度，固定 3 欄，`overflow-x: hidden;`，徹底消除橫向捲軸；頭像升級為 40px 清晰立繪。
+       - **中層（部位過濾與對象銘牌）**：頂部整合「全部 / 武器 / 防具 / 飾品」快速標籤，中層提示當前聚焦對象。
+       - **下層（裝備槽位展示區）**：倉庫與傭兵全面採用 3 欄 88px 正方形卡片網格，配置 `align-content: flex-start;`，徹底修復先前上下兩排卡片被強制分散至頂底的巨大空洞斷層。
+    3. **三大業務介面全面接入**：
+       - **鍛造屋 - 裝備強化**：[src/ui/components/ForgeUIController.ts](file:///i:/gameproject/Medieval/src/ui/components/ForgeUIController.ts) 左欄全面替換為 `EquipSourcePicker`。
+       - **鍛造屋 - 元素加工附魔**：[src/ui/components/ForgeUIController.ts](file:///i:/gameproject/Medieval/src/ui/components/ForgeUIController.ts) 拔除原先手寫的雙欄清單與切換按鈕，左欄全面接入 `EquipSourcePicker`。
+       - **皇家裝備改造所**：[src/ui/components/ModificationWorkshopController.ts](file:///i:/gameproject/Medieval/src/ui/components/ModificationWorkshopController.ts) 刪除近 200 行重複之過濾與列表渲染代碼，左欄全面接入 `EquipSourcePicker`。
+  - **驗收狀態**：TypeScript 0 報錯、`CraftingSystem.test.ts` 7/7 100% 通過。
+
+- **[Refactor/UI/ForgePlanBAndFacilityBackgroundFix] 鍛造強化方案 B 角色折疊實裝、去藍色塊與設施羊皮紙防穿透修復（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **圖三方案 B 實裝（按角色折疊）**：在 [src/ui/components/ForgeUIController.ts](file:///i:/gameproject/Medieval/src/ui/components/ForgeUIController.ts) 實裝方案 B，將鍛造強化左欄重構為「領地儲備倉庫」與「個別傭兵折疊卡片」，展開後均為統一的 80-88px 槽位卡片網格，徹底淘汰原本生硬的雙欄長條條目。
+    2. **藍色色塊與冷色文字清除**：徹底移除強化介面中的藍色背景與冷藍色等級文字（`#38bdf8`），全面改為中世紀羊皮紙金黃銘文（`#fbbf24`），視覺風格回歸純粹古典暗金調。
+    3. **皇家改造所與珍寶典當閣背景補齊**：在 [style.css](file:///i:/gameproject/Medieval/style.css) 為 `#view-modification-workshop` 與 `#view-secondhand-shop` 墊上 `/bg-parchment.png` 羊皮紙紋理底圖，並加上 `#1a1410` 不透光底色保護，徹底解決先前因未設底圖而背景透出底層街道的穿透 Bug。
+    4. **全設施視圖穿透防禦強化**：為所有獨立建築視圖（書房、謁見廳、酒館、鍛造屋、修道院、改造所、典當閣）全面配置 `#120e0b` / `#1a1410` 實色底襯，確保任何網路或渲染時機都不會產生街道透底。
+  - **驗收狀態**：TypeScript 0 報錯。
+
+- **[Refactor/UI/AestheticAndLayoutStandardization] 全域前端 UI 規格統一與美學重構：C > A > B 順序貫通、零卷軸標準骨架建立與全面清除 Emoji（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **階段 C：主介面框體與儀表板美學升級**：
+       - **頂部資源列**：重構 [src/templates/ui-chrome.html](file:///i:/gameproject/Medieval/src/templates/ui-chrome.html) 與 [style.css](file:///i:/gameproject/Medieval/style.css)，移除全部裝飾性 Emoji（城堡、國王、人口、防衛、糧食、草藥、威脅、日期等），改以深鐵暗金色底條、金絲邊框、`.res-tag` 古典微型文字標籤與 Cinzel 地點字型呈現。
+       - **右側帝國儀表板**：重構 [src/templates/views-right-panel.html](file:///i:/gameproject/Medieval/src/templates/views-right-panel.html) 與 [style.css](file:///i:/gameproject/Medieval/style.css)，移除所有 Emoji，改為 `✦ 世界局勢`、`◈ 探索情報`、`◈ 帝國紀事`、`✦ 領地要聞` 古典排版，邊界升級為金屬雙層鑲邊。
+       - **街道建築木牌銘牌化**：重構 [src/templates/views-main.html](file:///i:/gameproject/Medieval/src/templates/views-main.html) 與 [src/ui/SceneController.ts](file:///i:/gameproject/Medieval/src/ui/SceneController.ts)，拔除酒杯、鐵錘、教堂、原木等 Emoji，改為雙行純淨古典懸掛木牌。
+    2. **階段 A：獨立設施雙欄標準化與卡片規格統一**：
+       - **全域設施通用骨架**：在 [style.css](file:///i:/gameproject/Medieval/style.css) 建立 `.facility-header`、`.facility-title`、`.facility-sub-lvl`、`.facility-main-layout`、`.facility-sidebar-left`（340px 零卷軸）與 `.facility-content-right`（min-width: 0 自適應）通用標準類。
+       - **全設施視圖統一落地**：重構 [src/templates/views-facility.html](file:///i:/gameproject/Medieval/src/templates/views-facility.html)，將領主書房 (`#view-base`)、謁見廳 (`#view-hall`)、傭兵酒館 (`#view-camp`)、裝備改造所 (`#view-modification-workshop`)、裝備二手商 (`#view-secondhand-shop`)、鍛造屋 (`#view-forge`)、教會醫療所 (`#view-church`) 全數導入標準雙欄架構，消除外層縱向卷軸，卡片統一對齊 `95px × 110px`（裝備 `90px × 90px`）。
+       - **控制器文字與按鈕去 Emoji 化**：同步更新 [src/ui/RecruitController.ts](file:///i:/gameproject/Medieval/src/ui/RecruitController.ts) 與 [src/ui/modals/ChurchModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/ChurchModalController.ts)，清除招募、病床標題與急救按鈕內殘留的 Emoji。
+    3. **階段 B：抽屜與倉庫面板整頓**：
+       - **抽屜面板統一**：重構 [src/templates/panels-hud.html](file:///i:/gameproject/Medieval/src/templates/panels-hud.html)，清除戰鬥紀錄、外交派系、全域倉庫、地牢、傭兵小隊抽屜標題及頁籤的所有 Emoji，右下角 Command Crest 快捷圓鈕改用古典單字微銘文（倉、牢、軍、邦、誌、設）。
+       - **倉庫 Modal 與網格對齊**：重構 [src/templates/modals-game.html](file:///i:/gameproject/Medieval/src/templates/modals-game.html)，鐵匠鋪倉庫與領地總倉庫標題及頁籤全面清除 Emoji，儲存網格嚴格統一為 `90px` 正方形槽位規格。
+  - **驗收狀態**：TypeScript 0 報錯、定向測試 `CraftingSystem.test.ts` 7/7 100% 通過。
+
+- **[Fix/UI/ChurchInfirmarySlice] 修道院與醫療所垂直切片：排版盒子模型修復、卡片樣式骨架重建與生命週期對齊（2026-09-18）**：
+  - **🎯 核心修復重點**：
+    1. **排版盒子模型與左欄擠壓根治**：在 [style.css](file:///i:/gameproject/Medieval/style.css) 為 `.facility-view` 補上 `box-sizing: border-box;` 與 `#view-church` 專屬樣式；並在 [views-facility.html](file:///i:/gameproject/Medieval/src/templates/views-facility.html) 為左欄指定 `width: 330px; flex-shrink: 0;`、右欄指定 `min-width: 0;`，徹底根治因為右欄下方候選卡片過寬導致左欄（醫療運作、藥坊熬藥、打造病床）被擠壓成一條極窄直線看不見的致命 Flex 排版 Bug。
+    2. **卡片結構規範化**：重構 [src/ui/modals/ChurchModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/ChurchModalController.ts)，為病床中的傷員展示相框與下方候選傷員卡片補齊 `.adventurer-card` 容器類別，100% 恢復滿版立繪、重傷標記、名稱與血條 CSS 渲染，解決卡片走樣骨架崩塌問題。
+    3. **生命週期與預選對齊**：在 [src/ui/FacilityController.ts](file:///i:/gameproject/Medieval/src/ui/FacilityController.ts) 將進入教會入口改為呼叫 `ChurchModalController.open()`，進入時自動預選第一個有效病床，消除進入時下方空白無指引的困境。
+    4. **型別安全與防禦閉環**：標準引入 `AdventurerState`，拔除 `(a as any)` 舊派遣屬性判斷；並在病床展示處增加若傷員資料遺失時的自動重置修復防禦，避免髒資料卡死操作面板。
+  - **驗收狀態**：TypeScript 0 錯誤、`ChurchAndPersistentHealth.test.ts` 6/6 100% 通過。
+
+- **[Docs/AgentGuidelinesAlignment] AI 助理行為準則 AGENTS.md 衝突調和與路徑優化（2026-09-18）**：
+  - **🎯 核心修訂重點**：
+    1. **刪除硬編碼路徑與強制預讀負擔**：將 [Rule 5](file:///i:/gameproject/Medieval/.agents/AGENTS.md) 原先硬編碼的 `d:/tryagent/` 路徑與無差別全量預讀規範剔除，轉為由 Skills 與 `grep_search` 進行定向精準檢索，徹底保護 Token。
+    2. **調和最少檔案原則與上帝類別防範**：在 [Rule 13.4](file:///i:/gameproject/Medieval/.agents/AGENTS.md) 補充邊界約束，明定若單檔出現職責分裂（如 UI 混入後端計算）或超過 500 行，以 Rule 12 關注點正交解耦為優先，嚴禁以「最少檔案」為由製造上帝類別 (God Class)。
+    3. **平衡 Template 400 行約束**：在 [Rule 6.3](file:///i:/gameproject/Medieval/.agents/AGENTS.md) 將 400 行改為長遠漸進目標，避免局部修復時被迫發起全量 HTML 拆分而擴大戰線。
+    4. **明確端到端交付界線**：在 [Rule 7.3](file:///i:/gameproject/Medieval/.agents/AGENTS.md) 明確定義代碼層以測試與型別 0 錯誤為基準，並主動提示使用者進行瀏覽器 F5 實質操作驗收，調和無頭 CLI 環境與真實玩家驗收的邊界。
+  - **文檔路徑**：[.agents/AGENTS.md](file:///i:/gameproject/Medieval/.agents/AGENTS.md)。
+
+- **[Refactor/Architecture/CraftingSystemDecoupling] 鍛造與裝備垂直切片：純後端服務 CraftingSystem 建立與前後端徹底分離（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **建立純後端服務**：新增 [src/systems/crafting/CraftingSystem.ts](file:///i:/gameproject/Medieval/src/systems/crafting/CraftingSystem.ts)，將鍛造/重鑄、礦物冶煉、元素附魔、裝備拆解、攻城器械打造五大業務資料計算全面收攏為純粹的後端 API。
+    2. **前端鍛造所解耦**：重構 [src/ui/components/ForgeUIController.ts](file:///i:/gameproject/Medieval/src/ui/components/ForgeUIController.ts)，拔除所有按鈕內手動操作 `territory.warehouse`、扣減素材與扣減金幣的違規邏輯，全面改為呼叫 `CraftingSystem` 服務，UI 專注於狀態反饋與視圖刷新。
+    3. **SSOT 拆解演算**：將裝備拆解素材回饋演算法（含強化等級火元素石返還判定）統一納入 `CraftingSystem.calculateDisassemblyYield`，確保數值預覽與實際執行為單一真理來源。
+    4. **專屬單元測試覆蓋**：新增 [src/systems/crafting/CraftingSystem.test.ts](file:///i:/gameproject/Medieval/src/systems/crafting/CraftingSystem.test.ts)，涵蓋拆解返還、元素注入、攻城器打造與材料金幣不足攔截。
+  - **驗收狀態**：TypeScript 0 錯誤、定向測試 `CraftingSystem.test.ts` & `EnhancementSystem.test.ts` 10/10 100% 通過。
+
+- **[Refactor/Architecture/HomeWarehouseDecoupling] 全域家園倉庫獨立與鍛造所寄生代碼拔除（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **全域倉庫立戶**：新增 [src/ui/modals/HomeWarehouseModalController.ts](file:///i:/gameproject/Medieval/src/ui/modals/HomeWarehouseModalController.ts)，將大地圖全域紙箱按鈕 (`#btn-base-warehouse`) 對應的裝備、素材、跑商物資 3 大分頁介面徹底從鍛造所中抽離獨立。
+    2. **鍛造所大瘦身**：自 [src/ui/components/ForgeUIController.ts](file:///i:/gameproject/Medieval/src/ui/components/ForgeUIController.ts) 拔除 220 行寄生倉庫渲染代碼與未使用的 `TRADE_GOODS` 引用，鍛造所回歸純粹的強化、鍛造、熔煉、附魔、拆解、攻城器 6 大工藝職能。
+    3. **清理幽靈按鈕監聽**：在 [src/ui/FacilityController.ts](file:///i:/gameproject/Medieval/src/ui/FacilityController.ts) 刪除不存在於 HTML 的 `#btn-forge-warehouse` 死代碼監聽。
+    4. **呼叫鏈對齊**：[src/ui/ShopController.ts:561](file:///i:/gameproject/Medieval/src/ui/ShopController.ts#L561) 的 `openHomeWarehouse()` 乾淨對接新獨立的 `HomeWarehouseModalController`。
+  - **驗收狀態**：TypeScript 0 錯誤、`src/ui/ShopController.test.ts` 3/3 100% 通過。
+
+- **[Refactor/Architecture/TestColocation] 測試檔鏡像歸位與戰鬥模組邊界瘦身（2026-09-18）**：
+  - **🎯 核心實裝重點**：
+    1. **破除跨層鏡像錯位**：將原誤置於 `src/systems/combat/` 下的 15 個 UI 特效與工坊相關測試檔案精準歸位。
+    2. **歸位至 `src/ui/fx/` (12 個檔案)**：
+       - `VFXPipelinePhase0Defects.test.ts`, `VFXPipelinePhase4CanonicalSequence.test.ts`, `VFXPlaybackAndNamingVerification.test.ts`, `PlaybackClockAndTimeline.test.ts`, `CombatActionTimeline.test.ts`, `CombatActionAndCueMapping.test.ts`, `SpatialOffsetFullPipeline.test.ts`, `TargetAnchorAndSalvoRhythm.test.ts`, `VFXCategorizationAndMaterialSecurity.test.ts`, `VFXSessionRngAndCleanup.test.ts`, `CombatStageAdapter.test.ts`, `CombatStudioAdapter.test.ts`。
+    3. **歸位至 `src/tools/vfx-studio/` (3 個檔案)**：
+       - `VFXPipelinePhase3Inspector.test.ts`, `VFXSSOTPublishAndRestore.test.ts`, `VFXStudioBaseline.test.ts`。
+    4. **路徑無損遷移**：全面修正搬移後各檔案內部的相對 `import` 路徑，解除中層 `systems/combat` 對頂層 UI 與工坊的逆向依賴。
+    5. **模組瘦身與 Token 節約**：`src/systems/combat/` 檔案數由 31 個大幅精簡至 16 個，戰鬥系統回歸純數值邏輯；就近測試大幅降低未來定向除錯之 Token 耗損。
+  - **驗收狀態**：`npm run typecheck` 0 錯誤、定向測試 28/28 全數通過。
+
 - **[Docs/EnvironmentSetup] 新增全環境遷移與家用配置手冊 ENVIRONMENT_SETUP.md（2026-09-18）**：
   - **🎯 核心實裝重點**：
     1. **完整彙整 4 大 Skills**：專案層級 `memory_copilot`、全域使用者層級 `web_token`、IDE 內建 `agy-customizations` 與 `antigravity-guide`。

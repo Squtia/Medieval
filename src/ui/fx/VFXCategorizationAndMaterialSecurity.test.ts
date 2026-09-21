@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import defaultVFXSequences from '../../data/vfx_sequences.json';
 import customVFXSequences from '../../data/vfx_custom_sequences.json';
-import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
-import { SkillVfxBindingRegistry } from './SkillVfxBindingRegistry';
+import { VFXPresetRepository } from './VFXPresetRepository';
+import { SkillVfxBindingRegistry } from '../../systems/combat/SkillVfxBindingRegistry';
 import { VFXSequence } from '../../models/VFX';
 
 describe('VFXCategorizationAndMaterialSecurity - 特效分類、素材防護與多檔案隔離架構驗收', () => {

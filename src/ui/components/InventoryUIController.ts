@@ -145,31 +145,57 @@ export class InventoryUIController {
       return;
     }
 
+    const gridContainer = document.createElement('div');
+    gridContainer.style.display = 'grid';
+    gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(90px, 1fr))';
+    gridContainer.style.gap = '8px';
+    gridContainer.style.justifyContent = 'start';
+    this.listContainer!.appendChild(gridContainer);
+
     ids.forEach(id => {
       const def = (materialsJson as any[]).find(m => m.id === id);
       if (!def) return;
       const count = materials[id];
 
       const card = document.createElement('div');
-      card.style.cssText = `
-        display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4);
-        padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
-      `;
+      card.className = 'equip-card-square';
+      card.style.position = 'relative';
+      card.style.width = '100%';
+      card.style.maxWidth = '90px';
+      card.style.height = '100px';
+      card.style.background = 'rgba(15,23,42,0.7)';
+      card.style.border = '1px solid rgba(255,255,255,0.15)';
+      card.style.borderRadius = '6px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.alignItems = 'center';
+      card.style.justifyContent = 'space-between';
+      card.style.padding = '6px 4px';
+      card.style.cursor = 'pointer';
+
       const iconDisplay = renderUniversalIcon(def.icon || def.id, 42);
 
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            ${iconDisplay}
-          </div>
-          <div>
-            <div style="font-weight: bold; color: #cbd5e1;">${def.name}</div>
-            <div style="font-size: 0.8em; color: #94a3b8;">${def.description}</div>
-          </div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+          ${iconDisplay}
         </div>
-        <div style="font-weight: bold; font-size: 1.2em; color: #fff;">x${count}</div>
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; border-top:1px solid rgba(255,255,255,0.1); padding-top:2px; margin-top:2px;">
+          <span style="color:#e2e8f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:50px;">${def.name}</span>
+          <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
+        </div>
       `;
-      this.listContainer!.appendChild(card);
+
+      attachTooltip(card, () => `
+        <div style="padding:8px; max-width:220px;">
+          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            ${renderUniversalIcon(def.icon || def.id, 20)} <span>${def.name}</span>
+          </div>
+          <div style="font-size:0.8em; color:#cbd5e1; line-height:1.4;">${def.description || '領地必備素材'}</div>
+          <div style="font-size:0.8em; color:#4ade80; margin-top:4px;">庫存數量：${count}</div>
+        </div>
+      `);
+
+      gridContainer.appendChild(card);
     });
   }
 
@@ -184,28 +210,54 @@ export class InventoryUIController {
       return;
     }
 
+    const gridContainer = document.createElement('div');
+    gridContainer.style.display = 'grid';
+    gridContainer.style.gridTemplateColumns = 'repeat(auto-fill, minmax(90px, 1fr))';
+    gridContainer.style.gap = '8px';
+    gridContainer.style.justifyContent = 'start';
+    this.listContainer!.appendChild(gridContainer);
+
     goodsWithStock.forEach(({ g, count }) => {
       const matDef = (materialsJson as any[]).find(m => m.id === g.id);
       const iconToUse = matDef?.icon || g.icon || '📦';
 
       const card = document.createElement('div');
-      card.style.cssText = `
-        display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.4);
-        padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);
-      `;
+      card.className = 'equip-card-square';
+      card.style.position = 'relative';
+      card.style.width = '100%';
+      card.style.maxWidth = '90px';
+      card.style.height = '100px';
+      card.style.background = 'rgba(15,23,42,0.7)';
+      card.style.border = '1px solid rgba(255,255,255,0.15)';
+      card.style.borderRadius = '6px';
+      card.style.display = 'flex';
+      card.style.flexDirection = 'column';
+      card.style.alignItems = 'center';
+      card.style.justifyContent = 'space-between';
+      card.style.padding = '6px 4px';
+      card.style.cursor = 'pointer';
+
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width:42px; height:42px; display:flex; align-items:center; justify-content:center; flex-shrink: 0;">
-            ${renderUniversalIcon(iconToUse, 42)}
-          </div>
-          <div>
-            <div style="font-weight: bold; color: #cbd5e1;">${g.name}</div>
-            <div style="font-size: 0.8em; color: #94a3b8;">${g.description}</div>
-          </div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+          ${renderUniversalIcon(iconToUse, 42)}
         </div>
-        <div style="font-weight: bold; font-size: 1.2em; color: #fff;">x${count}</div>
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; font-size:0.75em; border-top:1px solid rgba(255,255,255,0.1); padding-top:2px; margin-top:2px;">
+          <span style="color:#e2e8f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:50px;">${g.name}</span>
+          <span style="color:#fbbf24; font-weight:bold;">x${count}</span>
+        </div>
       `;
-      this.listContainer!.appendChild(card);
+
+      attachTooltip(card, () => `
+        <div style="padding:8px; max-width:220px;">
+          <div style="font-weight:bold; color:#fbbf24; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:4px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+            ${renderUniversalIcon(iconToUse, 20)} <span>${g.name}</span>
+          </div>
+          <div style="font-size:0.8em; color:#cbd5e1; line-height:1.4;">${g.description || '跑商交易物資'}</div>
+          <div style="font-size:0.8em; color:#4ade80; margin-top:4px;">庫存數量：${count}</div>
+        </div>
+      `);
+
+      gridContainer.appendChild(card);
     });
   }
 }

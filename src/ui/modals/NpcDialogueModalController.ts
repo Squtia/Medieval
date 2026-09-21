@@ -25,7 +25,9 @@ export class NpcDialogueModalController {
   private titleEl: HTMLElement | null = null;
   private textEl: HTMLElement | null = null;
   private btnNext: HTMLElement | null = null;
+  private nextWrapper: HTMLElement | null = null;
   private choicesContainer: HTMLElement | null = null;
+  private choiceCooldownUntil: number = 0;
 
   public static getInstance(): NpcDialogueModalController {
     if (!this.instance) {
@@ -43,10 +45,20 @@ export class NpcDialogueModalController {
     this.titleEl = byId('npc-dialogue-title');
     this.textEl = byId('npc-dialogue-text');
     this.btnNext = byId('btn-npc-dialogue-next');
+    this.nextWrapper = byId('npc-dialogue-next-wrapper');
     this.choicesContainer = byId('npc-dialogue-choices');
 
     if (this.btnNext) {
       this.btnNext.onclick = () => this.nextPage();
+    }
+
+    const textClickArea = byId('npc-dialogue-text-area');
+    if (textClickArea) {
+      textClickArea.onclick = () => {
+        if (this.currentPageIdx < this.pages.length - 1) {
+          this.nextPage();
+        }
+      };
     }
   }
 
@@ -150,13 +162,15 @@ export class NpcDialogueModalController {
 
     // 底部控制項
     if (isLastPage) {
+      if (this.nextWrapper) this.nextWrapper.style.display = 'none';
       if (this.btnNext) this.btnNext.style.display = 'none';
       if (this.choicesContainer) {
         this.choicesContainer.style.display = 'flex';
         this.renderChoices();
       }
     } else {
-      if (this.btnNext) this.btnNext.style.display = 'inline-block';
+      if (this.nextWrapper) this.nextWrapper.style.display = 'flex';
+      if (this.btnNext) this.btnNext.style.display = 'inline-flex';
       if (this.choicesContainer) this.choicesContainer.style.display = 'none';
     }
   }
@@ -164,6 +178,8 @@ export class NpcDialogueModalController {
   private renderChoices(): void {
     if (!this.choicesContainer || !this.currentRef) return;
     this.choicesContainer.innerHTML = '';
+    // 設置 350ms 防連擊保護鎖，防止玩家快速連點「繼續」時誤觸剛出現的選項
+    this.choiceCooldownUntil = Date.now() + 350;
 
     const choices = this.currentRef.node.choices && this.currentRef.node.choices.length > 0
       ? this.currentRef.node.choices
@@ -209,6 +225,7 @@ export class NpcDialogueModalController {
         };
 
         btn.onclick = () => {
+          if (Date.now() < this.choiceCooldownUntil) return;
           this.selectChoice(c);
         };
       }

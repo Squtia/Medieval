@@ -1,6 +1,7 @@
 import { GameState } from '../../core/GameState';
 import { FormationDB } from '../../systems/FormationDB';
 import { renderAdventurerCard, getAdventurerTooltipHtml } from '../components/AdventurerCard';
+import { HeroPicker } from '../components/HeroPicker';
 import { positionFloatingElement } from '../FloatingPosition';
 import { ToastManager } from '../ToastManager';
 import { InteractiveCombatSession } from '../../systems/combat/InteractiveCombatSession';
@@ -410,7 +411,6 @@ export class OffensiveSiegeModalController {
     const listEl = document.getElementById('off-siege-adv-list');
     if (!listEl) return;
 
-    listEl.innerHTML = '';
     const currentSquad = this.squads[this.currentTabIndex];
     const otherSquadsSelectedIds = new Set<string>();
     this.squads.forEach((sq, idx) => {
@@ -423,78 +423,38 @@ export class OffensiveSiegeModalController {
       return !a.isWounded && a.currentState !== AdventurerState.CAPTURED;
     });
 
-    availableAdvs.forEach(adv => {
-      const isSelectedInCurrent = currentSquad.selectedIds.has(adv.id);
-      const isSelectedInOther = otherSquadsSelectedIds.has(adv.id);
-
-      const cardWrapper = document.createElement('div');
-      cardWrapper.className = 'adventurer-card';
-      cardWrapper.style.transform = 'scale(0.88)';
-      cardWrapper.style.transformOrigin = 'center';
-      cardWrapper.style.margin = '-4px';
-      cardWrapper.style.cursor = isSelectedInOther ? 'not-allowed' : 'pointer';
-      cardWrapper.style.opacity = isSelectedInOther ? '0.35' : (isSelectedInCurrent ? '0.5' : '1');
-      cardWrapper.style.border = isSelectedInCurrent ? '2px solid #ea580c' : '';
-      cardWrapper.style.boxShadow = isSelectedInCurrent ? '0 0 10px rgba(234, 88, 12, 0.5)' : '';
-
-      cardWrapper.innerHTML = renderAdventurerCard(adv);
-
-      if (isSelectedInOther) {
-        const badge = document.createElement('div');
-        badge.style.position = 'absolute';
-        badge.style.top = '4px';
-        badge.style.right = '4px';
-        badge.style.background = 'rgba(239,68,68,0.85)';
-        badge.style.color = '#fff';
-        badge.style.fontSize = '0.65rem';
-        badge.style.padding = '1px 4px';
-        badge.style.borderRadius = '3px';
-        badge.textContent = '已在其他梯隊';
-        cardWrapper.appendChild(badge);
-      }
-
-      if (!isSelectedInOther && !isSelectedInCurrent) {
-        cardWrapper.draggable = true;
-        cardWrapper.addEventListener('dragstart', (e) => {
-          this.dragAdvId = adv.id;
-          this.dragSourceSlot = 'pool';
-          e.dataTransfer?.setData('text/plain', adv.id);
-          const tEl = document.getElementById('adv-tooltip') || document.getElementById('common-tooltip');
-          if (tEl) tEl.style.display = 'none';
-        });
-      }
-
-      const tooltipHtml = getAdventurerTooltipHtml(adv);
-      cardWrapper.addEventListener('mouseenter', () => {
-        const tEl = document.getElementById('adv-tooltip') || document.getElementById('common-tooltip');
-        if (tEl) { tEl.innerHTML = tooltipHtml; tEl.style.display = 'block'; }
-      });
-      cardWrapper.addEventListener('mousemove', (e) => {
-        const tEl = document.getElementById('adv-tooltip') || document.getElementById('common-tooltip');
-        if (tEl) positionFloatingElement(tEl, e.clientX, e.clientY);
-      });
-      cardWrapper.addEventListener('mouseleave', () => {
-        const tEl = document.getElementById('adv-tooltip') || document.getElementById('common-tooltip');
-        if (tEl) tEl.style.display = 'none';
-      });
-
-      cardWrapper.addEventListener('click', () => {
-        const tEl = document.getElementById('adv-tooltip') || document.getElementById('common-tooltip');
-        if (tEl) tEl.style.display = 'none';
-
-        if (isSelectedInOther) {
-          ToastManager.show('該傭兵已被指派至其他梯隊！');
-          return;
+    HeroPicker.render({
+      container: listEl,
+      adventurers: availableAdvs,
+      selectedIds: currentSquad.selectedIds,
+      disabledIds: otherSquadsSelectedIds,
+      columns: 3,
+      cardHeight: 100,
+      draggable: true,
+      cardExtraOptions: (adv) => {
+        if (otherSquadsSelectedIds.has(adv.id)) {
+          return { cornerLabel: '已指派' };
         }
-
+        return {};
+      },
+      onDragStart: (adv, e) => {
+        this.dragAdvId = adv.id;
+        this.dragSourceSlot = 'pool';
+        e.dataTransfer?.setData('text/plain', adv.id);
+        const tEl = document.getElementById('adv-tooltip') || document.getElementById('common-tooltip');
+        if (tEl) tEl.style.display = 'none';
+      },
+      onDisabledClick: () => {
+        ToastManager.show('該傭兵已被指派至其他梯隊！');
+      },
+      onSelect: (adv) => {
+        const isSelectedInCurrent = currentSquad.selectedIds.has(adv.id);
         if (isSelectedInCurrent) {
           this.removeAdvFromCurrentSquad(adv.id);
         } else {
           this.autoPlaceAdvInCurrentSquad(adv.id);
         }
-      });
-
-      listEl.appendChild(cardWrapper);
+      }
     });
   }
 

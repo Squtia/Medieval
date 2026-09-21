@@ -67,7 +67,7 @@ export function initFacilityController(): void {
   document.getElementById('btn-enter-church')?.addEventListener('click', async () => {
     enterFacility('view-church');
     const { ChurchModalController } = await import('./modals/ChurchModalController');
-    ChurchModalController.render();
+    ChurchModalController.open();
   });
 
   // 退出建築按鈕
@@ -125,8 +125,4 @@ export function initFacilityController(): void {
     openHomeWarehouse();
   });
   document.getElementById('btn-todo-list')?.addEventListener('click', () => openTodoModal());
-  document.getElementById('btn-forge-warehouse')?.addEventListener('click', async () => {
-    const { openWarehouse } = await import('./ShopController');
-    openWarehouse(true);
-  });
 }

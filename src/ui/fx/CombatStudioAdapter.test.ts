@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CombatStudioStageAdapter } from '../../ui/fx/adapters/CombatStudioStageAdapter';
+import { CombatStudioStageAdapter } from './adapters/CombatStudioStageAdapter';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
 
 // 建立輕量 Node 相容 DOM Mock

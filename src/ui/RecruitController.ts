@@ -199,7 +199,7 @@ function renderSelectedGuestDetail() {
     const modifier = adv.trait?.recruitmentModifier || 1.0;
     const finalPrice = Math.floor(basePrice * modifier);
     
-    btnConfirm.innerText = `✅ 招募 (${finalPrice}金)`;
+    btnConfirm.innerText = `招募英雄 (${finalPrice} 金幣)`;
     
     // 清除舊的事件綁定
     const newBtn = btnConfirm.cloneNode(true) as HTMLButtonElement;

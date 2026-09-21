@@ -1013,7 +1013,7 @@ export class CombatUIManager {
       dmgEl.className = `floating-dmg ${event.type === CombatEventType.CRIT ? 'crit' : ''}`;
       dmgEl.textContent = `${event.type === CombatEventType.CRIT ? '💥 ' : ''}-${event.damage}`;
       targetEl.appendChild(dmgEl);
-      setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 800);
+      setTimeout(() => { if (dmgEl.parentNode) dmgEl.remove(); }, 1300);
     }
 
     // 治療浮動跳字
@@ -1024,7 +1024,7 @@ export class CombatUIManager {
       floatEl.style.color = isMp ? '#38bdf8' : '#22c55e';
       floatEl.textContent = `+${event.damage} ${isMp ? 'MP' : 'HP'}`;
       targetEl.appendChild(floatEl);
-      setTimeout(() => { if (floatEl.parentNode) floatEl.remove(); }, 800);
+      setTimeout(() => { if (floatEl.parentNode) floatEl.remove(); }, 1300);
     }
 
     // 更新血量條

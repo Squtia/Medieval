@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
-import { CombatStudioStageAdapter } from '../../ui/fx/adapters/CombatStudioStageAdapter';
-import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
+import { CombatFXEngine } from './CombatFXEngine';
+import { CombatStudioStageAdapter } from './adapters/CombatStudioStageAdapter';
+import { VFXPresetRepository } from './VFXPresetRepository';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
 
 describe('Fix 5 (批次 H): Session-scoped RNG, 治療 Fallback 與清理防線驗證', () => {

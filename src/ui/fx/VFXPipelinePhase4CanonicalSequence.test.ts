@@ -5,13 +5,13 @@ import {
   VFXSlashClipPayload,
   VFXProjectileClipPayload
 } from '../../models/VFX';
-import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
-import { MeshLayerRenderer } from '../../ui/fx/renderers/MeshLayerRenderer';
-import { CombatActionPlayer, CombatAction } from '../../ui/fx/CombatActionPlayer';
+import { VFXPresetRepository } from './VFXPresetRepository';
+import { CombatFXEngine } from './CombatFXEngine';
+import { MeshLayerRenderer } from './renderers/MeshLayerRenderer';
+import { CombatActionPlayer, CombatAction } from './CombatActionPlayer';
 import { CombatEventType } from '../../models/Combat';
-import { VFXStudioAdapter } from '../../ui/fx/VFXStudioAdapter';
-import { CombatStudioStageAdapter } from '../../ui/fx/adapters/CombatStudioStageAdapter';
+import { VFXStudioAdapter } from './VFXStudioAdapter';
+import { CombatStudioStageAdapter } from './adapters/CombatStudioStageAdapter';
 
 describe('VFX Pipeline Phase 4: Canonical Sequence & Typed Payload Convergence', () => {
   let repo: VFXPresetRepository;

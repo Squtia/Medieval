@@ -5,6 +5,7 @@ import { UIManager } from '../UIManager';
 import { renderEquipIcon, ICON_SIZE, formatStatsTags, attachTooltip, getEquipTooltipHtml, getMaterialCount, consumeMaterial } from '../ShopController';
 import { renderUniversalIcon } from '../IconSpriteHelper';
 import { EquipmentSlot, Equipment, AdventurerState } from '../../models/types';
+import { EquipSourcePicker } from './EquipSourcePicker';
 
 export class ModificationWorkshopController {
   private static activeSource: 'WAREHOUSE' | 'ADVENTURER' = 'WAREHOUSE';
@@ -18,43 +19,7 @@ export class ModificationWorkshopController {
     if (!workspace) return;
     workspace.innerHTML = '';
 
-    // 收集所有裝備（依據來源）
-    const getAllAvailableItems = (): { eq: Equipment; label?: string; advName?: string }[] => {
-      if (this.activeSource === 'WAREHOUSE') {
-        return (territory.warehouse || []).map(eq => ({ eq }));
-      } else {
-        const items: { eq: Equipment; label?: string; advName?: string }[] = [];
-        (GameState.adventurers || []).filter(adv => adv.currentState === AdventurerState.IDLE).forEach(adv => {
-          if (!adv.equipment) return;
-          const slots: EquipmentSlot[] = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
-          slots.forEach(slot => {
-            const eq = adv.equipment[slot];
-            if (eq) {
-              const slotName = slot === EquipmentSlot.WEAPON ? '武器' : (slot === EquipmentSlot.ARMOR ? '防具' : '飾品');
-              items.push({
-                eq,
-                label: `${adv.name} (${slotName})`,
-                advName: adv.name
-              });
-            }
-          });
-        });
-        return items;
-      }
-    };
-
-    const allItems = getAllAvailableItems();
-    const getFilteredItems = () => {
-      if (this.activeSlotFilter === 'ALL') return allItems;
-      return allItems.filter(item => item.eq.slot === this.activeSlotFilter);
-    };
-
-    const filteredItems = getFilteredItems();
-    if (!this.selectedEquipUuid || !allItems.some(item => item.eq.uuid === this.selectedEquipUuid)) {
-      this.selectedEquipUuid = filteredItems.length > 0 ? filteredItems[0].eq.uuid || null : null;
-    }
-
-    // 雙欄佈局
+    // 左欄佈局：掛載全域 EquipSourcePicker
     const leftPanel = document.createElement('div');
     leftPanel.style.width = '360px';
     leftPanel.style.display = 'flex';
@@ -64,6 +29,50 @@ export class ModificationWorkshopController {
     leftPanel.style.borderRadius = '8px';
     leftPanel.style.padding = '12px';
     leftPanel.style.minHeight = '0';
+
+    EquipSourcePicker.render({
+      container: leftPanel,
+      selectedEquipUuid: this.selectedEquipUuid,
+      onSelectEquip: (eq) => {
+        this.selectedEquipUuid = eq.uuid || null;
+        this.selectedModRecipeId = null;
+        this.render();
+      }
+    });
+
+    // 尋找選中的裝備
+    const findSelectedEquipment = (): { eq: Equipment; label?: string } | null => {
+      if (!this.selectedEquipUuid) {
+        // 若無預選，自動選取倉庫第一件或傭兵第一件
+        const firstWh = territory.warehouse?.[0];
+        if (firstWh) return { eq: firstWh, label: '倉庫' };
+        for (const adv of (GameState.adventurers || [])) {
+          if (adv.equipment?.WEAPON) return { eq: adv.equipment.WEAPON, label: `${adv.name} (武器)` };
+          if (adv.equipment?.ARMOR) return { eq: adv.equipment.ARMOR, label: `${adv.name} (防具)` };
+          if (adv.equipment?.ACCESSORY) return { eq: adv.equipment.ACCESSORY, label: `${adv.name} (飾品)` };
+        }
+        return null;
+      }
+      const inWh = territory.warehouse?.find(eq => eq.uuid === this.selectedEquipUuid);
+      if (inWh) return { eq: inWh, label: '倉庫' };
+      for (const adv of (GameState.adventurers || [])) {
+        if (!adv.equipment) continue;
+        const slots: EquipmentSlot[] = [EquipmentSlot.WEAPON, EquipmentSlot.ARMOR, EquipmentSlot.ACCESSORY];
+        for (const slot of slots) {
+          const eq = adv.equipment[slot];
+          if (eq && eq.uuid === this.selectedEquipUuid) {
+            const slotName = slot === EquipmentSlot.WEAPON ? '武器' : (slot === EquipmentSlot.ARMOR ? '防具' : '飾品');
+            return { eq, label: `${adv.name} (${slotName})` };
+          }
+        }
+      }
+      return null;
+    };
+
+    const targetItem = findSelectedEquipment();
+    if (targetItem && targetItem.eq.uuid) {
+      this.selectedEquipUuid = targetItem.eq.uuid;
+    }
 
     const rightPanel = document.createElement('div');
     rightPanel.style.flex = '1';
@@ -76,148 +85,7 @@ export class ModificationWorkshopController {
     rightPanel.style.minHeight = '0';
     rightPanel.style.overflowY = 'auto';
 
-    // --- 左欄：來源切換 + 分類篩選 + 裝備清單 ---
-    // 1. 來源切換按鈕
-    const sourceToggleRow = document.createElement('div');
-    sourceToggleRow.style.display = 'flex';
-    sourceToggleRow.style.gap = '6px';
-    sourceToggleRow.style.marginBottom = '8px';
-
-    const btnSourceWh = document.createElement('button');
-    btnSourceWh.style.flex = '1';
-    btnSourceWh.style.padding = '5px 0';
-    btnSourceWh.style.fontSize = '0.82em';
-    btnSourceWh.style.borderRadius = '4px';
-    btnSourceWh.style.cursor = 'pointer';
-    btnSourceWh.style.border = `1px solid ${this.activeSource === 'WAREHOUSE' ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`;
-    btnSourceWh.style.background = this.activeSource === 'WAREHOUSE' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(0,0,0,0.4)';
-    btnSourceWh.style.color = this.activeSource === 'WAREHOUSE' ? '#fbbf24' : '#94a3b8';
-    btnSourceWh.textContent = `📦 倉庫 (${territory.warehouse?.length || 0})`;
-    btnSourceWh.onclick = () => {
-      this.activeSource = 'WAREHOUSE';
-      this.render();
-    };
-
-    let advEquipTotal = 0;
-    (GameState.adventurers || []).forEach(adv => {
-      if (adv.equipment) {
-        if (adv.equipment[EquipmentSlot.WEAPON]) advEquipTotal++;
-        if (adv.equipment[EquipmentSlot.ARMOR]) advEquipTotal++;
-        if (adv.equipment[EquipmentSlot.ACCESSORY]) advEquipTotal++;
-      }
-    });
-
-    const btnSourceAdv = document.createElement('button');
-    btnSourceAdv.style.flex = '1';
-    btnSourceAdv.style.padding = '5px 0';
-    btnSourceAdv.style.fontSize = '0.82em';
-    btnSourceAdv.style.borderRadius = '4px';
-    btnSourceAdv.style.cursor = 'pointer';
-    btnSourceAdv.style.border = `1px solid ${this.activeSource === 'ADVENTURER' ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`;
-    btnSourceAdv.style.background = this.activeSource === 'ADVENTURER' ? 'rgba(234, 179, 8, 0.25)' : 'rgba(0,0,0,0.4)';
-    btnSourceAdv.style.color = this.activeSource === 'ADVENTURER' ? '#fbbf24' : '#94a3b8';
-    btnSourceAdv.textContent = `👤 傭兵 (${advEquipTotal})`;
-    btnSourceAdv.onclick = () => {
-      this.activeSource = 'ADVENTURER';
-      this.render();
-    };
-
-    sourceToggleRow.appendChild(btnSourceWh);
-    sourceToggleRow.appendChild(btnSourceAdv);
-    leftPanel.appendChild(sourceToggleRow);
-
-    // 2. 槽位分類按鈕列
-    const filterRow = document.createElement('div');
-    filterRow.style.display = 'flex';
-    filterRow.style.gap = '4px';
-    filterRow.style.marginBottom = '10px';
-    filterRow.style.flexWrap = 'wrap';
-
-    const filterOpts = [
-      { key: 'ALL', label: '全部' },
-      { key: EquipmentSlot.WEAPON, label: '武器' },
-      { key: EquipmentSlot.ARMOR, label: '防具' },
-      { key: EquipmentSlot.ACCESSORY, label: '飾品' }
-    ];
-
-    filterOpts.forEach(opt => {
-      const btn = document.createElement('button');
-      const isSel = opt.key === this.activeSlotFilter;
-      btn.style.padding = '2px 7px';
-      btn.style.fontSize = '0.74em';
-      btn.style.borderRadius = '4px';
-      btn.style.border = `1px solid ${isSel ? '#fbbf24' : 'rgba(255,255,255,0.15)'}`;
-      btn.style.background = isSel ? 'rgba(234, 179, 8, 0.3)' : 'rgba(0,0,0,0.5)';
-      btn.style.color = isSel ? '#fbbf24' : '#94a3b8';
-      btn.style.cursor = 'pointer';
-      btn.textContent = opt.label;
-      btn.onclick = () => {
-        this.activeSlotFilter = opt.key;
-        this.render();
-      };
-      filterRow.appendChild(btn);
-    });
-    leftPanel.appendChild(filterRow);
-
-    // 3. 裝備卡片列表 (Scrollable)
-    const eqListContainer = document.createElement('div');
-    eqListContainer.style.flex = '1';
-    eqListContainer.style.overflowY = 'auto';
-    eqListContainer.style.display = 'flex';
-    eqListContainer.style.flexDirection = 'column';
-    eqListContainer.style.gap = '8px';
-    eqListContainer.style.paddingRight = '2px';
-
-    if (filteredItems.length === 0) {
-      eqListContainer.innerHTML = `<div style="color:#64748b; font-size:0.85em; text-align:center; padding:30px 0;">
-        ${this.activeSource === 'WAREHOUSE' ? '倉庫內無符合條件裝備' : '傭兵身上無符合條件裝備'}
-      </div>`;
-    } else {
-      filteredItems.forEach(item => {
-        const eq = item.eq;
-        const isSelected = eq.uuid === this.selectedEquipUuid;
-        const card = document.createElement('div');
-        card.style.display = 'flex';
-        card.style.alignItems = 'center';
-        card.style.gap = '10px';
-        card.style.padding = '8px 10px';
-        card.style.background = isSelected ? 'rgba(217, 119, 6, 0.25)' : 'rgba(0, 0, 0, 0.4)';
-        card.style.border = `1px solid ${isSelected ? '#fbbf24' : 'rgba(255,255,255,0.1)'}`;
-        card.style.borderRadius = '6px';
-        card.style.cursor = 'pointer';
-        card.style.transition = 'all 0.15s';
-
-        const iconHtml = renderEquipIcon(eq, ICON_SIZE.SM);
-        const lvlStr = eq.enhancementLevel ? ` <span style="color:#38bdf8;">+${eq.enhancementLevel}</span>` : '';
-        const tierStr = eq.tier ? ` <span style="color:#a855f7; font-size:0.8em;">(T${eq.tier})</span>` : '';
-        const modCount = (eq as any).modCount || 0;
-        const modBadge = modCount > 0 ? `<span style="color:#34d399; font-size:0.75em; margin-left:auto;">🔧 ${modCount}/3</span>` : `<span style="color:#64748b; font-size:0.75em; margin-left:auto;">0/3</span>`;
-        const wearerSub = item.label ? `<div style="font-size:0.72em; color:#38bdf8; margin-top:2px;">👤 ${item.label}</div>` : `<div style="font-size:0.72em; color:#94a3b8; margin-top:2px;">${eq.slot || '裝備'}</div>`;
-
-        card.innerHTML = `
-          ${iconHtml}
-          <div style="flex:1; min-width:0; line-height:1.2;">
-            <div style="font-weight:bold; color:${isSelected ? '#fbbf24' : '#e2e8f0'}; font-size:0.86em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${eq.name}${lvlStr}${tierStr}</div>
-            ${wearerSub}
-          </div>
-          ${modBadge}
-        `;
-
-        card.onclick = () => {
-          this.selectedEquipUuid = eq.uuid || null;
-          this.selectedModRecipeId = null;
-          this.render();
-        };
-
-        attachTooltip(card, () => getEquipTooltipHtml(eq));
-        eqListContainer.appendChild(card);
-      });
-    }
-    leftPanel.appendChild(eqListContainer);
-
     // --- 右欄：改造工作臺 ---
-    const targetItem = allItems.find(item => item.eq.uuid === this.selectedEquipUuid);
-
     if (!targetItem) {
       rightPanel.innerHTML = `
         <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#64748b;">
@@ -245,7 +113,7 @@ export class ModificationWorkshopController {
       const bigIcon = renderEquipIcon(selectedEq, ICON_SIZE.LG);
       const lvlStr = selectedEq.enhancementLevel ? ` +${selectedEq.enhancementLevel}` : '';
       const tierStr = selectedEq.tier ? ` (T${selectedEq.tier})` : '';
-      const wearerInfo = targetItem.advName ? `<div style="font-size:0.82em; color:#38bdf8; margin-top:2px;">👤 穿戴者：${targetItem.label} (就地升級，即時生效)</div>` : '';
+      const wearerInfo = targetItem.label && targetItem.label !== '倉庫' ? `<div style="font-size:0.82em; color:#fbbf24; margin-top:2px;">穿戴者：${targetItem.label} (就地升級，即時生效)</div>` : '';
 
       targetHeader.innerHTML = `
         ${bigIcon}

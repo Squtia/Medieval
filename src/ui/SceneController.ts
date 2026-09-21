@@ -187,36 +187,36 @@ export function backToScene() {
 
 export function getDynamicFacilityName(type: 'tavern' | 'weapon' | 'armor' | 'forge' | 'defense' | 'church', level: number): { name: string, desc: string, icon: string } {
   if (type === 'tavern') {
-    if (level === 1) return { name: '露天營火', desc: '吸引荒野流浪者歇腳，提供最基礎的招募與休息', icon: '🔥' };
-    if (level === 2) return { name: '聚落帳篷', desc: '由多個帳篷組成的簡易交易與休息處', icon: '⛺' };
-    if (level === 3) return { name: '簡陋酒館', desc: '開始供應劣質麥酒，能吸引傭兵前來', icon: '🍻' };
-    return { name: '豪華酒館', desc: '正規的傭兵公會駐點與情報中心', icon: '🏰' };
+    if (level === 1) return { name: '露天營火', desc: '吸引荒野流浪者歇腳，提供最基礎的招募與休息', icon: '' };
+    if (level === 2) return { name: '聚落帳篷', desc: '由多個帳篷組成的簡易交易與休息處', icon: '' };
+    if (level === 3) return { name: '簡陋酒館', desc: '開始供應劣質麥酒，能吸引傭兵前來', icon: '' };
+    return { name: '豪華酒館', desc: '正規的傭兵公會駐點與情報中心', icon: '' };
   } else if (type === 'weapon') {
-    if (level === 1) return { name: '簡易打磨台', desc: '工匠搭建的露天工作台，提供基礎裝備數值打磨與改造', icon: '🔧' };
-    if (level === 2) return { name: '工匠改造坊', desc: '引進精良工具與附魔台，支援進階屬性追加與配重調整', icon: '🔧' };
-    if (level === 3) return { name: '皇家改造所', desc: '具備頂尖車床與銘刻工藝的皇家級裝備改造中心', icon: '🔧' };
-    return { name: '頂級改造所', desc: '機能齊全的頂級裝備改造工坊', icon: '🔧' };
+    if (level === 1) return { name: '簡易打磨台', desc: '工匠搭建的露天工作台，提供基礎裝備數值打磨與改造', icon: '' };
+    if (level === 2) return { name: '工匠改造坊', desc: '引進精良工具與附魔台，支援進階屬性追加與配重調整', icon: '' };
+    if (level === 3) return { name: '皇家改造所', desc: '具備頂尖車床與銘刻工藝的皇家級裝備改造中心', icon: '' };
+    return { name: '頂級改造所', desc: '機能齊全的頂級裝備改造工坊', icon: '' };
   } else if (type === 'armor') {
-    if (level === 1) return { name: '雜貨回收攤', desc: '流浪行商開設的二手物資收購攤，提供基礎飾品出售與舊裝備典當', icon: '⚖️' };
-    if (level === 2) return { name: '典當行商營帳', desc: '流通各類二手軍備物資與稀有護符飾品', icon: '⚖️' };
-    if (level === 3) return { name: '皇家珍寶典當閣', desc: '高價回收各階神兵，定期陳列古代修道院與黑市流出的稀有飾品', icon: '⚖️' };
-    return { name: '頂級典當商行', desc: '信譽卓著的頂級二手軍備商行', icon: '⚖️' };
+    if (level === 1) return { name: '雜貨回收攤', desc: '流浪行商開設的二手物資收購攤，提供基礎飾品出售與舊裝備典當', icon: '' };
+    if (level === 2) return { name: '典當行商營帳', desc: '流通各類二手軍備物資與稀有護符飾品', icon: '' };
+    if (level === 3) return { name: '皇家珍寶典當閣', desc: '高價回收各階神兵，定期陳列古代修道院與黑市流出的稀有飾品', icon: '' };
+    return { name: '頂級典當商行', desc: '信譽卓著的頂級二手軍備商行', icon: '' };
   } else if (type === 'forge') {
-    if (level === 1) return { name: '初級鍛造屋', desc: '最基礎的高溫火窯與鐵砧，提供裝備強化與基礎合成', icon: '⚒️' };
-    if (level === 2) return { name: '進階鍛造屋', desc: '擁有精良熔爐與淬火池，支援高階裝備鍛造與元素附魔', icon: '⚒️' };
-    if (level === 3) return { name: '皇家鍛造屋', desc: '擁有專業鐵砧與高溫熔爐，支援 T4 專屬神兵裝備重鑄', icon: '⚒️' };
-    return { name: '頂級鍛造屋', desc: '機能齊全的頂級鍛造工坊', icon: '⚒️' };
+    if (level === 1) return { name: '初級鍛造屋', desc: '最基礎的高溫火窯與鐵砧，提供裝備強化與基礎合成', icon: '' };
+    if (level === 2) return { name: '進階鍛造屋', desc: '擁有精良熔爐與淬火池，支援高階裝備鍛造與元素附魔', icon: '' };
+    if (level === 3) return { name: '皇家鍛造屋', desc: '擁有專業鐵砧與高溫熔爐，支援 T4 專屬神兵裝備重鑄', icon: '' };
+    return { name: '頂級鍛造屋', desc: '機能齊全的頂級鍛造工坊', icon: '' };
   } else if (type === 'church') {
-    if (level === 1) return { name: '祈禱處', desc: '由原木與聖燭搭建的祈禱處，過夜自然恢復 15%，提供 4 床病房', icon: '⛪' };
-    if (level === 2) return { name: '禮拜堂', desc: '莊嚴石造禮拜堂，過夜自然恢復 20%，病房擴增至 8 床', icon: '⛪' };
-    if (level === 3) return { name: '修道院', desc: '具備大型聖水池與草藥園，過夜自然恢復 25%，病房擴增至 12 床', icon: '⛪' };
-    return { name: '大教堂', desc: '神聖宏偉的信仰聖殿，過夜自然恢復 30%，病房擴增至 16 床', icon: '⛪' };
+    if (level === 1) return { name: '祈禱處', desc: '由原木與聖燭搭建的祈禱處，過夜自然恢復 15%，提供 4 床病房', icon: '' };
+    if (level === 2) return { name: '禮拜堂', desc: '莊嚴石造禮拜堂，過夜自然恢復 20%，病房擴增至 8 床', icon: '' };
+    if (level === 3) return { name: '修道院', desc: '具備大型聖水池與草藥園，過夜自然恢復 25%，病房擴增至 12 床', icon: '' };
+    return { name: '大教堂', desc: '神聖宏偉的信仰聖殿，過夜自然恢復 30%，病房擴增至 16 床', icon: '' };
   } else { // defense
-    if (level === 1) return { name: '木造城牆', desc: '由原木與木柵築成的基礎城防 (城牆最大耐久: 1,000)', icon: '🪵' };
-    if (level === 2) return { name: '夯土城牆', desc: '以夯土與石塊加固的防線 (城牆最大耐久: 2,500)', icon: '🚧' };
-    if (level === 3) return { name: '石造城牆', desc: '堅固的規整石造城牆與箭垛 (城牆最大耐久: 5,000)', icon: '🧱' };
-    if (level === 4) return { name: '重裝要塞城牆', desc: '配備城樓與護城深壕的重裝要塞 (城牆最大耐久: 7,000)', icon: '🏰' };
-    return { name: '鋼石要塞城牆', desc: '堅不可摧的帝國級鋼石巨壁 (城牆最大耐久: 9,000)', icon: '🏰' };
+    if (level === 1) return { name: '木造城牆', desc: '由原木與木柵築成的基礎城防 (城牆最大耐久: 1,000)', icon: '' };
+    if (level === 2) return { name: '夯土城牆', desc: '以夯土與石塊加固的防線 (城牆最大耐久: 2,500)', icon: '' };
+    if (level === 3) return { name: '石造城牆', desc: '堅固的規整石造城牆與箭垛 (城牆最大耐久: 5,000)', icon: '' };
+    if (level === 4) return { name: '重裝要塞城牆', desc: '配備城樓與護城深壕的重裝要塞 (城牆最大耐久: 7,000)', icon: '' };
+    return { name: '鋼石要塞城牆', desc: '堅不可摧的帝國級鋼石巨壁 (城牆最大耐久: 9,000)', icon: '' };
   }
 }
 
@@ -470,7 +470,7 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     const label = btnEnterTavern.querySelector('.building-label');
     if (label && myTerritory.tavernLevel > 0) {
       const info = getDynamicFacilityName('tavern', myTerritory.tavernLevel);
-      label.textContent = `${info.icon} ${info.name}`;
+      label.textContent = info.name;
     }
   }
   if (btnEnterWeaponShop) {
@@ -478,7 +478,7 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     const label = btnEnterWeaponShop.querySelector('.building-label');
     if (label && myTerritory.weaponShopLevel > 0) {
       const info = getDynamicFacilityName('weapon', myTerritory.weaponShopLevel);
-      label.textContent = `${info.icon} ${info.name}`;
+      label.textContent = info.name;
     }
   }
   if (btnEnterArmorShop) {
@@ -486,7 +486,7 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     const label = btnEnterArmorShop.querySelector('.building-label');
     if (label && myTerritory.armorShopLevel > 0) {
       const info = getDynamicFacilityName('armor', myTerritory.armorShopLevel);
-      label.textContent = `${info.icon} ${info.name}`;
+      label.textContent = info.name;
     }
   }
   if (btnEnterForge) {
@@ -494,7 +494,7 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     const label = btnEnterForge.querySelector('.building-label');
     if (label && myTerritory.forgeLevel > 0) {
       const info = getDynamicFacilityName('forge', myTerritory.forgeLevel);
-      label.textContent = `${info.icon} ${info.name}`;
+      label.textContent = info.name;
     }
   }
   if (btnEnterDefense) {
@@ -502,7 +502,7 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     const label = btnEnterDefense.querySelector('.building-label');
     if (label && myTerritory.defenseLevel > 0) {
       const info = getDynamicFacilityName('defense', myTerritory.defenseLevel);
-      label.textContent = `${info.icon} ${info.name}`;
+      label.textContent = info.name;
     }
   }
   const btnEnterChurch = document.getElementById('btn-enter-church');
@@ -511,7 +511,7 @@ export function updateStreetBuildingsVisibility(node: MapNode, isMyHome: boolean
     const label = btnEnterChurch.querySelector('.building-label');
     if (label && myTerritory.churchLevel > 0) {
       const info = getDynamicFacilityName('church', myTerritory.churchLevel);
-      label.textContent = `${info.icon} ${info.name}`;
+      label.textContent = info.name;
     }
   }
 }

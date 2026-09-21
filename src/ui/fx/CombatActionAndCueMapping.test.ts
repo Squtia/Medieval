@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CombatEvent, CombatEventType } from '../../models/Combat';
-import { mapImpactsToCues, CombatActionPlayer, CombatAction } from '../../ui/fx/CombatActionPlayer';
-import { CombatFXEngine } from '../../ui/fx/CombatFXEngine';
+import { mapImpactsToCues, CombatActionPlayer, CombatAction } from './CombatActionPlayer';
+import { CombatFXEngine } from './CombatFXEngine';
 import { VFXImpactCue, VFXSequence } from '../../models/VFX';
-import { VFXPresetRepository } from '../../ui/fx/VFXPresetRepository';
+import { VFXPresetRepository } from './VFXPresetRepository';
 
 describe('Fix 3: CombatAction & Cue Mapping Verification (Batches C & D)', () => {
   beforeEach(() => {
